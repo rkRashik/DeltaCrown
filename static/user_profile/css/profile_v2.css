@@ -1,0 +1,612 @@
+/**
+ * DeltaCrown Profile v2 - Modern 2025 Esports UI
+ * UP-PHASE13: Canonical profile styling using design tokens
+ * Matches platform header/home vibe: dark theme, gradients, glass cards, subtle glow
+ */
+
+/* ============================================
+   PROFILE GRID SYSTEM
+   ============================================ */
+
+.profile-container {
+    max-width: 1920px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+}
+
+@media (min-width: 768px) {
+    .profile-container {
+        padding: 2.5rem 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .profile-container {
+        padding: 2.5rem 2rem;
+    }
+}
+
+@media (min-width: 1280px) {
+    .profile-container {
+        padding: 2.5rem 3rem;
+    }
+}
+
+/* Desktop: 3-column (3/6/3) */
+.profile-grid {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .profile-grid {
+        gap: 2rem;
+    }
+}
+
+.profile-left {
+    grid-column: span 12;
+}
+
+@media (min-width: 768px) {
+    .profile-left {
+        grid-column: span 4;
+        position: sticky;
+        top: 1.5rem;
+        align-self: start;
+    }
+}
+
+@media (min-width: 1024px) {
+    .profile-left {
+        grid-column: span 3;
+    }
+}
+
+.profile-main {
+    grid-column: span 12;
+}
+
+@media (min-width: 768px) {
+    .profile-main {
+        grid-column: span 8;
+    }
+}
+
+@media (min-width: 1024px) {
+    .profile-main {
+        grid-column: span 6;
+    }
+}
+
+.profile-right {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .profile-right {
+        display: block;
+        grid-column: span 3;
+        position: sticky;
+        top: 1.5rem;
+        align-self: start;
+    }
+}
+
+/* ============================================
+   HERO SECTION - Modern 2025 Esports
+   ============================================ */
+
+.profile-hero {
+    position: relative;
+    width: 100%;
+    height: 16rem;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+    .profile-hero {
+        height: 20rem;
+        margin-bottom: 2.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .profile-hero {
+        height: 24rem;
+    }
+}
+
+.profile-hero-banner {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-hero-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, 
+        transparent 0%, 
+        rgba(15, 23, 42, 0.6) 50%, 
+        rgba(15, 23, 42, 0.95) 100%);
+}
+
+.profile-hero-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1.5rem 1rem;
+}
+
+@media (min-width: 768px) {
+    .profile-hero-content {
+        padding: 2rem 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .profile-hero-content {
+        padding: 2rem 2rem;
+    }
+}
+
+@media (min-width: 1280px) {
+    .profile-hero-content {
+        padding: 2rem 3rem;
+    }
+}
+
+.profile-hero-inner {
+    max-width: 1920px;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .profile-hero-inner {
+        gap: 1.5rem;
+    }
+}
+
+/* Avatar */
+.profile-avatar-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.profile-avatar {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+    border: 3px solid var(--dc-bg-dark);
+    object-fit: cover;
+}
+
+@media (min-width: 768px) {
+    .profile-avatar {
+        width: 7rem;
+        height: 7rem;
+        border-width: 4px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .profile-avatar {
+        width: 9rem;
+        height: 9rem;
+    }
+}
+
+.profile-avatar-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    padding: 4px;
+    background: linear-gradient(135deg, var(--dc-primary), var(--dc-primary-light));
+    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-ring {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.profile-avatar-ring.online {
+    background: linear-gradient(135deg, #10b981, #34d399);
+}
+
+.profile-status-dot {
+    position: absolute;
+    bottom: 8%;
+    right: 8%;
+    width: 1rem;
+    height: 1rem;
+    background: #10b981;
+    border: 3px solid var(--dc-bg-dark);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.8);
+}
+
+@media (min-width: 768px) {
+    .profile-status-dot {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+}
+
+/* Hero Info */
+.profile-hero-info {
+    flex: 1;
+    min-width: 0;
+    padding-bottom: 0.5rem;
+}
+
+.profile-display-name {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: white;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+@media (min-width: 768px) {
+    .profile-display-name {
+        font-size: 2rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .profile-display-name {
+        font-size: 2.5rem;
+    }
+}
+
+.profile-handle {
+    font-size: 0.875rem;
+    color: var(--dc-text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+@media (min-width: 768px) {
+    .profile-handle {
+        font-size: 1rem;
+    }
+}
+
+.profile-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.profile-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--dc-primary-light);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    white-space: nowrap;
+}
+
+.profile-badge.level {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+    color: #6ee7b7;
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+/* Hero Actions */
+.profile-hero-actions {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 10;
+}
+
+@media (min-width: 768px) {
+    .profile-hero-actions {
+        top: 1.5rem;
+        right: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .profile-hero-actions {
+        top: 2rem;
+        right: 2rem;
+    }
+}
+
+/* Stats Below Hero */
+.profile-stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    padding: 1.25rem;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(16px);
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    margin: -1rem auto 2rem;
+    max-width: 48rem;
+}
+
+@media (min-width: 768px) {
+    .profile-stats-bar {
+        gap: 3rem;
+        padding: 1.5rem 2rem;
+    }
+}
+
+.profile-stat-item {
+    text-align: center;
+}
+
+.profile-stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+}
+
+@media (min-width: 768px) {
+    .profile-stat-value {
+        font-size: 2rem;
+    }
+}
+
+.profile-stat-label {
+    font-size: 0.75rem;
+    color: var(--dc-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.25rem;
+}
+
+@media (min-width: 768px) {
+    .profile-stat-label {
+        font-size: 0.875rem;
+    }
+}
+
+/* ============================================
+   CARD SYSTEM
+   ============================================ */
+
+.dc-card {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    backdrop-filter: blur(16px);
+    transition: all 0.3s ease;
+}
+
+@media (min-width: 768px) {
+    .dc-card {
+        padding: 1.5rem;
+    }
+}
+
+.dc-card:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 0 25px rgba(99, 102, 241, 0.15);
+}
+
+.dc-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.dc-card-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: white;
+}
+
+.dc-card-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--dc-primary-light);
+}
+
+.dc-card-body {
+    color: var(--dc-text-primary);
+}
+
+/* Empty State */
+.dc-empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--dc-text-secondary);
+}
+
+.dc-empty-state-icon {
+    width: 3rem;
+    height: 3rem;
+    margin: 0 auto 1rem;
+    color: var(--dc-text-muted);
+}
+
+.dc-empty-state-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--dc-text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.dc-empty-state-text {
+    font-size: 0.875rem;
+    color: var(--dc-text-secondary);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+.dc-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+}
+
+.dc-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.dc-btn-primary {
+    background: linear-gradient(135deg, var(--dc-primary), var(--dc-primary-dark));
+    color: white;
+}
+
+.dc-btn-primary:hover:not(:disabled) {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+    transform: translateY(-1px);
+}
+
+.dc-btn-secondary {
+    background: rgba(51, 65, 85, 0.8);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dc-btn-secondary:hover:not(:disabled) {
+    background: rgba(71, 85, 105, 0.9);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dc-btn-ghost {
+    background: transparent;
+    color: var(--dc-text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dc-btn-ghost:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dc-btn-icon {
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+}
+
+/* ============================================
+   MOBILE ENHANCEMENTS
+   ============================================ */
+
+@media (max-width: 767px) {
+    /* Mobile: single column with tabs */
+    .profile-mobile-tabs {
+        display: flex;
+        overflow-x: auto;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: rgba(15, 23, 42, 0.9);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        margin: 0 -1rem 1rem;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .profile-mobile-tab {
+        flex-shrink: 0;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--dc-text-secondary);
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s ease;
+    }
+    
+    .profile-mobile-tab.active {
+        color: white;
+        background: rgba(99, 102, 241, 0.2);
+        border-color: rgba(99, 102, 241, 0.4);
+    }
+    
+    .profile-section {
+        display: none;
+    }
+    
+    .profile-section.active {
+        display: block;
+    }
+}
+
+/* ============================================
+   ACCESSIBILITY & MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus states */
+.dc-btn:focus-visible,
+.profile-mobile-tab:focus-visible {
+    outline: 2px solid var(--dc-primary);
+    outline-offset: 2px;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.space-y-4 > * + * {
+    margin-top: 1rem;
+}
+
+.space-y-6 > * + * {
+    margin-top: 1.5rem;
+}
+
+.text-glow {
+    text-shadow: 0 0 10px currentColor;
+}
+
+.border-glow {
+    box-shadow: 0 0 15px currentColor;
+}

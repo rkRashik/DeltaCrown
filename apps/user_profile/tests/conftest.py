@@ -37,15 +37,13 @@ def auto_create_user_profiles(db):
     post_save.disconnect(create_profile_for_user, sender=User, dispatch_uid="test_auto_profile")
 
 
-@pytest.fixture(autouse=True)
-def ensure_common_games(db):
+@pytest.fixture
+def ensure_common_games(request, db):
     """
-    Ensure common Game instances AND GamePassportSchemas exist for ALL user_profile tests.
+    Ensure common Game instances AND GamePassportSchemas exist for tests.
     
-    This fixture runs automatically before each test function that uses the database.
-    It creates:
-    1. Game instances
-    2. GamePassportSchema for each game (required by GamePassportService)
+    NOTE: NOT autouse anymore - tests must explicitly request this fixture.
+    This avoids conflicts with Playwright tests that manage their own setup.
     
     Tests can then call: GamePassportService.create_passport(game='valorant', ...)
     """

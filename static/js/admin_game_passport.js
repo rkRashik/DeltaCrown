@@ -4,13 +4,16 @@
  * Features:
  * - Dynamic field labels based on selected game (schema-driven, not hardcoded)
  * - Hide/show discriminator and platform fields per game
- * - Region dropdown populated server-side from schema
+ * - Region dropdown populated dynamically via AJAX (UP-PHASE15: NO hardcoded lists)
+ * - Rank choices fetched dynamically (UP-PHASE15: NO hardcoded lists)
  * - Real-time identity_key preview
  * - Form validation hints
  * - NO ROLE (moved to Team context per GP-2D)
  * 
  * This is UX-only - server-side validation remains authoritative.
  * Schema matrix is injected via #gp-schema-matrix element (see change_form.html).
+ * 
+ * UP-PHASE15 Session 2: Dynamic admin forms with AJAX metadata fetching
  */
 
 (function($) {
@@ -19,6 +22,78 @@
     // Schema matrix loaded from template (GP-2D: no hardcoded games)
     let schemaMatrix = {};
     let currentGameSlug = null;
+    let currentGameId = null;
+
+    /**
+     * UP-PHASE15: Fetch game metadata (regions/ranks) from server
+     * No hardcoded lists - all data comes from GamePassportSchema
+     */
+    async function fetchGameMetadata(gameId) {
+        if (!gameId) {
+            return null;
+        }
+
+        try {
+            const response = await fetch(`/profile/api/games/${gameId}/metadata/`);
+            if (!response.ok) {
+                console.error('[GP Admin] Failed to fetch game metadata:', response.status);
+                return null;
+            }
+            const data = await response.json();
+            if (data.success) {
+                console.log('[GP Admin] Fetched metadata for', data.game.name, '- Regions:', data.regions.length, 'Ranks:', data.ranks.length);
+                return data;
+            } else {
+                console.error('[GP Admin] Game metadata fetch failed:', data.message);
+                return null;
+            }
+        } catch (error) {
+            console.error('[GP Admin] Error fetching game metadata:', error);
+            return null;
+        }
+    }
+
+    /**
+     * UP-PHASE15: Populate region dropdown dynamically from server data
+     */
+    function populateRegionDropdown(regions, currentValue) {
+        const regionSelect = $('#id_region');
+        if (!regionSelect.length) {
+            return;
+        }
+
+        // Clear existing options
+        regionSelect.empty();
+
+        // Add default empty option
+        regionSelect.append($('<option>', {
+            value: '',
+            text: '---------'
+        }));
+
+        // Add region options from server
+        regions.forEach(region => {
+            regionSelect.append($('<option>', {
+                value: region.value,
+                text: region.label,
+                selected: region.value === currentValue
+            }));
+        });
+
+        console.log('[GP Admin] Populated', regions.length, 'regions in dropdown');
+    }
+
+    /**
+     * UP-PHASE15: Populate rank choices (future enhancement)
+     * For now, rank_name is a free text field, but this prepares for dropdown
+     */
+    function populateRankChoices(ranks) {
+        // TODO: If rank_name becomes a dropdown, populate it here
+        // For now, just log available ranks for reference
+        if (ranks && ranks.length > 0) {
+            console.log('[GP Admin] Available ranks:', ranks.map(r => r.label).join(', '));
+        }
+    }
 
     /**
      * Load schema matrix from template-injected JSON
@@ -98,14 +173,29 @@
 
     /**
      * Update field labels and visibility based on selected game (GP-2D: schema-driven)
+     * UP-PHASE15: Now fetches regions/ranks from server via AJAX
      */
-    function updateFieldLabelsAndVisibility(gameSlug) {
-        if (!gameSlug) {
+    async function updateFieldLabelsAndVisibility(gameId, gameSlug) {
+        if (!gameId && !gameSlug) {
             return;
         }
 
         currentGameSlug = gameSlug;
-        const config = getFieldConfig(gameSlug);
+        currentGameId = gameId;
+
+        // UP-PHASE15: Fetch game metadata from server (regions, ranks, schema config)
+        const metadata = await fetchGameMetadata(gameId);
+        
+        let config;
+        if (metadata && metadata.schema) {
+            // Use server-provided schema config
+            config = metadata.schema;
+            console.log('[GP Admin] Using server schema config for', gameSlug);
+        } else {
+            // Fallback to local schema matrix (legacy)
+            config = getFieldConfig(gameSlug);
+            console.log('[GP Admin] Using local schema config for', gameSlug);
+        }
 
         // Update IGN field
         const ignField = $('.field-ign');
@@ -117,11 +207,11 @@
             ignLabel.text(config.ign_label + ':');
         }
         if (ignInput.length) {
-            ignInput.attr('placeholder', config.ign_help);
+            ignInput.attr('placeholder', config.ign_help || config.ign_label);
         }
         if (ignHelp.length) {
-            ignHelp.text(config.ign_help);
-        } else {
+            ignHelp.text(config.ign_help || '');
+        } else if (config.ign_help) {
             ignInput.after(`<div class="help">${config.ign_help}</div>`);
         }
 
@@ -137,10 +227,10 @@
                 discLabel.text(config.discriminator_label + ':');
             }
             if (discInput.length) {
-                discInput.attr('placeholder', config.discriminator_help);
+                discInput.attr('placeholder', config.discriminator_help || config.discriminator_label);
             }
             if (discHelp.length) {
-                discHelp.text(config.discriminator_help);
+                discHelp.text(config.discriminator_help || '');
             } else if (config.discriminator_help) {
                 discInput.after(`<div class="help">${config.discriminator_help}</div>`);
             }
@@ -155,10 +245,10 @@
             const platformLabel = platformField.find('label');
             const platformHelp = platformField.find('.help');
             if (platformLabel.length) {
-                platformLabel.text(config.platform_label + ':');
+                platformLabel.text(config.platform_label || 'Platform' + ':');
             }
             if (platformHelp.length) {
-                platformHelp.text(config.platform_help);
+                platformHelp.text(config.platform_help || '');
             } else if (config.platform_help) {
                 platformField.find('input').after(`<div class="help">${config.platform_help}</div>`);
             }
@@ -166,12 +256,24 @@
             platformField.hide().addClass('gp-hidden-field');
         }
 
-        // Update region field - mark as required if needed (GP-2D: dropdown handled server-side)
-        const schema = schemaMatrix[gameSlug];
-        if (schema && schema.region_required) {
-            $('.field-region').addClass('gp-required-field');
-        } else {
-            $('.field-region').removeClass('gp-required-field');
+        // UP-PHASE15: Populate region dropdown dynamically from server
+        if (metadata && metadata.regions) {
+            const currentRegion = $('#id_region').val();
+            populateRegionDropdown(metadata.regions, currentRegion);
+            
+            // Mark as required if needed
+            if (config.region_required) {
+                $('.field-region').addClass('gp-required-field');
+                $('.field-region label').append('<span class="required">*</span>');
+            } else {
+                $('.field-region').removeClass('gp-required-field');
+                $('.field-region label .required').remove();
+            }
+        }
+
+        // UP-PHASE15: Store rank choices for future use
+        if (metadata && metadata.ranks) {
+            populateRankChoices(metadata.ranks);
         }
 
         // Update identity preview
@@ -235,16 +337,23 @@
         }
 
         // Apply initial configuration if game is already selected
-        const selectedGameSlug = gameSelect.find('option:selected').data('slug');
-        if (selectedGameSlug) {
-            updateFieldLabelsAndVisibility(selectedGameSlug);
+        const selectedOption = gameSelect.find('option:selected');
+        const selectedGameId = selectedOption.val();
+        const selectedGameSlug = selectedOption.data('slug') || selectedOption.text().toLowerCase().replace(/\s+/g, '-');
+        
+        if (selectedGameId) {
+            updateFieldLabelsAndVisibility(selectedGameId, selectedGameSlug);
         }
 
         // Listen to game selection changes
         gameSelect.on('change', function() {
             const selectedOption = $(this).find('option:selected');
+            const gameId = selectedOption.val();
             const gameSlug = selectedOption.data('slug') || selectedOption.text().toLowerCase().replace(/\s+/g, '-');
-            updateFieldLabelsAndVisibility(gameSlug);
+            
+            if (gameId) {
+                updateFieldLabelsAndVisibility(gameId, gameSlug);
+            }
         });
 
         // Listen to identity field changes for preview

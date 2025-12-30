@@ -68,17 +68,18 @@ class UserProfileAdmin(admin.ModelAdmin):
         ('Social Media', {
             'fields': ('facebook', 'instagram', 'tiktok', 'twitter', 'youtube_link', 'twitch_link', 'discord_id')
         }),
-        ('Gaming', {
+        ('Gaming & Streaming', {
             'fields': ('stream_status',),
-            'description': 'Game Passports are managed via Game Profile admin.',
+            'description': 'Game Passports and profiles are managed via the dedicated Game Profile admin. Stream status is updated automatically.',
             'classes': ('collapse',)
         }),
         ('Gamification', {
             'fields': ('level', 'xp', 'pinned_badges')
         }),
-        ('💰 Economy (Read-Only)', {
+        ('💰 Economy & Wallet (Read-Only - Managed by Economy App)', {
             'fields': ('deltacoin_balance', 'lifetime_earnings', 'inventory_items'),
-            'description': '⚠️ <strong>WARNING:</strong> Wallet balances are managed by the Economy app. Changes here will be overwritten.'
+            'description': '⚠️ WARNING: These fields are READ-ONLY and managed automatically by the Economy app. Manual edits will be overwritten. Use Economy admin for transactions.',
+            'classes': ('collapse',)
         }),
         ('System Data', {
             'fields': ('attributes', 'system_settings', 'created_at', 'updated_at'),

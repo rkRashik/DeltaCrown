@@ -40,7 +40,7 @@ class ProfilePermissionChecker:
         self.is_owner = viewer and viewer.is_authenticated and viewer.id == self.profile_user.id
         self.is_follower = (
             viewer and viewer.is_authenticated and not self.is_owner and
-            FollowService.is_following(follower=viewer, followed=self.profile_user)
+            FollowService.is_following(follower_user=viewer, followee_user=self.profile_user)
         )
         self.is_visitor = viewer and viewer.is_authenticated and not self.is_owner and not self.is_follower
         self.is_anonymous = not viewer or not viewer.is_authenticated
@@ -62,11 +62,17 @@ class ProfilePermissionChecker:
         if self.is_owner:
             return True
         
-        # Check profile_visibility setting
-        if self.privacy.profile_visibility == 'PRIVATE':
+        # UP-PHASE12B: Use visibility_preset (profile_visibility was removed in Phase 11)
+        # PRIVATE preset = only owner can view
+        # PROTECTED preset = limited info to non-followers (but profile still viewable)
+        # PUBLIC preset = everyone can view
+        visibility = getattr(self.privacy, 'visibility_preset', 'PUBLIC')
+        
+        if visibility == 'PRIVATE':
             return False
-        elif self.privacy.profile_visibility == 'FOLLOWERS_ONLY':
-            return self.is_follower
+        elif visibility == 'PROTECTED':
+            # PROTECTED allows viewing but limits what's shown (handled by other permission methods)
+            return True
         else:  # PUBLIC
             return True
     

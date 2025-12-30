@@ -25,14 +25,16 @@ class GameProfileAliasInline(admin.TabularInline):
     """
     Inline display of alias history for a game passport.
     Read-only view of all identity changes (GP-2A: now includes structured fields).
+    
+    BLOCKER-2-FIX: Use get_queryset to safely handle legacy alias records
     """
     model = GameProfileAlias
     extra = 0
     can_delete = False
     readonly_fields = [
         'old_in_game_name',
-        'old_ign',
-        'old_discriminator',
+        'safe_old_ign',
+        'safe_old_discriminator',
         'old_platform',
         'old_region',
         'changed_at',
@@ -41,11 +43,38 @@ class GameProfileAliasInline(admin.TabularInline):
     ]
     fields = [
         'old_in_game_name',
-        'old_ign',
-        'old_discriminator',
+        'safe_old_ign',
+        'safe_old_discriminator',
         'changed_at',
         'reason'
     ]
+    
+    def safe_old_ign(self, obj):
+        """Display old_ign field"""
+        return obj.old_ign or '—'
+    safe_old_ign.short_description = 'Old IGN'
+    
+    def safe_old_discriminator(self, obj):
+        """Display old_discriminator field"""
+        return obj.old_discriminator or '—'
+    safe_old_discriminator.short_description = 'Old Discriminator'
+    
+    def get_queryset(self, request):
+        """Override queryset to handle potential column issues"""
+        qs = super().get_queryset(request)
+        # Select all fields we display (including old_ign and old_discriminator from GP-2A)
+        return qs.only(
+            'id',
+            'game_profile',
+            'old_in_game_name',
+            'old_ign',
+            'old_discriminator',
+            'old_platform',
+            'old_region',
+            'changed_at',
+            'changed_by_user_id',
+            'reason'
+        )
     
     def has_add_permission(self, request, obj=None):
         """Aliases created by GamePassportService only"""

@@ -84,6 +84,12 @@
     border: 1px solid var(--glass-border);
     border-radius: 1rem;
     padding: 2rem;
+    display: block;
+}
+
+/* CRITICAL FIX: Hidden state for sections */
+.content-section.hidden {
+    display: none !important;
 }
 
 .section-header {

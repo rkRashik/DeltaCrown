@@ -1,0 +1,719 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ profile.display_name }} (@{{ profile_user.username }}) | DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/design-tokens.css' %}">
+<style>
+    /* Profile V4 - Dragon Fire Design */
+    body { background-color: #050505; color: #e5e7eb; }
+
+    /* Glassmorphism */
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.02);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-panel:hover {
+        border-color: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.04);
+        transform: translateY(-2px);
+        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
+    }
+
+    /* Avatar "Dragon Fire" Effect */
+    .avatar-container { position: relative; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; }
+    
+    .avatar-ring-outer {
+        position: absolute; inset: -5px; border-radius: 50%;
+        background: conic-gradient(from 0deg, transparent, #06b6d4, #8b5cf6, transparent);
+        animation: spin 4s linear infinite;
+        filter: blur(2px);
+        mask: radial-gradient(transparent 60%, black 61%);
+        -webkit-mask: radial-gradient(transparent 60%, black 61%);
+        z-index: 1;
+    }
+    
+    .avatar-ring-inner {
+        position: absolute; inset: 0; border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.1);
+        z-index: 2;
+    }
+    
+    .avatar-glow {
+        position: absolute; inset: 10px; border-radius: 50%;
+        box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);
+        z-index: 0;
+        animation: pulseGlow 3s infinite;
+    }
+    
+    .avatar-img {
+        width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+        border: 4px solid #050505; position: relative; z-index: 3;
+    }
+
+    /* Scrollbar */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Tabs */
+    .tab-btn { position: relative; opacity: 0.6; transition: all 0.3s; }
+    .tab-btn:hover { opacity: 1; }
+    .tab-btn.active { opacity: 1; color: white; }
+    .tab-btn.active::after {
+        content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px;
+        background: linear-gradient(90deg, #06b6d4, #8b5cf6);
+        box-shadow: 0 -5px 10px rgba(6,182,212,0.5);
+    }
+
+    /* Tab Content Animation */
+    .tab-content { display: none; animation: slideUp 0.4s ease-out; }
+    .tab-content.active { display: block; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Timeline */
+    .timeline-line::before {
+        content: ''; position: absolute; top: 0; bottom: 0; left: 19px; width: 2px;
+        background: linear-gradient(to bottom, #06b6d4 0%, rgba(255,255,255,0.1) 100%);
+    }
+
+    /* Stats Bar Animation */
+    .stat-bar { transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+
+    @keyframes pulseGlow {
+        0%, 100% { opacity: 1; filter: drop-shadow(0 0 5px rgba(6,182,212,0.5)); }
+        50% { opacity: .7; filter: drop-shadow(0 0 15px rgba(6,182,212,0.8)); }
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Profile V4: Dragon Fire Design with Backend Integration -->
+
+<!-- Hero Header -->
+<header class="relative w-full h-[550px] group overflow-hidden">
+    <!-- Background Image -->
+    {% if profile.banner_url %}
+    <div class="absolute inset-0 bg-cover bg-center bg-fixed transition duration-700 scale-105 group-hover:scale-100" style="background-image: url('{{ profile.banner_url }}');"></div>
+    {% else %}
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"></div>
+    {% endif %}
+    
+    <div class="absolute inset-0 bg-gradient-to-t from-dc-dark via-dc-dark/80 to-transparent"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-dc-dark via-transparent to-dc-dark/60"></div>
+
+    <!-- Online Status Badge (Top Right) -->
+    {% if profile.is_online %}
+    <div class="absolute top-8 right-8 z-20 hidden lg:block animate-float">
+        <div class="glass-panel px-6 py-3 rounded-full flex items-center gap-6 text-xs font-mono tracking-wide shadow-2xl backdrop-blur-md">
+            <span class="flex items-center gap-2 text-green-400 font-bold">
+                <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> ONLINE
+            </span>
+            <span class="w-px h-4 bg-white/10"></span>
+            <div class="flex items-center gap-2 text-gray-300">
+                <i class="fa-solid fa-shield-halved text-cyan-400"></i> 
+                Reliability: <span class="text-white font-bold text-sm">{{ profile.reliability_score|default:"99" }}%</span>
+            </div>
+            <span class="w-px h-4 bg-white/10"></span>
+            <span class="text-gray-500">JOINED {{ profile_user.date_joined|date:"M 'y"|upper }}</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Profile Identity Section -->
+    <div class="absolute bottom-0 left-0 w-full max-w-[1600px] mx-auto px-6 pb-8 flex flex-col xl:flex-row items-end justify-between gap-10 z-20">
+        <div class="flex flex-col md:flex-row items-end gap-8 w-full">
+            <!-- Avatar with Dragon Fire Effect -->
+            <div class="avatar-container shrink-0 -mb-4 md:mb-0">
+                <div class="avatar-ring-outer"></div>
+                <div class="avatar-glow"></div>
+                <div class="avatar-ring-inner"></div>
+                {% if profile.avatar_url %}
+                <img src="{{ profile.avatar_url }}" class="avatar-img" alt="{{ profile.display_name }}">
+                {% else %}
+                <div class="avatar-img flex items-center justify-center bg-gradient-to-br from-cyan-500 to-purple-600 text-4xl font-black text-white">
+                    {{ profile.display_name|slice:":1"|upper }}
+                </div>
+                {% endif %}
+                
+                {% if profile.is_verified %}
+                <div class="absolute -bottom-2 z-30 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.6)] flex items-center gap-1 uppercase tracking-wider border border-white/20">
+                    <i class="fa-solid fa-check-circle"></i> Verified Pro
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Identity Info -->
+            <div class="mb-4 flex-1">
+                <div class="flex flex-wrap items-center gap-4 mb-2">
+                    <h1 class="text-5xl md:text-7xl font-display font-black text-white tracking-tighter drop-shadow-2xl">
+                        {{ profile.display_name|upper }}
+                    </h1>
+                    <div class="flex items-center gap-2">
+                        {% if profile.public_id %}
+                        <button id="copy-public-id" data-public-id="{{ profile.public_id }}" class="px-3 py-1 bg-white/5 rounded-full text-xs font-mono text-gray-400 border border-white/10 hover:bg-white/10 cursor-pointer transition">
+                            ID: {{ profile.public_id }} <i class="fa-regular fa-copy ml-1"></i>
+                        </button>
+                        {% endif %}
+                        <span class="px-2 py-1 bg-yellow-500/10 text-yellow-500 rounded text-[10px] font-bold border border-yellow-500/20">
+                            LVL {{ profile.level|default:"1" }}
+                        </span>
+                    </div>
+                </div>
+                
+                {% if profile.bio %}
+                <p class="text-gray-300 text-lg font-light max-w-2xl leading-relaxed mb-6">
+                    {{ profile.bio }}
+                </p>
+                {% endif %}
+                
+                <!-- Stats Bar -->
+                <div class="flex flex-wrap items-center gap-6 md:gap-10 text-sm p-4 bg-white/5 rounded-xl border border-white/5 backdrop-blur-sm w-fit">
+                    <div class="group cursor-pointer">
+                        <span id="follower-count" class="block text-xl font-bold text-white group-hover:text-cyan-400 transition">{{ follower_count|default:"0"|intcomma }}</span>
+                        <span class="text-xs text-gray-500 uppercase tracking-wide">Followers</span>
+                    </div>
+                    <div class="w-px h-8 bg-white/10"></div>
+                    <div class="group cursor-pointer">
+                        <span class="block text-xl font-bold text-white group-hover:text-purple-600 transition">{{ following_count|default:"0"|intcomma }}</span>
+                        <span class="text-xs text-gray-500 uppercase tracking-wide">Following</span>
+                    </div>
+                    {% if user_teams %}
+                    <div class="w-px h-8 bg-white/10"></div>
+                    <div class="group cursor-pointer">
+                        <span class="block text-xl font-bold text-white group-hover:text-yellow-500 transition">{{ user_teams|length }}</span>
+                        <span class="text-xs text-gray-500 uppercase tracking-wide">Teams Enrolled</span>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Social Links -->
+                    {% if social_links %}
+                    <div class="w-px h-8 bg-white/10"></div>
+                    <div class="flex gap-3">
+                        {% for link in social_links|slice:":3" %}
+                        <a href="{{ link.url }}" target="_blank" rel="noopener" class="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-gray-400 hover:text-cyan-400 hover:bg-cyan-400/10 transition">
+                            {% if link.platform == 'discord' %}<i class="fa-brands fa-discord"></i>
+                            {% elif link.platform == 'twitter' %}<i class="fa-brands fa-twitter"></i>
+                            {% elif link.platform == 'youtube' %}<i class="fa-brands fa-youtube"></i>
+                            {% elif link.platform == 'twitch' %}<i class="fa-brands fa-twitch"></i>
+                            {% else %}<i class="fa-solid fa-link"></i>
+                            {% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-3 mb-4 w-full md:w-auto">
+            {% if is_owner %}
+                <a href="{% url 'user_profile:profile_settings_v2' %}" class="flex-1 md:flex-none px-8 py-4 bg-white text-black font-bold font-display rounded-xl hover:bg-gray-200 transition shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center justify-center gap-2 transform hover:-translate-y-1">
+                    <i class="fa-solid fa-pen-to-square"></i> EDIT PROFILE
+                </a>
+            {% else %}
+                <button id="follow-btn" 
+                        data-following="{{ is_following|yesno:'true,false' }}"
+                        data-username="{{ profile_user.username }}"
+                        class="flex-1 md:flex-none px-8 py-4 {% if is_following %}bg-white/10 border-white/20{% else %}bg-cyan-500/10 border-cyan-500/30{% endif %} hover:bg-cyan-500/20 border rounded-xl text-cyan-400 transition flex items-center justify-center gap-2 backdrop-blur-md font-bold">
+                    <i class="fa-solid {% if is_following %}fa-user-check{% else %}fa-user-plus{% endif %}"></i>
+                    <span id="follow-text">{% if is_following %}Following{% else %}Follow{% endif %}</span>
+                </button>
+                <button class="px-5 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white transition flex items-center justify-center backdrop-blur-md">
+                    <i class="fa-regular fa-envelope"></i>
+                </button>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<!-- Sticky Tab Bar -->
+<div class="sticky top-0 z-40 bg-black/95 backdrop-blur-xl border-b border-white/5 shadow-2xl">
+    <div class="max-w-[1600px] mx-auto px-6 flex items-center justify-between h-16 overflow-x-auto no-scrollbar">
+        <div class="flex gap-4 h-full min-w-max">
+            <button onclick="switchTab('overview')" class="tab-btn active px-4 h-full text-sm font-bold tracking-wide flex items-center gap-2">
+                Overview
+            </button>
+            <button onclick="switchTab('career')" class="tab-btn px-4 h-full text-sm font-bold tracking-wide text-gray-400 flex items-center gap-2">
+                Career
+            </button>
+            <button onclick="switchTab('stats')" class="tab-btn px-4 h-full text-sm font-bold tracking-wide text-gray-400 flex items-center gap-2">
+                Stats
+            </button>
+            {% if achievements %}
+            <button onclick="switchTab('achievements')" class="tab-btn px-4 h-full text-sm font-bold tracking-wide text-gray-400 flex items-center gap-2">
+                Achievements
+            </button>
+            {% endif %}
+            {% if is_owner %}
+            <button onclick="switchTab('wallet')" class="tab-btn px-4 h-full text-sm font-bold tracking-wide text-yellow-500 flex items-center gap-2">
+                <i class="fa-solid fa-wallet"></i> Wallet
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<main class="max-w-[1600px] mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-32">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="lg:col-span-3 space-y-6">
+        <!-- Personal Info -->
+        {% if about_items %}
+        <div class="glass-panel rounded-2xl overflow-hidden">
+            <div class="bg-white/5 p-4 flex justify-between items-center border-b border-white/5">
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Personal Info</span>
+            </div>
+            <div class="p-5 space-y-4">
+                {% for item in about_items|slice:":4" %}
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded bg-white/5 flex items-center justify-center text-gray-400 text-lg">
+                        {{ item.icon_emoji|default:"📌" }}
+                    </div>
+                    <div>
+                        <div class="text-white text-sm font-bold">{{ item.display_text }}</div>
+                        <div class="text-[11px] text-gray-500">{{ item.type }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Game Passports -->
+        {% if pinned_passports or unpinned_passports %}
+        <div class="glass-panel rounded-2xl overflow-hidden">
+            <div class="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
+                <h3 class="font-bold text-white text-sm">Linked Games</h3>
+            </div>
+            {% for passport in pinned_passports|slice:":1" %}
+            <div class="p-5 bg-gradient-to-r from-cyan-500/10 to-transparent border-l-4 border-cyan-500 relative">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-white text-sm">{{ passport.game_display_name|upper }}</span>
+                    </div>
+                    <span class="text-[9px] bg-cyan-500 text-black px-1.5 py-0.5 rounded font-bold">MAIN</span>
+                </div>
+                <div class="flex justify-between items-center text-xs mb-1">
+                    <span class="font-mono text-gray-300">{{ passport.in_game_name }}</span>
+                </div>
+                {% if passport.rank_name %}
+                <div class="text-xs font-bold text-red-400 mt-2 flex items-center gap-1">
+                    <i class="fa-solid fa-trophy"></i> {{ passport.rank_name }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            
+            {% for passport in unpinned_passports|slice:":2" %}
+            <div class="p-4 border-b border-white/5 hover:bg-white/5 transition cursor-pointer opacity-80 hover:opacity-100">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-300 font-medium">{{ passport.game_display_name }}</span>
+                    </div>
+                    {% if passport.rank_name %}
+                    <span class="text-xs text-yellow-500 font-bold">{{ passport.rank_name }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            
+            {% if pinned_passports|add:unpinned_passports|length > 3 %}
+            <div class="p-3 text-center">
+                <a href="{% url 'user_profile:profile_settings_v2' %}#game-passports" class="text-[10px] text-gray-500 hover:text-white transition w-full py-1 block">
+                    View All {{ pinned_passports|add:unpinned_passports|length }} Games
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <section class="lg:col-span-6 min-h-[600px]">
+
+        <!-- OVERVIEW TAB -->
+        <div id="tab-overview" class="tab-content active space-y-6">
+            
+            {% if match_history %}
+            <!-- Recent Match Card -->
+            {% with match=match_history.0 %}
+            <div class="glass-panel rounded-2xl overflow-hidden group relative h-80 border-cyan-400/20">
+                <div class="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800"></div>
+                <div class="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black via-black/80 to-transparent z-10">
+                    <h3 class="text-white font-bold text-2xl font-display mb-1">Latest Match</h3>
+                    <div class="flex gap-4 text-xs text-gray-300 font-medium">
+                        <span>{{ match.tournament_name }}</span>
+                        <span>{{ match.scheduled_time|date:"M d, Y" }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            <!-- Skill Endorsements -->
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-lg font-display font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-certificate text-yellow-500"></i> Profile Highlights
+                        </h2>
+                        <p class="text-xs text-gray-500 mt-1">Key strengths and achievements</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    {% if user_stats.total_matches %}
+                    <div class="flex items-center justify-between group p-3 rounded hover:bg-white/5 transition">
+                        <div class="flex items-center gap-4">
+                            <div class="w-8 h-8 rounded bg-purple-600/10 flex items-center justify-center text-purple-600 font-bold text-sm border border-purple-600/20">
+                                {{ user_stats.total_matches }}
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white group-hover:text-purple-600 transition">Total Matches</h4>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if user_stats.win_rate %}
+                    <div class="flex items-center justify-between group p-3 rounded hover:bg-white/5 transition">
+                        <div class="flex items-center gap-4">
+                            <div class="w-8 h-8 rounded bg-cyan-500/10 flex items-center justify-center text-cyan-500 font-bold text-sm border border-cyan-500/20">
+                                {{ user_stats.win_rate|floatformat:0 }}%
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white group-hover:text-cyan-500 transition">Win Rate</h4>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- CAREER TAB -->
+        <div id="tab-career" class="tab-content space-y-6">
+            {% if user_teams %}
+            <div class="glass-panel p-8 rounded-2xl">
+                <h2 class="text-lg font-display font-bold text-white mb-8 flex items-center gap-2">
+                    <i class="fa-solid fa-timeline text-cyan-400"></i> Career Timeline
+                </h2>
+                <div class="relative ml-2 space-y-12 timeline-line">
+                    {% for team in user_teams|slice:":3" %}
+                    <div class="relative pl-10 group">
+                        <div class="absolute left-[8px] top-0 w-6 h-6 bg-cyan-500 rounded-full border-4 border-black shadow-[0_0_15px_#06b6d4] z-10 flex items-center justify-center text-[8px] text-black font-bold"></div>
+                        <div class="glass-panel p-6 rounded-xl border-l-4 border-l-cyan-500 relative bg-gradient-to-r from-cyan-500/5 to-transparent">
+                            <h3 class="text-xl font-bold text-white">{{ team.name }}</h3>
+                            <div class="flex items-center gap-2 my-2">
+                                <span class="text-xs bg-white/10 px-2 py-0.5 rounded text-white font-mono">{{ team.game|upper }}</span>
+                                <span class="text-xs bg-white/10 px-2 py-0.5 rounded text-white font-mono">{{ team.role|upper }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="glass-panel p-12 rounded-2xl text-center">
+                <div class="text-gray-500 mb-4">
+                    <i class="fa-solid fa-users text-4xl"></i>
+                </div>
+                <p class="text-gray-400">No team history yet</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- STATS TAB -->
+        <div id="tab-stats" class="tab-content space-y-6">
+            <div class="glass-panel p-6 rounded-2xl">
+                <h2 class="text-lg font-display font-bold text-white mb-6">Performance Metrics</h2>
+                
+                {% if user_stats %}
+                <div class="space-y-6">
+                    {% if user_stats.win_rate %}
+                    <div>
+                        <div class="flex justify-between text-xs mb-2">
+                            <span class="text-gray-400">Win Rate</span>
+                            <span class="text-white font-bold">{{ user_stats.win_rate|floatformat:0 }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-800 h-3 rounded-full overflow-hidden">
+                            <div class="bg-gradient-to-r from-green-500 to-emerald-400 h-full stat-bar" style="width: {{ user_stats.win_rate|floatformat:0 }}%"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if user_stats.kd_ratio %}
+                    <div>
+                        <div class="flex justify-between text-xs mb-2">
+                            <span class="text-gray-400">K/D Ratio</span>
+                            <span class="text-white font-bold">{{ user_stats.kd_ratio|floatformat:2 }}</span>
+                        </div>
+                        <div class="w-full bg-gray-800 h-3 rounded-full overflow-hidden">
+                            <div class="bg-gradient-to-r from-cyan-500 to-purple-600 h-full stat-bar" style="width: {{ user_stats.kd_ratio|floatformat:0|add:"0"|slice:":2" }}0%"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <p class="text-center text-gray-500">No statistics available yet</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ACHIEVEMENTS TAB -->
+        {% if achievements %}
+        <div id="tab-achievements" class="tab-content space-y-6">
+            <div class="glass-panel p-6 rounded-2xl">
+                <h2 class="text-lg font-display font-bold text-white mb-6">Trophy Cabinet</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {% for achievement in achievements %}
+                    <div class="glass-panel p-4 rounded-xl text-center hover:scale-105 transition cursor-help group relative">
+                        <div class="text-4xl mb-2">{{ achievement.icon|default:"🏆" }}</div>
+                        <div class="text-sm font-bold text-white">{{ achievement.name }}</div>
+                        <div class="text-[10px] text-gray-500 mt-1">{{ achievement.awarded_at|date:"M d, Y" }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- WALLET TAB (Owner Only) -->
+        {% if is_owner %}
+        <div id="tab-wallet" class="tab-content space-y-6">
+            <div class="glass-panel p-8 rounded-2xl bg-gradient-to-br from-yellow-500/10 to-transparent border-yellow-500/20 relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 text-9xl text-yellow-500 opacity-10 rotate-12"><i class="fa-solid fa-coins"></i></div>
+                
+                <div class="relative z-10">
+                    <div class="text-sm font-bold text-yellow-500 uppercase tracking-widest mb-2">Total Balance</div>
+                    <div class="text-6xl font-display font-black text-white mb-6 drop-shadow-lg">
+                        {{ user_profile.deltacoin_balance|default:"0"|intcomma }} <span class="text-2xl text-yellow-500/80">DC</span>
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <a href="/shop/" class="bg-yellow-500 text-black font-bold px-6 py-3 rounded-xl hover:bg-yellow-400 transition shadow-[0_0_20px_rgba(250,204,21,0.4)] flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Top Up
+                        </a>
+                        <button class="bg-white/10 text-white font-bold px-6 py-3 rounded-xl hover:bg-white/20 transition flex items-center gap-2 border border-white/10">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Withdraw
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div class="glass-panel p-5 rounded-xl">
+                    <div class="text-xs text-gray-500 font-bold uppercase mb-1">Lifetime Earned</div>
+                    <div class="text-2xl font-bold text-white">{{ user_profile.lifetime_earnings|default:"0"|intcomma }} DC</div>
+                    <div class="text-[10px] text-gray-400 mt-1">Since {{ profile_user.date_joined|date:"M Y" }}</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </section>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside class="lg:col-span-3 space-y-6">
+        
+        <!-- Teams -->
+        {% if user_teams %}
+        <div class="glass-panel rounded-2xl p-6">
+            <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4">Enrolled Teams ({{ user_teams|length }})</h3>
+            <div class="space-y-4">
+                {% for team in user_teams|slice:":3" %}
+                <div class="flex items-center gap-3 group cursor-pointer hover:bg-white/5 p-2 rounded transition -mx-2 border border-transparent hover:border-white/5">
+                    <div class="w-10 h-10 rounded bg-slate-800 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold shadow-lg text-xs">
+                        {{ team.tag|default:team.name|slice:":2"|upper }}
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-sm font-bold text-white group-hover:text-cyan-400 transition">{{ team.name }}</div>
+                        <div class="text-[10px] {% if team.is_captain %}text-cyan-400{% else %}text-gray-400{% endif %} font-bold">
+                            {{ team.game|upper }} • {{ team.role|upper }} {% if team.is_captain %}👑{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Achievements Preview -->
+        {% if achievements %}
+        <div class="glass-panel p-6 rounded-2xl">
+            <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4">Trophy Cabinet</h3>
+            <div class="grid grid-cols-4 gap-2">
+                {% for achievement in achievements|slice:":4" %}
+                <div class="aspect-square bg-yellow-500/10 rounded-lg flex items-center justify-center border border-yellow-500/30 hover:scale-105 transition cursor-help relative group">
+                    <div class="text-2xl drop-shadow-[0_0_10px_gold]">{{ achievement.icon|default:"🏆" }}</div>
+                    <div class="absolute bottom-full mb-2 hidden group-hover:block bg-black text-[10px] text-white p-2 rounded whitespace-nowrap z-50">
+                        {{ achievement.name }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </aside>
+
+</main>
+
+<!-- Hydration Data -->
+<script type="application/json" id="profile-data">
+{
+    "username": "{{ profile_user.username }}",
+    "display_name": "{{ profile.display_name|escapejs }}",
+    "is_following": {{ is_following|yesno:"true,false" }},
+    "follower_count": {{ follower_count|default:"0" }},
+    "public_id": "{{ profile.public_id|default:""|escapejs }}"
+}
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Profile V4 Controller
+(function() {
+    'use strict';
+    
+    const profileData = JSON.parse(document.getElementById('profile-data').textContent);
+    
+    // Tab Switching
+    window.switchTab = function(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        
+        const selectedContent = document.getElementById('tab-' + tabId);
+        if(selectedContent) {
+            selectedContent.classList.add('active');
+        }
+        
+        const buttons = document.querySelectorAll('.tab-btn');
+        buttons.forEach(btn => {
+            if(btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(tabId)) {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Update URL hash
+        window.location.hash = tabId;
+    };
+    
+    // Follow Button
+    const followBtn = document.getElementById('follow-btn');
+    if (followBtn) {
+        let isFollowing = followBtn.dataset.following === 'true';
+        const username = followBtn.dataset.username;
+        
+        followBtn.addEventListener('click', async function() {
+            const originalFollowing = isFollowing;
+            const followerCountEl = document.getElementById('follower-count');
+            const originalCount = parseInt(followerCountEl.textContent.replace(/,/g, ''));
+            
+            // Optimistic update
+            isFollowing = !isFollowing;
+            updateFollowUI();
+            followerCountEl.textContent = (originalCount + (isFollowing ? 1 : -1)).toLocaleString();
+            
+            try {
+                const endpoint = isFollowing 
+                    ? `/actions/follow-safe/${username}/`
+                    : `/actions/unfollow-safe/${username}/`;
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Follow action failed');
+                }
+            } catch (error) {
+                // Rollback on error
+                isFollowing = originalFollowing;
+                updateFollowUI();
+                followerCountEl.textContent = originalCount.toLocaleString();
+                console.error('Follow error:', error);
+            }
+        });
+        
+        function updateFollowUI() {
+            const icon = followBtn.querySelector('i');
+            const text = document.getElementById('follow-text');
+            
+            if (isFollowing) {
+                followBtn.classList.remove('bg-cyan-500/10', 'border-cyan-500/30');
+                followBtn.classList.add('bg-white/10', 'border-white/20');
+                icon.className = 'fa-solid fa-user-check';
+                text.textContent = 'Following';
+            } else {
+                followBtn.classList.remove('bg-white/10', 'border-white/20');
+                followBtn.classList.add('bg-cyan-500/10', 'border-cyan-500/30');
+                icon.className = 'fa-solid fa-user-plus';
+                text.textContent = 'Follow';
+            }
+        }
+    }
+    
+    // Copy Public ID
+    const copyBtn = document.getElementById('copy-public-id');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async function() {
+            const publicId = this.dataset.publicId;
+            try {
+                await navigator.clipboard.writeText(publicId);
+                const originalText = this.innerHTML;
+                this.innerHTML = 'ID: ' + publicId + ' <i class="fa-solid fa-check ml-1 text-green-400"></i>';
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                }, 2000);
+            } catch (err) {
+                console.error('Copy failed:', err);
+            }
+        });
+    }
+    
+    // CSRF Token Helper
+    function getCsrfToken() {
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Handle hash navigation on load
+    if (window.location.hash) {
+        const hash = window.location.hash.substring(1);
+        switchTab(hash);
+    }
+})();
+</script>
+{% endblock %}

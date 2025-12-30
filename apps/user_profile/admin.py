@@ -23,7 +23,7 @@ from .models import (
     Badge,
     UserBadge,
     # Phase 3 Models
-    # SocialLink - REMOVED: Orphaned model, no view usage
+    SocialLink,
     GameProfile,
     Achievement,
     # Match - REMOVED: Placeholder admin, unregistered until tournament system writes data
@@ -249,42 +249,39 @@ class UserProfileAdmin(admin.ModelAdmin):
         'created_at',
         'updated_at',
         'kyc_verified_at',
-        'deltacoin_balance',  # Economy-owned: updated by economy app only
-        'lifetime_earnings',  # Economy-owned: updated by economy app only
+        'deltacoin_balance',  # READONLY: Economy-owned, updated by economy app only
+        'lifetime_earnings',  # READONLY: Economy-owned, updated by economy app only
     ]
     
     fieldsets = [
-        ('User Account', {
+        ('👤 Identity & Account', {
             'fields': ['user', 'uuid', 'public_id', 'created_at', 'updated_at'],
-            'description': 'System identifiers and registration metadata (read-only)'
+            'description': '🔒 System identifiers and registration metadata (read-only)'
         }),
-        ('Public Identity', {
+        ('📸 Public Profile', {
             'fields': ['display_name', 'slug', 'avatar', 'banner', 'bio', 'pronouns'],
             'description': 'Visible to all visitors on profile page'
         }),
-        ('Legal Identity (KYC)', {
-            'fields': [
-                'real_full_name',
-                'date_of_birth',
-                'age',
-                'nationality',
-                'kyc_status',
-                'kyc_verified_at',
-            ],
+        ('📋 Demographics & Contact', {
+            'fields': ['phone', 'gender', 'date_of_birth', 'age', 'nationality'],
             'classes': ['collapse'],
-            'description': 'Verification data - immutable after KYC approval'
+            'description': 'Optional demographic information'
         }),
-        ('Location', {
+        ('📍 Location', {
             'fields': ['country', 'region', 'city', 'postal_code', 'address'],
             'classes': ['collapse'],
             'description': 'Geographic data for tournaments and leaderboards'
         }),
-        ('Demographics', {  # Renamed from 'Contact'
-            'fields': ['phone', 'gender'],
+        ('🆔 KYC Verification', {
+            'fields': [
+                'real_full_name',
+                'kyc_status',
+                'kyc_verified_at',
+            ],
             'classes': ['collapse'],
-            'description': 'Optional demographic information'
+            'description': '⚠️ Verification data - immutable after KYC approval'
         }),
-        ('Emergency Contact', {
+        ('🚨 Emergency Contact', {
             'fields': [
                 'emergency_contact_name',
                 'emergency_contact_phone',
@@ -293,7 +290,7 @@ class UserProfileAdmin(admin.ModelAdmin):
             'classes': ['collapse'],
             'description': 'For LAN events and emergencies only'
         }),
-        ('Social Links', {
+        ('🔗 Social Links', {
             'fields': [
                 'youtube_link',
                 'twitch_link',
@@ -307,7 +304,7 @@ class UserProfileAdmin(admin.ModelAdmin):
             'classes': ['collapse'],
             'description': 'Connected platforms and streaming status'
         }),
-        ('Platform Preferences', {
+        ('🌐 Platform Preferences', {
             'fields': [
                 'preferred_language',
                 'timezone_pref',
@@ -316,11 +313,11 @@ class UserProfileAdmin(admin.ModelAdmin):
             ],
             'description': 'User interface and localization preferences (UP-PHASE6-C)'
         }),
-        ('Competitive Career', {
+        ('🏆 Competitive Career', {
             'fields': ['reputation_score', 'skill_rating'],
             'description': 'Competitive metrics and rankings'
         }),
-        ('Gamification', {
+        ('🎮 Gamification', {
             'fields': [
                 'level',
                 'xp',
@@ -329,9 +326,9 @@ class UserProfileAdmin(admin.ModelAdmin):
             ],
             'description': 'Progression system and rewards'
         }),
-        ('Economy', {
+        ('💰 Economy (READ-ONLY)', {
             'fields': ['deltacoin_balance', 'lifetime_earnings'],
-            'description': 'Financial data - balance is cached from economy app (read-only)'
+            'description': '⚠️ MANAGED BY ECONOMY APP - DO NOT EDIT MANUALLY. Balance is cached from economy service. Use economy admin to adjust balances.'
         }),
     ]
     

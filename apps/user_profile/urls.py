@@ -36,8 +36,38 @@ from .views.settings_api import (
     update_platform_preferences, get_platform_preferences,
     update_wallet_settings, get_wallet_settings
 )
+# UP-PHASE15-SESSION3: Social Links CRUD API
+from .views.social_links_api import (
+    social_link_create_api, social_link_update_single_api,
+    social_link_delete_api, social_links_list_api
+)
+# UP-PHASE15-SESSION3: Game Passports API
+from .views.game_passports_api import (
+    list_game_passports_api, create_game_passport_api,
+    update_game_passport_api, delete_game_passport_api
+)
 # UP-PASSPORT-CREATE-01: Passport creation endpoint
 from .views.passport_create import create_passport
+
+# UP-PHASE14B: Dynamic content API (no hardcoded dropdowns)
+from .views.dynamic_content_api import (
+    get_available_games, get_social_platforms, 
+    get_privacy_presets, get_visibility_options,
+    get_game_metadata  # UP-PHASE15: Game metadata for dynamic admin forms
+)
+
+# UP-PHASE14C: Showcase API (Facebook-style About section)
+from .views.showcase_api import (
+    get_showcase, update_showcase, toggle_showcase_section,
+    set_featured_team, set_featured_passport,
+    add_showcase_highlight, remove_showcase_highlight
+)
+
+# UP-PHASE15: About API (Facebook-style About section CRUD)
+from .views.about_api import (
+    get_about_items, create_about_item, update_about_item,
+    delete_about_item, reorder_about_items
+)
 
 from .views_public import public_profile, profile_api
 from .api_views import get_game_id, update_game_id
@@ -108,11 +138,43 @@ urlpatterns = [
     path("api/passports/<int:passport_id>/delete/", delete_passport, name="passport_delete"),
     
     # UP-SETTINGS-MVP-01: Additional settings API
-    path("api/social-links/", get_social_links, name="get_social_links"),
-    path("api/social-links/update/", update_social_links_api, name="update_social_links_api"),
+    path("api/social-links/", social_links_list_api, name="social_links_list_api"),  # UP-PHASE15: New list API
+    path("api/social-links/legacy/", get_social_links, name="get_social_links"),  # Legacy dict format
+    path("api/social-links/create/", social_link_create_api, name="social_link_create_api"),
+    path("api/social-links/update/", social_link_update_single_api, name="social_link_update_single_api"),
+    path("api/social-links/delete/", social_link_delete_api, name="social_link_delete_api"),
+    path("api/social-links/bulk-update/", update_social_links_api, name="update_social_links_api"),  # Legacy bulk
+    # UP-PHASE15-SESSION3: Game Passports API
+    path("api/game-passports/", list_game_passports_api, name="list_game_passports_api"),
+    path("api/game-passports/create/", create_game_passport_api, name="create_game_passport_api"),
+    path("api/game-passports/update/", update_game_passport_api, name="update_game_passport_api"),
+    path("api/game-passports/delete/", delete_game_passport_api, name="delete_game_passport_api"),
     path("api/platform-settings/", get_platform_settings, name="get_platform_settings"),
     path("me/settings/platform/", update_platform_settings, name="update_platform_settings"),
     path("api/profile/data/", get_profile_data, name="get_profile_data"),
+    
+    # UP-PHASE14B: Dynamic content APIs (eliminate hardcoded dropdowns)
+    path("api/games/", get_available_games, name="get_available_games"),
+    path("api/games/<int:game_id>/metadata/", get_game_metadata, name="get_game_metadata"),  # UP-PHASE15: Dynamic admin
+    path("api/social-links/platforms/", get_social_platforms, name="get_social_platforms"),
+    path("api/privacy/presets/", get_privacy_presets, name="get_privacy_presets"),
+    path("api/privacy/visibility-options/", get_visibility_options, name="get_visibility_options"),
+    
+    # UP-PHASE14C: Showcase APIs (Facebook-style About management)
+    path("api/profile/showcase/", get_showcase, name="get_showcase"),
+    path("api/profile/showcase/update/", update_showcase, name="update_showcase"),
+    path("api/profile/showcase/toggle/", toggle_showcase_section, name="toggle_showcase_section"),
+    path("api/profile/showcase/featured-team/", set_featured_team, name="set_featured_team"),
+    path("api/profile/showcase/featured-passport/", set_featured_passport, name="set_featured_passport"),
+    path("api/profile/showcase/highlights/add/", add_showcase_highlight, name="add_showcase_highlight"),
+    path("api/profile/showcase/highlights/remove/", remove_showcase_highlight, name="remove_showcase_highlight"),
+    
+    # UP-PHASE15: About APIs (Facebook-style About CRUD)
+    path("api/profile/about/", get_about_items, name="get_about_items"),
+    path("api/profile/about/create/", create_about_item, name="create_about_item"),
+    path("api/profile/about/<int:item_id>/update/", update_about_item, name="update_about_item"),
+    path("api/profile/about/<int:item_id>/delete/", delete_about_item, name="delete_about_item"),
+    path("api/profile/about/reorder/", reorder_about_items, name="reorder_about_items"),
     
     # UP-PHASE6-C: Settings redesign endpoints
     path("me/settings/notifications/", update_notification_preferences, name="update_notification_preferences"),

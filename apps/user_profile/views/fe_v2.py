@@ -215,7 +215,162 @@ def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
             following=profile_user
         ).exists()
     
-    return render(request, 'user_profile/profile/public.html', context)
+    # UP-PHASE14C: Add ProfileShowcase data for About section
+    from apps.user_profile.models import ProfileShowcase
+    try:
+        showcase = ProfileShowcase.objects.get(user_profile=user_profile)
+        context['showcase'] = {
+            'enabled_sections': showcase.get_enabled_sections(),
+            'section_order': showcase.section_order or [],
+            'featured_team_id': showcase.featured_team_id,
+            'featured_team_role': showcase.featured_team_role,
+            'featured_passport_id': showcase.featured_passport_id,
+            'highlights': showcase.highlights or []
+        }
+    except ProfileShowcase.DoesNotExist:
+        # Create default showcase
+        context['showcase'] = {
+            'enabled_sections': ProfileShowcase.get_default_sections(),
+            'section_order': [],
+            'featured_team_id': None,
+            'featured_team_role': '',
+            'featured_passport_id': None,
+            'highlights': []
+        }
+    
+    # UP-PHASE14C: Add real achievements data (if user has permission to view)
+    if permissions.get('can_view_achievements'):
+        from apps.user_profile.models import UserBadge
+        achievements = UserBadge.objects.filter(
+            user=profile_user
+        ).select_related('badge').order_by('-earned_at')[:12]
+        context['achievements'] = [
+            {
+                'id': badge.id,
+                'name': badge.badge.name,
+                'description': badge.badge.description,
+                'icon': badge.badge.icon,
+                'awarded_at': badge.earned_at,
+                'rarity': getattr(badge.badge, 'rarity', 'common')
+            }
+            for badge in achievements
+        ]
+    else:
+        context['achievements'] = None  # Blocked by privacy
+    
+    # UP-PHASE14C: Add real social links data (respecting privacy)
+    if permissions.get('can_view_social_links'):
+        from apps.user_profile.models import SocialLink
+        social_links = SocialLink.objects.filter(
+            user=profile_user
+        ).order_by('platform')
+        context['social_links'] = [
+            {
+                'platform': link.platform,
+                'url': link.url,
+                'handle': link.handle
+            }
+            for link in social_links
+        ]
+    else:
+        context['social_links'] = None  # Blocked by privacy
+    
+    # UP-PHASE14C: Add real stats data
+    from apps.user_profile.models import UserProfileStats
+    try:
+        stats = UserProfileStats.objects.get(user_profile=user_profile)
+        context['user_stats'] = {
+            'total_matches': stats.total_matches,
+            'total_wins': stats.total_wins,
+            'win_rate': round((stats.total_wins / stats.total_matches * 100) if stats.total_matches > 0 else 0, 1),
+            'tournaments_played': stats.tournaments_played,
+            'tournaments_won': stats.tournaments_won,
+            'total_kills': getattr(stats, 'total_kills', 0),
+            'total_deaths': getattr(stats, 'total_deaths', 0),
+            'kd_ratio': round((getattr(stats, 'total_kills', 0) / getattr(stats, 'total_deaths', 1)) if getattr(stats, 'total_deaths', 0) > 0 else 0, 2)
+        }
+    except UserProfileStats.DoesNotExist:
+        # No stats yet
+        context['user_stats'] = {
+            'total_matches': 0,
+            'total_wins': 0,
+            'win_rate': 0,
+            'tournaments_played': 0,
+            'tournaments_won': 0,
+            'total_kills': 0,
+            'total_deaths': 0,
+            'kd_ratio': 0
+        }
+    
+    # UP-PHASE14C: Add match history data (respect privacy)
+    if permissions.get('can_view_match_history'):
+        from apps.tournaments.models import Match, Registration
+        from django.db.models import Q
+        
+        # Get user's registrations
+        user_registration_ids = list(
+            Registration.objects.filter(
+                user=profile_user,
+                is_deleted=False
+            ).values_list('id', flat=True)
+        )
+        
+        # Get recent matches where user participated (via Registration)
+        if user_registration_ids:
+            matches = Match.objects.filter(
+                Q(participant1_id__in=user_registration_ids) | Q(participant2_id__in=user_registration_ids),
+                state__in=['completed', 'disputed'],
+                is_deleted=False
+            ).select_related('tournament').order_by('-scheduled_time')[:10]
+            
+            context['match_history'] = [
+                {
+                    'id': match.id,
+                    'tournament_name': match.tournament.name if match.tournament else 'Unknown',
+                    'game': match.tournament.game if match.tournament else None,
+                    'participant1_name': match.participant1_name or 'Participant 1',
+                    'participant2_name': match.participant2_name or 'Participant 2',
+                    'participant1_score': match.participant1_score,
+                    'participant2_score': match.participant2_score,
+                    'winner_id': match.winner_id,
+                    'scheduled_time': match.scheduled_time,
+                    'state': match.state,
+                    'is_user_winner': match.winner_id in user_registration_ids if match.winner_id else False
+                }
+                for match in matches
+            ]
+        else:
+            context['match_history'] = []  # No registrations found
+    else:
+        context['match_history'] = None  # Blocked by privacy
+    
+    # UP-PHASE15: Add About items (Facebook-style About section)
+    from apps.user_profile.models import ProfileAboutItem
+    is_follower = permissions.get('is_follower', False)
+    
+    # Query About items (with privacy filtering)
+    about_items = ProfileAboutItem.objects.filter(
+        user_profile=user_profile,
+        is_active=True
+    ).order_by('order_index', '-created_at')
+    
+    # Filter by viewer permissions
+    filtered_about_items = []
+    for item in about_items:
+        viewer_user = request.user if request.user.is_authenticated else None
+        if item.can_be_viewed_by(viewer_user, is_follower):
+            filtered_about_items.append({
+                'id': item.id,
+                'item_type': item.item_type,
+                'display_text': item.display_text,
+                'icon_emoji': item.icon_emoji,
+                'visibility': item.visibility
+            })
+    
+    context['about_items'] = filtered_about_items
+    
+    # V4: Dragon Fire Design with full backend integration
+    return render(request, 'user_profile/profile/public_v4.html', context)
 
 
 def profile_activity_v2(request: HttpRequest, username: str) -> HttpResponse:
@@ -383,7 +538,43 @@ def profile_settings_v2(request: HttpRequest) -> HttpResponse:
         user=request.user
     ).select_related('game').order_by('-created_at')
     
-    return render(request, 'user_profile/profile/settings.html', context)
+    # UP-PHASE15-SESSION3: Add JSON data for Vanilla JS controller
+    context['profile_data'] = json.dumps({
+        'display_name': user_profile.display_name or request.user.username,
+        'bio': user_profile.bio or '',
+        'country': user_profile.country or '',
+        'pronouns': user_profile.pronouns or '',
+    })
+    
+    # Notification preferences (dummy data for MVP - actual implementation later)
+    context['notification_data'] = json.dumps({
+        'email': {
+            'tournaments': True,
+            'matches': True,
+            'team_invites': True,
+        },
+        'platform': {
+            'in_app': True,
+            'browser': False,
+        }
+    })
+    
+    # Platform preferences
+    context['platform_data'] = json.dumps({
+        'preferred_language': getattr(user_profile, 'preferred_language', 'en'),
+        'timezone_pref': getattr(user_profile, 'timezone_pref', 'Asia/Dhaka'),
+        'time_format': getattr(user_profile, 'time_format', '12h'),
+        'theme_preference': getattr(user_profile, 'theme_preference', 'dark'),
+    })
+    
+    # Wallet settings (dummy data - actual implementation later)
+    context['wallet_data'] = json.dumps({
+        'bkash_account': getattr(user_profile, 'bkash_account', ''),
+        'nagad_account': getattr(user_profile, 'nagad_account', ''),
+        'rocket_account': getattr(user_profile, 'rocket_account', ''),
+    })
+    
+    return render(request, 'user_profile/profile/settings_v4.html', context)
 
 
 @login_required
@@ -486,7 +677,15 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
     profile = get_user_profile_safe(request.user)
     
     try:
-        data = json.loads(request.body)
+        # Accept both JSON and form data
+        if request.content_type == 'application/json' or request.body:
+            try:
+                data = json.loads(request.body)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                # Fallback to POST dict
+                data = request.POST.dict()
+        else:
+            data = request.POST.dict()
         
         # Capture before state for audit
         before_snapshot = {

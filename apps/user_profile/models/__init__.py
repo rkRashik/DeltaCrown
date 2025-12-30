@@ -12,6 +12,8 @@ from apps.user_profile.models.stats import UserProfileStats
 from apps.user_profile.models.audit import UserAuditEvent
 from apps.user_profile.models.game_passport_schema import GamePassportSchema
 from apps.user_profile.models.settings import NotificationPreferences, WalletSettings
+from apps.user_profile.models.showcase import ProfileShowcase  # UP-PHASE14C
+from apps.user_profile.models.about import ProfileAboutItem  # UP-PHASE15
 
 # Re-export existing models from models_main.py to maintain backward compatibility
 from apps.user_profile.models_main import (
@@ -52,6 +54,12 @@ __all__ = [
     # UP-PHASE6-C models
     'NotificationPreferences',
     'WalletSettings',
+    
+    # UP-PHASE14C models
+    'ProfileShowcase',
+    
+    # UP-PHASE15 models
+    'ProfileAboutItem',
     
     # Existing models
     'UserProfile',

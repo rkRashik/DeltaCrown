@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Settings - DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/settings_v2.css' %}">
+<link rel="stylesheet" href="{% static 'css/design-tokens.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- UP-PHASE15 Session 3: Vanilla JS - No Alpine dependency -->
+<noscript>
+    <div class="alert alert-error">
+        <strong>JavaScript Required:</strong> Settings page requires JavaScript to function properly.
+    </div>
+</noscript>
+
+<div class="settings-container">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-white mb-2">Settings</h1>
+        <p class="text-slate-400">Manage your account and platform preferences</p>
+    </div>
+
+    <div class="settings-grid">
+        <!-- Navigation Sidebar -->
+        <nav class="settings-nav">
+            <div class="nav-header">⚙️ Menu</div>
+            
+            <div class="nav-item" data-section="profile">
+                <span class="nav-icon">👤</span><span>Profile</span>
+            </div>
+            <div class="nav-item" data-section="privacy">
+                <span class="nav-icon">🔒</span><span>Privacy</span>
+            </div>
+            <div class="nav-item" data-section="about">
+                <span class="nav-icon">📝</span><span>About</span>
+            </div>
+            <div class="nav-item" data-section="game-passports">
+                <span class="nav-icon">🎮</span><span>Game Passports</span>
+            </div>
+            <div class="nav-item" data-section="social">
+                <span class="nav-icon">🔗</span><span>Social Links</span>
+            </div>
+            <div class="nav-item" data-section="notifications">
+                <span class="nav-icon">🔔</span><span>Notifications</span>
+            </div>
+            <div class="nav-item" data-section="platform">
+                <span class="nav-icon">🌐</span><span>Platform</span>
+            </div>
+            <div class="nav-item" data-section="wallet">
+                <span class="nav-icon">💰</span><span>Wallet</span>
+            </div>
+            <div class="nav-item" data-section="kyc">
+                <span class="nav-icon">✅</span><span>KYC</span>
+            </div>
+            <div class="nav-item" data-section="security">
+                <span class="nav-icon">🛡️</span><span>Security</span>
+            </div>
+            <div class="nav-item" data-section="account">
+                <span class="nav-icon">⚙️</span><span>Account</span>
+            </div>
+        </nav>
+
+        <!-- Content Area -->
+        <div class="settings-content">
+            <!-- Alert Container -->
+            <div class="alert-container" style="display: none;"></div>
+
+            <!-- PROFILE SECTION -->
+            <section class="content-section hidden" data-section="profile">
+                <div class="section-header">
+                    <span class="section-icon">👤</span>
+                    <div>
+                        <h2 class="section-title">Profile</h2>
+                        <p class="section-description">Manage your public identity</p>
+                    </div>
+                </div>
+
+                <form id="profile-form">
+                    <div class="form-group">
+                        <label class="form-label" for="display_name">Display Name</label>
+                        <input type="text" id="display_name" name="display_name" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="bio">Bio</label>
+                        <textarea id="bio" name="bio" class="form-textarea" maxlength="500"></textarea>
+                        <span class="form-hint">Max 500 characters</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="country">Country</label>
+                        <select id="country" name="country" class="form-select">
+                            <option value="">Select Country</option>
+                            <option value="BD">Bangladesh</option>
+                            <option value="IN">India</option>
+                            <option value="PK">Pakistan</option>
+                            <option value="US">United States</option>
+                            <option value="GB">United Kingdom</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="pronouns">Pronouns</label>
+                        <input type="text" id="pronouns" name="pronouns" class="form-input" placeholder="e.g., he/him, she/her, they/them">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-text">💾 Save Changes</span>
+                        <span class="btn-loading" style="display: none;">⏳ Saving...</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- PRIVACY SECTION -->
+            <section class="content-section hidden" data-section="privacy">
+                <div class="section-header">
+                    <span class="section-icon">🔒</span>
+                    <div>
+                        <h2 class="section-title">Privacy</h2>
+                        <p class="section-description">Control who can see your information</p>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="card-header">🔒 Privacy Settings</div>
+                    <div class="card-content">
+                        <p class="mb-4">Manage detailed privacy controls for your profile, game data, and interactions.</p>
+                        <a href="{% url 'user_profile:profile_privacy_v2' %}" class="btn btn-primary">
+                            Manage Privacy Settings
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ABOUT SECTION (Facebook-style items) -->
+            <section class="content-section hidden" data-section="about">
+                <div class="section-header">
+                    <span class="section-icon">📝</span>
+                    <div>
+                        <h2 class="section-title">About</h2>
+                        <p class="section-description">Manage your About section items</p>
+                    </div>
+                </div>
+
+                {% include "user_profile/profile/settings/_about_manager.html" %}
+            </section>
+
+            <!-- GAME PASSPORTS SECTION -->
+            <section class="content-section hidden" data-section="game-passports">
+                <div class="section-header">
+                    <span class="section-icon">🎮</span>
+                    <div>
+                        <h2 class="section-title">Game Passports</h2>
+                        <p class="section-description">Manage your gaming identities</p>
+                    </div>
+                </div>
+
+                {% include "user_profile/profile/settings/_game_passports_manager.html" %}
+            </section>
+
+            <!-- SOCIAL LINKS SECTION -->
+            <section class="content-section hidden" data-section="social">
+                <div class="section-header">
+                    <span class="section-icon">🔗</span>
+                    <div>
+                        <h2 class="section-title">Social Links</h2>
+                        <p class="section-description">Connect your social media accounts</p>
+                    </div>
+                </div>
+
+                {% include "user_profile/profile/settings/_social_links_manager.html" %}
+            </section>
+
+            <!-- NOTIFICATIONS SECTION -->
+            <section class="content-section hidden" data-section="notifications">
+                <div class="section-header">
+                    <span class="section-icon">🔔</span>
+                    <div>
+                        <h2 class="section-title">Notifications</h2>
+                        <p class="section-description">Choose how you want to be notified</p>
+                    </div>
+                </div>
+
+                <form id="notifications-form">
+                    <h3 class="text-lg font-bold text-white mb-3">Email Notifications</h3>
+                    
+                    <div class="toggle-group">
+                        <div class="toggle-label">
+                            <div class="toggle-title">Tournament Updates</div>
+                            <div class="toggle-description">Receive emails about tournament registrations and results</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="email_tournaments" class="toggle-input">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-label">
+                            <div class="toggle-title">Match Notifications</div>
+                            <div class="toggle-description">Get notified when matches are scheduled or results are posted</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="email_matches" class="toggle-input">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-label">
+                            <div class="toggle-title">Team Invites</div>
+                            <div class="toggle-description">Receive emails when invited to join a team</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="email_team_invites" class="toggle-input">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <h3 class="text-lg font-bold text-white mb-3 mt-6">Platform Notifications</h3>
+                    
+                    <div class="toggle-group">
+                        <div class="toggle-label">
+                            <div class="toggle-title">In-App Notifications</div>
+                            <div class="toggle-description">Show notifications within DeltaCrown</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notify_in_app" class="toggle-input">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-label">
+                            <div class="toggle-title">Browser Push</div>
+                            <div class="toggle-description">Receive browser push notifications</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notify_browser" class="toggle-input">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-6">
+                        <span class="btn-text">💾 Save Preferences</span>
+                        <span class="btn-loading" style="display: none;">⏳ Saving...</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- PLATFORM SECTION -->
+            <section class="content-section hidden" data-section="platform">
+                <div class="section-header">
+                    <span class="section-icon">🌐</span>
+                    <div>
+                        <h2 class="section-title">Platform Preferences</h2>
+                        <p class="section-description">Customize your DeltaCrown experience</p>
+                    </div>
+                </div>
+
+                <form id="platform-form">
+                    <div class="form-group">
+                        <label class="form-label" for="preferred_language">Language</label>
+                        <select id="preferred_language" name="preferred_language" class="form-select">
+                            <option value="en">English</option>
+                            <option value="bn" disabled>Bengali (Coming Soon)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="timezone_pref">Timezone</label>
+                        <select id="timezone_pref" name="timezone_pref" class="form-select">
+                            <option value="Asia/Dhaka">Asia/Dhaka (GMT+6)</option>
+                            <option value="Asia/Kolkata">Asia/Kolkata (GMT+5:30)</option>
+                            <option value="UTC">UTC</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="time_format">Time Format</label>
+                        <select id="time_format" name="time_format" class="form-select">
+                            <option value="12h">12-hour (3:00 PM)</option>
+                            <option value="24h">24-hour (15:00)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="theme_preference">Theme</label>
+                        <select id="theme_preference" name="theme_preference" class="form-select">
+                            <option value="dark">Dark</option>
+                            <option value="light">Light</option>
+                            <option value="system">System</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-text">💾 Save Preferences</span>
+                        <span class="btn-loading" style="display: none;">⏳ Saving...</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- WALLET SECTION -->
+            <section class="content-section hidden" data-section="wallet">
+                <div class="section-header">
+                    <span class="section-icon">💰</span>
+                    <div>
+                        <h2 class="section-title">Wallet & Withdrawals</h2>
+                        <p class="section-description">Manage your DeltaCoins</p>
+                    </div>
+                </div>
+
+                <div class="balance-display">
+                    <div class="balance-amount">{{ user_profile.deltacoin_balance|default:0 }}</div>
+                    <div class="balance-label">DeltaCoins Available</div>
+                </div>
+
+                <form id="wallet-form">
+                    <h3 class="text-lg font-bold text-white mb-3">Withdrawal Methods</h3>
+                    
+                    <div class="form-group">
+                        <div class="toggle-group">
+                            <div class="toggle-label">
+                                <div class="toggle-title">bKash</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="bkash_enabled" class="toggle-input">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="mt-2" style="display: none;">
+                            <input type="text" id="bkash_account" class="form-input" 
+                                   placeholder="01XXXXXXXXX" pattern="01[3-9]\d{8}">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="toggle-group">
+                            <div class="toggle-label">
+                                <div class="toggle-title">Nagad</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="nagad_enabled" class="toggle-input">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="mt-2" style="display: none;">
+                            <input type="text" id="nagad_account" class="form-input" 
+                                   placeholder="01XXXXXXXXX" pattern="01[3-9]\d{8}">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="toggle-group">
+                            <div class="toggle-label">
+                                <div class="toggle-title">Rocket</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="rocket_enabled" class="toggle-input">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="mt-2" style="display: none;">
+                            <input type="text" id="rocket_account" class="form-input" 
+                                   placeholder="01XXXXXXXXX" pattern="01[3-9]\d{8}">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-6">
+                        <span class="btn-text">💾 Save Settings</span>
+                        <span class="btn-loading" style="display: none;">⏳ Saving...</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- KYC SECTION -->
+            <section class="content-section hidden" data-section="kyc">
+                <div class="section-header">
+                    <span class="section-icon">✅</span>
+                    <div>
+                        <h2 class="section-title">KYC Verification</h2>
+                        <p class="section-description">Verify your identity</p>
+                    </div>
+                </div>
+
+                {% include "user_profile/profile/settings/_kyc_status.html" %}
+            </section>
+
+            <!-- SECURITY SECTION -->
+            <section class="content-section hidden" data-section="security">
+                <div class="section-header">
+                    <span class="section-icon">🛡️</span>
+                    <div>
+                        <h2 class="section-title">Security</h2>
+                        <p class="section-description">Manage your account security</p>
+                    </div>
+                </div>
+
+                <div class="info-card mb-6">
+                    <div class="card-header">🔐 Password</div>
+                    <div class="card-content">
+                        <p class="mb-3 text-slate-300">Change your password to keep your account secure</p>
+                        <a href="{% url 'account:password_change' %}" class="btn btn-secondary">Change Password</a>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="card-header">📱 Active Sessions</div>
+                    <div class="card-content">
+                        <p class="text-slate-300">Manage devices logged into your account</p>
+                        <p class="text-sm text-slate-400 mt-2">Coming soon</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ACCOUNT SECTION -->
+            <section class="content-section hidden" data-section="account">
+                <div class="section-header">
+                    <span class="section-icon">⚙️</span>
+                    <div>
+                        <h2 class="section-title">Account Management</h2>
+                        <p class="section-description">Manage your account settings</p>
+                    </div>
+                </div>
+
+                <div class="info-card mb-6">
+                    <div class="card-header">👤 Account Information</div>
+                    <div class="card-content">
+                        <dl class="space-y-2">
+                            <div class="flex justify-between">
+                                <dt class="text-slate-400">Username:</dt>
+                                <dd class="text-white font-medium">{{ user.username }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-slate-400">Email:</dt>
+                                <dd class="text-white font-medium">{{ user.email }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-slate-400">Member Since:</dt>
+                                <dd class="text-white font-medium">{{ user.date_joined|date:"M d, Y" }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+
+                <div class="info-card" style="border-color: var(--accent-danger);">
+                    <div class="card-header" style="color: var(--accent-danger);">⚠️ Danger Zone</div>
+                    <div class="card-content">
+                        <p class="text-slate-300 mb-3">Permanently delete your DeltaCrown account. This action cannot be undone.</p>
+                        <button type="button" id="delete-account-btn" class="btn btn-danger">
+                            🗑️ Delete Account
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<!-- Initial Data (JSON Script Tags) -->
+{{ profile_data|json_script:"profile-data" }}
+{{ notification_data|json_script:"notification-data" }}
+{{ platform_data|json_script:"platform-data" }}
+{{ wallet_data|json_script:"wallet-data" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/settings_controller.js' %}"></script>
+{% endblock %}

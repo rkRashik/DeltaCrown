@@ -194,7 +194,7 @@ class UserProfile(models.Model):
     twitter = models.URLField(blank=True, default="")
     stream_status = models.BooleanField(
         default=False,
-        help_text="Automatically indicates if user is currently live on linked Twitch/YouTube"
+        help_text="Indicates if user is currently streaming (grants XP bonuses)"
     )
     
     # ===== PROFILE CUSTOMIZATION (Phase 3) =====

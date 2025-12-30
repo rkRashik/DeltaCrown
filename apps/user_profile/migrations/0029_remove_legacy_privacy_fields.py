@@ -7,30 +7,21 @@ def migrate_legacy_privacy_to_settings(apps, schema_editor):
     """
     Migrate any remaining legacy privacy field values to PrivacySettings.
     This is a safety migration - PrivacySettings should already be canonical.
+    
+    UP-PHASE12: Use .only() to avoid querying dropped columns (riot_id was dropped in 0028).
     """
     UserProfile = apps.get_model('user_profile', 'UserProfile')
     PrivacySettings = apps.get_model('user_profile', 'PrivacySettings')
     
-    for profile in UserProfile.objects.all():
+    # UP-PHASE12: Specify only the fields we need to avoid querying dropped columns
+    for profile in UserProfile.objects.only('id', 'user_id').all():
         privacy, created = PrivacySettings.objects.get_or_create(user_profile=profile)
         
-        # Only migrate if PrivacySettings was just created (first time)
+        # UP-PHASE12: Legacy fields were already removed in 0028 - this is just a safety check
+        # Since fields don't exist anymore, we skip the migration logic
+        # PrivacySettings should already have correct defaults from model definition
         if created:
-            # Map legacy boolean fields to PrivacySettings granular fields
-            privacy.show_real_name = getattr(profile, 'show_real_name', False)
-            privacy.show_phone = getattr(profile, 'show_phone', False)
-            privacy.show_email = getattr(profile, 'show_email', False)
-            privacy.show_age = getattr(profile, 'show_age', True)
-            privacy.show_gender = getattr(profile, 'show_gender', False)
-            privacy.show_country = getattr(profile, 'show_country', True)
-            privacy.show_social_links = getattr(profile, 'show_socials', True)
-            
-            # Set profile_visibility based on is_private
-            if getattr(profile, 'is_private', False):
-                privacy.profile_visibility = 'PRIVATE'
-            else:
-                privacy.profile_visibility = 'PUBLIC'
-            
+            # Just save with defaults - no legacy data to migrate
             privacy.save()
 
 

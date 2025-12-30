@@ -299,16 +299,21 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- UP-PHASE10: Load Alpine first, then define settingsApp() -->
-<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<!-- UP-PHASE12: Define settingsApp() FIRST (synchronous), THEN load Alpine (defer) -->
 <script>
-// UP-PHASE10: Define settingsApp() globally before Alpine initializes
+// UP-PHASE12: Define settingsApp() globally BEFORE Alpine loads
+// This MUST be synchronous (no defer) to guarantee it's available when Alpine initializes
 window.settingsApp = function() {
     return {
         activeSection: window.location.hash.substring(1) || 'profile',
         loading: false,
         alert: { show: false, type: '', message: '', icon: '' },
-        profile: { display_name: '{{ user_profile.display_name|escapejs }}', bio: '{{ user_profile.bio|escapejs }}', country: '{{ user_profile.country|escapejs }}', pronouns: '{{ user_profile.pronouns|escapejs }}' },
+        profile: { 
+            display_name: '{{ user_profile.display_name|escapejs }}', 
+            bio: '{{ user_profile.bio|escapejs }}', 
+            country: '{{ user_profile.country|escapejs }}', 
+            pronouns: '{{ user_profile.pronouns|escapejs }}' 
+        },
         notifications: {
             email: {
                 tournament_reminders: { title: 'Tournament Reminders', description: 'Upcoming tournaments', value: true },
@@ -324,8 +329,22 @@ window.settingsApp = function() {
                 achievements: { title: 'Achievement Popups', description: 'Unlock notifications', value: true }
             }
         },
-        platform: { preferred_language: '{{ user_profile.preferred_language|escapejs }}', timezone_pref: '{{ user_profile.timezone_pref|escapejs }}', time_format: '{{ user_profile.time_format|escapejs }}', theme_preference: '{{ user_profile.theme_preference|escapejs }}' },
-        wallet: { bkash_enabled: false, bkash_account: '', nagad_enabled: false, nagad_account: '', rocket_enabled: false, rocket_account: '', auto_withdrawal_threshold: 0, auto_convert_to_usd: false },
+        platform: { 
+            preferred_language: '{{ user_profile.preferred_language|escapejs }}', 
+            timezone_pref: '{{ user_profile.timezone_pref|escapejs }}', 
+            time_format: '{{ user_profile.time_format|escapejs }}', 
+            theme_preference: '{{ user_profile.theme_preference|escapejs }}' 
+        },
+        wallet: { 
+            bkash_enabled: false, 
+            bkash_account: '', 
+            nagad_enabled: false, 
+            nagad_account: '', 
+            rocket_enabled: false, 
+            rocket_account: '', 
+            auto_withdrawal_threshold: 0, 
+            auto_convert_to_usd: false 
+        },
 
         init() {
             this.loadNotifications();
@@ -442,4 +461,7 @@ window.settingsApp = function() {
     }
 };
 </script>
+
+<!-- UP-PHASE12: Load Alpine.js AFTER settingsApp is defined (defer ensures DOM ready) -->
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 {% endblock %}

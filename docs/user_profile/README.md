@@ -1,13 +1,14 @@
 # USER PROFILE DOCUMENTATION INDEX
 
-**Last Updated:** December 28, 2025  
-**Status:** Phase 3 Complete - Production Ready  
+**Last Updated:** December 29, 2025  
+**Status:** Phase 12A Complete - Settings Fix + Migration Unblock  
 
 ---
 
 ## 📁 Quick Navigation
 
 ### 🎯 Executive Summary
+- **[UP_PHASE12_STATUS.md](UP_PHASE12_STATUS.md)** - Phase 12 status: Settings fix, Profile/Admin verification
 - **[UP_PHASE3_COMPLETE.md](UP_PHASE3_COMPLETE.md)** - Master summary, sign-off, metrics
 
 ### 📊 Phase Reports
@@ -31,22 +32,73 @@
 - **[UP_PHASE3E_ADMIN_PANEL_OPERATOR_PASS.md](UP_PHASE3E_ADMIN_PANEL_OPERATOR_PASS.md)** - Admin workflows
 - **[UP_PHASE3F_FINAL_VERIFICATION_GATE.md](UP_PHASE3F_FINAL_VERIFICATION_GATE.md)** - 200+ test cases
 
+#### Phase 11-12: Runtime Reality Fix (Dec 2025)
+- **[UP_PHASE11_COMPLETE.md](UP_PHASE11_COMPLETE.md)** - Phase 11 claims (settings fix, profile CSS, admin readonly)
+- **[UP_PHASE12A_MIGRATION_UNBLOCK_SETTINGS_FIX.md](UP_PHASE12A_MIGRATION_UNBLOCK_SETTINGS_FIX.md)** - ✅ COMPLETE: Migration 0029 fix + Settings JS load order
+- **[UP_PHASE12_STATUS.md](UP_PHASE12_STATUS.md)** - Overall Phase 12 status (Workstreams A/B/C)
+
 ---
 
 ## 📖 Documentation by Topic
 
 ### Backend Architecture
-- **Models:** See `apps/user_profile/models.py` (17 models, 1,200+ lines)
-- **Views:** See `apps/user_profile/views.py` (53 routes, 2,500+ lines)
-- **Admin:** See `apps/user_profile/admin.py` (1,560 lines with inlines)
-- **Services:** See `apps/user_profile/services/` (audit, economy, stats)
+- **Models:** See `apps/user_profile/models_main.py` (UserProfile, 1,983 lines)
+- **Views:** See `apps/user_profile/views_public.py`, `views_settings.py` (53 routes total)
+- **Admin:** See `apps/user_profile/admin/users.py` (1,002 lines with inlines)
+- **Services:** See `apps/user_profile/services/` (audit, economy, stats, profile_permissions)
 
 ### Frontend Architecture
-- **Profile JS:** `static/user_profile/js/profile.js` (397 lines)
-- **Settings JS:** `static/user_profile/js/settings.js` (381 lines)
-- **Profile Template:** `templates/user_profile/profile.html` (338 lines)
-- **Settings Template:** `templates/user_profile/profile/settings.html` (1,994 lines)
+- **Settings Template:** `templates/user_profile/profile/settings.html` (454 lines, Alpine.js)
+- **Profile Template:** `templates/user_profile/profile/public.html` (1,098 lines, responsive grid)
 - **Passport Modal:** `templates/user_profile/components/_passport_modal.html` (341 lines)
+
+### Testing
+- **Playwright Tests:** `apps/user_profile/tests/test_playwright_settings.py` (5 tests, zero console errors verification)
+- **Admin Tests:** See `apps/user_profile/tests/` (Django admin rendering tests)
+
+---
+
+## 🔥 Recent Changes (Phase 12 - Dec 29, 2025)
+
+### Phase 12A: Migration Unblock + Settings Fix ✅ COMPLETE
+
+**Problem:** Despite Phase 11 claims, runtime still showed:
+- `settingsApp is not defined` errors
+- `SyntaxError: Invalid or unexpected token`
+- Migration 0029 blocked test DB creation (queried dropped `riot_id` column)
+
+**Solution:**
+1. **Migration Fix:** Used `.only('id', 'user_id')` to avoid querying dropped columns
+2. **Settings JS Fix:** Moved settingsApp script BEFORE Alpine script tag (guaranteed execution order)
+3. **Test Coverage:** Created 5 Playwright tests verifying zero console errors
+
+**Files Changed:**
+- [0029_remove_legacy_privacy_fields.py](../../apps/user_profile/migrations/0029_remove_legacy_privacy_fields.py) - Fixed migration blocker
+- [settings.html](../../templates/user_profile/profile/settings.html) - Fixed script load order
+
+**Tests Created:**
+- [test_playwright_settings.py](../../apps/user_profile/tests/test_playwright_settings.py) - Headless browser tests
+
+**Documentation:** See [UP_PHASE12A_MIGRATION_UNBLOCK_SETTINGS_FIX.md](UP_PHASE12A_MIGRATION_UNBLOCK_SETTINGS_FIX.md)
+
+### Phase 12B: Profile Layout Verification ⏳ IN PROGRESS
+
+**Status:** Template analysis shows layout code already exists correctly:
+- ✅ 3-column responsive grid (`md:grid-cols-12`)
+- ✅ Modern hero with banner + avatar overlap
+- ✅ Follow/Message buttons with Alpine.js
+- ✅ Follower/Following counts
+
+**Next:** Create Playwright test to identify actual breakage point
+
+### Phase 12C: Admin Cleanup Verification ⏳ IN PROGRESS
+
+**Status:** Code review shows Phase 11 admin fixes WERE applied:
+- ✅ Economy fields in readonly_fields
+- ✅ Legacy "game_profiles JSON" text removed
+- ✅ Warning message on Economy fieldset
+
+**Next:** Create Django test to verify admin rendering
 
 ### API Endpoints
 | Endpoint | Method | Purpose | Doc Location |
