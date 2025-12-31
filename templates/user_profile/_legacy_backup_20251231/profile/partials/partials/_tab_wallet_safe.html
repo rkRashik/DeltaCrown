@@ -1,0 +1,102 @@
+<!-- 
+P0 Safety: Wallet Tab (Owner-Only)
+Displays wallet balance and transactions.
+
+Context Required:
+- wallet_visible (bool): True only if is_owner
+- wallet (DeltaCrownWallet): Wallet object (None if not owner)
+- wallet_transactions (QuerySet): Last 10 transactions (empty list if not owner)
+- bdt_conversion_rate (float): DeltaCoin to BDT conversion rate
+
+Privacy Guarantee:
+- This partial checks wallet_visible before rendering any data
+- Non-owners see "Wallet is Private" message
+- Wallet data is NEVER in context for non-owners (enforced in view)
+-->
+
+{% if wallet_visible %}
+    <!-- Owner View: Full Wallet Access -->
+    <div class="z-card p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-white">DeltaCrown Wallet</h3>
+            <div class="text-right">
+                <p class="text-xs text-gray-400 uppercase tracking-wide">Balance</p>
+                <p class="text-3xl font-bold text-gradient-gold">{{ wallet.cached_balance|default:0|floatformat:0 }}</p>
+                {% if bdt_conversion_rate %}
+                <p class="text-xs text-gray-500">≈ {{ wallet.cached_balance|default:0|floatformat:0|multiply:bdt_conversion_rate|floatformat:0 }} BDT</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if wallet.pending_balance and wallet.pending_balance > 0 %}
+        <div class="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-clock text-yellow-400 text-xl"></i>
+                <div>
+                    <p class="text-white font-semibold">Pending Balance</p>
+                    <p class="text-yellow-400 text-sm">{{ wallet.pending_balance|default:0|floatformat:0 }} DeltaCoins locked in escrow</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Transaction Ledger -->
+        <div class="space-y-3">
+            <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wide mb-3">Recent Transactions</h4>
+            
+            {% if wallet_transactions %}
+                {% for tx in wallet_transactions %}
+                <div class="flex items-center justify-between p-3 bg-black/20 rounded-lg hover:bg-black/30 transition">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center
+                            {% if tx.amount > 0 %}bg-green-500/20{% else %}bg-red-500/20{% endif %}">
+                            <i class="fa-solid {% if tx.amount > 0 %}fa-plus text-green-400{% else %}fa-minus text-red-400{% endif %}"></i>
+                        </div>
+                        <div>
+                            <p class="text-white font-semibold">{{ tx.get_reason_display|default:tx.reason }}</p>
+                            <p class="text-xs text-gray-500">{{ tx.created_at|timesince }} ago</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold {% if tx.amount > 0 %}text-green-400{% else %}text-red-400{% endif %}">
+                            {% if tx.amount > 0 %}+{% endif %}{{ tx.amount|floatformat:0 }}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-8">
+                    <i class="fa-solid fa-receipt text-4xl text-gray-700 mb-2"></i>
+                    <p class="text-gray-500">No transactions yet</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-3 mt-6">
+            <button class="flex-1 px-4 py-3 bg-z-cyan text-black rounded-lg font-bold hover:bg-cyan-400 transition">
+                <i class="fa-solid fa-plus mr-2"></i> Deposit
+            </button>
+            <button class="flex-1 px-4 py-3 bg-z-purple text-white rounded-lg font-bold hover:bg-purple-600 transition">
+                <i class="fa-solid fa-arrow-up mr-2"></i> Withdraw
+            </button>
+        </div>
+    </div>
+
+{% else %}
+    <!-- Non-Owner View: Private Wallet -->
+    <div class="z-card text-center py-16">
+        <i class="fa-solid fa-lock text-6xl text-gray-700 mb-4"></i>
+        <h3 class="text-xl font-bold text-white mb-2">Wallet is Private</h3>
+        <p class="text-gray-400">Only the profile owner can view wallet details.</p>
+    </div>
+{% endif %}
+
+<!-- 
+Privacy Enforcement:
+1. wallet_visible flag checked BEFORE rendering any data
+2. wallet object is None for non-owners (enforced in view)
+3. wallet_transactions is empty list for non-owners (enforced in view)
+4. No CSS-only hiding (data not rendered at all for non-owners)
+5. No client-side checks (server-side enforcement only)
+-->

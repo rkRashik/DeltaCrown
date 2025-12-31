@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Private Profile - DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto text-center">
+        <div class="bg-gray-800 rounded-lg p-8 shadow-xl">
+            <svg class="w-24 h-24 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+            
+            <h1 class="text-3xl font-bold text-white mb-4">Private Profile</h1>
+            
+            <p class="text-gray-400 text-lg mb-6">
+                @{{ profile_user.username }}'s profile is private.
+            </p>
+            
+            <p class="text-gray-500 text-sm">
+                {% if viewer_role == 'anonymous' %}
+                    Log in to send a follow request and view this profile.
+                {% elif viewer_role == 'visitor' %}
+                    Send a follow request to view this profile.
+                {% else %}
+                    You do not have permission to view this profile.
+                {% endif %}
+            </p>
+            
+            <div class="mt-8">
+                {% if viewer_role == 'anonymous' %}
+                    <a href="{% url 'account_login' %}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition">
+                        Log In
+                    </a>
+                {% elif viewer_role == 'visitor' %}
+                    <button class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg transition">
+                        Send Follow Request
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

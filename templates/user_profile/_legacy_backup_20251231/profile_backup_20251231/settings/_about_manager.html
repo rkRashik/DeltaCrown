@@ -1,0 +1,539 @@
+{% load static %}
+<!-- UP-PHASE15 Session 3: About Manager UI (Vanilla JS) -->
+
+<div class="about-manager">
+    <!-- Add New Item Button -->
+    <button type="button" id="add-about-item-btn" class="btn btn-primary mb-4">
+        ➕ Add About Item
+    </button>
+
+    <!-- About Items List -->
+    <div id="about-items-list" class="space-y-4">
+        <!-- Items will be loaded dynamically -->
+        <div class="text-center py-8 text-slate-400" id="empty-state">
+            <p>No about items yet. Click "Add About Item" to get started.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal" id="about-item-modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">Add About Item</h3>
+            <button type="button" class="modal-close" id="close-modal-btn">&times;</button>
+        </div>
+
+        <form id="about-item-form">
+            <div class="modal-body">
+                <input type="hidden" id="item-id" name="item_id">
+
+                <div class="form-group">
+                    <label class="form-label" for="item-type">Type *</label>
+                    <select id="item-type" name="item_type" class="form-select" required>
+                        <option value="">Select Type</option>
+                        <option value="WORK">💼 Work</option>
+                        <option value="EDUCATION">🎓 Education</option>
+                        <option value="LOCATION">📍 Location</option>
+                        <option value="RELATIONSHIP">❤️ Relationship</option>
+                        <option value="OTHER">📝 Other</option>
+                        <option value="CUSTOM">✏️ Custom</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="custom-type-group" style="display: none;">
+                    <label class="form-label" for="custom-type">Custom Type Label *</label>
+                    <input type="text" id="custom-type" name="custom_type" class="form-input" maxlength="50">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="item-content">Content *</label>
+                    <textarea id="item-content" name="content" class="form-textarea" rows="3" maxlength="300" required></textarea>
+                    <span class="form-hint" id="char-count">0/300 characters</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="item-visibility">Visibility *</label>
+                    <select id="item-visibility" name="visibility" class="form-select" required>
+                        <option value="PUBLIC">🌍 Public - Everyone can see</option>
+                        <option value="FOLLOWERS_ONLY">👥 Followers Only</option>
+                        <option value="PRIVATE">🔒 Private - Only you</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancel-modal-btn">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-text">💾 Save</span>
+                    <span class="btn-loading" style="display: none;">⏳ Saving...</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- About Item Card Template -->
+<template id="about-item-template">
+    <div class="about-item-card" data-item-id="">
+        <div class="about-item-header">
+            <div class="about-item-type">
+                <span class="type-icon"></span>
+                <span class="type-label"></span>
+            </div>
+            <div class="about-item-actions">
+                <button type="button" class="btn-icon btn-edit" title="Edit">✏️</button>
+                <button type="button" class="btn-icon btn-delete" title="Delete">🗑️</button>
+            </div>
+        </div>
+        <div class="about-item-content"></div>
+        <div class="about-item-footer">
+            <span class="visibility-badge"></span>
+        </div>
+    </div>
+</template>
+
+<style>
+/* About Manager Styles */
+.about-manager {
+    margin-top: 1.5rem;
+}
+
+.about-item-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+}
+
+.about-item-card:hover {
+    border-color: rgba(59, 130, 246, 0.4);
+    background: rgba(15, 23, 42, 0.8);
+}
+
+.about-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.about-item-type {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.type-icon {
+    font-size: 1.25rem;
+}
+
+.type-label {
+    font-weight: 600;
+    color: white;
+}
+
+.about-item-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-icon {
+    background: transparent;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.about-item-content {
+    color: rgb(203, 213, 225);
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.about-item-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.visibility-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.visibility-PUBLIC {
+    background: rgba(34, 197, 94, 0.2);
+    color: rgb(134, 239, 172);
+}
+
+.visibility-FOLLOWERS_ONLY {
+    background: rgba(59, 130, 246, 0.2);
+    color: rgb(147, 197, 253);
+}
+
+.visibility-PRIVATE {
+    background: rgba(148, 163, 184, 0.2);
+    color: rgb(203, 213, 225);
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.modal-container {
+    position: relative;
+    max-width: 600px;
+    margin: 5% auto;
+    background: rgb(15, 23, 42);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: white;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    font-size: 2rem;
+    color: rgb(148, 163, 184);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
+}
+
+.modal-close:hover {
+    color: white;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+</style>
+
+<script type="module">
+import { apiClient } from '{% static "js/api_client.js" %}';
+
+class AboutManager {
+    constructor() {
+        this.items = [];
+        this.currentEditId = null;
+    }
+
+    async init() {
+        this.cacheDom();
+        this.bindEvents();
+        await this.loadItems();
+    }
+
+    cacheDom() {
+        this.addBtn = document.getElementById('add-about-item-btn');
+        this.itemsList = document.getElementById('about-items-list');
+        this.emptyState = document.getElementById('empty-state');
+        this.modal = document.getElementById('about-item-modal');
+        this.modalTitle = document.getElementById('modal-title');
+        this.form = document.getElementById('about-item-form');
+        this.closeModalBtn = document.getElementById('close-modal-btn');
+        this.cancelModalBtn = document.getElementById('cancel-modal-btn');
+        this.itemTypeSelect = document.getElementById('item-type');
+        this.customTypeGroup = document.getElementById('custom-type-group');
+        this.customTypeInput = document.getElementById('custom-type');
+        this.contentTextarea = document.getElementById('item-content');
+        this.charCount = document.getElementById('char-count');
+        this.template = document.getElementById('about-item-template');
+    }
+
+    bindEvents() {
+        this.addBtn.addEventListener('click', () => this.openModal());
+        this.closeModalBtn.addEventListener('click', () => this.closeModal());
+        this.cancelModalBtn.addEventListener('click', () => this.closeModal());
+        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        this.itemTypeSelect.addEventListener('change', () => this.toggleCustomType());
+        this.contentTextarea.addEventListener('input', () => this.updateCharCount());
+        
+        // Close modal on overlay click
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal || e.target.classList.contains('modal-overlay')) {
+                this.closeModal();
+            }
+        });
+    }
+
+    async loadItems() {
+        try {
+            const response = await apiClient.get('/profile/api/about/items/');
+            this.items = response.items || [];
+            this.renderItems();
+        } catch (error) {
+            console.error('Failed to load about items:', error);
+            this.showAlert('error', 'Failed to load about items');
+        }
+    }
+
+    renderItems() {
+        if (this.items.length === 0) {
+            this.emptyState.style.display = 'block';
+            // Clear any existing items
+            Array.from(this.itemsList.children).forEach(child => {
+                if (child.id !== 'empty-state') {
+                    child.remove();
+                }
+            });
+            return;
+        }
+
+        this.emptyState.style.display = 'none';
+        
+        // Clear existing items (except empty state)
+        Array.from(this.itemsList.children).forEach(child => {
+            if (child.id !== 'empty-state') {
+                child.remove();
+            }
+        });
+
+        // Render each item
+        this.items.forEach(item => {
+            const card = this.createItemCard(item);
+            this.itemsList.appendChild(card);
+        });
+    }
+
+    createItemCard(item) {
+        const clone = this.template.content.cloneNode(true);
+        const card = clone.querySelector('.about-item-card');
+        
+        card.setAttribute('data-item-id', item.id);
+        
+        const typeIcon = card.querySelector('.type-icon');
+        const typeLabel = card.querySelector('.type-label');
+        const content = card.querySelector('.about-item-content');
+        const visibilityBadge = card.querySelector('.visibility-badge');
+        
+        // Set type icon and label
+        const typeInfo = this.getTypeInfo(item.item_type, item.custom_type_label);
+        typeIcon.textContent = typeInfo.icon;
+        typeLabel.textContent = typeInfo.label;
+        
+        // Set content
+        content.textContent = item.content;
+        
+        // Set visibility
+        visibilityBadge.textContent = this.getVisibilityText(item.visibility);
+        visibilityBadge.classList.add(`visibility-${item.visibility}`);
+        
+        // Bind action buttons
+        const editBtn = card.querySelector('.btn-edit');
+        const deleteBtn = card.querySelector('.btn-delete');
+        
+        editBtn.addEventListener('click', () => this.editItem(item));
+        deleteBtn.addEventListener('click', () => this.deleteItem(item.id));
+        
+        return clone;
+    }
+
+    getTypeInfo(type, customLabel) {
+        const types = {
+            'WORK': { icon: '💼', label: 'Work' },
+            'EDUCATION': { icon: '🎓', label: 'Education' },
+            'LOCATION': { icon: '📍', label: 'Location' },
+            'RELATIONSHIP': { icon: '❤️', label: 'Relationship' },
+            'OTHER': { icon: '📝', label: 'Other' },
+            'CUSTOM': { icon: '✏️', label: customLabel || 'Custom' }
+        };
+        return types[type] || types['OTHER'];
+    }
+
+    getVisibilityText(visibility) {
+        const visibilities = {
+            'PUBLIC': '🌍 Public',
+            'FOLLOWERS_ONLY': '👥 Followers',
+            'PRIVATE': '🔒 Private'
+        };
+        return visibilities[visibility] || visibility;
+    }
+
+    openModal(item = null) {
+        if (item) {
+            this.currentEditId = item.id;
+            this.modalTitle.textContent = 'Edit About Item';
+            document.getElementById('item-id').value = item.id;
+            document.getElementById('item-type').value = item.item_type;
+            document.getElementById('custom-type').value = item.custom_type_label || '';
+            document.getElementById('item-content').value = item.content;
+            document.getElementById('item-visibility').value = item.visibility;
+            this.toggleCustomType();
+            this.updateCharCount();
+        } else {
+            this.currentEditId = null;
+            this.modalTitle.textContent = 'Add About Item';
+            this.form.reset();
+            this.toggleCustomType();
+        }
+        
+        this.modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeModal() {
+        this.modal.style.display = 'none';
+        document.body.style.overflow = '';
+        this.form.reset();
+        this.currentEditId = null;
+    }
+
+    toggleCustomType() {
+        const isCustom = this.itemTypeSelect.value === 'CUSTOM';
+        this.customTypeGroup.style.display = isCustom ? 'block' : 'none';
+        this.customTypeInput.required = isCustom;
+    }
+
+    updateCharCount() {
+        const length = this.contentTextarea.value.length;
+        this.charCount.textContent = `${length}/300 characters`;
+    }
+
+    async handleSubmit(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this.form);
+        const data = {
+            item_type: formData.get('item_type'),
+            content: formData.get('content'),
+            visibility: formData.get('visibility')
+        };
+        
+        if (data.item_type === 'CUSTOM') {
+            data.custom_type_label = formData.get('custom_type');
+        }
+        
+        const submitBtn = this.form.querySelector('button[type="submit"]');
+        const btnText = submitBtn.querySelector('.btn-text');
+        const btnLoading = submitBtn.querySelector('.btn-loading');
+        
+        try {
+            btnText.style.display = 'none';
+            btnLoading.style.display = 'inline';
+            submitBtn.disabled = true;
+            
+            let response;
+            if (this.currentEditId) {
+                data.id = this.currentEditId;
+                response = await apiClient.post('/profile/api/about/update/', data);
+                this.showAlert('success', 'About item updated successfully');
+            } else {
+                response = await apiClient.post('/profile/api/about/create/', data);
+                this.showAlert('success', 'About item added successfully');
+            }
+            
+            await this.loadItems();
+            this.closeModal();
+            
+        } catch (error) {
+            console.error('Failed to save about item:', error);
+            this.showAlert('error', error.message || 'Failed to save about item');
+        } finally {
+            btnText.style.display = 'inline';
+            btnLoading.style.display = 'none';
+            submitBtn.disabled = false;
+        }
+    }
+
+    editItem(item) {
+        this.openModal(item);
+    }
+
+    async deleteItem(itemId) {
+        if (!confirm('Are you sure you want to delete this about item?')) {
+            return;
+        }
+        
+        try {
+            await apiClient.post('/profile/api/about/delete/', { id: itemId });
+            this.showAlert('success', 'About item deleted successfully');
+            await this.loadItems();
+        } catch (error) {
+            console.error('Failed to delete about item:', error);
+            this.showAlert('error', 'Failed to delete about item');
+        }
+    }
+
+    showAlert(type, message) {
+        // Use parent controller's alert system if available
+        if (window.settingsController) {
+            window.settingsController.showAlert(type, message);
+        } else {
+            alert(message);
+        }
+    }
+}
+
+// Initialize on section activation
+document.addEventListener('DOMContentLoaded', () => {
+    const aboutManager = new AboutManager();
+    
+    // Initialize when About section becomes active
+    const observer = new MutationObserver(() => {
+        const aboutSection = document.querySelector('[data-section="about"]');
+        if (aboutSection && !aboutSection.classList.contains('hidden')) {
+            aboutManager.init();
+            observer.disconnect();
+        }
+    });
+    
+    observer.observe(document.body, { 
+        childList: true, 
+        subtree: true, 
+        attributes: true,
+        attributeFilter: ['class']
+    });
+});
+</script>

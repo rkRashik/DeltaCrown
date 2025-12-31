@@ -1,14 +1,14 @@
 """
-Frontend V2 Views (UP-FE-MVP-01 + Phase 5B Privacy Enforcement)
+Public Profile Views (UP-FE-MVP-01 + Phase 5B Privacy Enforcement)
 
 Privacy-safe profile views using profile_context service + ProfilePermissionChecker.
 Server-side privacy enforcement with can_view_* flags passed to template.
 
 Views:
-- profile_public_v2: Public profile page (✅ Phase 5B privacy-aware)
-- profile_activity_v2: Activity feed page
-- profile_settings_v2: Owner-only settings page
-- profile_privacy_v2: Owner-only privacy settings page
+- public_profile_view: Public profile page (✅ Phase 5B privacy-aware)
+- profile_activity_view: Activity feed page
+- profile_settings_view: Owner-only settings page
+- profile_privacy_view: Owner-only privacy settings page
 
 Architecture:
 - Uses ProfilePermissionChecker for all permission decisions
@@ -34,9 +34,9 @@ from apps.user_profile.models import UserProfile
 logger = logging.getLogger(__name__)
 
 
-def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
+def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     """
-    Public profile page (V2) - Phase 5B privacy-aware with permission enforcement.
+    Public profile page - Phase 5B privacy-aware with permission enforcement.
     
     Route: /@<username>/
     
@@ -98,6 +98,32 @@ def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
     
     # Phase 5B: Add permission flags to context
     context.update(permissions)
+    
+    # P0 SAFETY: Wallet data ONLY for owner (never expose to non-owners)
+    if permissions.get('is_owner', False):
+        try:
+            from apps.economy.models import DeltaCrownWallet, DeltaCrownTransaction
+            wallet, _ = DeltaCrownWallet.objects.get_or_create(user=profile_user)
+            
+            # Owner-only wallet data
+            context['wallet'] = wallet
+            context['wallet_visible'] = True
+            context['wallet_transactions'] = DeltaCrownTransaction.objects.filter(
+                wallet=wallet
+            ).order_by('-created_at')[:10]  # Last 10 transactions
+            
+            # BDT conversion rate (example: 1 DeltaCoin = 0.10 BDT)
+            context['bdt_conversion_rate'] = 0.10
+        except Exception as e:
+            logger.warning(f"Failed to load wallet data for {username}: {e}")
+            context['wallet'] = None
+            context['wallet_visible'] = False
+            context['wallet_transactions'] = []
+    else:
+        # Non-owner: NO wallet data in context
+        context['wallet'] = None
+        context['wallet_visible'] = False
+        context['wallet_transactions'] = []
     
     # Add page metadata
     context['page_title'] = f"@{username} - DeltaCrown Esports"
@@ -369,13 +395,202 @@ def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
     
     context['about_items'] = filtered_about_items
     
-    # V4: Dragon Fire Design with full backend integration
-    return render(request, 'user_profile/profile/public_v4.html', context)
+    # ========================================================================
+    # 06c: STREAM CONTEXT (Live Stream Embed)
+    # ========================================================================
+    from apps.user_profile.models import StreamConfig
+    try:
+        stream_config = StreamConfig.objects.select_related('user').get(
+            user=profile_user,
+            is_active=True
+        )
+        context['stream_config'] = {
+            'platform': stream_config.platform,
+            'embed_url': stream_config.embed_url,
+            'title': stream_config.title or f"{profile_user.username}'s stream",
+            'stream_url': stream_config.stream_url,
+        }
+    except StreamConfig.DoesNotExist:
+        context['stream_config'] = None
+    
+    # ========================================================================
+    # 06c: HIGHLIGHTS CONTEXT (Pinned + All Clips)
+    # ========================================================================
+    from apps.user_profile.models import HighlightClip, PinnedHighlight
+    
+    # Get pinned highlight
+    try:
+        pinned = PinnedHighlight.objects.select_related('clip', 'clip__game').get(user=profile_user)
+        context['pinned_highlight'] = {
+            'id': pinned.clip.id,
+            'title': pinned.clip.title,
+            'embed_url': pinned.clip.embed_url,
+            'thumbnail_url': pinned.clip.thumbnail_url,
+            'platform': pinned.clip.platform,
+            'game': pinned.clip.game.display_name if pinned.clip.game else None,
+            'created_at': pinned.clip.created_at,
+        }
+    except PinnedHighlight.DoesNotExist:
+        context['pinned_highlight'] = None
+    
+    # Get all highlight clips (ordered by display_order)
+    highlights = HighlightClip.objects.filter(
+        user=profile_user
+    ).select_related('game').order_by('display_order', '-created_at')[:20]
+    
+    context['highlight_clips'] = [
+        {
+            'id': clip.id,
+            'title': clip.title,
+            'description': getattr(clip, 'description', ''),
+            'embed_url': clip.embed_url,
+            'thumbnail_url': clip.thumbnail_url,
+            'platform': clip.platform,
+            'video_id': clip.video_id,
+            'game': clip.game.display_name if clip.game else None,
+            'display_order': clip.display_order,
+            'created_at': clip.created_at,
+            'is_pinned': context['pinned_highlight'] and clip.id == context['pinned_highlight']['id'],
+        }
+        for clip in highlights
+    ]
+    context['can_add_more_clips'] = len(context['highlight_clips']) < 20
+    
+    # ========================================================================
+    # 06c: LOADOUT CONTEXT (Hardware + Game Configs)
+    # ========================================================================
+    from apps.user_profile.services import loadout_service
+    
+    # Get complete loadout (hardware + game configs)
+    # Only show public items for non-owners
+    loadout_data = loadout_service.get_complete_loadout(
+        user=profile_user,
+        public_only=not permissions.get('is_owner', False)
+    )
+    
+    context['hardware_gear'] = {
+        'mouse': loadout_data['hardware'].get('MOUSE'),
+        'keyboard': loadout_data['hardware'].get('KEYBOARD'),
+        'headset': loadout_data['hardware'].get('HEADSET'),
+        'monitor': loadout_data['hardware'].get('MONITOR'),
+        'mousepad': loadout_data['hardware'].get('MOUSEPAD'),
+    }
+    context['has_loadout'] = loadout_service.has_loadout(profile_user)
+    
+    # Game configs (per-game settings)
+    context['game_configs'] = [
+        {
+            'id': config.id,
+            'game': config.game.display_name,
+            'game_slug': config.game.slug,
+            'settings': config.settings,
+            'notes': config.notes,
+            'is_public': config.is_public,
+            'updated_at': config.updated_at,
+        }
+        for config in loadout_data['game_configs']
+    ]
+    
+    # ========================================================================
+    # 06c: SHOWCASE CONTEXT (Trophy Showcase - Equipped + Unlocked)
+    # ========================================================================
+    from apps.user_profile.services import trophy_showcase_service
+    
+    showcase_data = trophy_showcase_service.get_showcase_data(profile_user)
+    
+    context['trophy_showcase'] = {
+        'equipped_border': showcase_data['equipped']['border'],
+        'equipped_frame': showcase_data['equipped']['frame'],
+        'unlocked_borders': showcase_data['unlocked']['borders'],
+        'unlocked_frames': showcase_data['unlocked']['frames'],
+        'pinned_badges': showcase_data.get('pinned_badges', []),
+    }
+    
+    # ========================================================================
+    # 06c: ENDORSEMENTS CONTEXT (Peer Recognition)
+    # ========================================================================
+    from apps.user_profile.services import endorsement_service
+    
+    endorsements_summary = endorsement_service.get_endorsements_summary(profile_user)
+    
+    context['endorsements'] = {
+        'total_count': endorsements_summary['total_count'],
+        'by_skill': endorsements_summary['by_skill'],  # Dict: {'aim': 15, 'clutch': 8, ...}
+        'top_skill': endorsements_summary.get('top_skill'),  # Most endorsed skill
+        'recent_endorsements': [
+            {
+                'skill': e.skill_name,
+                'skill_display': e.get_skill_name_display(),
+                'endorser': e.endorser.username,
+                'match_id': e.match_id,
+                'created_at': e.created_at,
+            }
+            for e in endorsements_summary.get('recent_endorsements', [])[:5]
+        ],
+    }
+    
+    # ========================================================================
+    # 06c: BOUNTIES CONTEXT (Peer Challenges)
+    # ========================================================================
+    from apps.user_profile.services import bounty_service
+    
+    # Bounty stats
+    bounty_stats = bounty_service.get_user_bounty_stats(profile_user)
+    context['bounty_stats'] = {
+        'created_count': bounty_stats['created_count'],
+        'accepted_count': bounty_stats['accepted_count'],
+        'won_count': bounty_stats['won_count'],
+        'lost_count': bounty_stats['lost_count'],
+        'win_rate': bounty_stats['win_rate'],
+        'total_earnings': bounty_stats['total_earnings'],
+        'total_wagered': bounty_stats['total_wagered'],
+    }
+    
+    # Active bounties
+    active_bounties = bounty_service.get_active_bounties(profile_user)
+    context['active_bounties'] = [
+        {
+            'id': bounty.id,
+            'title': bounty.title,
+            'game': bounty.game.display_name if bounty.game else None,
+            'stake_amount': bounty.stake_amount,
+            'status': bounty.status,
+            'status_display': bounty.get_status_display(),
+            'creator': bounty.creator.username,
+            'creator_id': bounty.creator.id,
+            'acceptor': bounty.acceptor.username if bounty.acceptor else None,
+            'acceptor_id': bounty.acceptor.id if bounty.acceptor else None,
+            'created_at': bounty.created_at,
+            'expires_at': bounty.expires_at,
+            'is_expired': bounty.is_expired,
+            'can_dispute': bounty.can_dispute if hasattr(bounty, 'can_dispute') else False,
+        }
+        for bounty in active_bounties[:10]
+    ]
+    
+    # Completed bounties (last 5 for profile display)
+    completed_bounties = bounty_service.get_completed_bounties(profile_user)
+    context['completed_bounties'] = [
+        {
+            'id': bounty.id,
+            'title': bounty.title,
+            'game': bounty.game.display_name if bounty.game else None,
+            'stake_amount': bounty.stake_amount,
+            'payout_amount': bounty.payout_amount,
+            'winner': bounty.winner.username if bounty.winner else None,
+            'completed_at': bounty.completed_at,
+            'was_winner': bounty.winner_id == profile_user.id if bounty.winner_id else False,
+        }
+        for bounty in completed_bounties[:5]
+    ]
+    
+    # Render new Zenith profile template (Phase 2B.1)
+    return render(request, 'user_profile/profile/public_profile.html', context)
 
 
-def profile_activity_v2(request: HttpRequest, username: str) -> HttpResponse:
+def profile_activity_view(request: HttpRequest, username: str) -> HttpResponse:
     """
-    Activity feed page (V2) - paginated activity timeline.
+    Activity feed page - paginated activity timeline.
     
     Route: /@<username>/activity/
     
@@ -429,9 +644,9 @@ def profile_activity_v2(request: HttpRequest, username: str) -> HttpResponse:
 
 
 @login_required
-def profile_settings_v2(request: HttpRequest) -> HttpResponse:
+def profile_settings_view(request: HttpRequest) -> HttpResponse:
     """
-    Profile settings page (V2) - owner-only.
+    Profile settings page - owner-only.
     
     Route: /me/settings/
     
@@ -578,9 +793,9 @@ def profile_settings_v2(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def profile_privacy_v2(request: HttpRequest) -> HttpResponse:
+def profile_privacy_view(request: HttpRequest) -> HttpResponse:
     """
-    Privacy settings page (V2) - owner-only.
+    Privacy settings page - owner-only.
     
     Route: /me/privacy/
     

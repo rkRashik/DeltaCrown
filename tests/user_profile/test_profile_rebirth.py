@@ -276,7 +276,7 @@ class TestTaskEVerification:
     def test_view_code_does_not_assign_role(self):
         """Verify view code doesn't assign team_role to passport."""
         # Read view source
-        from apps.user_profile.views import fe_v2
+        from apps.user_profile.views import public_profile_views
         import inspect
         
         source = inspect.getsource(fe_v2.profile_public_v2)

@@ -1,0 +1,81 @@
+<!-- Loadout Tab - P0 Placeholder (Feature Not Yet Implemented) -->
+<div class="placeholder-state">
+    <div class="placeholder-icon">
+        <svg class="w-16 h-16 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+    </div>
+    <div class="placeholder-title">Loadout Coming Soon</div>
+    <div class="placeholder-desc">
+        Share your gaming setup, hardware specs, and per-game configurations. Add affiliate links to your favorite gear.
+    </div>
+    
+    {% comment %}
+    <!-- P1 Implementation Note: When implementing loadout, use this structure -->
+    {% if loadout_hardware or game_configs %}
+    <div class="space-y-6">
+        <!-- Hardware Section -->
+        {% if loadout_hardware %}
+        <div>
+            <h2 class="text-xl font-bold text-white mb-4">Hardware Setup</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for item in loadout_hardware %}
+                <div class="aurora-glass p-4">
+                    <div class="aspect-square bg-gray-800 rounded-lg mb-3 flex items-center justify-center">
+                        {% if item.product.image_url %}
+                        <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" class="max-w-full max-h-full object-contain">
+                        {% else %}
+                        <span class="text-4xl">🖱️</span>
+                        {% endif %}
+                    </div>
+                    <h3 class="font-medium text-white mb-1">{{ item.product.name }}</h3>
+                    <p class="text-sm text-gray-400 mb-2">{{ item.product.category }}</p>
+                    {% if item.notes %}
+                    <p class="text-xs text-gray-500 mb-2">{{ item.notes|truncatewords:15 }}</p>
+                    {% endif %}
+                    {% if item.affiliate_url %}
+                    <a href="{{ item.affiliate_url }}" target="_blank" rel="noopener noreferrer" 
+                       class="text-sm text-cyan-400 hover:text-cyan-300">
+                        View Product →
+                    </a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Game Configs Section -->
+        {% if game_configs %}
+        <div>
+            <h2 class="text-xl font-bold text-white mb-4">Game Settings</h2>
+            <div class="space-y-3">
+                {% for config in game_configs %}
+                <div class="aurora-glass p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            {% if config.game.icon_url %}
+                            <img src="{{ config.game.icon_url }}" alt="{{ config.game.name }}" class="w-10 h-10 rounded-lg">
+                            {% else %}
+                            <div class="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center">
+                                <span class="text-xl">🎮</span>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <h3 class="font-medium text-white">{{ config.game.name }}</h3>
+                                <p class="text-sm text-gray-400">Updated {{ config.updated_at|naturaltime }}</p>
+                            </div>
+                        </div>
+                        <button class="text-cyan-400 hover:text-cyan-300">
+                            View Settings →
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% endcomment %}
+</div>

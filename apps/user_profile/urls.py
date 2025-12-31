@@ -15,10 +15,10 @@ from .views import (
     # UP-CLEANUP-04 Phase C Part 2: Safe game profile endpoints
     save_game_profiles_safe, update_game_id_safe
 )
-# UP-FE-MVP-01: Frontend V2 Views
-from .views.fe_v2 import (
-    profile_public_v2, profile_activity_v2,
-    profile_settings_v2, profile_privacy_v2,
+# UP-FE-MVP-01: Public Profile Views
+from .views.public_profile_views import (
+    public_profile_view, profile_activity_view,
+    profile_settings_view, profile_privacy_view,
     # UP-FE-MVP-02: Mutation endpoints
     update_basic_info, update_social_links
 )
@@ -49,6 +49,11 @@ from .views.game_passports_api import (
 # UP-PASSPORT-CREATE-01: Passport creation endpoint
 from .views.passport_create import create_passport
 
+# UP-PHASE2F: Follower/Following API with privacy controls
+from .views.follower_api import (
+    get_followers, get_following, follow_user as follow_user_v2, unfollow_user as unfollow_user_v2
+)
+
 # UP-PHASE14B: Dynamic content API (no hardcoded dropdowns)
 from .views.dynamic_content_api import (
     get_available_games, get_social_platforms, 
@@ -69,6 +74,19 @@ from .views.about_api import (
     delete_about_item, reorder_about_items
 )
 
+# UP-PHASE2D: Interactive Owner Flows (Bounties, Loadout, Trophy Showcase)
+from .views.bounty_api import (
+    create_bounty, accept_bounty,
+    # UP-PHASE2E: Match progression
+    start_match, submit_proof, confirm_result, raise_dispute
+)
+from .views.endorsement_api import award_bounty_endorsement
+from .views.loadout_api import (
+    save_hardware, save_game_config,
+    delete_hardware, delete_game_config
+)
+from .views.trophy_showcase_api import update_trophy_showcase
+
 from .views_public import public_profile, profile_api
 from .api_views import get_game_id, update_game_id
 from .api.game_id_api import (
@@ -88,7 +106,7 @@ logger = logging.getLogger(__name__)
 
 def redirect_to_modern_profile(request, username):
     """301 redirect from legacy /u/<username>/ or /<username>/ to /@<username>/"""
-    target_url = url_reverse('user_profile:profile_public_v2', kwargs={'username': username})
+    target_url = url_reverse('user_profile:public_profile', kwargs={'username': username})
     if request.GET:
         target_url = f"{target_url}?{request.GET.urlencode()}"
     user_id = request.user.id if request.user.is_authenticated else None
@@ -109,17 +127,19 @@ app_name = "user_profile"
 
 urlpatterns = [
     # ============================================
-    # UP-FE-MVP-01: FRONTEND V2 ROUTES (Privacy-Safe)
+    # UP-FE-MVP-01: PUBLIC PROFILE ROUTES (Privacy-Safe)
     # ============================================
-    # V2 Public Profile Routes (@ prefix)
-    path("@<str:username>/", profile_public_v2, name="profile_public_v2"),
-    path("@<str:username>/", profile_public_v2, name="profile"),  # Alias for backward compatibility
-    path("@<str:username>/activity/", profile_activity_v2, name="profile_activity_v2"),
+    # Public Profile Routes (@ prefix)
+    path("@<str:username>/", public_profile_view, name="public_profile"),
+    path("@<str:username>/", public_profile_view, name="profile"),  # Alias for backward compatibility
+    path("@<str:username>/activity/", profile_activity_view, name="profile_activity"),
     
-    # V2 Owner Pages (/me/ prefix)
-    path("me/settings/", profile_settings_v2, name="profile_settings_v2"),
-    path("me/settings/", profile_settings_v2, name="settings"),  # Alias for template compatibility
-    path("me/privacy/", profile_privacy_v2, name="profile_privacy_v2"),
+    # Owner Pages (/me/ prefix)
+    path("me/settings/", profile_settings_view, name="profile_settings"),
+    path("me/settings/", profile_settings_view, name="settings"),  # Alias for template compatibility
+    path("me/privacy/", profile_privacy_view, name="profile_privacy"),
+    # UP-PHASE2E-HOTFIX: Backward compatibility alias for old route name
+    path("me/privacy-v2/", profile_privacy_view, name="profile_privacy_v2"),
     
     # UP-FE-MVP-02: Settings mutation endpoints
     path("me/settings/basic/", update_basic_info, name="update_basic_info"),
@@ -175,6 +195,31 @@ urlpatterns = [
     path("api/profile/about/<int:item_id>/update/", update_about_item, name="update_about_item"),
     path("api/profile/about/<int:item_id>/delete/", delete_about_item, name="delete_about_item"),
     path("api/profile/about/reorder/", reorder_about_items, name="reorder_about_items"),
+    
+    # UP-PHASE2D: Interactive Owner Flows (Bounties, Loadout, Trophy Showcase)
+    path("api/bounties/create/", create_bounty, name="create_bounty"),
+    path("api/bounties/<int:bounty_id>/accept/", accept_bounty, name="accept_bounty"),
+    
+    # UP-PHASE2E: Bounty Match Progression
+    path("api/bounties/<int:bounty_id>/start/", start_match, name="start_match"),
+    path("api/bounties/<int:bounty_id>/submit-proof/", submit_proof, name="submit_proof"),
+    path("api/bounties/<int:bounty_id>/confirm-result/", confirm_result, name="confirm_result"),
+    path("api/bounties/<int:bounty_id>/dispute/", raise_dispute, name="raise_dispute"),
+    
+    # UP-PHASE2E PART 2: Skill Endorsements
+    path("api/bounties/<int:bounty_id>/endorse/", award_bounty_endorsement, name="award_bounty_endorsement"),
+    
+    # UP-PHASE2F: Follower/Following API with privacy controls
+    path("api/profile/<str:username>/followers/", get_followers, name="get_followers"),
+    path("api/profile/<str:username>/following/", get_following, name="get_following"),
+    path("api/profile/<str:username>/follow/", follow_user_v2, name="follow_user_v2"),
+    path("api/profile/<str:username>/unfollow/", unfollow_user_v2, name="unfollow_user_v2"),
+    
+    path("api/profile/loadout/hardware/", save_hardware, name="save_hardware"),
+    path("api/profile/loadout/game-config/", save_game_config, name="save_game_config"),
+    path("api/profile/loadout/hardware/<int:hardware_id>/", delete_hardware, name="delete_hardware"),
+    path("api/profile/loadout/game-config/<int:config_id>/", delete_game_config, name="delete_game_config"),
+    path("api/profile/trophy-showcase/update/", update_trophy_showcase, name="update_trophy_showcase"),
     
     # UP-PHASE6-C: Settings redesign endpoints
     path("me/settings/notifications/", update_notification_preferences, name="update_notification_preferences"),

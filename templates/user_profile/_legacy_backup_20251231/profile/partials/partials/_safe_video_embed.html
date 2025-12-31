@@ -1,0 +1,58 @@
+<!-- 
+P0 Safety: Safe Video Embed Partial
+Renders video iframe with security attributes.
+
+Usage:
+    {% include 'user_profile/profile/partials/_safe_video_embed.html' with embed_url=clip.embed_url platform=clip.platform title=clip.title %}
+
+Security Features:
+- Sandbox attribute (allow-scripts allow-same-origin only)
+- Loading lazy (performance + security)
+- Referrerpolicy no-referrer (privacy)
+- Platform-specific handling (Twitch parent param verified server-side)
+-->
+
+{% if embed_url %}
+<div class="video-embed-container">
+    <iframe 
+        src="{{ embed_url }}"
+        class="w-full aspect-video rounded-lg"
+        sandbox="allow-scripts allow-same-origin"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+        loading="lazy"
+        referrerpolicy="no-referrer"
+        title="{{ title|default:'Video Embed'|escape }}"
+    ></iframe>
+</div>
+{% else %}
+<div class="aspect-video bg-red-900/20 rounded-lg flex items-center justify-center">
+    <div class="text-center">
+        <i class="fa-solid fa-exclamation-triangle text-4xl text-red-400 mb-2"></i>
+        <p class="text-red-400">Invalid or missing embed URL</p>
+        <p class="text-xs text-red-500 mt-1">Only YouTube, Twitch, and Medal.tv are supported</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- 
+Security Notes:
+1. sandbox="allow-scripts allow-same-origin" prevents:
+   - Top navigation hijacking (no allow-top-navigation)
+   - Form submissions (no allow-forms)
+   - Pointer lock abuse (no allow-pointer-lock)
+   
+2. loading="lazy" prevents:
+   - Bandwidth exhaustion (embeds load only when visible)
+   - Drive-by malware downloads
+   
+3. referrerpolicy="no-referrer" prevents:
+   - Profile URL leakage to embed platforms
+   - Privacy tracking via referrer headers
+   
+4. embed_url generated server-side ensures:
+   - Domain whitelist enforcement
+   - HTTPS enforcement
+   - Twitch parent parameter hardcoded (not user-provided)
+   - Video ID character whitelist
+-->

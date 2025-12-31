@@ -8,6 +8,7 @@ from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django.utils import timezone
 
 from ..models import (
     UserProfile,
@@ -20,12 +21,93 @@ from ..models import (
     UserProfileStats,
     # UP-M5 models
     UserAuditEvent,
+    # P0 Feature Models
+    StreamConfig,
+    HighlightClip,
+    PinnedHighlight,
+    HardwareGear,
+    GameConfig,
+    ProfileShowcase,
+    ProfileAboutItem,
+    TrophyShowcaseConfig,
+    SkillEndorsement,
+    EndorsementOpportunity,
+    Bounty,
+    BountyAcceptance,
+    BountyProof,
+    BountyDispute,
 )
 from ..services.audit import AuditService
 from ..services.tournament_stats import TournamentStatsService
 from ..services.economy_sync import sync_profile_by_user_id, get_balance_drift
 from .exports import export_userprofiles_csv
 
+
+# ==============================================================================
+# INLINE ADMINS - For Child/Technical Models
+# ==============================================================================
+
+class PinnedHighlightInline(admin.TabularInline):
+    """Inline for users who pinned this clip."""
+    model = PinnedHighlight
+    extra = 0
+    readonly_fields = ['user', 'pinned_at']
+    fields = ['user', 'pinned_at']
+    can_delete = False
+    verbose_name = "Pinned By User"
+    verbose_name_plural = "Users Who Pinned This Clip"
+    
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+class BountyAcceptanceInline(admin.TabularInline):
+    """Inline for bounty acceptance record."""
+    model = BountyAcceptance
+    extra = 0
+    readonly_fields = ['acceptor', 'accepted_at', 'ip_address', 'user_agent']
+    fields = ['acceptor', 'accepted_at', 'ip_address']
+    can_delete = False
+    max_num = 1
+    verbose_name = "Acceptance Record"
+    verbose_name_plural = "Acceptance History"
+    
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+class BountyProofInline(admin.TabularInline):
+    """Inline for proof submissions."""
+    model = BountyProof
+    extra = 0
+    readonly_fields = ['submitted_by', 'claimed_winner', 'submitted_at']
+    fields = ['submitted_by', 'claimed_winner', 'proof_type', 'proof_url', 'submitted_at']
+    can_delete = False
+    verbose_name = "Proof Submission"
+    verbose_name_plural = "Proof Submissions"
+    
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+class BountyDisputeInline(admin.StackedInline):
+    """Inline for dispute (if any)."""
+    model = BountyDispute
+    extra = 0
+    readonly_fields = ['disputer', 'created_at', 'resolved_at']
+    fields = ['disputer', 'reason', 'status', 'assigned_moderator', 'resolution', 'created_at', 'resolved_at']
+    can_delete = False
+    max_num = 1
+    verbose_name = "Dispute"
+    verbose_name_plural = "Dispute (if exists)"
+    
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+# ==============================================================================
+# PRIMARY MODEL ADMINS
+# ==============================================================================
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
@@ -1000,3 +1082,452 @@ class UserAuditEventAdmin(admin.ModelAdmin):
         """Prevent deletion - audit events are immutable"""
         return False
 
+
+# ==============================================================================
+# MEDIA ADMINS - Phase 2B.5
+# ==============================================================================
+
+@admin.register(StreamConfig)
+class StreamConfigAdmin(admin.ModelAdmin):
+    """Admin for user stream configurations (Twitch, YouTube, Facebook)."""
+    
+    list_display = ['user', 'platform', 'channel_id', 'is_active', 'created_at']
+    list_filter = ['platform', 'is_active', 'created_at']
+    search_fields = ['user__username', 'channel_id', 'title']
+    readonly_fields = ['platform', 'channel_id', 'embed_url', 'created_at', 'updated_at']
+    
+    fieldsets = (
+        ('User & Platform', {
+            'fields': ('user', 'platform', 'channel_id')
+        }),
+        ('Stream Configuration', {
+            'fields': ('stream_url', 'embed_url', 'title', 'is_active')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(HighlightClip)
+class HighlightClipAdmin(admin.ModelAdmin):
+    """Admin for user highlight clips (YouTube, Twitch, Medal.tv)."""
+    
+    list_display = ['user', 'title', 'platform', 'game', 'display_order', 'created_at']
+    list_filter = ['platform', 'game', 'created_at']
+    search_fields = ['user__username', 'title', 'video_id']
+    readonly_fields = ['platform', 'video_id', 'embed_url', 'thumbnail_url', 'created_at', 'updated_at']
+    inlines = [PinnedHighlightInline]
+    
+    fieldsets = (
+        ('User & Content', {
+            'fields': ('user', 'title', 'game')
+        }),
+        ('Video Details', {
+            'fields': ('clip_url', 'platform', 'video_id', 'embed_url', 'thumbnail_url')
+        }),
+        ('Display', {
+            'fields': ('display_order',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    ordering = ['user', 'display_order']
+
+
+@admin.register(PinnedHighlight)
+class PinnedHighlightAdmin(admin.ModelAdmin):
+    """Admin for pinned highlights. HIDDEN from sidebar - use HighlightClipAdmin inline."""
+    
+    list_display = ['user', 'clip', 'pinned_at']
+    list_filter = ['pinned_at']
+    search_fields = ['user__username', 'clip__title']
+    readonly_fields = ['pinned_at']
+    
+    fieldsets = (
+        ('Pinned Highlight', {
+            'fields': ('user', 'clip')
+        }),
+        ('Metadata', {
+            'fields': ('pinned_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_model_perms(self, request):
+        """Hide from admin sidebar."""
+        return {}
+
+
+# ==============================================================================
+# LOADOUT ADMINS - Phase 2B.5
+# ==============================================================================
+
+@admin.register(HardwareGear)
+class HardwareGearAdmin(admin.ModelAdmin):
+    """Admin for user hardware gear (mouse, keyboard, headset, monitor, mousepad)."""
+    
+    list_display = ['user', 'category', 'brand', 'model', 'is_public', 'updated_at']
+    list_filter = ['category', 'is_public', 'brand', 'created_at']
+    search_fields = ['user__username', 'brand', 'model']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('User & Hardware', {
+            'fields': ('user', 'category', 'brand', 'model')
+        }),
+        ('Specifications', {
+            'fields': ('specs', 'purchase_url')
+        }),
+        ('Privacy', {
+            'fields': ('is_public',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    ordering = ['user', 'category']
+
+
+@admin.register(GameConfig)
+class GameConfigAdmin(admin.ModelAdmin):
+    """Admin for per-game configuration settings (sensitivity, crosshair, keybinds).
+    
+    HIDDEN FROM SIDEBAR - Per-user per-game configs, access via user search.
+    """
+    
+    list_display = ['user', 'game', 'is_public', 'updated_at']
+    list_filter = ['game', 'is_public', 'created_at']
+    search_fields = ['user__username', 'game__name', 'notes']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('User & Game', {
+            'fields': ('user', 'game')
+        }),
+        ('Settings', {
+            'fields': ('settings', 'notes')
+        }),
+        ('Privacy', {
+            'fields': ('is_public',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    ordering = ['user', 'game']
+    
+    def has_module_permission(self, request):
+        """Hide from admin sidebar - access via user/game search."""
+        return False
+
+
+# ==============================================================================
+# SHOWCASE ADMINS - Phase 2B.5
+# ==============================================================================
+
+@admin.register(ProfileShowcase)
+class ProfileShowcaseAdmin(admin.ModelAdmin):
+    """Admin for profile showcase configuration (About section toggles)."""
+    
+    list_display = ['user_profile', 'featured_team_id', 'featured_passport_id', 'updated_at']
+    list_filter = ['created_at']
+    search_fields = ['user_profile__display_name', 'featured_team_role']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Profile', {
+            'fields': ('user_profile',)
+        }),
+        ('Featured Content', {
+            'fields': ('featured_team_id', 'featured_team_role', 'featured_passport_id')
+        }),
+        ('Section Configuration', {
+            'fields': ('enabled_sections', 'section_order', 'highlights')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(ProfileAboutItem)
+class ProfileAboutItemAdmin(admin.ModelAdmin):
+    """Admin for profile About section items (Facebook-style).
+    
+    HIDDEN FROM SIDEBAR - User-curated items, access via ProfileShowcase or user search.
+    """
+    
+    list_display = ['user_profile', 'item_type', 'visibility', 'order_index', 'created_at']
+    list_filter = ['item_type', 'visibility', 'created_at']
+    search_fields = ['user_profile__display_name', 'display_text']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Profile & Type', {
+            'fields': ('user_profile', 'item_type')
+        }),
+        ('Content', {
+            'fields': ('display_text', 'source_model', 'source_id', 'icon_emoji')
+        }),
+        ('Display', {
+            'fields': ('visibility', 'order_index', 'is_active')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    ordering = ['user_profile', 'order_index']
+    
+    def has_module_permission(self, request):
+        """Hide from admin sidebar - access via ProfileShowcase or user search."""
+        return False
+
+
+# ==============================================================================
+# TROPHY/ENDORSEMENT/BOUNTY ADMINS - Phase 2B.5
+# ==============================================================================
+
+@admin.register(TrophyShowcaseConfig)
+class TrophyShowcaseConfigAdmin(admin.ModelAdmin):
+    """Admin for trophy showcase configuration."""
+    
+    list_display = ['user', 'border', 'frame', 'updated_at']
+    list_filter = ['created_at']
+    search_fields = ['user__username']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('User', {
+            'fields': ('user',)
+        }),
+        ('Cosmetics', {
+            'fields': ('border', 'frame', 'pinned_badges')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(SkillEndorsement)
+class SkillEndorsementAdmin(admin.ModelAdmin):
+    """Admin for skill endorsements."""
+    
+    list_display = ['receiver', 'endorser', 'skill_name', 'is_flagged', 'created_at']
+    list_filter = ['skill_name', 'is_flagged', 'created_at']
+    search_fields = ['receiver__username', 'endorser__username', 'comment']
+    readonly_fields = ['match', 'endorser', 'receiver', 'created_at']
+    
+    fieldsets = (
+        ('Endorsement', {
+            'fields': ('match', 'endorser', 'receiver', 'skill_name')
+        }),
+        ('Details', {
+            'fields': ('comment', 'is_flagged', 'flag_reason')
+        }),
+        ('Metadata', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(EndorsementOpportunity)
+class EndorsementOpportunityAdmin(admin.ModelAdmin):
+    """Admin for endorsement opportunities. HIDDEN from sidebar - system-generated."""
+    
+    list_display = ['player', 'match', 'is_used', 'expires_at', 'created_at']
+    list_filter = ['is_used', 'notified', 'created_at']
+    search_fields = ['player__username']
+    readonly_fields = ['match', 'player', 'expires_at', 'created_at']
+    
+    fieldsets = (
+        ('Opportunity', {
+            'fields': ('match', 'player', 'expires_at')
+        }),
+        ('Status', {
+            'fields': ('is_used', 'used_at', 'notified', 'notified_at')
+        }),
+        ('Metadata', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_model_perms(self, request):
+        """Hide from admin sidebar - system-generated records."""
+        return {}
+
+
+@admin.register(Bounty)
+class BountyAdmin(admin.ModelAdmin):
+    """Admin for bounties with full lifecycle management."""
+    
+    list_display = ['id', 'title', 'creator', 'acceptor', 'status', 'stake_amount', 'created_at']
+    list_filter = ['status', 'game', 'created_at']
+    search_fields = ['title', 'creator__username', 'acceptor__username', 'description']
+    readonly_fields = ['created_at', 'payout_amount', 'platform_fee']
+    inlines = [BountyAcceptanceInline, BountyProofInline, BountyDisputeInline]
+    
+    fieldsets = (
+        ('Bounty Details', {
+            'fields': ('title', 'description', 'game', 'status')
+        }),
+        ('Participants', {
+            'fields': ('creator', 'acceptor', 'target_user', 'winner')
+        }),
+        ('Financials', {
+            'fields': ('stake_amount', 'payout_amount', 'platform_fee')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'expires_at', 'result_submitted_at', 'completed_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(BountyAcceptance)
+class BountyAcceptanceAdmin(admin.ModelAdmin):
+    """Admin for bounty acceptances. HIDDEN from sidebar - use BountyAdmin inline."""
+    
+    list_display = ['bounty', 'acceptor', 'accepted_at']
+    list_filter = ['accepted_at']
+    search_fields = ['bounty__title', 'acceptor__username']
+    readonly_fields = ['bounty', 'acceptor', 'accepted_at', 'ip_address', 'user_agent']
+    
+    fieldsets = (
+        ('Acceptance', {
+            'fields': ('bounty', 'acceptor', 'accepted_at')
+        }),
+        ('Metadata', {
+            'fields': ('ip_address', 'user_agent'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_model_perms(self, request):
+        """Hide from admin sidebar."""
+        return {}
+
+
+@admin.register(BountyProof)
+class BountyProofAdmin(admin.ModelAdmin):
+    """Admin for bounty proof submissions. HIDDEN from sidebar - use BountyAdmin inline."""
+    
+    list_display = ['bounty', 'submitted_by', 'claimed_winner', 'proof_type', 'submitted_at']
+    list_filter = ['proof_type', 'submitted_at']
+    search_fields = ['bounty__title', 'submitted_by__username', 'description']
+    readonly_fields = ['bounty', 'submitted_by', 'claimed_winner', 'submitted_at']
+    
+    fieldsets = (
+        ('Proof', {
+            'fields': ('bounty', 'submitted_by', 'claimed_winner', 'proof_type')
+        }),
+        ('Content', {
+            'fields': ('proof_url', 'description')
+        }),
+        ('Metadata', {
+            'fields': ('submitted_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_model_perms(self, request):
+        """Hide from admin sidebar."""
+        return {}
+
+
+@admin.register(BountyDispute)
+class BountyDisputeAdmin(admin.ModelAdmin):
+    """Admin for bounty disputes. HIDDEN from sidebar - use BountyAdmin inline."""
+    
+    list_display = ['bounty', 'disputer', 'status', 'assigned_moderator', 'created_at']
+    list_filter = ['status', 'created_at', 'resolved_at']
+    search_fields = ['bounty__title', 'disputer__username', 'reason']
+    readonly_fields = ['bounty', 'disputer', 'created_at', 'resolved_at']
+    actions = ['assign_to_me', 'mark_under_review', 'mark_resolved', 'refund_creator', 'award_challenger']
+    
+    fieldsets = (
+        ('Dispute', {
+            'fields': ('bounty', 'disputer', 'reason', 'status')
+        }),
+        ('Moderation', {
+            'fields': ('assigned_moderator', 'resolution')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'resolved_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def assign_to_me(self, request, queryset):
+        """Assign selected disputes to current moderator."""
+        count = queryset.filter(assigned_moderator__isnull=True).update(
+            assigned_moderator=request.user,
+            status='under_review'
+        )
+        self.message_user(request, f'{count} disputes assigned to you', messages.SUCCESS)
+    assign_to_me.short_description = 'Assign to me'
+    
+    def mark_under_review(self, request, queryset):
+        """Mark disputes as under review."""
+        count = queryset.filter(status='open').update(status='under_review')
+        self.message_user(request, f'{count} disputes marked under review', messages.SUCCESS)
+    mark_under_review.short_description = 'Mark as under review'
+    
+    def mark_resolved(self, request, queryset):
+        """Mark disputes as resolved (confirm original result)."""
+        count = queryset.filter(status__in=['open', 'under_review']).update(
+            status='resolved_confirm',
+            resolved_at=timezone.now(),
+            assigned_moderator=request.user
+        )
+        self.message_user(request, f'{count} disputes marked as resolved', messages.SUCCESS)
+    mark_resolved.short_description = 'Mark as Resolved (Confirm Result)'
+    
+    def refund_creator(self, request, queryset):
+        """Resolve dispute and refund bounty creator."""
+        count = queryset.filter(status__in=['open', 'under_review']).update(
+            status='resolved_reverse',
+            resolved_at=timezone.now(),
+            assigned_moderator=request.user,
+            resolution='Dispute resolved in favor of bounty creator. Stake refunded.'
+        )
+        self.message_user(
+            request, 
+            f'{count} disputes resolved - Creator refunded (requires manual wallet action)', 
+            messages.WARNING
+        )
+    refund_creator.short_description = 'Refund Creator (Reverse Result)'
+    
+    def award_challenger(self, request, queryset):
+        """Resolve dispute and award challenger."""
+        count = queryset.filter(status__in=['open', 'under_review']).update(
+            status='resolved_confirm',
+            resolved_at=timezone.now(),
+            assigned_moderator=request.user,
+            resolution='Dispute reviewed - original result confirmed. Challenger awarded.'
+        )
+        self.message_user(
+            request,
+            f'{count} disputes resolved - Challenger awarded (requires manual wallet action)',
+            messages.SUCCESS
+        )
+    award_challenger.short_description = 'Award Challenger (Confirm Result)'
+    
+    def get_model_perms(self, request):
+        """Hide from admin sidebar."""
+        return {}

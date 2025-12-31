@@ -14,6 +14,7 @@ from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django.utils import timezone
 from django.db.models import Q
 
 from .models import (
@@ -37,6 +38,26 @@ from .models import (
     # UP-PHASE6-C Models
     NotificationPreferences,
     WalletSettings,
+    # P0 Media Models
+    StreamConfig,
+    HighlightClip,
+    PinnedHighlight,
+    # P0 Loadout Models
+    HardwareGear,
+    GameConfig,
+    # P0 Trophy Showcase Models
+    TrophyShowcaseConfig,
+    # P0 Endorsement Models
+    SkillEndorsement,
+    EndorsementOpportunity,
+    # P0 Bounty Models
+    Bounty,
+    BountyAcceptance,
+    BountyProof,
+    BountyDispute,
+    # P0 Showcase Models
+    ProfileShowcase,
+    ProfileAboutItem,
 )
 from .services.audit import AuditService
 from .services.tournament_stats import TournamentStatsService
@@ -964,7 +985,7 @@ class GameProfileAliasAdmin(admin.ModelAdmin):
     
     list_display = [
         'game_profile',
-        'old_name',
+        'old_in_game_name',
         'changed_at',
         'changed_by_display',
         'reason_display',
@@ -978,13 +999,13 @@ class GameProfileAliasAdmin(admin.ModelAdmin):
     search_fields = [
         'game_profile__user__username',
         'game_profile__in_game_name',
-        'old_name',
+        'old_in_game_name',
         'reason',
     ]
     
     readonly_fields = [
         'game_profile',
-        'old_name',
+        'old_in_game_name',
         'changed_at',
         'changed_by_user_id',
         'reason',
@@ -994,7 +1015,7 @@ class GameProfileAliasAdmin(admin.ModelAdmin):
         ('Identity Change', {
             'fields': [
                 'game_profile',
-                'old_name',
+                'old_in_game_name',
                 'changed_at',
             ]
         }),
@@ -1529,3 +1550,1113 @@ class WalletSettingsAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         """Created automatically via UserProfile"""
         return False
+
+
+# ============================================================================
+# P0 TROPHY SHOWCASE ADMIN - Equipped Cosmetics
+# ============================================================================
+
+@admin.register(TrophyShowcaseConfig)
+class TrophyShowcaseConfigAdmin(admin.ModelAdmin):
+    """
+    Admin for user's equipped cosmetics (borders, frames, pinned badges).
+    
+    Features:
+    - List all showcase configs by user
+    - Filter by border/frame
+    - Search by username
+    - View pinned badges with badge details
+    - Validate unlocked cosmetics
+    """
+    list_display = [
+        'user',
+        'border',
+        'frame',
+        'pinned_count',
+        'updated_at',
+    ]
+    list_filter = ['border', 'frame', 'updated_at']
+    search_fields = ['user__username', 'user__email']
+    readonly_fields = ['created_at', 'updated_at', 'pinned_badges_preview', 'validation_status']
+    
+    fieldsets = [
+        ('User', {
+            'fields': ['user']
+        }),
+        ('Equipped Cosmetics', {
+            'fields': ['border', 'frame'],
+            'description': 'Selected border and frame (must be unlocked by user).'
+        }),
+        ('Pinned Badges', {
+            'fields': ['pinned_badge_ids', 'pinned_badges_preview'],
+            'description': 'List of UserBadge IDs to display (max 5).'
+        }),
+        ('Validation', {
+            'fields': ['validation_status'],
+            'classes': ['collapse'],
+            'description': 'Check if equipped cosmetics are unlocked.'
+        }),
+        ('Timestamps', {
+            'fields': ['created_at', 'updated_at'],
+            'classes': ['collapse']
+        }),
+    ]
+    
+    def pinned_count(self, obj):
+        """Show number of pinned badges"""
+        return len(obj.pinned_badge_ids)
+    pinned_count.short_description = 'Pinned'
+    
+    def pinned_badges_preview(self, obj):
+        """Show pinned badges with details"""
+        if not obj.pinned_badge_ids:
+            return 'No badges pinned'
+        
+        pinned = obj.get_pinned_badges()
+        if not pinned:
+            return 'No valid badges found'
+        
+        html_parts = []
+        for ub in pinned:
+            html_parts.append(
+                f'<div style="margin: 5px 0; padding: 5px; border: 1px solid #ddd;">'
+                f'{ub.badge.icon} <strong>{ub.badge.name}</strong><br>'
+                f'Rarity: {ub.badge.get_rarity_display()}<br>'
+                f'Earned: {ub.earned_at.strftime("%Y-%m-%d")}<br>'
+                f'<a href="{reverse("admin:user_profile_userbadge_change", args=[ub.pk])}" target="_blank">View Badge</a>'
+                f'</div>'
+            )
+        
+        return format_html(''.join(html_parts))
+    pinned_badges_preview.short_description = 'Pinned Badges'
+    
+    def validation_status(self, obj):
+        """Validate equipped cosmetics against unlocks"""
+        from apps.user_profile.services.trophy_showcase_service import (
+            validate_showcase_config,
+            get_unlocked_borders,
+            get_unlocked_frames,
+        )
+        
+        errors = validate_showcase_config(obj.user, obj)
+        
+        if not errors:
+            return format_html('<span style="color: green;">✅ All cosmetics unlocked</span>')
+        
+        unlocked_borders = get_unlocked_borders(obj.user)
+        unlocked_frames = get_unlocked_frames(obj.user)
+        
+        html_parts = [
+            '<span style="color: red;">❌ Validation errors:</span><br>'
+        ]
+        
+        for error in errors:
+            html_parts.append(f'• {error}<br>')
+        
+        html_parts.append('<br><strong>Unlocked borders:</strong><br>')
+        html_parts.append(', '.join(unlocked_borders) or 'None')
+        
+        html_parts.append('<br><br><strong>Unlocked frames:</strong><br>')
+        html_parts.append(', '.join(unlocked_frames) or 'None')
+        
+        return format_html(''.join(html_parts))
+    validation_status.short_description = 'Validation Status'
+    
+    def save_model(self, request, obj, form, change):
+        """Validate before saving"""
+        from apps.user_profile.services.trophy_showcase_service import validate_showcase_config
+        
+        try:
+            errors = validate_showcase_config(obj.user, obj)
+            if errors:
+                messages.warning(
+                    request,
+                    f'Warning: Some cosmetics may not be unlocked: {", ".join(errors)}'
+                )
+            
+            obj.full_clean()  # Triggers model.clean() validation
+            super().save_model(request, obj, form, change)
+            messages.success(request, f'Trophy showcase updated for {obj.user.username}')
+        except Exception as e:
+            messages.error(request, f'Validation failed: {str(e)}')
+            raise
+
+
+# ============================================================================
+# P0 ENDORSEMENT ADMIN - Post-Match Skill Recognition
+# ============================================================================
+
+@admin.register(SkillEndorsement)
+class SkillEndorsementAdmin(admin.ModelAdmin):
+    """
+    Admin for post-match skill endorsements.
+    
+    Features:
+    - List all endorsements with match/skill context
+    - Filter by skill, flagged status, date
+    - Search by endorser/receiver username
+    - View match details and validation status
+    - Flag endorsements for review (spam/manipulation detection)
+    """
+    list_display = [
+        'id',
+        'endorser_username',
+        'receiver_username',
+        'skill_name',
+        'match_link',
+        'tournament_name',
+        'is_flagged',
+        'created_at',
+    ]
+    list_filter = ['skill_name', 'is_flagged', 'created_at', 'match__tournament']
+    search_fields = ['endorser__username', 'receiver__username', 'match__id']
+    readonly_fields = [
+        'match',
+        'endorser',
+        'receiver',
+        'skill_name',
+        'created_at',
+        'ip_address',
+        'user_agent',
+        'match_context_display',
+        'validation_status_display',
+    ]
+    
+    fieldsets = [
+        ('Endorsement Details', {
+            'fields': ['endorser', 'receiver', 'skill_name', 'match'],
+        }),
+        ('Match Context', {
+            'fields': ['match_context_display'],
+            'description': 'Details about the match where this endorsement was earned.',
+        }),
+        ('Validation', {
+            'fields': ['validation_status_display'],
+            'description': 'Check if endorsement follows all permission rules.',
+        }),
+        ('Moderation', {
+            'fields': ['is_flagged', 'flag_reason', 'reviewed_by', 'reviewed_at'],
+            'classes': ['collapse'],
+        }),
+        ('Audit Trail', {
+            'fields': ['created_at', 'ip_address', 'user_agent'],
+            'classes': ['collapse'],
+        }),
+    ]
+    
+    def endorser_username(self, obj):
+        """Show endorser username with profile link."""
+        return obj.endorser.username
+    endorser_username.short_description = 'Endorser'
+    endorser_username.admin_order_field = 'endorser__username'
+    
+    def receiver_username(self, obj):
+        """Show receiver username with profile link."""
+        return obj.receiver.username
+    receiver_username.short_description = 'Receiver'
+    receiver_username.admin_order_field = 'receiver__username'
+    
+    def match_link(self, obj):
+        """Show match ID as link."""
+        if obj.match:
+            url = reverse('admin:tournaments_match_change', args=[obj.match.pk])
+            return format_html('<a href="{}" target="_blank">Match #{}</a>', url, obj.match_id)
+        return '-'
+    match_link.short_description = 'Match'
+    
+    def tournament_name(self, obj):
+        """Show tournament name."""
+        if obj.match and obj.match.tournament:
+            return obj.match.tournament.name
+        return '-'
+    tournament_name.short_description = 'Tournament'
+    tournament_name.admin_order_field = 'match__tournament__name'
+    
+    def match_context_display(self, obj):
+        """Show match context details."""
+        if not obj.match:
+            return 'No match linked'
+        
+        context = obj.get_match_context()
+        
+        html_parts = [
+            f'<strong>Match ID:</strong> {context["match_id"]}<br>',
+            f'<strong>Tournament:</strong> {context["tournament_name"]}<br>',
+            f'<strong>Round:</strong> {context["round_number"]}<br>',
+            f'<strong>Match Number:</strong> {context["match_number"]}<br>',
+            f'<strong>Completed At:</strong> {context["completed_at"].strftime("%Y-%m-%d %H:%M:%S") if context["completed_at"] else "Not set"}<br>',
+        ]
+        
+        # Time window validation
+        if obj.is_within_window:
+            html_parts.append('<span style="color: green;">✅ Within 24-hour window</span>')
+        else:
+            html_parts.append('<span style="color: red;">❌ Outside 24-hour window</span>')
+        
+        return format_html(''.join(html_parts))
+    match_context_display.short_description = 'Match Context'
+    
+    def validation_status_display(self, obj):
+        """Validate endorsement against permission rules."""
+        from apps.user_profile.services.endorsement_service import (
+            is_match_participant,
+            get_eligible_teammates,
+        )
+        
+        errors = []
+        
+        # 1. Self-endorsement check
+        if obj.endorser_id == obj.receiver_id:
+            errors.append('❌ Self-endorsement (violates rules)')
+        
+        # 2. Match completion check
+        if obj.match.state != 'completed':
+            errors.append(f'❌ Match not completed (state: {obj.match.state})')
+        
+        # 3. Time window check
+        if not obj.is_within_window:
+            errors.append('❌ Outside 24-hour endorsement window')
+        
+        # 4. Participant verification
+        is_participant, participant_error = is_match_participant(obj.endorser, obj.match)
+        if not is_participant:
+            errors.append(f'❌ Endorser not match participant: {participant_error}')
+        
+        # 5. Teammate verification (for team matches)
+        if obj.match.tournament.registration_type == 'team':
+            eligible_teammates = get_eligible_teammates(obj.endorser, obj.match)
+            if obj.receiver not in eligible_teammates:
+                errors.append('❌ Receiver not eligible teammate')
+        
+        if not errors:
+            return format_html('<span style="color: green;">✅ All validation checks passed</span>')
+        
+        html_parts = ['<span style="color: red;">Validation errors:</span><br>']
+        for error in errors:
+            html_parts.append(f'{error}<br>')
+        
+        return format_html(''.join(html_parts))
+    validation_status_display.short_description = 'Validation Status'
+    
+    def has_add_permission(self, request):
+        """Disable manual creation (endorsements created via service only)."""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """Disable deletion (endorsements are immutable)."""
+        return False
+    
+    def save_model(self, request, obj, form, change):
+        """Allow flagging but prevent other modifications."""
+        if change:
+            # Only allow updating moderation fields
+            allowed_fields = {'is_flagged', 'flag_reason', 'reviewed_by', 'reviewed_at'}
+            changed_fields = set(form.changed_data)
+            
+            if not changed_fields.issubset(allowed_fields):
+                messages.error(
+                    request,
+                    'Endorsements are immutable. Only moderation fields can be updated.'
+                )
+                return
+            
+            # Update reviewer info if flagging
+            if 'is_flagged' in changed_fields and obj.is_flagged:
+                obj.reviewed_by = request.user
+                obj.reviewed_at = timezone.now()
+        
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(EndorsementOpportunity)
+class EndorsementOpportunityAdmin(admin.ModelAdmin):
+    """
+    Admin for endorsement opportunity tracking.
+    
+    Shows 24-hour windows for players to endorse teammates after match completion.
+    Used for analytics and notification management.
+    """
+    list_display = [
+        'id',
+        'player_username',
+        'match_link',
+        'is_used',
+        'is_expired_display',
+        'time_remaining_display',
+        'notified',
+        'expires_at',
+    ]
+    list_filter = ['is_used', 'notified', 'expires_at']
+    search_fields = ['player__username', 'match__id']
+    readonly_fields = ['match', 'player', 'expires_at', 'is_used', 'used_at', 'created_at']
+    
+    fieldsets = [
+        ('Opportunity Details', {
+            'fields': ['match', 'player', 'expires_at'],
+        }),
+        ('Status', {
+            'fields': ['is_used', 'used_at'],
+        }),
+        ('Notifications', {
+            'fields': ['notified', 'notified_at'],
+        }),
+        ('Timestamps', {
+            'fields': ['created_at'],
+        }),
+    ]
+    
+    def player_username(self, obj):
+        """Show player username."""
+        return obj.player.username
+    player_username.short_description = 'Player'
+    player_username.admin_order_field = 'player__username'
+    
+    def match_link(self, obj):
+        """Show match ID as link."""
+        if obj.match:
+            url = reverse('admin:tournaments_match_change', args=[obj.match.pk])
+            return format_html('<a href="{}" target="_blank">Match #{}</a>', url, obj.match_id)
+        return '-'
+    match_link.short_description = 'Match'
+    
+    def is_expired_display(self, obj):
+        """Show expired status."""
+        if obj.is_expired:
+            return format_html('<span style="color: red;">❌ Expired</span>')
+        return format_html('<span style="color: green;">✅ Active</span>')
+    is_expired_display.short_description = 'Status'
+    
+    def time_remaining_display(self, obj):
+        """Show time remaining until expiry."""
+        if obj.is_expired:
+            return '-'
+        
+        remaining = obj.time_remaining
+        if not remaining:
+            return '-'
+        
+        hours = remaining.total_seconds() / 3600
+        return f'{hours:.1f} hours'
+    time_remaining_display.short_description = 'Time Remaining'
+    
+    def has_add_permission(self, request):
+        """Disable manual creation (opportunities created by system)."""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """Allow deletion for cleanup."""
+        return True
+
+# ============================================================================
+# P0 BOUNTY SYSTEM ADMINS
+# ============================================================================
+
+@admin.register(Bounty)
+class BountyAdmin(admin.ModelAdmin):
+    """
+    Admin interface for Bounty challenges.
+    
+    Features:
+    - Filter by status, game, disputed bounties
+    - Search by title, creator, acceptor
+    - Track escrow status and payouts
+    - Admin actions to resolve disputes
+    """
+    
+    list_display = [
+        'id',
+        'title',
+        'creator_username',
+        'acceptor_username',
+        'game',
+        'stake_amount',
+        'status_badge',
+        'winner_username',
+        'created_at',
+        'expires_at',
+    ]
+    
+    list_filter = [
+        'status',
+        'game',
+        'created_at',
+        ('expires_at', admin.DateFieldListFilter),
+    ]
+    
+    search_fields = [
+        'title',
+        'description',
+        'creator__username',
+        'acceptor__username',
+        'id',
+    ]
+    
+    readonly_fields = [
+        'id',
+        'created_at',
+        'accepted_at',
+        'started_at',
+        'result_submitted_at',
+        'completed_at',
+        'payout_amount',
+        'platform_fee',
+        'escrow_status_display',
+        'time_remaining_display',
+        'dispute_info_display',
+    ]
+    
+    fieldsets = [
+        ('Challenge Info', {
+            'fields': [
+                'id',
+                'title',
+                'description',
+                'game',
+                'stake_amount',
+            ]
+        }),
+        ('Participants', {
+            'fields': [
+                'creator',
+                'acceptor',
+                'target_user',
+                'winner',
+            ]
+        }),
+        ('Status', {
+            'fields': [
+                'status',
+                'escrow_status_display',
+                'time_remaining_display',
+                'dispute_info_display',
+            ]
+        }),
+        ('Financial', {
+            'fields': [
+                'payout_amount',
+                'platform_fee',
+            ]
+        }),
+        ('Timestamps', {
+            'fields': [
+                'created_at',
+                'accepted_at',
+                'started_at',
+                'result_submitted_at',
+                'completed_at',
+                'expires_at',
+            ]
+        }),
+        ('Match Reference', {
+            'fields': ['match'],
+            'classes': ['collapse'],
+        }),
+        ('Metadata', {
+            'fields': ['ip_address', 'user_agent'],
+            'classes': ['collapse'],
+        }),
+    ]
+    
+    actions = ['mark_as_disputed', 'force_expire']
+    
+    def creator_username(self, obj):
+        """Show creator username as link."""
+        if obj.creator:
+            url = reverse('admin:auth_user_change', args=[obj.creator.pk])
+            return format_html('<a href="{}" target="_blank">{}</a>', url, obj.creator.username)
+        return '-'
+    creator_username.short_description = 'Creator'
+    creator_username.admin_order_field = 'creator__username'
+    
+    def acceptor_username(self, obj):
+        """Show acceptor username as link."""
+        if obj.acceptor:
+            url = reverse('admin:auth_user_change', args=[obj.acceptor.pk])
+            return format_html('<a href="{}" target="_blank">{}</a>', url, obj.acceptor.username)
+        return '-'
+    acceptor_username.short_description = 'Acceptor'
+    acceptor_username.admin_order_field = 'acceptor__username'
+    
+    def winner_username(self, obj):
+        """Show winner username as link."""
+        if obj.winner:
+            url = reverse('admin:auth_user_change', args=[obj.winner.pk])
+            return format_html('<a href="{}" target="_blank">🏆 {}</a>', url, obj.winner.username)
+        return '-'
+    winner_username.short_description = 'Winner'
+    winner_username.admin_order_field = 'winner__username'
+    
+    def status_badge(self, obj):
+        """Show status with color badge."""
+        colors = {
+            'open': '#4CAF50',
+            'accepted': '#2196F3',
+            'in_progress': '#FF9800',
+            'pending_result': '#FFC107',
+            'disputed': '#F44336',
+            'completed': '#4CAF50',
+            'expired': '#9E9E9E',
+            'cancelled': '#9E9E9E',
+        }
+        color = colors.get(obj.status, '#000')
+        return format_html(
+            '<span style="background: {}; color: white; padding: 3px 8px; border-radius: 3px;">{}</span>',
+            color,
+            obj.get_status_display()
+        )
+    status_badge.short_description = 'Status'
+    status_badge.admin_order_field = 'status'
+    
+    def escrow_status_display(self, obj):
+        """Show escrow lock status."""
+        if obj.status in ['open', 'accepted', 'in_progress', 'pending_result', 'disputed']:
+            return format_html('<span style="color: orange;">🔒 Locked ({} DC)</span>', obj.stake_amount)
+        elif obj.status == 'completed':
+            return format_html('<span style="color: green;">✅ Released (paid {} DC to winner)</span>', obj.payout_amount or 0)
+        else:
+            return format_html('<span style="color: gray;">↩️ Refunded ({} DC)</span>', obj.stake_amount)
+    escrow_status_display.short_description = 'Escrow Status'
+    
+    def time_remaining_display(self, obj):
+        """Show time remaining until expiry (for OPEN bounties)."""
+        if obj.status != 'open' or not obj.expires_at:
+            return '-'
+        
+        remaining = obj.time_until_expiry
+        if not remaining or remaining.total_seconds() <= 0:
+            return format_html('<span style="color: red;">❌ Expired</span>')
+        
+        hours = remaining.total_seconds() / 3600
+        if hours < 1:
+            return format_html('<span style="color: red;">⚠️ {} mins</span>', int(remaining.total_seconds() / 60))
+        elif hours < 12:
+            return format_html('<span style="color: orange;">⚠️ {:.1f} hours</span>', hours)
+        else:
+            return format_html('<span style="color: green;">{:.1f} hours</span>', hours)
+    time_remaining_display.short_description = 'Time Remaining'
+    
+    def dispute_info_display(self, obj):
+        """Show dispute information if exists."""
+        if not hasattr(obj, 'dispute'):
+            return format_html('<span style="color: green;">✅ No dispute</span>')
+        
+        dispute = obj.dispute
+        if dispute.is_resolved:
+            return format_html(
+                '<span style="color: blue;">✅ Resolved: {}</span>',
+                dispute.get_status_display()
+            )
+        else:
+            return format_html(
+                '<span style="color: red;">⚠️ DISPUTED by {} - {}</span>',
+                dispute.disputer.username,
+                dispute.status
+            )
+    dispute_info_display.short_description = 'Dispute Status'
+    
+    def mark_as_disputed(self, request, queryset):
+        """Admin action: Mark bounties for review (disputed)."""
+        count = queryset.filter(status='pending_result').update(status='disputed')
+        self.message_user(request, f'{count} bounties marked as disputed', messages.SUCCESS)
+    mark_as_disputed.short_description = 'Mark as DISPUTED (manual review)'
+    
+    def force_expire(self, request, queryset):
+        """Admin action: Force expire open bounties."""
+        from apps.user_profile.services.bounty_service import expire_bounty
+        
+        count = 0
+        for bounty in queryset.filter(status='open'):
+            try:
+                expire_bounty(bounty.id)
+                count += 1
+            except Exception as e:
+                self.message_user(request, f'Failed to expire bounty {bounty.id}: {e}', messages.ERROR)
+        
+        self.message_user(request, f'{count} bounties expired', messages.SUCCESS)
+    force_expire.short_description = 'Force expire OPEN bounties (refund)'
+
+
+@admin.register(BountyAcceptance)
+class BountyAcceptanceAdmin(admin.ModelAdmin):
+    """Admin interface for bounty acceptances."""
+    
+    list_display = [
+        'bounty_id',
+        'bounty_title',
+        'acceptor_username',
+        'accepted_at',
+    ]
+    
+    readonly_fields = [
+        'bounty',
+        'acceptor',
+        'accepted_at',
+        'ip_address',
+        'user_agent',
+    ]
+    
+    def bounty_id(self, obj):
+        """Show bounty ID as link."""
+        url = reverse('admin:user_profile_bounty_change', args=[obj.bounty.pk])
+        return format_html('<a href="{}" target="_blank">Bounty #{}</a>', url, obj.bounty.id)
+    bounty_id.short_description = 'Bounty'
+    
+    def bounty_title(self, obj):
+        """Show bounty title."""
+        return obj.bounty.title
+    bounty_title.short_description = 'Title'
+    
+    def acceptor_username(self, obj):
+        """Show acceptor username."""
+        return obj.acceptor.username
+    acceptor_username.short_description = 'Acceptor'
+    
+    def has_add_permission(self, request):
+        """Disable manual creation (created via service)."""
+        return False
+
+
+@admin.register(BountyProof)
+class BountyProofAdmin(admin.ModelAdmin):
+    """Admin interface for bounty proof submissions."""
+    
+    list_display = [
+        'id',
+        'bounty_link',
+        'submitted_by_username',
+        'claimed_winner_username',
+        'proof_type',
+        'proof_url_link',
+        'submitted_at',
+    ]
+    
+    list_filter = [
+        'proof_type',
+        'submitted_at',
+    ]
+    
+    search_fields = [
+        'bounty__title',
+        'submitted_by__username',
+        'claimed_winner__username',
+        'description',
+    ]
+    
+    readonly_fields = [
+        'bounty',
+        'submitted_by',
+        'claimed_winner',
+        'submitted_at',
+        'ip_address',
+    ]
+    
+    fieldsets = [
+        ('Bounty Info', {
+            'fields': ['bounty']
+        }),
+        ('Submission', {
+            'fields': [
+                'submitted_by',
+                'claimed_winner',
+                'proof_type',
+                'proof_url',
+                'description',
+            ]
+        }),
+        ('Metadata', {
+            'fields': ['submitted_at', 'ip_address'],
+        }),
+    ]
+    
+    def bounty_link(self, obj):
+        """Show bounty ID as link."""
+        url = reverse('admin:user_profile_bounty_change', args=[obj.bounty.pk])
+        return format_html('<a href="{}" target="_blank">Bounty #{}</a>', url, obj.bounty.id)
+    bounty_link.short_description = 'Bounty'
+    
+    def submitted_by_username(self, obj):
+        """Show submitter username."""
+        return obj.submitted_by.username
+    submitted_by_username.short_description = 'Submitted By'
+    
+    def claimed_winner_username(self, obj):
+        """Show claimed winner username."""
+        return format_html('🏆 {}', obj.claimed_winner.username)
+    claimed_winner_username.short_description = 'Claimed Winner'
+    
+    def proof_url_link(self, obj):
+        """Show proof URL as clickable link."""
+        return format_html('<a href="{}" target="_blank">View Proof</a>', obj.proof_url)
+    proof_url_link.short_description = 'Proof'
+    
+    def has_add_permission(self, request):
+        """Disable manual creation (created via service)."""
+        return False
+
+
+@admin.register(BountyDispute)
+class BountyDisputeAdmin(admin.ModelAdmin):
+    """
+    Admin interface for bounty disputes.
+    
+    Features:
+    - Filter by status, open disputes
+    - Assign moderators
+    - Resolve disputes with decision
+    """
+    
+    list_display = [
+        'bounty_id',
+        'bounty_title',
+        'disputer_username',
+        'status_badge',
+        'assigned_moderator_username',
+        'created_at',
+        'resolved_at',
+    ]
+    
+    list_filter = [
+        'status',
+        'created_at',
+        'resolved_at',
+    ]
+    
+    search_fields = [
+        'bounty__title',
+        'disputer__username',
+        'reason',
+        'resolution',
+    ]
+    
+    readonly_fields = [
+        'bounty',
+        'disputer',
+        'created_at',
+        'resolved_at',
+    ]
+    
+    fieldsets = [
+        ('Dispute Info', {
+            'fields': [
+                'bounty',
+                'disputer',
+                'reason',
+                'created_at',
+            ]
+        }),
+        ('Moderation', {
+            'fields': [
+                'status',
+                'assigned_moderator',
+                'moderator_notes',
+                'resolution',
+                'resolved_at',
+            ]
+        }),
+    ]
+    
+    actions = ['assign_to_me', 'mark_under_review', 'mark_resolved', 'refund_creator', 'award_challenger']
+    
+    def bounty_id(self, obj):
+        """Show bounty ID as link."""
+        url = reverse('admin:user_profile_bounty_change', args=[obj.bounty.pk])
+        return format_html('<a href="{}" target="_blank">#{}</a>', url, obj.bounty.id)
+    bounty_id.short_description = 'Bounty ID'
+    
+    def bounty_title(self, obj):
+        """Show bounty title."""
+        return obj.bounty.title
+    bounty_title.short_description = 'Bounty Title'
+    
+    def disputer_username(self, obj):
+        """Show disputer username."""
+        return obj.disputer.username
+    disputer_username.short_description = 'Disputed By'
+    
+    def assigned_moderator_username(self, obj):
+        """Show assigned moderator."""
+        if obj.assigned_moderator:
+            return obj.assigned_moderator.username
+        return format_html('<span style="color: red;">⚠️ Unassigned</span>')
+    assigned_moderator_username.short_description = 'Moderator'
+    
+    def status_badge(self, obj):
+        """Show status with color badge."""
+        colors = {
+            'open': '#F44336',
+            'under_review': '#FF9800',
+            'resolved_confirm': '#4CAF50',
+            'resolved_reverse': '#4CAF50',
+            'resolved_void': '#9E9E9E',
+        }
+        color = colors.get(obj.status, '#000')
+        return format_html(
+            '<span style="background: {}; color: white; padding: 3px 8px; border-radius: 3px;">{}</span>',
+            color,
+            obj.get_status_display()
+        )
+    status_badge.short_description = 'Status'
+    
+    def assign_to_me(self, request, queryset):
+        """Admin action: Assign selected disputes to me."""
+        count = queryset.filter(assigned_moderator__isnull=True).update(
+            assigned_moderator=request.user,
+            status='under_review'
+        )
+        self.message_user(request, f'{count} disputes assigned to you', messages.SUCCESS)
+    assign_to_me.short_description = 'Assign to me'
+    
+    def mark_under_review(self, request, queryset):
+        """Admin action: Mark as under review."""
+        count = queryset.filter(status='open').update(status='under_review')
+        self.message_user(request, f'{count} disputes marked under review', messages.SUCCESS)
+    mark_under_review.short_description = 'Mark as under review'
+    
+    def mark_resolved(self, request, queryset):
+        """Admin action: Mark disputes as resolved (confirm original result)."""
+        count = queryset.filter(status__in=['open', 'under_review']).update(
+            status='resolved_confirm',
+            resolved_at=timezone.now(),
+            assigned_moderator=request.user
+        )
+        self.message_user(request, f'{count} disputes marked as resolved', messages.SUCCESS)
+    mark_resolved.short_description = 'Mark as Resolved (Confirm Result)'
+    
+    def refund_creator(self, request, queryset):
+        """Admin action: Resolve dispute and refund bounty creator."""
+        count = queryset.filter(status__in=['open', 'under_review']).update(
+            status='resolved_reverse',
+            resolved_at=timezone.now(),
+            assigned_moderator=request.user,
+            resolution='Dispute resolved in favor of bounty creator. Stake refunded.'
+        )
+        self.message_user(
+            request, 
+            f'{count} disputes resolved - Creator refunded (requires manual wallet action)', 
+            messages.WARNING
+        )
+    refund_creator.short_description = 'Refund Creator (Reverse Result)'
+    
+    def award_challenger(self, request, queryset):
+        """Admin action: Resolve dispute and award challenger."""
+        count = queryset.filter(status__in=['open', 'under_review']).update(
+            status='resolved_confirm',
+            resolved_at=timezone.now(),
+            assigned_moderator=request.user,
+            resolution='Dispute reviewed - original result confirmed. Challenger awarded.'
+        )
+        self.message_user(
+            request,
+            f'{count} disputes resolved - Challenger awarded (requires manual wallet action)',
+            messages.SUCCESS
+        )
+    award_challenger.short_description = 'Award Challenger (Confirm Result)'
+    
+    def has_add_permission(self, request):
+        """Disable manual creation (created via service)."""
+        return False
+
+
+# ==============================================================================
+# MEDIA ADMINS - Phase 2B.4
+# ==============================================================================
+
+@admin.register(StreamConfig)
+class StreamConfigAdmin(admin.ModelAdmin):
+    """Admin for user stream configurations (Twitch, YouTube, Facebook)."""
+    
+    list_display = ['user', 'platform', 'channel_id', 'is_active', 'created_at']
+    list_filter = ['platform', 'is_active', 'created_at']
+    search_fields = ['user__username', 'channel_id', 'title']
+    readonly_fields = ['platform', 'channel_id', 'embed_url', 'created_at', 'updated_at']
+    
+    fieldsets = (
+        ('User & Platform', {
+            'fields': ('user', 'platform', 'channel_id')
+        }),
+        ('Stream Configuration', {
+            'fields': ('stream_url', 'embed_url', 'title', 'is_active')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        """Allow manual creation for testing."""
+        return True
+
+
+@admin.register(HighlightClip)
+class HighlightClipAdmin(admin.ModelAdmin):
+    """Admin for user highlight clips (YouTube, Twitch, Medal.tv)."""
+    
+    list_display = ['user', 'title', 'platform', 'game', 'display_order', 'created_at']
+    list_filter = ['platform', 'game', 'created_at']
+    search_fields = ['user__username', 'title', 'video_id']
+    readonly_fields = ['platform', 'video_id', 'embed_url', 'thumbnail_url', 'created_at', 'updated_at']
+    
+    fieldsets = (
+        ('User & Content', {
+            'fields': ('user', 'title', 'game')
+        }),
+        ('Video Details', {
+            'fields': ('clip_url', 'platform', 'video_id', 'embed_url', 'thumbnail_url')
+        }),
+        ('Display', {
+            'fields': ('display_order',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    ordering = ['user', 'display_order']
+
+
+@admin.register(PinnedHighlight)
+class PinnedHighlightAdmin(admin.ModelAdmin):
+    """Admin for pinned highlight clips (featured on profile)."""
+    
+    list_display = ['user', 'clip', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['user__username', 'clip__title']
+    readonly_fields = ['created_at']
+    
+    fieldsets = (
+        ('Pinned Highlight', {
+            'fields': ('user', 'clip')
+        }),
+        ('Metadata', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        """Allow manual pinning."""
+        return True
+
+
+# ==============================================================================
+# LOADOUT ADMINS - Phase 2B.4
+# ==============================================================================
+
+@admin.register(HardwareGear)
+class HardwareGearAdmin(admin.ModelAdmin):
+    """Admin for user hardware gear (mouse, keyboard, headset, monitor, mousepad)."""
+    
+    list_display = ['user', 'category', 'brand', 'model', 'is_public', 'updated_at']
+    list_filter = ['category', 'is_public', 'brand', 'created_at']
+    search_fields = ['user__username', 'brand', 'model']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('User & Hardware', {
+            'fields': ('user', 'category', 'brand', 'model')
+        }),
+        ('Specifications', {
+            'fields': ('specs', 'purchase_url')
+        }),
+        ('Privacy', {
+            'fields': ('is_public',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    ordering = ['user', 'category']
+
+
+@admin.register(GameConfig)
+class GameConfigAdmin(admin.ModelAdmin):
+    """Admin for per-game configuration settings (sensitivity, crosshair, keybinds)."""
+    
+    list_display = ['user', 'game', 'is_public', 'updated_at']
+    list_filter = ['game', 'is_public', 'created_at']
+    search_fields = ['user__username', 'game__name', 'notes']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('User & Game', {
+            'fields': ('user', 'game')
+        }),
+        ('Settings', {
+            'fields': ('settings', 'notes')
+        }),
+        ('Privacy', {
+            'fields': ('is_public',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    ordering = ['user', 'game']
+
+
+# ==============================================================================
+# SHOWCASE ADMINS - Phase 2B.4
+# ==============================================================================
+
+@admin.register(ProfileShowcase)
+class ProfileShowcaseAdmin(admin.ModelAdmin):
+    """Admin for profile showcase configuration (About section toggles)."""
+    
+    list_display = ['user_profile', 'featured_team_id', 'featured_passport_id', 'updated_at']
+    list_filter = ['created_at']
+    search_fields = ['user_profile__display_name', 'featured_team_role']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Profile', {
+            'fields': ('user_profile',)
+        }),
+        ('Featured Content', {
+            'fields': ('featured_team_id', 'featured_team_role', 'featured_passport_id')
+        }),
+        ('Section Configuration', {
+            'fields': ('enabled_sections', 'section_order', 'highlights')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        """Allow manual creation."""
+        return True
+
+
+@admin.register(ProfileAboutItem)
+class ProfileAboutItemAdmin(admin.ModelAdmin):
+    """Admin for profile About section items (Facebook-style)."""
+    
+    list_display = ['user_profile', 'item_type', 'visibility', 'display_order', 'created_at']
+    list_filter = ['item_type', 'visibility', 'created_at']
+    search_fields = ['user_profile__display_name', 'content_text']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Profile & Type', {
+            'fields': ('user_profile', 'item_type')
+        }),
+        ('Content', {
+            'fields': ('content_text', 'source_model', 'source_id')
+        }),
+        ('Display', {
+            'fields': ('visibility', 'display_order')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    ordering = ['user_profile', 'display_order']

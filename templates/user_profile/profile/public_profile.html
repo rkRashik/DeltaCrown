@@ -1,0 +1,2723 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load profile_tags %}
+
+{% block title %}{{ profile.display_name }} (@{{ profile.username }}) - DeltaCrown Profile{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    /* Aurora Zenith Visual System */
+    :root {
+        --z-bg: #030014;
+        --z-panel: #0F0B1E;
+        --z-cyan: #00F0FF;
+        --z-purple: #7B2CBF;
+        --z-gold: #FFD60A;
+        --z-pink: #FF007A;
+        --z-green: #39FF14;
+        --z-red: #EF4444;
+        --z-border: rgba(255, 255, 255, 0.08);
+    }
+
+    body {
+        background-color: var(--z-bg);
+        color: #e5e7eb;
+        overflow-x: hidden;
+        background-image:
+            radial-gradient(circle at 15% 50%, rgba(123, 44, 191, 0.05), transparent 25%),
+            radial-gradient(circle at 85% 30%, rgba(0, 240, 255, 0.05), transparent 25%);
+    }
+
+    /* Prismatic Glass Panels */
+    .z-card {
+        background: rgba(15, 11, 30, 0.6);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .z-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+        transition: 0.5s;
+    }
+
+    .z-card:hover::before {
+        left: 100%;
+    }
+
+    .z-card:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(20, 15, 40, 0.7);
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Holographic Avatar Ring */
+    .holo-ring {
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg, transparent, var(--z-cyan), var(--z-purple), var(--z-pink), transparent);
+        animation: spin 4s linear infinite;
+        filter: blur(5px);
+        z-index: 0;
+    }
+
+    .holo-img {
+        position: relative;
+        z-index: 1;
+        border-radius: 50%;
+        border: 3px solid var(--z-bg);
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Neon Tabs */
+    .z-tab-btn {
+        position: relative;
+        color: #94a3b8;
+        transition: all 0.3s ease;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0 1.5rem;
+        height: 100%;
+    }
+
+    .z-tab-btn:hover {
+        color: #fff;
+    }
+
+    .z-tab-btn.active {
+        color: #fff;
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+
+    .z-tab-btn.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, var(--z-cyan), var(--z-purple));
+        box-shadow: 0 0 10px var(--z-cyan);
+    }
+
+    /* Edit Mode Toggles */
+    .edit-trigger {
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .group:hover .edit-trigger {
+        opacity: 1;
+    }
+
+    /* Text Gradients */
+    .text-gradient-gold {
+        background: linear-gradient(to right, var(--z-gold), #FFE566);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .text-gradient-cyan {
+        background: linear-gradient(to right, var(--z-cyan), #80F7FF);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: var(--z-bg);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--z-cyan);
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- HERO HEADER -->
+<header class="relative w-full h-[650px] mt-4 group/hero overflow-hidden">
+    <!-- Background -->
+    <div class="absolute inset-0 z-0">
+        {% if profile.banner_url %}
+        <img src="{{ profile.banner_url }}" class="w-full h-full object-cover opacity-60 group-hover/hero:opacity-100 transition duration-700" alt="Cover">
+        {% else %}
+        <div class="w-full h-full bg-gradient-to-br from-purple-900/20 to-cyan-900/20"></div>
+        {% endif %}
+        <div class="absolute inset-0 bg-gradient-to-t from-[var(--z-bg)] via-[var(--z-bg)]/90 to-transparent"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-[var(--z-bg)] via-[var(--z-bg)]/80 to-transparent"></div>
+    </div>
+
+    <!-- Edit Cover Button (Owner Only) -->
+    {% if is_owner %}
+    <input type="file" id="coverInput" accept="image/jpeg,image/jpg,image/png,image/webp" style="display:none;">
+    <div class="absolute top-28 right-8 z-30 opacity-0 group-hover/hero:opacity-100 transition-all duration-300 transform translate-y-2 group-hover/hero:translate-y-0">
+        <button onclick="document.getElementById('coverInput').click()" class="bg-black/60 hover:bg-white hover:text-black text-white border border-white/10 px-5 py-2 rounded-full backdrop-blur-md text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition shadow-lg">
+            <i class="fa-solid fa-image"></i> Change Cover
+        </button>
+    </div>
+    {% endif %}
+
+    <!-- Profile Content -->
+    <div class="absolute bottom-0 left-0 w-full max-w-[1800px] mx-auto px-6 pb-12 z-20 flex flex-col xl:flex-row items-end justify-between gap-10">
+        <div class="flex flex-col md:flex-row items-end gap-10 w-full">
+            <!-- Avatar -->
+            <div class="relative shrink-0 group/avatar mx-auto md:mx-0">
+                <div class="w-48 h-48 md:w-56 md:h-56 relative flex items-center justify-center">
+                    <div class="holo-ring"></div>
+                    <img src="{{ profile.avatar_url|default:'/static/images/default-avatar.png' }}" class="holo-img w-full h-full object-cover shadow-2xl" alt="{{ profile.display_name }}" id="avatarPreview">
+
+                    {% if is_owner %}
+                    <input type="file" id="avatarInput" accept="image/jpeg,image/jpg,image/png,image/webp" style="display:none;">
+                    <button onclick="document.getElementById('avatarInput').click()" class="absolute inset-0 z-10 bg-black/60 rounded-full flex flex-col items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition duration-300 backdrop-blur-[2px] border-4 border-[var(--z-bg)] cursor-pointer text-white">
+                        <i class="fa-solid fa-camera text-2xl mb-1"></i>
+                        <span class="text-[10px] font-bold uppercase tracking-widest">Update</span>
+                    </button>
+                    {% endif %}
+
+                    <!-- Online Status -->
+                    <div class="absolute bottom-3 right-3 z-20 w-6 h-6 bg-[var(--z-bg)] rounded-full flex items-center justify-center border border-white/10" title="Online">
+                        <div class="w-3 h-3 bg-[var(--z-green)] rounded-full animate-pulse shadow-[0_0_10px_var(--z-green)]"></div>
+                    </div>
+                </div>
+
+                <!-- Verified Badge -->
+                {% if profile.is_verified %}
+                <div class="absolute -bottom-4 left-1/2 transform -translate-x-1/2 z-20 bg-white text-black px-4 py-1.5 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.3)] flex items-center gap-2 uppercase tracking-wider font-bold text-[10px] border-2 border-[var(--z-bg)] whitespace-nowrap">
+                    <i class="fa-solid fa-circle-check" style="color: var(--z-cyan);"></i> Verified Pro
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Profile Info -->
+            <div class="mb-2 flex-1 text-center md:text-left w-full">
+                <div class="flex flex-wrap items-center justify-center md:justify-start gap-4 mb-2">
+                    <h1 class="text-6xl md:text-8xl font-display font-black text-white tracking-tighter leading-none drop-shadow-2xl">
+                        {{ profile.display_name|upper }}
+                    </h1>
+                    {% if is_owner %}
+                    <button class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/20 flex items-center justify-center text-gray-400 hover:text-white transition opacity-0 group-hover/hero:opacity-100">
+                        <i class="fa-solid fa-pen text-sm"></i>
+                    </button>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-5">
+                    <div class="px-3 py-1 bg-white/5 rounded-md border border-white/10 flex items-center gap-2 text-xs font-mono text-gray-300 hover:bg-white/10 transition cursor-pointer group/id">
+                        <span>@{{ profile.username }}</span>
+                        <i class="fa-regular fa-copy opacity-50 group-hover/id:opacity-100"></i>
+                    </div>
+                    <div class="px-3 py-1 bg-[var(--z-gold)]/10 rounded-md border border-[var(--z-gold)]/20 text-xs font-bold text-[var(--z-gold)] uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-star"></i> Level {{ profile.level|default:1 }}
+                    </div>
+                    {% if user_teams %}
+                    <div class="px-3 py-1 bg-[var(--z-purple)]/10 rounded-md border border-[var(--z-purple)]/20 text-xs font-bold text-[var(--z-purple)] uppercase tracking-wider">
+                        {{ user_teams.0.name }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <p class="text-gray-300 text-lg font-light max-w-2xl leading-relaxed mb-8 mx-auto md:mx-0">
+                    {{ profile.bio|default:"Building the future of South Asian Esports." }}
+                </p>
+
+                <!-- Stats Bar -->
+                <div class="z-card p-4 inline-flex flex-wrap items-center justify-center md:justify-start gap-8 bg-black/40 backdrop-blur-md border-white/5">
+                    <div class="text-center md:text-left group cursor-pointer" onclick="openFollowersModal()">
+                        {% if privacy.show_followers_count or is_owner %}
+                        <div class="text-2xl font-display font-bold text-white group-hover:text-[var(--z-cyan)] transition">{{ follower_count|default:0|floatformat:"-1" }}{% if follower_count > 1000 %}K{% endif %}</div>
+                        {% else %}
+                        <div class="text-2xl font-display font-bold text-gray-500"><i class="fa-solid fa-lock text-sm"></i></div>
+                        {% endif %}
+                        <div class="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Followers</div>
+                    </div>
+                    <div class="w-px h-8 bg-white/10 hidden md:block"></div>
+                    <div class="text-center md:text-left group cursor-pointer" onclick="openFollowingModal()">
+                        {% if privacy.show_following_count or is_owner %}
+                        <div class="text-2xl font-display font-bold text-white group-hover:text-[var(--z-purple)] transition">{{ following_count|default:0 }}</div>
+                        {% else %}
+                        <div class="text-2xl font-display font-bold text-gray-500"><i class="fa-solid fa-lock text-sm"></i></div>
+                        {% endif %}
+                        <div class="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Following</div>
+                    </div>
+                    <div class="w-px h-8 bg-white/10 hidden md:block"></div>
+                    <div class="text-center md:text-left group cursor-pointer">
+                        <div class="text-2xl font-display font-bold text-[var(--z-gold)]">{{ user_teams|length|default:0 }}</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Teams</div>
+                    </div>
+                    
+                    {% if reputation %}
+                    <div class="w-px h-8 bg-white/10 hidden md:block"></div>
+                    <div class="text-center md:text-left group cursor-pointer" title="Reputation Score: {{ reputation.reputation_score }}/100">
+                        <div class="text-2xl font-display font-bold {% if reputation.reputation_tier == 'Legend' %}text-[var(--z-gold)]{% elif reputation.reputation_tier == 'Veteran' %}text-[var(--z-cyan)]{% elif reputation.reputation_tier == 'Rising Star' %}text-[var(--z-purple)]{% else %}text-gray-400{% endif %}">
+                            {{ reputation.reputation_score }}
+                        </div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">
+                            {% if reputation.reputation_tier == 'Legend' %}🏆 Legend
+                            {% elif reputation.reputation_tier == 'Veteran' %}⭐ Veteran
+                            {% elif reputation.reputation_tier == 'Rising Star' %}✨ Rising Star
+                            {% else %}🌱 Rookie
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="w-px h-8 bg-white/10 hidden md:block"></div>
+
+                    <!-- Social Links -->
+                    <div class="flex gap-2">
+                        {% if social_links %}
+                            {% for link in social_links %}
+                                <a href="{{ link.url }}" target="_blank" class="w-10 h-10 rounded-lg bg-white/5 hover:bg-blue-500 hover:text-white text-gray-400 flex items-center justify-center transition transform hover:-translate-y-1">
+                                    <i class="fa-brands fa-{{ link.platform }} text-lg"></i>
+                                </a>
+                            {% endfor %}
+                        {% endif %}
+                        {% if is_owner %}
+                        <button class="w-10 h-10 rounded-lg border border-white/10 text-gray-500 hover:text-white hover:border-white transition flex items-center justify-center">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto justify-center xl:justify-end">
+            {% if not is_owner %}
+            <button class="w-full sm:w-auto px-8 py-4 bg-white text-black font-display font-black text-sm uppercase tracking-widest rounded-xl hover:bg-[var(--z-cyan)] transition shadow-[0_0_20px_rgba(255,255,255,0.2)] flex items-center justify-center gap-2 transform hover:-translate-y-1 group">
+                <i class="fa-solid fa-bolt text-[var(--z-gold)] group-hover:text-black transition"></i> Scout Player
+            </button>
+            <div class="flex gap-3 w-full sm:w-auto">
+                <button class="flex-1 sm:flex-none px-6 py-4 bg-white/5 border border-white/10 rounded-xl text-white font-bold uppercase tracking-wider text-xs hover:bg-white/10 transition flex items-center justify-center gap-2 backdrop-blur-md">
+                    <i class="fa-solid fa-user-plus text-[var(--z-cyan)]"></i> {% if is_following %}Following{% else %}Follow{% endif %}
+                </button>
+                <button class="px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition flex items-center justify-center backdrop-blur-md">
+                    <i class="fa-regular fa-envelope text-lg"></i>
+                </button>
+                <button class="px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 transition flex items-center justify-center backdrop-blur-md">
+                    <i class="fa-solid fa-ellipsis text-lg"></i>
+                </button>
+            </div>
+            {% else %}
+            <a href="{% url 'user_profile:profile_settings' %}" class="w-full sm:w-auto px-8 py-4 bg-white/5 border border-white/10 rounded-xl text-white font-bold uppercase tracking-wider text-xs hover:bg-white/10 transition flex items-center justify-center gap-2 backdrop-blur-md">
+                <i class="fa-solid fa-cog"></i> Edit Profile
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<!-- TAB NAVIGATION -->
+<div class="sticky top-20 z-40 bg-[var(--z-bg)]/95 backdrop-blur-xl border-b border-white/5 shadow-2xl">
+    <div class="max-w-[1800px] mx-auto px-6 flex items-center justify-between h-16">
+        <div class="flex gap-2 h-full overflow-x-auto no-scrollbar w-full">
+            <button onclick="switchTab('overview')" class="z-tab-btn active text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Overview</button>
+            <button onclick="switchTab('posts')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">
+                Posts <span class="bg-white/10 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">{{ posts.items|length|default:0 }}</span>
+            </button>
+            <button onclick="switchTab('media')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">
+                Media <i class="fa-solid fa-image text-xs opacity-50"></i>
+            </button>
+            <button onclick="switchTab('loadout')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-gamepad text-xs opacity-50"></i> Loadout
+            </button>
+            <button onclick="switchTab('career')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Career</button>
+            <button onclick="switchTab('stats')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Stats</button>
+            <button onclick="switchTab('highlights')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Highlights</button>
+            <button onclick="switchTab('bounties')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-crosshairs text-xs opacity-50"></i> Bounties
+            </button>
+            <button onclick="switchTab('inventory')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Inventory</button>
+
+            {% if wallet_visible %}
+            <button onclick="switchTab('wallet')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] text-[var(--z-gold)] flex items-center gap-2 whitespace-nowrap ml-auto xl:ml-0 border-l border-white/5 pl-6">
+                <i class="fa-solid fa-wallet"></i> Economy
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<main class="max-w-[1800px] mx-auto px-4 md:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-32">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="lg:col-span-3 space-y-6">
+        <!-- About Card -->
+        <div class="z-card p-6 relative group">
+            <div class="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">About</h3>
+                {% if is_owner %}
+                <button class="text-gray-500 hover:text-white transition edit-trigger">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                {% endif %}
+            </div>
+            <div class="space-y-5">
+                {% if profile.country %}
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 border border-white/5">
+                        <i class="fa-solid fa-flag"></i>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-0.5">Location</div>
+                        <div class="text-white text-sm font-medium">{{ profile.country }}</div>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 border border-white/5">
+                        <i class="fa-solid fa-calendar"></i>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-0.5">Joined</div>
+                        <div class="text-white text-sm font-medium">{{ profile.created_at|date:"F Y" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Passports -->
+        {% if pinned_passports or unpinned_passports %}
+        <div class="z-card overflow-hidden group">
+            <div class="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
+                <h3 class="text-xs font-bold text-white uppercase tracking-widest">Game IDs ({{ pinned_passports|length|add:unpinned_passports|length }})</h3>
+                {% if is_owner %}
+                <button class="text-gray-500 hover:text-white transition edit-trigger">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                {% endif %}
+            </div>
+
+            {% for passport in pinned_passports %}
+            <div class="p-5 border-l-[3px] border-l-[var(--z-cyan)] bg-gradient-to-r from-[var(--z-cyan)]/10 to-transparent relative group/item">
+                <div class="flex justify-between items-center mb-1">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-bold text-white">{{ passport.game.display_name }}</span>
+                    </div>
+                    <span class="text-[9px] bg-[var(--z-cyan)] text-black px-1.5 rounded font-bold uppercase">Pinned</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="font-mono text-xs text-gray-300">{{ passport.ign }}</span>
+                    {% if passport.rank %}
+                    <div class="flex items-center gap-1 text-xs font-bold text-[var(--z-gold)]">
+                        <i class="fa-solid fa-trophy"></i> {{ passport.rank }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+            {% for passport in unpinned_passports|slice:":2" %}
+            <div class="p-4 border-b border-white/5 hover:bg-white/5 transition relative group/item">
+                <div class="flex justify-between items-center mb-1">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-bold text-gray-400 group-hover/item:text-white transition">{{ passport.game.display_name }}</span>
+                    </div>
+                </div>
+                <div class="text-xs font-mono text-gray-500">{{ passport.ign }}</div>
+            </div>
+            {% endfor %}
+
+            {% if is_owner %}
+            <button class="w-full py-3 text-[10px] font-bold text-gray-500 hover:text-white hover:bg-white/5 transition uppercase tracking-widest border-t border-white/5">
+                + Link New Account
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Loadout -->
+        {% if has_loadout %}
+        <div class="z-card p-6 relative group">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Loadout</h3>
+                {% if is_owner %}
+                <button class="text-gray-500 hover:text-white transition edit-trigger">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                {% endif %}
+            </div>
+            <div class="space-y-3">
+                {% if hardware_gear.mouse %}
+                <div class="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition">
+                    <div class="w-8 h-8 flex items-center justify-center text-lg text-gray-600 group-hover/item:text-[var(--z-gold)] transition">
+                        <i class="fa-solid fa-computer-mouse"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-white font-bold group-hover/item:text-[var(--z-gold)] transition">{{ hardware_gear.mouse.brand }} {{ hardware_gear.mouse.model }}</div>
+                        {% if hardware_gear.mouse.specs %}
+                        <div class="text-[10px] text-gray-500">{{ hardware_gear.mouse.specs }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if hardware_gear.keyboard %}
+                <div class="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition">
+                    <div class="w-8 h-8 flex items-center justify-center text-lg text-gray-600 group-hover/item:text-[var(--z-gold)] transition">
+                        <i class="fa-solid fa-keyboard"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-white font-bold group-hover/item:text-[var(--z-gold)] transition">{{ hardware_gear.keyboard.brand }} {{ hardware_gear.keyboard.model }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if hardware_gear.headset %}
+                <div class="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition">
+                    <div class="w-8 h-8 flex items-center justify-center text-lg text-gray-600 group-hover/item:text-[var(--z-gold)] transition">
+                        <i class="fa-solid fa-headphones"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-white font-bold group-hover/item:text-[var(--z-gold)] transition">{{ hardware_gear.headset.brand }} {{ hardware_gear.headset.model }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <section class="lg:col-span-6 min-h-[800px]">
+        <!-- OVERVIEW TAB -->
+        <div id="tab-overview" class="tab-content active space-y-8">
+            <!-- Pinned Highlight OR Quick Stats -->
+            {% if pinned_highlight %}
+            <div class="z-card p-0 overflow-hidden relative group h-80 md:h-96 border-[var(--z-cyan)]/30 shadow-[0_0_10px_rgba(0,240,255,0.3)]">
+                <img src="{{ pinned_highlight.thumbnail_url }}" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-700 transform group-hover:scale-105" alt="{{ pinned_highlight.title }}">
+
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <button onclick="openVideoModal('{{ pinned_highlight.embed_url|escapejs }}', '{{ pinned_highlight.title|escapejs }}')" class="w-20 h-20 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/20 group-hover:border-[var(--z-cyan)] group-hover:bg-[var(--z-cyan)] group-hover:text-black transition-all duration-300 cursor-pointer shadow-2xl">
+                        <i class="fa-solid fa-play text-2xl ml-1"></i>
+                    </button>
+                </div>
+
+                <div class="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-[var(--z-bg)] via-[var(--z-bg)]/90 to-transparent">
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="bg-[var(--z-purple)]/90 text-white text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg">
+                            <i class="fa-solid fa-thumbtack"></i> Pinned
+                        </span>
+                    </div>
+                    <h3 class="text-white font-display font-bold text-3xl mb-2 drop-shadow-md">{{ pinned_highlight.title }}</h3>
+                    <div class="flex gap-6 text-xs text-gray-300 font-mono">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-gamepad text-[var(--z-cyan)]"></i> {{ pinned_highlight.game|upper }}</span>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Quick Stats (shown when no pinned highlight) -->
+            <div class="z-card p-8">
+                <h2 class="text-xl font-display font-bold text-white mb-8 flex items-center gap-3">
+                    <i class="fa-solid fa-chart-line text-[var(--z-cyan)]"></i> Quick Stats
+                </h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-cyan)]/50 transition">
+                        <div class="text-3xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-cyan)] transition">{{ user_stats.total_matches|default:"—" }}</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Matches</div>
+                    </div>
+                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-green)]/50 transition">
+                        <div class="text-3xl font-display font-bold text-[var(--z-green)] mb-1">{{ user_stats.total_wins|default:"—" }}</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Wins</div>
+                    </div>
+                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-gold)]/50 transition">
+                        <div class="text-3xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-gold)] transition">{{ user_stats.win_rate|default:"—" }}{% if user_stats.win_rate %}%{% endif %}</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Win Rate</div>
+                    </div>
+                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-purple)]/50 transition">
+                        <div class="text-3xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-purple)] transition">{{ profile.level|default:"1" }}</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Level</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Active Bounties -->
+            {% if active_bounties %}
+            {% for bounty in active_bounties|slice:":1" %}
+            <div class="z-card p-1 bg-gradient-to-r from-[var(--z-red)]/20 to-transparent relative group">
+                <div class="bg-[var(--z-panel)]/90 backdrop-blur-xl p-6 rounded-[18px] flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div class="flex items-center gap-5 w-full">
+                        <div class="w-16 h-16 rounded-2xl bg-[var(--z-red)]/10 text-[var(--z-red)] flex items-center justify-center text-3xl border border-[var(--z-red)]/20 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                            <i class="fa-solid fa-crosshairs"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-display text-xl font-bold tracking-wide">{{ bounty.title|upper }}</h3>
+                            <div class="flex gap-3 mt-2 text-xs text-gray-400 font-mono">
+                                {% if bounty.game %}<span class="border border-white/10 px-2 py-0.5 rounded">{{ bounty.game|upper }}</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center md:text-right min-w-max">
+                        <div class="text-4xl font-display font-black text-[var(--z-gold)] drop-shadow-md">{{ bounty.stake_amount }} DC</div>
+                        {% if not is_owner %}
+                        <button class="w-full mt-2 bg-white text-black text-[10px] font-black uppercase tracking-widest px-6 py-2.5 rounded-lg hover:bg-[var(--z-red)] hover:text-white transition shadow-lg">
+                            Accept Challenge
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <!-- Skill Matrix (Endorsements) -->
+            {% if endorsements.total_count > 0 %}
+            <div class="z-card p-8">
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h2 class="text-xl font-display font-bold text-white flex items-center gap-3 tracking-wide">
+                            <i class="fa-solid fa-certificate text-[var(--z-gold)]"></i> Skill Matrix
+                        </h2>
+                        <p class="text-xs text-gray-500 mt-1 uppercase tracking-widest">Community Verified Stats</p>
+                    </div>
+                    {% if not is_owner %}
+                    <button class="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-lg transition text-gray-300 hover:text-white uppercase font-bold tracking-wider">
+                        + Endorse User
+                    </button>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-4">
+                    {% for skill, count in endorsements.by_skill.items|slice:":3" %}
+                    <div class="flex items-center justify-between group p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 transition cursor-default">
+                        <div class="flex items-center gap-5">
+                            <div class="w-12 h-12 rounded-xl bg-[var(--z-purple)]/20 flex items-center justify-center text-[var(--z-purple)] font-display font-bold text-xl border border-[var(--z-purple)]/30">{{ count }}</div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white group-hover:text-[var(--z-purple)] transition uppercase tracking-wider">{{ skill|title }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- POSTS TAB - UP-PHASE-2C2 -->
+        <div id="tab-posts" class="tab-content space-y-6">
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-bullhorn text-[var(--z-cyan)]"></i> Activity Feed
+                    </h2>
+                </div>
+                
+                {% if posts.enabled %}
+                    {% if posts.items %}
+                        <div class="space-y-4">
+                            {% for post in posts.items %}
+                            <div class="z-card p-6 hover:bg-white/[0.03] transition">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div class="flex items-center gap-3">
+                                        <img src="{{ profile.avatar_url|default:'/static/images/default-avatar.png' }}" class="w-10 h-10 rounded-full border border-white/10" alt="{{ profile.username }}">
+                                        <div>
+                                            <h4 class="text-sm font-bold text-white">{{ profile.display_name }}</h4>
+                                            <p class="text-[10px] text-gray-500 font-mono uppercase">{{ post.created_at|timesince }} ago</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-gray-300 text-sm leading-relaxed mb-4">{{ post.content }}</p>
+                                <div class="flex gap-6 border-t border-white/5 pt-3 text-gray-400 text-xs">
+                                    <span class="flex items-center gap-2">
+                                        <i class="fa-regular fa-heart"></i> {{ post.like_count|default:0 }}
+                                    </span>
+                                    <span class="flex items-center gap-2">
+                                        <i class="fa-regular fa-comment"></i> {{ post.comment_count|default:0 }}
+                                    </span>
+                                    {% if post.url %}
+                                    <a href="{{ post.url }}" class="ml-auto text-[var(--z-cyan)] hover:underline">View Post →</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-12 text-gray-500">
+                            <i class="fa-solid fa-newspaper text-5xl mb-4 opacity-20"></i>
+                            <p class="text-sm">No posts yet. Check back later!</p>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <!-- Community integration pending -->
+                    <div class="bg-white/5 border border-white/10 rounded-xl p-6">
+                        <p class="text-gray-400 text-sm text-center">
+                            <i class="fa-solid fa-info-circle text-[var(--z-cyan)] mr-2"></i>
+                            Community integration pending. Posts feature will be available soon!
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- LOADOUT TAB - UP-PHASE-2C2 -->
+        <div id="tab-loadout" class="tab-content space-y-6">
+            <!-- Hardware Gear -->
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-computer-mouse text-[var(--z-gold)]"></i> Hardware Setup
+                    </h2>
+                    {% if is_owner %}
+                    <button onclick="openEditLoadoutModal()" class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white hover:bg-white/10 transition">
+                        <i class="fa-solid fa-pen mr-2"></i> Edit Loadout
+                    </button>
+                    {% endif %}
+                </div>
+                
+                {% if hardware_gear.mouse or hardware_gear.keyboard or hardware_gear.headset or hardware_gear.monitor or hardware_gear.mousepad %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% if hardware_gear.mouse %}
+                    <div class="z-card p-5 hover:border-[var(--z-gold)]/30 transition group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-[var(--z-gold)]/10 flex items-center justify-center text-[var(--z-gold)] text-2xl group-hover:scale-110 transition">
+                                <i class="fa-solid fa-computer-mouse"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Mouse</div>
+                                <div class="text-sm font-bold text-white">{{ hardware_gear.mouse.brand }} {{ hardware_gear.mouse.model }}</div>
+                                {% if hardware_gear.mouse.specs.dpi %}
+                                <div class="text-xs text-gray-400 mt-1">{{ hardware_gear.mouse.specs.dpi }} DPI</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if hardware_gear.keyboard %}
+                    <div class="z-card p-5 hover:border-[var(--z-cyan)]/30 transition group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)] text-2xl group-hover:scale-110 transition">
+                                <i class="fa-solid fa-keyboard"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Keyboard</div>
+                                <div class="text-sm font-bold text-white">{{ hardware_gear.keyboard.brand }} {{ hardware_gear.keyboard.model }}</div>
+                                {% if hardware_gear.keyboard.specs %}
+                                <div class="text-xs text-gray-400 mt-1">{{ hardware_gear.keyboard.specs|truncatechars:30 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if hardware_gear.headset %}
+                    <div class="z-card p-5 hover:border-[var(--z-purple)]/30 transition group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-[var(--z-purple)]/10 flex items-center justify-center text-[var(--z-purple)] text-2xl group-hover:scale-110 transition">
+                                <i class="fa-solid fa-headphones"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Headset</div>
+                                <div class="text-sm font-bold text-white">{{ hardware_gear.headset.brand }} {{ hardware_gear.headset.model }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if hardware_gear.monitor %}
+                    <div class="z-card p-5 hover:border-[var(--z-pink)]/30 transition group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-[var(--z-pink)]/10 flex items-center justify-center text-[var(--z-pink)] text-2xl group-hover:scale-110 transition">
+                                <i class="fa-solid fa-display"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Monitor</div>
+                                <div class="text-sm font-bold text-white">{{ hardware_gear.monitor.brand }} {{ hardware_gear.monitor.model }}</div>
+                                {% if hardware_gear.monitor.specs.refresh_rate %}
+                                <div class="text-xs text-gray-400 mt-1">{{ hardware_gear.monitor.specs.refresh_rate }}Hz</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if hardware_gear.mousepad %}
+                    <div class="z-card p-5 hover:border-white/20 transition group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-gray-400 text-2xl group-hover:scale-110 transition">
+                                <i class="fa-solid fa-square"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Mousepad</div>
+                                <div class="text-sm font-bold text-white">{{ hardware_gear.mousepad.brand }} {{ hardware_gear.mousepad.model }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="text-center py-12 text-gray-500">
+                    <i class="fa-solid fa-gamepad text-5xl mb-4 opacity-20"></i>
+                    <p class="text-sm">No hardware setup configured yet.</p>
+                    {% if is_owner %}
+                    <p class="text-xs mt-2">Add your gaming gear to showcase your setup!</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Game Configs -->
+            {% if game_configs %}
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-sliders text-[var(--z-cyan)]"></i> Game Settings
+                    </h2>
+                </div>
+                
+                <div class="space-y-4">
+                    {% for config in game_configs %}
+                    <div class="z-card p-6 hover:bg-white/[0.03] transition">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-white">{{ config.game }}</h3>
+                                <p class="text-xs text-gray-500 mt-1">Updated {{ config.updated_at|timesince }} ago</p>
+                            </div>
+                            <div class="text-xs font-mono px-3 py-1 rounded-full border border-white/10 text-gray-400">
+                                eDPI: {{ config.effective_dpi|floatformat:0 }}
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            <div class="text-center p-3 bg-white/5 rounded-lg">
+                                <div class="text-xs text-gray-500 mb-1">DPI</div>
+                                <div class="text-lg font-bold text-white">{{ config.dpi }}</div>
+                            </div>
+                            <div class="text-center p-3 bg-white/5 rounded-lg">
+                                <div class="text-xs text-gray-500 mb-1">Sensitivity</div>
+                                <div class="text-lg font-bold text-white">{{ config.sensitivity }}</div>
+                            </div>
+                            <div class="text-center p-3 bg-white/5 rounded-lg col-span-2">
+                                <div class="text-xs text-gray-500 mb-1">Resolution</div>
+                                <div class="text-lg font-bold text-white">{{ config.resolution }}</div>
+                            </div>
+                        </div>
+                        
+                        {% if config.crosshair %}
+                        <div class="bg-black/40 border border-white/5 rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <div class="flex-1">
+                                    <div class="text-xs text-gray-500 mb-2">Crosshair Code</div>
+                                    <code class="text-sm text-[var(--z-cyan)] font-mono break-all">{{ config.crosshair }}</code>
+                                </div>
+                                <button onclick="copyToClipboard('{{ config.crosshair|escapejs }}')" class="ml-4 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white hover:bg-white/10 transition">
+                                    <i class="fa-solid fa-copy mr-2"></i> Copy
+                                </button>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- BOUNTIES TAB - UP-PHASE-2C2 -->
+        <div id="tab-bounties" class="tab-content space-y-6">
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="z-card p-5 text-center hover:bg-white/[0.03] transition">
+                    <div class="text-3xl font-bold text-[var(--z-gold)] mb-1">{{ bounties.stats.open_count|default:0 }}</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">Open</div>
+                </div>
+                <div class="z-card p-5 text-center hover:bg-white/[0.03] transition">
+                    <div class="text-3xl font-bold text-[var(--z-cyan)] mb-1">{{ bounties.stats.in_progress_count|default:0 }}</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">In Progress</div>
+                </div>
+                <div class="z-card p-5 text-center hover:bg-white/[0.03] transition">
+                    <div class="text-3xl font-bold text-[var(--z-green)] mb-1">{{ bounty_stats.won_count|default:0 }}</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">Won</div>
+                </div>
+                <div class="z-card p-5 text-center hover:bg-white/[0.03] transition">
+                    <div class="text-3xl font-bold text-white mb-1">{{ bounty_stats.win_rate|floatformat:0|default:0 }}%</div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">Win Rate</div>
+                </div>
+            </div>
+            
+            <!-- Open Bounties -->
+            {% if bounties.open %}
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-flag-checkered text-[var(--z-gold)]"></i> Open Bounties
+                    </h2>
+                </div>
+                
+                <div class="space-y-4">
+                    {% for bounty in bounties.open %}
+                    <div class="z-card p-6 border-l-4 border-l-[var(--z-gold)] hover:bg-white/[0.03] transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold text-white mb-2">{{ bounty.title }}</h3>
+                                {% if bounty.description %}
+                                <p class="text-sm text-gray-400 mb-3">{{ bounty.description|truncatewords:20 }}</p>
+                                {% endif %}
+                                <div class="flex gap-3 text-xs">
+                                    <span class="px-2 py-1 bg-white/5 border border-white/10 rounded">{{ bounty.game }}</span>
+                                    <span class="px-2 py-1 bg-white/5 border border-white/10 rounded">{{ bounty.mode|upper }}</span>
+                                    <span class="px-2 py-1 bg-white/5 border border-white/10 rounded text-gray-400">Expires {{ bounty.expires_at|timeuntil }}</span>
+                                </div>
+                            </div>
+                            <div class="text-right ml-4">
+                                <div class="text-3xl font-bold text-[var(--z-gold)] mb-1">{{ bounty.stake_amount }} DC</div>
+                                {% if not is_owner %}
+                                <button onclick="acceptBounty({{ bounty.id }})" class="px-4 py-2 bg-[var(--z-gold)] text-black font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-white transition">
+                                    <i class="fa-solid fa-handshake mr-1"></i> Accept
+                                </button>
+                                {% else %}
+                                <span class="text-xs text-gray-500">Your bounty</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- In Progress Bounties -->
+            {% if bounties.in_progress %}
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-crosshairs text-[var(--z-cyan)]"></i> In Progress
+                    </h2>
+                </div>
+                
+                <div class="space-y-4">
+                    {% for bounty in bounties.in_progress %}
+                    <div class="z-card p-6 border-l-4 border-l-[var(--z-cyan)] hover:bg-white/[0.03] transition">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold text-white mb-2">{{ bounty.title }}</h3>
+                                <div class="flex gap-3 text-sm mb-3">
+                                    <span class="text-gray-400">{{ bounty.creator }} vs {{ bounty.acceptor }}</span>
+                                </div>
+                                <div class="flex gap-3 text-xs">
+                                    <span class="px-2 py-1 bg-white/5 border border-white/10 rounded">{{ bounty.game }}</span>
+                                    <span class="px-2 py-1 bg-[var(--z-cyan)]/20 border border-[var(--z-cyan)]/30 text-[var(--z-cyan)] rounded">{{ bounty.status_display }}</span>
+                                </div>
+                                
+                                <!-- UP-PHASE2E: Match Progression Actions -->
+                                {% if is_owner %}
+                                <div class="mt-4 flex gap-3">
+                                    {% if bounty.status == 'ACCEPTED' %}
+                                        <!-- Start Match (both participants) -->
+                                        <button onclick="startMatch({{ bounty.id }})"
+                                                class="px-4 py-2 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-black font-bold rounded transition">
+                                            <i class="fa-solid fa-play mr-2"></i>Start Match
+                                        </button>
+                                    {% elif bounty.status == 'IN_PROGRESS' %}
+                                        <!-- Submit Proof (both participants) -->
+                                        <button onclick="openProofModal({{ bounty.id }}, '{{ bounty.title }}', {{ bounty.creator_id }}, '{{ bounty.creator }}', {{ bounty.acceptor_id }}, '{{ bounty.acceptor }}')"
+                                                class="px-4 py-2 bg-[var(--z-purple)] hover:bg-[var(--z-purple)]/80 text-white font-bold rounded transition">
+                                            <i class="fa-solid fa-upload mr-2"></i>Submit Proof
+                                        </button>
+                                    {% elif bounty.status == 'PENDING_RESULT' %}
+                                        <!-- Creator can confirm -->
+                                        {% if profile.user == bounty.creator %}
+                                        <button onclick="confirmResult({{ bounty.id }})"
+                                                class="px-4 py-2 bg-[var(--z-green)] hover:bg-[var(--z-green)]/80 text-black font-bold rounded transition">
+                                            <i class="fa-solid fa-check mr-2"></i>Confirm Result
+                                        </button>
+                                        {% endif %}
+                                        
+                                        <!-- Participant can dispute (24hr window) -->
+                                        {% if bounty.can_dispute %}
+                                        <button onclick="openDisputeModal({{ bounty.id }}, '{{ bounty.title }}')"
+                                                class="px-4 py-2 bg-[var(--z-red)]/20 hover:bg-[var(--z-red)]/30 border border-[var(--z-red)]/50 text-[var(--z-red)] font-bold rounded transition">
+                                            <i class="fa-solid fa-flag mr-2"></i>Raise Dispute
+                                        </button>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="text-right ml-4">
+                                <div class="text-2xl font-bold text-white">{{ bounty.stake_amount }} DC</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Completed Bounties -->
+            {% if bounties.completed %}
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-trophy text-[var(--z-green)]"></i> Completed
+                    </h2>
+                </div>
+                
+                <div class="space-y-4">
+                    {% for bounty in bounties.completed %}
+                    <div class="z-card p-6 {% if bounty.was_winner %}border-l-4 border-l-[var(--z-green)]{% else %}border-l-4 border-l-[var(--z-red)]{% endif %} hover:bg-white/[0.03] transition">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold text-white mb-2">{{ bounty.title }}</h3>
+                                <div class="flex gap-3 text-sm mb-2">
+                                    <span class="text-gray-400">Winner: <span class="text-white font-bold">{{ bounty.winner }}</span></span>
+                                </div>
+                                <div class="text-xs text-gray-500">Completed {{ bounty.completed_at|timesince }} ago</div>
+                            </div>
+                            <div class="text-right ml-4">
+                                <div class="text-2xl font-bold {% if bounty.was_winner %}text-[var(--z-green)]{% else %}text-gray-500{% endif %}">
+                                    {% if bounty.was_winner %}+{% endif %}{{ bounty.payout_amount|default:bounty.stake_amount }} DC
+                                </div>
+                                {% if request.user.is_authenticated and not bounty.already_endorsed %}
+                                <button 
+                                    onclick="openEndorseModal({{ bounty.id }}, {{ bounty.opponent_id }})"
+                                    class="mt-2 px-4 py-2 bg-[var(--z-purple)] text-white text-xs font-bold uppercase rounded-lg hover:bg-opacity-80 transition"
+                                    title="Rate your opponent's skills">
+                                    <i class="fa-solid fa-star mr-1"></i> Rate Opponent
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if not bounties.open and not bounties.in_progress and not bounties.completed %}
+            <div class="z-card p-12 text-center">
+                <i class="fa-solid fa-crosshairs text-6xl mb-4 opacity-20 text-gray-500"></i>
+                <p class="text-gray-400 text-lg mb-2">No bounties yet</p>
+                <p class="text-gray-500 text-sm">Challenge opponents to 1v1 matches and win DeltaCoins!</p>
+                {% if is_owner %}
+                <button onclick="openCreateBountyModal()" class="mt-6 px-6 py-3 bg-[var(--z-gold)] text-black font-bold text-sm uppercase tracking-wider rounded-lg hover:bg-white transition">
+                    <i class="fa-solid fa-plus mr-2"></i> Create Bounty
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {% if is_owner %}
+            <!-- Owner-only Create Button -->
+            <div class="flex justify-center">
+                <button onclick="openCreateBountyModal()" class="px-8 py-4 bg-[var(--z-gold)] text-black font-bold text-sm uppercase tracking-wider rounded-xl hover:bg-white transition shadow-lg">
+                    <i class="fa-solid fa-plus mr-2"></i> Create New Bounty
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- MEDIA TAB -->
+        <div id="tab-media" class="tab-content space-y-6">
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-image text-[var(--z-purple)]"></i> Media Gallery
+                    </h2>
+                    {% if is_owner %}
+                    <button class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white hover:bg-white/10 transition">
+                        <i class="fa-solid fa-upload mr-2"></i> Upload Media
+                    </button>
+                    {% endif %}
+                </div>
+                
+                <!-- Placeholder: Media Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <!-- Empty state -->
+                    <div class="col-span-2 md:col-span-3 text-center py-12 text-gray-500">
+                        <i class="fa-solid fa-photo-film text-5xl mb-4 opacity-20"></i>
+                        <p class="text-sm">No media uploaded yet.</p>
+                        {% if is_owner %}
+                        <p class="text-xs mt-2">Upload your best screenshots, highlights, and moments!</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAREER TAB -->
+        <div id="tab-career" class="tab-content space-y-6">
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-10 border-b border-white/5 pb-4">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-timeline text-[var(--z-cyan)]"></i> Team History
+                    </h2>
+                </div>
+
+                {% if user_teams %}
+                <div class="relative ml-4 space-y-8">
+                    {% for team in user_teams|slice:":3" %}
+                    <div class="relative pl-12 group/item">
+                        <div class="absolute -left-[5px] top-0 w-4 h-4 bg-[var(--z-cyan)] rounded-full border-4 border-[var(--z-bg)] shadow-[0_0_15px_var(--z-cyan)] z-10"></div>
+                        <div class="z-card p-6 border-l-2 border-l-[var(--z-cyan)] bg-[var(--z-cyan)]/5 hover:bg-[var(--z-cyan)]/10 transition">
+                            <span class="absolute top-4 right-4 bg-[var(--z-cyan)] text-black text-[9px] font-bold px-2 py-1 rounded uppercase tracking-widest">Active</span>
+                            <h3 class="text-2xl font-display font-bold text-white mb-1">{{ team.name }}</h3>
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="text-[10px] bg-white/10 text-white px-2 py-0.5 rounded border border-white/10 font-mono">{{ team.role|upper }}</span>
+                                <span class="text-[10px] bg-white/10 text-white px-2 py-0.5 rounded border border-white/10 font-mono">{{ team.game|upper }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-gray-500 py-12">
+                    <i class="fa-solid fa-users text-4xl mb-4 opacity-20"></i>
+                    <p class="text-sm">No team history yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- STATS TAB -->
+        <div id="tab-stats" class="tab-content space-y-6">
+            <div class="z-card p-8">
+                <h2 class="text-xl font-display font-bold text-white mb-8">Career Performance</h2>
+
+                <div class="grid grid-cols-3 gap-6 mb-8">
+                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-cyan)]/50 transition">
+                        <div class="text-4xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-cyan)] transition">{{ user_stats.total_matches|default:0 }}</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Matches</div>
+                    </div>
+                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-gold)]/50 transition">
+                        <div class="text-4xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-gold)] transition">{{ user_stats.tournaments_played|default:0 }}</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Tournaments</div>
+                    </div>
+                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-purple)]/50 transition">
+                        <div class="text-4xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-purple)] transition">{{ user_teams|length|default:0 }}</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Teams</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-[var(--z-green)]/10 p-4 rounded-xl border border-[var(--z-green)]/20 text-center">
+                        <div class="text-3xl font-display font-bold text-[var(--z-green)]">{{ user_stats.total_wins|default:0 }}</div>
+                        <div class="text-[10px] text-[var(--z-green)]/70 uppercase font-bold tracking-widest">Wins</div>
+                    </div>
+                    <div class="bg-[var(--z-red)]/10 p-4 rounded-xl border border-[var(--z-red)]/20 text-center">
+                        <div class="text-3xl font-display font-bold text-[var(--z-red)]">{{ user_stats.total_losses|default:0 }}</div>
+                        <div class="text-[10px] text-[var(--z-red)]/70 uppercase font-bold tracking-widest">Losses</div>
+                    </div>
+                    <div class="bg-white/5 p-4 rounded-xl border border-white/10 text-center">
+                        <div class="text-3xl font-display font-bold text-white">{{ user_stats.win_rate|default:0 }}%</div>
+                        <div class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Win Rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HIGHLIGHTS TAB -->
+        <div id="tab-highlights" class="tab-content space-y-6">
+            {% if is_owner %}
+            <div class="flex justify-end mb-4">
+                <button onclick="openEditHighlightsModal()" class="bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-black font-bold px-6 py-2 rounded-lg transition flex items-center gap-2 text-sm uppercase tracking-wider">
+                    <i class="fa-solid fa-pen-to-square"></i> Edit Highlights
+                </button>
+            </div>
+            {% endif %}
+            {% if highlight_clips %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for clip in highlight_clips|slice:":6" %}
+                <div class="z-card p-0 overflow-hidden group cursor-pointer relative aspect-video border-[var(--z-red)]/20 hover:border-[var(--z-red)] transition" onclick="openVideoModal('{{ clip.embed_url|escapejs }}', '{{ clip.title|escapejs }}', '{{ clip.url|escapejs }}')">
+                    {% if clip.thumbnail_url %}
+                    <img src="{{ clip.thumbnail_url }}" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition grayscale group-hover:grayscale-0" alt="{{ clip.title }}">
+                    {% else %}
+                    <!-- UP-PHASE2E-HOTFIX: Fallback for clips without thumbnails -->
+                    <div class="w-full h-full bg-gradient-to-br from-[var(--z-red)]/20 to-[var(--z-red)]/5 flex items-center justify-center">
+                        <i class="fa-solid fa-video text-6xl text-[var(--z-red)]/30"></i>
+                    </div>
+                    {% endif %}
+                    <div class="absolute top-2 right-2 bg-[var(--z-red)] text-white text-[9px] px-2 py-0.5 font-bold uppercase tracking-wider rounded">{{ clip.platform|upper }}</div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition pointer-events-none">
+                            <i class="fa-solid fa-play text-white text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black to-transparent">
+                        <div class="text-sm font-bold text-white uppercase tracking-wide">{{ clip.title }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="z-card p-12 text-center">
+                <i class="fa-solid fa-video text-4xl text-gray-700 mb-4"></i>
+                <p class="text-gray-500">No highlights uploaded yet</p>
+                {% if is_owner %}
+                <p class="text-xs text-gray-600 mt-2">Click "Edit Highlights" to add your first clip!</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- WALLET TAB (Owner Only) -->
+        {% if wallet_visible %}
+        <div id="tab-wallet" class="tab-content space-y-6">
+            <div class="z-card p-8 bg-gradient-to-br from-[var(--z-gold)]/10 to-transparent border-[var(--z-gold)]/20 relative overflow-hidden group">
+                <div class="absolute -right-10 -top-10 text-9xl text-[var(--z-gold)] opacity-5 rotate-12 transition-transform duration-1000 group-hover:rotate-0">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+
+                <div class="relative z-10 flex flex-col md:flex-row justify-between items-end gap-6">
+                    <div>
+                        <div class="text-xs font-bold text-[var(--z-gold)] uppercase tracking-[0.2em] mb-2">Available Balance</div>
+                        <div class="text-6xl font-display font-black text-white mb-2 drop-shadow-[0_0_15px_rgba(255,214,10,0.4)]">
+                            {% if wallet %}{{ wallet.cached_balance|floatformat:0 }}{% else %}0{% endif %} <span class="text-2xl text-[var(--z-gold)]/80 font-sans font-light">DC</span>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button class="bg-[var(--z-gold)] text-black font-bold px-6 py-3 rounded-lg hover:bg-white transition shadow-[0_0_10px_rgba(255,214,10,0.3)] flex items-center gap-2 uppercase text-xs tracking-wider">
+                            <i class="fa-solid fa-plus"></i> Top Up
+                        </button>
+                        <button class="bg-white/10 text-white font-bold px-6 py-3 rounded-lg hover:bg-white/20 transition flex items-center gap-2 border border-white/10 uppercase text-xs tracking-wider">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Withdraw
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            {% if wallet_transactions %}
+            <div class="z-card p-0 overflow-hidden">
+                <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-white text-sm uppercase tracking-widest">Recent Transactions</h3>
+                </div>
+                <div class="divide-y divide-white/5">
+                    {% for txn in wallet_transactions|slice:":5" %}
+                    <div class="p-5 flex justify-between items-center hover:bg-white/[0.02] transition">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-[var(--z-green)]/10 text-[var(--z-green)] flex items-center justify-center">
+                                <i class="fa-solid fa-arrow-up"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-white">{{ txn.description|default:"Transaction" }}</div>
+                                <div class="text-[10px] text-gray-500 uppercase tracking-wide">{{ txn.timestamp|date:"M d, Y" }}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-bold text-[var(--z-green)]">{% if txn.amount > 0 %}+{% endif %}{{ txn.amount }} DC</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- INVENTORY TAB - UP-PHASE-2C2 -->
+        <div id="tab-inventory" class="tab-content space-y-6">
+            <!-- Equipped Cosmetics -->
+            <div class="z-card p-8 bg-gradient-to-br from-[var(--z-purple)]/10 to-transparent border-[var(--z-purple)]/30">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-2 uppercase tracking-wide">
+                        <i class="fa-solid fa-star text-[var(--z-gold)]"></i> Equipped Items
+                    </h2>
+                    {% if is_owner %}
+                    <button onclick="openManageShowcaseModal()" class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white hover:bg-white/10 transition">
+                        <i class="fa-solid fa-pen mr-2"></i> Manage Showcase
+                    </button>
+                    {% endif %}
+                </div>
+
+                {% if showcase.equipped.border or showcase.equipped.frame or showcase.equipped.badges %}
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {% if showcase.equipped.border %}
+                    <div class="relative z-card p-6 text-center border-[var(--z-gold)] group cursor-pointer hover:-translate-y-2 transition-transform">
+                        <div class="absolute top-2 right-2 text-[8px] bg-[var(--z-gold)] text-black font-bold px-2 py-0.5 rounded uppercase">Equipped</div>
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-[var(--z-gold)] flex items-center justify-center text-2xl text-[var(--z-gold)]">
+                            <i class="fa-solid fa-border-all"></i>
+                        </div>
+                        <div class="text-sm font-bold text-white relative z-10 uppercase tracking-wider">{{ showcase.equipped.border.name|default:"Profile Border" }}</div>
+                        <div class="text-[10px] text-[var(--z-gold)] mt-1 uppercase">Border</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if showcase.equipped.frame %}
+                    <div class="relative z-card p-6 text-center border-[var(--z-purple)] group cursor-pointer hover:-translate-y-2 transition-transform">
+                        <div class="absolute top-2 right-2 text-[8px] bg-[var(--z-purple)] text-white font-bold px-2 py-0.5 rounded uppercase">Equipped</div>
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-lg border-4 border-[var(--z-purple)] flex items-center justify-center text-2xl text-[var(--z-purple)]">
+                            <i class="fa-solid fa-image-portrait"></i>
+                        </div>
+                        <div class="text-sm font-bold text-white relative z-10 uppercase tracking-wider">{{ showcase.equipped.frame.name|default:"Avatar Frame" }}</div>
+                        <div class="text-[10px] text-[var(--z-purple)] mt-1 uppercase">Frame</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if showcase.equipped.badges %}
+                    <div class="relative z-card p-6 text-center border-[var(--z-cyan)] group cursor-pointer hover:-translate-y-2 transition-transform">
+                        <div class="absolute top-2 right-2 text-[8px] bg-[var(--z-cyan)] text-black font-bold px-2 py-0.5 rounded uppercase">{{ showcase.equipped.badges|length }} Pinned</div>
+                        <div class="flex justify-center gap-2 mb-4">
+                            {% for badge in showcase.equipped.badges|slice:":3" %}
+                            <div class="w-12 h-12 rounded-full bg-[var(--z-cyan)]/10 border-2 border-[var(--z-cyan)] flex items-center justify-center text-sm text-[var(--z-cyan)]">
+                                <i class="fa-solid fa-trophy"></i>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="text-sm font-bold text-white relative z-10 uppercase tracking-wider">Badges</div>
+                        <div class="text-[10px] text-[var(--z-cyan)] mt-1 uppercase">Pinned Achievements</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="text-center py-12 text-gray-500">
+                    <i class="fa-solid fa-box-open text-5xl mb-4 opacity-20"></i>
+                    <p class="text-sm">No cosmetics equipped yet</p>
+                    {% if is_owner %}
+                    <p class="text-xs mt-2">Unlock cosmetics by earning achievements!</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Unlocked Cosmetics -->
+            {% if showcase.unlocked %}
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-palette text-[var(--z-purple)]"></i> Unlocked Cosmetics
+                    </h2>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {% for item in showcase.unlocked %}
+                    <div class="z-card p-5 text-center group cursor-pointer hover:border-[var(--z-cyan)]/30 transition">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-lg bg-white/5 flex items-center justify-center text-xl text-gray-400 group-hover:text-[var(--z-cyan)] transition">
+                            {% if item.type == 'border' %}
+                            <i class="fa-solid fa-border-all"></i>
+                            {% elif item.type == 'frame' %}
+                            <i class="fa-solid fa-image-portrait"></i>
+                            {% else %}
+                            <i class="fa-solid fa-trophy"></i>
+                            {% endif %}
+                        </div>
+                        <div class="text-xs font-bold text-white uppercase tracking-wider">{{ item.item.name|default:"Cosmetic" }}</div>
+                        <div class="text-[9px] text-gray-500 uppercase mt-1">{{ item.type|title }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside class="lg:col-span-3 space-y-6">
+        <!-- Live Feed Widget -->
+        <div class="z-card p-1 bg-gradient-to-b from-green-500/30 to-transparent relative group overflow-hidden">
+            <div class="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[length:100%_4px] opacity-20 pointer-events-none"></div>
+            
+            <div class="bg-[var(--z-bg)]/90 backdrop-blur-xl p-6 rounded-[18px]">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        {% if live_feed.is_live %}
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        <span class="text-[10px] font-bold text-green-500 tracking-[0.2em] uppercase">Live Feed</span>
+                        {% else %}
+                        <span class="w-2 h-2 bg-gray-600 rounded-full"></span>
+                        <span class="text-[10px] font-bold text-gray-500 tracking-[0.2em] uppercase">Live Feed</span>
+                        {% endif %}
+                    </div>
+                    <i class="fa-solid fa-trophy text-[var(--z-gold)] text-lg opacity-80"></i>
+                </div>
+                
+                {% if live_feed.is_live %}
+                <!-- Live Match State -->
+                <h3 class="text-white font-display font-bold text-xl uppercase italic leading-none mb-1">{{ live_feed.title }}</h3>
+                <p class="text-[10px] text-gray-400 mb-5 font-mono uppercase">{{ live_feed.subtitle }}</p>
+                
+                {% if live_feed.stream_url %}
+                <a href="{{ live_feed.stream_url }}" target="_blank" rel="noopener" class="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.3)] transition rounded-lg flex items-center justify-center gap-2 mb-3">
+                    <i class="fa-solid fa-video"></i> Watch Stream
+                </a>
+                {% endif %}
+                
+                {% if live_feed.cta_url %}
+                <a href="{{ live_feed.cta_url }}" class="w-full py-3 bg-green-500 hover:bg-white text-black font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(57,255,20,0.3)] transition rounded-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-eye"></i> {{ live_feed.cta_label|default:"View Match" }}
+                </a>
+                {% endif %}
+                {% else %}
+                <!-- Empty State -->
+                <div class="text-center py-8">
+                    <i class="fa-solid fa-satellite-dish text-3xl text-gray-600 mb-3"></i>
+                    <p class="text-xs text-gray-500">{{ live_feed.title }}</p>
+                    <p class="text-[10px] text-gray-600 mt-2">{{ live_feed.subtitle }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Stream Embed -->
+        {% if stream_config %}
+        <div class="z-card p-0 overflow-hidden border-[var(--z-purple)]/30">
+            <div class="p-4 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-[var(--z-purple)]/10 to-transparent">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-[var(--z-purple)] rounded-full animate-pulse"></span>
+                    <h3 class="text-xs font-bold text-white uppercase tracking-[0.2em]">Live Stream</h3>
+                </div>
+                <span class="text-[8px] bg-[var(--z-purple)]/20 text-[var(--z-purple)] px-2 py-0.5 rounded font-bold uppercase">{{ stream_config.platform|upper }}</span>
+            </div>
+            <div class="aspect-video bg-black">
+                {% if stream_config.embed_url %}
+                <iframe 
+                    src="{{ stream_config.embed_url }}" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    scrolling="no" 
+                    height="100%" 
+                    width="100%"
+                    class="w-full h-full"
+                    title="{{ stream_config.title }}">
+                </iframe>
+                {% else %}
+                <div class="w-full h-full flex flex-col items-center justify-center text-gray-400 p-8 text-center">
+                    <i class="fa-solid fa-video-slash text-4xl mb-4 text-gray-600"></i>
+                    <p class="font-bold text-white mb-2">Stream unavailable to embed</p>
+                    <p class="text-sm text-gray-500">This stream may be private, deleted, or restricted.</p>
+                    {% if stream_config.stream_url %}
+                    <a href="{{ stream_config.stream_url }}" target="_blank" rel="noopener" class="mt-4 px-6 py-2 bg-[var(--z-purple)] hover:bg-[var(--z-purple)]/80 text-white font-bold text-xs uppercase tracking-wider transition rounded-lg flex items-center gap-2">
+                        <i class="fa-solid fa-external-link-alt"></i> Open on {{ stream_config.platform|title }}
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% if stream_config.stream_url %}
+            <div class="p-4 bg-[var(--z-bg)]/50">
+                <a href="{{ stream_config.stream_url }}" target="_blank" rel="noopener" class="w-full py-2 bg-[var(--z-purple)] hover:bg-[var(--z-purple)]/80 text-white font-bold text-xs uppercase tracking-widest transition rounded-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-external-link-alt"></i> Open Full Stream
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Teams -->
+        {% if user_teams %}
+        <div class="z-card p-6">
+            <div class="flex justify-between items-center mb-5 border-b border-white/5 pb-2">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">Teams</h3>
+            </div>
+            <div class="space-y-4">
+                {% for team in user_teams|slice:":3" %}
+                <div class="flex items-center gap-4 group cursor-pointer hover:bg-white/5 p-2 rounded transition -mx-2">
+                    {% if team.logo_url %}
+                    <img src="{{ team.logo_url }}" class="w-12 h-12 rounded border border-white/10" alt="{{ team.name }}">
+                    {% else %}
+                    <div class="w-12 h-12 bg-[var(--z-panel)] border border-white/10 flex items-center justify-center text-white font-display font-bold text-lg shadow-lg rounded">
+                        {{ team.tag|default:team.name|slice:":2"|upper }}
+                    </div>
+                    {% endif %}
+                    <div class="flex-1">
+                        <h4 class="text-sm font-bold text-white uppercase tracking-wide group-hover:text-[var(--z-cyan)] transition">{{ team.name }}</h4>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[8px] bg-[var(--z-cyan)]/10 text-[var(--z-cyan)] px-1.5 rounded font-bold uppercase">{{ team.game }}</span>
+                            <span class="text-[8px] text-gray-500 uppercase">{{ team.role }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Achievements Cabinet -->
+        {% if achievements %}
+        <div class="z-card p-6">
+            <div class="flex justify-between items-center mb-5 border-b border-white/5 pb-2">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">Achievements</h3>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+                {% for badge in achievements|slice:":6" %}
+                <div class="aspect-square bg-[var(--z-gold)]/10 flex items-center justify-center border border-[var(--z-gold)]/30 hover:scale-105 transition cursor-help relative group rounded-xl">
+                    <div class="text-3xl">{{ badge.icon|default:"🏆" }}</div>
+                    <div class="absolute bottom-full mb-2 hidden group-hover:block bg-black text-[10px] text-white p-2 rounded whitespace-nowrap z-50">
+                        {{ badge.name }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </aside>
+</main>
+
+<!-- Video Modal for Inline Playback -->
+<div id="videoModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-5xl">
+        <button onclick="closeVideoModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="bg-[var(--z-panel)] rounded-xl overflow-hidden border border-white/10">
+            <div class="p-4 border-b border-white/10">
+                <h3 id="videoModalTitle" class="text-white font-bold text-lg"></h3>
+            </div>
+            <div class="aspect-video bg-black">
+                <iframe 
+                    id="videoModalIframe" 
+                    src="" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                    allowfullscreen
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    class="w-full h-full">
+                </iframe>
+                <div id="videoModalFallback" class="hidden w-full h-full flex flex-col items-center justify-center text-gray-400 p-8 text-center">
+                    <i class="fa-solid fa-lock text-4xl mb-4 text-gray-600"></i>
+                    <p class="font-bold text-white mb-2">This video can't be embedded</p>
+                    <p class="text-sm text-gray-500 mb-4">It may be private, deleted, or restricted.</p>
+                    <a id="videoModalExternalLink" href="#" target="_blank" rel="noopener" class="px-6 py-2 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-black font-bold text-xs uppercase tracking-wider transition rounded-lg flex items-center gap-2">
+                        <i class="fa-solid fa-external-link-alt"></i> Open Externally
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Highlights Modal (MVP Placeholder) -->
+<div id="editHighlightsModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-2xl">
+        <button onclick="closeEditHighlightsModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="bg-[var(--z-panel)] rounded-xl p-8 border border-white/10">
+            <h2 class="text-2xl font-display font-bold text-white mb-4 flex items-center gap-3">
+                <i class="fa-solid fa-video text-[var(--z-cyan)]"></i> Highlight Management
+            </h2>
+            <div class="bg-[var(--z-cyan)]/10 border border-[var(--z-cyan)]/30 rounded-lg p-6 text-center">
+                <i class="fa-solid fa-hammer text-[var(--z-cyan)] text-4xl mb-4"></i>
+                <p class="text-white font-bold mb-2">Coming Next: Full Highlight Editor</p>
+                <p class="text-gray-400 text-sm mb-4">You'll be able to:</p>
+                <ul class="text-left text-gray-300 text-sm space-y-2 max-w-md mx-auto">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Add new highlight URLs (YouTube, Twitch, Medal.tv)</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Pin your best clip to the Overview tab</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Reorder clips by dragging</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Delete unwanted highlights</li>
+                </ul>
+                <p class="text-xs text-gray-500 mt-4">For now, contact support to manage your highlights.</p>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeEditHighlightsModal()" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-2 rounded-lg transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UP-PHASE2D: Create Bounty Modal -->
+{% if is_owner %}
+<div id="createBountyModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-2xl">
+        <button onclick="closeCreateBountyModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="bg-[var(--z-panel)] rounded-xl p-8 border border-white/10">
+            <h2 class="text-2xl font-display font-bold text-white mb-4 flex items-center gap-3">
+                <i class="fa-solid fa-crosshairs text-[var(--z-gold)]"></i> Create Bounty
+            </h2>
+            
+            <div id="createBountyError" class="hidden bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4 text-red-400 text-sm"></div>
+            
+            <form id="createBountyForm" class="space-y-4">
+                <div>
+                    <label class="block text-white font-bold mb-2 text-sm">Challenge Title</label>
+                    <input type="text" name="title" required 
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none"
+                        placeholder="e.g., 1v1 Aim Duel - First to 100k Gridshot">
+                </div>
+                
+                <div>
+                    <label class="block text-white font-bold mb-2 text-sm">Game</label>
+                    <select name="game" required 
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none">
+                        <option value="">Select Game...</option>
+                        {% for game in games %}
+                        <option value="{{ game.id }}">{{ game.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-white font-bold mb-2 text-sm">Description (Optional)</label>
+                    <textarea name="description" rows="3"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none resize-none"
+                        placeholder="Challenge rules, map, specific conditions..."></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-white font-bold mb-2 text-sm">Stake Amount (DC)</label>
+                        <input type="number" name="stake_amount" required min="100" max="50000" value="500"
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none">
+                        <p class="text-xs text-gray-400 mt-1">Min: 100 DC | Max: 50,000 DC</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-white font-bold mb-2 text-sm">Expires In (Hours)</label>
+                        <select name="expires_in_hours" required
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none">
+                            <option value="24">24 hours (1 day)</option>
+                            <option value="48">48 hours (2 days)</option>
+                            <option value="72" selected>72 hours (3 days)</option>
+                            <option value="168">168 hours (1 week)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 text-yellow-400 text-xs">
+                    <i class="fa-solid fa-info-circle mr-2"></i>
+                    <strong>Escrow Lock:</strong> Your stake will be locked in escrow when you create the bounty. 
+                    If no one accepts before expiry, you'll get a full refund.
+                </div>
+            </form>
+            
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="closeCreateBountyModal()" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-lg transition">
+                    Cancel
+                </button>
+                <button id="submitBountyBtn" onclick="submitBounty()" class="bg-[var(--z-gold)] hover:bg-white text-black font-bold px-6 py-3 rounded-lg transition">
+                    <i class="fa-solid fa-plus mr-2"></i> Create Bounty
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UP-PHASE2D: Edit Loadout Modal (Placeholder MVP) -->
+<div id="editLoadoutModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-3xl">
+        <button onclick="closeEditLoadoutModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="bg-[var(--z-panel)] rounded-xl p-8 border border-white/10">
+            <h2 class="text-2xl font-display font-bold text-white mb-4 flex items-center gap-3">
+                <i class="fa-solid fa-gamepad text-[var(--z-cyan)]"></i> Edit Loadout
+            </h2>
+            <div class="bg-[var(--z-cyan)]/10 border border-[var(--z-cyan)]/30 rounded-lg p-6 text-center">
+                <i class="fa-solid fa-hammer text-[var(--z-cyan)] text-4xl mb-4"></i>
+                <p class="text-white font-bold mb-2">Coming Next: Full Loadout Editor</p>
+                <p class="text-gray-400 text-sm mb-4">You'll be able to:</p>
+                <ul class="text-left text-gray-300 text-sm space-y-2 max-w-md mx-auto">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Add/remove hardware (mouse, keyboard, etc.)</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Configure per-game settings (DPI, sensitivity, crosshair)</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Toggle public/private visibility</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Add notes for each config</li>
+                </ul>
+                <p class="text-xs text-gray-500 mt-4">For now, contact support to update your loadout.</p>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeEditLoadoutModal()" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-2 rounded-lg transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UP-PHASE2D: Manage Showcase Modal (Placeholder MVP) -->
+<div id="manageShowcaseModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-3xl">
+        <button onclick="closeManageShowcaseModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="bg-[var(--z-panel)] rounded-xl p-8 border border-white/10">
+            <h2 class="text-2xl font-display font-bold text-white mb-4 flex items-center gap-3">
+                <i class="fa-solid fa-trophy text-[var(--z-gold)]"></i> Manage Showcase
+            </h2>
+            <div class="bg-[var(--z-gold)]/10 border border-[var(--z-gold)]/30 rounded-lg p-6 text-center">
+                <i class="fa-solid fa-hammer text-[var(--z-gold)] text-4xl mb-4"></i>
+                <p class="text-white font-bold mb-2">Coming Next: Full Showcase Manager</p>
+                <p class="text-gray-400 text-sm mb-4">You'll be able to:</p>
+                <ul class="text-left text-gray-300 text-sm space-y-2 max-w-md mx-auto">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Equip/unequip borders and frames</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Pin up to 3 badges on your profile</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Browse unlocked cosmetics grid</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Preview changes before saving</li>
+                </ul>
+                <p class="text-xs text-gray-500 mt-4">For now, contact support to manage your showcase.</p>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeManageShowcaseModal()" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-2 rounded-lg transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- UP-PHASE2E: Proof Submission Modal -->
+{% if is_owner %}
+<div id="proofModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+    <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-xl shadow-2xl max-w-lg w-full mx-4">
+        <div class="p-8">
+            <h2 class="text-2xl font-display font-bold text-white mb-2">Submit Match Proof</h2>
+            <p class="text-gray-400 text-sm mb-6" id="proofBountyTitle"></p>
+            
+            <div class="space-y-4">
+                <!-- Winner Selection -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">Who Won?</label>
+                    <select id="proofWinner" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[var(--z-cyan)]">
+                        <option value="">Select winner...</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                
+                <!-- Proof URL -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">Proof URL (Screenshot/Video/Replay)</label>
+                    <input type="url" id="proofUrl" placeholder="https://imgur.com/your-screenshot.png" 
+                           class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)]">
+                    <p class="text-xs text-gray-500 mt-1">Upload your proof to Imgur, YouTube, or a replay sharing site</p>
+                </div>
+                
+                <!-- Proof Type -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">Proof Type</label>
+                    <select id="proofType" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[var(--z-cyan)]">
+                        <option value="screenshot">Screenshot</option>
+                        <option value="video">Video</option>
+                        <option value="replay">Replay File</option>
+                    </select>
+                </div>
+                
+                <!-- Description -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">Description (Optional)</label>
+                    <textarea id="proofDescription" rows="3" placeholder="Final scoreboard showing 13-5 victory" 
+                              class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)]"></textarea>
+                </div>
+                
+                <div class="bg-[var(--z-purple)]/10 border border-[var(--z-purple)]/30 rounded-lg p-4">
+                    <p class="text-sm text-gray-300">
+                        <i class="fa-solid fa-clock mr-2 text-[var(--z-purple)]"></i>
+                        After submission, opponent has <strong class="text-white">24 hours</strong> to raise a dispute. If no dispute, winner receives <strong class="text-[var(--z-green)]">95% of stake</strong> (5% platform fee).
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex gap-3">
+                <button onclick="closeProofModal()" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-lg transition">
+                    Cancel
+                </button>
+                <button onclick="submitProof()" class="flex-1 bg-[var(--z-purple)] hover:bg-[var(--z-purple)]/80 text-white font-bold px-6 py-3 rounded-lg transition">
+                    <i class="fa-solid fa-upload mr-2"></i>Submit Proof
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UP-PHASE2E: Dispute Modal -->
+<div id="disputeModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+    <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-xl shadow-2xl max-w-lg w-full mx-4">
+        <div class="p-8">
+            <h2 class="text-2xl font-display font-bold text-white mb-2">Raise Dispute</h2>
+            <p class="text-gray-400 text-sm mb-6" id="disputeBountyTitle"></p>
+            
+            <div class="space-y-4">
+                <!-- Reason -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">Dispute Reason (min 50 characters)</label>
+                    <textarea id="disputeReason" rows="6" placeholder="Explain why you believe the submitted result is incorrect. Provide as much detail as possible..." 
+                              class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-red)]"></textarea>
+                    <p class="text-xs text-gray-500 mt-1"><span id="disputeCharCount">0</span>/50 characters</p>
+                </div>
+                
+                <div class="bg-[var(--z-red)]/10 border border-[var(--z-red)]/30 rounded-lg p-4">
+                    <p class="text-sm text-gray-300">
+                        <i class="fa-solid fa-scale-balanced mr-2 text-[var(--z-red)]"></i>
+                        Disputes freeze the escrow and require <strong class="text-white">moderator review</strong>. Frivolous disputes may result in penalties. Only dispute if you have legitimate concerns about the result.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex gap-3">
+                <button onclick="closeDisputeModal()" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-lg transition">
+                    Cancel
+                </button>
+                <button onclick="submitDispute()" class="flex-1 bg-[var(--z-red)] hover:bg-[var(--z-red)]/80 text-white font-bold px-6 py-3 rounded-lg transition">
+                    <i class="fa-solid fa-flag mr-2"></i>Submit Dispute
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- UP-PHASE2E-PART2: Endorsement Modal -->
+<div id="endorseModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+    <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-xl shadow-2xl max-w-lg w-full mx-4">
+        <div class="p-8">
+            <h2 class="text-2xl font-display font-bold text-white mb-2">
+                <i class="fa-solid fa-star text-[var(--z-gold)] mr-2"></i>
+                Rate Your Opponent
+            </h2>
+            <p class="text-gray-400 text-sm mb-6">
+                Select skills to endorse. This helps build their reputation!
+            </p>
+            
+            <div class="space-y-4">
+                <!-- Skill Selection Grid -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-3">Skills (Select one or more)</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" class="skill-btn px-4 py-3 bg-white/5 border-2 border-white/10 rounded-lg text-white text-sm font-bold hover:bg-white/10 transition" data-skill="aim">
+                            <i class="fa-solid fa-crosshairs mr-2 text-[var(--z-red)]"></i>Aim
+                        </button>
+                        <button type="button" class="skill-btn px-4 py-3 bg-white/5 border-2 border-white/10 rounded-lg text-white text-sm font-bold hover:bg-white/10 transition" data-skill="shotcalling">
+                            <i class="fa-solid fa-bullhorn mr-2 text-[var(--z-cyan)]"></i>Shot Calling
+                        </button>
+                        <button type="button" class="skill-btn px-4 py-3 bg-white/5 border-2 border-white/10 rounded-lg text-white text-sm font-bold hover:bg-white/10 transition" data-skill="clutch">
+                            <i class="fa-solid fa-fire mr-2 text-[var(--z-gold)]"></i>Clutch
+                        </button>
+                        <button type="button" class="skill-btn px-4 py-3 bg-white/5 border-2 border-white/10 rounded-lg text-white text-sm font-bold hover:bg-white/10 transition" data-skill="support">
+                            <i class="fa-solid fa-heart mr-2 text-[var(--z-green)]"></i>Support
+                        </button>
+                        <button type="button" class="skill-btn px-4 py-3 bg-white/5 border-2 border-white/10 rounded-lg text-white text-sm font-bold hover:bg-white/10 transition" data-skill="igl">
+                            <i class="fa-solid fa-chess mr-2 text-[var(--z-purple)]"></i>IGL
+                        </button>
+                        <button type="button" class="skill-btn px-4 py-3 bg-white/5 border-2 border-white/10 rounded-lg text-white text-sm font-bold hover:bg-white/10 transition" data-skill="entry_fragging">
+                            <i class="fa-solid fa-bolt mr-2 text-[var(--z-red)]"></i>Entry Fragger
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2" id="endorseSkillHint">Click skills to select/deselect</p>
+                </div>
+                
+                <div class="bg-[var(--z-gold)]/10 border border-[var(--z-gold)]/30 rounded-lg p-4">
+                    <p class="text-sm text-gray-300">
+                        <i class="fa-solid fa-trophy mr-2 text-[var(--z-gold)]"></i>
+                        Endorsements are <strong class="text-white">permanent</strong> and contribute to your opponent's reputation score. Be fair and honest!
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex gap-3">
+                <button onclick="closeEndorseModal()" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-lg transition">
+                    Cancel
+                </button>
+                <button onclick="submitEndorsement()" class="flex-1 bg-[var(--z-gold)] hover:bg-[var(--z-gold)]/80 text-black font-bold px-6 py-3 rounded-lg transition">
+                    <i class="fa-solid fa-star mr-2"></i>Submit Endorsement
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UP-PHASE2F: Followers Modal -->
+<div id="followersModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-xl shadow-2xl max-w-md w-full max-h-[70vh] flex flex-col">
+        <!-- Header -->
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <h2 class="text-2xl font-display font-bold text-white">
+                <i class="fa-solid fa-users text-[var(--z-cyan)] mr-2"></i>
+                Followers
+            </h2>
+            <button onclick="closeFollowersModal()" class="text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <!-- Scrollable List -->
+        <div id="followersList" class="flex-1 overflow-y-auto">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UP-PHASE2F: Following Modal -->
+<div id="followingModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-xl shadow-2xl max-w-md w-full max-h-[70vh] flex flex-col">
+        <!-- Header -->
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <h2 class="text-2xl font-display font-bold text-white">
+                <i class="fa-solid fa-user-check text-[var(--z-purple)] mr-2"></i>
+                Following
+            </h2>
+            <button onclick="closeFollowingModal()" class="text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <!-- Scrollable List -->
+        <div id="followingList" class="flex-1 overflow-y-auto">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchTab(tabId) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.remove('active');
+    });
+
+    // Reset all buttons
+    document.querySelectorAll('.z-tab-btn').forEach(el => {
+        el.classList.remove('active');
+    });
+
+    // Show selected content
+    const selectedContent = document.getElementById('tab-' + tabId);
+    if(selectedContent) {
+        selectedContent.classList.add('active');
+    }
+
+    // Highlight active button
+    const buttons = document.querySelectorAll('.z-tab-btn');
+    buttons.forEach(btn => {
+        if(btn.getAttribute('onclick').includes(tabId)) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+// Clipboard copy function for crosshair codes (UP-PHASE-2C2)
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show success feedback
+        const btn = event.target.closest('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Copied!';
+        btn.classList.add('bg-green-500/20', 'border-green-500/30');
+        
+        setTimeout(function() {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('bg-green-500/20', 'border-green-500/30');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Failed to copy: ', err);
+        alert('Failed to copy to clipboard. Please copy manually.');
+    });
+}
+
+// Video Modal Functions
+function openVideoModal(embedUrl, title, originalUrl) {
+    const modal = document.getElementById('videoModal');
+    const iframe = document.getElementById('videoModalIframe');
+    const fallback = document.getElementById('videoModalFallback');
+    const externalLink = document.getElementById('videoModalExternalLink');
+    const titleEl = document.getElementById('videoModalTitle');
+    
+    titleEl.textContent = title;
+    
+    // If embed URL is missing or invalid, show fallback
+    if (!embedUrl || embedUrl.trim() === '') {
+        iframe.style.display = 'none';
+        fallback.classList.remove('hidden');
+        if (originalUrl) {
+            externalLink.href = originalUrl;
+        }
+    } else {
+        iframe.style.display = 'block';
+        fallback.classList.add('hidden');
+        iframe.src = embedUrl;
+    }
+    
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeVideoModal() {
+    const modal = document.getElementById('videoModal');
+    const iframe = document.getElementById('videoModalIframe');
+    const fallback = document.getElementById('videoModalFallback');
+    
+    iframe.src = '';  // Stop video playback
+    iframe.style.display = 'block';
+    fallback.classList.add('hidden');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Edit Highlights Modal Functions
+function openEditHighlightsModal() {
+    const modal = document.getElementById('editHighlightsModal');
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEditHighlightsModal() {
+    const modal = document.getElementById('editHighlightsModal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Close modals on ESC key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeVideoModal();
+        closeEditHighlightsModal();
+        closeFollowersModal();
+        closeFollowingModal();
+    }
+});
+
+// Close modals on background click
+document.getElementById('videoModal').addEventListener('click', (e) => {
+    if (e.target.id === 'videoModal') {
+        closeVideoModal();
+    }
+});
+
+document.getElementById('editHighlightsModal').addEventListener('click', (e) => {
+    if (e.target.id === 'editHighlightsModal') {
+        closeEditHighlightsModal();
+    }
+});
+
+document.getElementById('followersModal').addEventListener('click', (e) => {
+    if (e.target.id === 'followersModal') {
+        closeFollowersModal();
+    }
+});
+
+document.getElementById('followingModal').addEventListener('click', (e) => {
+    if (e.target.id === 'followingModal') {
+        closeFollowingModal();
+    }
+});
+
+// Initialize Overview tab on page load
+document.addEventListener('DOMContentLoaded', () => {
+    switchTab('overview');
+});
+
+// ============================================================================
+// UP-PHASE2D: Interactive Owner Flows
+// ============================================================================
+
+// Create Bounty Modal
+function openCreateBountyModal() {
+    document.getElementById('createBountyModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeCreateBountyModal() {
+    document.getElementById('createBountyModal').classList.add('hidden');
+    document.body.style.overflow = '';
+    document.getElementById('createBountyForm').reset();
+    document.getElementById('createBountyError').classList.add('hidden');
+}
+
+function submitBounty() {
+    const form = document.getElementById('createBountyForm');
+    const errorDiv = document.getElementById('createBountyError');
+    const submitBtn = document.getElementById('submitBountyBtn');
+    
+    errorDiv.classList.add('hidden');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Creating...';
+    
+    const data = {
+        title: form.title.value,
+        game_id: form.game.value,
+        description: form.description.value,
+        stake_amount: parseInt(form.stake_amount.value),
+        expires_in_hours: parseInt(form.expires_in_hours.value),
+    };
+    
+    fetch('/user-profile/api/bounties/create/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Bounty created! ${data.stake_amount} DC locked in escrow.`);
+            closeCreateBountyModal();
+            location.reload();  // Reload to show new bounty
+        } else {
+            errorDiv.textContent = data.error || 'Failed to create bounty';
+            errorDiv.classList.remove('hidden');
+        }
+    })
+    .catch(error => {
+        errorDiv.textContent = 'Network error. Please try again.';
+        errorDiv.classList.remove('hidden');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-plus mr-2"></i> Create Bounty';
+    });
+}
+
+// Accept Bounty
+function acceptBounty(bountyId) {
+    if (!confirm('Accept this bounty challenge?')) return;
+    
+    const btn = event.target.closest('button');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Accepting...';
+    
+    fetch(`/user-profile/api/bounties/${bountyId}/accept/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to accept bounty');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-handshake mr-2"></i> Accept';
+        }
+    })
+    .catch(error => {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-handshake mr-2"></i> Accept';
+    });
+}
+
+// Edit Loadout Modal
+function openEditLoadoutModal() {
+    document.getElementById('editLoadoutModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEditLoadoutModal() {
+    document.getElementById('editLoadoutModal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Manage Showcase Modal
+function openManageShowcaseModal() {
+    document.getElementById('manageShowcaseModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeManageShowcaseModal() {
+    document.getElementById('manageShowcaseModal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Close modals on ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeCreateBountyModal();
+        closeEditLoadoutModal();
+        closeManageShowcaseModal();
+        closeProofModal();
+        closeDisputeModal();
+    }
+});
+
+// ============================================================================
+// UP-PHASE2E: MATCH PROGRESSION ACTIONS
+// ============================================================================
+
+// Start Match
+function startMatch(bountyId) {
+    if (!confirm('Start this match now? Both players should be ready.')) return;
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Starting...';
+    
+    fetch(`/user-profile/api/bounties/${bountyId}/start/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to start match');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> Start Match';
+        }
+    })
+    .catch(error => {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> Start Match';
+    });
+}
+
+// Proof Submission Modal
+let currentProofBountyId = null;
+
+function openProofModal(bountyId, bountyTitle, creatorId, creatorName, acceptorId, acceptorName) {
+    currentProofBountyId = bountyId;
+    document.getElementById('proofBountyTitle').textContent = bountyTitle;
+    
+    // Populate winner dropdown
+    const winnerSelect = document.getElementById('proofWinner');
+    winnerSelect.innerHTML = `
+        <option value="">Select winner...</option>
+        <option value="${creatorId}">${creatorName}</option>
+        <option value="${acceptorId}">${acceptorName}</option>
+    `;
+    
+    document.getElementById('proofModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeProofModal() {
+    currentProofBountyId = null;
+    document.getElementById('proofModal').classList.add('hidden');
+    document.body.style.overflow = '';
+    
+    // Reset form
+    document.getElementById('proofWinner').value = '';
+    document.getElementById('proofUrl').value = '';
+    document.getElementById('proofType').value = 'screenshot';
+    document.getElementById('proofDescription').value = '';
+}
+
+function submitProof() {
+    const winnerId = document.getElementById('proofWinner').value;
+    const proofUrl = document.getElementById('proofUrl').value.trim();
+    const proofType = document.getElementById('proofType').value;
+    const description = document.getElementById('proofDescription').value.trim();
+    
+    if (!winnerId) {
+        alert('Please select a winner');
+        return;
+    }
+    
+    if (!proofUrl) {
+        alert('Please provide a proof URL');
+        return;
+    }
+    
+    const data = {
+        claimed_winner_id: parseInt(winnerId),
+        proof_url: proofUrl,
+        proof_type: proofType,
+        description: description
+    };
+    
+    fetch(`/user-profile/api/bounties/${currentProofBountyId}/submit-proof/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            closeProofModal();
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to submit proof');
+        }
+    })
+    .catch(error => {
+        alert('Network error. Please try again.');
+    });
+}
+
+// Confirm Result
+function confirmResult(bountyId) {
+    if (!confirm('Confirm this result? Winner will receive 95% of stake (5% platform fee). This action cannot be undone.')) return;
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Confirming...';
+    
+    fetch(`/user-profile/api/bounties/${bountyId}/confirm-result/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to confirm result');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Confirm Result';
+        }
+    })
+    .catch(error => {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Confirm Result';
+    });
+}
+
+// Dispute Modal
+let currentDisputeBountyId = null;
+
+function openDisputeModal(bountyId, bountyTitle) {
+    currentDisputeBountyId = bountyId;
+    document.getElementById('disputeBountyTitle').textContent = bountyTitle;
+    document.getElementById('disputeModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Character counter
+    const textarea = document.getElementById('disputeReason');
+    const counter = document.getElementById('disputeCharCount');
+    textarea.addEventListener('input', () => {
+        counter.textContent = textarea.value.length;
+    });
+}
+
+function closeDisputeModal() {
+    currentDisputeBountyId = null;
+    document.getElementById('disputeModal').classList.add('hidden');
+    document.body.style.overflow = '';
+    
+    // Reset form
+    document.getElementById('disputeReason').value = '';
+    document.getElementById('disputeCharCount').textContent = '0';
+}
+
+function submitDispute() {
+    const reason = document.getElementById('disputeReason').value.trim();
+    
+    if (reason.length < 50) {
+        alert('Dispute reason must be at least 50 characters');
+        return;
+    }
+    
+    const data = { reason: reason };
+    
+    fetch(`/user-profile/api/bounties/${currentDisputeBountyId}/dispute/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            closeDisputeModal();
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to raise dispute');
+        }
+    })
+    .catch(error => {
+        alert('Network error. Please try again.');
+    });
+}
+
+// UP-PHASE2E-PART2: Endorsement Modal Functions
+let currentEndorseBountyId = null;
+let currentEndorseReceiverId = null;
+let selectedSkills = new Set();
+
+function openEndorseModal(bountyId, receiverId) {
+    currentEndorseBountyId = bountyId;
+    currentEndorseReceiverId = receiverId;
+    selectedSkills.clear();
+    
+    // Reset skill buttons
+    document.querySelectorAll('.skill-btn').forEach(btn => {
+        btn.classList.remove('bg-[var(--z-gold)]', 'border-[var(--z-gold)]');
+        btn.classList.add('bg-white/5', 'border-white/10');
+    });
+    
+    // Skill button click handlers
+    document.querySelectorAll('.skill-btn').forEach(btn => {
+        btn.onclick = function() {
+            const skill = this.dataset.skill;
+            if (selectedSkills.has(skill)) {
+                selectedSkills.delete(skill);
+                this.classList.remove('bg-[var(--z-gold)]', 'border-[var(--z-gold)]');
+                this.classList.add('bg-white/5', 'border-white/10');
+            } else {
+                selectedSkills.add(skill);
+                this.classList.add('bg-[var(--z-gold)]', 'border-[var(--z-gold)]');
+                this.classList.remove('bg-white/5', 'border-white/10');
+            }
+            
+            // Update hint
+            const hint = document.getElementById('endorseSkillHint');
+            if (selectedSkills.size > 0) {
+                hint.textContent = `${selectedSkills.size} skill(s) selected`;
+                hint.classList.add('text-[var(--z-gold)]');
+            } else {
+                hint.textContent = 'Click skills to select/deselect';
+                hint.classList.remove('text-[var(--z-gold)]');
+            }
+        };
+    });
+    
+    document.getElementById('endorseModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEndorseModal() {
+    currentEndorseBountyId = null;
+    currentEndorseReceiverId = null;
+    selectedSkills.clear();
+    document.getElementById('endorseModal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function submitEndorsement() {
+    if (selectedSkills.size === 0) {
+        alert('Please select at least one skill to endorse');
+        return;
+    }
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Submitting...';
+    
+    // Backend supports one skill per endorsement
+    const skill = Array.from(selectedSkills)[0];
+    
+    const data = {
+        skill: skill,
+        receiver_id: currentEndorseReceiverId
+    };
+    
+    fetch(`/user-profile/api/bounties/${currentEndorseBountyId}/endorse/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || 'Endorsement submitted!');
+            closeEndorseModal();
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to submit endorsement');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-star mr-2"></i>Submit Endorsement';
+        }
+    })
+    .catch(error => {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-star mr-2"></i>Submit Endorsement';
+    });
+}
+
+// UP-PHASE2F: Avatar and Cover Upload
+document.addEventListener('DOMContentLoaded', function() {
+    const avatarInput = document.getElementById('avatarInput');
+    const coverInput = document.getElementById('coverInput');
+    
+    if (avatarInput) {
+        avatarInput.addEventListener('change', function(e) {
+            handleMediaUpload(e.target.files[0], 'avatar');
+        });
+    }
+    
+    if (coverInput) {
+        coverInput.addEventListener('change', function(e) {
+            handleMediaUpload(e.target.files[0], 'banner');
+        });
+    }
+});
+
+async function handleMediaUpload(file, mediaType) {
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+    }
+    
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Image must be smaller than 5MB');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('media_type', mediaType);
+    
+    try {
+        const response = await fetch('/user-profile/api/upload-media/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            alert(`${mediaType === 'avatar' ? 'Avatar' : 'Cover'} updated successfully!`);
+            
+            // Update preview
+            if (mediaType === 'avatar') {
+                const avatarPreview = document.getElementById('avatarPreview');
+                if (avatarPreview) {
+                    avatarPreview.src = data.url;
+                }
+            } else {
+                // Reload to show new cover
+                location.reload();
+            }
+        } else {
+            alert(data.error || 'Failed to upload image');
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('Network error. Please try again.');
+    }
+}
+
+// UP-PHASE2F: Follower/Following Modal System
+function openFollowersModal() {
+    const modal = document.getElementById('followersModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadFollowersList();
+    }
+}
+
+function openFollowingModal() {
+    const modal = document.getElementById('followingModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadFollowingList();
+    }
+}
+
+function closeFollowersModal() {
+    const modal = document.getElementById('followersModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function closeFollowingModal() {
+    const modal = document.getElementById('followingModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function loadFollowersList() {
+    const container = document.getElementById('followersList');
+    const username = '{{ profile_user.username }}';
+    
+    container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
+    
+    try {
+        const response = await fetch(`/user-profile/api/profile/${username}/followers/`);
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            if (data.followers.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-500">No followers yet</div>';
+                return;
+            }
+            
+            container.innerHTML = data.followers.map(user => `
+                <div class="flex items-center justify-between p-4 hover:bg-white/5 transition">
+                    <div class="flex items-center gap-3">
+                        <img src="${user.avatar_url || '/static/images/default-avatar.png'}" 
+                             alt="${user.display_name}" 
+                             class="w-12 h-12 rounded-full border border-white/10">
+                        <div>
+                            <div class="font-bold text-white flex items-center gap-2">
+                                ${user.display_name}
+                                ${user.is_verified ? '<i class="fas fa-check-circle text-[var(--z-cyan)] text-sm"></i>' : ''}
+                            </div>
+                            <div class="text-sm text-gray-500">@${user.username}</div>
+                        </div>
+                    </div>
+                    ${renderFollowButton(user)}
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = `<div class="text-center py-12 text-red-500">${data.error || 'Failed to load followers'}</div>`;
+        }
+    } catch (error) {
+        console.error('Error loading followers:', error);
+        container.innerHTML = '<div class="text-center py-12 text-red-500">Network error</div>';
+    }
+}
+
+async function loadFollowingList() {
+    const container = document.getElementById('followingList');
+    const username = '{{ profile_user.username }}';
+    
+    container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
+    
+    try {
+        const response = await fetch(`/user-profile/api/profile/${username}/following/`);
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            if (data.following.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-500">Not following anyone yet</div>';
+                return;
+            }
+            
+            container.innerHTML = data.following.map(user => `
+                <div class="flex items-center justify-between p-4 hover:bg-white/5 transition">
+                    <div class="flex items-center gap-3">
+                        <img src="${user.avatar_url || '/static/images/default-avatar.png'}" 
+                             alt="${user.display_name}" 
+                             class="w-12 h-12 rounded-full border border-white/10">
+                        <div>
+                            <div class="font-bold text-white flex items-center gap-2">
+                                ${user.display_name}
+                                ${user.is_verified ? '<i class="fas fa-check-circle text-[var(--z-cyan)] text-sm"></i>' : ''}
+                            </div>
+                            <div class="text-sm text-gray-500">@${user.username}</div>
+                        </div>
+                    </div>
+                    ${renderFollowButton(user)}
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = `<div class="text-center py-12 text-red-500">${data.error || 'Failed to load following'}</div>`;
+        }
+    } catch (error) {
+        console.error('Error loading following:', error);
+        container.innerHTML = '<div class="text-center py-12 text-red-500">Network error</div>';
+    }
+}
+
+function renderFollowButton(user) {
+    const isOwner = '{{ request.user.is_authenticated|yesno:"true,false" }}' === 'true' && '{{ request.user.username }}' === '{{ profile_user.username }}';
+    const isLoggedIn = '{{ request.user.is_authenticated|yesno:"true,false" }}' === 'true';
+    const isSelf = isLoggedIn && '{{ request.user.username }}' === user.username;
+    
+    if (isOwner || isSelf || !isLoggedIn) {
+        return '';
+    }
+    
+    if (user.is_following) {
+        return `<button onclick="handleFollowAction('${user.username}', 'unfollow', this)" 
+                       class="px-4 py-2 bg-white/10 hover:bg-red-500/20 text-white rounded-lg transition text-sm font-bold border border-white/20">
+                    Following
+                </button>`;
+    } else {
+        return `<button onclick="handleFollowAction('${user.username}', 'follow', this)" 
+                       class="px-4 py-2 bg-gradient-to-r from-[var(--z-cyan)] to-[var(--z-purple)] hover:opacity-90 text-white rounded-lg transition text-sm font-bold">
+                    Follow
+                </button>`;
+    }
+}
+
+async function handleFollowAction(username, action, button) {
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    try {
+        const response = await fetch(`/user-profile/api/profile/${username}/${action}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // Reload the current list
+            const followersModalOpen = !document.getElementById('followersModal').classList.contains('hidden');
+            if (followersModalOpen) {
+                loadFollowersList();
+            } else {
+                loadFollowingList();
+            }
+            
+            // Update counts on page
+            location.reload();
+        } else {
+            alert(data.error || `Failed to ${action}`);
+            button.disabled = false;
+            button.innerHTML = action === 'follow' ? 'Follow' : 'Following';
+        }
+    } catch (error) {
+        console.error(`Error ${action}ing user:`, error);
+        alert('Network error. Please try again.');
+        button.disabled = false;
+        button.innerHTML = action === 'follow' ? 'Follow' : 'Following';
+    }
+}
+
+</script>
+{% endblock %}
