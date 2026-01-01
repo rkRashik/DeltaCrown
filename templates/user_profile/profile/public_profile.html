@@ -312,14 +312,16 @@
                     <div class="flex gap-2">
                         {% if social_links %}
                             {% for link in social_links %}
-                                <a href="{{ link.url }}" target="_blank" class="w-10 h-10 rounded-lg bg-white/5 hover:bg-blue-500 hover:text-white text-gray-400 flex items-center justify-center transition transform hover:-translate-y-1">
+                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" 
+                                   class="w-10 h-10 rounded-lg bg-white/5 hover:bg-blue-500 hover:text-white text-gray-400 flex items-center justify-center transition transform hover:-translate-y-1"
+                                   title="{{ link.get_platform_display }}">
                                     <i class="fa-brands fa-{{ link.platform }} text-lg"></i>
                                 </a>
                             {% endfor %}
                         {% endif %}
                         {% if is_owner %}
-                        <button class="w-10 h-10 rounded-lg border border-white/10 text-gray-500 hover:text-white hover:border-white transition flex items-center justify-center">
-                            <i class="fa-solid fa-plus"></i>
+                        <button onclick="openSocialLinksModal()" class="w-10 h-10 rounded-lg border border-white/10 text-gray-500 hover:text-white hover:border-white transition flex items-center justify-center" title="Edit Social Links">
+                            <i class="fa-solid fa-pen text-sm"></i>
                         </button>
                         {% endif %}
                     </div>
@@ -394,7 +396,7 @@
             <div class="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">About</h3>
                 {% if is_owner %}
-                <button class="text-gray-500 hover:text-white transition edit-trigger">
+                <button onclick="openAboutModal()" class="text-gray-500 hover:text-white transition edit-trigger" title="Edit About">
                     <i class="fa-solid fa-pen"></i>
                 </button>
                 {% endif %}
@@ -429,7 +431,7 @@
             <div class="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
                 <h3 class="text-xs font-bold text-white uppercase tracking-widest">Game IDs ({{ pinned_passports|length|add:unpinned_passports|length }})</h3>
                 {% if is_owner %}
-                <button class="text-gray-500 hover:text-white transition edit-trigger">
+                <button onclick="openGamePassportsModal()" class="text-gray-500 hover:text-white transition edit-trigger" title="Manage Game IDs">
                     <i class="fa-solid fa-gear"></i>
                 </button>
                 {% endif %}
@@ -466,7 +468,7 @@
             {% endfor %}
 
             {% if is_owner %}
-            <button class="w-full py-3 text-[10px] font-bold text-gray-500 hover:text-white hover:bg-white/5 transition uppercase tracking-widest border-t border-white/5">
+            <button onclick="openGamePassportsModal()" class="w-full py-3 text-[10px] font-bold text-gray-500 hover:text-white hover:bg-white/5 transition uppercase tracking-widest border-t border-white/5">
                 + Link New Account
             </button>
             {% endif %}
@@ -1527,6 +1529,153 @@
     </div>
 </div>
 
+<!-- Edit About Modal -->
+<div id="aboutModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative max-w-2xl w-full">
+        <button onclick="closeAboutModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-times"></i>
+        </button>
+        <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl border border-white/10 p-8 max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 bg-[var(--z-cyan)]/20 rounded-xl flex items-center justify-center">
+                    <i class="fa-solid fa-user text-[var(--z-cyan)] text-xl"></i>
+                </div>
+                <h2 class="text-2xl font-display font-bold text-white">Edit About</h2>
+            </div>
+            
+            <form id="aboutForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">
+                        Bio
+                        <span class="text-gray-500 font-normal ml-2">(max 500 characters)</span>
+                    </label>
+                    <textarea 
+                        id="bioInput" 
+                        name="bio"
+                        rows="4" 
+                        maxlength="500"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                        placeholder="Tell us about yourself...">{{ profile.bio }}</textarea>
+                    <div class="text-xs text-gray-500 mt-1" id="bioCharCount">0 / 500</div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Pronouns</label>
+                    <input 
+                        type="text" 
+                        id="pronounsInput"
+                        name="pronouns"
+                        maxlength="50"
+                        value="{{ profile.pronouns|default:'' }}"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                        placeholder="e.g., he/him, she/her, they/them">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Country</label>
+                    <input 
+                        type="text" 
+                        id="countryInput"
+                        name="country"
+                        maxlength="100"
+                        value="{{ profile.country|default:'' }}"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                        placeholder="e.g., Bangladesh, India, Pakistan">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">City</label>
+                    <input 
+                        type="text" 
+                        id="cityInput"
+                        name="city"
+                        maxlength="100"
+                        value="{{ profile.city|default:'' }}"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                        placeholder="e.g., Dhaka, Mumbai, Lahore">
+                </div>
+                
+                <div class="flex justify-end gap-3 pt-4 border-t border-white/10">
+                    <button type="button" onclick="closeAboutModal()" class="px-6 py-2 bg-white/10 hover:bg-white/20 text-white font-bold rounded-lg transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-black font-bold rounded-lg transition flex items-center gap-2">
+                        <i class="fa-solid fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Game Passports Modal -->
+<div id="gamePassportsModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative max-w-3xl w-full">
+        <button onclick="closeGamePassportsModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-times"></i>
+        </button>
+        <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl border border-white/10 p-8 max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 bg-[var(--z-cyan)]/20 rounded-xl flex items-center justify-center">
+                    <i class="fa-solid fa-gamepad text-[var(--z-cyan)] text-xl"></i>
+                </div>
+                <h2 class="text-2xl font-display font-bold text-white">Manage Game IDs</h2>
+            </div>
+            
+            <!-- Add New Passport Form -->
+            <div class="bg-white/5 border border-white/10 rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-plus-circle text-[var(--z-green)]"></i> Add New Game ID
+                </h3>
+                <form id="addPassportForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-300 mb-2">Game</label>
+                            <select id="passportGameSelect" name="game_id" required
+                                class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition">
+                                <option value="">Select a game...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-300 mb-2">In-Game Name (IGN)</label>
+                            <input type="text" id="passportIgnInput" name="ign" required maxlength="64"
+                                class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                                placeholder="YourGameName">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-300 mb-2">Region <span class="text-gray-500 font-normal">(optional)</span></label>
+                            <input type="text" id="passportRegionInput" name="region" maxlength="20"
+                                class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                                placeholder="NA, EU, ASIA, etc.">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-300 mb-2">Rank <span class="text-gray-500 font-normal">(optional)</span></label>
+                            <input type="text" id="passportRankInput" name="rank" maxlength="50"
+                                class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                                placeholder="Diamond, Global Elite, etc.">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-[var(--z-green)] hover:bg-[var(--z-green)]/80 text-black font-bold px-6 py-3 rounded-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Add Game ID
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Existing Passports List -->
+            <div class="space-y-3">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-list text-gray-400"></i> Your Game IDs
+                </h3>
+                <div id="passportsList" class="space-y-2">
+                    <div class="text-center text-gray-500 py-8">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Highlights Modal (MVP Placeholder) -->
 <div id="editHighlightsModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="relative w-full max-w-2xl">
@@ -1639,29 +1788,156 @@
 
 <!-- UP-PHASE2D: Edit Loadout Modal (Placeholder MVP) -->
 <div id="editLoadoutModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="relative w-full max-w-3xl">
+    <div class="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <button onclick="closeEditLoadoutModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
             <i class="fa-solid fa-xmark"></i>
         </button>
         <div class="bg-[var(--z-panel)] rounded-xl p-8 border border-white/10">
-            <h2 class="text-2xl font-display font-bold text-white mb-4 flex items-center gap-3">
+            <h2 class="text-2xl font-display font-bold text-white mb-6 flex items-center gap-3">
                 <i class="fa-solid fa-gamepad text-[var(--z-cyan)]"></i> Edit Loadout
             </h2>
-            <div class="bg-[var(--z-cyan)]/10 border border-[var(--z-cyan)]/30 rounded-lg p-6 text-center">
-                <i class="fa-solid fa-hammer text-[var(--z-cyan)] text-4xl mb-4"></i>
-                <p class="text-white font-bold mb-2">Coming Next: Full Loadout Editor</p>
-                <p class="text-gray-400 text-sm mb-4">You'll be able to:</p>
-                <ul class="text-left text-gray-300 text-sm space-y-2 max-w-md mx-auto">
-                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Add/remove hardware (mouse, keyboard, etc.)</li>
-                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Configure per-game settings (DPI, sensitivity, crosshair)</li>
-                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Toggle public/private visibility</li>
-                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Add notes for each config</li>
-                </ul>
-                <p class="text-xs text-gray-500 mt-4">For now, contact support to update your loadout.</p>
+
+            <!-- Tabs: Hardware vs Game Configs -->
+            <div class="flex gap-2 mb-6 border-b border-white/10">
+                <button onclick="switchLoadoutTab('hardware')" id="loadoutTabHardware" class="px-4 py-2 text-sm font-bold text-white border-b-2 border-[var(--z-cyan)] transition">
+                    <i class="fa-solid fa-computer-mouse mr-2"></i>Hardware
+                </button>
+                <button onclick="switchLoadoutTab('gameconfigs')" id="loadoutTabGameConfigs" class="px-4 py-2 text-sm font-bold text-gray-400 border-b-2 border-transparent hover:text-white transition">
+                    <i class="fa-solid fa-sliders mr-2"></i>Game Configs
+                </button>
             </div>
+
+            <!-- Hardware Tab -->
+            <div id="loadoutContentHardware" class="space-y-4">
+                <!-- Hardware Form -->
+                <div class="bg-white/5 border border-white/10 rounded-lg p-4">
+                    <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-plus text-[var(--z-gold)]"></i>
+                        <span id="hardwareFormTitle">Add Hardware</span>
+                    </h3>
+                    <form id="hardwareForm" class="space-y-3">
+                        <input type="hidden" id="hardwareId" value="">
+                        
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Category</label>
+                            <select id="hardwareCategory" required class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                                <option value="">Select Category...</option>
+                                <option value="MOUSE">Mouse</option>
+                                <option value="KEYBOARD">Keyboard</option>
+                                <option value="HEADSET">Headset</option>
+                                <option value="MONITOR">Monitor</option>
+                                <option value="MOUSEPAD">Mousepad</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Brand</label>
+                                <input type="text" id="hardwareBrand" required placeholder="e.g., Logitech" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Model</label>
+                                <input type="text" id="hardwareModel" required placeholder="e.g., G Pro X" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Specs (JSON) <span class="text-gray-500">Optional</span></label>
+                            <textarea id="hardwareSpecs" placeholder='{"dpi": 800, "weight": "63g"}' rows="2" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none resize-none font-mono"></textarea>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="hardwareIsPublic" checked class="w-4 h-4 bg-white/5 border-white/10 rounded">
+                            <label for="hardwareIsPublic" class="text-xs text-gray-300">Make public on my profile</label>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button type="submit" class="flex-1 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-white font-bold px-4 py-2 rounded-lg transition text-sm">
+                                <i class="fa-solid fa-check mr-2"></i>Save Hardware
+                            </button>
+                            <button type="button" onclick="resetHardwareForm()" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition text-sm">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Hardware List -->
+                <div>
+                    <h3 class="text-sm font-bold text-white mb-3">Current Hardware</h3>
+                    <div id="hardwareList" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- Game Configs Tab -->
+            <div id="loadoutContentGameConfigs" class="space-y-4 hidden">
+                <!-- Game Config Form -->
+                <div class="bg-white/5 border border-white/10 rounded-lg p-4">
+                    <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-plus text-[var(--z-gold)]"></i>
+                        <span id="gameConfigFormTitle">Add Game Config</span>
+                    </h3>
+                    <form id="gameConfigForm" class="space-y-3">
+                        <input type="hidden" id="gameConfigId" value="">
+                        
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Game</label>
+                            <select id="gameConfigGame" required class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                                <option value="">Select Game...</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">DPI</label>
+                                <input type="number" id="gameConfigDPI" placeholder="800" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Sensitivity</label>
+                                <input type="text" id="gameConfigSens" placeholder="0.45" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Resolution</label>
+                                <input type="text" id="gameConfigRes" placeholder="1920x1080" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Settings (JSON) <span class="text-gray-500">Optional</span></label>
+                            <textarea id="gameConfigSettings" placeholder='{"crosshair": "0;P;c;5;o;1", "viewmodel_fov": 68}' rows="2" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none resize-none font-mono"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Notes <span class="text-gray-500">Optional</span></label>
+                            <input type="text" id="gameConfigNotes" placeholder="Tournament setup, aggressive entry fragger..." class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="gameConfigIsPublic" checked class="w-4 h-4 bg-white/5 border-white/10 rounded">
+                            <label for="gameConfigIsPublic" class="text-xs text-gray-300">Make public on my profile</label>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button type="submit" class="flex-1 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-white font-bold px-4 py-2 rounded-lg transition text-sm">
+                                <i class="fa-solid fa-check mr-2"></i>Save Config
+                            </button>
+                            <button type="button" onclick="resetGameConfigForm()" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition text-sm">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Game Configs List -->
+                <div>
+                    <h3 class="text-sm font-bold text-white mb-3">Current Game Configs</h3>
+                    <div id="gameConfigList" class="space-y-2"></div>
+                </div>
+            </div>
+
             <div class="mt-6 flex justify-end">
                 <button onclick="closeEditLoadoutModal()" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-2 rounded-lg transition">
-                    Close
+                    Done
                 </button>
             </div>
         </div>
@@ -1905,6 +2181,60 @@
     </div>
 </div>
 
+<!-- UP-PHASE2F-PART3: Social Links Editor Modal -->
+<div id="socialLinksModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+        <!-- Header -->
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <h2 class="text-2xl font-display font-bold text-white">
+                <i class="fa-solid fa-link text-blue-500 mr-2"></i>
+                Edit Social Links
+            </h2>
+            <button onclick="closeSocialLinksModal()" class="text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <!-- Add New Link Form -->
+            <div class="mb-6 p-4 bg-white/5 border border-white/10 rounded-lg">
+                <h3 class="text-sm font-bold text-white mb-3 uppercase tracking-wider">Add New Link</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <select id="newLinkPlatform" class="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[var(--z-cyan)] focus:outline-none">
+                        <option value="">Select Platform</option>
+                        <option value="twitch">Twitch</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="twitter">Twitter/X</option>
+                        <option value="discord">Discord</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="kick">Kick</option>
+                        <option value="steam">Steam</option>
+                        <option value="github">GitHub</option>
+                    </select>
+                    <input type="url" id="newLinkUrl" placeholder="https://..." 
+                           class="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[var(--z-cyan)] focus:outline-none">
+                </div>
+                <button onclick="addSocialLink()" class="mt-3 w-full bg-gradient-to-r from-[var(--z-cyan)] to-blue-500 hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg transition">
+                    <i class="fa-solid fa-plus mr-2"></i>Add Link
+                </button>
+            </div>
+            
+            <!-- Existing Links List -->
+            <div id="socialLinksList">
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ hardware_gear|json_script:"hardwareData" }}
+{{ game_configs|json_script:"gameConfigsData" }}
+
 <script>
 function switchTab(tabId) {
     // Hide all tab contents
@@ -1950,6 +2280,298 @@ function copyToClipboard(text) {
         alert('Failed to copy to clipboard. Please copy manually.');
     });
 }
+
+// About Modal Functions
+function openAboutModal() {
+    const modal = document.getElementById('aboutModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        
+        // Update char counter
+        const bioInput = document.getElementById('bioInput');
+        if (bioInput) {
+            updateCharCount();
+            bioInput.addEventListener('input', updateCharCount);
+        }
+    }
+}
+
+function closeAboutModal() {
+    const modal = document.getElementById('aboutModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+}
+
+function updateCharCount() {
+    const bioInput = document.getElementById('bioInput');
+    const charCount = document.getElementById('bioCharCount');
+    if (bioInput && charCount) {
+        const count = bioInput.value.length;
+        charCount.textContent = `${count} / 500`;
+        if (count > 450) {
+            charCount.classList.add('text-[var(--z-gold)]');
+        } else {
+            charCount.classList.remove('text-[var(--z-gold)]');
+        }
+    }
+}
+
+// Handle About form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const aboutForm = document.getElementById('aboutForm');
+    if (aboutForm) {
+        aboutForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const displayName = '{{ profile.display_name|escapejs }}' || '{{ request.user.username|escapejs }}';
+            const bio = document.getElementById('bioInput').value.trim();
+            const pronouns = document.getElementById('pronounsInput').value.trim();
+            const country = document.getElementById('countryInput').value.trim();
+            const city = document.getElementById('cityInput').value.trim();
+            
+            try {
+                const response = await fetch('/user-profile/me/settings/basic/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        display_name: displayName,
+                        bio: bio,
+                        pronouns: pronouns,
+                        country: country,
+                        city: city
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    closeAboutModal();
+                    location.reload(); // Refresh to show updated info
+                } else {
+                    alert(data.error || 'Failed to save changes');
+                }
+            } catch (error) {
+                console.error('Error saving About info:', error);
+                alert('Network error. Please try again.');
+            }
+        });
+    }
+});
+
+// Game Passports Modal Functions
+let availableGames = [];
+
+async function openGamePassportsModal() {
+    const modal = document.getElementById('gamePassportsModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        
+        // Load available games and passports
+        await loadAvailableGames();
+        await loadGamePassports();
+    }
+}
+
+function closeGamePassportsModal() {
+    const modal = document.getElementById('gamePassportsModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        document.getElementById('addPassportForm').reset();
+    }
+}
+
+async function loadAvailableGames() {
+    try {
+        const response = await fetch('/user-profile/api/games/available/');
+        const data = await response.json();
+        
+        if (data.success && data.games) {
+            availableGames = data.games;
+            const select = document.getElementById('passportGameSelect');
+            select.innerHTML = '<option value="">Select a game...</option>';
+            
+            data.games.forEach(game => {
+                const option = document.createElement('option');
+                option.value = game.id;
+                option.textContent = `${game.icon} ${game.name}`;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading games:', error);
+    }
+}
+
+async function loadGamePassports() {
+    try {
+        const response = await fetch('/user-profile/profile/api/game-passports/');
+        const data = await response.json();
+        
+        const container = document.getElementById('passportsList');
+        
+        if (!data.success || !data.passports || data.passports.length === 0) {
+            container.innerHTML = '<div class="text-center text-gray-500 py-8">No game IDs yet. Add one above!</div>';
+            return;
+        }
+        
+        container.innerHTML = '';
+        data.passports.forEach(passport => {
+            const passportEl = createPassportElement(passport);
+            container.appendChild(passportEl);
+        });
+    } catch (error) {
+        console.error('Error loading passports:', error);
+        document.getElementById('passportsList').innerHTML = '<div class="text-center text-red-500 py-8">Error loading passports</div>';
+    }
+}
+
+function createPassportElement(passport) {
+    const div = document.createElement('div');
+    div.className = 'bg-white/5 border border-white/10 rounded-lg p-4 flex justify-between items-center hover:bg-white/10 transition';
+    
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'flex-1';
+    
+    const titleRow = document.createElement('div');
+    titleRow.className = 'flex items-center gap-2 mb-1';
+    
+    const gameIcon = document.createElement('span');
+    gameIcon.textContent = passport.game.icon || '🎮';
+    gameIcon.className = 'text-xl';
+    
+    const gameName = document.createElement('span');
+    gameName.textContent = passport.game.name;
+    gameName.className = 'font-bold text-white';
+    
+    if (passport.pinned) {
+        const pinnedBadge = document.createElement('span');
+        pinnedBadge.textContent = 'PINNED';
+        pinnedBadge.className = 'text-[9px] bg-[var(--z-cyan)] text-black px-1.5 rounded font-bold uppercase';
+        titleRow.appendChild(gameIcon);
+        titleRow.appendChild(gameName);
+        titleRow.appendChild(pinnedBadge);
+    } else {
+        titleRow.appendChild(gameIcon);
+        titleRow.appendChild(gameName);
+    }
+    
+    const ignRow = document.createElement('div');
+    ignRow.className = 'text-sm font-mono text-gray-300';
+    ignRow.textContent = passport.ign;
+    
+    if (passport.region || passport.rank) {
+        const metaRow = document.createElement('div');
+        metaRow.className = 'text-xs text-gray-500 mt-1';
+        const parts = [];
+        if (passport.region) parts.push(`Region: ${passport.region}`);
+        if (passport.rank) parts.push(`Rank: ${passport.rank}`);
+        metaRow.textContent = parts.join(' • ');
+        infoDiv.appendChild(titleRow);
+        infoDiv.appendChild(ignRow);
+        infoDiv.appendChild(metaRow);
+    } else {
+        infoDiv.appendChild(titleRow);
+        infoDiv.appendChild(ignRow);
+    }
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    deleteBtn.className = 'px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition';
+    deleteBtn.onclick = () => deletePassport(passport.id, passport.game.name);
+    
+    div.appendChild(infoDiv);
+    div.appendChild(deleteBtn);
+    
+    return div;
+}
+
+async function deletePassport(passportId, gameName) {
+    if (!confirm(`Delete ${gameName} game ID? This cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/user-profile/profile/api/game-passports/delete/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ passport_id: passportId })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            await loadGamePassports();
+            setTimeout(() => location.reload(), 500);
+        } else {
+            alert(data.error || 'Failed to delete passport');
+        }
+    } catch (error) {
+        console.error('Error deleting passport:', error);
+        alert('Network error. Please try again.');
+    }
+}
+
+// Handle Add Passport form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const addPassportForm = document.getElementById('addPassportForm');
+    if (addPassportForm) {
+        addPassportForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const gameId = document.getElementById('passportGameSelect').value;
+            const ign = document.getElementById('passportIgnInput').value.trim();
+            const region = document.getElementById('passportRegionInput').value.trim() || null;
+            const rank = document.getElementById('passportRankInput').value.trim() || null;
+            
+            if (!gameId || !ign) {
+                alert('Please select a game and enter your IGN');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/user-profile/profile/api/game-passports/create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        game_id: parseInt(gameId),
+                        ign: ign,
+                        region: region,
+                        rank: rank,
+                        pinned: false,
+                        passport_data: {}
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    addPassportForm.reset();
+                    await loadGamePassports();
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    alert(data.error || 'Failed to add passport');
+                }
+            } catch (error) {
+                console.error('Error adding passport:', error);
+                alert('Network error. Please try again.');
+            }
+        });
+    }
+});
 
 // Video Modal Functions
 function openVideoModal(embedUrl, title, originalUrl) {
@@ -2006,35 +2628,56 @@ function closeEditHighlightsModal() {
 // Close modals on ESC key
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+        closeAboutModal();
+        closeGamePassportsModal();
         closeVideoModal();
         closeEditHighlightsModal();
         closeFollowersModal();
         closeFollowingModal();
+        closeSocialLinksModal();
     }
 });
 
 // Close modals on background click
-document.getElementById('videoModal').addEventListener('click', (e) => {
+document.getElementById('aboutModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'aboutModal') {
+        closeAboutModal();
+    }
+});
+
+document.getElementById('gamePassportsModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'gamePassportsModal') {
+        closeGamePassportsModal();
+    }
+});
+
+document.getElementById('videoModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'videoModal') {
         closeVideoModal();
     }
 });
 
-document.getElementById('editHighlightsModal').addEventListener('click', (e) => {
+document.getElementById('editHighlightsModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'editHighlightsModal') {
         closeEditHighlightsModal();
     }
 });
 
-document.getElementById('followersModal').addEventListener('click', (e) => {
+document.getElementById('followersModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'followersModal') {
         closeFollowersModal();
     }
 });
 
-document.getElementById('followingModal').addEventListener('click', (e) => {
+document.getElementById('followingModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'followingModal') {
         closeFollowingModal();
+    }
+});
+
+document.getElementById('socialLinksModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'socialLinksModal') {
+        closeSocialLinksModal();
     }
 });
 
@@ -2138,16 +2781,471 @@ function acceptBounty(bountyId) {
     });
 }
 
-// Edit Loadout Modal
-function openEditLoadoutModal() {
-    document.getElementById('editLoadoutModal').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
+// ============================================================================
+// LOADOUT EDIT MODAL (Phase 2F Part 5C)
+// ============================================================================
+
+let currentLoadoutTab = 'hardware';
+let loadoutAvailableGames = [];
+
+// Tab Switching
+function switchLoadoutTab(tabId) {
+    currentLoadoutTab = tabId;
+    
+    // Update tab buttons
+    document.getElementById('loadoutTabHardware').classList.toggle('text-white', tabId === 'hardware');
+    document.getElementById('loadoutTabHardware').classList.toggle('text-gray-400', tabId !== 'hardware');
+    document.getElementById('loadoutTabHardware').classList.toggle('border-[var(--z-cyan)]', tabId === 'hardware');
+    document.getElementById('loadoutTabHardware').classList.toggle('border-transparent', tabId !== 'hardware');
+    
+    document.getElementById('loadoutTabGameConfigs').classList.toggle('text-white', tabId === 'gameconfigs');
+    document.getElementById('loadoutTabGameConfigs').classList.toggle('text-gray-400', tabId !== 'gameconfigs');
+    document.getElementById('loadoutTabGameConfigs').classList.toggle('border-[var(--z-cyan)]', tabId === 'gameconfigs');
+    document.getElementById('loadoutTabGameConfigs').classList.toggle('border-transparent', tabId !== 'gameconfigs');
+    
+    // Update content visibility
+    document.getElementById('loadoutContentHardware').classList.toggle('hidden', tabId !== 'hardware');
+    document.getElementById('loadoutContentGameConfigs').classList.toggle('hidden', tabId !== 'gameconfigs');
 }
 
+// Open Modal
+async function openEditLoadoutModal() {
+    document.getElementById('editLoadoutModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Load available games for configs
+    await loadAvailableGamesForConfigs();
+    
+    // Load current data
+    await loadHardwareList();
+    await loadGameConfigList();
+}
+
+// Close Modal
 function closeEditLoadoutModal() {
     document.getElementById('editLoadoutModal').classList.add('hidden');
     document.body.style.overflow = '';
+    resetHardwareForm();
+    resetGameConfigForm();
 }
+
+// ============================================================================
+// HARDWARE MANAGEMENT
+// ============================================================================
+
+// Load Hardware List
+async function loadHardwareList() {
+    const container = document.getElementById('hardwareList');
+    
+    // Get hardware from JSON script tag
+    const hardware = JSON.parse(document.getElementById('hardwareData').textContent);
+    
+    container.innerHTML = '';
+    
+    const categories = {
+        'MOUSE': { icon: 'fa-computer-mouse', label: 'Mouse' },
+        'KEYBOARD': { icon: 'fa-keyboard', label: 'Keyboard' },
+        'HEADSET': { icon: 'fa-headphones', label: 'Headset' },
+        'MONITOR': { icon: 'fa-tv', label: 'Monitor' },
+        'MOUSEPAD': { icon: 'fa-square', label: 'Mousepad' }
+    };
+    
+    Object.entries(categories).forEach(([category, meta]) => {
+        const item = hardware[category];
+        
+        if (item) {
+            // Existing hardware
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between bg-white/5 border border-white/10 rounded-lg p-3 hover:border-[var(--z-cyan)]/30 transition';
+            div.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)]">
+                        <i class="fa-solid ${meta.icon}"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-400">${meta.label}</div>
+                        <div class="text-sm text-white font-bold">${item.brand} ${item.model}</div>
+                        ${item.specs && Object.keys(item.specs).length > 0 ? 
+                            `<div class="text-xs text-gray-500 mt-1">${JSON.stringify(item.specs)}</div>` : ''}
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick='editHardware(${JSON.stringify(item).replace(/'/g, "&apos;")})' 
+                        class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-xs transition">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button onclick="deleteHardware(${item.id}, '${category}')" 
+                        class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-xs transition">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+        } else {
+            // Empty slot
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between bg-white/5 border border-white/10 border-dashed rounded-lg p-3 opacity-50';
+            div.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-gray-600">
+                        <i class="fa-solid ${meta.icon}"></i>
+                    </div>
+                    <div class="text-sm text-gray-500">No ${meta.label.toLowerCase()} added</div>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+    });
+}
+
+// Hardware Form Submit
+document.getElementById('hardwareForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const id = document.getElementById('hardwareId').value;
+    const category = document.getElementById('hardwareCategory').value;
+    const brand = document.getElementById('hardwareBrand').value.trim();
+    const model = document.getElementById('hardwareModel').value.trim();
+    const specsRaw = document.getElementById('hardwareSpecs').value.trim();
+    const isPublic = document.getElementById('hardwareIsPublic').checked;
+    
+    // Parse specs JSON
+    let specs = {};
+    if (specsRaw) {
+        try {
+            specs = JSON.parse(specsRaw);
+        } catch (err) {
+            alert('Invalid JSON in specs field. Use format: {"key": "value"}');
+            return;
+        }
+    }
+    
+    // Build payload
+    const payload = {
+        category,
+        brand,
+        model,
+        specs,
+        is_public: isPublic
+    };
+    
+    if (id) {
+        payload.id = parseInt(id);
+    }
+    
+    // Submit
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
+    
+    try {
+        const response = await fetch('/api/profile/loadout/hardware/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message || 'Hardware saved successfully!');
+            resetHardwareForm();
+            // Reload page to refresh context
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to save hardware'));
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>Save Hardware';
+    }
+});
+
+// Edit Hardware
+function editHardware(item) {
+    document.getElementById('hardwareId').value = item.id;
+    document.getElementById('hardwareCategory').value = item.category;
+    document.getElementById('hardwareBrand').value = item.brand;
+    document.getElementById('hardwareModel').value = item.model;
+    document.getElementById('hardwareSpecs').value = item.specs && Object.keys(item.specs).length > 0 
+        ? JSON.stringify(item.specs, null, 2) : '';
+    document.getElementById('hardwareIsPublic').checked = item.is_public;
+    
+    document.getElementById('hardwareFormTitle').textContent = 'Edit Hardware';
+    
+    // Scroll to form
+    document.getElementById('hardwareForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Delete Hardware
+async function deleteHardware(id, category) {
+    if (!confirm(`Delete this ${category.toLowerCase()}? This cannot be undone.`)) return;
+    
+    try {
+        const response = await fetch(`/api/profile/loadout/hardware/${id}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message || 'Hardware deleted successfully!');
+            // Reload page to refresh context
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to delete hardware'));
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    }
+}
+
+// Reset Hardware Form
+function resetHardwareForm() {
+    document.getElementById('hardwareForm').reset();
+    document.getElementById('hardwareId').value = '';
+    document.getElementById('hardwareFormTitle').textContent = 'Add Hardware';
+    document.getElementById('hardwareIsPublic').checked = true;
+}
+
+// ============================================================================
+// GAME CONFIG MANAGEMENT
+// ============================================================================
+
+// Load Available Games
+async function loadAvailableGamesForConfigs() {
+    try {
+        const response = await fetch('/api/games/available/');
+        const data = await response.json();
+        
+        if (data.games) {
+            loadoutAvailableGames = data.games;
+            
+            const select = document.getElementById('gameConfigGame');
+            select.innerHTML = '<option value="">Select Game...</option>';
+            
+            data.games.forEach(game => {
+                const option = document.createElement('option');
+                option.value = game.id;
+                option.textContent = game.name;
+                select.appendChild(option);
+            });
+        }
+    } catch (err) {
+        console.error('Failed to load games:', err);
+    }
+}
+
+// Load Game Config List
+async function loadGameConfigList() {
+    const container = document.getElementById('gameConfigList');
+    
+    // Get configs from JSON script tag
+    const configs = JSON.parse(document.getElementById('gameConfigsData').textContent);
+    
+    container.innerHTML = '';
+    
+    if (configs.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 py-8 border border-dashed border-white/10 rounded-lg">No game configs added yet</div>';
+        return;
+    }
+    
+    configs.forEach(config => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between bg-white/5 border border-white/10 rounded-lg p-3 hover:border-[var(--z-cyan)]/30 transition';
+        
+        const dpi = config.settings?.dpi || config.dpi || '—';
+        const sens = config.settings?.sensitivity || config.sensitivity || '—';
+        const res = config.settings?.resolution || config.resolution || '—';
+        
+        div.innerHTML = `
+            <div class="flex-1">
+                <div class="text-sm text-white font-bold mb-1">${config.game}</div>
+                <div class="flex gap-4 text-xs text-gray-400">
+                    <span><i class="fa-solid fa-crosshairs mr-1"></i>DPI: ${dpi}</span>
+                    <span><i class="fa-solid fa-sliders mr-1"></i>Sens: ${sens}</span>
+                    <span><i class="fa-solid fa-tv mr-1"></i>${res}</span>
+                </div>
+                ${config.notes ? `<div class="text-xs text-gray-500 mt-1">${config.notes}</div>` : ''}
+            </div>
+            <div class="flex gap-2">
+                <button onclick='editGameConfig(${JSON.stringify(config).replace(/'/g, "&apos;")})' 
+                    class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-xs transition">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button onclick="deleteGameConfig(${config.id}, '${config.game}')" 
+                    class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-xs transition">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// Game Config Form Submit
+document.getElementById('gameConfigForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const id = document.getElementById('gameConfigId').value;
+    const gameId = document.getElementById('gameConfigGame').value;
+    const dpi = document.getElementById('gameConfigDPI').value.trim();
+    const sens = document.getElementById('gameConfigSens').value.trim();
+    const res = document.getElementById('gameConfigRes').value.trim();
+    const settingsRaw = document.getElementById('gameConfigSettings').value.trim();
+    const notes = document.getElementById('gameConfigNotes').value.trim();
+    const isPublic = document.getElementById('gameConfigIsPublic').checked;
+    
+    // Build settings object
+    let settings = {};
+    
+    if (dpi) settings.dpi = parseInt(dpi);
+    if (sens) settings.sensitivity = parseFloat(sens);
+    if (res) settings.resolution = res;
+    
+    // Merge with additional settings JSON
+    if (settingsRaw) {
+        try {
+            const additionalSettings = JSON.parse(settingsRaw);
+            settings = { ...settings, ...additionalSettings };
+        } catch (err) {
+            alert('Invalid JSON in settings field. Use format: {"key": "value"}');
+            return;
+        }
+    }
+    
+    // Build payload
+    const payload = {
+        game_id: parseInt(gameId),
+        settings,
+        notes,
+        is_public: isPublic
+    };
+    
+    if (id) {
+        payload.id = parseInt(id);
+    }
+    
+    // Submit
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
+    
+    try {
+        const response = await fetch('/api/profile/loadout/game-config/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message || 'Game config saved successfully!');
+            resetGameConfigForm();
+            // Reload page to refresh context
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to save config'));
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>Save Config';
+    }
+});
+
+// Edit Game Config
+function editGameConfig(config) {
+    document.getElementById('gameConfigId').value = config.id;
+    
+    // Find game ID from available games
+    const game = loadoutAvailableGames.find(g => g.name === config.game || g.slug === config.game_slug);
+    if (game) {
+        document.getElementById('gameConfigGame').value = game.id;
+    }
+    
+    document.getElementById('gameConfigDPI').value = config.settings?.dpi || config.dpi || '';
+    document.getElementById('gameConfigSens').value = config.settings?.sensitivity || config.sensitivity || '';
+    document.getElementById('gameConfigRes').value = config.settings?.resolution || config.resolution || '';
+    
+    // Extract non-standard settings for JSON field
+    const standardKeys = ['dpi', 'sensitivity', 'resolution'];
+    const additionalSettings = {};
+    if (config.settings) {
+        Object.keys(config.settings).forEach(key => {
+            if (!standardKeys.includes(key)) {
+                additionalSettings[key] = config.settings[key];
+            }
+        });
+    }
+    
+    document.getElementById('gameConfigSettings').value = Object.keys(additionalSettings).length > 0 
+        ? JSON.stringify(additionalSettings, null, 2) : '';
+    
+    document.getElementById('gameConfigNotes').value = config.notes || '';
+    document.getElementById('gameConfigIsPublic').checked = config.is_public;
+    
+    document.getElementById('gameConfigFormTitle').textContent = 'Edit Game Config';
+    
+    // Switch to game configs tab if not already there
+    if (currentLoadoutTab !== 'gameconfigs') {
+        switchLoadoutTab('gameconfigs');
+    }
+    
+    // Scroll to form
+    document.getElementById('gameConfigForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Delete Game Config
+async function deleteGameConfig(id, gameName) {
+    if (!confirm(`Delete config for ${gameName}? This cannot be undone.`)) return;
+    
+    try {
+        const response = await fetch(`/api/profile/loadout/game-config/${id}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message || 'Game config deleted successfully!');
+            // Reload page to refresh context
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to delete config'));
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    }
+}
+
+// Reset Game Config Form
+function resetGameConfigForm() {
+    document.getElementById('gameConfigForm').reset();
+    document.getElementById('gameConfigId').value = '';
+    document.getElementById('gameConfigFormTitle').textContent = 'Add Game Config';
+    document.getElementById('gameConfigIsPublic').checked = true;
+}
+
+// ============================================================================
+// END LOADOUT MODAL
+// ============================================================================
 
 // Manage Showcase Modal
 function openManageShowcaseModal() {
@@ -2515,7 +3613,7 @@ async function handleMediaUpload(file, mediaType) {
     formData.append('media_type', mediaType);
     
     try {
-        const response = await fetch('/user-profile/api/upload-media/', {
+        const response = await fetch('/user-profile/me/settings/media/', {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}'
@@ -2548,6 +3646,176 @@ async function handleMediaUpload(file, mediaType) {
 }
 
 // UP-PHASE2F: Follower/Following Modal System
+function openFollowersModal() {
+    const modal = document.getElementById('followersModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadFollowersList();
+    }
+}
+
+// UP-PHASE2F-PART3: Social Links Management
+function openSocialLinksModal() {
+    const modal = document.getElementById('socialLinksModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadSocialLinks();
+    }
+}
+
+function closeSocialLinksModal() {
+    const modal = document.getElementById('socialLinksModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function loadSocialLinks() {
+    const container = document.getElementById('socialLinksList');
+    container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
+    
+    try {
+        const response = await fetch('/user-profile/api/social-links/');
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            if (data.links.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-gray-500">No social links yet. Add one above!</div>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <h3 class="text-sm font-bold text-white mb-3 uppercase tracking-wider">Your Links</h3>
+                <div class="space-y-2">
+                    ${data.links.map(link => `
+                        <div class="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition group">
+                            <div class="w-10 h-10 rounded-lg bg-black/30 flex items-center justify-center text-gray-400">
+                                <i class="fa-brands fa-${link.platform} text-lg"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-bold text-white text-sm capitalize">${getPlatformName(link.platform)}</div>
+                                <div class="text-xs text-gray-500 truncate">${link.url}</div>
+                            </div>
+                            <button onclick="deleteSocialLink(${link.id}, '${link.platform}')" 
+                                    class="opacity-0 group-hover:opacity-100 transition px-3 py-2 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white rounded-lg text-sm">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else {
+            container.innerHTML = '<div class="text-center py-8 text-red-500">Failed to load links</div>';
+        }
+    } catch (error) {
+        console.error('Error loading social links:', error);
+        container.innerHTML = '<div class="text-center py-8 text-red-500">Network error</div>';
+    }
+}
+
+function getPlatformName(platform) {
+    const names = {
+        'twitch': 'Twitch',
+        'youtube': 'YouTube',
+        'twitter': 'Twitter/X',
+        'discord': 'Discord',
+        'instagram': 'Instagram',
+        'tiktok': 'TikTok',
+        'facebook': 'Facebook',
+        'kick': 'Kick',
+        'steam': 'Steam',
+        'github': 'GitHub',
+        'facebook_gaming': 'Facebook Gaming',
+        'riot': 'Riot Games'
+    };
+    return names[platform] || platform;
+}
+
+async function addSocialLink() {
+    const platformSelect = document.getElementById('newLinkPlatform');
+    const urlInput = document.getElementById('newLinkUrl');
+    
+    const platform = platformSelect.value.trim();
+    const url = urlInput.value.trim();
+    
+    if (!platform || !url) {
+        alert('Please select a platform and enter a URL');
+        return;
+    }
+    
+    // Basic URL validation
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        alert('Please enter a valid URL (must start with http:// or https://)');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/user-profile/api/social-links/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                platform: platform,
+                url: url
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // Clear form
+            platformSelect.value = '';
+            urlInput.value = '';
+            
+            // Reload list
+            loadSocialLinks();
+            
+            // Show success
+            alert('Social link added successfully!');
+        } else {
+            alert(data.error || 'Failed to add social link');
+        }
+    } catch (error) {
+        console.error('Error adding social link:', error);
+        alert('Network error. Please try again.');
+    }
+}
+
+async function deleteSocialLink(linkId, platform) {
+    if (!confirm(`Delete your ${getPlatformName(platform)} link?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/user-profile/api/social-links/delete/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                id: linkId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // Reload list
+            loadSocialLinks();
+            
+            // Reload page to update display
+            setTimeout(() => location.reload(), 500);
+        } else {
+            alert(data.error || 'Failed to delete social link');
+        }
+    } catch (error) {
+        console.error('Error deleting social link:', error);
+        alert('Network error. Please try again.');
+    }
+}
+
+// UP-PHASE2F: Follower/Following Modal System (continued)
 function openFollowersModal() {
     const modal = document.getElementById('followersModal');
     if (modal) {

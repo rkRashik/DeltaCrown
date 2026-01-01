@@ -468,12 +468,27 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         public_only=not permissions.get('is_owner', False)
     )
     
+    def serialize_hardware(hw_item):
+        """Convert HardwareGear ORM object into JSON-safe dict for template."""
+        if not hw_item:
+            return None
+        return {
+            'id': hw_item.id,
+            'category': hw_item.category,
+            'brand': hw_item.brand,
+            'model': hw_item.model,
+            'specs': hw_item.specs or {},
+            'purchase_url': hw_item.purchase_url,
+            'is_public': hw_item.is_public,
+            'updated_at': hw_item.updated_at.isoformat(),
+        }
+
     context['hardware_gear'] = {
-        'mouse': loadout_data['hardware'].get('MOUSE'),
-        'keyboard': loadout_data['hardware'].get('KEYBOARD'),
-        'headset': loadout_data['hardware'].get('HEADSET'),
-        'monitor': loadout_data['hardware'].get('MONITOR'),
-        'mousepad': loadout_data['hardware'].get('MOUSEPAD'),
+        'mouse': serialize_hardware(loadout_data['hardware'].get('MOUSE')),
+        'keyboard': serialize_hardware(loadout_data['hardware'].get('KEYBOARD')),
+        'headset': serialize_hardware(loadout_data['hardware'].get('HEADSET')),
+        'monitor': serialize_hardware(loadout_data['hardware'].get('MONITOR')),
+        'mousepad': serialize_hardware(loadout_data['hardware'].get('MOUSEPAD')),
     }
     context['has_loadout'] = loadout_service.has_loadout(profile_user)
     
@@ -486,7 +501,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             'settings': config.settings,
             'notes': config.notes,
             'is_public': config.is_public,
-            'updated_at': config.updated_at,
+            'updated_at': config.updated_at.isoformat(),
         }
         for config in loadout_data['game_configs']
     ]
