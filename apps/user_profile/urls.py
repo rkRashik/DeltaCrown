@@ -169,6 +169,10 @@ urlpatterns = [
     path("api/game-passports/create/", create_game_passport_api, name="create_game_passport_api"),
     path("api/game-passports/update/", update_game_passport_api, name="update_game_passport_api"),
     path("api/game-passports/delete/", delete_game_passport_api, name="delete_game_passport_api"),
+    # Frontend compatibility aliases (template expects /profile/api/game-passports/)
+    path("profile/api/game-passports/", list_game_passports_api, name="game_passports_list_alias"),
+    path("profile/api/game-passports/create/", create_game_passport_api, name="game_passports_create_alias"),
+    path("profile/api/game-passports/delete/", delete_game_passport_api, name="game_passports_delete_alias"),
     path("api/platform-settings/", get_platform_settings, name="get_platform_settings"),
     path("me/settings/platform/", update_platform_settings, name="update_platform_settings"),
     path("api/profile/data/", get_profile_data, name="get_profile_data"),

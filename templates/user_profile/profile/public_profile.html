@@ -377,7 +377,7 @@
             </button>
             <button onclick="switchTab('inventory')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Inventory</button>
 
-            {% if wallet_visible %}
+            {% if is_owner %}
             <button onclick="switchTab('wallet')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] text-[var(--z-gold)] flex items-center gap-2 whitespace-nowrap ml-auto xl:ml-0 border-l border-white/5 pl-6">
                 <i class="fa-solid fa-wallet"></i> Economy
             </button>
@@ -481,7 +481,7 @@
             <div class="flex justify-between items-center mb-5">
                 <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Loadout</h3>
                 {% if is_owner %}
-                <button class="text-gray-500 hover:text-white transition edit-trigger">
+                <button class="text-gray-500 hover:text-white transition edit-trigger" onclick="openEditLoadoutModal()" title="Edit Loadout">
                     <i class="fa-solid fa-pen"></i>
                 </button>
                 {% endif %}
@@ -579,6 +579,27 @@
                     </div>
                 </div>
             </div>
+
+            {% if not highlight_clips and not active_bounties %}
+            <div class="z-card p-8 border-dashed border-white/10 bg-black/30 text-center space-y-4">
+                <div class="text-3xl">✨</div>
+                <div class="text-lg font-display font-bold text-white">Showcase your first moment</div>
+                <p class="text-sm text-gray-400 max-w-xl mx-auto">Add a highlight clip, play a match, or create a bounty to light up your profile. Visitors see this space first.</p>
+                {% if is_owner %}
+                <div class="flex flex-wrap justify-center gap-3 text-sm font-bold uppercase tracking-wider">
+                    <button onclick="openEditHighlightsModal()" class="px-4 py-2 rounded-lg bg-[var(--z-cyan)] text-black hover:bg-[var(--z-cyan)]/80 transition flex items-center gap-2">
+                        <i class="fa-solid fa-video"></i> Add Highlight
+                    </button>
+                    <button onclick="openGamePassportsModal()" class="px-4 py-2 rounded-lg bg-white/10 text-white border border-white/10 hover:border-[var(--z-cyan)] transition flex items-center gap-2">
+                        <i class="fa-solid fa-id-card"></i> Add Game ID
+                    </button>
+                    <button onclick="openCreateBountyModal()" class="px-4 py-2 rounded-lg bg-[var(--z-purple)]/20 text-white border border-[var(--z-purple)]/40 hover:border-[var(--z-purple)] transition flex items-center gap-2">
+                        <i class="fa-solid fa-crosshairs"></i> Create Bounty
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
             {% endif %}
 
             <!-- Active Bounties -->
@@ -1201,7 +1222,7 @@
         </div>
 
         <!-- WALLET TAB (Owner Only) -->
-        {% if wallet_visible %}
+        {% if is_owner %}
         <div id="tab-wallet" class="tab-content space-y-6">
             <div class="z-card p-8 bg-gradient-to-br from-[var(--z-gold)]/10 to-transparent border-[var(--z-gold)]/20 relative overflow-hidden group">
                 <div class="absolute -right-10 -top-10 text-9xl text-[var(--z-gold)] opacity-5 rotate-12 transition-transform duration-1000 group-hover:rotate-0">
@@ -2583,12 +2604,16 @@ function openVideoModal(embedUrl, title, originalUrl) {
     
     titleEl.textContent = title;
     
-    // If embed URL is missing or invalid, show fallback
-    if (!embedUrl || embedUrl.trim() === '') {
+    const isFacebook = embedUrl && embedUrl.includes('facebook.com');
+
+    // If embed URL is missing/invalid or Facebook blocks playback, show fallback
+    if (!embedUrl || embedUrl.trim() === '' || isFacebook) {
         iframe.style.display = 'none';
         fallback.classList.remove('hidden');
-        if (originalUrl) {
-            externalLink.href = originalUrl;
+        const linkTarget = originalUrl || embedUrl;
+        if (linkTarget) {
+            externalLink.href = linkTarget;
+            externalLink.textContent = 'Open in Facebook';
         }
     } else {
         iframe.style.display = 'block';
@@ -3647,6 +3672,11 @@ async function handleMediaUpload(file, mediaType) {
 
 // UP-PHASE2F: Follower/Following Modal System
 function openFollowersModal() {
+    {% if not privacy.show_followers_list and not is_owner %}
+        alert('This followers list is private');
+        return;
+    {% endif %}
+    
     const modal = document.getElementById('followersModal');
     if (modal) {
         modal.classList.remove('hidden');
@@ -3825,6 +3855,11 @@ function openFollowersModal() {
 }
 
 function openFollowingModal() {
+    {% if not privacy.show_following_list and not is_owner %}
+        alert('This following list is private');
+        return;
+    {% endif %}
+    
     const modal = document.getElementById('followingModal');
     if (modal) {
         modal.classList.remove('hidden');

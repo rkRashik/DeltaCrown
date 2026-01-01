@@ -28,17 +28,8 @@ def can_view_follower_list(viewer, target_user):
     # Get privacy settings
     try:
         privacy = target_user.profile.privacy_settings
-        visibility = privacy.followers_list_visibility
-        
-        if visibility == 'PUBLIC':
-            return True
-        elif visibility == 'FOLLOWERS_ONLY':
-            # Check if viewer follows target
-            if viewer and viewer.is_authenticated:
-                return Follow.objects.filter(follower=viewer, following=target_user).exists()
-            return False
-        else:  # PRIVATE
-            return False
+        # Simple boolean: True = public, False = private (owner only)
+        return privacy.show_followers_list
     except:
         return True  # Default to public if privacy not set
 
@@ -52,17 +43,8 @@ def can_view_following_list(viewer, target_user):
     # Get privacy settings
     try:
         privacy = target_user.profile.privacy_settings
-        visibility = privacy.following_list_visibility
-        
-        if visibility == 'PUBLIC':
-            return True
-        elif visibility == 'FOLLOWERS_ONLY':
-            # Check if viewer follows target
-            if viewer and viewer.is_authenticated:
-                return Follow.objects.filter(follower=viewer, following=target_user).exists()
-            return False
-        else:  # PRIVATE
-            return False
+        # Simple boolean: True = public, False = private (owner only)
+        return privacy.show_following_list
     except:
         return True  # Default to public if privacy not set
 

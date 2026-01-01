@@ -141,6 +141,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         
         # UP-UI-REBIRTH-02: Add profile_user to context for template access
         context['profile_user'] = profile_user
+        # CRITICAL FIX: Template expects 'profile' not 'user_profile'
+        context['profile'] = user_profile
         
         # Attach team badge data to each passport (NO ROLE - role belongs to team context)
         if user_profile:
@@ -231,7 +233,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     context['user_tournaments'] = []
     
     # Phase 5B Workstream 3: Add follower count for real follow button
-    from apps.user_profile.models import Follow
+    from apps.user_profile.models import Follow, PrivacySettings
     context['follower_count'] = Follow.objects.filter(following=profile_user).count()
     context['following_count'] = Follow.objects.filter(follower=profile_user).count()
     context['is_following'] = False
@@ -240,6 +242,24 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             follower=request.user,
             following=profile_user
         ).exists()
+    
+    # Add privacy settings to context for follower/following visibility
+    try:
+        privacy_settings = PrivacySettings.objects.get(user_profile=user_profile)
+        context['privacy'] = {
+            'show_followers_count': privacy_settings.show_followers_count if hasattr(privacy_settings, 'show_followers_count') else True,
+            'show_following_count': privacy_settings.show_following_count if hasattr(privacy_settings, 'show_following_count') else True,
+            'show_followers_list': privacy_settings.show_followers_list if hasattr(privacy_settings, 'show_followers_list') else True,
+            'show_following_list': privacy_settings.show_following_list if hasattr(privacy_settings, 'show_following_list') else True,
+        }
+    except PrivacySettings.DoesNotExist:
+        # Default to public if no settings
+        context['privacy'] = {
+            'show_followers_count': True,
+            'show_following_count': True,
+            'show_followers_list': True,
+            'show_following_list': True,
+        }
     
     # UP-PHASE14C: Add ProfileShowcase data for About section
     from apps.user_profile.models import ProfileShowcase

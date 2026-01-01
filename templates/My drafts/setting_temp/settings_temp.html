@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Control Deck | DeltaCrown</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        'z-bg': '#030014',
+                        'z-panel': '#0F0B1E',
+                        'z-cyan': '#00F0FF',
+                        'z-purple': '#7B2CBF',
+                        'z-gold': '#FFD60A',
+                        'z-red': '#FF007A',
+                        'z-green': '#10B981',
+                        'z-input': 'rgba(255, 255, 255, 0.03)',
+                    },
+                    backgroundImage: {
+                        'aurora-gradient': 'linear-gradient(135deg, #030014 0%, #1a0b2e 100%)',
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 0 10px rgba(0, 240, 255, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* --- CORE PHYSICS --- */
+        body { 
+            background-color: #030014; 
+            color: #e5e7eb; 
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(123, 44, 191, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(0, 240, 255, 0.05), transparent 25%);
+            background-attachment: fixed;
+        }
+
+        /* Glass Panel */
+        .glass-panel {
+            background: rgba(15, 11, 30, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Input Styling */
+        .z-input {
+            width: 100%;
+            background: var(--z-input);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: white;
+            font-size: 0.95rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .z-input:focus {
+            outline: none;
+            border-color: #00F0FF;
+            box-shadow: 0 0 0 4px rgba(0, 240, 255, 0.1);
+            background: rgba(0, 240, 255, 0.02);
+        }
+        .z-label {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.75rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            color: #94a3b8; margin-bottom: 8px;
+        }
+
+        /* NEW LIQUID TOGGLE (Bug Free) */
+        .z-toggle-wrapper {
+            position: relative; display: inline-block; width: 48px; height: 26px;
+        }
+        .z-toggle-input {
+            opacity: 0; width: 0; height: 0;
+        }
+        .z-toggle-slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155;
+            transition: .4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 34px;
+        }
+        .z-toggle-slider:before {
+            position: absolute; content: "";
+            height: 20px; width: 20px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .z-toggle-input:checked + .z-toggle-slider {
+            background-color: #00F0FF;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+        .z-toggle-input:checked + .z-toggle-slider:before {
+            transform: translateX(22px);
+            background-color: #030014;
+        }
+
+        /* HOLO-TIP (Contextual Help) */
+        .holo-tip-trigger {
+            color: #00F0FF; cursor: help; transition: 0.2s;
+        }
+        .holo-tip-content {
+            visibility: hidden; opacity: 0;
+            position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%) translateY(10px);
+            width: 260px; padding: 12px;
+            background: rgba(10, 10, 20, 0.95);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 50;
+            text-transform: none; text-align: left;
+            transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+        }
+        .holo-tip-trigger:hover .holo-tip-content {
+            visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0);
+        }
+        .holo-tip-content h5 { color: #00F0FF; font-weight: 700; font-size: 0.8rem; margin-bottom: 4px; }
+        .holo-tip-content p { color: #cbd5e1; font-weight: 400; font-size: 0.75rem; line-height: 1.4; }
+
+        /* Navigation */
+        .nav-btn {
+            width: 100%; text-align: left; padding: 12px 16px; border-radius: 12px;
+            color: #94a3b8; font-weight: 500; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 12px;
+            transition: all 0.2s; border-left: 3px solid transparent;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.03); color: white; }
+        .nav-btn.active {
+            background: rgba(0, 240, 255, 0.06); color: white;
+            border-left-color: #00F0FF; font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .nav-btn.active i { color: #00F0FF; filter: drop-shadow(0 0 8px rgba(0,240,255,0.5)); }
+
+        .mobile-nav-btn {
+            padding: 10px 20px; border-radius: 100px; font-size: 0.85rem;
+            font-weight: 600; white-space: nowrap; color: #94a3b8;
+            background: rgba(255,255,255,0.05); border: 1px solid transparent; transition: all 0.2s;
+        }
+        .mobile-nav-btn.active {
+            background: #00F0FF; color: black; font-weight: 800;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        /* Utilities */
+        .tab-section { display: none; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .tab-section.active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Avatar Ring */
+        .holo-ring {
+            position: absolute; inset: -4px; border-radius: 50%;
+            background: conic-gradient(from 0deg, transparent, #00F0FF, #7B2CBF, #FFD60A, transparent);
+            animation: spin 4s linear infinite; filter: blur(4px); z-index: 0;
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-sm">
+
+    <header class="h-16 z-50 bg-z-bg/95 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 lg:px-8 shrink-0 relative">
+        <div class="flex items-center gap-4">
+            <a href="/profile" class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition border border-white/10 text-gray-400 hover:text-white group">
+                <i class="fa-solid fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
+            </a>
+            <div class="flex flex-col">
+                <h1 class="text-lg font-display font-bold text-white tracking-wide">Control Deck</h1>
+                <span class="text-[10px] text-gray-500 font-mono hidden md:block tracking-widest uppercase">System Config v9.0</span>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <span class="text-xs text-yellow-500 font-mono hidden md:flex items-center gap-2 animate-pulse" id="unsaved-changes">
+                <i class="fa-solid fa-circle text-[6px]"></i> Unsaved Changes
+            </span>
+            <button class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition shadow-neon-cyan flex items-center gap-2">
+                <i class="fa-solid fa-floppy-disk"></i> Save
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <aside class="hidden lg:flex w-72 bg-z-panel/30 border-r border-white/5 flex-col overflow-y-auto no-scrollbar shrink-0 pb-10">
+            <div class="p-6 space-y-8">
+                
+                <div>
+                    <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Account</div>
+                    <div class="space-y-1">
+                        <button onclick="switchTab('identity')" class="nav-btn active" data-target="identity"><i class="fa-regular fa-id-card w-5 text-center"></i> Identity</button>
+                        <button onclick="switchTab('security')" class="nav-btn" data-target="security"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Security & KYC</button>
+                        <button onclick="switchTab('privacy')" class="nav-btn" data-target="privacy"><i class="fa-solid fa-user-shield w-5 text-center"></i> Privacy & Vis.</button>
+                        <button onclick="switchTab('notifications')" class="nav-btn" data-target="notifications"><i class="fa-regular fa-bell w-5 text-center"></i> Notifications</button>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Esports</div>
+                    <div class="space-y-1">
+                        <button onclick="switchTab('recruitment')" class="nav-btn" data-target="recruitment"><i class="fa-solid fa-briefcase w-5 text-center"></i> Career & LFT</button>
+                        <button onclick="switchTab('passports')" class="nav-btn" data-target="passports"><i class="fa-solid fa-gamepad w-5 text-center"></i> Game Passports</button>
+                        <button onclick="switchTab('matchmaking')" class="nav-btn" data-target="matchmaking"><i class="fa-solid fa-crosshairs w-5 text-center"></i> Bounties & Match</button>
+                        <button onclick="switchTab('loadout')" class="nav-btn" data-target="loadout"><i class="fa-solid fa-computer-mouse w-5 text-center"></i> Pro Loadout</button>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Assets</div>
+                    <div class="space-y-1">
+                        <button onclick="switchTab('inventory')" class="nav-btn" data-target="inventory"><i class="fa-solid fa-box-open w-5 text-center"></i> Inventory</button>
+                        <button onclick="switchTab('stream')" class="nav-btn" data-target="stream"><i class="fa-brands fa-twitch w-5 text-center"></i> Live Feed</button>
+                        <button onclick="switchTab('billing')" class="nav-btn" data-target="billing"><i class="fa-solid fa-wallet w-5 text-center"></i> Wallet</button>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-white/5">
+                    <button onclick="switchTab('danger')" class="nav-btn text-red-400 hover:text-red-300 hover:bg-red-500/10" data-target="danger"><i class="fa-solid fa-power-off w-5 text-center"></i> Danger Zone</button>
+                </div>
+            </div>
+        </aside>
+
+        <div class="lg:hidden absolute top-0 left-0 right-0 h-14 bg-z-bg/95 border-b border-white/5 z-40 overflow-x-auto no-scrollbar flex items-center px-4 gap-3">
+            <button onclick="switchTab('identity')" class="mobile-nav-btn active" data-target="identity">Identity</button>
+            <button onclick="switchTab('recruitment')" class="mobile-nav-btn" data-target="recruitment">Career</button>
+            <button onclick="switchTab('matchmaking')" class="mobile-nav-btn" data-target="matchmaking">Bounties</button>
+            <button onclick="switchTab('privacy')" class="mobile-nav-btn" data-target="privacy">Privacy</button>
+            <button onclick="switchTab('passports')" class="mobile-nav-btn" data-target="passports">Games</button>
+            <button onclick="switchTab('loadout')" class="mobile-nav-btn" data-target="loadout">Loadout</button>
+            <button onclick="switchTab('stream')" class="mobile-nav-btn" data-target="stream">Stream</button>
+            <button onclick="switchTab('inventory')" class="mobile-nav-btn" data-target="inventory">Inv.</button>
+            <button onclick="switchTab('billing')" class="mobile-nav-btn" data-target="billing">Wallet</button>
+            <button onclick="switchTab('security')" class="mobile-nav-btn" data-target="security">Security</button>
+        </div>
+
+        <main class="flex-1 overflow-y-auto pt-16 lg:pt-8 p-4 lg:p-12 pb-32 scroll-smooth">
+            <div class="max-w-4xl mx-auto space-y-8">
+
+                <div id="tab-identity" class="tab-section active">
+                    <h2 class="text-3xl font-display font-bold text-white mb-2">Identity Protocol</h2>
+                    <p class="text-gray-400 mb-8">Manage how you appear to the world and team scouts.</p>
+
+                    <div class="glass-panel p-1 mb-8 group overflow-hidden">
+                        <div class="relative h-40 md:h-56 bg-gray-800 rounded-t-[18px] overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="w-full h-full object-cover opacity-60">
+                            <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition cursor-pointer">
+                                <span class="bg-black/60 text-white px-5 py-2 rounded-full text-xs font-bold border border-white/20 hover:bg-white hover:text-black transition flex items-center gap-2">
+                                    <i class="fa-solid fa-image"></i> Change Cover
+                                </span>
+                            </div>
+                        </div>
+                        <div class="px-8 pb-8 relative">
+                            <div class="w-24 h-24 md:w-32 md:h-32 -mt-12 md:-mt-16 relative group/avatar">
+                                <div class="holo-ring"></div>
+                                <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1000" class="relative z-10 w-full h-full object-cover rounded-full border-4 border-z-panel">
+                                <div class="absolute inset-0 z-20 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover/avatar:opacity-100 transition cursor-pointer">
+                                    <i class="fa-solid fa-camera text-white text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                            <label class="z-label">Display Name</label>
+                            <input type="text" class="z-input" value="Mahir Ahmed">
+                        </div>
+                        <div>
+                            <label class="z-label">Gamertag (Unique ID)</label>
+                            <input type="text" class="z-input text-z-cyan font-bold" value="@Viper">
+                        </div>
+                        <div>
+                            <label class="z-label">Location</label>
+                            <input type="text" class="z-input" value="Dhaka, Bangladesh">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="z-label">Bio (Max 250)</label>
+                            <textarea class="z-input h-24 resize-none">IGL for Team Liquid. Tactical Specialist. Building the future of South Asian Esports.</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-recruitment" class="tab-section space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-3xl font-display font-bold text-white">Career & LFT</h2>
+                        <span class="bg-z-purple/10 text-z-purple border border-z-purple/20 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Visible to Recruiters</span>
+                    </div>
+                    <p class="text-gray-400">Signal your availability to team managers and scouts.</p>
+
+                    <div class="glass-panel p-8">
+                        <div class="mb-10">
+                            <label class="z-label text-base mb-4">
+                                Current Status
+                                <div class="relative inline-block ml-1 holo-tip-trigger">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                    <div class="holo-tip-content">
+                                        <h5>Recruitment Status</h5>
+                                        <p><strong>Signed:</strong> You have a team. Recruiters can't contact you.<br><strong>Free Agent:</strong> You are actively looking for a team.<br><strong>Scouting:</strong> You are a Manager looking for players.</p>
+                                    </div>
+                                </div>
+                            </label>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <label class="cursor-pointer group">
+                                    <input type="radio" name="career_status" class="peer sr-only">
+                                    <div class="p-5 rounded-xl border border-white/10 bg-white/5 peer-checked:bg-z-red/10 peer-checked:border-z-red peer-checked:text-z-red transition text-center hover:bg-white/10 h-full flex flex-col justify-center items-center">
+                                        <i class="fa-solid fa-file-signature text-2xl mb-2"></i>
+                                        <div class="font-bold">Signed</div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer group">
+                                    <input type="radio" name="career_status" class="peer sr-only" checked>
+                                    <div class="p-5 rounded-xl border border-white/10 bg-white/5 peer-checked:bg-z-green/10 peer-checked:border-z-green peer-checked:text-z-green transition text-center hover:bg-white/10 h-full flex flex-col justify-center items-center relative overflow-hidden">
+                                        <div class="absolute inset-0 bg-z-green/10 blur-xl opacity-0 peer-checked:opacity-50 transition"></div>
+                                        <i class="fa-solid fa-handshake text-2xl mb-2 relative z-10"></i>
+                                        <div class="font-bold relative z-10">Free Agent</div>
+                                        <div class="text-[10px] opacity-70 relative z-10 mt-1">Open to offers</div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer group">
+                                    <input type="radio" name="career_status" class="peer sr-only">
+                                    <div class="p-5 rounded-xl border border-white/10 bg-white/5 peer-checked:bg-z-cyan/10 peer-checked:border-z-cyan peer-checked:text-z-cyan transition text-center hover:bg-white/10 h-full flex flex-col justify-center items-center">
+                                        <i class="fa-solid fa-magnifying-glass text-2xl mb-2"></i>
+                                        <div class="font-bold">Scouting</div>
+                                        <div class="text-[10px] opacity-70 mt-1">I am a Manager</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <label class="z-label">Primary Role</label>
+                                <select class="z-input">
+                                    <option>IGL (In-Game Leader)</option>
+                                    <option>Duelist / Entry</option>
+                                    <option>Support</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="z-label">
+                                    Min. Salary (Monthly)
+                                    <div class="relative inline-block ml-1 holo-tip-trigger">
+                                        <i class="fa-solid fa-circle-info"></i>
+                                        <div class="holo-tip-content">
+                                            <h5>Contract Expectations</h5>
+                                            <p>This is private. Recruiters will only see if their offer meets your minimum threshold.</p>
+                                        </div>
+                                    </div>
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-3.5 text-gray-500 text-xs font-bold">DC</span>
+                                    <input type="number" class="z-input pl-10" placeholder="e.g. 5000">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-8 pt-6 border-t border-white/5">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-bold text-white text-sm">Allow Direct Contracts</h4>
+                                    <p class="text-xs text-gray-400">Managers can send draft contracts directly to your inbox.</p>
+                                </div>
+                                <label class="z-toggle-wrapper">
+                                    <input type="checkbox" class="z-toggle-input" checked>
+                                    <span class="z-toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-matchmaking" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Bounties & Matchmaking</h2>
+                    <div class="glass-panel p-8">
+                        <div class="space-y-8">
+                            <div>
+                                <label class="z-label flex justify-between">
+                                    <span>
+                                        Minimum Bounty Threshold
+                                        <div class="relative inline-block ml-1 holo-tip-trigger">
+                                            <i class="fa-solid fa-circle-info"></i>
+                                            <div class="holo-tip-content">
+                                                <h5>Anti-Spam Filter</h5>
+                                                <p>You will not receive notifications for challenges below this amount. Useful for pros to avoid 1 DC spam.</p>
+                                            </div>
+                                        </div>
+                                    </span>
+                                    <span class="text-z-gold">500 DC</span>
+                                </label>
+                                <input type="range" class="w-full accent-z-gold h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer mt-2">
+                            </div>
+
+                            <div class="space-y-6">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm font-bold text-white">Auto-Reject Unverified</div>
+                                        <div class="text-[11px] text-gray-400">Block challenges from accounts without KYC.</div>
+                                    </div>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" class="z-toggle-input" checked>
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm font-bold text-white">Allow Team Challenges</div>
+                                        <div class="text-[11px] text-gray-400">Accept 5v5 bounty requests for your active team.</div>
+                                    </div>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" class="z-toggle-input">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-privacy" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Privacy & Visibility</h2>
+                    
+                    <div class="glass-panel p-0 overflow-hidden">
+                        <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                            <div>
+                                <h4 class="font-bold text-white text-sm">Private Account</h4>
+                                <p class="text-xs text-gray-400">Users must request to follow you.</p>
+                            </div>
+                            <label class="z-toggle-wrapper">
+                                <input type="checkbox" class="z-toggle-input">
+                                <span class="z-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                            <div>
+                                <h4 class="font-bold text-white text-sm">
+                                    Hide Following List
+                                    <div class="relative inline-block ml-1 holo-tip-trigger">
+                                        <i class="fa-solid fa-circle-info"></i>
+                                        <div class="holo-tip-content">
+                                            <h5>Scout Protection</h5>
+                                            <p>Prevents opponents from seeing which players/teams you are watching or scouting.</p>
+                                        </div>
+                                    </div>
+                                </h4>
+                                <p class="text-xs text-gray-400">Only you can see who you follow.</p>
+                            </div>
+                            <label class="z-toggle-wrapper">
+                                <input type="checkbox" class="z-toggle-input" checked>
+                                <span class="z-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="p-6 flex items-center justify-between">
+                            <div>
+                                <h4 class="font-bold text-white text-sm">Inventory Visibility</h4>
+                                <p class="text-xs text-gray-400">Who can see your frames and trophies.</p>
+                            </div>
+                            <select class="z-input w-40 py-2">
+                                <option>Public</option>
+                                <option>Friends</option>
+                                <option>Private</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-inventory" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Inventory & Trade</h2>
+                    
+                    <div class="glass-panel p-8">
+                        <div class="space-y-6 mb-8">
+                            <div class="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-full bg-z-purple/20 flex items-center justify-center text-z-purple"><i class="fa-solid fa-handshake"></i></div>
+                                    <div>
+                                        <div class="text-sm font-bold text-white">Allow Trade Requests</div>
+                                        <div class="text-[10px] text-gray-400">Users can propose item swaps.</div>
+                                    </div>
+                                </div>
+                                <label class="z-toggle-wrapper">
+                                    <input type="checkbox" class="z-toggle-input" checked>
+                                    <span class="z-toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-full bg-z-gold/20 flex items-center justify-center text-z-gold"><i class="fa-solid fa-gift"></i></div>
+                                    <div>
+                                        <div class="text-sm font-bold text-white">Allow Incoming Gifts</div>
+                                        <div class="text-[10px] text-gray-400">Users can send you cosmetic items.</div>
+                                    </div>
+                                </div>
+                                <label class="z-toggle-wrapper">
+                                    <input type="checkbox" class="z-toggle-input" checked>
+                                    <span class="z-toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="pt-6 border-t border-white/5">
+                            <label class="z-label flex justify-between items-center mb-4">
+                                <span>Saved Shipping Addresses</span>
+                                <button class="text-xs text-z-cyan hover:underline font-bold">+ Add New</button>
+                            </label>
+                            <div class="p-6 border border-dashed border-white/10 rounded-xl bg-black/20 text-center text-gray-500 text-xs flex flex-col items-center justify-center gap-2 hover:bg-white/5 transition cursor-pointer">
+                                <i class="fa-solid fa-truck-fast text-2xl mb-1 opacity-50"></i>
+                                No addresses saved.<br>Required for physical store purchases.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-passports" class="tab-section space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-3xl font-display font-bold text-white">Game Passports</h2>
+                        <button class="bg-white/10 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase hover:bg-white/20 transition flex items-center gap-2">
+                            <i class="fa-solid fa-link"></i> Link New
+                        </button>
+                    </div>
+                    <div class="glass-panel p-5 border-l-4 border-l-z-cyan flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div class="flex items-center gap-4 w-full md:w-auto">
+                            <div class="w-12 h-12 bg-[#ff4655] rounded-xl flex items-center justify-center text-white text-xl shadow-lg"><i class="fa-solid fa-v"></i></div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-bold text-white">VALORANT</h3>
+                                    <span class="bg-z-cyan text-black text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">Main</span>
+                                </div>
+                                <p class="text-sm text-gray-400 font-mono">Viper#NA1</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
+                            <div class="text-right">
+                                <div class="text-[10px] text-gray-500 uppercase font-bold">Rank</div>
+                                <div class="text-z-red font-bold text-sm">Immortal 3</div>
+                            </div>
+                            <button class="text-gray-500 hover:text-red-400 transition"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-loadout" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Pro Loadout</h2>
+                    <p class="text-gray-400">Share your gear so fans can replicate your setup.</p>
+                    <div class="glass-panel p-6 md:p-8">
+                        <div class="flex items-center gap-2 mb-6 text-z-purple">
+                            <i class="fa-solid fa-microchip"></i>
+                            <h3 class="text-sm font-bold uppercase tracking-widest">Hardware</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="z-label">Mouse</label><input type="text" class="z-input" value="Logitech G Pro X"></div>
+                            <div><label class="z-label">Keyboard</label><input type="text" class="z-input" value="Wooting 60HE"></div>
+                            <div><label class="z-label">Headset</label><input type="text" class="z-input" value="HyperX Cloud II"></div>
+                            <div><label class="z-label">Monitor</label><input type="text" class="z-input" value="BenQ Zowie 240Hz"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-stream" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Live Feed</h2>
+                    <div class="glass-panel p-8">
+                        <label class="z-label">Platform</label>
+                        <div class="flex gap-4 mt-2 mb-6">
+                            <label class="flex items-center gap-3 cursor-pointer bg-white/5 border border-z-purple p-4 rounded-xl w-full hover:bg-white/10 transition">
+                                <input type="radio" name="stream" checked class="accent-z-cyan w-4 h-4">
+                                <i class="fa-brands fa-twitch text-[#9146FF] text-xl"></i> 
+                                <span class="font-bold">Twitch</span>
+                            </label>
+                             <label class="flex items-center gap-3 cursor-pointer bg-white/5 border border-white/10 p-4 rounded-xl w-full opacity-60 hover:opacity-100 transition">
+                                <input type="radio" name="stream" class="accent-z-cyan w-4 h-4">
+                                <i class="fa-brands fa-youtube text-[#FF0000] text-xl"></i> 
+                                <span class="font-bold">YouTube</span>
+                            </label>
+                        </div>
+                        <label class="z-label">Channel URL</label>
+                        <input type="url" class="z-input" value="https://twitch.tv/viper_live">
+                    </div>
+                </div>
+
+                <div id="tab-security" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Security & KYC</h2>
+                    
+                    <div class="glass-panel p-6 border-l-4 border-l-z-green mb-6 bg-z-green/5">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-white text-lg">Identity Verified</h3>
+                            <i class="fa-solid fa-check-circle text-z-green text-2xl"></i>
+                        </div>
+                        <p class="text-sm text-gray-300">Level 2: Withdrawals Enabled.</p>
+                    </div>
+
+                    <div class="glass-panel p-8">
+                        <h3 class="font-bold text-white mb-6">Change Password</h3>
+                        <div class="space-y-4">
+                            <input type="password" class="z-input" placeholder="Current Password">
+                            <input type="password" class="z-input" placeholder="New Password">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-notifications" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Notifications</h2>
+                    <div class="glass-panel p-0 overflow-hidden">
+                        <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                            <div><h4 class="font-bold text-white text-sm">Tournament Alerts</h4><p class="text-xs text-gray-400">Match reminders & bracket updates.</p></div>
+                            <label class="z-toggle-wrapper">
+                                <input type="checkbox" class="z-toggle-input" checked>
+                                <span class="z-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="p-6 flex items-center justify-between">
+                            <div><h4 class="font-bold text-white text-sm">Marketing Emails</h4><p class="text-xs text-gray-400">Newsletters and promotions.</p></div>
+                            <label class="z-toggle-wrapper">
+                                <input type="checkbox" class="z-toggle-input">
+                                <span class="z-toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-billing" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Wallet</h2>
+                    <div class="glass-panel p-8 bg-gradient-to-r from-z-gold/10 to-transparent border border-z-gold/20 relative overflow-hidden">
+                        <div class="absolute -right-10 -top-10 w-40 h-40 bg-z-gold/20 rounded-full blur-3xl"></div>
+                        <p class="text-xs text-z-gold uppercase font-bold mb-2">Available Balance</p>
+                        <h1 class="text-5xl font-display font-black text-white mb-6">50,420 <span class="text-2xl text-gray-400 font-sans font-normal">DC</span></h1>
+                        <div class="flex gap-3">
+                            <button class="bg-z-gold text-black px-6 py-2 rounded-lg font-bold uppercase text-xs hover:bg-white transition">Withdraw</button>
+                            <button class="bg-white/10 text-white px-6 py-2 rounded-lg font-bold uppercase text-xs hover:bg-white/20 transition">History</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-danger" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-red-500">Danger Zone</h2>
+                    <div class="glass-panel p-6 border border-red-500/30 bg-red-500/5 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h3 class="font-bold text-white">Delete Account</h3>
+                            <p class="text-xs text-gray-400">Permanently delete your account and all data. This cannot be undone.</p>
+                        </div>
+                        <button class="px-6 py-3 bg-red-600 text-white rounded-xl text-xs font-bold uppercase hover:bg-red-700 shadow-lg shadow-red-900/50 transition transform hover:scale-105">Delete Account</button>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function switchTab(targetId) {
+            // 1. Hide all tabs
+            document.querySelectorAll('.tab-section').forEach(el => el.classList.remove('active'));
+
+            // 2. Reset buttons
+            document.querySelectorAll('.nav-btn, .mobile-nav-btn').forEach(el => {
+                el.classList.remove('active', 'text-white', 'bg-z-cyan/10', 'border-l-z-cyan');
+                if(el.classList.contains('mobile-nav-btn')) {
+                    el.style.backgroundColor = ''; el.style.color = '#94a3b8'; el.style.boxShadow = 'none';
+                }
+            });
+
+            // 3. Show target
+            const targetSection = document.getElementById('tab-' + targetId);
+            if(targetSection) targetSection.classList.add('active');
+
+            // 4. Highlight buttons
+            document.querySelectorAll(`[data-target="${targetId}"]`).forEach(btn => {
+                if(btn.classList.contains('mobile-nav-btn')) {
+                    btn.style.backgroundColor = '#00F0FF'; btn.style.color = 'black'; btn.style.boxShadow = '0 0 15px rgba(0, 240, 255, 0.4)';
+                } else {
+                    btn.classList.add('active');
+                }
+            });
+
+            // 5. Scroll Mobile Nav
+            if(window.innerWidth < 1024) {
+                const mobileBtn = document.querySelector(`.mobile-nav-btn[data-target="${targetId}"]`);
+                if(mobileBtn) mobileBtn.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => switchTab('identity'));
+    </script>
+</body>
+</html>

@@ -817,6 +817,22 @@ class PrivacySettings(models.Model):
         default=True,
         help_text="Show social media links (Facebook, Instagram, etc.)"
     )
+    show_followers_count = models.BooleanField(
+        default=True,
+        help_text="Show follower count on profile"
+    )
+    show_following_count = models.BooleanField(
+        default=True,
+        help_text="Show following count on profile"
+    )
+    show_followers_list = models.BooleanField(
+        default=True,
+        help_text="Allow viewing list of followers"
+    )
+    show_following_list = models.BooleanField(
+        default=True,
+        help_text="Allow viewing list of users being followed"
+    )
     
     # ===== INTERACTION PERMISSIONS =====
     allow_team_invites = models.BooleanField(
