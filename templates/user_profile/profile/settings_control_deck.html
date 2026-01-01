@@ -1,0 +1,930 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Control Deck | DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    /* --- CORE PHYSICS --- */
+    body { 
+        overflow-x: hidden;
+        background-image: 
+            radial-gradient(circle at 15% 50%, rgba(123, 44, 191, 0.08), transparent 25%),
+            radial-gradient(circle at 85% 30%, rgba(0, 240, 255, 0.05), transparent 25%);
+        background-attachment: fixed;
+    }
+
+    /* Glass Panel */
+    .glass-panel {
+        background: rgba(15, 11, 30, 0.6);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 20px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    /* Input Styling */
+    .z-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 14px 16px;
+        color: white;
+        font-size: 0.95rem;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .z-input:focus {
+        outline: none;
+        border-color: #00F0FF;
+        box-shadow: 0 0 0 4px rgba(0, 240, 255, 0.1);
+        background: rgba(0, 240, 255, 0.02);
+    }
+    .z-label {
+        display: flex; align-items: center; gap: 6px;
+        font-size: 0.75rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.05em;
+        color: #94a3b8; margin-bottom: 8px;
+    }
+
+    /* NEW LIQUID TOGGLE (Bug Free) */
+    .z-toggle-wrapper {
+        position: relative; display: inline-block; width: 48px; height: 26px;
+    }
+    .z-toggle-input {
+        opacity: 0; width: 0; height: 0;
+    }
+    .z-toggle-slider {
+        position: absolute; cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: #334155;
+        transition: .4s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 34px;
+    }
+    .z-toggle-slider:before {
+        position: absolute; content: "";
+        height: 20px; width: 20px;
+        left: 3px; bottom: 3px;
+        background-color: white;
+        transition: .4s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .z-toggle-input:checked + .z-toggle-slider {
+        background-color: #00F0FF;
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+    }
+    .z-toggle-input:checked + .z-toggle-slider:before {
+        transform: translateX(22px);
+        background-color: #030014;
+    }
+
+    /* HOLO-TIP (Contextual Help) */
+    .holo-tip-trigger {
+        color: #00F0FF; cursor: help; transition: 0.2s;
+    }
+    .holo-tip-content {
+        visibility: hidden; opacity: 0;
+        position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%) translateY(10px);
+        width: 260px; padding: 12px;
+        background: rgba(10, 10, 20, 0.95);
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        z-index: 50;
+        text-transform: none; text-align: left;
+        transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+    }
+    .holo-tip-trigger:hover .holo-tip-content {
+        visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0);
+    }
+    .holo-tip-content h5 { color: #00F0FF; font-weight: 700; font-size: 0.8rem; margin-bottom: 4px; }
+    .holo-tip-content p { color: #cbd5e1; font-weight: 400; font-size: 0.75rem; line-height: 1.4; }
+
+    /* Navigation */
+    .nav-btn {
+        width: 100%; text-align: left; padding: 12px 16px; border-radius: 12px;
+        color: #94a3b8; font-weight: 500; font-size: 0.9rem;
+        display: flex; align-items: center; gap: 12px;
+        transition: all 0.2s; border-left: 3px solid transparent;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,0.03); color: white; }
+    .nav-btn.active {
+        background: rgba(0, 240, 255, 0.06); color: white;
+        border-left-color: #00F0FF; font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .nav-btn.active i { color: #00F0FF; filter: drop-shadow(0 0 8px rgba(0,240,255,0.5)); }
+
+    .mobile-nav-btn {
+        padding: 10px 20px; border-radius: 100px; font-size: 0.85rem;
+        font-weight: 600; white-space: nowrap; color: #94a3b8;
+        background: rgba(255,255,255,0.05); border: 1px solid transparent; transition: all 0.2s;
+    }
+    .mobile-nav-btn.active {
+        background: #00F0FF; color: black; font-weight: 800;
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+    }
+
+    /* Utilities */
+    .tab-section { display: none; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    .tab-section.active { display: block; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    
+    /* Avatar Ring */
+    .holo-ring {
+        position: absolute; inset: -4px; border-radius: 50%;
+        background: conic-gradient(from 0deg, transparent, #00F0FF, #7B2CBF, #FFD60A, transparent);
+        animation: spin 4s linear infinite; filter: blur(4px); z-index: 0;
+    }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* Coming Soon Badge */
+    .coming-soon-badge {
+        background: rgba(255, 213, 10, 0.2);
+        color: #FFD60A;
+        font-size: 10px;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        margin-left: 8px;
+    }
+
+    /* Disabled Section Styling */
+    .disabled-section {
+        opacity: 0.5;
+        pointer-events: none;
+        user-select: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-screen overflow-hidden text-sm">
+
+    <header class="h-16 z-50 bg-z-bg/95 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 lg:px-8 shrink-0 relative">
+        <div class="flex items-center gap-4">
+            <a href="{% url 'user_profile:public_profile' username=request.user.username %}" class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition border border-white/10 text-gray-400 hover:text-white group">
+                <i class="fa-solid fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
+            </a>
+            <div class="flex flex-col">
+                <h1 class="text-lg font-display font-bold text-white tracking-wide">Control Deck</h1>
+                <span class="text-[10px] text-gray-500 font-mono hidden md:block tracking-widest uppercase">System Config v9.0</span>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <span class="text-xs text-yellow-500 font-mono hidden md:flex items-center gap-2 animate-pulse" id="unsaved-changes" style="display: none;">
+                <i class="fa-solid fa-circle text-[6px]"></i> Unsaved Changes
+            </span>
+            <button id="save-all-btn" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition shadow-neon-cyan flex items-center gap-2">
+                <i class="fa-solid fa-floppy-disk"></i> Save
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <aside class="hidden lg:flex w-72 bg-z-panel/30 border-r border-white/5 flex-col overflow-y-auto no-scrollbar shrink-0 pb-10">
+            <div class="p-6 space-y-8">
+                
+                <div>
+                    <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Account</div>
+                    <div class="space-y-1">
+                        <button onclick="switchTab('identity')" class="nav-btn active" data-target="identity"><i class="fa-regular fa-id-card w-5 text-center"></i> Identity</button>
+                        <button onclick="switchTab('security')" class="nav-btn" data-target="security"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Security & KYC</button>
+                        <button onclick="switchTab('privacy')" class="nav-btn" data-target="privacy"><i class="fa-solid fa-user-shield w-5 text-center"></i> Privacy & Vis.</button>
+                        <button onclick="switchTab('notifications')" class="nav-btn" data-target="notifications"><i class="fa-regular fa-bell w-5 text-center"></i> Notifications</button>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Esports</div>
+                    <div class="space-y-1">
+                        <button onclick="switchTab('recruitment')" class="nav-btn" data-target="recruitment"><i class="fa-solid fa-briefcase w-5 text-center"></i> Career & LFT</button>
+                        <button onclick="switchTab('passports')" class="nav-btn" data-target="passports"><i class="fa-solid fa-gamepad w-5 text-center"></i> Game Passports</button>
+                        <button onclick="switchTab('matchmaking')" class="nav-btn" data-target="matchmaking"><i class="fa-solid fa-crosshairs w-5 text-center"></i> Bounties & Match</button>
+                        <button onclick="switchTab('loadout')" class="nav-btn" data-target="loadout"><i class="fa-solid fa-computer-mouse w-5 text-center"></i> Pro Loadout</button>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Assets</div>
+                    <div class="space-y-1">
+                        <button onclick="switchTab('inventory')" class="nav-btn" data-target="inventory"><i class="fa-solid fa-box-open w-5 text-center"></i> Inventory</button>
+                        <button onclick="switchTab('stream')" class="nav-btn" data-target="stream"><i class="fa-brands fa-twitch w-5 text-center"></i> Live Feed</button>
+                        <button onclick="switchTab('billing')" class="nav-btn" data-target="billing"><i class="fa-solid fa-wallet w-5 text-center"></i> Wallet</button>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-white/5">
+                    <button onclick="switchTab('danger')" class="nav-btn text-red-400 hover:text-red-300 hover:bg-red-500/10" data-target="danger"><i class="fa-solid fa-power-off w-5 text-center"></i> Danger Zone</button>
+                </div>
+            </div>
+        </aside>
+
+        <div class="lg:hidden absolute top-0 left-0 right-0 h-14 bg-z-bg/95 border-b border-white/5 z-40 overflow-x-auto no-scrollbar flex items-center px-4 gap-3">
+            <button onclick="switchTab('identity')" class="mobile-nav-btn active" data-target="identity">Identity</button>
+            <button onclick="switchTab('recruitment')" class="mobile-nav-btn" data-target="recruitment">Career</button>
+            <button onclick="switchTab('matchmaking')" class="mobile-nav-btn" data-target="matchmaking">Bounties</button>
+            <button onclick="switchTab('privacy')" class="mobile-nav-btn" data-target="privacy">Privacy</button>
+            <button onclick="switchTab('passports')" class="mobile-nav-btn" data-target="passports">Games</button>
+            <button onclick="switchTab('loadout')" class="mobile-nav-btn" data-target="loadout">Loadout</button>
+            <button onclick="switchTab('stream')" class="mobile-nav-btn" data-target="stream">Stream</button>
+            <button onclick="switchTab('inventory')" class="mobile-nav-btn" data-target="inventory">Inv.</button>
+            <button onclick="switchTab('billing')" class="mobile-nav-btn" data-target="billing">Wallet</button>
+            <button onclick="switchTab('security')" class="mobile-nav-btn" data-target="security">Security</button>
+        </div>
+
+        <main class="flex-1 overflow-y-auto pt-16 lg:pt-8 p-4 lg:p-12 pb-32 scroll-smooth">
+            <div class="max-w-4xl mx-auto space-y-8">
+
+                <!-- IDENTITY TAB (READY) -->
+                <div id="tab-identity" class="tab-section active">
+                    <h2 class="text-3xl font-display font-bold text-white mb-2">Identity Protocol</h2>
+                    <p class="text-gray-400 mb-8">Manage how you appear to the world and team scouts.</p>
+
+                    <div class="glass-panel p-1 mb-8 group overflow-hidden">
+                        <div class="relative h-40 md:h-56 bg-gray-800 rounded-t-[18px] overflow-hidden">
+                            {% if user_profile.banner %}
+                            <img src="{{ user_profile.banner.url }}" class="w-full h-full object-cover opacity-60">
+                            {% else %}
+                            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="w-full h-full object-cover opacity-60">
+                            {% endif %}
+                            <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition cursor-pointer" onclick="document.getElementById('banner-upload').click()">
+                                <span class="bg-black/60 text-white px-5 py-2 rounded-full text-xs font-bold border border-white/20 hover:bg-white hover:text-black transition flex items-center gap-2">
+                                    <i class="fa-solid fa-image"></i> Change Cover
+                                </span>
+                            </div>
+                            <input type="file" id="banner-upload" class="hidden" accept="image/*" onchange="uploadMedia(this, 'banner')">
+                        </div>
+                        <div class="px-8 pb-8 relative">
+                            <div class="w-24 h-24 md:w-32 md:h-32 -mt-12 md:-mt-16 relative group/avatar">
+                                <div class="holo-ring"></div>
+                                {% if user_profile.avatar %}
+                                <img src="{{ user_profile.avatar.url }}" class="relative z-10 w-full h-full object-cover rounded-full border-4 border-z-panel">
+                                {% else %}
+                                <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1000" class="relative z-10 w-full h-full object-cover rounded-full border-4 border-z-panel">
+                                {% endif %}
+                                <div class="absolute inset-0 z-20 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover/avatar:opacity-100 transition cursor-pointer" onclick="document.getElementById('avatar-upload').click()">
+                                    <i class="fa-solid fa-camera text-white text-xl"></i>
+                                </div>
+                                <input type="file" id="avatar-upload" class="hidden" accept="image/*" onchange="uploadMedia(this, 'avatar')">
+                            </div>
+                        </div>
+                    </div>
+
+                    <form id="identity-form" class="glass-panel p-8 grid grid-cols-1 md:grid-cols-2 gap-6" onsubmit="saveIdentity(event)">
+                        {% csrf_token %}
+                        <div class="md:col-span-2">
+                            <label class="z-label">Display Name</label>
+                            <input type="text" name="display_name" class="z-input" value="{{ user_profile.display_name|default:'' }}" oninput="markUnsaved()">
+                        </div>
+                        <div>
+                            <label class="z-label">Gamertag (Unique ID)</label>
+                            <input type="text" class="z-input text-z-cyan font-bold" value="@{{ request.user.username }}" disabled>
+                        </div>
+                        <div>
+                            <label class="z-label">City</label>
+                            <input type="text" name="city" class="z-input" value="{{ user_profile.city|default:'' }}" oninput="markUnsaved()">
+                        </div>
+                        <div>
+                            <label class="z-label">Country</label>
+                            <input type="text" name="country" class="z-input" value="{{ user_profile.country|default:'' }}" oninput="markUnsaved()">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="z-label">Bio (Max 500)</label>
+                            <textarea name="bio" class="z-input h-24 resize-none" oninput="markUnsaved()">{{ user_profile.bio|default:'' }}</textarea>
+                        </div>
+                        <div class="md:col-span-2">
+                            <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Identity
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- CAREER & LFT TAB (NOT_IMPLEMENTED - DISABLED) -->
+                <div id="tab-recruitment" class="tab-section space-y-6 disabled-section">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-3xl font-display font-bold text-white">Career & LFT<span class="coming-soon-badge">Coming Soon</span></h2>
+                        <span class="bg-z-purple/10 text-z-purple border border-z-purple/20 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Visible to Recruiters</span>
+                    </div>
+                    <p class="text-gray-400">Signal your availability to team managers and scouts.</p>
+
+                    <div class="glass-panel p-8">
+                        <div class="mb-10">
+                            <label class="z-label text-base mb-4">Current Status</label>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <label class="cursor-pointer group">
+                                    <input type="radio" name="career_status" class="peer sr-only" disabled>
+                                    <div class="p-5 rounded-xl border border-white/10 bg-white/5 transition text-center h-full flex flex-col justify-center items-center">
+                                        <i class="fa-solid fa-file-signature text-2xl mb-2"></i>
+                                        <div class="font-bold">Signed</div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer group">
+                                    <input type="radio" name="career_status" class="peer sr-only" disabled>
+                                    <div class="p-5 rounded-xl border border-white/10 bg-white/5 transition text-center h-full flex flex-col justify-center items-center">
+                                        <i class="fa-solid fa-handshake text-2xl mb-2"></i>
+                                        <div class="font-bold">Free Agent</div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer group">
+                                    <input type="radio" name="career_status" class="peer sr-only" disabled>
+                                    <div class="p-5 rounded-xl border border-white/10 bg-white/5 transition text-center h-full flex flex-col justify-center items-center">
+                                        <i class="fa-solid fa-magnifying-glass text-2xl mb-2"></i>
+                                        <div class="font-bold">Scouting</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">
+                            <i class="fa-solid fa-info-circle"></i>
+                            Career status will be available in Phase 2 (mid-January 2026).
+                        </p>
+                    </div>
+                </div>
+
+                <!-- BOUNTIES & MATCHMAKING TAB (NOT_IMPLEMENTED - DISABLED) -->
+                <div id="tab-matchmaking" class="tab-section space-y-6 disabled-section">
+                    <h2 class="text-3xl font-display font-bold text-white">Bounties & Matchmaking<span class="coming-soon-badge">Coming Soon</span></h2>
+                    <div class="glass-panel p-8">
+                        <div class="space-y-8">
+                            <div>
+                                <label class="z-label flex justify-between">
+                                    <span>Minimum Bounty Threshold</span>
+                                    <span class="text-z-gold">500 DC</span>
+                                </label>
+                                <input type="range" class="w-full accent-z-gold h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer mt-2" disabled>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-6">
+                            <i class="fa-solid fa-info-circle"></i>
+                            Bounty preferences will be available in Phase 2 (mid-January 2026).
+                        </p>
+                    </div>
+                </div>
+
+                <!-- PRIVACY TAB (READY) -->
+                <div id="tab-privacy" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Privacy & Visibility</h2>
+                    
+                    <form id="privacy-form" class="glass-panel p-0 overflow-hidden" onsubmit="savePrivacy(event)">
+                        {% csrf_token %}
+                        <div class="p-6 flex items-center justify-between">
+                            <div>
+                                <h4 class="font-bold text-white text-sm">Hide Following List</h4>
+                                <p class="text-xs text-gray-400">Only you can see who you follow.</p>
+                            </div>
+                            <label class="z-toggle-wrapper">
+                                <input type="checkbox" name="show_following_list" class="z-toggle-input" {% if not privacy_settings.show_following_list %}checked{% endif %} onchange="autoSavePrivacy()">
+                                <span class="z-toggle-slider"></span>
+                            </label>
+                        </div>
+                    </form>
+                    
+                    <div class="glass-panel p-6 space-y-4 disabled-section">
+                        <div class="flex items-center justify-between opacity-50">
+                            <div>
+                                <h4 class="font-bold text-white text-sm">Private Account <span class="coming-soon-badge ml-2">Phase 2</span></h4>
+                                <p class="text-xs text-gray-400">Require approval for new followers.</p>
+                            </div>
+                            <label class="z-toggle-wrapper">
+                                <input type="checkbox" class="z-toggle-input" disabled>
+                                <span class="z-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between opacity-50">
+                            <div>
+                                <h4 class="font-bold text-white text-sm">Inventory Visibility <span class="coming-soon-badge ml-2">Phase 2</span></h4>
+                                <p class="text-xs text-gray-400">Control who sees your cosmetics collection.</p>
+                            </div>
+                            <select class="z-input w-48" disabled>
+                                <option>Everyone</option>
+                                <option>Friends Only</option>
+                                <option>Only Me</option>
+                            </select>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-4">
+                            <i class="fa-solid fa-info-circle"></i>
+                            Additional privacy controls will be available in Phase 2 (mid-January 2026).
+                        </p>
+                    </div>
+                </div>
+
+                <!-- INVENTORY TAB (NOT_IMPLEMENTED - DISABLED) -->
+                <div id="tab-inventory" class="tab-section space-y-6 disabled-section">
+                    <h2 class="text-3xl font-display font-bold text-white">Inventory & Trade<span class="coming-soon-badge">Coming Soon</span></h2>
+                    
+                    <div class="glass-panel p-8">
+                        <p class="text-xs text-gray-500">
+                            <i class="fa-solid fa-info-circle"></i>
+                            Inventory and trade features will be available in Phase 3 (February 2026).
+                        </p>
+                    </div>
+                </div>
+
+                <!-- GAME PASSPORTS TAB (READY) -->
+                <div id="tab-passports" class="tab-section space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-3xl font-display font-bold text-white">Game Passports</h2>
+                        <button onclick="linkNewGame()" class="bg-white/10 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase hover:bg-white/20 transition flex items-center gap-2">
+                            <i class="fa-solid fa-link"></i> Link New
+                        </button>
+                    </div>
+                    
+                    <div id="passports-list">
+                        {% for game_profile in game_profiles %}
+                        <div class="glass-panel p-5 border-l-4 border-l-z-cyan flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+                            <div class="flex items-center gap-4 w-full md:w-auto">
+                                <div class="w-12 h-12 bg-[#ff4655] rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
+                                    <i class="fa-solid fa-gamepad"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-bold text-white">{{ game_profile.game.name }}</h3>
+                                        {% if forloop.first %}
+                                        <span class="bg-z-cyan text-black text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">Main</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-sm text-gray-400 font-mono">{{ game_profile.ign }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
+                                <button onclick="deletePassport({{ game_profile.id }})" class="text-gray-500 hover:text-red-400 transition">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="glass-panel p-8 text-center text-gray-400">
+                            <i class="fa-solid fa-gamepad text-4xl mb-4 opacity-50"></i>
+                            <p>No game accounts linked. Click "Link New" to add your first passport.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- LOADOUT TAB (READY) -->
+                <div id="tab-loadout" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Pro Loadout</h2>
+                    <p class="text-gray-400">Share your gear so fans can replicate your setup.</p>
+                    <form id="loadout-form" class="glass-panel p-6 md:p-8" onsubmit="saveLoadout(event)">
+                        {% csrf_token %}
+                        <div class="flex items-center gap-2 mb-6 text-z-purple">
+                            <i class="fa-solid fa-microchip"></i>
+                            <h3 class="text-sm font-bold uppercase tracking-widest">Hardware</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="z-label">Mouse</label><input type="text" name="mouse_brand" class="z-input" placeholder="e.g., Logitech G Pro X" oninput="markUnsaved()"></div>
+                            <div><label class="z-label">Keyboard</label><input type="text" name="keyboard_brand" class="z-input" placeholder="e.g., Wooting 60HE" oninput="markUnsaved()"></div>
+                            <div><label class="z-label">Headset</label><input type="text" name="headset_brand" class="z-input" placeholder="e.g., HyperX Cloud II" oninput="markUnsaved()"></div>
+                            <div><label class="z-label">Monitor</label><input type="text" name="monitor_brand" class="z-input" placeholder="e.g., BenQ Zowie 240Hz" oninput="markUnsaved()"></div>
+                        </div>
+                        <div class="mt-6">
+                            <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Loadout
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- STREAM TAB (READY) -->
+                <div id="tab-stream" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Stream Settings</h2>
+                    <p class="text-gray-400">Link your streaming channel so fans can watch you live.</p>
+                    
+                    <form id="stream-form" class="glass-panel p-6 md:p-8" onsubmit="saveStreamUrl(event)">
+                        {% csrf_token %}
+                        <label class="z-label">Platform</label>
+                        <div class="flex gap-4 mt-2 mb-6">
+                            <label class="flex items-center gap-3 cursor-pointer bg-white/5 border border-z-purple p-4 rounded-xl w-full hover:bg-white/10 transition">
+                                <input type="radio" name="stream_platform" value="twitch" checked class="accent-z-cyan w-4 h-4" onchange="markUnsaved()">
+                                <i class="fa-brands fa-twitch text-[#9146FF] text-xl"></i> 
+                                <span class="font-bold">Twitch</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer bg-white/5 border border-white/10 p-4 rounded-xl w-full opacity-60 hover:opacity-100 transition">
+                                <input type="radio" name="stream_platform" value="youtube" class="accent-z-cyan w-4 h-4" onchange="markUnsaved()">
+                                <i class="fa-brands fa-youtube text-[#FF0000] text-xl"></i> 
+                                <span class="font-bold">YouTube</span>
+                            </label>
+                        </div>
+                        <label class="z-label">Channel URL</label>
+                        <input type="url" name="stream_url" class="z-input" placeholder="https://twitch.tv/yourchannel" oninput="markUnsaved()">
+                        <div class="mt-6">
+                            <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Stream URL
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- SECURITY TAB (READY) -->
+                <div id="tab-security" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Security & KYC</h2>
+                    
+                    <div class="glass-panel p-6 border-l-4 border-l-z-green mb-6 bg-z-green/5">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-white text-lg">Identity Status</h3>
+                            <i class="fa-solid fa-info-circle text-gray-400 text-xl"></i>
+                        </div>
+                        <p class="text-sm text-gray-300">KYC verification allows withdrawals and tournament participation.</p>
+                    </div>
+
+                    <div class="glass-panel p-8">
+                        <h3 class="font-bold text-white mb-6">Change Password</h3>
+                        <div class="space-y-4">
+                            <input type="password" class="z-input" placeholder="Current Password" disabled>
+                            <input type="password" class="z-input" placeholder="New Password" disabled>
+                            <p class="text-xs text-gray-500">
+                                <i class="fa-solid fa-info-circle"></i>
+                                Password changes must be done through your account settings.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NOTIFICATIONS TAB (NOT_IMPLEMENTED - DISABLED) -->
+                <div id="tab-notifications" class="tab-section space-y-6 disabled-section">
+                    <h2 class="text-3xl font-display font-bold text-white">Notifications<span class="coming-soon-badge">Coming Soon</span></h2>
+                    <div class="glass-panel p-0 overflow-hidden">
+                        <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                            <div><h4 class="font-bold text-white text-sm">Tournament Alerts</h4><p class="text-xs text-gray-400">Match reminders & bracket updates.</p></div>
+                            <label class="z-toggle-wrapper">
+                                <input type="checkbox" class="z-toggle-input" disabled>
+                                <span class="z-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <p class="text-xs text-gray-500 p-6">
+                            <i class="fa-solid fa-info-circle"></i>
+                            Notification preferences will be available in Phase 3 (February 2026).
+                        </p>
+                    </div>
+                </div>
+
+                <!-- BILLING/WALLET TAB (READY) -->
+                <div id="tab-billing" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Wallet</h2>
+                    <div class="glass-panel p-8 bg-gradient-to-r from-z-gold/10 to-transparent border border-z-gold/20 relative overflow-hidden">
+                        <div class="absolute -right-10 -top-10 w-40 h-40 bg-z-gold/20 rounded-full blur-3xl"></div>
+                        <p class="text-xs text-z-gold uppercase font-bold mb-2">Available Balance</p>
+                        <h1 class="text-5xl font-display font-black text-white mb-6">
+                            {% if wallet %}{{ wallet.cached_balance|floatformat:0 }}{% else %}0{% endif %} 
+                            <span class="text-2xl text-gray-400 font-sans font-normal">DC</span>
+                        </h1>
+                        <div class="flex gap-3">
+                            <a href="{% url 'economy:withdrawal_request' %}" class="bg-z-gold text-black px-6 py-2 rounded-lg font-bold uppercase text-xs hover:bg-white transition">Withdraw</a>
+                            <a href="{% url 'economy:transaction_history' %}" class="bg-white/10 text-white px-6 py-2 rounded-lg font-bold uppercase text-xs hover:bg-white/20 transition">History</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DANGER ZONE TAB -->
+                <div id="tab-danger" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-red-500">Danger Zone</h2>
+                    <div class="glass-panel p-6 border border-red-500/30 bg-red-500/5 flex flex-col md:flex-row justify-between items-center gap-4 disabled-section">
+                        <div>
+                            <h3 class="font-bold text-white">Delete Account <span class="coming-soon-badge ml-2">Phase 3</span></h3>
+                            <p class="text-xs text-gray-400">Permanently delete your account and all data. This cannot be undone.</p>
+                        </div>
+                        <button disabled class="px-6 py-3 bg-gray-600 text-gray-400 rounded-xl text-xs font-bold uppercase cursor-not-allowed opacity-50">Delete Account</button>
+                    </div>
+                    <p class="text-xs text-gray-500">
+                        <i class="fa-solid fa-info-circle"></i>
+                        Account deletion will be available in Phase 3 with email confirmation. For immediate assistance, contact <a href="mailto:support@deltacrown.gg" class="text-z-cyan hover:underline">support@deltacrown.gg</a>.
+                    </p>
+                </div>
+
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Unsaved changes tracking
+    let hasUnsavedChanges = false;
+    
+    function markUnsaved() {
+        hasUnsavedChanges = true;
+        document.getElementById('unsaved-changes').style.display = 'flex';
+    }
+    
+    function markSaved() {
+        hasUnsavedChanges = false;
+        document.getElementById('unsaved-changes').style.display = 'none';
+    }
+
+    // Toast notification
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-[100] px-6 py-3 rounded-xl shadow-2xl ${
+            type === 'success' ? 'bg-green-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
+            'bg-cyan-500 text-black'
+        }`;
+        toast.innerHTML = `<div class="flex items-center gap-2">${message}</div>`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Tab switching
+    function switchTab(targetId) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-section').forEach(el => el.classList.remove('active'));
+
+        // Reset buttons
+        document.querySelectorAll('.nav-btn, .mobile-nav-btn').forEach(el => {
+            el.classList.remove('active', 'text-white', 'bg-z-cyan/10', 'border-l-z-cyan');
+            if(el.classList.contains('mobile-nav-btn')) {
+                el.style.backgroundColor = ''; el.style.color = '#94a3b8'; el.style.boxShadow = 'none';
+            }
+        });
+
+        // Show target
+        const targetSection = document.getElementById('tab-' + targetId);
+        if(targetSection) targetSection.classList.add('active');
+
+        // Highlight buttons
+        document.querySelectorAll(`[data-target="${targetId}"]`).forEach(btn => {
+            if(btn.classList.contains('mobile-nav-btn')) {
+                btn.style.backgroundColor = '#00F0FF'; btn.style.color = 'black'; btn.style.boxShadow = '0 0 15px rgba(0, 240, 255, 0.4)';
+            } else {
+                btn.classList.add('active');
+            }
+        });
+
+        // Scroll Mobile Nav
+        if(window.innerWidth < 1024) {
+            const mobileBtn = document.querySelector(`.mobile-nav-btn[data-target="${targetId}"]`);
+            if(mobileBtn) mobileBtn.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+        }
+    }
+
+    // Save Identity (display_name, bio, city, country)
+    async function saveIdentity(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        
+        try {
+            const response = await fetch('{% url "user_profile:update_basic_info" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('✅ Identity updated successfully', 'success');
+                markSaved();
+            } else {
+                showToast('❌ ' + (result.message || result.error || 'Failed to update identity'), 'error');
+            }
+        } catch (error) {
+            console.error('Identity save error:', error);
+            showToast('❌ Network error', 'error');
+        }
+    }
+
+    // Upload media (avatar/banner)
+    async function uploadMedia(input, type) {
+        if (!input.files || !input.files[0]) return;
+        
+        const formData = new FormData();
+        formData.append('media_type', type);
+        formData.append('file', input.files[0]);
+        
+        try {
+            const response = await fetch('{% url "user_profile:upload_media" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('✅ ' + type.charAt(0).toUpperCase() + type.slice(1) + ' uploaded successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('❌ ' + (result.error || 'Upload failed'), 'error');
+            }
+        } catch (error) {
+            console.error('Media upload error:', error);
+            showToast('❌ Network error', 'error');
+        }
+    }
+
+    // Save Privacy Settings
+    async function savePrivacy(event) {
+        if (event) event.preventDefault();
+        
+        const form = document.getElementById('privacy-form');
+        const formData = new FormData(form);
+        
+        // Only submit READY controls: show_following_list
+        const data = {
+            show_following_list: formData.get('show_following_list') !== 'on', // Inverted logic
+        };
+        
+        try {
+            const response = await fetch('{% url "user_profile:update_privacy_settings" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('✅ Privacy settings saved', 'success');
+                markSaved();
+            } else {
+                showToast('❌ ' + (result.message || result.error || 'Failed to save privacy'), 'error');
+            }
+        } catch (error) {
+            console.error('Privacy save error:', error);
+            showToast('❌ Network error', 'error');
+        }
+    }
+    
+    // Auto-save privacy on toggle change
+    function autoSavePrivacy() {
+        markUnsaved();
+        // Debounce to avoid too many requests
+        clearTimeout(window.privacyTimeout);
+        window.privacyTimeout = setTimeout(() => {
+            savePrivacy();
+        }, 500);
+    }
+
+    // Save Loadout (hardware)
+    async function saveLoadout(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        
+        // Save each hardware category separately
+        const categories = ['mouse', 'keyboard', 'headset', 'monitor'];
+        let successCount = 0;
+        
+        for (const category of categories) {
+            const brand = formData.get(category + '_brand');
+            if (!brand || !brand.trim()) continue;
+            
+            try {
+                const response = await fetch('{% url "user_profile:save_hardware" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        category: category.toUpperCase(),
+                        brand: brand,
+                        model: brand, // Using brand as model for now
+                        is_public: true,
+                    }),
+                });
+                
+                const result = await response.json();
+                if (result.success) successCount++;
+            } catch (error) {
+                console.error(`Failed to save ${category}:`, error);
+            }
+        }
+        
+        if (successCount > 0) {
+            showToast(`✅ Saved ${successCount} hardware item(s)`, 'success');
+            markSaved();
+        } else {
+            showToast('❌ No items saved', 'error');
+        }
+    }
+
+    // Save Stream URL
+    async function saveStreamUrl(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        
+        const platform = formData.get('stream_platform');
+        const url = formData.get('stream_url');
+        
+        if (!url || !url.trim()) {
+            showToast('❌ Please enter a stream URL', 'error');
+            return;
+        }
+        
+        // Build merged links: preserve existing non-stream links from context
+        const existingLinks = [];
+        {% for link in social_links %}
+            {% if link.platform != 'twitch' and link.platform != 'youtube' %}
+                existingLinks.push({
+                    platform: '{{ link.platform }}',
+                    url: '{{ link.url|escapejs }}'
+                });
+            {% endif %}
+        {% endfor %}
+        
+        // Add new stream link
+        existingLinks.push({
+            platform: platform,
+            url: url
+        });
+        
+        try {
+            const response = await fetch('{% url "user_profile:update_social_links_api" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    links: existingLinks
+                }),
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('✅ Stream URL saved', 'success');
+                markSaved();
+                // Reload to refresh social_links context
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('❌ ' + (result.error || 'Failed to save stream URL'), 'error');
+            }
+        } catch (error) {
+            console.error('Stream URL save error:', error);
+            showToast('❌ Network error', 'error');
+        }
+    }
+
+    // Delete passport
+    async function deletePassport(id) {
+        if (!confirm('Delete this game passport?')) return;
+        
+        showToast('⚠️ Game passport deletion coming soon', 'info');
+        // TODO: Implement when DELETE endpoint is ready
+    }
+
+    // Link new game
+    function linkNewGame() {
+        showToast('⚠️ Game linking wizard coming soon', 'info');
+        // TODO: Implement game linking modal
+    }
+
+    // Warn before leaving with unsaved changes
+    window.addEventListener('beforeunload', (e) => {
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
+        switchTab('identity');
+        
+        // Add event listeners to all inputs to track changes
+        document.querySelectorAll('input, textarea, select').forEach(el => {
+            if (!el.hasAttribute('oninput') && !el.hasAttribute('onchange')) {
+                el.addEventListener('input', markUnsaved);
+                el.addEventListener('change', markUnsaved);
+            }
+        });
+    });
+</script>
+{% endblock %}

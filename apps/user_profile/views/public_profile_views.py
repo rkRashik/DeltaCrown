@@ -714,23 +714,47 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     # Verify owner (should always be true due to @login_required + using request.user.username)
     if not context['is_owner']:
         messages.error(request, 'You can only edit your own profile')
-        return redirect(reverse('user_profile:profile_public_v2', kwargs={'username': username}))
+        return redirect(reverse('user_profile:public_profile', kwargs={'username': username}))
     
     # Add page metadata
     context['page_title'] = 'Profile Settings - DeltaCrown Esports'
     context['current_page'] = 'settings'
     
     # Add UserProfile object for template access to FileFields (avatar, banner)
-    from apps.user_profile.models import UserProfile
+    from apps.user_profile.models import UserProfile, PrivacySettings
     user_profile = UserProfile.objects.get(user=request.user)
     context['user_profile'] = user_profile
+    
+    # Add privacy settings (for Control Deck)
+    privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=user_profile)
+    context['privacy_settings'] = privacy_settings
+    
+    # Add wallet (for Control Deck billing section)
+    from apps.economy.models import DeltaCrownWallet
+    try:
+        wallet = DeltaCrownWallet.objects.get(profile=user_profile)
+        context['wallet'] = wallet
+    except DeltaCrownWallet.DoesNotExist:
+        context['wallet'] = None
+    
+    # Add game profiles (for Control Deck passports section)
+    from apps.user_profile.models import GameProfile
+    game_profiles = GameProfile.objects.filter(
+        user=request.user
+    ).select_related('game').order_by(
+        '-is_pinned',           # Pinned first
+        'pinned_order',         # Then by pinned order
+        'sort_order',           # Then by general sort order
+        '-updated_at'           # Newest first as fallback
+    )
+    context['game_profiles'] = game_profiles
     
     # Add CSRF token (for forms)
     # Add available games list (for game profile form)
     from apps.games.constants import SUPPORTED_GAMES
     from apps.games.models import Game
     from apps.user_profile.services.game_passport_service import GamePassportService
-    from apps.user_profile.models import GameProfile, SocialLink
+    from apps.user_profile.models import SocialLink
     import json
     
     # TASK 1 FIX: Pass actual Game objects for template loop + schema matrix
@@ -824,7 +848,14 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
         'rocket_account': getattr(user_profile, 'rocket_account', ''),
     })
     
-    return render(request, 'user_profile/profile/settings_v4.html', context)
+    # Feature flag: Switch to Control Deck template
+    from django.conf import settings as django_settings
+    if django_settings.SETTINGS_CONTROL_DECK_ENABLED:
+        template = 'user_profile/profile/settings_control_deck.html'
+    else:
+        template = 'user_profile/profile/settings_v4.html'
+    
+    return render(request, template, context)
 
 
 @login_required
@@ -862,7 +893,7 @@ def profile_privacy_view(request: HttpRequest) -> HttpResponse:
     # Verify owner
     if not context['is_owner']:
         messages.error(request, 'You can only edit your own privacy settings')
-        return redirect(reverse('user_profile:profile_public_v2', kwargs={'username': username}))
+        return redirect(reverse('user_profile:public_profile', kwargs={'username': username}))
     
     # Add page metadata
     context['page_title'] = 'Privacy Settings - DeltaCrown Esports'

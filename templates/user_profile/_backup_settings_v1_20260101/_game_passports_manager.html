@@ -1,0 +1,625 @@
+{% load static %}
+<!-- UP-PHASE15 Session 3: Game Passports Manager (Dynamic Schema, Vanilla JS) -->
+
+<div class="game-passports-manager">
+    <!-- Add New Passport Button -->
+    <button type="button" id="add-passport-btn" class="btn btn-primary mb-4">
+        ➕ Add Game Passport
+    </button>
+
+    <!-- Passports List -->
+    <div id="passports-list" class="space-y-4">
+        <!-- Passports will be loaded dynamically -->
+        <div class="text-center py-8 text-slate-400" id="passports-empty-state">
+            <p>No game passports yet. Add your gaming IDs to showcase your skills!</p>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Passport Modal -->
+<div class="modal" id="passport-modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title" id="passport-modal-title">Add Game Passport</h3>
+            <button type="button" class="modal-close" id="close-passport-modal">&times;</button>
+        </div>
+
+        <form id="passport-form">
+            <div class="modal-body">
+                <input type="hidden" id="passport-id" name="passport_id">
+
+                <div class="form-group">
+                    <label class="form-label" for="passport-game">Game *</label>
+                    <select id="passport-game" name="game" class="form-select" required>
+                        <option value="">Select Game</option>
+                        <!-- Will be populated dynamically -->
+                    </select>
+                </div>
+
+                <!-- Dynamic fields container (populated based on selected game) -->
+                <div id="passport-dynamic-fields"></div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="passport-pinned" name="pinned" class="mr-2">
+                        📌 Pin to profile (show prominently)
+                    </label>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancel-passport-btn">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-text">💾 Save Passport</span>
+                    <span class="btn-loading" style="display: none;">⏳ Saving...</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Passport Card Template -->
+<template id="passport-card-template">
+    <div class="passport-card" data-passport-id="">
+        <div class="passport-header">
+            <div class="passport-game-info">
+                <span class="game-icon"></span>
+                <span class="game-name"></span>
+                <span class="pinned-badge" style="display: none;">📌</span>
+            </div>
+            <div class="passport-actions">
+                <button type="button" class="btn-icon btn-edit-passport" title="Edit">✏️</button>
+                <button type="button" class="btn-icon btn-delete-passport" title="Delete">🗑️</button>
+            </div>
+        </div>
+        <div class="passport-details">
+            <!-- Will contain IGN, region, rank, etc. -->
+        </div>
+    </div>
+</template>
+
+<style>
+/* Passport Card Styles */
+.passport-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+}
+
+.passport-card:hover {
+    border-color: rgba(59, 130, 246, 0.4);
+    background: rgba(15, 23, 42, 0.8);
+}
+
+.passport-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.passport-game-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.game-icon {
+    font-size: 1.5rem;
+}
+
+.game-name {
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: white;
+}
+
+.pinned-badge {
+    font-size: 0.875rem;
+    color: rgb(251, 191, 36);
+}
+
+.passport-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.passport-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+.passport-field {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+}
+
+.field-label {
+    font-size: 0.75rem;
+    color: rgb(148, 163, 184);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.field-value {
+    font-weight: 600;
+    color: white;
+}
+</style>
+
+<script type="module">
+import { apiClient } from '{% static "js/api_client.js" %}';
+
+class GamePassportsManager {
+    constructor() {
+        this.passports = [];
+        this.games = [];
+        this.currentEditId = null;
+        this.currentGameSchema = null;
+    }
+
+    async init() {
+        this.cacheDom();
+        this.bindEvents();
+        await this.loadGames();
+        await this.loadPassports();
+    }
+
+    cacheDom() {
+        this.addBtn = document.getElementById('add-passport-btn');
+        this.passportsList = document.getElementById('passports-list');
+        this.emptyState = document.getElementById('passports-empty-state');
+        this.modal = document.getElementById('passport-modal');
+        this.modalTitle = document.getElementById('passport-modal-title');
+        this.form = document.getElementById('passport-form');
+        this.closeModalBtn = document.getElementById('close-passport-modal');
+        this.cancelModalBtn = document.getElementById('cancel-passport-btn');
+        this.gameSelect = document.getElementById('passport-game');
+        this.dynamicFieldsContainer = document.getElementById('passport-dynamic-fields');
+        this.template = document.getElementById('passport-card-template');
+    }
+
+    bindEvents() {
+        this.addBtn.addEventListener('click', () => this.openModal());
+        this.closeModalBtn.addEventListener('click', () => this.closeModal());
+        this.cancelModalBtn.addEventListener('click', () => this.closeModal());
+        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        this.gameSelect.addEventListener('change', (e) => this.handleGameChange(e));
+        
+        // Close modal on overlay click
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal || e.target.classList.contains('modal-overlay')) {
+                this.closeModal();
+            }
+        });
+    }
+
+    async loadGames() {
+        try {
+            const response = await apiClient.get('/api/games/');
+            this.games = response.games || [];
+            this.populateGameSelect();
+        } catch (error) {
+            console.error('Failed to load games:', error);
+            this.showAlert('error', 'Failed to load games list');
+        }
+    }
+
+    populateGameSelect() {
+        this.gameSelect.innerHTML = '<option value="">Select Game</option>';
+        this.games.forEach(game => {
+            const option = document.createElement('option');
+            option.value = game.id;
+            option.textContent = `${game.icon || '🎮'} ${game.name}`;
+            this.gameSelect.appendChild(option);
+        });
+    }
+
+    async handleGameChange(e) {
+        const gameId = e.target.value;
+        if (!gameId) {
+            this.dynamicFieldsContainer.innerHTML = '';
+            return;
+        }
+
+        try {
+            // Fetch game metadata (regions, ranks, schema)
+            const response = await apiClient.get(`/profile/api/games/${gameId}/metadata/`);
+            this.currentGameSchema = response;
+            this.renderDynamicFields(response);
+        } catch (error) {
+            console.error('Failed to load game metadata:', error);
+            this.showAlert('error', 'Failed to load game configuration');
+        }
+    }
+
+    renderDynamicFields(schema) {
+        this.dynamicFieldsContainer.innerHTML = '';
+
+        // Always show IGN field (required for all games)
+        const ignField = this.createTextField('ign', 'In-Game Name', true, 
+            'Your unique player ID or username');
+        this.dynamicFieldsContainer.appendChild(ignField);
+
+        // Region dropdown (if schema has regions)
+        if (schema.regions && schema.regions.length > 0) {
+            const regionField = this.createSelectField('region', 'Region', true, schema.regions);
+            this.dynamicFieldsContainer.appendChild(regionField);
+        }
+
+        // Rank dropdown (if schema has ranks)
+        if (schema.ranks && schema.ranks.length > 0) {
+            const rankField = this.createSelectField('rank', 'Rank/Tier', false, schema.ranks);
+            this.dynamicFieldsContainer.appendChild(rankField);
+        }
+
+        // Additional schema fields (if defined)
+        if (schema.schema_config && schema.schema_config.fields) {
+            schema.schema_config.fields.forEach(field => {
+                // Skip fields we've already added
+                if (['ign', 'region', 'rank'].includes(field.name)) return;
+
+                if (field.type === 'select' && field.choices) {
+                    const selectField = this.createSelectField(
+                        field.name, 
+                        field.label, 
+                        field.required || false, 
+                        field.choices.map(c => ({ value: c, display: c }))
+                    );
+                    this.dynamicFieldsContainer.appendChild(selectField);
+                } else {
+                    const textField = this.createTextField(
+                        field.name, 
+                        field.label, 
+                        field.required || false,
+                        field.help_text || ''
+                    );
+                    this.dynamicFieldsContainer.appendChild(textField);
+                }
+            });
+        }
+    }
+
+    createTextField(name, label, required, helpText = '') {
+        const group = document.createElement('div');
+        group.className = 'form-group';
+        
+        const labelEl = document.createElement('label');
+        labelEl.className = 'form-label';
+        labelEl.setAttribute('for', `passport-${name}`);
+        labelEl.textContent = required ? `${label} *` : label;
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = `passport-${name}`;
+        input.name = name;
+        input.className = 'form-input';
+        input.required = required;
+        
+        group.appendChild(labelEl);
+        group.appendChild(input);
+        
+        if (helpText) {
+            const hint = document.createElement('span');
+            hint.className = 'form-hint';
+            hint.textContent = helpText;
+            group.appendChild(hint);
+        }
+        
+        return group;
+    }
+
+    createSelectField(name, label, required, options) {
+        const group = document.createElement('div');
+        group.className = 'form-group';
+        
+        const labelEl = document.createElement('label');
+        labelEl.className = 'form-label';
+        labelEl.setAttribute('for', `passport-${name}`);
+        labelEl.textContent = required ? `${label} *` : label;
+        
+        const select = document.createElement('select');
+        select.id = `passport-${name}`;
+        select.name = name;
+        select.className = 'form-select';
+        select.required = required;
+        
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = `Select ${label}`;
+        select.appendChild(defaultOption);
+        
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value || opt;
+            option.textContent = opt.display || opt;
+            select.appendChild(option);
+        });
+        
+        group.appendChild(labelEl);
+        group.appendChild(select);
+        
+        return group;
+    }
+
+    async loadPassports() {
+        try {
+            const response = await apiClient.get('/profile/api/game-passports/');
+            this.passports = response.passports || [];
+            this.renderPassports();
+        } catch (error) {
+            console.error('Failed to load passports:', error);
+            this.showAlert('error', 'Failed to load game passports');
+        }
+    }
+
+    renderPassports() {
+        if (this.passports.length === 0) {
+            this.emptyState.style.display = 'block';
+            Array.from(this.passportsList.children).forEach(child => {
+                if (child.id !== 'passports-empty-state') {
+                    child.remove();
+                }
+            });
+            return;
+        }
+
+        this.emptyState.style.display = 'none';
+        
+        Array.from(this.passportsList.children).forEach(child => {
+            if (child.id !== 'passports-empty-state') {
+                child.remove();
+            }
+        });
+
+        // Sort: pinned first, then by game name
+        const sorted = [...this.passports].sort((a, b) => {
+            if (a.pinned && !b.pinned) return -1;
+            if (!a.pinned && b.pinned) return 1;
+            return a.game.name.localeCompare(b.game.name);
+        });
+
+        sorted.forEach(passport => {
+            const card = this.createPassportCard(passport);
+            this.passportsList.appendChild(card);
+        });
+    }
+
+    createPassportCard(passport) {
+        const clone = this.template.content.cloneNode(true);
+        const card = clone.querySelector('.passport-card');
+        
+        card.setAttribute('data-passport-id', passport.id);
+        
+        const gameIcon = card.querySelector('.game-icon');
+        const gameName = card.querySelector('.game-name');
+        const pinnedBadge = card.querySelector('.pinned-badge');
+        const detailsContainer = card.querySelector('.passport-details');
+        
+        gameIcon.textContent = passport.game.icon || '🎮';
+        gameName.textContent = passport.game.name;
+        
+        if (passport.pinned) {
+            pinnedBadge.style.display = 'inline';
+        }
+        
+        // Render dynamic fields
+        detailsContainer.innerHTML = '';
+        
+        const ign = this.createDetailField('IGN', passport.ign);
+        detailsContainer.appendChild(ign);
+        
+        if (passport.region) {
+            const region = this.createDetailField('Region', passport.region);
+            detailsContainer.appendChild(region);
+        }
+        
+        if (passport.rank) {
+            const rank = this.createDetailField('Rank', passport.rank);
+            detailsContainer.appendChild(rank);
+        }
+        
+        // Additional fields from passport_data JSON
+        if (passport.passport_data) {
+            Object.entries(passport.passport_data).forEach(([key, value]) => {
+                if (['ign', 'region', 'rank'].includes(key.toLowerCase())) return;
+                const field = this.createDetailField(this.formatFieldLabel(key), value);
+                detailsContainer.appendChild(field);
+            });
+        }
+        
+        // Bind action buttons
+        const editBtn = card.querySelector('.btn-edit-passport');
+        const deleteBtn = card.querySelector('.btn-delete-passport');
+        
+        editBtn.addEventListener('click', () => this.editPassport(passport));
+        deleteBtn.addEventListener('click', () => this.deletePassport(passport.id));
+        
+        return clone;
+    }
+
+    createDetailField(label, value) {
+        const div = document.createElement('div');
+        div.className = 'passport-field';
+        
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'field-label';
+        labelDiv.textContent = label;
+        
+        const valueDiv = document.createElement('div');
+        valueDiv.className = 'field-value';
+        valueDiv.textContent = value || 'N/A';
+        
+        div.appendChild(labelDiv);
+        div.appendChild(valueDiv);
+        
+        return div;
+    }
+
+    formatFieldLabel(key) {
+        return key.split('_').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+    }
+
+    openModal(passport = null) {
+        if (passport) {
+            this.currentEditId = passport.id;
+            this.modalTitle.textContent = 'Edit Game Passport';
+            document.getElementById('passport-id').value = passport.id;
+            document.getElementById('passport-game').value = passport.game.id;
+            document.getElementById('passport-pinned').checked = passport.pinned;
+            
+            // Trigger game change to load schema, then populate fields
+            this.handleGameChange({ target: { value: passport.game.id } }).then(() => {
+                this.populatePassportFields(passport);
+            });
+        } else {
+            this.currentEditId = null;
+            this.modalTitle.textContent = 'Add Game Passport';
+            this.form.reset();
+            this.dynamicFieldsContainer.innerHTML = '';
+        }
+        
+        this.modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    populatePassportFields(passport) {
+        // Set IGN
+        const ignInput = document.getElementById('passport-ign');
+        if (ignInput) ignInput.value = passport.ign || '';
+        
+        // Set region
+        const regionSelect = document.getElementById('passport-region');
+        if (regionSelect) regionSelect.value = passport.region || '';
+        
+        // Set rank
+        const rankSelect = document.getElementById('passport-rank');
+        if (rankSelect) rankSelect.value = passport.rank || '';
+        
+        // Set additional fields from passport_data
+        if (passport.passport_data) {
+            Object.entries(passport.passport_data).forEach(([key, value]) => {
+                const input = document.getElementById(`passport-${key}`);
+                if (input) input.value = value || '';
+            });
+        }
+    }
+
+    closeModal() {
+        this.modal.style.display = 'none';
+        document.body.style.overflow = '';
+        this.form.reset();
+        this.dynamicFieldsContainer.innerHTML = '';
+        this.currentEditId = null;
+        this.currentGameSchema = null;
+    }
+
+    async handleSubmit(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this.form);
+        const data = {
+            game_id: formData.get('game'),
+            ign: formData.get('ign'),
+            region: formData.get('region') || null,
+            rank: formData.get('rank') || null,
+            pinned: formData.get('pinned') === 'on',
+            passport_data: {}
+        };
+        
+        // Collect additional fields
+        const dynamicInputs = this.dynamicFieldsContainer.querySelectorAll('input, select');
+        dynamicInputs.forEach(input => {
+            if (!['game', 'ign', 'region', 'rank', 'pinned'].includes(input.name)) {
+                data.passport_data[input.name] = input.value;
+            }
+        });
+        
+        const submitBtn = this.form.querySelector('button[type="submit"]');
+        const btnText = submitBtn.querySelector('.btn-text');
+        const btnLoading = submitBtn.querySelector('.btn-loading');
+        
+        try {
+            btnText.style.display = 'none';
+            btnLoading.style.display = 'inline';
+            submitBtn.disabled = true;
+            
+            let response;
+            if (this.currentEditId) {
+                data.id = this.currentEditId;
+                response = await apiClient.post('/profile/api/game-passports/update/', data);
+                this.showAlert('success', 'Game passport updated successfully');
+            } else {
+                response = await apiClient.post('/profile/api/game-passports/create/', data);
+                this.showAlert('success', 'Game passport added successfully');
+            }
+            
+            await this.loadPassports();
+            this.closeModal();
+            
+        } catch (error) {
+            console.error('Failed to save passport:', error);
+            this.showAlert('error', error.message || 'Failed to save game passport');
+        } finally {
+            btnText.style.display = 'inline';
+            btnLoading.style.display = 'none';
+            submitBtn.disabled = false;
+        }
+    }
+
+    editPassport(passport) {
+        this.openModal(passport);
+    }
+
+    async deletePassport(passportId) {
+        if (!confirm('Are you sure you want to delete this game passport?')) {
+            return;
+        }
+        
+        try {
+            await apiClient.post('/profile/api/game-passports/delete/', { id: passportId });
+            this.showAlert('success', 'Game passport deleted successfully');
+            await this.loadPassports();
+        } catch (error) {
+            console.error('Failed to delete passport:', error);
+            this.showAlert('error', 'Failed to delete game passport');
+        }
+    }
+
+    showAlert(type, message) {
+        if (window.settingsController) {
+            window.settingsController.showAlert(type, message);
+        } else {
+            alert(message);
+        }
+    }
+}
+
+// Initialize on section activation
+document.addEventListener('DOMContentLoaded', () => {
+    const manager = new GamePassportsManager();
+    
+    const observer = new MutationObserver(() => {
+        const section = document.querySelector('[data-section="game-passports"]');
+        if (section && !section.classList.contains('hidden')) {
+            manager.init();
+            observer.disconnect();
+        }
+    });
+    
+    observer.observe(document.body, { 
+        childList: true, 
+        subtree: true, 
+        attributes: true,
+        attributeFilter: ['class']
+    });
+});
+</script>

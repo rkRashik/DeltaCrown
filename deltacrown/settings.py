@@ -898,3 +898,13 @@ LEADERBOARDS_API_ENABLED = os.getenv('LEADERBOARDS_API_ENABLED', 'False').lower(
 # Rollback: Set to False to disable integration (no impact on tournaments)
 # Reference: Documents/UserProfile_CommandCenter_v1/03_Planning/UP_TOURNAMENT_INTEGRATION_CONTRACT.md
 USER_PROFILE_INTEGRATION_ENABLED = os.getenv('USER_PROFILE_INTEGRATION_ENABLED', 'False').lower() == 'true'
+
+# -----------------------------------------------------------------------------
+# Settings Control Deck Feature Flag (Phase 1A)
+# -----------------------------------------------------------------------------
+# Enable new Settings Control Deck UI (settings_control_deck.html)
+# Default: True (Phase 1A - READY controls only)
+# When False: Falls back to legacy settings_v4.html
+# Rollback: Set to False to revert to old settings page
+# Reference: PHASE_1A_QA_REPORT.md, SETTINGS_PAGE_IMPLEMENTATION_PLAN.md
+SETTINGS_CONTROL_DECK_ENABLED = os.getenv('SETTINGS_CONTROL_DECK_ENABLED', 'True').lower() == 'true'
