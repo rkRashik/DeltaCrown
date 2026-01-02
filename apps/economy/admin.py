@@ -366,3 +366,129 @@ class CoinPolicyAdmin(admin.ModelAdmin):
     ]
     
     readonly_fields = ['created_at', 'updated_at']
+
+
+# =====================================================================
+# PHASE 3A: INVENTORY SYSTEM ADMIN
+# =====================================================================
+
+from .models import InventoryItem, UserInventoryItem, GiftRequest, TradeRequest
+
+
+@admin.register(InventoryItem)
+class InventoryItemAdmin(admin.ModelAdmin):
+    list_display = ('slug', 'name', 'item_type', 'rarity', 'tradable', 'giftable', 'created_at')
+    list_filter = ('item_type', 'rarity', 'tradable', 'giftable')
+    search_fields = ('slug', 'name', 'description')
+    readonly_fields = ('created_at', 'updated_at')
+    prepopulated_fields = {'slug': ('name',)}
+    
+    fieldsets = (
+        ('Basic Info', {
+            'fields': ['slug', 'name', 'description']
+        }),
+        ('Classification', {
+            'fields': ['item_type', 'rarity']
+        }),
+        ('Trade & Gift', {
+            'fields': ['tradable', 'giftable']
+        }),
+        ('Visuals', {
+            'fields': ['icon', 'icon_url']
+        }),
+        ('Metadata', {
+            'fields': ['metadata'],
+            'classes': ['collapse']
+        }),
+        ('Timestamps', {
+            'fields': ['created_at', 'updated_at'],
+            'classes': ['collapse']
+        }),
+    )
+
+
+@admin.register(UserInventoryItem)
+class UserInventoryItemAdmin(admin.ModelAdmin):
+    list_display = ('id', 'profile_display', 'item', 'quantity', 'locked', 'acquired_from', 'acquired_at')
+    list_filter = ('locked', 'acquired_from', 'item__item_type', 'item__rarity')
+    search_fields = ('profile__user__username', 'item__name', 'item__slug')
+    readonly_fields = ('acquired_at', 'updated_at')
+    autocomplete_fields = ('profile', 'item')
+    
+    def profile_display(self, obj):
+        username = getattr(obj.profile.user, 'username', 'Unknown')
+        return f"{username}"
+    profile_display.short_description = 'User'
+    
+    fieldsets = (
+        ('Ownership', {
+            'fields': ['profile', 'item']
+        }),
+        ('Quantity & Status', {
+            'fields': ['quantity', 'locked']
+        }),
+        ('Acquisition', {
+            'fields': ['acquired_from', 'acquired_at', 'updated_at'],
+        }),
+    )
+
+
+@admin.register(GiftRequest)
+class GiftRequestAdmin(admin.ModelAdmin):
+    list_display = ('id', 'sender_display', 'receiver_display', 'item', 'quantity', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('sender_profile__user__username', 'receiver_profile__user__username', 'item__name')
+    readonly_fields = ('created_at', 'resolved_at')
+    autocomplete_fields = ('sender_profile', 'receiver_profile', 'item')
+    
+    def sender_display(self, obj):
+        return getattr(obj.sender_profile.user, 'username', 'Unknown')
+    sender_display.short_description = 'Sender'
+    
+    def receiver_display(self, obj):
+        return getattr(obj.receiver_profile.user, 'username', 'Unknown')
+    receiver_display.short_description = 'Receiver'
+    
+    fieldsets = (
+        ('Parties', {
+            'fields': ['sender_profile', 'receiver_profile']
+        }),
+        ('Item Details', {
+            'fields': ['item', 'quantity', 'message']
+        }),
+        ('Status', {
+            'fields': ['status', 'created_at', 'resolved_at']
+        }),
+    )
+
+
+@admin.register(TradeRequest)
+class TradeRequestAdmin(admin.ModelAdmin):
+    list_display = ('id', 'initiator_display', 'target_display', 'offered_item', 'requested_item', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('initiator_profile__user__username', 'target_profile__user__username', 'offered_item__name', 'requested_item__name')
+    readonly_fields = ('created_at', 'resolved_at')
+    autocomplete_fields = ('initiator_profile', 'target_profile', 'offered_item', 'requested_item')
+    
+    def initiator_display(self, obj):
+        return getattr(obj.initiator_profile.user, 'username', 'Unknown')
+    initiator_display.short_description = 'Initiator'
+    
+    def target_display(self, obj):
+        return getattr(obj.target_profile.user, 'username', 'Unknown')
+    target_display.short_description = 'Target'
+    
+    fieldsets = (
+        ('Parties', {
+            'fields': ['initiator_profile', 'target_profile']
+        }),
+        ('Offered Item', {
+            'fields': ['offered_item', 'offered_quantity']
+        }),
+        ('Requested Item (Optional)', {
+            'fields': ['requested_item', 'requested_quantity']
+        }),
+        ('Message & Status', {
+            'fields': ['message', 'status', 'created_at', 'resolved_at']
+        }),
+    )

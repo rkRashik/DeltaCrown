@@ -663,3 +663,478 @@ class WithdrawalRequest(models.Model):
             
             self.status = self.Status.CANCELLED
             self.save()
+
+
+# =====================================================================
+# PHASE 3A: INVENTORY SYSTEM
+# =====================================================================
+
+class InventoryItem(models.Model):
+    """
+    Master data for inventory items (cosmetics, cases, tokens, collectibles, badges).
+    Immutable after creation (slug cannot change).
+    
+    Phase 3A Foundation - No marketplace yet.
+    """
+    class ItemType(models.TextChoices):
+        COSMETIC = 'COSMETIC', 'Cosmetic Skin'
+        CASE = 'CASE', 'Loot Case'
+        TOKEN = 'TOKEN', 'Special Token'
+        COLLECTIBLE = 'COLLECTIBLE', 'Collectible Item'
+        BADGE = 'BADGE', 'Achievement Badge'
+    
+    class Rarity(models.TextChoices):
+        COMMON = 'COMMON', 'Common'
+        RARE = 'RARE', 'Rare'
+        EPIC = 'EPIC', 'Epic'
+        LEGENDARY = 'LEGENDARY', 'Legendary'
+    
+    # Core Fields
+    slug = models.SlugField(
+        max_length=100,
+        unique=True,
+        help_text='Unique immutable identifier (e.g., awp-dragon-lore)'
+    )
+    name = models.CharField(
+        max_length=200,
+        help_text='Display name (e.g., AWP | Dragon Lore)'
+    )
+    description = models.TextField(
+        blank=True,
+        default='',
+        help_text='Item description for users'
+    )
+    
+    # Classification
+    item_type = models.CharField(
+        max_length=20,
+        choices=ItemType.choices,
+        db_index=True
+    )
+    rarity = models.CharField(
+        max_length=20,
+        choices=Rarity.choices,
+        db_index=True
+    )
+    
+    # Trade & Gift Controls
+    tradable = models.BooleanField(
+        default=False,
+        help_text='Can this item be traded between users?'
+    )
+    giftable = models.BooleanField(
+        default=False,
+        help_text='Can this item be gifted to other users?'
+    )
+    
+    # Visuals
+    icon = models.ImageField(
+        upload_to='inventory/items/',
+        blank=True,
+        null=True,
+        help_text='Item icon/image'
+    )
+    icon_url = models.URLField(
+        max_length=500,
+        blank=True,
+        default='',
+        help_text='External icon URL (if not using ImageField)'
+    )
+    
+    # Metadata
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Additional item data (game-specific, stats, etc.)'
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'economy_inventory_item'
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['item_type', 'rarity']),
+            models.Index(fields=['slug']),
+        ]
+        verbose_name = 'Inventory Item'
+        verbose_name_plural = 'Inventory Items'
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_rarity_display()})"
+    
+    @property
+    def icon_display_url(self):
+        """Get icon URL (ImageField or external URL)"""
+        if self.icon:
+            return self.icon.url
+        return self.icon_url or ''
+
+
+class UserInventoryItem(models.Model):
+    """
+    User ownership of inventory items.
+    Tracks quantity, acquisition method, and locked status.
+    
+    Constraints:
+    - Unique(profile, item) - one row per user per item
+    - quantity >= 0 enforced via CHECK constraint
+    - locked items cannot be traded/gifted (enforced in views)
+    """
+    class AcquiredFrom(models.TextChoices):
+        PURCHASE = 'PURCHASE', 'Purchase'
+        REWARD = 'REWARD', 'Reward'
+        GIFT = 'GIFT', 'Gift'
+        TRADE = 'TRADE', 'Trade'
+        ADMIN = 'ADMIN', 'Admin Grant'
+    
+    # Ownership
+    profile = models.ForeignKey(
+        'user_profile.UserProfile',
+        on_delete=models.CASCADE,
+        related_name='owned_inventory_items'
+    )
+    item = models.ForeignKey(
+        InventoryItem,
+        on_delete=models.PROTECT,
+        related_name='owned_by'
+    )
+    
+    # Quantity & Status
+    quantity = models.PositiveIntegerField(
+        default=1,
+        help_text='How many of this item the user owns'
+    )
+    locked = models.BooleanField(
+        default=False,
+        help_text='Locked items cannot be traded/gifted'
+    )
+    
+    # Acquisition Context
+    acquired_from = models.CharField(
+        max_length=20,
+        choices=AcquiredFrom.choices,
+        db_index=True
+    )
+    acquired_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'economy_user_inventory_item'
+        unique_together = [['profile', 'item']]
+        ordering = ['-acquired_at']
+        indexes = [
+            models.Index(fields=['profile', '-acquired_at']),
+            models.Index(fields=['acquired_from']),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(quantity__gte=0),
+                name='economy_user_inventory_quantity_nonnegative'
+            )
+        ]
+        verbose_name = 'User Inventory Item'
+        verbose_name_plural = 'User Inventory Items'
+    
+    def __str__(self):
+        username = getattr(self.profile.user, 'username', 'Unknown')
+        return f"{username} owns {self.quantity}x {self.item.name}"
+    
+    def can_trade(self) -> bool:
+        """Check if this inventory item can be traded"""
+        return (
+            not self.locked and
+            self.item.tradable and
+            self.quantity > 0
+        )
+    
+    def can_gift(self) -> bool:
+        """Check if this inventory item can be gifted"""
+        return (
+            not self.locked and
+            self.item.giftable and
+            self.quantity > 0
+        )
+
+
+class GiftRequest(models.Model):
+    """
+    Gift request from one user to another.
+    Phase 3A Foundation - Request-based flow only, no UI yet.
+    
+    Workflow:
+    1. Sender creates gift request
+    2. Receiver accepts/rejects
+    3. On accept: atomic transfer
+    4. On reject/cancel: no action
+    
+    Rules:
+    - Item must be giftable
+    - Sender must own sufficient quantity
+    - Cannot gift locked items
+    - Sender ≠ Receiver
+    """
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        ACCEPTED = 'ACCEPTED', 'Accepted'
+        REJECTED = 'REJECTED', 'Rejected'
+        CANCELED = 'CANCELED', 'Canceled'
+    
+    # Parties
+    sender_profile = models.ForeignKey(
+        'user_profile.UserProfile',
+        on_delete=models.CASCADE,
+        related_name='gifts_sent'
+    )
+    receiver_profile = models.ForeignKey(
+        'user_profile.UserProfile',
+        on_delete=models.CASCADE,
+        related_name='gifts_received'
+    )
+    
+    # Item Details
+    item = models.ForeignKey(
+        InventoryItem,
+        on_delete=models.PROTECT,
+        related_name='gift_requests'
+    )
+    quantity = models.PositiveIntegerField(default=1)
+    
+    # Status
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    
+    # Optional Message
+    message = models.TextField(
+        blank=True,
+        default='',
+        max_length=500,
+        help_text='Optional message from sender'
+    )
+    
+    class Meta:
+        db_table = 'economy_gift_request'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['sender_profile', '-created_at']),
+            models.Index(fields=['receiver_profile', 'status', '-created_at']),
+            models.Index(fields=['status', '-created_at']),
+        ]
+        verbose_name = 'Gift Request'
+        verbose_name_plural = 'Gift Requests'
+    
+    def __str__(self):
+        sender_name = getattr(self.sender_profile.user, 'username', 'Unknown')
+        receiver_name = getattr(self.receiver_profile.user, 'username', 'Unknown')
+        return f"Gift: {sender_name} → {receiver_name} ({self.quantity}x {self.item.name}) - {self.status}"
+    
+    def clean(self):
+        """Validation rules"""
+        from django.core.exceptions import ValidationError
+        
+        # Rule 1: Cannot gift to self
+        if self.sender_profile_id == self.receiver_profile_id:
+            raise ValidationError("Cannot gift items to yourself")
+        
+        # Rule 2: Item must be giftable
+        if not self.item.giftable:
+            raise ValidationError(f"Item '{self.item.name}' is not giftable")
+        
+        # Rule 3: Quantity must be positive
+        if self.quantity <= 0:
+            raise ValidationError("Quantity must be greater than 0")
+        
+        # Rule 4: Sender must own sufficient quantity (check if not new)
+        if self.pk is None:  # New gift request
+            try:
+                sender_inventory = UserInventoryItem.objects.get(
+                    profile=self.sender_profile,
+                    item=self.item
+                )
+                
+                # Check locked status
+                if sender_inventory.locked:
+                    raise ValidationError("Cannot gift locked items")
+                
+                # Check quantity
+                if sender_inventory.quantity < self.quantity:
+                    raise ValidationError(
+                        f"Insufficient quantity. Have: {sender_inventory.quantity}, "
+                        f"Requested: {self.quantity}"
+                    )
+            except UserInventoryItem.DoesNotExist:
+                raise ValidationError(f"You do not own '{self.item.name}'")
+
+
+class TradeRequest(models.Model):
+    """
+    Trade request between two users (1-sided offers for Phase 3A).
+    Phase 3A Foundation - Simple 1-for-nothing offers, no complex barter yet.
+    
+    Workflow:
+    1. Initiator creates trade request (offers item, optionally requests item)
+    2. Target accepts/rejects
+    3. On accept: atomic swap
+    4. On reject/cancel: no action
+    
+    Rules:
+    - Only tradable items allowed
+    - Cannot trade locked items
+    - Initiator ≠ Target
+    - Atomic transfer on acceptance
+    """
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        ACCEPTED = 'ACCEPTED', 'Accepted'
+        REJECTED = 'REJECTED', 'Rejected'
+        CANCELED = 'CANCELED', 'Canceled'
+    
+    # Parties
+    initiator_profile = models.ForeignKey(
+        'user_profile.UserProfile',
+        on_delete=models.CASCADE,
+        related_name='trades_initiated'
+    )
+    target_profile = models.ForeignKey(
+        'user_profile.UserProfile',
+        on_delete=models.CASCADE,
+        related_name='trades_received'
+    )
+    
+    # Offered Item (what initiator gives)
+    offered_item = models.ForeignKey(
+        InventoryItem,
+        on_delete=models.PROTECT,
+        related_name='trade_offers'
+    )
+    offered_quantity = models.PositiveIntegerField(default=1)
+    
+    # Requested Item (what initiator wants - nullable for simple gifts)
+    requested_item = models.ForeignKey(
+        InventoryItem,
+        on_delete=models.PROTECT,
+        related_name='trade_requests',
+        null=True,
+        blank=True,
+        help_text='Optional: What initiator wants in return'
+    )
+    requested_quantity = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text='Quantity of requested item'
+    )
+    
+    # Status
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    
+    # Optional Message
+    message = models.TextField(
+        blank=True,
+        default='',
+        max_length=500,
+        help_text='Optional message from initiator'
+    )
+    
+    class Meta:
+        db_table = 'economy_trade_request'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['initiator_profile', '-created_at']),
+            models.Index(fields=['target_profile', 'status', '-created_at']),
+            models.Index(fields=['status', '-created_at']),
+        ]
+        verbose_name = 'Trade Request'
+        verbose_name_plural = 'Trade Requests'
+    
+    def __str__(self):
+        initiator_name = getattr(self.initiator_profile.user, 'username', 'Unknown')
+        target_name = getattr(self.target_profile.user, 'username', 'Unknown')
+        request_part = f" for {self.requested_quantity}x {self.requested_item.name}" if self.requested_item else ""
+        return f"Trade: {initiator_name} → {target_name} ({self.offered_quantity}x {self.offered_item.name}{request_part}) - {self.status}"
+    
+    def clean(self):
+        """Validation rules"""
+        from django.core.exceptions import ValidationError
+        
+        # Rule 1: Cannot trade with self
+        if self.initiator_profile_id == self.target_profile_id:
+            raise ValidationError("Cannot trade with yourself")
+        
+        # Rule 2: Offered item must be tradable
+        if not self.offered_item.tradable:
+            raise ValidationError(f"Item '{self.offered_item.name}' is not tradable")
+        
+        # Rule 3: Requested item must be tradable (if specified)
+        if self.requested_item and not self.requested_item.tradable:
+            raise ValidationError(f"Requested item '{self.requested_item.name}' is not tradable")
+        
+        # Rule 4: Quantities must be positive
+        if self.offered_quantity <= 0:
+            raise ValidationError("Offered quantity must be greater than 0")
+        
+        if self.requested_item and (self.requested_quantity is None or self.requested_quantity <= 0):
+            raise ValidationError("Requested quantity must be greater than 0 when requesting an item")
+        
+        # Rule 5: Initiator must own sufficient offered quantity
+        if self.pk is None:  # New trade request
+            try:
+                initiator_inventory = UserInventoryItem.objects.get(
+                    profile=self.initiator_profile,
+                    item=self.offered_item
+                )
+                
+                # Check locked status
+                if initiator_inventory.locked:
+                    raise ValidationError("Cannot trade locked items")
+                
+                # Check quantity
+                if initiator_inventory.quantity < self.offered_quantity:
+                    raise ValidationError(
+                        f"Insufficient quantity. Have: {initiator_inventory.quantity}, "
+                        f"Offered: {self.offered_quantity}"
+                    )
+            except UserInventoryItem.DoesNotExist:
+                raise ValidationError(f"You do not own '{self.offered_item.name}'")
+            
+            # Rule 6: Target must own sufficient requested quantity (if requesting)
+            if self.requested_item:
+                try:
+                    target_inventory = UserInventoryItem.objects.get(
+                        profile=self.target_profile,
+                        item=self.requested_item
+                    )
+                    
+                    # Check locked status
+                    if target_inventory.locked:
+                        raise ValidationError("Target's item is locked and cannot be traded")
+                    
+                    # Check quantity
+                    if target_inventory.quantity < self.requested_quantity:
+                        raise ValidationError(
+                            f"Target has insufficient quantity. "
+                            f"They have: {target_inventory.quantity}, "
+                            f"You requested: {self.requested_quantity}"
+                        )
+                except UserInventoryItem.DoesNotExist:
+                    raise ValidationError(
+                        f"Target does not own '{self.requested_item.name}'"
+                    )

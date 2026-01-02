@@ -152,6 +152,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "deltacrown.middleware.platform_prefs_middleware.UserPlatformPrefsMiddleware",  # PHASE-5A: Global platform preferences
+    "apps.accounts.deletion_middleware.BlockScheduledDeletionMiddleware",  # Phase 3B: Block scheduled deletions
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_prometheus.middleware.PrometheusAfterMiddleware",  # Prometheus timing (LAST)
@@ -177,6 +179,7 @@ TEMPLATES = [
                 "apps.common.context_homepage.homepage_context",
                 "apps.siteui.context.site_settings",
                 "apps.siteui.nav_context.nav_context",
+                "apps.common.context_processors.user_platform_prefs",  # PHASE-5A: Global platform prefs
 
 
             ],

@@ -812,6 +812,19 @@ class PrivacySettings(models.Model):
         help_text="Show player level and XP"
     )
     
+    # UP-PHASE2B: Inventory Visibility Control
+    INVENTORY_VISIBILITY_CHOICES = [
+        ('PUBLIC', 'Everyone'),
+        ('FRIENDS', 'Friends Only'),
+        ('PRIVATE', 'Only Me'),
+    ]
+    inventory_visibility = models.CharField(
+        max_length=20,
+        choices=INVENTORY_VISIBILITY_CHOICES,
+        default='PUBLIC',
+        help_text='Who can see your inventory and cosmetics collection'
+    )
+    
     # ===== SOCIAL =====
     show_social_links = models.BooleanField(
         default=True,
@@ -846,6 +859,12 @@ class PrivacySettings(models.Model):
     allow_direct_messages = models.BooleanField(
         default=True,
         help_text="Allow receiving direct messages from other users"
+    )
+    
+    # ===== PHASE 6A: PRIVATE ACCOUNT =====
+    is_private_account = models.BooleanField(
+        default=False,
+        help_text="When enabled, people must request to follow you (follow requests require approval)"
     )
     
     # ===== METADATA =====
@@ -1559,9 +1578,21 @@ class GameProfile(models.Model):
         if not self.game_display_name and self.game:
             self.game_display_name = self.game.display_name
         
+        # Auto-populate in_game_name from ign if not set
+        if not self.in_game_name:
+            if self.discriminator:
+                self.in_game_name = f"{self.ign}{self.discriminator}"
+            else:
+                self.in_game_name = self.ign or ""
+        
         # Generate identity_key if not set (should be set by service)
         if not self.identity_key:
-            self.identity_key = self.in_game_name.lower().strip()
+            identity_key = self.in_game_name.lower().strip()
+            if self.region:
+                identity_key = f"{identity_key}:{self.region.lower()}"
+            if self.platform:
+                identity_key = f"{identity_key}:{self.platform.lower()}"
+            self.identity_key = identity_key or "unknown"
         
         super().save(*args, **kwargs)
     
@@ -1992,6 +2023,87 @@ class Follow(models.Model):
         # Prevent self-following
         if self.follower == self.following:
             raise ValueError("Users cannot follow themselves")
+        super().save(*args, **kwargs)
+
+
+class FollowRequest(models.Model):
+    """
+    Phase 6A: Follow request for private accounts.
+    
+    When a user tries to follow a private account, a FollowRequest is created
+    with PENDING status. The target user can approve or reject the request.
+    
+    Workflow:
+    1. User A wants to follow private User B → FollowRequest created (PENDING)
+    2. User B approves → Follow relationship created, request marked APPROVED
+    3. User B rejects → No Follow created, request marked REJECTED
+    """
+    
+    STATUS_PENDING = 'PENDING'
+    STATUS_APPROVED = 'APPROVED'
+    STATUS_REJECTED = 'REJECTED'
+    
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_APPROVED, 'Approved'),
+        (STATUS_REJECTED, 'Rejected'),
+    ]
+    
+    requester = models.ForeignKey(
+        'UserProfile',
+        on_delete=models.CASCADE,
+        related_name='outgoing_follow_requests',
+        help_text="User requesting to follow"
+    )
+    target = models.ForeignKey(
+        'UserProfile',
+        on_delete=models.CASCADE,
+        related_name='incoming_follow_requests',
+        help_text="User whose approval is needed"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+        db_index=True,
+        help_text="Current status of the follow request"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the follow request was created"
+    )
+    resolved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the request was approved or rejected"
+    )
+    
+    class Meta:
+        db_table = 'user_profile_follow_request'
+        verbose_name = 'Follow Request'
+        verbose_name_plural = 'Follow Requests'
+        unique_together = [
+            ('requester', 'target', 'status')  # Only one PENDING request per pair
+        ]
+        indexes = [
+            models.Index(fields=['target', 'status', 'created_at']),  # List incoming requests
+            models.Index(fields=['requester', 'status']),  # Track outgoing requests
+            models.Index(fields=['status', 'created_at']),  # Admin queries
+        ]
+        constraints = [
+            models.CheckConstraint(
+                check=~models.Q(requester=models.F('target')),
+                name='follow_request_no_self_request'
+            )
+        ]
+    
+    def __str__(self):
+        return f"{self.requester.display_name} → {self.target.display_name} ({self.status})"
+    
+    def save(self, *args, **kwargs):
+        # Prevent self-follow requests
+        if self.requester == self.target:
+            raise ValueError("Users cannot request to follow themselves")
         super().save(*args, **kwargs)
 
 

@@ -58,6 +58,14 @@
 
   /* Overlay for modals / backdrops */
   --overlay: rgba(2,6,23,.55);
+
+  /* Custom z-* colors for Control Deck UI */
+  --z-gold: #FFD700;
+  --z-cyan: #00F0FF;
+  --z-purple: #7B2CBF;
+  --z-green: #10B981;
+  --z-bg: #0b0f16;        /* same as --bg */
+  --z-panel: #0e141d;     /* same as --bg-2 */
 }
 
 /* -------------------------------------------------------------------------- */
@@ -218,6 +226,49 @@ html, body {
   --game-primary: #10b981;
   --game-glow-a:  #10b981;
   --game-glow-b:  #f59e0b;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Custom Utility Classes (Fallback for Tailwind CDN)                         */
+/* These ensure z-* custom colors work even when not defined in config        */
+/* -------------------------------------------------------------------------- */
+.bg-z-gold { background-color: var(--z-gold) !important; }
+.bg-z-cyan { background-color: var(--z-cyan) !important; }
+.bg-z-purple { background-color: var(--z-purple) !important; }
+.bg-z-green { background-color: var(--z-green) !important; }
+
+.text-z-gold { color: var(--z-gold) !important; }
+.text-z-cyan { color: var(--z-cyan) !important; }
+.text-z-purple { color: var(--z-purple) !important; }
+.text-z-green { color: var(--z-green) !important; }
+
+.border-z-gold { border-color: var(--z-gold) !important; }
+.border-z-cyan { border-color: var(--z-cyan) !important; }
+.border-z-purple { border-color: var(--z-purple) !important; }
+.border-z-green { border-color: var(--z-green) !important; }
+.border-z-panel { border-color: var(--z-panel) !important; }
+
+.border-l-z-cyan { border-left-color: var(--z-cyan) !important; }
+.border-l-z-purple { border-left-color: var(--z-purple) !important; }
+.border-l-z-green { border-left-color: var(--z-green) !important; }
+
+/* Opacity variants (commonly used for glass effects) */
+/* Note: Using escaped backslash for Tailwind-style /opacity syntax */
+.bg-z-bg\/95 { background-color: rgba(11, 15, 22, 0.95) !important; }
+.bg-z-panel\/30 { background-color: rgba(14, 20, 29, 0.3) !important; }
+.bg-z-gold\/10 { background-color: rgba(255, 215, 0, 0.1) !important; }
+.bg-z-gold\/20 { background-color: rgba(255, 215, 0, 0.2) !important; }
+.bg-z-cyan\/10 { background-color: rgba(0, 240, 255, 0.1) !important; }
+.bg-z-purple\/10 { background-color: rgba(123, 44, 191, 0.1) !important; }
+.bg-z-green\/5 { background-color: rgba(16, 185, 129, 0.05) !important; }
+
+.border-z-purple\/20 { border-color: rgba(123, 44, 191, 0.2) !important; }
+.border-z-gold\/20 { border-color: rgba(255, 215, 0, 0.2) !important; }
+
+/* Gradient color stops */
+.from-z-gold\/10 { 
+  --tw-gradient-from: rgba(255, 215, 0, 0.1) !important; 
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important; 
 }
 
 /* ========================================================================== */

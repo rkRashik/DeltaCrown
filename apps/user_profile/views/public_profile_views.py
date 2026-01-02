@@ -28,6 +28,7 @@ import logging
 import os
 
 from apps.user_profile.services.profile_context import build_public_profile_context
+from apps.user_profile.services.follow_service import FollowService  # Phase 6B: Follow request status
 from apps.user_profile.services.profile_permissions import ProfilePermissionChecker
 from apps.user_profile.models import UserProfile
 
@@ -79,12 +80,27 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     )
     permissions = permission_checker.get_all_permissions()
     
+    # Phase 6B: Add follow request status for private account button states
+    if request.user.is_authenticated and request.user != profile_user:
+        permissions['is_following'] = FollowService.is_following(
+            follower_user=request.user,
+            followee_user=profile_user
+        )
+        permissions['has_pending_request'] = FollowService.has_pending_follow_request(
+            requester_user=request.user,
+            target_user=profile_user
+        )
+    else:
+        permissions['is_following'] = False
+        permissions['has_pending_request'] = False
+    
     # Block access if profile is private
     if not permissions['can_view_profile']:
         return render(request, 'user_profile/profile_private.html', {
             'profile_user': profile_user,
             'profile': user_profile,
             'viewer_role': permissions['viewer_role'],
+            'has_pending_request': permissions.get('has_pending_request', False),
         })
     
     # Build safe context (existing logic)
@@ -847,6 +863,80 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
         'nagad_account': getattr(user_profile, 'nagad_account', ''),
         'rocket_account': getattr(user_profile, 'rocket_account', ''),
     })
+    
+    # UP-PHASE2A: Career & Matchmaking settings
+    from apps.user_profile.models import (
+        CareerProfile, MatchmakingPreferences,
+        CAREER_STATUS_CHOICES, AVAILABILITY_CHOICES, 
+        CONTRACT_TYPE_CHOICES, RECRUITER_VISIBILITY_CHOICES
+    )
+    
+    career_settings, _ = CareerProfile.objects.get_or_create(user_profile=user_profile)
+    matchmaking_settings, _ = MatchmakingPreferences.objects.get_or_create(user_profile=user_profile)
+    
+    context['career_settings'] = career_settings
+    context['matchmaking_settings'] = matchmaking_settings
+    context['career_status_choices'] = CAREER_STATUS_CHOICES
+    context['availability_choices'] = AVAILABILITY_CHOICES
+    context['contract_type_choices'] = CONTRACT_TYPE_CHOICES
+    context['recruiter_visibility_choices'] = RECRUITER_VISIBILITY_CHOICES
+    
+    # Role choices for career settings
+    ROLE_CHOICES = [
+        'IGL',
+        'Duelist',
+        'Support',
+        'AWPer',
+        'Entry Fragger',
+        'Anchor',
+        'Flex',
+        'Controller',
+        'Initiator',
+        'Sentinel',
+        'Rifler',
+        'Lurker',
+    ]
+    context['role_choices'] = ROLE_CHOICES
+    
+    # UP-PHASE2B: Notification settings
+    from apps.user_profile.models import NotificationPreferences
+    notification_settings, _ = NotificationPreferences.objects.get_or_create(user_profile=user_profile)
+    context['notification_settings'] = notification_settings
+    
+    # UP-PHASE2B: Dynamic games list for matchmaking
+    from apps.games.models import Game
+    available_games = Game.objects.filter(is_active=True).order_by('name')
+    context['available_games_for_matchmaking'] = available_games
+    
+    # PHASE 1C FIX: Add hardware_gear context for loadout display
+    from apps.user_profile.services import loadout_service
+    
+    loadout_data = loadout_service.get_complete_loadout(
+        user=request.user,
+        public_only=False  # Owner view - show all
+    )
+    
+    def serialize_hardware(hw_item):
+        """Convert HardwareGear ORM object into JSON-safe dict for template."""
+        if not hw_item:
+            return None
+        return {
+            'id': hw_item.id,
+            'category': hw_item.category,
+            'brand': hw_item.brand,
+            'model': hw_item.model,
+            'specs': hw_item.specs or {},
+            'purchase_url': hw_item.purchase_url,
+            'is_public': hw_item.is_public,
+            'updated_at': hw_item.updated_at.isoformat(),
+        }
+    
+    context['hardware_gear'] = {
+        'mouse': serialize_hardware(loadout_data['hardware'].get('MOUSE')),
+        'keyboard': serialize_hardware(loadout_data['hardware'].get('KEYBOARD')),
+        'headset': serialize_hardware(loadout_data['hardware'].get('HEADSET')),
+        'monitor': serialize_hardware(loadout_data['hardware'].get('MONITOR')),
+    }
     
     # Feature flag: Switch to Control Deck template
     from django.conf import settings as django_settings

@@ -5,8 +5,13 @@ from .views import (
     VerifyEmailView, ResendOTPView,
     GoogleLoginStart, GoogleCallback
 )
+from .deletion_api import (
+    schedule_deletion_view,
+    cancel_deletion_view,
+    deletion_status_view
+)
 
-app_name = "account"
+app_name = "accounts"
 
 urlpatterns = [
     path("login/", DCLoginView.as_view(), name="login"),
@@ -48,4 +53,9 @@ urlpatterns = [
     # Google OAuth
     path("google/login/", GoogleLoginStart.as_view(), name="google_login"),
     path("google/callback/", GoogleCallback.as_view(), name="google_callback"),
+    
+    # Account Deletion API
+    path("me/settings/account-deletion/schedule/", schedule_deletion_view, name="schedule_deletion"),
+    path("me/settings/account-deletion/cancel/", cancel_deletion_view, name="cancel_deletion"),
+    path("me/settings/account-deletion/status/", deletion_status_view, name="deletion_status"),
 ]

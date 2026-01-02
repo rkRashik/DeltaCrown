@@ -30,6 +30,14 @@ from apps.user_profile.models.bounties import (  # P0 Bounties
     BountyStatus,
     DisputeStatus,
 )
+from apps.user_profile.models.career import (  # Phase 2A Career & Matchmaking
+    CareerProfile,
+    MatchmakingPreferences,
+    CAREER_STATUS_CHOICES,
+    AVAILABILITY_CHOICES,
+    CONTRACT_TYPE_CHOICES,
+    RECRUITER_VISIBILITY_CHOICES,
+)
 
 # Re-export existing models from models_main.py to maintain backward compatibility
 from apps.user_profile.models_main import (
@@ -43,6 +51,7 @@ from apps.user_profile.models_main import (
     GameProfileAlias,
     GameProfileConfig,
     Follow,  # UP-PHASE10: Export Follow model (used by fe_v2.py)
+    FollowRequest,  # UP-PHASE6A: Private account follow requests
     REGION_CHOICES,
     KYC_STATUS_CHOICES,
     GENDER_CHOICES,
@@ -110,6 +119,7 @@ __all__ = [
     'Badge',
     'VerificationRecord',
     'Follow',  # UP-PHASE10: Follow model
+    'FollowRequest',  # UP-PHASE6A: Private account follow requests
     'REGION_CHOICES',
     'KYC_STATUS_CHOICES',
     'GENDER_CHOICES',

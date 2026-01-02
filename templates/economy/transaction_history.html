@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load static %}
+{% load platform_filters %}
+
+{% block title %}Transaction History - DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-z-bg py-12 px-4">
+    <div class="max-w-5xl mx-auto">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-4xl font-display font-bold text-white mb-2">Transaction History</h1>
+                <p class="text-gray-400">View all your earnings, withdrawals, and transactions</p>
+            </div>
+            <a href="{% url 'economy:wallet_dashboard' %}" class="text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Back to Wallet
+            </a>
+        </div>
+
+        <!-- Filters -->
+        <div class="glass-panel p-6 mb-8">
+            <form method="get" class="flex flex-wrap gap-4">
+                <select name="type" class="z-input flex-1 min-w-[200px]" onchange="this.form.submit()">
+                    <option value="">All Types</option>
+                    <option value="EARN" {% if request.GET.type == 'EARN' %}selected{% endif %}>Earnings</option>
+                    <option value="WITHDRAWAL" {% if request.GET.type == 'WITHDRAWAL' %}selected{% endif %}>Withdrawals</option>
+                    <option value="REFUND" {% if request.GET.type == 'REFUND' %}selected{% endif %}>Refunds</option>
+                    <option value="ADJUSTMENT" {% if request.GET.type == 'ADJUSTMENT' %}selected{% endif %}>Adjustments</option>
+                </select>
+                <select name="period" class="z-input flex-1 min-w-[200px]" onchange="this.form.submit()">
+                    <option value="">All Time</option>
+                    <option value="7" {% if request.GET.period == '7' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="30" {% if request.GET.period == '30' %}selected{% endif %}>Last 30 Days</option>
+                    <option value="90" {% if request.GET.period == '90' %}selected{% endif %}>Last 90 Days</option>
+                </select>
+            </form>
+        </div>
+
+        <!-- Transactions List -->
+        {% if transactions %}
+        <div class="space-y-4">
+            {% for transaction in transactions %}
+            <div class="glass-panel p-6 hover:border-white/20 transition">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4 flex-1">
+                        <!-- Icon -->
+                        <div class="w-12 h-12 rounded-lg {% if transaction.amount >= 0 %}bg-green-500/20{% else %}bg-red-500/20{% endif %} flex items-center justify-center">
+                            <i class="fa-solid {% if transaction.amount >= 0 %}fa-arrow-down text-green-500{% else %}fa-arrow-up text-red-500{% endif %} text-xl"></i>
+                        </div>
+                        
+                        <!-- Details -->
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-1">
+                                <h3 class="font-bold text-white">{{ transaction.description }}</h3>
+                                {% if transaction.transaction_type %}
+                                <span class="bg-white/10 text-gray-300 px-2 py-0.5 rounded text-xs font-bold uppercase">
+                                    {{ transaction.get_transaction_type_display }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            <p class="text-sm text-gray-400">{{ transaction.created_at|format_dt_context:request }}</p>
+                            {% if transaction.reference %}
+                            <p class="text-xs text-gray-500 mt-1">
+                                <i class="fa-solid fa-hashtag"></i>
+                                Ref: {{ transaction.reference }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Amount -->
+                        <div class="text-right">
+                            <p class="font-bold text-2xl {% if transaction.amount >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+                                {% if transaction.amount >= 0 %}+{% endif %}{{ transaction.amount|format_money_context:request }}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                Balance: {{ transaction.balance_after|format_money_context:request }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="flex items-center justify-center gap-2 mt-8">
+            {% if page_obj.has_previous %}
+                <a href="?page=1{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if request.GET.period %}&period={{ request.GET.period }}{% endif %}" 
+                   class="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition">
+                    <i class="fa-solid fa-angles-left"></i>
+                </a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if request.GET.period %}&period={{ request.GET.period }}{% endif %}" 
+                   class="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition">
+                    <i class="fa-solid fa-angle-left"></i>
+                </a>
+            {% endif %}
+
+            <span class="px-4 py-2 bg-z-cyan text-black rounded-lg font-bold">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if request.GET.period %}&period={{ request.GET.period }}{% endif %}" 
+                   class="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition">
+                    <i class="fa-solid fa-angle-right"></i>
+                </a>
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}{% if request.GET.period %}&period={{ request.GET.period }}{% endif %}" 
+                   class="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition">
+                    <i class="fa-solid fa-angles-right"></i>
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="glass-panel p-12 text-center">
+            <i class="fa-solid fa-file-invoice text-gray-600 text-6xl mb-4"></i>
+            <h3 class="text-xl font-bold text-white mb-2">No Transactions Found</h3>
+            <p class="text-gray-400 mb-6">You haven't made any transactions yet. Start earning by participating in bounties and tournaments!</p>
+            <a href="{% url 'bounties:bounty_list' %}" class="bg-z-cyan text-black px-6 py-3 rounded-xl font-bold hover:bg-white transition inline-flex items-center gap-2">
+                <i class="fa-solid fa-crosshairs"></i>
+                Browse Bounties
+            </a>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<style>
+    .z-input {
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        color: white;
+        font-size: 0.875rem;
+    }
+    .z-input:focus {
+        outline: none;
+        border-color: rgba(0, 240, 255, 0.5);
+        background: rgba(255, 255, 255, 0.08);
+    }
+</style>
+{% endblock %}

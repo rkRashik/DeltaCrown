@@ -14,6 +14,35 @@ from datetime import date, timedelta
 logger = logging.getLogger(__name__)
 
 
+def _map_notification_type_to_category(notification_type):
+    """
+    Map notification type to category for enforcement.
+    
+    Args:
+        notification_type: Notification.Type value
+    
+    Returns:
+        str: Category name ('tournaments', 'teams', 'bounties', 'messages', 'system')
+    """
+    # Tournament-related
+    if notification_type in ['reg_confirmed', 'bracket_ready', 'match_scheduled', 
+                              'result_verified', 'checkin_open', 'tournament_registered', 
+                              'match_result', 'ranking_changed']:
+        return 'tournaments'
+    
+    # Team-related
+    if notification_type in ['invite_sent', 'invite_accepted', 'roster_changed', 
+                              'sponsor_approved', 'promotion_started']:
+        return 'teams'
+    
+    # Economy/bounty-related
+    if notification_type in ['payment_verified', 'payout_received', 'achievement_earned']:
+        return 'bounties'
+    
+    # System
+    return 'system'
+
+
 @shared_task(bind=True, name='notifications.send_daily_digest', max_retries=3, default_retry_delay=300)
 def send_daily_digest(self):
     """
@@ -141,18 +170,20 @@ def send_email_notification(self, notification_id):
         notification_id: ID of the notification to send
     """
     from apps.notifications.models import Notification, NotificationPreference
+    from apps.notifications.enforcement import can_deliver_notification, get_blocked_reason, log_suppressed_notification
     
     try:
         notification = Notification.objects.select_related('recipient').get(id=notification_id)
         user = notification.recipient
         
-        # Check user preferences
-        prefs = NotificationPreference.get_or_create_for_user(user)
-        channels = prefs.get_channels_for_type(notification.type)
+        # PHASE 5B: Enforce delivery rules (channel, category, quiet hours)
+        # Map notification type to category
+        category = _map_notification_type_to_category(notification.type)
         
-        if 'email' not in channels:
-            logger.info(f"Email disabled for notification {notification_id}")
-            return {'status': 'skipped', 'reason': 'email_disabled'}
+        if not can_deliver_notification(user, 'email', category):
+            reason = get_blocked_reason(user, 'email', category)
+            log_suppressed_notification(user, 'email', category, reason or 'unknown', notification.title)
+            return {'status': 'skipped', 'reason': reason or 'user_preferences'}
         
         # Send email
         subject = notification.title

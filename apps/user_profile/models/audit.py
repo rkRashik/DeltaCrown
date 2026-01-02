@@ -60,6 +60,11 @@ class UserAuditEvent(models.Model):
         FOLLOW_CREATED = 'follow_created', 'Follow Created'
         FOLLOW_DELETED = 'follow_deleted', 'Follow Deleted'
         
+        # Phase 6A: Follow Requests for Private Accounts
+        FOLLOW_REQUESTED = 'follow_requested', 'Follow Request Created'
+        FOLLOW_REQUEST_APPROVED = 'follow_request_approved', 'Follow Request Approved'
+        FOLLOW_REQUEST_REJECTED = 'follow_request_rejected', 'Follow Request Rejected'
+        
         # Admin Actions
         ADMIN_OVERRIDE = 'admin_override', 'Admin Override'
         SYSTEM_RECONCILE = 'system_reconcile', 'System Reconcile'

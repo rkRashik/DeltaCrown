@@ -162,6 +162,47 @@
         pointer-events: none;
         user-select: none;
     }
+
+    /* ============================================================================ */
+    /* GUARANTEED FALLBACK: Critical z-* utilities (inline for visibility safety)  */
+    /* These ensure buttons remain visible even if external CSS fails to load      */
+    /* ============================================================================ */
+    .bg-z-gold { background-color: #FFD700 !important; }
+    .bg-z-cyan { background-color: #00F0FF !important; }
+    .bg-z-purple { background-color: #7B2CBF !important; }
+    .bg-z-green { background-color: #10B981 !important; }
+
+    .text-z-gold { color: #FFD700 !important; }
+    .text-z-cyan { color: #00F0FF !important; }
+    .text-z-purple { color: #7B2CBF !important; }
+    .text-z-green { color: #10B981 !important; }
+
+    .border-z-gold { border-color: #FFD700 !important; }
+    .border-z-cyan { border-color: #00F0FF !important; }
+    .border-z-purple { border-color: #7B2CBF !important; }
+    .border-z-panel { border-color: #0e141d !important; }
+
+    .border-l-z-cyan { border-left-color: #00F0FF !important; }
+    .border-l-z-purple { border-left-color: #7B2CBF !important; }
+    .border-l-z-green { border-left-color: #10B981 !important; }
+
+    /* Opacity variants - escaped backslash for Tailwind-style /opacity syntax */
+    .bg-z-bg\/95 { background-color: rgba(11, 15, 22, 0.95) !important; }
+    .bg-z-panel\/30 { background-color: rgba(14, 20, 29, 0.3) !important; }
+    .bg-z-gold\/10 { background-color: rgba(255, 215, 0, 0.1) !important; }
+    .bg-z-gold\/20 { background-color: rgba(255, 215, 0, 0.2) !important; }
+    .bg-z-cyan\/10 { background-color: rgba(0, 240, 255, 0.1) !important; }
+    .bg-z-purple\/10 { background-color: rgba(123, 44, 191, 0.1) !important; }
+    .bg-z-green\/5 { background-color: rgba(16, 185, 129, 0.05) !important; }
+
+    .border-z-purple\/20 { border-color: rgba(123, 44, 191, 0.2) !important; }
+    .border-z-gold\/20 { border-color: rgba(255, 215, 0, 0.2) !important; }
+
+    /* Gradient color stops */
+    .from-z-gold\/10 {
+        --tw-gradient-from: rgba(255, 215, 0, 0.1) !important;
+        --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important;
+    }
 </style>
 {% endblock %}
 
@@ -175,7 +216,6 @@
             </a>
             <div class="flex flex-col">
                 <h1 class="text-lg font-display font-bold text-white tracking-wide">Control Deck</h1>
-                <span class="text-[10px] text-gray-500 font-mono hidden md:block tracking-widest uppercase">System Config v9.0</span>
             </div>
         </div>
         
@@ -183,7 +223,7 @@
             <span class="text-xs text-yellow-500 font-mono hidden md:flex items-center gap-2 animate-pulse" id="unsaved-changes" style="display: none;">
                 <i class="fa-solid fa-circle text-[6px]"></i> Unsaved Changes
             </span>
-            <button id="save-all-btn" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition shadow-neon-cyan flex items-center gap-2">
+            <button id="save-all-btn" onclick="saveAll()" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition shadow-neon-cyan flex items-center gap-2">
                 <i class="fa-solid fa-floppy-disk"></i> Save
             </button>
         </div>
@@ -200,6 +240,7 @@
                         <button onclick="switchTab('identity')" class="nav-btn active" data-target="identity"><i class="fa-regular fa-id-card w-5 text-center"></i> Identity</button>
                         <button onclick="switchTab('security')" class="nav-btn" data-target="security"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Security & KYC</button>
                         <button onclick="switchTab('privacy')" class="nav-btn" data-target="privacy"><i class="fa-solid fa-user-shield w-5 text-center"></i> Privacy & Vis.</button>
+                        <button onclick="switchTab('platform')" class="nav-btn" data-target="platform"><i class="fa-solid fa-globe w-5 text-center"></i> Platform</button>
                         <button onclick="switchTab('notifications')" class="nav-btn" data-target="notifications"><i class="fa-regular fa-bell w-5 text-center"></i> Notifications</button>
                     </div>
                 </div>
@@ -234,6 +275,7 @@
             <button onclick="switchTab('recruitment')" class="mobile-nav-btn" data-target="recruitment">Career</button>
             <button onclick="switchTab('matchmaking')" class="mobile-nav-btn" data-target="matchmaking">Bounties</button>
             <button onclick="switchTab('privacy')" class="mobile-nav-btn" data-target="privacy">Privacy</button>
+            <button onclick="switchTab('platform')" class="mobile-nav-btn" data-target="platform">Platform</button>
             <button onclick="switchTab('passports')" class="mobile-nav-btn" data-target="passports">Games</button>
             <button onclick="switchTab('loadout')" class="mobile-nav-btn" data-target="loadout">Loadout</button>
             <button onclick="switchTab('stream')" class="mobile-nav-btn" data-target="stream">Stream</button>
@@ -253,9 +295,9 @@
                     <div class="glass-panel p-1 mb-8 group overflow-hidden">
                         <div class="relative h-40 md:h-56 bg-gray-800 rounded-t-[18px] overflow-hidden">
                             {% if user_profile.banner %}
-                            <img src="{{ user_profile.banner.url }}" class="w-full h-full object-cover opacity-60">
+                            <img src="{{ user_profile.banner.url }}" class="w-full h-full object-cover opacity-60" data-preview="banner">
                             {% else %}
-                            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="w-full h-full object-cover opacity-60">
+                            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="w-full h-full object-cover opacity-60" data-preview="banner">
                             {% endif %}
                             <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition cursor-pointer" onclick="document.getElementById('banner-upload').click()">
                                 <span class="bg-black/60 text-white px-5 py-2 rounded-full text-xs font-bold border border-white/20 hover:bg-white hover:text-black transition flex items-center gap-2">
@@ -268,9 +310,9 @@
                             <div class="w-24 h-24 md:w-32 md:h-32 -mt-12 md:-mt-16 relative group/avatar">
                                 <div class="holo-ring"></div>
                                 {% if user_profile.avatar %}
-                                <img src="{{ user_profile.avatar.url }}" class="relative z-10 w-full h-full object-cover rounded-full border-4 border-z-panel">
+                                <img src="{{ user_profile.avatar.url }}" class="relative z-10 w-full h-full object-cover rounded-full border-4 border-z-panel" data-preview="avatar">
                                 {% else %}
-                                <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1000" class="relative z-10 w-full h-full object-cover rounded-full border-4 border-z-panel">
+                                <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1000" class="relative z-10 w-full h-full object-cover rounded-full border-4 border-z-panel" data-preview="avatar">
                                 {% endif %}
                                 <div class="absolute inset-0 z-20 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover/avatar:opacity-100 transition cursor-pointer" onclick="document.getElementById('avatar-upload').click()">
                                     <i class="fa-solid fa-camera text-white text-xl"></i>
@@ -310,165 +352,651 @@
                     </form>
                 </div>
 
-                <!-- CAREER & LFT TAB (NOT_IMPLEMENTED - DISABLED) -->
-                <div id="tab-recruitment" class="tab-section space-y-6 disabled-section">
+                <!-- CAREER & LFT TAB (UP-PHASE2A - ENABLED) -->
+                <div id="tab-recruitment" class="tab-section space-y-6">
                     <div class="flex justify-between items-center">
-                        <h2 class="text-3xl font-display font-bold text-white">Career & LFT<span class="coming-soon-badge">Coming Soon</span></h2>
+                        <h2 class="text-3xl font-display font-bold text-white">Career & LFT</h2>
                         <span class="bg-z-purple/10 text-z-purple border border-z-purple/20 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Visible to Recruiters</span>
                     </div>
                     <p class="text-gray-400">Signal your availability to team managers and scouts.</p>
 
-                    <div class="glass-panel p-8">
-                        <div class="mb-10">
+                    <form id="career-form" class="glass-panel p-8 space-y-8" onsubmit="saveCareerSettings(event)">
+                        {% csrf_token %}
+                        
+                        <!-- Career Status -->
+                        <div>
                             <label class="z-label text-base mb-4">Current Status</label>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <label class="cursor-pointer group">
-                                    <input type="radio" name="career_status" class="peer sr-only" disabled>
-                                    <div class="p-5 rounded-xl border border-white/10 bg-white/5 transition text-center h-full flex flex-col justify-center items-center">
+                                    <input type="radio" name="career_status" value="SIGNED" class="peer sr-only" {% if career_settings.career_status == 'SIGNED' %}checked{% endif %}>
+                                    <div class="p-5 rounded-xl border border-white/10 bg-white/5 peer-checked:bg-z-purple/20 peer-checked:border-z-purple transition text-center h-full flex flex-col justify-center items-center hover:bg-white/10">
                                         <i class="fa-solid fa-file-signature text-2xl mb-2"></i>
                                         <div class="font-bold">Signed</div>
                                     </div>
                                 </label>
                                 <label class="cursor-pointer group">
-                                    <input type="radio" name="career_status" class="peer sr-only" disabled>
-                                    <div class="p-5 rounded-xl border border-white/10 bg-white/5 transition text-center h-full flex flex-col justify-center items-center">
+                                    <input type="radio" name="career_status" value="FREE_AGENT" class="peer sr-only" {% if career_settings.career_status == 'FREE_AGENT' %}checked{% endif %}>
+                                    <div class="p-5 rounded-xl border border-white/10 bg-white/5 peer-checked:bg-z-gold/20 peer-checked:border-z-gold transition text-center h-full flex flex-col justify-center items-center hover:bg-white/10">
                                         <i class="fa-solid fa-handshake text-2xl mb-2"></i>
                                         <div class="font-bold">Free Agent</div>
                                     </div>
                                 </label>
                                 <label class="cursor-pointer group">
-                                    <input type="radio" name="career_status" class="peer sr-only" disabled>
-                                    <div class="p-5 rounded-xl border border-white/10 bg-white/5 transition text-center h-full flex flex-col justify-center items-center">
+                                    <input type="radio" name="career_status" value="LOOKING" class="peer sr-only" {% if career_settings.career_status == 'LOOKING' %}checked{% endif %}>
+                                    <div class="p-5 rounded-xl border border-white/10 bg-white/5 peer-checked:bg-z-cyan/20 peer-checked:border-z-cyan transition text-center h-full flex flex-col justify-center items-center hover:bg-white/10">
                                         <i class="fa-solid fa-magnifying-glass text-2xl mb-2"></i>
-                                        <div class="font-bold">Scouting</div>
+                                        <div class="font-bold">Looking</div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer group">
+                                    <input type="radio" name="career_status" value="NOT_LOOKING" class="peer sr-only" {% if career_settings.career_status == 'NOT_LOOKING' %}checked{% endif %}>
+                                    <div class="p-5 rounded-xl border border-white/10 bg-white/5 peer-checked:bg-gray-500/20 peer-checked:border-gray-500 transition text-center h-full flex flex-col justify-center items-center hover:bg-white/10">
+                                        <i class="fa-solid fa-ban text-2xl mb-2"></i>
+                                        <div class="font-bold">Not Looking</div>
                                     </div>
                                 </label>
                             </div>
                         </div>
-                        <p class="text-xs text-gray-500 mt-2">
-                            <i class="fa-solid fa-info-circle"></i>
-                            Career status will be available in Phase 2 (mid-January 2026).
-                        </p>
-                    </div>
-                </div>
 
-                <!-- BOUNTIES & MATCHMAKING TAB (NOT_IMPLEMENTED - DISABLED) -->
-                <div id="tab-matchmaking" class="tab-section space-y-6 disabled-section">
-                    <h2 class="text-3xl font-display font-bold text-white">Bounties & Matchmaking<span class="coming-soon-badge">Coming Soon</span></h2>
-                    <div class="glass-panel p-8">
-                        <div class="space-y-8">
+                        <!-- LFT Toggle -->
+                        <div class="flex items-center justify-between p-6 rounded-xl border border-white/10 bg-white/5">
                             <div>
-                                <label class="z-label flex justify-between">
-                                    <span>Minimum Bounty Threshold</span>
-                                    <span class="text-z-gold">500 DC</span>
+                                <label class="font-bold text-white text-sm">Looking For Team (LFT)</label>
+                                <p class="text-xs text-gray-400">Show LFT badge on your profile</p>
+                            </div>
+                            <label class="z-toggle-wrapper">
+                                <input type="checkbox" name="lft_enabled" class="z-toggle-input" {% if career_settings.lft_enabled %}checked{% endif %}>
+                                <span class="z-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Primary Roles -->
+                        <div>
+                            <label class="z-label text-base mb-4">Primary Roles</label>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {% for role in role_choices %}
+                                <label class="cursor-pointer group">
+                                    <input type="checkbox" name="primary_roles" value="{{ role }}" class="peer sr-only" {% if role in career_settings.primary_roles %}checked{% endif %}>
+                                    <div class="px-4 py-2 rounded-lg border border-white/10 bg-white/5 peer-checked:bg-z-purple/20 peer-checked:border-z-purple transition text-center hover:bg-white/10">
+                                        <span class="text-sm font-medium">{{ role }}</span>
+                                    </div>
                                 </label>
-                                <input type="range" class="w-full accent-z-gold h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer mt-2" disabled>
+                                {% endfor %}
                             </div>
                         </div>
-                        <p class="text-xs text-gray-500 mt-6">
-                            <i class="fa-solid fa-info-circle"></i>
-                            Bounty preferences will be available in Phase 2 (mid-January 2026).
-                        </p>
-                    </div>
+
+                        <!-- Availability -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="z-label">Availability</label>
+                                <select name="availability" class="z-input w-full">
+                                    {% for value, label in availability_choices %}
+                                    <option value="{{ value }}" {% if career_settings.availability == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="z-label">Minimum Salary (USD/month)</label>
+                                <input type="number" name="salary_expectation_min" class="z-input w-full" value="{{ career_settings.salary_expectation_min|default:'' }}" placeholder="Optional" min="0">
+                            </div>
+                        </div>
+
+                        <!-- Recruiter Visibility -->
+                        <div>
+                            <label class="z-label text-base mb-4">Recruiter Visibility</label>
+                            <select name="recruiter_visibility" class="z-input w-full">
+                                {% for value, label in recruiter_visibility_choices %}
+                                <option value="{{ value }}" {% if career_settings.recruiter_visibility == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-xs text-gray-400 mt-2">Control who can see your career profile</p>
+                        </div>
+
+                        <!-- Allow Direct Contracts -->
+                        <div class="flex items-center justify-between p-6 rounded-xl border border-white/10 bg-white/5">
+                            <div>
+                                <label class="font-bold text-white text-sm">Allow Direct Contract Offers</label>
+                                <p class="text-xs text-gray-400">Teams can send you contract offers via DeltaCrown</p>
+                            </div>
+                            <label class="z-toggle-wrapper">
+                                <input type="checkbox" name="allow_direct_contracts" class="z-toggle-input" {% if career_settings.allow_direct_contracts %}checked{% endif %}>
+                                <span class="z-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
+                            <i class="fa-solid fa-save"></i> Save Career Settings
+                        </button>
+                    </form>
                 </div>
 
-                <!-- PRIVACY TAB (READY) -->
+                <!-- BOUNTIES & MATCHMAKING TAB (UP-PHASE2A - ENABLED) -->
+                <div id="tab-matchmaking" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Bounties & Matchmaking</h2>
+                    
+                    <form id="matchmaking-form" class="glass-panel p-8 space-y-8" onsubmit="saveMatchmakingSettings(event)">
+                        {% csrf_token %}
+                        
+                        <!-- Enable Matchmaking -->
+                        <div class="flex items-center justify-between p-6 rounded-xl border border-white/10 bg-white/5">
+                            <div>
+                                <label class="font-bold text-white text-sm">Enable Matchmaking</label>
+                                <p class="text-xs text-gray-400">Receive bounty invites based on your preferences</p>
+                            </div>
+                            <label class="z-toggle-wrapper">
+                                <input type="checkbox" name="enabled" class="z-toggle-input" {% if matchmaking_settings.enabled %}checked{% endif %}>
+                                <span class="z-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Bounty Range -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="z-label">Minimum Bounty (DC)</label>
+                                <input type="number" name="min_bounty" class="z-input w-full" value="{{ matchmaking_settings.min_bounty|default:'' }}" placeholder="0" min="0">
+                                <p class="text-xs text-gray-400 mt-1">Reject bounties below this amount</p>
+                            </div>
+                            <div>
+                                <label class="z-label">Maximum Bounty (DC)</label>
+                                <input type="number" name="max_bounty" class="z-input w-full" value="{{ matchmaking_settings.max_bounty|default:'' }}" placeholder="No limit" min="0">
+                                <p class="text-xs text-gray-400 mt-1">Optional upper limit</p>
+                            </div>
+                        </div>
+
+                        <!-- Auto Accept/Reject -->
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-6 rounded-xl border border-white/10 bg-white/5">
+                                <div>
+                                    <label class="font-bold text-white text-sm">Auto-Accept Bounties</label>
+                                    <p class="text-xs text-gray-400">Automatically accept bounties within your range</p>
+                                </div>
+                                <label class="z-toggle-wrapper">
+                                    <input type="checkbox" name="auto_accept" class="z-toggle-input" {% if matchmaking_settings.auto_accept %}checked{% endif %}>
+                                    <span class="z-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between p-6 rounded-xl border border-white/10 bg-white/5">
+                                <div>
+                                    <label class="font-bold text-white text-sm">Auto-Reject Below Minimum</label>
+                                    <p class="text-xs text-gray-400">Automatically decline low bounties</p>
+                                </div>
+                                <label class="z-toggle-wrapper">
+                                    <input type="checkbox" name="auto_reject_below_min" class="z-toggle-input" {% if matchmaking_settings.auto_reject_below_min %}checked{% endif %}>
+                                    <span class="z-toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Games Enabled (UP-PHASE2B: Dynamic from DB) -->
+                        <div>
+                            <label class="z-label text-base mb-4">Enabled Games</label>
+                            <p class="text-xs text-gray-400 mb-3">Select games where you accept bounties</p>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {% for game in available_games_for_matchmaking %}
+                                <label class="cursor-pointer group">
+                                    <input type="checkbox" name="games_enabled" value="{{ game.slug }}" class="peer sr-only" {% if game.slug in matchmaking_settings.games_enabled %}checked{% endif %}>
+                                    <div class="px-4 py-2 rounded-lg border border-white/10 bg-white/5 peer-checked:bg-z-purple/20 peer-checked:border-z-purple transition text-center hover:bg-white/10">
+                                        <span class="text-sm font-medium">{{ game.display_name }}</span>
+                                    </div>
+                                </label>
+                                {% empty %}
+                                <p class="text-gray-400 text-sm col-span-full">No active games available</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Team Bounties -->
+                        <div class="flex items-center justify-between p-6 rounded-xl border border-white/10 bg-white/5">
+                            <div>
+                                <label class="font-bold text-white text-sm">Allow Team Bounties</label>
+                                <p class="text-xs text-gray-400">Accept bounties that require a full team</p>
+                            </div>
+                            <label class="z-toggle-wrapper">
+                                <input type="checkbox" name="allow_team_bounties" class="z-toggle-input" {% if matchmaking_settings.allow_team_bounties %}checked{% endif %}>
+                                <span class="z-toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
+                            <i class="fa-solid fa-save"></i> Save Matchmaking Settings
+                        </button>
+                    </form>
+                </div>
+
+                <!-- PRIVACY TAB (PHASE 7C-P0: FULL MATRIX) -->
                 <div id="tab-privacy" class="tab-section space-y-6">
                     <h2 class="text-3xl font-display font-bold text-white">Privacy & Visibility</h2>
                     
-                    <form id="privacy-form" class="glass-panel p-0 overflow-hidden" onsubmit="savePrivacy(event)">
+                    <form id="privacy-form" onsubmit="savePrivacyFull(event)">
                         {% csrf_token %}
-                        <div class="p-6 flex items-center justify-between">
-                            <div>
-                                <h4 class="font-bold text-white text-sm">Hide Following List</h4>
-                                <p class="text-xs text-gray-400">Only you can see who you follow.</p>
+                        
+                        <!-- Private Account -->
+                        <div class="glass-panel p-6 space-y-4 mb-6">
+                            <h3 class="font-bold text-white text-lg mb-2">Account Privacy</h3>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-bold text-white text-sm">Private Account</h4>
+                                    <p class="text-xs text-gray-400">Require approval for new followers</p>
+                                </div>
+                                <label class="z-toggle-wrapper">
+                                    <input type="checkbox" name="is_private_account" class="z-toggle-input" {% if privacy_settings.is_private_account %}checked{% endif %} onchange="autoSavePrivacy()">
+                                    <span class="z-toggle-slider"></span>
+                                </label>
                             </div>
-                            <label class="z-toggle-wrapper">
-                                <input type="checkbox" name="show_following_list" class="z-toggle-input" {% if not privacy_settings.show_following_list %}checked{% endif %} onchange="autoSavePrivacy()">
-                                <span class="z-toggle-slider"></span>
-                            </label>
+                        </div>
+
+                        <!-- Profile Visibility -->
+                        <div class="glass-panel p-6 space-y-4 mb-6">
+                            <h3 class="font-bold text-white text-lg mb-4">Profile Visibility</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Real Name</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_real_name" class="z-toggle-input" {% if privacy_settings.show_real_name %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Email</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_email" class="z-toggle-input" {% if privacy_settings.show_email %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Phone</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_phone" class="z-toggle-input" {% if privacy_settings.show_phone %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Age</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_age" class="z-toggle-input" {% if privacy_settings.show_age %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Gender</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_gender" class="z-toggle-input" {% if privacy_settings.show_gender %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Country</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_country" class="z-toggle-input" {% if privacy_settings.show_country %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gaming & Activity -->
+                        <div class="glass-panel p-6 space-y-4 mb-6">
+                            <h3 class="font-bold text-white text-lg mb-4">Gaming & Activity</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Game IDs</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_game_ids" class="z-toggle-input" {% if privacy_settings.show_game_ids %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Match History</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_match_history" class="z-toggle-input" {% if privacy_settings.show_match_history %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Teams</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_teams" class="z-toggle-input" {% if privacy_settings.show_teams %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Achievements</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_achievements" class="z-toggle-input" {% if privacy_settings.show_achievements %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Economy & Inventory -->
+                        <div class="glass-panel p-6 space-y-4 mb-6">
+                            <h3 class="font-bold text-white text-lg mb-4">Economy & Inventory</h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-sm text-gray-300 block mb-2">Inventory Visibility</label>
+                                    <select name="inventory_visibility" class="z-input w-full" onchange="autoSavePrivacy()">
+                                        <option value="PUBLIC" {% if privacy_settings.inventory_visibility == 'PUBLIC' %}selected{% endif %}>Everyone</option>
+                                        <option value="FRIENDS" {% if privacy_settings.inventory_visibility == 'FRIENDS' %}selected{% endif %}>Friends Only</option>
+                                        <option value="PRIVATE" {% if privacy_settings.inventory_visibility == 'PRIVATE' %}selected{% endif %}>Only Me</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Inventory Value</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_inventory_value" class="z-toggle-input" {% if privacy_settings.show_inventory_value %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Level & XP</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_level_xp" class="z-toggle-input" {% if privacy_settings.show_level_xp %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Social Visibility -->
+                        <div class="glass-panel p-6 space-y-4 mb-6">
+                            <h3 class="font-bold text-white text-lg mb-4">Social</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Social Links</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_social_links" class="z-toggle-input" {% if privacy_settings.show_social_links %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Following List</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_following_list" class="z-toggle-input" {% if privacy_settings.show_following_list %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interaction Permissions -->
+                        <div class="glass-panel p-6 space-y-4 mb-6">
+                            <h3 class="font-bold text-white text-lg mb-4">Interaction Permissions</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Allow Team Invites</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="allow_team_invites" class="z-toggle-input" {% if privacy_settings.allow_team_invites %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Allow Friend Requests</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="allow_friend_requests" class="z-toggle-input" {% if privacy_settings.allow_friend_requests %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Allow Direct Messages</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="allow_direct_messages" class="z-toggle-input" {% if privacy_settings.allow_direct_messages %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </form>
-                    
-                    <div class="glass-panel p-6 space-y-4 disabled-section">
-                        <div class="flex items-center justify-between opacity-50">
-                            <div>
-                                <h4 class="font-bold text-white text-sm">Private Account <span class="coming-soon-badge ml-2">Phase 2</span></h4>
-                                <p class="text-xs text-gray-400">Require approval for new followers.</p>
+
+                    <!-- PHASE 7C-P0: Follow Requests Management -->
+                    <div class="glass-panel p-6 space-y-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-white text-lg">Follow Requests</h3>
+                            <div class="flex gap-2">
+                                <button onclick="loadFollowRequests('PENDING')" class="text-xs px-3 py-1 rounded-lg bg-white/10 text-white hover:bg-white/20 transition" id="filter-pending">Pending</button>
+                                <button onclick="loadFollowRequests('APPROVED')" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-approved">Approved</button>
+                                <button onclick="loadFollowRequests('REJECTED')" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-rejected">Rejected</button>
                             </div>
-                            <label class="z-toggle-wrapper">
-                                <input type="checkbox" class="z-toggle-input" disabled>
-                                <span class="z-toggle-slider"></span>
-                            </label>
                         </div>
-                        <div class="flex items-center justify-between opacity-50">
-                            <div>
-                                <h4 class="font-bold text-white text-sm">Inventory Visibility <span class="coming-soon-badge ml-2">Phase 2</span></h4>
-                                <p class="text-xs text-gray-400">Control who sees your cosmetics collection.</p>
-                            </div>
-                            <select class="z-input w-48" disabled>
-                                <option>Everyone</option>
-                                <option>Friends Only</option>
-                                <option>Only Me</option>
+                        <div id="follow-requests-list">
+                            <!-- Loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PLATFORM TAB (PHASE 5A - GLOBAL WIRING) -->
+                <div id="tab-platform" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white mb-2">Platform Preferences</h2>
+                    <p class="text-gray-400 mb-8">Global settings for timezone, language, time format, and currency display.</p>
+
+                    <form id="platform-form" onsubmit="savePlatformSettings(event)">
+                        {% csrf_token %}
+                        
+                        <!-- Language Selection -->
+                        <div class="glass-panel p-6 space-y-4 mb-6">
+                            <label class="z-label flex items-center gap-2">
+                                <i class="fa-solid fa-language"></i> Preferred Language
+                            </label>
+                            <select id="preferred_language" name="preferred_language" class="z-input" onchange="markUnsaved()">
+                                <option value="">Loading...</option>
+                            </select>
+                            <p class="text-xs text-gray-500">Bengali translation coming soon. UI language will update after page reload.</p>
+                        </div>
+                        
+                        <!-- Timezone Selection -->
+                        <div class="glass-panel p-6 space-y-4 mb-6">
+                            <label class="z-label flex items-center gap-2">
+                                <i class="fa-solid fa-clock"></i> Timezone
+                            </label>
+                            <select id="timezone_pref" name="timezone" class="z-input" onchange="markUnsaved()">
+                                <option value="">Loading...</option>
+                            </select>
+                            <p class="text-xs text-gray-500">All timestamps across the platform will display in your selected timezone.</p>
+                        </div>
+                        
+                        <!-- Time Format -->
+                        <div class="glass-panel p-6 space-y-4 mb-6">
+                            <label class="z-label flex items-center gap-2">
+                                <i class="fa-solid fa-clock"></i> Time Format
+                            </label>
+                            <select id="time_format" name="time_format" class="z-input" onchange="markUnsaved()">
+                                <option value="12h">12-hour (3:00 PM)</option>
+                                <option value="24h">24-hour (15:00)</option>
+                            </select>
+                            <p class="text-xs text-gray-500">Choose how times are displayed throughout the platform.</p>
+                        </div>
+                        
+                        <!-- Currency Display -->
+                        <div class="glass-panel p-6 space-y-4 mb-6">
+                            <label class="z-label flex items-center gap-2">
+                                <i class="fa-solid fa-bangladeshi-taka-sign"></i> Currency
+                            </label>
+                            <select id="currency" name="currency" class="z-input" disabled>
+                                <option value="BDT" selected>BDT (৳) - Bangladeshi Taka</option>
+                                <option value="USD">USD ($) - Coming Soon</option>
+                            </select>
+                            <p class="text-xs text-gray-500">Multi-currency support coming soon. Currently BDT only.</p>
+                        </div>
+                        
+                        <!-- Theme Preference -->
+                        <div class="glass-panel p-6 space-y-4 mb-6">
+                            <label class="z-label flex items-center gap-2">
+                                <i class="fa-solid fa-palette"></i> Theme
+                            </label>
+                            <select id="theme_preference" name="theme_preference" class="z-input" disabled>
+                                <option value="dark" selected>Dark Mode</option>
+                                <option value="light">Light Mode (Coming Soon)</option>
+                                <option value="system">System Default</option>
+                            </select>
+                            <p class="text-xs text-gray-500">Light mode theme coming in future update.</p>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Platform Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- INVENTORY TAB (PHASE 3A - BETA, PHASE 4A UX, PHASE 4B ENHANCED) -->
+                <div id="tab-inventory" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Inventory & Trade<span class="bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-lg text-xs font-bold ml-3">Beta</span></h2>
+                    
+                    <!-- My Inventory Viewer (PHASE 4B ENHANCED) -->
+                    <div class="glass-panel p-6">
+                        <h3 class="text-xl font-bold text-white mb-4">My Inventory</h3>
+                        
+                        <!-- PHASE 4B: Search/Filter/Sort Controls -->
+                        <div class="flex flex-wrap gap-3 mb-4">
+                            <input type="text" id="inventory-search" placeholder="Search items..." 
+                                   class="z-input flex-1 min-w-[200px]" 
+                                   oninput="applyInventoryFilters()">
+                            <select id="inventory-rarity-filter" class="z-input" onchange="applyInventoryFilters()">
+                                <option value="">All Rarities</option>
+                                <option value="COMMON">Common</option>
+                                <option value="RARE">Rare</option>
+                                <option value="EPIC">Epic</option>
+                                <option value="LEGENDARY">Legendary</option>
+                            </select>
+                            <select id="inventory-sort" class="z-input" onchange="applyInventoryFilters()">
+                                <option value="name-asc">Name (A–Z)</option>
+                                <option value="quantity-desc">Quantity (High to Low)</option>
+                                <option value="acquired-desc">Recently Acquired</option>
                             </select>
                         </div>
-                        <p class="text-xs text-gray-500 mt-4">
-                            <i class="fa-solid fa-info-circle"></i>
-                            Additional privacy controls will be available in Phase 2 (mid-January 2026).
-                        </p>
+                        
+                        <div id="inventory-list" class="space-y-3">
+                            <p class="text-sm text-gray-400"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p>
+                        </div>
                     </div>
-                </div>
-
-                <!-- INVENTORY TAB (NOT_IMPLEMENTED - DISABLED) -->
-                <div id="tab-inventory" class="tab-section space-y-6 disabled-section">
-                    <h2 class="text-3xl font-display font-bold text-white">Inventory & Trade<span class="coming-soon-badge">Coming Soon</span></h2>
                     
-                    <div class="glass-panel p-8">
-                        <p class="text-xs text-gray-500">
-                            <i class="fa-solid fa-info-circle"></i>
-                            Inventory and trade features will be available in Phase 3 (February 2026).
-                        </p>
+                    <!-- PHASE 4A/4B: Incoming Requests (ENHANCED) -->
+                    <div class="glass-panel p-6">
+                        <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('incoming-requests')">
+                            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-inbox"></i> Incoming Requests
+                                <i id="incoming-requests-toggle" class="fa-solid fa-chevron-down text-sm text-gray-400"></i>
+                            </h3>
+                        </div>
+                        
+                        <!-- PHASE 4B: Request Filters -->
+                        <div id="incoming-requests-content" class="space-y-3">
+                            <div class="flex gap-2 mb-3">
+                                <button onclick="setIncomingFilter('all')" id="incoming-filter-all" 
+                                        class="px-3 py-1 rounded-lg text-xs font-bold bg-white/10 text-white border border-white/20">
+                                    All
+                                </button>
+                                <button onclick="setIncomingFilter('pending')" id="incoming-filter-pending" 
+                                        class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
+                                    Pending
+                                </button>
+                                <button onclick="setIncomingFilter('history')" id="incoming-filter-history" 
+                                        class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
+                                    History
+                                </button>
+                                <button onclick="setIncomingFilter('gifts')" id="incoming-filter-gifts" 
+                                        class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
+                                    Gifts Only
+                                </button>
+                                <button onclick="setIncomingFilter('trades')" id="incoming-filter-trades" 
+                                        class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
+                                    Trades Only
+                                </button>
+                            </div>
+                            <div id="incoming-requests-list" class="space-y-3">
+                                <p class="text-sm text-gray-400"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- PHASE 4A/4B: Outgoing Requests (ENHANCED) -->
+                    <div class="glass-panel p-6">
+                        <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="toggleSection('outgoing-requests')">
+                            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-paper-plane"></i> Sent Requests
+                                <i id="outgoing-requests-toggle" class="fa-solid fa-chevron-down text-sm text-gray-400"></i>
+                            </h3>
+                        </div>
+                        
+                        <!-- PHASE 4B: Request Filters -->
+                        <div id="outgoing-requests-content" class="space-y-3">
+                            <div class="flex gap-2 mb-3">
+                                <button onclick="setOutgoingFilter('all')" id="outgoing-filter-all" 
+                                        class="px-3 py-1 rounded-lg text-xs font-bold bg-white/10 text-white border border-white/20">
+                                    All
+                                </button>
+                                <button onclick="setOutgoingFilter('pending')" id="outgoing-filter-pending" 
+                                        class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
+                                    Pending
+                                </button>
+                                <button onclick="setOutgoingFilter('history')" id="outgoing-filter-history" 
+                                        class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
+                                    History
+                                </button>
+                                <button onclick="setOutgoingFilter('gifts')" id="outgoing-filter-gifts" 
+                                        class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
+                                    Gifts Only
+                                </button>
+                                <button onclick="setOutgoingFilter('trades')" id="outgoing-filter-trades" 
+                                        class="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 text-gray-400 border border-white/10">
+                                    Trades Only
+                                </button>
+                            </div>
+                            <div id="outgoing-requests-list" class="space-y-3">
+                                <p class="text-sm text-gray-400"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gift Item -->
+                    <div class="glass-panel p-6">
+                        <h3 class="text-xl font-bold text-white mb-4"><i class="fa-solid fa-gift"></i> Gift Item</h3>
+                        <form id="gift-form" onsubmit="sendGift(event)" class="space-y-4">
+                            {% csrf_token %}
+                            <div><label class="z-label">Recipient Username</label><input type="text" name="recipient_username" class="z-input" required></div>
+                            <div><label class="z-label">Item Slug</label><input type="text" name="item_slug" class="z-input" placeholder="e.g., awp-dragon-lore" required></div>
+                            <div><label class="z-label">Quantity</label><input type="number" name="quantity" class="z-input" value="1" min="1" required></div>
+                            <div><label class="z-label">Message (Optional)</label><textarea name="message" class="z-input h-20"></textarea></div>
+                            <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
+                                <i class="fa-solid fa-paper-plane"></i> Send Gift
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Trade Request -->
+                    <div class="glass-panel p-6">
+                        <h3 class="text-xl font-bold text-white mb-4"><i class="fa-solid fa-arrows-rotate"></i> Trade Request</h3>
+                        <form id="trade-form" onsubmit="proposeTrade(event)" class="space-y-4">
+                            {% csrf_token %}
+                            <div><label class="z-label">Target Username</label><input type="text" name="target_username" class="z-input" required></div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="z-label">Your Item Slug</label><input type="text" name="offered_item_slug" class="z-input" required></div>
+                                <div><label class="z-label">Your Quantity</label><input type="number" name="offered_quantity" class="z-input" value="1" min="1" required></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="z-label">Requested Item Slug (Optional)</label><input type="text" name="requested_item_slug" class="z-input"></div>
+                                <div><label class="z-label">Requested Quantity</label><input type="number" name="requested_quantity" class="z-input" value="1" min="1"></div>
+                            </div>
+                            <div><label class="z-label">Message (Optional)</label><textarea name="message" class="z-input h-20"></textarea></div>
+                            <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
+                                <i class="fa-solid fa-handshake"></i> Propose Trade
+                            </button>
+                        </form>
                     </div>
                 </div>
 
-                <!-- GAME PASSPORTS TAB (READY) -->
+                <!-- GAME PASSPORTS TAB (PHASE 7B: FULL CRUD) -->
                 <div id="tab-passports" class="tab-section space-y-6">
                     <div class="flex justify-between items-center">
                         <h2 class="text-3xl font-display font-bold text-white">Game Passports</h2>
-                        <button onclick="linkNewGame()" class="bg-white/10 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase hover:bg-white/20 transition flex items-center gap-2">
+                        <button onclick="openPassportModal()" class="bg-white/10 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase hover:bg-white/20 transition flex items-center gap-2">
                             <i class="fa-solid fa-link"></i> Link New
                         </button>
                     </div>
                     
                     <div id="passports-list">
-                        {% for game_profile in game_profiles %}
-                        <div class="glass-panel p-5 border-l-4 border-l-z-cyan flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
-                            <div class="flex items-center gap-4 w-full md:w-auto">
-                                <div class="w-12 h-12 bg-[#ff4655] rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
-                                    <i class="fa-solid fa-gamepad"></i>
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-2">
-                                        <h3 class="font-bold text-white">{{ game_profile.game.name }}</h3>
-                                        {% if forloop.first %}
-                                        <span class="bg-z-cyan text-black text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">Main</span>
-                                        {% endif %}
-                                    </div>
-                                    <p class="text-sm text-gray-400 font-mono">{{ game_profile.ign }}</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
-                                <button onclick="deletePassport({{ game_profile.id }})" class="text-gray-500 hover:text-red-400 transition">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="glass-panel p-8 text-center text-gray-400">
-                            <i class="fa-solid fa-gamepad text-4xl mb-4 opacity-50"></i>
-                            <p>No game accounts linked. Click "Link New" to add your first passport.</p>
-                        </div>
-                        {% endfor %}
+                        <!-- Passports loaded dynamically -->
                     </div>
                 </div>
 
@@ -483,10 +1011,10 @@
                             <h3 class="text-sm font-bold uppercase tracking-widest">Hardware</h3>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="z-label">Mouse</label><input type="text" name="mouse_brand" class="z-input" placeholder="e.g., Logitech G Pro X" oninput="markUnsaved()"></div>
-                            <div><label class="z-label">Keyboard</label><input type="text" name="keyboard_brand" class="z-input" placeholder="e.g., Wooting 60HE" oninput="markUnsaved()"></div>
-                            <div><label class="z-label">Headset</label><input type="text" name="headset_brand" class="z-input" placeholder="e.g., HyperX Cloud II" oninput="markUnsaved()"></div>
-                            <div><label class="z-label">Monitor</label><input type="text" name="monitor_brand" class="z-input" placeholder="e.g., BenQ Zowie 240Hz" oninput="markUnsaved()"></div>
+                            <div><label class="z-label">Mouse</label><input type="text" name="mouse_brand" class="z-input" placeholder="e.g., Logitech G Pro X" value="{{ hardware_gear.mouse.brand|default:'' }}" oninput="markUnsaved()"></div>
+                            <div><label class="z-label">Keyboard</label><input type="text" name="keyboard_brand" class="z-input" placeholder="e.g., Wooting 60HE" value="{{ hardware_gear.keyboard.brand|default:'' }}" oninput="markUnsaved()"></div>
+                            <div><label class="z-label">Headset</label><input type="text" name="headset_brand" class="z-input" placeholder="e.g., HyperX Cloud II" value="{{ hardware_gear.headset.brand|default:'' }}" oninput="markUnsaved()"></div>
+                            <div><label class="z-label">Monitor</label><input type="text" name="monitor_brand" class="z-input" placeholder="e.g., BenQ Zowie 240Hz" value="{{ hardware_gear.monitor.brand|default:'' }}" oninput="markUnsaved()"></div>
                         </div>
                         <div class="mt-6">
                             <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
@@ -552,21 +1080,137 @@
                 </div>
 
                 <!-- NOTIFICATIONS TAB (NOT_IMPLEMENTED - DISABLED) -->
-                <div id="tab-notifications" class="tab-section space-y-6 disabled-section">
-                    <h2 class="text-3xl font-display font-bold text-white">Notifications<span class="coming-soon-badge">Coming Soon</span></h2>
-                    <div class="glass-panel p-0 overflow-hidden">
-                        <div class="p-6 border-b border-white/5 flex items-center justify-between">
-                            <div><h4 class="font-bold text-white text-sm">Tournament Alerts</h4><p class="text-xs text-gray-400">Match reminders & bracket updates.</p></div>
-                            <label class="z-toggle-wrapper">
-                                <input type="checkbox" class="z-toggle-input" disabled>
-                                <span class="z-toggle-slider"></span>
-                            </label>
+                <!-- NOTIFICATIONS TAB (UP-PHASE2B - ENABLED) -->
+                <div id="tab-notifications" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white">Notifications</h2>
+                    
+                    <form id="notifications-form" class="space-y-6" onsubmit="saveNotificationsSettings(event)">
+                        {% csrf_token %}
+                        
+                        <!-- Delivery Channels -->
+                        <div class="glass-panel p-6">
+                            <h3 class="font-bold text-white mb-4">Delivery Channels</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5">
+                                    <div>
+                                        <h4 class="font-bold text-white text-sm">Email Notifications</h4>
+                                        <p class="text-xs text-gray-400">Receive notifications via email</p>
+                                    </div>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="email_enabled" class="z-toggle-input" {% if notification_settings.email_enabled %}checked{% endif %}>
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5">
+                                    <div>
+                                        <h4 class="font-bold text-white text-sm">Push Notifications</h4>
+                                        <p class="text-xs text-gray-400">Browser and mobile push notifications</p>
+                                    </div>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="push_enabled" class="z-toggle-input" {% if notification_settings.push_enabled %}checked{% endif %}>
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5">
+                                    <div>
+                                        <h4 class="font-bold text-white text-sm">SMS Notifications</h4>
+                                        <p class="text-xs text-gray-400">Text message alerts (requires phone verification)</p>
+                                    </div>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="sms_enabled" class="z-toggle-input" {% if notification_settings.sms_enabled %}checked{% endif %}>
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
-                        <p class="text-xs text-gray-500 p-6">
-                            <i class="fa-solid fa-info-circle"></i>
-                            Notification preferences will be available in Phase 3 (February 2026).
-                        </p>
-                    </div>
+                        
+                        <!-- Notification Categories -->
+                        <div class="glass-panel p-6">
+                            <h3 class="font-bold text-white mb-4">Notification Categories</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5">
+                                    <div>
+                                        <h4 class="font-bold text-white text-sm">Tournament Alerts</h4>
+                                        <p class="text-xs text-gray-400">Match reminders & bracket updates</p>
+                                    </div>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="notif_tournaments" class="z-toggle-input" {% if notification_settings.notif_tournaments %}checked{% endif %}>
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5">
+                                    <div>
+                                        <h4 class="font-bold text-white text-sm">Team Updates</h4>
+                                        <p class="text-xs text-gray-400">Invites, roster changes, promotions</p>
+                                    </div>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="notif_teams" class="z-toggle-input" {% if notification_settings.notif_teams %}checked{% endif %}>
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5">
+                                    <div>
+                                        <h4 class="font-bold text-white text-sm">Bounty Offers</h4>
+                                        <p class="text-xs text-gray-400">Bounty invites and completions</p>
+                                    </div>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="notif_bounties" class="z-toggle-input" {% if notification_settings.notif_bounties %}checked{% endif %}>
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5">
+                                    <div>
+                                        <h4 class="font-bold text-white text-sm">Direct Messages</h4>
+                                        <p class="text-xs text-gray-400">Chat and DM notifications</p>
+                                    </div>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="notif_messages" class="z-toggle-input" {% if notification_settings.notif_messages %}checked{% endif %}>
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5">
+                                    <div>
+                                        <h4 class="font-bold text-white text-sm">System Announcements</h4>
+                                        <p class="text-xs text-gray-400">Platform updates and maintenance</p>
+                                    </div>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="notif_system" class="z-toggle-input" {% if notification_settings.notif_system %}checked{% endif %}>
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Quiet Hours -->
+                        <div class="glass-panel p-6">
+                            <h3 class="font-bold text-white mb-4">Quiet Hours (Do Not Disturb)</h3>
+                            <div class="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5 mb-4">
+                                <div>
+                                    <h4 class="font-bold text-white text-sm">Enable Quiet Hours</h4>
+                                    <p class="text-xs text-gray-400">Mute notifications during specified times</p>
+                                </div>
+                                <label class="z-toggle-wrapper">
+                                    <input type="checkbox" name="quiet_hours_enabled" class="z-toggle-input" {% if notification_settings.quiet_hours_enabled %}checked{% endif %}>
+                                    <span class="z-toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="z-label">Start Time</label>
+                                    <input type="time" name="quiet_hours_start" class="z-input w-full" value="{{ notification_settings.quiet_hours_start|time:'H:i'|default:'' }}">
+                                </div>
+                                <div>
+                                    <label class="z-label">End Time</label>
+                                    <input type="time" name="quiet_hours_end" class="z-input w-full" value="{{ notification_settings.quiet_hours_end|time:'H:i'|default:'' }}">
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-2">Can wrap over midnight (e.g., 22:00 to 08:00)</p>
+                        </div>
+                        
+                        <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
+                            <i class="fa-solid fa-save"></i> Save Notification Settings
+                        </button>
+                    </form>
                 </div>
 
                 <!-- BILLING/WALLET TAB (READY) -->
@@ -589,16 +1233,80 @@
                 <!-- DANGER ZONE TAB -->
                 <div id="tab-danger" class="tab-section space-y-6">
                     <h2 class="text-3xl font-display font-bold text-red-500">Danger Zone</h2>
-                    <div class="glass-panel p-6 border border-red-500/30 bg-red-500/5 flex flex-col md:flex-row justify-between items-center gap-4 disabled-section">
-                        <div>
-                            <h3 class="font-bold text-white">Delete Account <span class="coming-soon-badge ml-2">Phase 3</span></h3>
-                            <p class="text-xs text-gray-400">Permanently delete your account and all data. This cannot be undone.</p>
+                    
+                    <!-- Deletion Status Display (shown if scheduled) -->
+                    <div id="deletion-status-panel" class="glass-panel p-6 border border-orange-500/30 bg-orange-500/5" style="display: none;">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i class="fa-solid fa-clock text-orange-500 text-2xl"></i>
+                            <div>
+                                <h3 class="font-bold text-white">Account Deletion Scheduled</h3>
+                                <p class="text-xs text-gray-400">Your account will be deleted on <span id="deletion-date" class="text-orange-400 font-bold"></span></p>
+                            </div>
                         </div>
-                        <button disabled class="px-6 py-3 bg-gray-600 text-gray-400 rounded-xl text-xs font-bold uppercase cursor-not-allowed opacity-50">Delete Account</button>
+                        <div class="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4 mb-4">
+                            <p class="text-sm text-orange-200 mb-2">
+                                <i class="fa-solid fa-hourglass-half"></i> 
+                                <span id="days-remaining" class="font-bold"></span> days remaining
+                            </p>
+                            <p class="text-xs text-gray-400">You can cancel this deletion request at any time before the deadline.</p>
+                        </div>
+                        <button onclick="cancelDeletion(event)" class="w-full px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-bold uppercase transition">
+                            <i class="fa-solid fa-times-circle"></i> Cancel Deletion
+                        </button>
                     </div>
+
+                    <!-- Delete Account Form (shown if not scheduled) -->
+                    <div id="deletion-form-panel" class="glass-panel p-6 border border-red-500/30 bg-red-500/5">
+                        <div class="mb-4">
+                            <h3 class="font-bold text-white text-lg mb-2">
+                                <i class="fa-solid fa-exclamation-triangle text-red-500"></i> Delete Account
+                            </h3>
+                            <p class="text-sm text-gray-300 mb-3">This will schedule your account for deletion after a 14-day cooling-off period. You will be immediately logged out and unable to access your account unless you cancel the deletion.</p>
+                            <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
+                                <p class="text-xs text-red-200">
+                                    <i class="fa-solid fa-shield-halved"></i> 
+                                    <strong>What happens:</strong> Your account will be deactivated and personal information will be anonymized after 14 days. This action cannot be undone after the deadline.
+                                </p>
+                            </div>
+                        </div>
+
+                        <form id="deletion-form" onsubmit="scheduleDeletion(event)">
+                            <!-- Confirmation Phrase -->
+                            <div class="mb-4">
+                                <label class="z-label">
+                                    <i class="fa-solid fa-keyboard"></i> Confirmation
+                                </label>
+                                <p class="text-xs text-gray-400 mb-2">Type <span class="text-red-400 font-mono font-bold">DELETE MY ACCOUNT</span> to confirm:</p>
+                                <input type="text" id="confirm-phrase" name="confirm_phrase" class="z-input" placeholder="DELETE MY ACCOUNT" required autocomplete="off">
+                            </div>
+
+                            <!-- Password (if user has password) -->
+                            {% if user.has_usable_password %}
+                            <div class="mb-4">
+                                <label class="z-label">
+                                    <i class="fa-solid fa-lock"></i> Verify Password
+                                </label>
+                                <input type="password" id="deletion-password" name="password" class="z-input" placeholder="Enter your password" required>
+                            </div>
+                            {% endif %}
+
+                            <!-- Reason (optional) -->
+                            <div class="mb-4">
+                                <label class="z-label">
+                                    <i class="fa-solid fa-comment"></i> Reason (Optional)
+                                </label>
+                                <textarea id="deletion-reason" name="reason" class="z-input" rows="3" placeholder="Help us improve by telling us why you're leaving..."></textarea>
+                            </div>
+
+                            <button type="submit" class="w-full px-6 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-bold uppercase transition">
+                                <i class="fa-solid fa-trash"></i> Schedule Account Deletion
+                            </button>
+                        </form>
+                    </div>
+
                     <p class="text-xs text-gray-500">
                         <i class="fa-solid fa-info-circle"></i>
-                        Account deletion will be available in Phase 3 with email confirmation. For immediate assistance, contact <a href="mailto:support@deltacrown.gg" class="text-z-cyan hover:underline">support@deltacrown.gg</a>.
+                        Need help? Contact <a href="mailto:support@deltacrown.gg" class="text-z-cyan hover:underline">support@deltacrown.gg</a> before deleting your account.
                     </p>
                 </div>
 
@@ -624,20 +1332,29 @@
         return cookieValue;
     }
 
-    // Unsaved changes tracking
+    // Unsaved changes tracking (Phase 1 active controls only)
     let hasUnsavedChanges = false;
     
-    function markUnsaved() {
+    function markUnsaved(event) {
+        // Only track changes for enabled inputs (not disabled Phase 2 sections)
+        if (event && event.target) {
+            const input = event.target;
+            if (input.disabled || input.closest('.disabled-section')) {
+                return; // Skip disabled controls
+            }
+        }
         hasUnsavedChanges = true;
-        document.getElementById('unsaved-changes').style.display = 'flex';
+        const indicator = document.getElementById('unsaved-changes');
+        if (indicator) indicator.style.display = 'flex';
     }
     
     function markSaved() {
         hasUnsavedChanges = false;
-        document.getElementById('unsaved-changes').style.display = 'none';
+        const indicator = document.getElementById('unsaved-changes');
+        if (indicator) indicator.style.display = 'none';
     }
 
-    // Toast notification
+    // Toast notification (XSS-safe)
     function showToast(message, type = 'success') {
         const toast = document.createElement('div');
         toast.className = `fixed top-4 right-4 z-[100] px-6 py-3 rounded-xl shadow-2xl ${
@@ -645,9 +1362,70 @@
             type === 'error' ? 'bg-red-500 text-white' :
             'bg-cyan-500 text-black'
         }`;
-        toast.innerHTML = `<div class="flex items-center gap-2">${message}</div>`;
+        const content = document.createElement('div');
+        content.className = 'flex items-center gap-2';
+        content.textContent = message;
+        toast.appendChild(content);
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Inline feedback (XSS-safe)
+    function showInlineFeedback(formId, message, type = 'success') {
+        const form = document.getElementById(formId);
+        if (!form) return;
+        
+        // Remove existing feedback
+        const existing = form.querySelector('.inline-feedback');
+        if (existing) existing.remove();
+        
+        // Create feedback element
+        const feedback = document.createElement('div');
+        feedback.className = `inline-feedback text-sm mt-2 p-2 rounded ${
+            type === 'success' ? 'text-green-400 bg-green-500/10' :
+            'text-red-400 bg-red-500/10'
+        }`;
+        feedback.textContent = message;
+        
+        // Append to form
+        form.appendChild(feedback);
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => feedback.remove(), 3000);
+    }
+
+    // Save All Forms (header button)
+    async function saveAll() {
+        if (!hasUnsavedChanges) {
+            showToast('No unsaved changes', 'info');
+            return;
+        }
+        
+        const activeTab = document.querySelector('.tab-section.active');
+        if (!activeTab) return;
+        
+        const tabId = activeTab.id;
+        const formMap = {
+            'tab-identity': 'identity-form',
+            'tab-recruitment': 'career-form',
+            'tab-matchmaking': 'matchmaking-form',
+            'tab-notifications': 'notifications-form',
+            'tab-loadout': 'loadout-form',
+            'tab-stream': 'stream-form'
+        };
+        
+        const formId = formMap[tabId];
+        if (!formId) {
+            showToast('No saveable form in current tab', 'info');
+            return;
+        }
+        
+        const form = document.getElementById(formId);
+        if (!form) return;
+        
+        // Trigger the form's submit event
+        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+        form.dispatchEvent(submitEvent);
     }
 
     // Tab switching
@@ -687,6 +1465,13 @@
     async function saveIdentity(event) {
         event.preventDefault();
         const form = event.target;
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button.innerHTML;
+        
+        // Loading state
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        
         const formData = new FormData(form);
         
         try {
@@ -701,14 +1486,22 @@
             const result = await response.json();
             
             if (result.success) {
-                showToast('✅ Identity updated successfully', 'success');
+                showToast('Identity updated successfully', 'success');
+                showInlineFeedback('identity-form', 'Saved successfully', 'success');
                 markSaved();
             } else {
-                showToast('❌ ' + (result.message || result.error || 'Failed to update identity'), 'error');
+                const errorMsg = result.message || result.error || 'Failed to update identity';
+                showToast(errorMsg, 'error');
+                showInlineFeedback('identity-form', errorMsg, 'error');
             }
         } catch (error) {
             console.error('Identity save error:', error);
-            showToast('❌ Network error', 'error');
+            showToast('Network error', 'error');
+            showInlineFeedback('identity-form', 'Network error', 'error');
+        } finally {
+            // Restore button
+            button.disabled = false;
+            button.innerHTML = originalHTML;
         }
     }
 
@@ -732,14 +1525,21 @@
             const result = await response.json();
             
             if (result.success) {
-                showToast('✅ ' + type.charAt(0).toUpperCase() + type.slice(1) + ' uploaded successfully', 'success');
-                setTimeout(() => location.reload(), 1000);
+                showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' uploaded successfully', 'success');
+                
+                // Update preview in DOM instead of page reload
+                if (result.url) {
+                    const img = document.querySelector(`[data-preview="${type}"]`);
+                    if (img) {
+                        img.src = result.url + '?t=' + Date.now(); // Cache bust
+                    }
+                }
             } else {
-                showToast('❌ ' + (result.error || 'Upload failed'), 'error');
+                showToast(result.error || 'Upload failed', 'error');
             }
         } catch (error) {
             console.error('Media upload error:', error);
-            showToast('❌ Network error', 'error');
+            showToast('Network error', 'error');
         }
     }
 
@@ -747,12 +1547,23 @@
     async function savePrivacy(event) {
         if (event) event.preventDefault();
         
-        const form = document.getElementById('privacy-form');
-        const formData = new FormData(form);
+        const form = document.getElementById('privacy-form') || document.getElementById('inventory-visibility-form');
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button ? button.innerHTML : '';
         
-        // Only submit READY controls: show_following_list
+        // Loading state
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        }
+        
+        // Collect data from both forms
+        const privacyForm = document.getElementById('privacy-form');
+        const inventoryForm = document.getElementById('inventory-visibility-form');
+        
         const data = {
-            show_following_list: formData.get('show_following_list') !== 'on', // Inverted logic
+            show_following_list: privacyForm ? privacyForm.querySelector('[name="show_following_list"]')?.checked !== true : true,
+            inventory_visibility: inventoryForm ? inventoryForm.querySelector('[name="inventory_visibility"]')?.value : 'PUBLIC',
         };
         
         try {
@@ -768,14 +1579,24 @@
             const result = await response.json();
             
             if (result.success) {
-                showToast('✅ Privacy settings saved', 'success');
+                showToast('Privacy settings saved', 'success');
+                showInlineFeedback('privacy-form', 'Saved successfully', 'success');
                 markSaved();
             } else {
-                showToast('❌ ' + (result.message || result.error || 'Failed to save privacy'), 'error');
+                const errorMsg = result.message || result.error || 'Failed to save privacy';
+                showToast(errorMsg, 'error');
+                showInlineFeedback('privacy-form', errorMsg, 'error');
             }
         } catch (error) {
             console.error('Privacy save error:', error);
-            showToast('❌ Network error', 'error');
+            showToast('Network error', 'error');
+            showInlineFeedback('privacy-form', 'Network error', 'error');
+        } finally {
+            // Restore button
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
         }
     }
     
@@ -789,47 +1610,381 @@
         }, 500);
     }
 
+    // PHASE 5A: Load platform settings
+    async function loadPlatformSettings() {
+        try {
+            const response = await fetch('{% url "user_profile:get_platform_global_settings" %}', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            });
+            
+            if (!response.ok) throw new Error('Failed to load platform settings');
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Populate form fields
+                const prefs = data.preferences || {};
+                document.getElementById('preferred_language').value = prefs.preferred_language || 'en';
+                document.getElementById('timezone_pref').value = prefs.timezone || 'Asia/Dhaka';
+                document.getElementById('time_format').value = prefs.time_format || '12h';
+                
+                // Populate dropdowns from available options
+                const options = data.available_options || {};
+                if (options.languages) {
+                    populateSelect('preferred_language', options.languages, prefs.preferred_language);
+                }
+                if (options.timezones) {
+                    populateSelect('timezone_pref', options.timezones, prefs.timezone);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading platform settings:', error);
+            showToast('Failed to load platform settings', 'error');
+        }
+    }
+
+    // PHASE 5A: Populate select dropdown dynamically
+    function populateSelect(selectId, optionsArray, currentValue) {
+        const select = document.getElementById(selectId);
+        if (!select || !optionsArray) return;
+        
+        // Clear existing options
+        select.innerHTML = '';
+        
+        // Add new options
+        optionsArray.forEach(option => {
+            const optionElement = document.createElement('option');
+            if (Array.isArray(option)) {
+                // [value, label] format
+                optionElement.value = option[0];
+                optionElement.textContent = option[1];
+            } else {
+                // String format
+                optionElement.value = option;
+                optionElement.textContent = option;
+            }
+            select.appendChild(optionElement);
+        });
+        
+        // Restore selected value
+        if (currentValue) {
+            select.value = currentValue;
+        }
+    }
+
+    // PHASE 5A: Save platform settings
+    async function savePlatformSettings(event) {
+        event.preventDefault();
+        const form = event.target;
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button.innerHTML;
+        
+        // Loading state
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        
+        const formData = {
+            preferred_language: document.getElementById('preferred_language').value,
+            timezone: document.getElementById('timezone_pref').value,
+            time_format: document.getElementById('time_format').value,
+            currency: 'BDT', // Fixed for now
+        };
+        
+        try {
+            const response = await fetch('{% url "user_profile:save_platform_global_settings" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(formData),
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('✅ Platform preferences saved successfully!', 'success');
+                showInlineFeedback('platform-form', 'Saved successfully. Page will reload to apply changes.', 'success');
+                markSaved();
+                // Reload page to apply timezone/language changes
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                const errorMsg = data.error || data.message || 'Failed to save platform preferences';
+                showToast(`❌ ${errorMsg}`, 'error');
+                showInlineFeedback('platform-form', errorMsg, 'error');
+            }
+        } catch (error) {
+            console.error('Error saving platform settings:', error);
+            showToast('❌ Network error. Please try again.', 'error');
+            showInlineFeedback('platform-form', 'Network error', 'error');
+        } finally {
+            // Restore button
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
+    }
+
+    // UP-PHASE2A: Save Career Settings
+    async function saveCareerSettings(event) {
+        if (event) event.preventDefault();
+        
+        const form = document.getElementById('career-form');
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button ? button.innerHTML : '';
+        
+        // Loading state
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        }
+        
+        const formData = new FormData(form);
+        
+        // Collect primary roles (multiple checkboxes)
+        const primaryRoles = [];
+        formData.getAll('primary_roles').forEach(role => {
+            if (role) primaryRoles.push(role);
+        });
+        
+        const data = {
+            career_status: formData.get('career_status') || 'NOT_LOOKING',
+            lft_enabled: formData.get('lft_enabled') === 'on',
+            primary_roles: primaryRoles,
+            availability: formData.get('availability') || 'FULL_TIME',
+            salary_expectation_min: formData.get('salary_expectation_min') ? parseInt(formData.get('salary_expectation_min')) : null,
+            recruiter_visibility: formData.get('recruiter_visibility') || 'PUBLIC',
+            allow_direct_contracts: formData.get('allow_direct_contracts') === 'on',
+        };
+        
+        try {
+            const response = await fetch('{% url "user_profile:settings_career_save" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Career settings saved', 'success');
+                showInlineFeedback('career-form', 'Saved successfully', 'success');
+                markSaved();
+            } else {
+                const errorMsg = result.message || result.error || 'Failed to save career settings';
+                showToast(errorMsg, 'error');
+                showInlineFeedback('career-form', errorMsg, 'error');
+            }
+        } catch (error) {
+            console.error('Career save error:', error);
+            showToast('Network error', 'error');
+            showInlineFeedback('career-form', 'Network error', 'error');
+        } finally {
+            // Restore button
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        }
+    }
+
+    // UP-PHASE2A: Save Matchmaking Settings
+    async function saveMatchmakingSettings(event) {
+        if (event) event.preventDefault();
+        
+        const form = document.getElementById('matchmaking-form');
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button ? button.innerHTML : '';
+        
+        // Loading state
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        }
+        
+        const formData = new FormData(form);
+        
+        // Collect games enabled (multiple checkboxes)
+        const gamesEnabled = [];
+        formData.getAll('games_enabled').forEach(game => {
+            if (game) gamesEnabled.push(game);
+        });
+        
+        const data = {
+            enabled: formData.get('enabled') === 'on',
+            games_enabled: gamesEnabled,
+            min_bounty: formData.get('min_bounty') ? parseInt(formData.get('min_bounty')) : null,
+            max_bounty: formData.get('max_bounty') ? parseInt(formData.get('max_bounty')) : null,
+            auto_accept: formData.get('auto_accept') === 'on',
+            auto_reject_below_min: formData.get('auto_reject_below_min') === 'on',
+            allow_team_bounties: formData.get('allow_team_bounties') === 'on',
+        };
+        
+        try {
+            const response = await fetch('{% url "user_profile:settings_matchmaking_save" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Matchmaking settings saved', 'success');
+                showInlineFeedback('matchmaking-form', 'Saved successfully', 'success');
+                markSaved();
+            } else {
+                const errorMsg = result.message || result.error || 'Failed to save matchmaking settings';
+                showToast(errorMsg, 'error');
+                showInlineFeedback('matchmaking-form', errorMsg, 'error');
+            }
+        } catch (error) {
+            console.error('Matchmaking save error:', error);
+            showToast('Network error', 'error');
+            showInlineFeedback('matchmaking-form', 'Network error', 'error');
+        } finally {
+            // Restore button
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        }
+    }
+
+    // Save Notification Settings
+    async function saveNotificationsSettings(event) {
+        if (event) event.preventDefault();
+        
+        const form = document.getElementById('notifications-form');
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button ? button.innerHTML : '';
+        
+        // Loading state
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        }
+        
+        const formData = new FormData(form);
+        
+        const data = {
+            // Delivery channels
+            email_enabled: formData.get('email_enabled') === 'on',
+            push_enabled: formData.get('push_enabled') === 'on',
+            sms_enabled: formData.get('sms_enabled') === 'on',
+            
+            // Categories
+            notif_tournaments: formData.get('notif_tournaments') === 'on',
+            notif_teams: formData.get('notif_teams') === 'on',
+            notif_bounties: formData.get('notif_bounties') === 'on',
+            notif_messages: formData.get('notif_messages') === 'on',
+            notif_system: formData.get('notif_system') === 'on',
+            
+            // Quiet hours
+            quiet_hours_enabled: formData.get('quiet_hours_enabled') === 'on',
+            quiet_hours_start: formData.get('quiet_hours_start') || null,
+            quiet_hours_end: formData.get('quiet_hours_end') || null,
+        };
+        
+        try {
+            const response = await fetch('{% url "user_profile:settings_notifications_save" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Notification settings saved', 'success');
+                showInlineFeedback('notifications-form', 'Saved successfully', 'success');
+                markSaved();
+            } else {
+                const errorMsg = result.message || result.error || 'Failed to save notification settings';
+                showToast(errorMsg, 'error');
+                showInlineFeedback('notifications-form', errorMsg, 'error');
+            }
+        } catch (error) {
+            console.error('Notification save error:', error);
+            showToast('Network error', 'error');
+            showInlineFeedback('notifications-form', 'Network error', 'error');
+        } finally {
+            // Restore button
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        }
+    }
+
     // Save Loadout (hardware)
     async function saveLoadout(event) {
         event.preventDefault();
         const form = event.target;
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button.innerHTML;
+        
+        // Loading state
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        
         const formData = new FormData(form);
         
         // Save each hardware category separately
         const categories = ['mouse', 'keyboard', 'headset', 'monitor'];
         let successCount = 0;
         
-        for (const category of categories) {
-            const brand = formData.get(category + '_brand');
-            if (!brand || !brand.trim()) continue;
-            
-            try {
-                const response = await fetch('{% url "user_profile:save_hardware" %}', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': getCookie('csrftoken'),
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        category: category.toUpperCase(),
-                        brand: brand,
-                        model: brand, // Using brand as model for now
-                        is_public: true,
-                    }),
-                });
+        try {
+            for (const category of categories) {
+                const brand = formData.get(category + '_brand');
+                if (!brand || !brand.trim()) continue;
                 
-                const result = await response.json();
-                if (result.success) successCount++;
-            } catch (error) {
-                console.error(`Failed to save ${category}:`, error);
+                try {
+                    const response = await fetch('{% url "user_profile:save_hardware" %}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            category: category.toUpperCase(),
+                            brand: brand,
+                            model: brand, // Using brand as model for now
+                            is_public: true,
+                        }),
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) successCount++;
+                } catch (error) {
+                    console.error(`Failed to save ${category}:`, error);
+                }
             }
-        }
-        
-        if (successCount > 0) {
-            showToast(`✅ Saved ${successCount} hardware item(s)`, 'success');
-            markSaved();
-        } else {
-            showToast('❌ No items saved', 'error');
+            
+            if (successCount > 0) {
+                const msg = `Saved ${successCount} hardware item(s)`;
+                showToast(msg, 'success');
+                showInlineFeedback('loadout-form', msg, 'success');
+                markSaved();
+            } else {
+                showToast('No items saved', 'error');
+                showInlineFeedback('loadout-form', 'No items saved', 'error');
+            }
+        } finally {
+            // Restore button
+            button.disabled = false;
+            button.innerHTML = originalHTML;
         }
     }
 
@@ -837,6 +1992,13 @@
     async function saveStreamUrl(event) {
         event.preventDefault();
         const form = event.target;
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button.innerHTML;
+        
+        // Loading state
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        
         const formData = new FormData(form);
         
         const platform = formData.get('stream_platform');
@@ -844,6 +2006,8 @@
         
         if (!url || !url.trim()) {
             showToast('❌ Please enter a stream URL', 'error');
+            button.disabled = false;
+            button.innerHTML = originalHTML;
             return;
         }
         
@@ -879,31 +2043,988 @@
             const result = await response.json();
             
             if (result.success) {
-                showToast('✅ Stream URL saved', 'success');
+                showToast('Stream URL saved', 'success');
+                showInlineFeedback('stream-form', 'Stream URL saved - refresh page to see updated link', 'success');
                 markSaved();
-                // Reload to refresh social_links context
-                setTimeout(() => location.reload(), 1000);
             } else {
-                showToast('❌ ' + (result.error || 'Failed to save stream URL'), 'error');
+                const errorMsg = result.error || 'Failed to save stream URL';
+                showToast(errorMsg, 'error');
+                showInlineFeedback('stream-form', errorMsg, 'error');
             }
         } catch (error) {
             console.error('Stream URL save error:', error);
+            showToast('Network error', 'error');
+            showInlineFeedback('stream-form', 'Network error', 'error');
+        } finally {
+            // Restore button
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
+    }
+
+    // GP-FE-MVP-01: Delete game passport (REAL IMPLEMENTATION)
+    // ========== PHASE 7B: GAME PASSPORTS FULL CRUD ==========
+    
+    // Load passports list
+    async function loadPassportsList() {
+        try {
+            const response = await fetch('{% url "user_profile:list_game_passports_api" %}');
+            const result = await response.json();
+            
+            if (result.success && result.passports) {
+                renderPassportsList(result.passports);
+            } else {
+                showToast('Failed to load game passports', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading passports:', error);
+            showToast('Network error loading passports', 'error');
+        }
+    }
+    
+    // Render passports list
+    function renderPassportsList(passports) {
+        const container = document.getElementById('passports-list');
+        if (!container) return;
+        
+        if (!passports || passports.length === 0) {
+            container.innerHTML = `
+                <div class="glass-panel p-8 text-center text-gray-400">
+                    <i class="fa-solid fa-gamepad text-4xl mb-4 opacity-50"></i>
+                    <p>No game accounts linked. Click "Link New" to add your first passport.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = passports.map((passport, index) => `
+            <div class="glass-panel p-5 border-l-4 border-l-z-cyan flex flex-col md:flex-row justify-between items-center gap-4 mb-4" data-passport-id="${passport.id}">
+                <div class="flex items-center gap-4 w-full md:w-auto">
+                    <div class="w-12 h-12 bg-[#ff4655] rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
+                        <i class="fa-solid fa-gamepad"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-white">${escapeHtml(passport.game.name)}</h3>
+                            ${passport.pinned ? '<span class="bg-z-cyan text-black text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">Pinned</span>' : ''}
+                        </div>
+                        <p class="text-sm text-gray-400 font-mono">${escapeHtml(passport.ign)}</p>
+                        ${passport.region ? `<p class="text-xs text-gray-500">${escapeHtml(passport.region)}</p>` : ''}
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                    ${index > 0 ? `<button onclick="reorderPassport(${passport.id}, 'up')" class="text-gray-500 hover:text-z-cyan transition" title="Move Up"><i class="fa-solid fa-arrow-up"></i></button>` : ''}
+                    ${index < passports.length - 1 ? `<button onclick="reorderPassport(${passport.id}, 'down')" class="text-gray-500 hover:text-z-cyan transition" title="Move Down"><i class="fa-solid fa-arrow-down"></i></button>` : ''}
+                    <button onclick="togglePin(${passport.id}, ${passport.pinned})" class="text-gray-500 hover:text-yellow-400 transition" title="${passport.pinned ? 'Unpin' : 'Pin'}">
+                        <i class="fa-solid fa-${passport.pinned ? 'star' : 'star text-gray-600'}"></i>
+                    </button>
+                    <button onclick="editPassport(${passport.id})" class="text-gray-500 hover:text-blue-400 transition" title="Edit">
+                        <i class="fa-solid fa-edit"></i>
+                    </button>
+                    <button onclick="deletePassport(${passport.id})" class="text-gray-500 hover:text-red-400 transition" title="Delete">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    // Open passport modal (create)
+    async function openPassportModal() {
+        const modal = document.getElementById('passport-modal');
+        if (!modal) {
+            createPassportModal();
+            return;
+        }
+        
+        // Reset form
+        document.getElementById('passport-form').reset();
+        document.getElementById('passport-modal-title').textContent = 'Link New Game';
+        document.getElementById('passport-id').value = '';
+        
+        // Load games
+        await loadGamesForPassport();
+        
+        modal.classList.remove('hidden');
+    }
+    
+    // Edit passport
+    async function editPassport(passportId) {
+        try {
+            const response = await fetch('{% url "user_profile:list_game_passports_api" %}');
+            const result = await response.json();
+            
+            if (result.success) {
+                const passport = result.passports.find(p => p.id === passportId);
+                if (passport) {
+                    openEditModal(passport);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading passport:', error);
+            showToast('Failed to load passport data', 'error');
+        }
+    }
+    
+    // Open edit modal
+    async function openEditModal(passport) {
+        const modal = document.getElementById('passport-modal');
+        if (!modal) {
+            createPassportModal();
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        document.getElementById('passport-modal-title').textContent = 'Edit Game Passport';
+        document.getElementById('passport-id').value = passport.id;
+        
+        await loadGamesForPassport();
+        
+        document.getElementById('passport-game').value = passport.game.id;
+        document.getElementById('passport-game').disabled = true; // Can't change game
+        document.getElementById('passport-ign').value = passport.ign;
+        document.getElementById('passport-region').value = passport.region || '';
+        document.getElementById('passport-rank').value = passport.rank || '';
+        
+        modal.classList.remove('hidden');
+    }
+    
+    // Load games for passport modal
+    async function loadGamesForPassport() {
+        try {
+            const response = await fetch('{% url "user_profile:get_available_games" %}');
+            const result = await response.json();
+            
+            if (result.success && result.games) {
+                const select = document.getElementById('passport-game');
+                if (select) {
+                    select.innerHTML = '<option value="">Select a game...</option>' +
+                        result.games.map(game => `<option value="${game.id}">${escapeHtml(game.name)}</option>`).join('');
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load games:', error);
+        }
+    }
+    
+    // Save passport (create or update)
+    async function savePassport(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button.innerHTML;
+        
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        
+        const passportId = document.getElementById('passport-id').value;
+        const isUpdate = Boolean(passportId);
+        
+        const data = {
+            game_id: parseInt(document.getElementById('passport-game').value),
+            ign: document.getElementById('passport-ign').value.trim(),
+            region: document.getElementById('passport-region').value.trim() || null,
+            rank: document.getElementById('passport-rank').value.trim() || null
+        };
+        
+        if (isUpdate) {
+            data.id = parseInt(passportId);
+        }
+        
+        try {
+            const url = isUpdate ? '{% url "user_profile:update_game_passport_api" %}' : '{% url "user_profile:create_game_passport_api" %}';
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(`✅ Game passport ${isUpdate ? 'updated' : 'created'} successfully`, 'success');
+                closePassportModal();
+                loadPassportsList();
+            } else {
+                showToast(`❌ ${result.error || 'Failed to save passport'}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error saving passport:', error);
+            showToast('❌ Network error', 'error');
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
+    }
+    
+    // Delete passport
+    async function deletePassport(passportId) {
+        if (!confirm('Delete this game passport? This cannot be undone.')) return;
+        
+        try {
+            const response = await fetch('{% url "user_profile:delete_game_passport_api" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ id: passportId })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('✅ Game passport deleted successfully', 'success');
+                loadPassportsList();
+            } else {
+                showToast(`❌ ${result.error || 'Failed to delete passport'}`, 'error');
+            }
+        } catch (error) {
+            console.error('Delete passport error:', error);
+            showToast('❌ Network error', 'error');
+        }
+    }
+    
+    // Toggle pin
+    async function togglePin(passportId, currentlyPinned) {
+        try {
+            // Find game slug from current list
+            const passport = Array.from(document.querySelectorAll('[data-passport-id]'))
+                .find(el => el.dataset.passportId == passportId);
+            if (!passport) return;
+            
+            const response = await fetch('{% url "user_profile:list_game_passports_api" %}');
+            const result = await response.json();
+            
+            if (result.success) {
+                const passportData = result.passports.find(p => p.id === passportId);
+                if (!passportData) return;
+                
+                const pinResponse = await fetch('{% url "user_profile:passport_pin" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        game: passportData.game.slug,
+                        pin: !currentlyPinned
+                    })
+                });
+                
+                const pinResult = await pinResponse.json();
+                
+                if (pinResult.success) {
+                    showToast(pinResult.message, 'success');
+                    loadPassportsList();
+                } else {
+                    showToast(`❌ ${pinResult.error || 'Failed to toggle pin'}`, 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Error toggling pin:', error);
+            showToast('❌ Network error', 'error');
+        }
+    }
+    
+    // Reorder passport
+    async function reorderPassport(passportId, direction) {
+        const container = document.getElementById('passports-list');
+        const items = Array.from(container.querySelectorAll('[data-passport-id]'));
+        const currentIndex = items.findIndex(el => el.dataset.passportId == passportId);
+        
+        if (currentIndex === -1) return;
+        
+        const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+        if (newIndex < 0 || newIndex >= items.length) return;
+        
+        // Swap in DOM
+        if (direction === 'up') {
+            items[currentIndex].parentNode.insertBefore(items[currentIndex], items[newIndex]);
+        } else {
+            items[currentIndex].parentNode.insertBefore(items[newIndex], items[currentIndex]);
+        }
+        
+        // Get new order
+        const newOrder = Array.from(container.querySelectorAll('[data-passport-id]'))
+            .map(el => parseInt(el.dataset.passportId));
+        
+        // Save to backend
+        try {
+            // Note: Reorder endpoint expects game slugs, need to fetch current list first
+            const response = await fetch('{% url "user_profile:list_game_passports_api" %}');
+            const result = await response.json();
+            
+            if (result.success) {
+                const game_order = newOrder.map(id => {
+                    const passport = result.passports.find(p => p.id === id);
+                    return passport ? passport.game.slug : null;
+                }).filter(Boolean);
+                
+                const reorderResponse = await fetch('{% url "user_profile:passport_reorder" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ game_order })
+                });
+                
+                const reorderResult = await reorderResponse.json();
+                
+                if (reorderResult.success) {
+                    showToast('✅ Order saved', 'success');
+                } else {
+                    showToast('❌ Failed to save order', 'error');
+                    loadPassportsList(); // Reload to restore correct order
+                }
+            }
+        } catch (error) {
+            console.error('Error reordering:', error);
+            showToast('❌ Network error', 'error');
+            loadPassportsList();
+        }
+    }
+    
+    // Create passport modal HTML
+    function createPassportModal() {
+        const modalHTML = `
+            <div id="passport-modal" class="hidden fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center p-4" onclick="if(event.target===this) closePassportModal()">
+                <div class="glass-panel p-6 w-full max-w-md" onclick="event.stopPropagation()">
+                    <h3 id="passport-modal-title" class="text-2xl font-bold text-white mb-6">Link New Game</h3>
+                    <form id="passport-form" onsubmit="savePassport(event)">
+                        <input type="hidden" id="passport-id">
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="z-label">Game *</label>
+                                <select id="passport-game" class="z-input w-full" required>
+                                    <option value="">Select a game...</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="z-label">In-Game Name (IGN) *</label>
+                                <input type="text" id="passport-ign" class="z-input w-full" required placeholder="YourGamertag">
+                            </div>
+                            
+                            <div>
+                                <label class="z-label">Region</label>
+                                <input type="text" id="passport-region" class="z-input w-full" placeholder="NA, EU, ASIA, etc.">
+                            </div>
+                            
+                            <div>
+                                <label class="z-label">Rank</label>
+                                <input type="text" id="passport-rank" class="z-input w-full" placeholder="Diamond, Gold, etc.">
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mt-6">
+                            <button type="button" onclick="closePassportModal()" class="flex-1 bg-white/10 text-white px-4 py-2 rounded-lg hover:bg-white/20 transition">Cancel</button>
+                            <button type="submit" class="flex-1 bg-z-cyan text-black px-4 py-2 rounded-lg font-bold hover:bg-z-cyan/80 transition">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+    
+    // Close passport modal
+    function closePassportModal() {
+        const modal = document.getElementById('passport-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    // ========== PHASE 7C-P0: PRIVACY FULL MATRIX SAVE ==========
+    
+    async function savePrivacyFull(event) {
+        event.preventDefault();
+        autoSavePrivacy();
+    }
+    
+    let privacySaveTimeout = null;
+    async function autoSavePrivacy() {
+        clearTimeout(privacySaveTimeout);
+        privacySaveTimeout = setTimeout(async () => {
+            const form = document.getElementById('privacy-form');
+            if (!form) return;
+            
+            const formData = new FormData(form);
+            const data = {};
+            
+            // Collect all checkboxes and select
+            const fields = [
+                'is_private_account', 'show_real_name', 'show_email', 'show_phone', 'show_age', 'show_gender', 'show_country',
+                'show_game_ids', 'show_match_history', 'show_teams', 'show_achievements',
+                'show_inventory_value', 'show_level_xp', 'show_social_links', 'show_following_list',
+                'allow_team_invites', 'allow_friend_requests', 'allow_direct_messages'
+            ];
+            
+            fields.forEach(field => {
+                const input = form.querySelector(`[name="${field}"]`);
+                if (input) {
+                    if (input.type === 'checkbox') {
+                        data[field] = input.checked;
+                    } else {
+                        data[field] = input.value;
+                    }
+                }
+            });
+            
+            // Inventory visibility
+            const invVisibility = form.querySelector('[name="inventory_visibility"]');
+            if (invVisibility) {
+                data.inventory_visibility = invVisibility.value;
+            }
+            
+            try {
+                const response = await fetch('{% url "user_profile:update_privacy_settings" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('✅ Privacy settings updated', 'success');
+                } else {
+                    showToast(`❌ ${result.error || 'Failed to save privacy settings'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Privacy save error:', error);
+                showToast('❌ Network error', 'error');
+            }
+        }, 800);
+    }
+
+    // ========== PHASE 7C-P0: FOLLOW REQUESTS ==========
+    
+    let currentFollowRequestFilter = 'PENDING';
+    
+    async function loadFollowRequests(status = 'PENDING') {
+        currentFollowRequestFilter = status;
+        
+        // Update filter buttons
+        ['pending', 'approved', 'rejected'].forEach(s => {
+            const btn = document.getElementById(`filter-${s}`);
+            if (btn) {
+                if (s === status.toLowerCase()) {
+                    btn.classList.remove('bg-white/5', 'text-gray-400');
+                    btn.classList.add('bg-white/10', 'text-white');
+                } else {
+                    btn.classList.remove('bg-white/10', 'text-white');
+                    btn.classList.add('bg-white/5', 'text-gray-400');
+                }
+            }
+        });
+        
+        try {
+            const response = await fetch(`{% url "user_profile:get_follow_requests_api" %}?status=${status}`);
+            const result = await response.json();
+            
+            if (result.success) {
+                renderFollowRequests(result.requests, status);
+            } else {
+                showToast('Failed to load follow requests', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading follow requests:', error);
+            showToast('Network error', 'error');
+        }
+    }
+    
+    function renderFollowRequests(requests, status) {
+        const container = document.getElementById('follow-requests-list');
+        if (!container) return;
+        
+        if (!requests || requests.length === 0) {
+            container.innerHTML = `<p class="text-gray-400 text-center py-4">No ${status.toLowerCase()} follow requests</p>`;
+            return;
+        }
+        
+        container.innerHTML = requests.map(req => `
+            <div class="flex items-center justify-between p-4 bg-white/5 rounded-lg mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-z-cyan to-z-purple flex items-center justify-center text-white font-bold">
+                        ${req.requester.display_name.charAt(0)}
+                    </div>
+                    <div>
+                        <p class="font-bold text-white text-sm">${escapeHtml(req.requester.display_name)}</p>
+                        <p class="text-xs text-gray-400">@${escapeHtml(req.requester.username)}</p>
+                        <p class="text-xs text-gray-500">${new Date(req.created_at).toLocaleDateString()}</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    ${status === 'PENDING' ? `
+                        <button onclick="respondToFollowRequest(${req.id}, 'approve')" class="px-3 py-1 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700 transition">
+                            <i class="fa-solid fa-check"></i> Approve
+                        </button>
+                        <button onclick="respondToFollowRequest(${req.id}, 'reject')" class="px-3 py-1 bg-red-600 text-white rounded-lg text-xs hover:bg-red-700 transition">
+                            <i class="fa-solid fa-times"></i> Reject
+                        </button>
+                    ` : `
+                        <span class="px-3 py-1 bg-white/10 text-gray-400 rounded-lg text-xs">${status.charAt(0) + status.slice(1).toLowerCase()}</span>
+                    `}
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    async function respondToFollowRequest(requestId, action) {
+        try {
+            const response = await fetch(`/profiles/dummy/follow/respond/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ request_id: requestId, action: action })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(`✅ ${result.message}`, 'success');
+                loadFollowRequests(currentFollowRequestFilter);
+            } else {
+                showToast(`❌ ${result.error || 'Failed to respond'}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error responding to follow request:', error);
+            showToast('❌ Network error', 'error');
+        }
+    }
+    
+    // Helper function
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ========== LEGACY/PLACEHOLDER REMOVAL ==========
+    
+    // Remove old placeholder functions (replaced above)
+    async function linkNewGame() {
+        // DEPRECATED: Use openPassportModal() instead
+        openPassportModal();
+    }
+
+    // ========== OLD LEGACY FUNCTIONS - REMOVED (See PHASE 7B above for replacements) ==========
+    // These are now implemented properly above
+
+    // GP-FE-MVP-01: Load available games for passport creation
+    async function loadGamesForPassport_OLD() {
+        try {
+            const response = await fetch('{% url "user_profile:get_available_games" %}');
+            const result = await response.json();
+            
+            if (result.success && result.games) {
+                const select = document.getElementById('passport-game-select');
+                if (select) {
+                    select.innerHTML = '<option value="">Select a game...</option>';
+                    result.games.forEach(game => {
+                        const option = document.createElement('option');
+                        option.value = game.id;
+                        option.textContent = game.name;
+                        select.appendChild(option);
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load games:', error);
+        }
+    }
+
+    // GP-FE-MVP-01: Create game passport
+    async function createGamePassport(data) {
+        try {
+            const response = await fetch('{% url "user_profile:create_game_passport_api" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify(data),
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('✅ Game passport created successfully', 'success');
+                // Close modal if exists
+                const modal = document.getElementById('add-passport-modal');
+                if (modal) modal.classList.add('hidden');
+                // Reload page to reflect changes
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                const errorMsg = result.error || result.message || 'Failed to create passport';
+                showToast(`❌ ${errorMsg}`, 'error');
+            }
+        } catch (error) {
+            console.error('Create passport error:', error);
             showToast('❌ Network error', 'error');
         }
     }
 
-    // Delete passport
-    async function deletePassport(id) {
-        if (!confirm('Delete this game passport?')) return;
+    // ========== PHASE 3B: ACCOUNT DELETION ==========
+    
+    // Load deletion status on page load
+    async function loadDeletionStatus() {
+        try {
+            const response = await fetch('{% url "accounts:deletion_status" %}', {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+            });
+            
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                // User has scheduled deletion
+                const data = result.data;
+                document.getElementById('deletion-status-panel').style.display = 'block';
+                document.getElementById('deletion-form-panel').style.display = 'none';
+                
+                // Format date
+                const scheduledDate = new Date(data.scheduled_for);
+                document.getElementById('deletion-date').textContent = scheduledDate.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                // Show days remaining
+                document.getElementById('days-remaining').textContent = data.days_remaining;
+            } else {
+                // No deletion scheduled - show form
+                document.getElementById('deletion-status-panel').style.display = 'none';
+                document.getElementById('deletion-form-panel').style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error loading deletion status:', error);
+        }
+    }
+    
+    // Schedule account deletion
+    async function scheduleDeletion(event) {
+        event.preventDefault();
+        const form = event.target;
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button.innerHTML;
         
-        showToast('⚠️ Game passport deletion coming soon', 'info');
-        // TODO: Implement when DELETE endpoint is ready
+        const confirmPhrase = document.getElementById('confirm-phrase').value;
+        const password = document.getElementById('deletion-password')?.value || '';
+        const reason = document.getElementById('deletion-reason').value;
+        
+        // Validate confirmation phrase
+        if (confirmPhrase !== 'DELETE MY ACCOUNT') {
+            showToast('❌ Please type DELETE MY ACCOUNT exactly to confirm', 'error');
+            return;
+        }
+        
+        // Confirm action
+        if (!confirm('⚠️ WARNING: This will immediately log you out and schedule your account for deletion in 14 days. Continue?')) {
+            return;
+        }
+        
+        // Loading state
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Scheduling...';
+        
+        try {
+            const response = await fetch('{% url "accounts:schedule_deletion" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    confirm_phrase: confirmPhrase,
+                    password: password,
+                    reason: reason
+                }),
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('✓ Account deletion scheduled. You will be logged out.', 'success');
+                // Redirect to login after brief delay
+                setTimeout(() => {
+                    window.location.href = '/accounts/login/?deletion_scheduled=1';
+                }, 2000);
+            } else {
+                const errorMsg = result.error || 'Failed to schedule deletion';
+                showToast(errorMsg, 'error');
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        } catch (error) {
+            console.error('Deletion scheduling error:', error);
+            showToast('Network error', 'error');
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
+    }
+    
+    // Cancel account deletion
+    async function cancelDeletion(event) {
+        event.preventDefault();
+        const button = event.target;
+        const originalHTML = button.innerHTML;
+        
+        if (!confirm('Cancel your account deletion? You will be able to log in again.')) {
+            return;
+        }
+        
+        // Loading state
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Canceling...';
+        
+        try {
+            const response = await fetch('{% url "accounts:cancel_deletion" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({}),
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('✓ Account deletion canceled successfully', 'success');
+                // Reload status
+                await loadDeletionStatus();
+            } else {
+                const errorMsg = result.message || 'Failed to cancel deletion';
+                showToast(errorMsg, 'error');
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        } catch (error) {
+            console.error('Deletion cancellation error:', error);
+            showToast('Network error', 'error');
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
     }
 
-    // Link new game
-    function linkNewGame() {
-        showToast('⚠️ Game linking wizard coming soon', 'info');
-        // TODO: Implement game linking modal
+    // ==================== PHASE 3A + 4B: INVENTORY FUNCTIONS ====================
+    
+    let inventoryItems = []; // PHASE 4B: Cache for client-side filtering
+    
+    async function loadInventory() {
+        const container = document.getElementById('inventory-list');
+        if (!container) return;
+        
+        try {
+            const response = await fetch('{% url "economy:my_inventory" %}', {
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            });
+            const result = await response.json();
+            
+            if (result.success && result.data.items.length > 0) {
+                inventoryItems = result.data.items; // PHASE 4B: Store for filtering
+                applyInventoryFilters();
+            } else {
+                inventoryItems = [];
+                container.innerHTML = '<p class="text-sm text-gray-500">No items in inventory.</p>';
+            }
+        } catch (error) {
+            inventoryItems = [];
+            container.innerHTML = '<p class="text-sm text-red-400">Failed to load inventory.</p>';
+            console.error('Inventory load error:', error);
+        }
+    }
+    
+    // PHASE 4B: Search/Filter/Sort
+    function applyInventoryFilters() {
+        const container = document.getElementById('inventory-list');
+        if (!container) return;
+        
+        const search = document.getElementById('inventory-search').value.toLowerCase();
+        const rarityFilter = document.getElementById('inventory-rarity-filter').value;
+        const sortOption = document.getElementById('inventory-sort').value;
+        
+        let filtered = inventoryItems.filter(item => {
+            const matchesSearch = item.item_name.toLowerCase().includes(search);
+            const matchesRarity = !rarityFilter || item.rarity === rarityFilter;
+            return matchesSearch && matchesRarity;
+        });
+        
+        // Sort
+        if (sortOption === 'name-asc') {
+            filtered.sort((a, b) => a.item_name.localeCompare(b.item_name));
+        } else if (sortOption === 'quantity-desc') {
+            filtered.sort((a, b) => b.quantity - a.quantity);
+        } else if (sortOption === 'acquired-desc') {
+            filtered.sort((a, b) => {
+                const dateA = a.acquired_at ? new Date(a.acquired_at) : new Date(0);
+                const dateB = b.acquired_at ? new Date(b.acquired_at) : new Date(0);
+                return dateB - dateA;
+            });
+        }
+        
+        if (filtered.length > 0) {
+            container.innerHTML = filtered.map(item => `
+                <div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition" onclick="openItemModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+                    <div>
+                        <div class="font-bold text-white">${item.item_name}</div>
+                        <div class="text-xs text-gray-400">Qty: ${item.quantity} | Rarity: ${item.rarity}</div>
+                    </div>
+                    <div class="text-xs text-gray-500">${item.acquired_from}</div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<p class="text-sm text-gray-500">No matching items.</p>';
+        }
+    }
+    
+    // PHASE 4B: Item Detail Modal
+    function openItemModal(item) {
+        document.getElementById('item-detail-modal').classList.remove('hidden');
+        document.getElementById('modal-item-name').textContent = item.item_name;
+        
+        const icon = document.getElementById('modal-item-icon');
+        if (item.item_icon) {
+            icon.src = item.item_icon;
+            icon.alt = item.item_name;
+            document.getElementById('modal-item-icon-container').style.display = 'flex';
+        } else {
+            document.getElementById('modal-item-icon-container').style.display = 'none';
+        }
+        
+        document.getElementById('modal-item-rarity').textContent = item.rarity || '-';
+        document.getElementById('modal-item-quantity').textContent = item.quantity || '-';
+        document.getElementById('modal-item-tradable').textContent = item.is_tradable !== false ? 'Yes' : 'No';
+        document.getElementById('modal-item-giftable').textContent = item.is_giftable !== false ? 'Yes' : 'No';
+        document.getElementById('modal-item-acquired').textContent = item.acquired_from || 'Unknown';
+    }
+    
+    function closeItemModal(event) {
+        if (event && event.target.id !== 'item-detail-modal') return;
+        document.getElementById('item-detail-modal').classList.add('hidden');
+    }
+    
+    // ESC key to close modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !document.getElementById('item-detail-modal').classList.contains('hidden')) {
+            closeItemModal();
+        }
+    });
+
+    // PHASE 4B: Gift Confirmation
+    async function sendGift(event) {
+        event.preventDefault();
+        const form = event.target;
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button.innerHTML;
+        
+        // Confirmation
+        const recipient = form.recipient_username.value;
+        const itemSlug = form.item_slug.value;
+        const quantity = form.quantity.value;
+        
+        if (!confirm(`Send ${quantity}x ${itemSlug} to ${recipient}?`)) {
+            return;
+        }
+        
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+        
+        const data = {
+            recipient_username: recipient,
+            item_slug: itemSlug,
+            quantity: parseInt(quantity),
+            message: form.message.value
+        };
+        
+        try {
+            const response = await fetch('{% url "economy:gift_item" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Gift sent successfully', 'success');
+                form.reset();
+                loadInventory();
+                loadRequests(); // Refresh outgoing requests
+            } else {
+                showToast(result.error || 'Failed to send gift', 'error');
+            }
+        } catch (error) {
+            showToast('Network error', 'error');
+            console.error('Gift error:', error);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
+    }
+
+    async function proposeTrade(event) {
+        event.preventDefault();
+        const form = event.target;
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button.innerHTML;
+        
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Proposing...';
+        
+        const data = {
+            target_username: form.target_username.value,
+            offered_item_slug: form.offered_item_slug.value,
+            offered_quantity: parseInt(form.offered_quantity.value),
+            requested_item_slug: form.requested_item_slug.value || null,
+            requested_quantity: form.requested_quantity.value ? parseInt(form.requested_quantity.value) : null,
+            message: form.message.value
+        };
+        
+        try {
+            const response = await fetch('{% url "economy:trade_request" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Trade request sent successfully', 'success');
+                form.reset();
+                loadInventory();
+            } else {
+                showToast(result.error || 'Failed to propose trade', 'error');
+            }
+        } catch (error) {
+            showToast('Network error', 'error');
+            console.error('Trade error:', error);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
     }
 
     // Warn before leaving with unsaved changes
@@ -913,6 +3034,484 @@
             e.returnValue = '';
         }
     });
+
+    // ==================== PHASE 4A/4C: INVENTORY REQUESTS ====================
+    
+    // PHASE 4C: Notification tracking
+    let lastKnownRequestIds = { incoming: new Set(), outgoing: new Set() };
+    let notifiedRequestIds = new Set();
+    let pollingInterval = null;
+    let browserNotificationsEnabled = false;
+    let hasAskedForPermission = false;
+    
+    async function loadRequests(isPolling = false) {
+        try {
+            const response = await fetch('/me/inventory/requests/');
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load requests');
+            }
+            
+            // PHASE 4C: Detect changes and trigger notifications
+            if (isPolling) {
+                detectAndNotifyChanges(data.data);
+            } else {
+                // Initial load: populate known IDs without notifying
+                initializeKnownRequests(data.data);
+            }
+            
+            renderIncomingRequests(data.data.incoming);
+            renderOutgoingRequests(data.data.outgoing);
+        } catch (err) {
+            console.error('[Phase 4A] Failed to load requests:', err);
+            document.getElementById('incoming-requests-list').innerHTML = 
+                '<p class="text-sm text-red-400"><i class="fa-solid fa-triangle-exclamation"></i> Error loading requests</p>';
+            document.getElementById('outgoing-requests-list').innerHTML = 
+                '<p class="text-sm text-red-400"><i class="fa-solid fa-triangle-exclamation"></i> Error loading requests</p>';
+        }
+    }
+    
+    // PHASE 4C: Initialize known requests on first load
+    function initializeKnownRequests(data) {
+        const incoming = data.incoming;
+        const outgoing = data.outgoing;
+        
+        lastKnownRequestIds.incoming = new Set(
+            [...incoming.gifts, ...incoming.trades].map(r => `${r.type}-${r.id}`)
+        );
+        lastKnownRequestIds.outgoing = new Set(
+            [...outgoing.gifts, ...outgoing.trades].map(r => `${r.type}-${r.id}`)
+        );
+        
+        // Mark all as notified to avoid toasts on page load
+        notifiedRequestIds = new Set([...lastKnownRequestIds.incoming, ...lastKnownRequestIds.outgoing]);
+    }
+    
+    // PHASE 4C: Detect changes and trigger notifications
+    function detectAndNotifyChanges(data) {
+        const incoming = data.incoming;
+        const outgoing = data.outgoing;
+        
+        const currentIncomingIds = new Set(
+            [...incoming.gifts, ...incoming.trades].map(r => `${r.type}-${r.id}`)
+        );
+        const currentOutgoingIds = new Set(
+            [...outgoing.gifts, ...outgoing.trades].map(r => `${r.type}-${r.id}`)
+        );
+        
+        // Detect new incoming requests
+        [...incoming.gifts, ...incoming.trades].forEach(request => {
+            const requestKey = `${request.type}-${request.id}`;
+            if (!lastKnownRequestIds.incoming.has(requestKey) && !notifiedRequestIds.has(requestKey)) {
+                notifyNewIncomingRequest(request);
+                notifiedRequestIds.add(requestKey);
+            }
+        });
+        
+        // Detect status changes in outgoing requests
+        [...outgoing.gifts, ...outgoing.trades].forEach(request => {
+            const requestKey = `${request.type}-${request.id}-${request.status}`;
+            if ((request.status === 'ACCEPTED' || request.status === 'REJECTED') && !notifiedRequestIds.has(requestKey)) {
+                notifyOutgoingStatusChange(request);
+                notifiedRequestIds.add(requestKey);
+            }
+        });
+        
+        // Update known IDs
+        lastKnownRequestIds.incoming = currentIncomingIds;
+        lastKnownRequestIds.outgoing = currentOutgoingIds;
+    }
+    
+    // PHASE 4C: Notify new incoming request
+    function notifyNewIncomingRequest(request) {
+        const isGift = request.type === 'gift';
+        const sender = isGift ? request.sender_username : request.initiator_username;
+        const message = isGift 
+            ? `🎁 You received a gift from ${sender}` 
+            : `🔁 New trade request from ${sender}`;
+        
+        showToast(message, 'info');
+        
+        // Browser notification if enabled
+        if (browserNotificationsEnabled && Notification.permission === 'granted') {
+            const notification = new Notification('DeltaCrown - New Request', {
+                body: message,
+                icon: '/static/img/logo.png',
+                tag: `request-${request.id}`
+            });
+            notification.onclick = () => {
+                window.focus();
+                switchTab('inventory');
+            };
+        }
+        
+        // Ask for browser notification permission on first incoming request
+        if (!hasAskedForPermission && Notification.permission === 'default') {
+            hasAskedForPermission = true;
+            setTimeout(() => requestNotificationPermission(), 2000);
+        }
+    }
+    
+    // PHASE 4C: Notify outgoing status change
+    function notifyOutgoingStatusChange(request) {
+        const isGift = request.type === 'gift';
+        const recipient = isGift ? request.receiver_username : request.target_username;
+        const accepted = request.status === 'ACCEPTED';
+        
+        let message;
+        if (isGift) {
+            message = accepted 
+                ? `✅ ${recipient} accepted your gift` 
+                : `❌ ${recipient} rejected your gift`;
+        } else {
+            message = accepted 
+                ? `✅ Trade accepted by ${recipient}` 
+                : `❌ Trade rejected by ${recipient}`;
+        }
+        
+        showToast(message, accepted ? 'success' : 'info');
+        
+        // Browser notification if enabled
+        if (browserNotificationsEnabled && Notification.permission === 'granted') {
+            const notification = new Notification('DeltaCrown - Request Update', {
+                body: message,
+                icon: '/static/img/logo.png',
+                tag: `request-${request.id}-status`
+            });
+            notification.onclick = () => {
+                window.focus();
+                switchTab('inventory');
+            };
+        }
+    }
+    
+    // PHASE 4C: Request browser notification permission
+    async function requestNotificationPermission() {
+        if ('Notification' in window && Notification.permission === 'default') {
+            try {
+                const permission = await Notification.requestPermission();
+                browserNotificationsEnabled = permission === 'granted';
+                if (browserNotificationsEnabled) {
+                    showToast('Browser notifications enabled', 'success');
+                }
+            } catch (err) {
+                console.log('[Phase 4C] Notification permission denied or error:', err);
+            }
+        }
+    }
+    
+    // PHASE 4C: Start polling
+    function startPolling() {
+        if (pollingInterval) return; // Already polling
+        
+        pollingInterval = setInterval(() => {
+            // Only poll if on inventory tab and page is visible
+            if (document.getElementById('tab-inventory').style.display !== 'none' && !document.hidden) {
+                loadRequests(true);
+            }
+        }, 30000); // 30 seconds
+    }
+    
+    // PHASE 4C: Stop polling on page unload
+    window.addEventListener('beforeunload', () => {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+        }
+    });
+    
+    // PHASE 4C: Pause polling when tab hidden
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+        } else if (!document.hidden && document.getElementById('tab-inventory').style.display !== 'none') {
+            startPolling();
+        }
+    });
+    
+    function renderIncomingRequests(incoming) {
+        const container = document.getElementById('incoming-requests-list');
+        const gifts = incoming.gifts || [];
+        const trades = incoming.trades || [];
+        
+        if (gifts.length === 0 && trades.length === 0) {
+            container.innerHTML = '<p class="text-sm text-gray-400"><i class="fa-solid fa-inbox-in"></i> No incoming requests</p>';
+            return;
+        }
+        
+        let html = '';
+        
+        // Render Gifts
+        gifts.forEach(gift => {
+            const statusBadge = getStatusBadge(gift.status);
+            const isPending = gift.status === 'PENDING';
+            const isExpired = gift.expires_at && new Date(gift.expires_at) < new Date();
+            
+            html += `
+                <div class="bg-black/30 rounded-xl p-4 border border-white/10">
+                    <div class="flex items-start gap-4">
+                        <img src="${gift.sender_avatar || '/static/img/default-avatar.png'}" alt="${gift.sender_username}" class="w-12 h-12 rounded-lg">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-sm font-bold text-white">${gift.sender_username}</span>
+                                <i class="fa-solid fa-arrow-right text-gray-400 text-xs"></i>
+                                <span class="text-xs text-gray-400">Gift</span>
+                                ${statusBadge}
+                            </div>
+                            <div class="flex items-center gap-2 mb-2">
+                                ${gift.item_icon ? `<img src="${gift.item_icon}" alt="${gift.item_name}" class="w-8 h-8 rounded">` : '<i class="fa-solid fa-cube text-gray-500 w-8 h-8 flex items-center justify-center"></i>'}
+                                <div>
+                                    <span class="text-sm text-white">${gift.item_name}</span>
+                                    <span class="text-xs text-gray-400 ml-1">x${gift.quantity}</span>
+                                </div>
+                            </div>
+                            ${gift.message ? `<p class="text-xs text-gray-300 italic mb-2">"${gift.message}"</p>` : ''}
+                            <div class="text-xs text-gray-500">
+                                Sent ${new Date(gift.created_at).toLocaleDateString()}
+                                ${isExpired ? '<span class="text-red-400 ml-2"><i class="fa-solid fa-clock"></i> Expired</span>' : ''}
+                            </div>
+                            ${isPending && !isExpired ? `
+                                <div class="flex gap-2 mt-3">
+                                    <button onclick="respondToRequest('gift', ${gift.id}, 'ACCEPT')" 
+                                            class="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                        <i class="fa-solid fa-check"></i> Accept
+                                    </button>
+                                    <button onclick="respondToRequest('gift', ${gift.id}, 'REJECT')" 
+                                            class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                        <i class="fa-solid fa-times"></i> Reject
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        // Render Trades
+        trades.forEach(trade => {
+            const statusBadge = getStatusBadge(trade.status);
+            const isPending = trade.status === 'PENDING';
+            const isExpired = trade.expires_at && new Date(trade.expires_at) < new Date();
+            
+            html += `
+                <div class="bg-black/30 rounded-xl p-4 border border-white/10">
+                    <div class="flex items-start gap-4">
+                        <img src="${trade.initiator_avatar || '/static/img/default-avatar.png'}" alt="${trade.initiator_username}" class="w-12 h-12 rounded-lg">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-sm font-bold text-white">${trade.initiator_username}</span>
+                                <i class="fa-solid fa-arrow-right text-gray-400 text-xs"></i>
+                                <span class="text-xs text-gray-400">Trade</span>
+                                ${statusBadge}
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mb-2">
+                                <div>
+                                    <div class="text-xs text-gray-400 mb-1">They offer:</div>
+                                    <div class="flex items-center gap-2">
+                                        ${trade.offered_item_icon ? `<img src="${trade.offered_item_icon}" alt="${trade.offered_item_name}" class="w-6 h-6 rounded">` : '<i class="fa-solid fa-cube text-gray-500"></i>'}
+                                        <span class="text-xs text-white">${trade.offered_item_name} x${trade.offered_quantity}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-xs text-gray-400 mb-1">For your:</div>
+                                    <div class="flex items-center gap-2">
+                                        ${trade.requested_item_icon ? `<img src="${trade.requested_item_icon}" alt="${trade.requested_item_name}" class="w-6 h-6 rounded">` : '<i class="fa-solid fa-cube text-gray-500"></i>'}
+                                        <span class="text-xs text-white">${trade.requested_item_name} x${trade.requested_quantity}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            ${trade.message ? `<p class="text-xs text-gray-300 italic mb-2">"${trade.message}"</p>` : ''}
+                            <div class="text-xs text-gray-500">
+                                Proposed ${new Date(trade.created_at).toLocaleDateString()}
+                                ${isExpired ? '<span class="text-red-400 ml-2"><i class="fa-solid fa-clock"></i> Expired</span>' : ''}
+                            </div>
+                            ${isPending && !isExpired ? `
+                                <div class="flex gap-2 mt-3">
+                                    <button onclick='respondToRequest("trade", ${trade.id}, "ACCEPT", ${JSON.stringify({
+                                        offered_item_name: trade.requested_item_name,
+                                        offered_quantity: trade.requested_quantity,
+                                        requested_item_name: trade.offered_item_name,
+                                        requested_quantity: trade.offered_quantity
+                                    })})' 
+                                            class="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                        <i class="fa-solid fa-check"></i> Accept
+                                    </button>
+                                    <button onclick="respondToRequest('trade', ${trade.id}, 'REJECT')" 
+                                            class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                        <i class="fa-solid fa-times"></i> Reject
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    function renderOutgoingRequests(outgoing) {
+        const container = document.getElementById('outgoing-requests-list');
+        const gifts = outgoing.gifts || [];
+        const trades = outgoing.trades || [];
+        
+        if (gifts.length === 0 && trades.length === 0) {
+            container.innerHTML = '<p class="text-sm text-gray-400"><i class="fa-solid fa-paper-plane"></i> No outgoing requests</p>';
+            return;
+        }
+        
+        let html = '';
+        
+        // Render Gifts
+        gifts.forEach(gift => {
+            const statusBadge = getStatusBadge(gift.status);
+            const isPending = gift.status === 'PENDING';
+            
+            html += `
+                <div class="bg-black/30 rounded-xl p-4 border border-white/10">
+                    <div class="flex items-start gap-4">
+                        <img src="${gift.receiver_avatar || '/static/img/default-avatar.png'}" alt="${gift.receiver_username}" class="w-12 h-12 rounded-lg">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-sm font-bold text-white">${gift.receiver_username}</span>
+                                <i class="fa-solid fa-arrow-left text-gray-400 text-xs"></i>
+                                <span class="text-xs text-gray-400">Gift</span>
+                                ${statusBadge}
+                            </div>
+                            <div class="flex items-center gap-2 mb-2">
+                                ${gift.item_icon ? `<img src="${gift.item_icon}" alt="${gift.item_name}" class="w-8 h-8 rounded">` : '<i class="fa-solid fa-cube text-gray-500 w-8 h-8"></i>'}
+                                <div>
+                                    <span class="text-sm text-white">${gift.item_name}</span>
+                                    <span class="text-xs text-gray-400 ml-1">x${gift.quantity}</span>
+                                </div>
+                            </div>
+                            ${gift.message ? `<p class="text-xs text-gray-300 italic mb-2">"${gift.message}"</p>` : ''}
+                            <div class="text-xs text-gray-500">Sent ${new Date(gift.created_at).toLocaleDateString()}</div>
+                            ${isPending ? `
+                                <button onclick="respondToRequest('gift', ${gift.id}, 'CANCEL')" 
+                                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold mt-3 transition flex items-center gap-1">
+                                    <i class="fa-solid fa-ban"></i> Cancel
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        // Render Trades
+        trades.forEach(trade => {
+            const statusBadge = getStatusBadge(trade.status);
+            const isPending = trade.status === 'PENDING';
+            
+            html += `
+                <div class="bg-black/30 rounded-xl p-4 border border-white/10">
+                    <div class="flex items-start gap-4">
+                        <img src="${trade.target_avatar || '/static/img/default-avatar.png'}" alt="${trade.target_username}" class="w-12 h-12 rounded-lg">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-sm font-bold text-white">${trade.target_username}</span>
+                                <i class="fa-solid fa-arrow-left text-gray-400 text-xs"></i>
+                                <span class="text-xs text-gray-400">Trade</span>
+                                ${statusBadge}
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mb-2">
+                                <div>
+                                    <div class="text-xs text-gray-400 mb-1">You offer:</div>
+                                    <div class="flex items-center gap-2">
+                                        ${trade.offered_item_icon ? `<img src="${trade.offered_item_icon}" alt="${trade.offered_item_name}" class="w-6 h-6 rounded">` : '<i class="fa-solid fa-cube text-gray-500"></i>'}
+                                        <span class="text-xs text-white">${trade.offered_item_name} x${trade.offered_quantity}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-xs text-gray-400 mb-1">For their:</div>
+                                    <div class="flex items-center gap-2">
+                                        ${trade.requested_item_icon ? `<img src="${trade.requested_item_icon}" alt="${trade.requested_item_name}" class="w-6 h-6 rounded">` : '<i class="fa-solid fa-cube text-gray-500"></i>'}
+                                        <span class="text-xs text-white">${trade.requested_item_name} x${trade.requested_quantity}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            ${trade.message ? `<p class="text-xs text-gray-300 italic mb-2">"${trade.message}"</p>` : ''}
+                            <div class="text-xs text-gray-500">Proposed ${new Date(trade.created_at).toLocaleDateString()}</div>
+                            ${isPending ? `
+                                <button onclick="respondToRequest('trade', ${trade.id}, 'CANCEL')" 
+                                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold mt-3 transition flex items-center gap-1">
+                                    <i class="fa-solid fa-ban"></i> Cancel
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    function getStatusBadge(status) {
+        const badges = {
+            'PENDING': '<span class="bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded text-xs font-bold">PENDING</span>',
+            'ACCEPTED': '<span class="bg-green-500/20 text-green-500 px-2 py-0.5 rounded text-xs font-bold">ACCEPTED</span>',
+            'REJECTED': '<span class="bg-red-500/20 text-red-500 px-2 py-0.5 rounded text-xs font-bold">REJECTED</span>',
+            'CANCELED': '<span class="bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded text-xs font-bold">CANCELED</span>'
+        };
+        return badges[status] || '';
+    }
+    
+    async function respondToRequest(type, requestId, action, requestData = null) {
+        const actionVerb = action === 'ACCEPT' ? 'accepting' : action === 'REJECT' ? 'rejecting' : 'canceling';
+        
+        // PHASE 4C: Trade accept confirmation (P1 fix)
+        if (action === 'ACCEPT' && type === 'trade' && requestData) {
+            const offeredItem = requestData.offered_item_name || 'items';
+            const offeredQty = requestData.offered_quantity || '';
+            const requestedItem = requestData.requested_item_name || 'items';
+            const requestedQty = requestData.requested_quantity || '';
+            
+            const confirmMsg = `You are about to accept this trade:\n\nYou will give:\n- ${offeredQty}x ${offeredItem}\n\nYou will receive:\n- ${requestedQty}x ${requestedItem}\n\nProceed?`;
+            
+            if (!confirm(confirmMsg)) {
+                return; // User canceled
+            }
+        }
+        
+        try {
+            const response = await fetch('/me/inventory/trade/respond/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    request_type: type,
+                    request_id: requestId,
+                    action: action
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.error || `Failed to ${actionVerb} request`);
+            }
+            
+            showToast(data.message || `${action.toLowerCase().charAt(0).toUpperCase() + action.toLowerCase().slice(1)}ed successfully!`, 'success');
+            
+            // Reload requests
+            loadRequests();
+            
+            // Reload inventory if accepted (item counts changed)
+            if (action === 'ACCEPT') {
+                loadInventory();
+            }
+        } catch (err) {
+            console.error(`[Phase 4A] Failed to ${actionVerb} request:`, err);
+            showToast(err.message || `Failed to ${actionVerb} request`, 'error');
+        }
+    }
 
     // Init
     document.addEventListener('DOMContentLoaded', () => {
@@ -925,6 +3524,73 @@
                 el.addEventListener('change', markUnsaved);
             }
         });
+        
+        // Load deletion status (Phase 3B)
+        loadDeletionStatus();
+        
+        // Load inventory (Phase 3A)
+        loadInventory();
+        
+        // Load inventory requests (Phase 4A)
+        loadRequests();
+        
+        // PHASE 4C: Start polling for updates
+        startPolling();
+        
+        // PHASE 5A: Load platform settings if platform tab exists
+        if (document.getElementById('tab-platform')) {
+            loadPlatformSettings();
+        }
+        
+        // PHASE 7B: Load game passports if passports tab exists
+        if (document.getElementById('tab-passports')) {
+            loadPassportsList();
+        }
+        
+        // PHASE 7C-P0: Load follow requests if privacy tab exists
+        if (document.getElementById('tab-privacy')) {
+            loadFollowRequests('PENDING');
+        }
     });
 </script>
+
+<!-- PHASE 4B: Item Detail Modal -->
+<div id="item-detail-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center" onclick="closeItemModal(event)">
+    <div class="glass-panel p-6 max-w-md w-full mx-4" onclick="event.stopPropagation()">
+        <div class="flex items-start justify-between mb-4">
+            <h3 class="text-2xl font-bold text-white" id="modal-item-name">Item Name</h3>
+            <button onclick="closeItemModal()" class="text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div class="flex items-center justify-center p-4 bg-black/30 rounded-xl" id="modal-item-icon-container">
+                <img id="modal-item-icon" src="" alt="" class="w-32 h-32 rounded-lg">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <div class="text-xs text-gray-400 mb-1">Rarity</div>
+                    <div id="modal-item-rarity" class="text-sm font-bold text-white">-</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400 mb-1">Quantity Owned</div>
+                    <div id="modal-item-quantity" class="text-sm font-bold text-white">-</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400 mb-1">Tradable</div>
+                    <div id="modal-item-tradable" class="text-sm font-bold text-white">-</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-400 mb-1">Giftable</div>
+                    <div id="modal-item-giftable" class="text-sm font-bold text-white">-</div>
+                </div>
+            </div>
+            <div id="modal-item-acquired-container">
+                <div class="text-xs text-gray-400 mb-1">Acquired From</div>
+                <div id="modal-item-acquired" class="text-sm text-gray-300">-</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

@@ -62,6 +62,14 @@ class ProfilePermissionChecker:
         if self.is_owner:
             return True
         
+        # PHASE 6B: Check private account first (takes precedence over visibility_preset)
+        if self.privacy.is_private_account:
+            # Use Phase 6A helper to check if viewer is approved follower
+            return FollowService.can_view_private_profile(
+                viewer=self.viewer,
+                owner=self.profile_user
+            )
+        
         # UP-PHASE12B: Use visibility_preset (profile_visibility was removed in Phase 11)
         # PRIVATE preset = only owner can view
         # PROTECTED preset = limited info to non-followers (but profile still viewable)

@@ -315,18 +315,31 @@ def update_privacy_settings(request):
             if preset in ['PUBLIC', 'PROTECTED', 'PRIVATE']:
                 privacy.visibility_preset = preset
         
-        # Update all toggles
+        # Update all toggles (including Phase 6A private account)
         boolean_fields = [
             'show_real_name', 'show_email', 'show_phone', 'show_age', 'show_gender',
             'show_country', 'show_address', 'show_game_ids', 'show_match_history',
             'show_teams', 'show_achievements', 'show_activity_feed', 'show_tournaments',
             'show_social_links', 'show_inventory_value', 'show_level_xp',
-            'allow_team_invites', 'allow_friend_requests', 'allow_direct_messages'
+            'allow_team_invites', 'allow_friend_requests', 'allow_direct_messages',
+            'show_followers_count', 'show_following_count', 'show_followers_list', 'show_following_list',
+            'is_private_account'  # Phase 6A: Private Account toggle
         ]
         
         for field in boolean_fields:
             if field in data:
                 setattr(privacy, field, bool(data[field]))
+        
+        # UP-PHASE2B: Update inventory_visibility choice field
+        if 'inventory_visibility' in data:
+            value = data['inventory_visibility']
+            if value in ['PUBLIC', 'FRIENDS', 'PRIVATE']:
+                privacy.inventory_visibility = value
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': f"Invalid inventory_visibility value: '{value}'. Must be one of: PUBLIC, FRIENDS, PRIVATE"
+                }, status=400)
         
         privacy.save()
         
@@ -387,16 +400,19 @@ def get_privacy_settings(request):
             'show_activity_feed': privacy.show_activity_feed,
             'show_tournaments': privacy.show_tournaments,
             'show_social_links': privacy.show_social_links,
+            'inventory_visibility': privacy.inventory_visibility,  # Phase 7C
             'show_inventory_value': privacy.show_inventory_value,
             'show_level_xp': privacy.show_level_xp,
+            'show_following_list': privacy.show_following_list,  # Phase 7C
             'allow_team_invites': privacy.allow_team_invites,
             'allow_friend_requests': privacy.allow_friend_requests,
             'allow_direct_messages': privacy.allow_direct_messages,
+            'is_private_account': privacy.is_private_account,  # Phase 6A: Private Account
         }
         
         return JsonResponse({
             'success': True,
-            'settings': settings
+            'privacy': settings  # Changed from 'settings' to 'privacy' for Phase 7C test compatibility
         })
     
     except Exception as e:

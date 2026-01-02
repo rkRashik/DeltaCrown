@@ -1,0 +1,389 @@
+<div class="w-full max-w-6xl animate-fade-in-up">
+    
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8 border-b border-white/5 pb-6">
+        <div>
+            <h2 class="text-3xl font-display font-bold text-white tracking-wide">
+                Game Passports
+            </h2>
+            <p class="text-gray-400 mt-2 max-w-2xl text-sm leading-relaxed">
+                Link your official game accounts to generate a "Digital License" for tournaments.
+                <span class="text-z-gold font-bold ml-2 bg-z-gold/10 px-2 py-0.5 rounded border border-z-gold/20">
+                    <i class="fa-solid fa-lock mr-1"></i> ID Lock: 30 Days
+                </span> 
+            </p>
+        </div>
+        <button onclick="passportController.openLinkModal()" class="w-full md:w-auto bg-z-cyan text-black px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition shadow-[0_0_20px_rgba(0,240,255,0.3)] flex items-center justify-center gap-2">
+            <i class="fa-solid fa-link"></i> Link New Game
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="passport-grid">
+        <div class="col-span-full text-center py-12 text-gray-500">
+            <i class="fa-solid fa-spinner fa-spin text-2xl"></i> Loading passports...
+        </div>
+    </div>
+
+</div>
+
+<div id="gp-modal-overlay" class="fixed inset-0 bg-black/90 z-[60] hidden backdrop-blur-sm transition-opacity opacity-0 flex items-center justify-center p-4">
+    
+    <div id="gp-modal-content" class="bg-[#0F0B1E] border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] transform scale-95 transition-transform">
+        
+        <div class="p-6 border-b border-white/10 flex justify-between items-center bg-[#080612]">
+            <h2 id="gp-modal-title" class="text-xl font-display font-bold text-white">Select Game</h2>
+            <button onclick="passportController.closeModal()" class="text-gray-400 hover:text-white transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <div id="gp-view-selector" class="p-6 overflow-y-auto scroller">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="gp-game-list">
+                </div>
+        </div>
+
+        <div id="gp-view-form" class="hidden flex-col h-full">
+            <div class="px-6 py-4 bg-white/5 flex items-center gap-4 border-b border-white/5">
+                <div id="gp-form-icon" class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg bg-black/50"></div>
+                <div>
+                    <h3 id="gp-form-game-name" class="font-bold text-white text-lg leading-tight">Game Name</h3>
+                    <button onclick="passportController.backToSelector()" class="text-xs text-gray-400 hover:text-z-cyan flex items-center gap-1 mt-1 transition">
+                        <i class="fa-solid fa-arrow-left"></i> Change Game
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 overflow-y-auto scroller flex-1">
+                <form id="gp-game-form" class="space-y-6">
+                    <div id="gp-dynamic-fields" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        </div>
+
+                    <div class="bg-z-gold/5 border border-z-gold/20 rounded-xl p-4">
+                        <div class="flex gap-3">
+                            <div class="mt-0.5 text-z-gold"><i class="fa-solid fa-shield-halved"></i></div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Fair Play Protocol</h4>
+                                <ul class="text-xs text-gray-400 mt-2 space-y-1 list-disc pl-4">
+                                    <li>I own this account (No smurfing/account sharing).</li>
+                                    <li>I understand this ID is <strong>locked for 30 days</strong>.</li>
+                                    <li>Game bans will result in immediate platform suspension.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <label class="flex items-center gap-3 mt-4 pt-3 border-t border-white/10 cursor-pointer group">
+                            <input type="checkbox" id="gp-terms-check" class="accent-z-cyan w-4 h-4 rounded">
+                            <span class="text-xs font-bold text-gray-300 group-hover:text-white transition">I Agree & Confirm Ownership</span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+
+            <div class="p-5 border-t border-white/10 bg-[#080612] flex justify-end gap-3">
+                <button onclick="passportController.closeModal()" class="px-6 py-2.5 rounded-lg text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 uppercase transition">Cancel</button>
+                <button id="gp-save-btn" onclick="passportController.saveData()" disabled class="px-8 py-2.5 rounded-lg text-xs font-bold bg-gray-700 text-gray-400 uppercase cursor-not-allowed transition flex items-center gap-2">
+                    <i class="fa-solid fa-check"></i> Save Passport
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* Scoped Styles for Passport Component */
+    .brand-valorant { color: #ff4655; }
+    .brand-pubg { color: #f2a900; }
+    .brand-efootball { color: #0075c9; }
+    
+    .scroller::-webkit-scrollbar { width: 6px; }
+    .scroller::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    .scroller::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+</style>
+
+<script>
+/**
+ * Game Passport Controller
+ * Encapsulated to prevent global namespace pollution
+ */
+const passportController = {
+    // Configuration
+    gamesDB: {
+        'valorant': { 
+            name: 'Valorant', color: '#ff4655', icon: '<i class="fa-solid fa-v"></i>',
+            fields: [
+                { id: 'riot_id', label: 'Riot ID', type: 'text', placeholder: 'Viper', width: 'half', immutable: true },
+                { id: 'tag', label: 'Tagline', type: 'text', placeholder: '#NA1', width: 'half', immutable: true },
+                { id: 'region', label: 'Region', type: 'select', options: ['North America', 'Europe', 'Asia Pacific', 'Korea', 'Brazil', 'LATAM'], width: 'half' },
+                { id: 'rank', label: 'Current Rank', type: 'select', options: ['Unranked', 'Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ascendant', 'Immortal', 'Radiant'], width: 'half' },
+                { id: 'peak', label: 'Peak Rank', type: 'select', options: ['Immortal 1', 'Immortal 2', 'Immortal 3', 'Radiant'], width: 'half' },
+                { id: 'role', label: 'Main Role', type: 'select', options: ['Duelist', 'Initiator', 'Controller', 'Sentinel', 'Flex'], width: 'half' }
+            ]
+        },
+        'pubg': { 
+            name: 'PUBG Mobile', color: '#f2a900', icon: 'P', 
+            fields: [
+                { id: 'uid', label: 'Character ID (UID)', type: 'number', placeholder: '5123456789', width: 'half', immutable: true },
+                { id: 'ign', label: 'In-Game Name', type: 'text', placeholder: 'Mortal', width: 'half' },
+                { id: 'server', label: 'Server', type: 'select', options: ['Asia', 'KRJP', 'North America', 'South America', 'Europe'], width: 'half' },
+                { id: 'tier', label: 'Current Tier', type: 'select', options: ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Crown', 'Ace', 'Conqueror'], width: 'half' }
+            ]
+        },
+        // Add other 9 games here in production...
+        'efootball': { 
+            name: 'eFootball™', color: '#0075c9', icon: 'EF',
+            fields: [
+                { id: 'owner_id', label: 'Owner ID (9-Digit)', type: 'number', placeholder: '123-456-789', width: 'full', immutable: true },
+                { id: 'team', label: 'Team Name', type: 'text', placeholder: 'Delta FC', width: 'half' },
+                { id: 'platform', label: 'Platform', type: 'select', options: ['Mobile', 'PlayStation', 'Xbox', 'PC'], width: 'half', immutable: true }
+            ]
+        }
+    },
+
+    // State
+    userPassports: [
+        // Mock Data - In production, fetch this via API
+        { gameId: 'valorant', data: { riot_id: 'Viper', tag: '#NA1', region: 'North America', rank: 'Immortal 3' }, verified: true },
+        { gameId: 'pubg', data: { uid: '5512345678', ign: 'Mortal', server: 'Asia', tier: 'Ace' }, verified: false, locked: true, daysLeft: 24 }
+    ],
+    isEditMode: false,
+    currentGameId: null,
+
+    // Methods
+    init() {
+        this.renderGrid();
+        this.renderGameSelector();
+        this.setupListeners();
+    },
+
+    renderGrid() {
+        const container = document.getElementById('passport-grid');
+        container.innerHTML = '';
+
+        this.userPassports.forEach(p => {
+            const game = this.gamesDB[p.gameId];
+            if(!game) return; // Skip if game config missing
+            
+            const isTextIcon = !game.icon.includes('<');
+            const mainId = p.data.riot_id || p.data.uid || p.data.owner_id;
+            const subId = p.data.tag ? `<span class="text-gray-500">${p.data.tag}</span>` : '';
+            const rank = p.data.rank || p.data.tier || 'N/A';
+
+            container.innerHTML += `
+            <div class="glass-panel p-0 rounded-2xl relative group overflow-hidden hover:translate-y-[-4px] transition duration-300 border border-white/5">
+                <div class="absolute top-0 left-0 w-1.5 h-full" style="background-color: ${game.color}"></div>
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-5">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl shadow-lg font-black" style="background-color: ${game.color}; color: ${['#f2a900','#fcd34d','#ffa500'].includes(game.color) ? 'black' : 'white'}">
+                                ${game.icon}
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white text-lg">${game.name}</h3>
+                                <div class="text-xs text-gray-400 mt-0.5">${p.data.region || p.data.server || 'Global'}</div>
+                            </div>
+                        </div>
+                        <button onclick="passportController.editPassport('${p.gameId}')" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                    </div>
+
+                    <div class="bg-black/40 rounded-xl p-3 border border-white/5 flex justify-between items-center mb-4">
+                        <div>
+                            <div class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Game ID</div>
+                            <div class="text-white font-mono text-sm">${mainId} ${subId}</div>
+                        </div>
+                        <i class="fa-regular fa-copy text-gray-600 hover:text-white cursor-pointer transition" onclick="navigator.clipboard.writeText('${mainId}')"></i>
+                    </div>
+
+                    <div class="flex items-center justify-between border-t border-white/5 pt-3">
+                        <div>
+                            <div class="text-[10px] text-gray-500 uppercase font-bold">Rank / Tier</div>
+                            <div class="font-bold text-sm" style="color: ${game.color}">${rank}</div>
+                        </div>
+                        ${p.locked ? 
+                            `<div class="text-xs text-z-red font-bold flex items-center gap-1 bg-z-red/10 px-2 py-1 rounded border border-z-red/20"><i class="fa-solid fa-lock"></i> Locked (${p.daysLeft}d)</div>` : 
+                            `<div class="text-xs text-z-green font-bold flex items-center gap-1 bg-z-green/10 px-2 py-1 rounded border border-z-green/20"><i class="fa-solid fa-check-circle"></i> Verified</div>`
+                        }
+                    </div>
+                </div>
+            </div>`;
+        });
+    },
+
+    openLinkModal() {
+        this.isEditMode = false;
+        this.currentGameId = null;
+        document.getElementById('gp-game-form').reset();
+        this.showView('selector');
+        this.toggleModal(true);
+    },
+
+    editPassport(gameId) {
+        this.isEditMode = true;
+        this.currentGameId = gameId;
+        const passport = this.userPassports.find(p => p.gameId === gameId);
+        this.loadForm(gameId, passport.data);
+        this.showView('form');
+        this.toggleModal(true);
+    },
+
+    toggleModal(show) {
+        const overlay = document.getElementById('gp-modal-overlay');
+        const content = document.getElementById('gp-modal-content');
+        
+        if (show) {
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+        } else {
+            overlay.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 300);
+        }
+    },
+
+    closeModal() { this.toggleModal(false); },
+
+    showView(viewName) {
+        const selector = document.getElementById('gp-view-selector');
+        const form = document.getElementById('gp-view-form');
+        const title = document.getElementById('gp-modal-title');
+
+        if(viewName === 'selector') {
+            title.innerText = "Select Game";
+            selector.classList.remove('hidden');
+            form.classList.add('hidden');
+        } else {
+            title.innerText = this.isEditMode ? "Edit Passport" : "Link New Game";
+            selector.classList.add('hidden');
+            form.classList.remove('hidden');
+            form.classList.add('flex');
+        }
+    },
+
+    backToSelector() {
+        if(this.isEditMode) return;
+        this.showView('selector');
+    },
+
+    renderGameSelector() {
+        const container = document.getElementById('gp-game-list');
+        container.innerHTML = '';
+        
+        for (const [key, game] of Object.entries(this.gamesDB)) {
+            const isLinked = this.userPassports.some(p => p.gameId === key);
+            const opacityClass = isLinked ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:bg-white/10 cursor-pointer';
+            const clickAction = isLinked ? '' : `onclick="passportController.loadForm('${key}')"`;
+            
+            const isTextIcon = !game.icon.includes('<');
+            const iconHtml = isTextIcon 
+                ? `<div class="w-10 h-10 rounded-lg flex items-center justify-center font-black text-lg bg-white/10" style="color:${game.color}">${game.icon}</div>` 
+                : `<div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-white/10" style="color:${game.color}">${game.icon}</div>`;
+
+            container.innerHTML += `
+                <div ${clickAction} class="bg-white/5 border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center gap-3 transition ${opacityClass}">
+                    ${iconHtml}
+                    <span class="text-xs font-bold text-gray-300">${game.name}</span>
+                    ${isLinked ? '<span class="text-[10px] text-z-green font-bold">Linked</span>' : ''}
+                </div>
+            `;
+        }
+    },
+
+    loadForm(gameId, existingData = null) {
+        const game = this.gamesDB[gameId];
+        
+        // Update Header
+        document.getElementById('gp-form-game-name').innerText = game.name;
+        const iconDiv = document.getElementById('gp-form-icon');
+        iconDiv.innerHTML = !game.icon.includes('<') ? game.icon : game.icon;
+        iconDiv.style.color = game.color;
+        iconDiv.style.boxShadow = `0 0 20px ${game.color}40`;
+
+        // Generate Fields
+        const container = document.getElementById('gp-dynamic-fields');
+        container.innerHTML = '';
+
+        game.fields.forEach(f => {
+            const width = f.width === 'half' ? 'md:col-span-1' : 'md:col-span-2';
+            let inputHtml = '';
+            const val = existingData ? existingData[f.id] : '';
+            // If editing, lock immutable fields
+            const disabled = (this.isEditMode && f.immutable) ? 'disabled' : '';
+            const lockIcon = disabled ? '<i class="fa-solid fa-lock text-[10px] ml-1 text-z-red"></i>' : '';
+
+            if(f.type === 'select') {
+                const opts = f.options.map(o => `<option ${o === val ? 'selected' : ''}>${o}</option>`).join('');
+                inputHtml = `
+                    <div class="relative">
+                        <select class="z-input appearance-none bg-[#0a0a0a]" ${disabled}>${opts}</select>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-4 text-gray-500 text-xs pointer-events-none"></i>
+                    </div>`;
+            } else {
+                inputHtml = `<input type="${f.type}" value="${val}" placeholder="${f.placeholder}" class="z-input" ${disabled}>`;
+            }
+
+            container.innerHTML += `
+                <div class="${width}">
+                    <label class="z-label flex items-center">${f.label} ${lockIcon}</label>
+                    ${inputHtml}
+                </div>
+            `;
+        });
+
+        // Terms Logic
+        const check = document.getElementById('gp-terms-check');
+        const btn = document.getElementById('gp-save-btn');
+        check.checked = false;
+        
+        if(this.isEditMode) {
+            check.parentElement.parentElement.style.display = 'none'; // Hide terms in edit mode
+            btn.disabled = false;
+            btn.className = "px-8 py-2.5 rounded-lg text-xs font-bold bg-z-cyan text-black hover:bg-white transition uppercase shadow-[0_0_15px_rgba(0,240,255,0.4)] flex items-center gap-2";
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Passport';
+        } else {
+            check.parentElement.parentElement.style.display = 'block';
+            btn.disabled = true;
+            btn.className = "px-8 py-2.5 rounded-lg text-xs font-bold bg-gray-700 text-gray-400 uppercase cursor-not-allowed transition flex items-center gap-2";
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Passport';
+        }
+        
+        this.showView('form');
+    },
+
+    setupListeners() {
+        document.getElementById('gp-terms-check').addEventListener('change', function() {
+            const btn = document.getElementById('gp-save-btn');
+            if(this.checked) {
+                btn.disabled = false;
+                btn.className = "px-8 py-2.5 rounded-lg text-xs font-bold bg-z-cyan text-black hover:bg-white transition uppercase shadow-[0_0_15px_rgba(0,240,255,0.4)] flex items-center gap-2 cursor-pointer";
+            } else {
+                btn.disabled = true;
+                btn.className = "px-8 py-2.5 rounded-lg text-xs font-bold bg-gray-700 text-gray-400 uppercase cursor-not-allowed transition flex items-center gap-2";
+            }
+        });
+    },
+
+    saveData() {
+        // Mock Save Logic
+        const btn = document.getElementById('gp-save-btn');
+        const ogText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        setTimeout(() => {
+            this.closeModal();
+            btn.innerHTML = ogText;
+            // TODO: In production, trigger a real API call and reload the grid
+        }, 800);
+    }
+};
+
+// Initialize Controller
+document.addEventListener('DOMContentLoaded', () => {
+    passportController.init();
+});
+</script>

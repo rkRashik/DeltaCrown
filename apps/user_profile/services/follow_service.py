@@ -1,11 +1,12 @@
 """
-Follow Service (UP-CLEANUP-04 Phase C Part 1)
+Follow Service (UP-CLEANUP-04 Phase C Part 1 + Phase 6A Private Accounts)
 
 Safe follow/unfollow operations with privacy enforcement and audit trail.
 Replacement for legacy follow_user/unfollow_user views.
 
 Architecture:
 - Privacy enforcement (respects allow_friend_requests)
+- Private account support (Phase 6A): creates FollowRequest for approval
 - Safe profile accessors (both follower + followee)
 - Audit trail (all follow actions logged)
 - Idempotency (safe to call multiple times)
@@ -14,10 +15,11 @@ Architecture:
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from typing import Tuple
+from django.utils import timezone
+from typing import Tuple, Optional, Union
 import logging
 
-from apps.user_profile.models_main import Follow
+from apps.user_profile.models_main import Follow, FollowRequest
 from apps.user_profile.models import PrivacySettings
 from apps.user_profile.models.audit import UserAuditEvent
 from apps.user_profile.services.audit import AuditService
@@ -46,9 +48,13 @@ class FollowService:
         request_id: str = None,
         ip_address: str = None,
         user_agent: str = None
-    ) -> Tuple[Follow, bool]:
+    ) -> Union[Tuple[Follow, bool], Tuple[FollowRequest, bool]]:
         """
         Follow a user with privacy enforcement + audit.
+        
+        PHASE 6A Enhancement:
+        - If target account is PUBLIC → creates Follow immediately (legacy behavior)
+        - If target account is PRIVATE → creates FollowRequest (PENDING status)
         
         Args:
             follower_user: User performing the follow
@@ -58,7 +64,9 @@ class FollowService:
             user_agent: User agent string
             
         Returns:
-            Tuple[Follow, bool]: (Follow object, created flag)
+            Union[Tuple[Follow, bool], Tuple[FollowRequest, bool]]:
+                - (Follow, True/False) if public account
+                - (FollowRequest, True/False) if private account
             
         Raises:
             User.DoesNotExist: If followee username invalid
@@ -66,10 +74,19 @@ class FollowService:
             ValueError: If trying to follow self
             
         Example:
+            >>> # Public account
             >>> follow, created = FollowService.follow_user(
             ...     follower_user=request.user,
             ...     followee_username='alice'
             ... )
+            >>> isinstance(follow, Follow)  # True
+            
+            >>> # Private account
+            >>> request_obj, created = FollowService.follow_user(
+            ...     follower_user=request.user,
+            ...     followee_username='bob_private'
+            ... )
+            >>> isinstance(request_obj, FollowRequest)  # True
         """
         # Validate not following self
         if follower_user.username == followee_username:
@@ -92,7 +109,20 @@ class FollowService:
             )
             raise PermissionDenied(f"@{followee_username} is not accepting followers")
         
-        # Create follow relationship (idempotent)
+        # PHASE 6A: Check if target has private account
+        if privacy_settings.is_private_account:
+            # Private account: create follow request
+            return FollowService._create_follow_request(
+                follower_user=follower_user,
+                followee_user=followee_user,
+                follower_profile=follower_profile,
+                followee_profile=followee_profile,
+                request_id=request_id,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+        
+        # Public account: create follow immediately (legacy behavior)
         follow, created = Follow.objects.get_or_create(
             follower=follower_user,
             following=followee_user
@@ -237,4 +267,364 @@ class FollowService:
         return Follow.objects.filter(
             follower=follower_user,
             following=followee_user
+        ).exists()
+    
+    # ===== PHASE 6A: PRIVATE ACCOUNT & FOLLOW REQUEST METHODS =====
+    
+    @staticmethod
+    def _create_follow_request(
+        follower_user: User,
+        followee_user: User,
+        follower_profile,
+        followee_profile,
+        request_id: str = None,
+        ip_address: str = None,
+        user_agent: str = None
+    ) -> Tuple[FollowRequest, bool]:
+        """
+        Create a follow request for private account (internal method).
+        
+        Returns:
+            Tuple[FollowRequest, bool]: (request object, created flag)
+        """
+        # Check if already following (approved request exists)
+        if Follow.objects.filter(follower=follower_user, following=followee_user).exists():
+            logger.debug(f"Already following: {follower_user.username} → {followee_user.username}")
+            # Return existing follow as if it's a request (for consistency)
+            # This shouldn't happen in normal flow but handles edge cases
+            raise ValueError("Already following this user")
+        
+        # Check if pending request already exists
+        existing_request = FollowRequest.objects.filter(
+            requester=follower_profile,
+            target=followee_profile,
+            status=FollowRequest.STATUS_PENDING
+        ).first()
+        
+        if existing_request:
+            logger.debug(
+                f"Follow request already pending: {follower_user.username} → {followee_user.username}"
+            )
+            return existing_request, False
+        
+        # Create new follow request
+        follow_request = FollowRequest.objects.create(
+            requester=follower_profile,
+            target=followee_profile,
+            status=FollowRequest.STATUS_PENDING
+        )
+        
+        # Record audit event
+        AuditService.record_event(
+            subject_user_id=followee_user.id,
+            actor_user_id=follower_user.id,
+            event_type=UserAuditEvent.EventType.FOLLOW_REQUESTED,
+            source_app='user_profile',
+            object_type='FollowRequest',
+            object_id=follow_request.id,
+            after_snapshot={
+                'requester': follower_user.username,
+                'target': followee_user.username,
+                'status': 'PENDING',
+                'request_id': follow_request.id
+            },
+            metadata={
+                'requester_username': follower_user.username,
+                'target_username': followee_user.username,
+                'is_private_account': True
+            },
+            request_id=request_id,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        
+        logger.info(
+            f"Follow request created: {follower_user.username} → {followee_user.username} "
+            f"(request_id={follow_request.id})"
+        )
+        
+        return follow_request, True
+    
+    @staticmethod
+    @transaction.atomic
+    def approve_follow_request(
+        target_user: User,
+        request_id: int,
+        request_id_audit: str = None,
+        ip_address: str = None,
+        user_agent: str = None
+    ) -> Follow:
+        """
+        Approve a follow request (creates Follow relationship).
+        
+        Args:
+            target_user: User approving the request (must be the target)
+            request_id: ID of the FollowRequest to approve
+            request_id_audit: Request ID for audit correlation
+            ip_address: IP address of request
+            user_agent: User agent string
+            
+        Returns:
+            Follow: The created Follow object
+            
+        Raises:
+            FollowRequest.DoesNotExist: If request not found
+            PermissionDenied: If user is not the target of the request
+            ValueError: If request is not PENDING
+            
+        Example:
+            >>> follow = FollowService.approve_follow_request(
+            ...     target_user=request.user,
+            ...     request_id=123
+            ... )
+        """
+        follow_request = FollowRequest.objects.select_related(
+            'requester__user', 'target__user'
+        ).get(id=request_id)
+        
+        # Verify target_user is the target of the request
+        if follow_request.target.user != target_user:
+            raise PermissionDenied("You can only approve requests sent to you")
+        
+        # Verify request is still pending
+        if follow_request.status != FollowRequest.STATUS_PENDING:
+            raise ValueError(f"Request is not pending (status: {follow_request.status})")
+        
+        # Create Follow relationship
+        follow, created = Follow.objects.get_or_create(
+            follower=follow_request.requester.user,
+            following=follow_request.target.user
+        )
+        
+        # Update request status
+        follow_request.status = FollowRequest.STATUS_APPROVED
+        follow_request.resolved_at = timezone.now()
+        follow_request.save()
+        
+        # Record audit event
+        AuditService.record_event(
+            subject_user_id=target_user.id,
+            actor_user_id=target_user.id,
+            event_type=UserAuditEvent.EventType.FOLLOW_REQUEST_APPROVED,
+            source_app='user_profile',
+            object_type='FollowRequest',
+            object_id=follow_request.id,
+            after_snapshot={
+                'requester': follow_request.requester.user.username,
+                'target': follow_request.target.user.username,
+                'status': 'APPROVED',
+                'follow_id': follow.id
+            },
+            metadata={
+                'requester_username': follow_request.requester.user.username,
+                'target_username': follow_request.target.user.username,
+                'follow_created': created
+            },
+            request_id=request_id_audit,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        
+        logger.info(
+            f"Follow request approved: {follow_request.requester.user.username} → "
+            f"{follow_request.target.user.username} (request_id={follow_request.id}, "
+            f"follow_id={follow.id})"
+        )
+        
+        return follow
+    
+    @staticmethod
+    @transaction.atomic
+    def reject_follow_request(
+        target_user: User,
+        request_id: int,
+        request_id_audit: str = None,
+        ip_address: str = None,
+        user_agent: str = None
+    ) -> FollowRequest:
+        """
+        Reject a follow request (no Follow created).
+        
+        Args:
+            target_user: User rejecting the request (must be the target)
+            request_id: ID of the FollowRequest to reject
+            request_id_audit: Request ID for audit correlation
+            ip_address: IP address of request
+            user_agent: User agent string
+            
+        Returns:
+            FollowRequest: The rejected request object
+            
+        Raises:
+            FollowRequest.DoesNotExist: If request not found
+            PermissionDenied: If user is not the target of the request
+            ValueError: If request is not PENDING
+            
+        Example:
+            >>> rejected_request = FollowService.reject_follow_request(
+            ...     target_user=request.user,
+            ...     request_id=123
+            ... )
+        """
+        follow_request = FollowRequest.objects.select_related(
+            'requester__user', 'target__user'
+        ).get(id=request_id)
+        
+        # Verify target_user is the target of the request
+        if follow_request.target.user != target_user:
+            raise PermissionDenied("You can only reject requests sent to you")
+        
+        # Verify request is still pending
+        if follow_request.status != FollowRequest.STATUS_PENDING:
+            raise ValueError(f"Request is not pending (status: {follow_request.status})")
+        
+        # Update request status
+        follow_request.status = FollowRequest.STATUS_REJECTED
+        follow_request.resolved_at = timezone.now()
+        follow_request.save()
+        
+        # Record audit event
+        AuditService.record_event(
+            subject_user_id=target_user.id,
+            actor_user_id=target_user.id,
+            event_type=UserAuditEvent.EventType.FOLLOW_REQUEST_REJECTED,
+            source_app='user_profile',
+            object_type='FollowRequest',
+            object_id=follow_request.id,
+            after_snapshot={
+                'requester': follow_request.requester.user.username,
+                'target': follow_request.target.user.username,
+                'status': 'REJECTED'
+            },
+            metadata={
+                'requester_username': follow_request.requester.user.username,
+                'target_username': follow_request.target.user.username
+            },
+            request_id=request_id_audit,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        
+        logger.info(
+            f"Follow request rejected: {follow_request.requester.user.username} → "
+            f"{follow_request.target.user.username} (request_id={follow_request.id})"
+        )
+        
+        return follow_request
+    
+    @staticmethod
+    def get_incoming_follow_requests(user: User, status: str = None):
+        """
+        Get incoming follow requests for a user.
+        
+        Args:
+            user: User whose incoming requests to fetch
+            status: Optional status filter ('PENDING', 'APPROVED', 'REJECTED')
+            
+        Returns:
+            QuerySet of FollowRequest objects
+        """
+        profile = get_user_profile_safe(user)
+        qs = FollowRequest.objects.filter(target=profile).select_related(
+            'requester__user'
+        ).order_by('-created_at')
+        
+        if status:
+            qs = qs.filter(status=status)
+        
+        return qs
+    
+    @staticmethod
+    def get_outgoing_follow_requests(user: User, status: str = None):
+        """
+        Get outgoing follow requests for a user.
+        
+        Args:
+            user: User whose outgoing requests to fetch
+            status: Optional status filter ('PENDING', 'APPROVED', 'REJECTED')
+            
+        Returns:
+            QuerySet of FollowRequest objects
+        """
+        profile = get_user_profile_safe(user)
+        qs = FollowRequest.objects.filter(requester=profile).select_related(
+            'target__user'
+        ).order_by('-created_at')
+        
+        if status:
+            qs = qs.filter(status=status)
+        
+        return qs
+    
+    @staticmethod
+    def has_pending_follow_request(requester_user: User, target_user: User) -> bool:
+        """
+        Check if a pending follow request exists.
+        
+        Args:
+            requester_user: User who sent the request
+            target_user: User who received the request
+            
+        Returns:
+            bool: True if pending request exists
+        """
+        requester_profile = get_user_profile_safe(requester_user)
+        target_profile = get_user_profile_safe(target_user)
+        
+        return FollowRequest.objects.filter(
+            requester=requester_profile,
+            target=target_profile,
+            status=FollowRequest.STATUS_PENDING
+        ).exists()
+    
+    @staticmethod
+    def can_view_private_profile(viewer: Optional[User], owner: User) -> bool:
+        """
+        Check if viewer can see private profile content.
+        
+        Rules:
+        - Owner can always see their own profile
+        - Staff can always see everything
+        - If account is not private: everyone can see
+        - If account is private: only approved followers can see full content
+        
+        Args:
+            viewer: User viewing the profile (None for anonymous)
+            owner: User who owns the profile
+            
+        Returns:
+            bool: True if viewer can see private content
+            
+        Example:
+            >>> can_view = FollowService.can_view_private_profile(
+            ...     viewer=request.user,
+            ...     owner=profile_owner
+            ... )
+        """
+        # Get owner's privacy settings first
+        owner_profile = get_user_profile_safe(owner)
+        privacy_settings = PrivacySettings.objects.filter(user_profile=owner_profile).first()
+        
+        # If not a private account, everyone can see
+        if not privacy_settings or not privacy_settings.is_private_account:
+            return True
+        
+        # Account is private - check special permissions
+        
+        # Anonymous users cannot see private profiles
+        if viewer is None or not viewer.is_authenticated:
+            return False
+        
+        # Owner can always see their own profile
+        if viewer == owner:
+            return True
+        
+        # Staff can always see everything
+        if viewer.is_staff:
+            return True
+        
+        # Private account: check if viewer is an approved follower
+        return Follow.objects.filter(
+            follower=viewer,
+            following=owner
         ).exists()

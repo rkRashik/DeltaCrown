@@ -261,3 +261,76 @@ class EmailOTP(models.Model):
         target = self.user or self.pending_signup
         identifier = getattr(target, "email", None) or self.user_id or self.pending_signup_id
         return f"OTP for {identifier} ({self.purpose})"
+
+
+class AccountDeletionRequest(models.Model):
+    """
+    Account deletion request with cooling-off period.
+    
+    Workflow:
+    1. User schedules deletion → status=SCHEDULED, scheduled_for=now+14days
+    2. User is immediately logged out and blocked from access
+    3. User can cancel before scheduled_for → status=CANCELED
+    4. Management command runs after scheduled_for → status=COMPLETED + soft-delete user
+    """
+    
+    class Status(models.TextChoices):
+        SCHEDULED = 'SCHEDULED', 'Scheduled for deletion'
+        CANCELED = 'CANCELED', 'Canceled by user'
+        COMPLETED = 'COMPLETED', 'Deletion completed'
+    
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='deletion_request',
+        help_text="User account to be deleted"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.SCHEDULED,
+        db_index=True
+    )
+    requested_at = models.DateTimeField(auto_now_add=True)
+    scheduled_for = models.DateTimeField(
+        help_text="Date when deletion will be finalized (requested_at + 14 days)"
+    )
+    canceled_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    reason = models.TextField(
+        blank=True,
+        help_text="Optional reason for deletion provided by user"
+    )
+    confirmation_phrase = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Confirmation phrase entered by user"
+    )
+    last_ip = models.GenericIPAddressField(null=True, blank=True)
+    last_user_agent = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['status', 'scheduled_for']),
+        ]
+    
+    def __str__(self):
+        return f"Deletion request for {self.user.username} ({self.status})"
+    
+    def clean(self):
+        """Validate scheduled_for is after requested_at."""
+        if self.scheduled_for and self.requested_at:
+            if self.scheduled_for < self.requested_at:
+                raise ValidationError("scheduled_for must be >= requested_at")
+    
+    def days_remaining(self):
+        """Calculate days remaining until deletion."""
+        if self.status != self.Status.SCHEDULED:
+            return None
+        delta = self.scheduled_for - timezone.now()
+        return max(0, delta.days)
+    
+    def is_cancellable(self):
+        """Check if deletion can still be canceled."""
+        return self.status == self.Status.SCHEDULED and timezone.now() < self.scheduled_for

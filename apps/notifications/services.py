@@ -17,6 +17,38 @@ FROM_EMAIL = os.getenv("DeltaCrownEmail", "no-reply@deltacrown.local")
 Notification = apps.get_model("notifications", "Notification")
 
 
+def _infer_category_from_event(event_str: str) -> str:
+    """
+    Infer notification category from event string.
+    
+    Args:
+        event_str: Event type string
+    
+    Returns:
+        str: Category name for enforcement
+    """
+    event_lower = event_str.lower()
+    
+    # Tournament-related
+    if any(word in event_lower for word in ['tournament', 'match', 'bracket', 'result', 'checkin', 'registration']):
+        return 'tournaments'
+    
+    # Team-related
+    if any(word in event_lower for word in ['team', 'invite', 'roster', 'sponsor', 'promotion']):
+        return 'teams'
+    
+    # Economy/bounty-related
+    if any(word in event_lower for word in ['payment', 'payout', 'bounty', 'achievement', 'economy']):
+        return 'bounties'
+    
+    # Messages
+    if any(word in event_lower for word in ['message', 'chat']):
+        return 'messages'
+    
+    # Default to system
+    return 'system'
+
+
 class EmitResult(dict):
     """
     Hybrid result that supports BOTH attribute access (r.created)
@@ -58,6 +90,8 @@ def _send_templated_email(to_email: Optional[str], subject: str, template_slug: 
       notifications/email/{slug}.txt (required)
       notifications/email/{slug}.html (optional)
     If templates are missing, skip quietly (tests may omit them).
+    
+    PHASE 5B: This function should only be called after enforcement checks pass.
     """
     if not to_email:
         return False
@@ -94,12 +128,25 @@ def notify(
     email_subject: Optional[str] = None,
     email_template: Optional[str] = None,
     email_ctx: Optional[Dict[str, Any]] = None,
+    category: Optional[str] = None,  # PHASE 5B: Explicit category for enforcement
+    bypass_user_prefs: bool = False,  # PHASE 5B: Bypass preferences for critical notifications
 ) -> dict:
     """
     Create Notification rows for accounts.User recipients and optionally send emails.
     RETURNS a dict: {"created": X, "skipped": Y, "email_sent": Z}
+    
+    PHASE 5B: Enforcement Integration
+    - Checks can_deliver_notification() before sending emails
+    - Respects channel/category/quiet hours preferences
+    - Allows bypassing for critical system notifications
     """
+    from apps.notifications.enforcement import can_deliver_notification, log_suppressed_notification
+    
     event_str = event or ntype or "generic"
+    
+    # PHASE 5B: Determine category for enforcement
+    if category is None:
+        category = _infer_category_from_event(event_str)
     
     # Extract IDs from objects if provided
     if tournament is not None and tournament_id is None:
@@ -176,10 +223,21 @@ def notify(
                         )
                         created += 1
 
-        # Optional email (quiet if templates missing)
+        # PHASE 5B: Optional email with enforcement checks
         if email_subject and email_template:
-            if _send_templated_email(_resolve_email(target), email_subject, email_template, email_ctx or {}):
-                sent += 1
+            user_model = _to_user_model(target)
+            if user_model:
+                # Check if email delivery is allowed
+                if can_deliver_notification(user_model, 'email', category, bypass_user_prefs=bypass_user_prefs):
+                    if _send_templated_email(_resolve_email(target), email_subject, email_template, email_ctx or {}):
+                        sent += 1
+                else:
+                    # Log suppressed email
+                    log_suppressed_notification(user_model, 'email', category, 'enforcement_blocked', title)
+            else:
+                # No user model, send anyway (for non-user recipients)
+                if _send_templated_email(_resolve_email(target), email_subject, email_template, email_ctx or {}):
+                    sent += 1
     
     # MILESTONE F: Optional webhook delivery
     webhook_sent = 0

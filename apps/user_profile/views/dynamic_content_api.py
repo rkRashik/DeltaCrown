@@ -21,6 +21,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def safe_image_url(field):
+    """Safely extract URL from ImageField, handling None and missing files."""
+    try:
+        if not field:
+            return None
+        return getattr(field, 'url', None)
+    except Exception:
+        return None
+
+
 @require_http_methods(["GET"])
 @ensure_csrf_cookie
 def get_available_games(request):
@@ -45,7 +55,7 @@ def get_available_games(request):
                 'name': game.name,
                 'slug': game.slug,
                 'short_name': getattr(game, 'short_name', game.name),
-                'icon_url': game.icon.url if hasattr(game, 'icon') and game.icon else None,
+                'icon_url': safe_image_url(game.icon),
                 'color': getattr(game, 'brand_color', '#6366f1')
             }
             for game in games

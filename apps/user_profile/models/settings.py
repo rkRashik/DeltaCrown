@@ -12,10 +12,24 @@ from django.core.validators import RegexValidator
 
 class NotificationPreferences(models.Model):
     """
-    User notification preferences for email and platform notifications.
+    User notification preferences (UP-PHASE2B).
     
-    Controls how/when the platform contacts the user about events.
-    Separate from PrivacySettings (what others can see).
+    Controls delivery channels, categories, and timing for notifications.
+    
+    Channels:
+    - Email notifications
+    - Push notifications (browser/mobile)
+    - SMS notifications (requires phone verification)
+    
+    Categories:
+    - Tournaments (registrations, matches, results)
+    - Teams (invites, roster changes, promotions)
+    - Bounties (offers, acceptances, completions)
+    - Messages (direct messages, chat)
+    - System (announcements, maintenance)
+    
+    Timing:
+    - Quiet hours (mute notifications during specified time range)
     """
     user_profile = models.OneToOneField(
         'user_profile.UserProfile',
@@ -24,44 +38,56 @@ class NotificationPreferences(models.Model):
         help_text="User profile these preferences belong to"
     )
     
-    # ===== EMAIL NOTIFICATIONS =====
-    email_tournament_reminders = models.BooleanField(
+    # ===== CHANNEL TOGGLES (UP-PHASE2B) =====
+    email_enabled = models.BooleanField(
         default=True,
-        help_text="Send email reminders for upcoming tournaments you're registered for"
+        help_text="Receive email notifications"
     )
-    email_match_results = models.BooleanField(
+    push_enabled = models.BooleanField(
         default=True,
-        help_text="Send email notifications when match results are published"
+        help_text="Receive push notifications (browser/mobile)"
     )
-    email_team_invites = models.BooleanField(
-        default=True,
-        help_text="Send email when invited to join a team"
-    )
-    email_achievements = models.BooleanField(
+    sms_enabled = models.BooleanField(
         default=False,
-        help_text="Send email when you unlock new achievements or badges"
-    )
-    email_platform_updates = models.BooleanField(
-        default=True,
-        help_text="Send email about platform updates, new features, and announcements"
+        help_text="Receive SMS notifications (requires phone verification)"
     )
     
-    # ===== PLATFORM NOTIFICATIONS (In-App) =====
-    notify_tournament_start = models.BooleanField(
+    # ===== CATEGORY TOGGLES (UP-PHASE2B) =====
+    notif_tournaments = models.BooleanField(
         default=True,
-        help_text="Show notification when a tournament you're in starts"
+        help_text="Tournament updates (registrations, matches, results)"
     )
-    notify_team_messages = models.BooleanField(
+    notif_teams = models.BooleanField(
         default=True,
-        help_text="Show notification for new team messages"
+        help_text="Team updates (invites, roster changes, promotions)"
     )
-    notify_follows = models.BooleanField(
+    notif_bounties = models.BooleanField(
         default=True,
-        help_text="Show notification when someone follows you"
+        help_text="Bounty updates (offers, acceptances, completions)"
     )
-    notify_achievements = models.BooleanField(
+    notif_messages = models.BooleanField(
         default=True,
-        help_text="Show notification popup when unlocking achievements"
+        help_text="Direct messages and chat notifications"
+    )
+    notif_system = models.BooleanField(
+        default=True,
+        help_text="System announcements and maintenance alerts"
+    )
+    
+    # ===== QUIET HOURS (UP-PHASE2B) =====
+    quiet_hours_enabled = models.BooleanField(
+        default=False,
+        help_text="Enable quiet hours (mute notifications during specified time)"
+    )
+    quiet_hours_start = models.TimeField(
+        null=True,
+        blank=True,
+        help_text="Start time for quiet hours (e.g., 22:00)"
+    )
+    quiet_hours_end = models.TimeField(
+        null=True,
+        blank=True,
+        help_text="End time for quiet hours (e.g., 08:00)"
     )
     
     # ===== METADATA =====
@@ -74,7 +100,28 @@ class NotificationPreferences(models.Model):
         verbose_name_plural = 'Notification Preferences'
     
     def __str__(self):
-        return f"Notification Preferences for {self.user_profile.display_name}"
+        return f"Notification Preferences for {self.user_profile.display_name or self.user_profile.user.username}"
+    
+    def clean(self):
+        """
+        Validate notification preferences.
+        
+        Business rules:
+        - If quiet_hours_enabled, both start and end must be set
+        - Quiet hours can wrap over midnight (e.g., 22:00 to 08:00)
+        """
+        from django.core.exceptions import ValidationError
+        errors = {}
+        
+        # Quiet hours validation
+        if self.quiet_hours_enabled:
+            if not self.quiet_hours_start:
+                errors['quiet_hours_start'] = 'Start time is required when quiet hours are enabled'
+            if not self.quiet_hours_end:
+                errors['quiet_hours_end'] = 'End time is required when quiet hours are enabled'
+        
+        if errors:
+            raise ValidationError(errors)
 
 
 class WalletSettings(models.Model):

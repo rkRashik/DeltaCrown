@@ -12,6 +12,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def safe_image_url(field):
+    """Safely extract URL from ImageField, handling None and missing files."""
+    try:
+        if not field:
+            return None
+        return getattr(field, 'url', None)
+    except Exception:
+        return None
+
+
 @login_required
 @require_http_methods(["GET"])
 def list_game_passports_api(request):
@@ -38,13 +48,13 @@ def list_game_passports_api(request):
                     'id': passport.game.id,
                     'name': passport.game.name,
                     'slug': passport.game.slug,
-                    'icon': passport.game.icon,
+                    'icon': safe_image_url(passport.game.icon),
                 },
                 'ign': passport.ign,
                 'region': passport.region,
-                'rank': passport.rank,
+                'rank': passport.rank_name,
                 'pinned': passport.is_pinned,
-                'passport_data': passport.passport_data or {},
+                'passport_data': passport.metadata or {},
             })
         
         return JsonResponse({
@@ -88,7 +98,7 @@ def create_game_passport_api(request):
         region = data.get('region', '').strip() or None
         rank = data.get('rank', '').strip() or None
         pinned = data.get('pinned', False)
-        passport_data = data.get('passport_data', {})
+        metadata = data.get('passport_data', {}) or data.get('metadata', {})
         
         # Validation
         if not game_id or not ign:
@@ -129,9 +139,9 @@ def create_game_passport_api(request):
             game=game,
             ign=ign,
             region=region,
-            rank=rank,
+            rank_name=rank or "",
             is_pinned=pinned,
-            passport_data=passport_data,
+            metadata=metadata,
         )
         
         return JsonResponse({
@@ -142,13 +152,13 @@ def create_game_passport_api(request):
                     'id': game.id,
                     'name': game.name,
                     'slug': game.slug,
-                    'icon': game.icon,
+                    'icon': safe_image_url(game.icon),
                 },
                 'ign': passport.ign,
                 'region': passport.region,
-                'rank': passport.rank,
+                'rank': passport.rank_name,
                 'pinned': passport.is_pinned,
-                'passport_data': passport.passport_data or {},
+                'passport_data': passport.metadata or {},
             }
         })
     
@@ -156,7 +166,15 @@ def create_game_passport_api(request):
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
     except Exception as e:
         logger.error(f"Error creating game passport: {e}", exc_info=True)
-        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+        # Include actual error in response during development
+        import traceback
+        error_detail = str(e) if not hasattr(e, 'messages') else ', '.join(e.messages)
+        return JsonResponse({
+            'success': False,
+            'error': 'Server error',
+            'detail': error_detail,
+            'trace': traceback.format_exc()[:500]
+        }, status=500)
 
 
 @login_required
@@ -209,14 +227,14 @@ def update_game_passport_api(request):
         region = data.get('region', '').strip() or None
         rank = data.get('rank', '').strip() or None
         pinned = data.get('pinned', passport.is_pinned)
-        passport_data = data.get('passport_data', passport.passport_data)
+        metadata = data.get('passport_data', passport.metadata) or data.get('metadata', passport.metadata)
         
         if ign:
             passport.ign = ign
         
         passport.region = region
-        passport.rank = rank
-        passport.passport_data = passport_data
+        passport.rank_name = rank or ""
+        passport.metadata = metadata
         
         # Validate pinned count
         if pinned and not passport.is_pinned:
@@ -238,13 +256,13 @@ def update_game_passport_api(request):
                     'id': passport.game.id,
                     'name': passport.game.name,
                     'slug': passport.game.slug,
-                    'icon': passport.game.icon,
+                    'icon': safe_image_url(passport.game.icon),
                 },
                 'ign': passport.ign,
                 'region': passport.region,
-                'rank': passport.rank,
+                'rank': passport.rank_name,
                 'pinned': passport.is_pinned,
-                'passport_data': passport.passport_data or {},
+                'passport_data': passport.metadata or {},
             }
         })
     

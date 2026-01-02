@@ -135,7 +135,7 @@ def pin_passport(request):
             'success': True,
             'is_pinned': passport.is_pinned,
             'pinned_order': passport.pinned_order,
-            'game': passport.game,
+            'game': passport.game.slug if passport.game else None,
             'message': f"{'Pinned' if passport.is_pinned else 'Unpinned'} {passport.game_display_name}"
         })
         

@@ -2,6 +2,7 @@
 from django.urls import path
 from .views.wallet import wallet_view
 from .views import withdrawal
+from . import inventory_api
 
 app_name = "economy"
 
@@ -25,4 +26,20 @@ urlpatterns = [
     
     # PIN
     path('pin/setup/', withdrawal.pin_setup_view, name='pin_setup'),
+    
+    # ========== Phase 3A: Inventory System ==========
+    # Inventory viewing
+    path('me/inventory/', inventory_api.my_inventory_view, name='my_inventory'),
+    path('profiles/<str:username>/inventory/', inventory_api.user_inventory_view, name='user_inventory'),
+    
+    # Phase 4A: Inventory Requests Inbox
+    path('me/inventory/requests/', inventory_api.my_requests_view, name='my_requests'),
+    
+    # Gifting
+    path('me/inventory/gift/', inventory_api.gift_item_view, name='gift_item'),
+    
+    # Trading
+    path('me/inventory/trade/request/', inventory_api.trade_request_view, name='trade_request'),
+    path('me/inventory/trade/respond/', inventory_api.trade_respond_view, name='trade_respond'),
 ]
+

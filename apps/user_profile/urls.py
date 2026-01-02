@@ -36,6 +36,23 @@ from .views.settings_api import (
     update_platform_preferences, get_platform_preferences,
     update_wallet_settings, get_wallet_settings
 )
+# UP-PHASE2A: Career & Matchmaking Settings API
+from .api.settings_career_api import (
+    career_settings_get, career_settings_save,
+    matchmaking_settings_get, matchmaking_settings_save
+)
+# UP-PHASE2B: Notifications Settings API
+from .api.settings_notifications_api import (
+    notifications_settings_get, notifications_settings_save
+)
+# PHASE-5A: Platform Preferences API (Global Wiring)
+from .api.platform_prefs_api import (
+    get_platform_global_settings, save_platform_global_settings
+)
+# PHASE-6A: Private Account & Follow Request API
+from .api.follow_request_api import (
+    follow_user_api, respond_to_follow_request_api, get_follow_requests_api
+)
 # UP-PHASE15-SESSION3: Social Links CRUD API
 from .views.social_links_api import (
     social_link_create_api, social_link_update_single_api,
@@ -52,6 +69,11 @@ from .views.passport_create import create_passport
 # UP-PHASE2F: Follower/Following API with privacy controls
 from .views.follower_api import (
     get_followers, get_following, follow_user as follow_user_v2, unfollow_user as unfollow_user_v2
+)
+
+# PHASE-6A: Private Account & Follow Request API
+from .api.follow_request_api import (
+    follow_user_api, respond_to_follow_request_api, get_follow_requests_api
 )
 
 # UP-PHASE14B: Dynamic content API (no hardcoded dropdowns)
@@ -149,6 +171,20 @@ urlpatterns = [
     path("me/settings/privacy/", get_privacy_settings, name="get_privacy_settings"),
     path("me/settings/privacy/save/", update_privacy_settings, name="update_privacy_settings"),
     
+    # UP-PHASE2A: Career & Matchmaking Settings API
+    path("me/settings/career/", career_settings_get, name="settings_career_get"),
+    path("me/settings/career/save/", career_settings_save, name="settings_career_save"),
+    path("me/settings/matchmaking/", matchmaking_settings_get, name="settings_matchmaking_get"),
+    path("me/settings/matchmaking/save/", matchmaking_settings_save, name="settings_matchmaking_save"),
+    
+    # UP-PHASE2B: Notifications Settings API
+    path("me/settings/notifications/", notifications_settings_get, name="settings_notifications_get"),
+    path("me/settings/notifications/save/", notifications_settings_save, name="settings_notifications_save"),
+    
+    # PHASE-5A: Platform Preferences API (Global Wiring)
+    path("me/settings/platform-global/", get_platform_global_settings, name="get_platform_global_settings"),
+    path("me/settings/platform-global/save/", save_platform_global_settings, name="save_platform_global_settings"),
+    
     # GP-FE-MVP-01: Game Passport management API
     path("api/passports/toggle-lft/", toggle_lft, name="passport_toggle_lft"),
     path("api/passports/set-visibility/", set_visibility, name="passport_set_visibility"),
@@ -172,13 +208,14 @@ urlpatterns = [
     # Frontend compatibility aliases (template expects /profile/api/game-passports/)
     path("profile/api/game-passports/", list_game_passports_api, name="game_passports_list_alias"),
     path("profile/api/game-passports/create/", create_game_passport_api, name="game_passports_create_alias"),
+    path("profile/api/game-passports/update/", update_game_passport_api, name="game_passports_update_alias"),
     path("profile/api/game-passports/delete/", delete_game_passport_api, name="game_passports_delete_alias"),
     path("api/platform-settings/", get_platform_settings, name="get_platform_settings"),
     path("me/settings/platform/", update_platform_settings, name="update_platform_settings"),
     path("api/profile/data/", get_profile_data, name="get_profile_data"),
     
     # UP-PHASE14B: Dynamic content APIs (eliminate hardcoded dropdowns)
-    path("api/games/", get_available_games, name="get_available_games"),
+    path("profile/api/games/", get_available_games, name="get_available_games"),
     path("api/games/<int:game_id>/metadata/", get_game_metadata, name="get_game_metadata"),  # UP-PHASE15: Dynamic admin
     path("api/social-links/platforms/", get_social_platforms, name="get_social_platforms"),
     path("api/privacy/presets/", get_privacy_presets, name="get_privacy_presets"),
@@ -218,6 +255,11 @@ urlpatterns = [
     path("api/profile/<str:username>/following/", get_following, name="get_following"),
     path("api/profile/<str:username>/follow/", follow_user_v2, name="follow_user_v2"),
     path("api/profile/<str:username>/unfollow/", unfollow_user_v2, name="unfollow_user_v2"),
+    
+    # PHASE-6A: Private Account & Follow Request API
+    path("profiles/<str:username>/follow/", follow_user_api, name="follow_user_api"),
+    path("profiles/<str:username>/follow/respond/", respond_to_follow_request_api, name="respond_to_follow_request_api"),
+    path("me/follow-requests/", get_follow_requests_api, name="get_follow_requests_api"),
     
     path("api/profile/loadout/hardware/", save_hardware, name="save_hardware"),
     path("api/profile/loadout/game-config/", save_game_config, name="save_game_config"),

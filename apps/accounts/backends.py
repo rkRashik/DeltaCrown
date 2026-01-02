@@ -34,6 +34,17 @@ class EmailOrUsernameBackend(ModelBackend):
 
         # Check password and verify user is active
         if user.check_password(password) and self.user_can_authenticate(user):
+            # Phase 3B: Block login for users with scheduled deletions
+            try:
+                from apps.accounts.models import AccountDeletionRequest
+                if hasattr(user, 'deletion_request'):
+                    if user.deletion_request.status == AccountDeletionRequest.Status.SCHEDULED:
+                        # Deny authentication for scheduled deletion users
+                        return None
+            except:
+                # If deletion_request doesn't exist or any error, allow authentication
+                pass
+            
             return user
 
         return None
