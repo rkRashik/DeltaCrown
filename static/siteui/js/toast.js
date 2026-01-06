@@ -77,9 +77,12 @@
       info: '#3b82f6'
     };
 
+    // Detect mobile
+    const isMobile = window.innerWidth < 768;
+    
     // Build toast HTML
     let html = `
-      <div style="display: flex; align-items: flex-start; gap: 12px; min-width: 280px; max-width: 400px;">
+      <div style="display: flex; align-items: flex-start; gap: ${isMobile ? '8px' : '12px'}; min-width: ${isMobile ? '260px' : '280px'}; max-width: ${isMobile ? '90vw' : '400px'}; width: 100%;">
         <div style="
           flex-shrink: 0;
           width: 32px;
@@ -151,9 +154,6 @@
 
     html += `</div>`;
 
-    // Detect mobile
-    const isMobile = window.innerWidth < 768;
-
     // Show toast
     const toast = Toastify({
       text: html,
@@ -171,14 +171,15 @@
         borderRadius: '16px',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
         padding: '16px 18px',
-        minWidth: '280px',
-        maxWidth: '420px',
-        marginTop: isMobile ? '16px' : '0',
-        marginBottom: isMobile ? '0' : '16px'
+        minWidth: isMobile ? '260px' : '280px',
+        maxWidth: isMobile ? '90vw' : '420px',
+        marginTop: isMobile ? '12px' : '0',
+        marginBottom: isMobile ? '0' : '16px',
+        margin: isMobile ? '0 auto' : '0'
       },
       offset: {
-        x: isMobile ? 0 : 24,
-        y: isMobile ? 0 : 24
+        x: isMobile ? 16 : 24,
+        y: isMobile ? 12 : 24
       },
       onClick: function() {
         // Only close if clicking toast body, not close button
@@ -186,19 +187,25 @@
       }
     }).showToast();
     
-    // Phase 9A-27: Add close button click handler after toast is shown
+    // Phase 9A-30: Fix close button handler with proper timing and mobile support
     setTimeout(() => {
       const toastEl = document.querySelector('.toastify:last-of-type');
       if (toastEl) {
         const closeBtn = toastEl.querySelector('.toast-close-btn');
         if (closeBtn) {
-          closeBtn.addEventListener('click', function(e) {
+          // Remove any existing listeners
+          const newCloseBtn = closeBtn.cloneNode(true);
+          closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+          
+          // Add new listener
+          newCloseBtn.addEventListener('click', function(e) {
             e.stopPropagation();
+            e.preventDefault();
             toast.hideToast();
-          });
+          }, {once: true});
         }
       }
-    }, 50);
+    }, 100);
   };
 
   /**

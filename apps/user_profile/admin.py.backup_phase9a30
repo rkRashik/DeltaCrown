@@ -742,26 +742,25 @@ class UserBadgeAdmin(admin.ModelAdmin):
 #     pass
 
 
-# Phase 9A-30: GameProfile admin DISABLED - Use custom admin at /admin/game-passports/
-# Old Django admin removed due to outdated code and confusing UI
-# New custom admin provides modern interface with better UX
-
-# @admin.register(GameProfile)
-# class GameProfileAdmin(admin.ModelAdmin):
-#     """
-#     Game Passport Admin (Phase 9A-14) - DISABLED
-#     
-#     This admin has been replaced with a custom interface at /admin/game-passports/
-#     See apps/user_profile/views/game_passport_admin.py for the new implementation
-#     """
-#     pass
-
-# Phase 9A-30: All GameProfile admin code commented out below
-if False:  # Disabled - use custom admin instead
+@admin.register(GameProfile)
+class GameProfileAdmin(admin.ModelAdmin):
+    """
+    Game Passport Admin (Phase 9A-14)
     
-    form__ = GameProfileAdminForm  # Phase 9A-14: Schema-driven form with dynamic dropdowns
+    Production-grade admin with:
+    - Human-readable section labels (no internal codes)
+    - Schema-driven dropdown population (region/rank/role)
+    - Clean verification workflow with auto-populated fields
+    - Identity change tracking
+    - Cooldown enforcement
+    - Pinning management
+    - Privacy controls
+    - Audit integration
+    """
     
-    list_display__ = [
+    form = GameProfileAdminForm  # Phase 9A-14: Schema-driven form with dynamic dropdowns
+    
+    list_display = [
         'user',
         'game',
         'in_game_name',

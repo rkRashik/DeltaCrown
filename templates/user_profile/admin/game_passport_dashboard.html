@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Game Passport Admin | DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-[#080612] via-[#0F0B1E] to-[#1A0F2E] py-8 px-4">
+    <div class="max-w-[1600px] mx-auto">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                    <i class="fa-solid fa-shield-halved text-[#00F0FF]"></i>
+                    Game Passport Admin
+                </h1>
+                <p class="text-gray-400">Verification workflow & identity management</p>
+            </div>
+            <a href="/admin/" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i>
+                Back to Admin
+            </a>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+            <div class="bg-white/5 rounded-xl p-4 border border-white/10">
+                <div class="text-3xl font-bold text-white">{{ stats.total }}</div>
+                <div class="text-xs text-gray-400 mt-1">Total Passports</div>
+            </div>
+            <div class="bg-orange-500/10 rounded-xl p-4 border border-orange-500/30">
+                <div class="text-3xl font-bold text-orange-400">{{ stats.pending }}</div>
+                <div class="text-xs text-gray-400 mt-1">Pending Review</div>
+            </div>
+            <div class="bg-green-500/10 rounded-xl p-4 border border-green-500/30">
+                <div class="text-3xl font-bold text-green-400">{{ stats.verified }}</div>
+                <div class="text-xs text-gray-400 mt-1">Verified</div>
+            </div>
+            <div class="bg-red-500/10 rounded-xl p-4 border border-red-500/30">
+                <div class="text-3xl font-bold text-red-400">{{ stats.flagged }}</div>
+                <div class="text-xs text-gray-400 mt-1">Flagged</div>
+            </div>
+            <div class="bg-yellow-500/10 rounded-xl p-4 border border-yellow-500/30">
+                <div class="text-3xl font-bold text-yellow-400">{{ stats.locked }}</div>
+                <div class="text-xs text-gray-400 mt-1">Identity Locked</div>
+            </div>
+            <div class="bg-purple-500/10 rounded-xl p-4 border border-purple-500/30">
+                <div class="text-3xl font-bold text-purple-400">{{ stats.cooldown }}</div>
+                <div class="text-xs text-gray-400 mt-1">Active Cooldowns</div>
+            </div>
+        </div>
+
+        <!-- Filters & Search -->
+        <div class="bg-white/5 rounded-xl p-6 mb-6 border border-white/10">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Status Filter -->
+                <div>
+                    <label class="block text-xs text-gray-400 mb-2">Status</label>
+                    <select name="status" class="w-full bg-white/10 text-white rounded-lg px-4 py-2 border border-white/20 focus:border-[#00F0FF] focus:outline-none">
+                        <option value="all" {% if current_status == 'all' %}selected{% endif %}>All Statuses</option>
+                        <option value="PENDING" {% if current_status == 'PENDING' %}selected{% endif %}>⏳ Pending</option>
+                        <option value="VERIFIED" {% if current_status == 'VERIFIED' %}selected{% endif %}>✓ Verified</option>
+                        <option value="FLAGGED" {% if current_status == 'FLAGGED' %}selected{% endif %}>⚠ Flagged</option>
+                    </select>
+                </div>
+
+                <!-- Game Filter -->
+                <div>
+                    <label class="block text-xs text-gray-400 mb-2">Game</label>
+                    <select name="game" class="w-full bg-white/10 text-white rounded-lg px-4 py-2 border border-white/20 focus:border-[#00F0FF] focus:outline-none">
+                        <option value="all">All Games</option>
+                        {% for game in games %}
+                        <option value="{{ game.slug }}" {% if current_game == game.slug %}selected{% endif %}>{{ game.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Search -->
+                <div>
+                    <label class="block text-xs text-gray-400 mb-2">Search</label>
+                    <input 
+                        type="text" 
+                        name="q" 
+                        value="{{ search_query }}"
+                        placeholder="Username, IGN, ID..." 
+                        class="w-full bg-white/10 text-white rounded-lg px-4 py-2 border border-white/20 focus:border-[#00F0FF] focus:outline-none"
+                    />
+                </div>
+
+                <!-- Submit -->
+                <div class="flex items-end">
+                    <button type="submit" class="w-full bg-[#00F0FF] text-black font-bold px-6 py-2 rounded-lg hover:bg-white transition">
+                        <i class="fa-solid fa-filter"></i> Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Passports Table -->
+        <div class="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-white/5 border-b border-white/10">
+                        <tr class="text-left text-xs text-gray-400 uppercase tracking-wider">
+                            <th class="px-6 py-4">User</th>
+                            <th class="px-6 py-4">Game</th>
+                            <th class="px-6 py-4">Identity</th>
+                            <th class="px-6 py-4">Status</th>
+                            <th class="px-6 py-4">Lock</th>
+                            <th class="px-6 py-4">Cooldown</th>
+                            <th class="px-6 py-4">Created</th>
+                            <th class="px-6 py-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        {% for passport in passports %}
+                        <tr class="hover:bg-white/[0.02] transition">
+                            <!-- User -->
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <img src="{{ passport.user.profile.avatar.url|default:'/static/img/default-avatar.png' }}" 
+                                         alt="{{ passport.user.username }}" 
+                                         class="w-10 h-10 rounded-full"
+                                    />
+                                    <div>
+                                        <div class="font-bold text-white">{{ passport.user.username }}</div>
+                                        <div class="text-xs text-gray-400">{{ passport.user.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Game -->
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <img src="{{ passport.game.icon.url }}" alt="{{ passport.game.name }}" class="w-8 h-8 rounded"/>
+                                    <span class="text-white font-medium">{{ passport.game.name }}</span>
+                                </div>
+                            </td>
+
+                            <!-- Identity -->
+                            <td class="px-6 py-4">
+                                <div class="text-white font-mono text-sm">{{ passport.in_game_name }}</div>
+                                <div class="text-xs text-gray-400">{{ passport.identity_key }}</div>
+                            </td>
+
+                            <!-- Status -->
+                            <td class="px-6 py-4">
+                                {% if passport.verification_status == 'VERIFIED' %}
+                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-bold">
+                                    <i class="fa-solid fa-check-circle"></i> VERIFIED
+                                </span>
+                                {% elif passport.verification_status == 'FLAGGED' %}
+                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-bold">
+                                    <i class="fa-solid fa-flag"></i> FLAGGED
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-xs font-bold">
+                                    <i class="fa-solid fa-clock"></i> PENDING
+                                </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Lock -->
+                            <td class="px-6 py-4">
+                                {% if passport.is_identity_locked %}
+                                <span class="inline-flex items-center gap-1 px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs font-bold">
+                                    <i class="fa-solid fa-lock"></i> {{ passport.days_locked }}d
+                                </span>
+                                {% else %}
+                                <span class="text-gray-500 text-xs">—</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Cooldown -->
+                            <td class="px-6 py-4">
+                                {% if passport.has_active_cooldown %}
+                                <span class="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs font-bold">
+                                    <i class="fa-solid fa-hourglass-half"></i> {{ passport.cooldown_days }}d
+                                </span>
+                                {% else %}
+                                <span class="text-gray-500 text-xs">—</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Created -->
+                            <td class="px-6 py-4">
+                                <div class="text-white text-sm">{{ passport.created_at|date:"M d, Y" }}</div>
+                                <div class="text-xs text-gray-400">{{ passport.created_at|time:"g:i A" }}</div>
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <!-- Verify -->
+                                    {% if passport.verification_status != 'VERIFIED' %}
+                                    <form method="POST" action="{% url 'user_profile:game_passport_verify' passport.id %}" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="px-3 py-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded text-xs font-bold transition" title="Mark as Verified">
+                                            <i class="fa-solid fa-check"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+
+                                    <!-- Flag -->
+                                    {% if passport.verification_status != 'FLAGGED' %}
+                                    <button onclick="flagPassport({{ passport.id }}, '{{ passport.user.username }}', '{{ passport.game.name }}')" 
+                                            class="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-xs font-bold transition" 
+                                            title="Flag as Suspicious">
+                                        <i class="fa-solid fa-flag"></i>
+                                    </button>
+                                    {% endif %}
+
+                                    <!-- Reset -->
+                                    {% if passport.verification_status != 'PENDING' %}
+                                    <form method="POST" action="{% url 'user_profile:game_passport_reset' passport.id %}" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="px-3 py-1 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded text-xs font-bold transition" title="Reset to Pending">
+                                            <i class="fa-solid fa-rotate-left"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+
+                                    <!-- Unlock -->
+                                    {% if passport.is_identity_locked %}
+                                    <form method="POST" action="{% url 'user_profile:game_passport_unlock' passport.id %}" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="px-3 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 rounded text-xs font-bold transition" title="Remove Lock">
+                                            <i class="fa-solid fa-unlock"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+
+                                    <!-- Override Cooldown -->
+                                    {% if passport.has_active_cooldown %}
+                                    <form method="POST" action="{% url 'user_profile:game_passport_override_cooldown' passport.id %}" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="px-3 py-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded text-xs font-bold transition" title="Override Cooldown">
+                                            <i class="fa-solid fa-forward"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+
+                                    <!-- View Details -->
+                                    <a href="{% url 'user_profile:game_passport_detail' passport.id %}" 
+                                       class="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-xs font-bold transition" 
+                                       title="View Details">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="px-6 py-12 text-center text-gray-400">
+                                <i class="fa-solid fa-inbox text-4xl mb-3 opacity-50"></i>
+                                <p>No passports found matching your criteria</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="px-6 py-4 border-t border-white/10 flex items-center justify-between">
+                <div class="text-sm text-gray-400">
+                    Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+                </div>
+                <div class="flex gap-2">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&status={{ current_status }}&game={{ current_game }}&q={{ search_query }}" 
+                       class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+                    
+                    <span class="px-4 py-2 bg-white/5 text-white rounded-lg">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&status={{ current_status }}&game={{ current_game }}&q={{ search_query }}" 
+                       class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Flag Modal -->
+<div id="flagModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-[#0F0B1E] rounded-2xl max-w-md w-full p-6 border border-white/10 shadow-2xl">
+        <h3 class="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-flag text-red-400"></i>
+            Flag Passport
+        </h3>
+        <p class="text-gray-400 mb-4" id="flagModalText">Are you sure you want to flag this passport as suspicious?</p>
+        <form method="POST" id="flagForm">
+            {% csrf_token %}
+            <textarea 
+                name="reason" 
+                placeholder="Reason for flagging (optional)" 
+                class="w-full bg-white/10 text-white rounded-lg px-4 py-3 border border-white/20 focus:border-red-400 focus:outline-none mb-4"
+                rows="3"
+            ></textarea>
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2 rounded-lg transition">
+                    Flag Passport
+                </button>
+                <button type="button" onclick="closeFlagModal()" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-2 rounded-lg transition">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function flagPassport(passportId, username, gameName) {
+    const modal = document.getElementById('flagModal');
+    const form = document.getElementById('flagForm');
+    const text = document.getElementById('flagModalText');
+    
+    text.textContent = `Flag ${gameName} passport for ${username}?`;
+    form.action = `/game-passport-admin/flag/${passportId}/`;
+    modal.classList.remove('hidden');
+}
+
+function closeFlagModal() {
+    document.getElementById('flagModal').classList.add('hidden');
+}
+
+// Close modal on backdrop click
+document.getElementById('flagModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeFlagModal();
+    }
+});
+</script>
+{% endblock %}

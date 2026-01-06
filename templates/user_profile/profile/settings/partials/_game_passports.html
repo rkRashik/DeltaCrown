@@ -2272,12 +2272,25 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                 // Phase 9A-29: Close OTP UI first to prevent UI flicker
                 cancelOTPDelete(passportId);
 
-                // Refresh data
-                const passportsData = await apiCall('/profile/api/game-passports/');
-                state.passports = extractPassports(passportsData);
-                await loadGames();
-                renderPassportsGrid();
-                renderGamesGrid();
+                // Phase 9A-30: Force immediate refresh of passports list
+                console.log('[Game Passports] Refreshing after delete...');
+                try {
+                    const passportsData = await apiCall('/profile/api/game-passports/');
+                    console.log('[Game Passports] Fetched passports:', passportsData);
+                    state.passports = extractPassports(passportsData);
+                    console.log('[Game Passports] State updated, passport count:', state.passports.length);
+                    
+                    // Reload games to update cooldown status
+                    await loadGames();
+                    
+                    // Re-render both grids
+                    renderPassportsGrid();
+                    renderGamesGrid();
+                    console.log('[Game Passports] UI refreshed successfully');
+                } catch (refreshError) {
+                    console.error('[Game Passports] Failed to refresh:', refreshError);
+                    // Still show success toast even if refresh fails
+                }
             }
         } catch (error) {
             btn.disabled = false;

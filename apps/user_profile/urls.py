@@ -69,6 +69,12 @@ from .views.game_passports_api import (
 from .views.game_passports_delete import (
     request_delete_otp, confirm_delete
 )
+# Phase 9A-30: Custom Game Passport Admin Interface
+from .views.game_passport_admin import (
+    game_passport_admin_dashboard, game_passport_detail,
+    game_passport_verify, game_passport_flag, game_passport_reset,
+    game_passport_unlock, game_passport_override_cooldown
+)
 # UP-PASSPORT-CREATE-01: Passport creation endpoint
 from .views.passport_create import create_passport
 
@@ -185,11 +191,17 @@ urlpatterns = [
     # Phase 9A-24: Game Passport Rules & Policy page
     path("game-passport-rules/", game_passport_rules_view, name="game_passport_rules"),
     
+    # Phase 9A-30: Custom Game Passport Admin Interface
+    path("admin/game-passports/", game_passport_admin_dashboard, name="game_passport_admin"),
+    path("admin/game-passports/<int:passport_id>/", game_passport_detail, name="game_passport_detail"),
+    path("admin/game-passports/<int:passport_id>/verify/", game_passport_verify, name="game_passport_verify"),
+    path("admin/game-passports/<int:passport_id>/flag/", game_passport_flag, name="game_passport_flag"),
+    path("admin/game-passports/<int:passport_id>/reset/", game_passport_reset, name="game_passport_reset"),
+    path("admin/game-passports/<int:passport_id>/unlock/", game_passport_unlock, name="game_passport_unlock"),
+    path("admin/game-passports/<int:passport_id>/override-cooldown/", game_passport_override_cooldown, name="game_passport_override_cooldown"),
+    
     # UP-PHASE2E-HOTFIX: Backward compatibility alias for old route name
     path("me/privacy-v2/", profile_privacy_view, name="profile_privacy_v2"),
-    
-    # Phase 9A-21: Game Passport Rules & Fair Play Documentation
-    path("game-passport-rules/", TemplateView.as_view(template_name="user_profile/game_passport_rules.html"), name="game_passport_rules"),
     
     # UP-FE-MVP-02: Settings mutation endpoints
     path("me/settings/basic/", update_basic_info, name="update_basic_info"),

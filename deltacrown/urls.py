@@ -34,6 +34,11 @@ urlpatterns = [
     path("metrics/", include("django_prometheus.urls")),
     
     path("test-game-assets/", test_game_assets, name="test_game_assets"),
+    
+    # Phase 9A-30: Custom Game Passport Admin (must come BEFORE Django admin catch-all)
+    # Routes /admin/game-passports/* to custom interface instead of Django admin
+    path("admin/game-passports/", include("apps.user_profile.urls_admin")),
+    
     path("admin/", admin.site.urls),
     path("account/", include(("apps.accounts.urls", "account"), namespace="account")),
 

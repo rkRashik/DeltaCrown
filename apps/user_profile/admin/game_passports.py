@@ -106,6 +106,7 @@ class GameProfileAdmin(admin.ModelAdmin):
         'game',
         'in_game_name',
         'identity_key',
+        'verification_status_badge',  # Phase 9A-30: Add verification status
         'visibility',
         'is_lft',
         'is_pinned',
@@ -114,6 +115,7 @@ class GameProfileAdmin(admin.ModelAdmin):
     ]
     
     list_filter = [
+        'verification_status',  # Phase 9A-30: Filter by verification status first
         'game',
         'visibility',
         'is_lft',
@@ -135,8 +137,12 @@ class GameProfileAdmin(admin.ModelAdmin):
     readonly_fields = [
         'game_display_name',
         'identity_key',
+        'verification_status_badge',  # Phase 9A-30: Visual badge
+        'verified_at',
+        'verified_by',
         'locked_until_display',
         'lock_countdown_display',
+        'edit_history_display',  # Phase 9A-30: Show edit history
         'created_at',
         'updated_at',
     ]
@@ -166,6 +172,10 @@ class GameProfileAdmin(admin.ModelAdmin):
                 'visibility',
                 'status',
                 'is_lft',
+                'verification_status',  # Phase 9A-30: Verification status
+                'verified_at',
+                'verified_by',
+                'verification_notes',  # Phase 9A-30: Verification notes (not flagged_reason)
             ]
         }),
         ('Display Preferences', {
@@ -182,18 +192,36 @@ class GameProfileAdmin(admin.ModelAdmin):
             ],
             'description': '30-day identity lock prevents frequent changes to combat smurfing and identity abuse.'
         }),
-        ('Competitive Fields', {
+        ('Rank Information', {
             'fields': [
                 'rank_name',
+                'peak_rank',
+                'rank_points',
+                'rank_tier',
                 'rank_image',
+            ],
+            'description': 'Current rank, peak rank, and ranking points. These fields are filled by users when linking their game passport.'
+        }),
+        ('Statistics & Role', {
+            'fields': [
+                'main_role',
+                'matches_played',
+                'win_rate',
+                'kd_ratio',
+                'hours_played',
+            ],
+            'description': 'Gameplay statistics and main role/position. Users provide this data during passport creation.'
+        }),
+        ('Additional Metadata', {
+            'fields': [
                 'metadata',
             ],
             'classes': ['collapse'],
-            'description': 'Optional competitive information (rank, role, stats). metadata JSON stores game-specific fields beyond core identity.'
+            'description': 'JSON field for game-specific extra data beyond core identity and stats.'
         }),
-        ('Timestamps', {
-            'fields': ['created_at', 'updated_at'],
-            'classes': ['collapse']
+        ('Timestamps & History', {
+            'fields': ['created_at', 'updated_at', 'edit_history_display'],
+            'description': 'Creation time, last edit time, and edit history from alias records.'
         }),
     ]
     
@@ -295,6 +323,28 @@ class GameProfileAdmin(admin.ModelAdmin):
             )
     lock_countdown_display.short_description = 'Lock Countdown'
     
+    def edit_history_display(self, obj):
+        """Display edit history from alias records"""
+        aliases = obj.aliases.all().order_by('-changed_at')[:5]  # Last 5 edits
+        
+        if not aliases.exists():
+            return mark_safe('<span style="color: gray;">No edit history</span>')
+        
+        html = '<ul style="margin: 0; padding-left: 20px;">'
+        for alias in aliases:
+            html += f'<li><strong>{alias.changed_at.strftime("%Y-%m-%d %H:%M")}</strong>: '
+            html += f'Changed from "{alias.old_in_game_name}" '
+            if alias.reason:
+                html += f'<br><em style="color: #666;">Reason: {alias.reason}</em>'
+            html += '</li>'
+        html += '</ul>'
+        
+        if obj.aliases.count() > 5:
+            html += f'<p style="color: #666; margin-top: 5px;"><em>...and {obj.aliases.count() - 5} more edits</em></p>'
+        
+        return mark_safe(html)
+    edit_history_display.short_description = 'Edit History (Last 5)'
+    
     def lock_status_display(self, obj):
         """Display lock status for list view"""
         if not obj.locked_until:
@@ -348,7 +398,113 @@ class GameProfileAdmin(admin.ModelAdmin):
                 }
             )
     
-    actions = ['unlock_identity_changes', 'pin_passports', 'unpin_passports']
+    actions = [
+        'verify_passports',  # Phase 9A-30: Verification actions
+        'flag_passports',
+        'reset_verification',
+        'unlock_identity_changes',
+        'pin_passports',
+        'unpin_passports'
+    ]
+    
+    # Phase 9A-30: Verification display method
+    def verification_status_badge(self, obj):
+        """Display verification status with colored badge"""
+        status_colors = {
+            'VERIFIED': '#28a745',  # Green
+            'PENDING': '#ffc107',    # Yellow
+            'FLAGGED': '#dc3545',    # Red
+        }
+        color = status_colors.get(obj.verification_status, '#6c757d')  # Default gray
+        return format_html(
+            '<span style="display: inline-block; padding: 4px 8px; '
+            'background-color: {}; color: white; border-radius: 4px; '
+            'font-size: 12px; font-weight: bold;">{}</span>',
+            color,
+            obj.verification_status
+        )
+    verification_status_badge.short_description = 'Verification'
+    
+    # Phase 9A-30: Verification actions
+    def verify_passports(self, request, queryset):
+        """Mark selected passports as verified"""
+        from django.utils import timezone
+        count = 0
+        for passport in queryset:
+            passport.verification_status = 'VERIFIED'
+            passport.verified_at = timezone.now()
+            passport.verified_by = request.user
+            passport.verification_notes = ""  # Clear any flag/notes
+            passport.save()
+            count += 1
+            
+            # Audit the verification
+            AuditService.record_event(
+                subject_user_id=passport.user.id,
+                actor_user_id=request.user.id,
+                event_type='game_passport.verified',
+                source_app='user_profile',
+                object_type='GameProfile',
+                object_id=passport.id,
+                metadata={
+                    'game': passport.game.slug if passport.game else 'unknown',
+                    'verified_by_admin': request.user.username,
+                }
+            )
+        self.message_user(request, f"Verified {count} passport(s).", level=messages.SUCCESS)
+    verify_passports.short_description = "✅ Verify selected passports"
+    
+    def flag_passports(self, request, queryset):
+        """Flag selected passports for review"""
+        count = 0
+        for passport in queryset:
+            passport.verification_status = 'FLAGGED'
+            passport.verification_notes = f"Flagged by admin {request.user.username}"  # Use verification_notes not flagged_reason
+            passport.save()
+            count += 1
+            
+            # Audit the flag
+            AuditService.record_event(
+                subject_user_id=passport.user.id,
+                actor_user_id=request.user.id,
+                event_type='game_passport.flagged',
+                source_app='user_profile',
+                object_type='GameProfile',
+                object_id=passport.id,
+                metadata={
+                    'game': passport.game.slug if passport.game else 'unknown',
+                    'flagged_by_admin': request.user.username,
+                }
+            )
+        self.message_user(request, f"Flagged {count} passport(s) for review.", level=messages.WARNING)
+    flag_passports.short_description = "⚠️ Flag selected passports"
+    
+    def reset_verification(self, request, queryset):
+        """Reset verification status to PENDING"""
+        count = 0
+        for passport in queryset:
+            passport.verification_status = 'PENDING'
+            passport.verified_at = None
+            passport.verified_by = None
+            passport.verification_notes = ""  # Clear verification notes
+            passport.save()
+            count += 1
+            
+            # Audit the reset
+            AuditService.record_event(
+                subject_user_id=passport.user.id,
+                actor_user_id=request.user.id,
+                event_type='game_passport.verification_reset',
+                source_app='user_profile',
+                object_type='GameProfile',
+                object_id=passport.id,
+                metadata={
+                    'game': passport.game.slug if passport.game else 'unknown',
+                    'reset_by_admin': request.user.username,
+                }
+            )
+        self.message_user(request, f"Reset verification for {count} passport(s) to PENDING.", level=messages.INFO)
+    reset_verification.short_description = "↻ Reset verification to PENDING"
     
     def unlock_identity_changes(self, request, queryset):
         """Admin action to unlock identity changes"""
