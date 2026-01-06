@@ -260,6 +260,7 @@ class TeamService:
         - Only invited user can accept
         - Invite must not be expired
         - Team must not be full
+        - PHASE 9A-12: User must have valid passport for team's game
         - Creates active membership
         - Updates invite status to 'accepted'
         
@@ -272,10 +273,11 @@ class TeamService:
         
         Raises:
             PermissionDenied: If accepting_profile is not the invited user
-            ValidationError: If invite expired or team full
+            ValidationError: If invite expired, team full, or missing passport
         
         Traceability:
         - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#invitations
+        - PHASE_9A12: Teams require Game Passport for identity verification
         """
         # Validate permission
         if invite.invited_user_id != accepting_profile.user_id:
@@ -290,6 +292,18 @@ class TeamService:
             invite.status = TEAM_INVITE_STATUS_EXPIRED
             invite.save(update_fields=["status"])
             raise ValidationError("Invite has expired")
+        
+        # PHASE 9A-12: Validate passport requirement
+        from apps.user_profile.services.game_passport_service import GamePassportService
+        validation_result = GamePassportService.validate_passport_for_team_action(
+            user=accepting_profile.user,
+            game_slug=invite.team.game,
+            action='join'
+        )
+        
+        if not validation_result.is_valid:
+            error_message = ' '.join(validation_result.errors) if validation_result.errors else "Valid Game Passport required to join this team"
+            raise ValidationError(f"{error_message}. Please complete your Game Passport at /settings/#game-passports")
         
         # Check roster capacity (final check before adding)
         active_members = TeamMembership.objects.filter(team=invite.team, status="ACTIVE").count()

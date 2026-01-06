@@ -62,7 +62,7 @@ from .models import (
 from .services.audit import AuditService
 from .services.tournament_stats import TournamentStatsService
 from .services.economy_sync import sync_profile_by_user_id, get_balance_drift
-from .admin.forms import UserProfileAdminForm
+from .admin.forms import UserProfileAdminForm, GameProfileAdminForm
 
 
 # ============================================================================
@@ -745,15 +745,20 @@ class UserBadgeAdmin(admin.ModelAdmin):
 @admin.register(GameProfile)
 class GameProfileAdmin(admin.ModelAdmin):
     """
-    GP-0 Game Passport Admin
+    Game Passport Admin (Phase 9A-14)
     
-    Fully operational admin for game passports with:
+    Production-grade admin with:
+    - Human-readable section labels (no internal codes)
+    - Schema-driven dropdown population (region/rank/role)
+    - Clean verification workflow with auto-populated fields
     - Identity change tracking
     - Cooldown enforcement
     - Pinning management
     - Privacy controls
     - Audit integration
     """
+    
+    form = GameProfileAdminForm  # Phase 9A-14: Schema-driven form with dynamic dropdowns
     
     list_display = [
         'user',
@@ -773,6 +778,7 @@ class GameProfileAdmin(admin.ModelAdmin):
         'is_lft',
         'is_pinned',
         'status',
+        'verification_status',  # Phase 8B: Verification filter
         ('locked_until', admin.EmptyFieldListFilter),  # GP-FE-MVP-01: Locked/unlocked filter
         'created_at',
     ]
@@ -791,12 +797,19 @@ class GameProfileAdmin(admin.ModelAdmin):
         'identity_key',
         'locked_until_display',
         'lock_countdown_display',
+        'verification_status_display',  # Phase 8B
         'created_at',
         'updated_at',
     ]
     
+    actions = [
+        'mark_as_verified',
+        'mark_as_pending',
+        'mark_as_flagged',
+    ]
+    
     fieldsets = [
-        ('Identity', {
+        ('Identity & Account Linking', {
             'fields': [
                 'user',
                 'game',
@@ -804,7 +817,8 @@ class GameProfileAdmin(admin.ModelAdmin):
                 'in_game_name',
                 'identity_key',
                 'region',
-            ]
+            ],
+            'description': 'Core identity information linking DeltaCrown account to game profile'
         }),
         ('Visibility & Status', {
             'fields': [
@@ -820,7 +834,7 @@ class GameProfileAdmin(admin.ModelAdmin):
                 'sort_order',
             ]
         }),
-        ('Rank & Stats', {
+        ('Competitive Profile', {
             'fields': [
                 'rank_name',
                 'rank_image',
@@ -833,19 +847,32 @@ class GameProfileAdmin(admin.ModelAdmin):
                 'hours_played',
                 'main_role',
             ],
-            'classes': ['collapse']
+            'classes': ['collapse'],
+            'description': 'Competitive statistics and performance metrics'
         }),
-        ('Metadata (JSON)', {
+        ('Extended Data (JSON)', {
             'fields': ['metadata'],
             'classes': ['collapse'],
-            'description': 'Per-game extras (e.g., MLBB zone_id, region codes)',
+            'description': 'Game-specific additional data (region codes, zone IDs, etc.)',
         }),
-        ('Lock Info', {
+        ('Cooldown & Protection', {
             'fields': [
                 'locked_until_display',
                 'lock_countdown_display',
             ],
-            'classes': ['collapse']
+            'classes': ['collapse'],
+            'description': 'Fair Play Protocol: prevents rapid identity changes'
+        }),
+        ('Verification & Integrity', {
+            'fields': [
+                'verification_status',
+                'verification_status_display',
+                'verification_notes',
+                'verified_at',
+                'verified_by',
+            ],
+            'classes': ['collapse'],
+            'description': 'Staff verification workflow: PENDING → VERIFIED or FLAGGED'
         }),
         ('Timestamps', {
             'fields': ['created_at', 'updated_at'],
@@ -895,15 +922,46 @@ class GameProfileAdmin(admin.ModelAdmin):
     
     def save_model(self, request, obj, form, change):
         """
-        Ensure identity changes go through GamePassportService
+        Phase 9A-14: Auto-populate verification fields + identity change auditing
         
-        Note: Direct admin edits bypass cooldown. For production,
-        consider making in_game_name readonly and requiring service layer.
+        - If verification_status changes to VERIFIED: auto-set verified_by and verified_at
+        - If verification_status changes from VERIFIED to PENDING/FLAGGED: clear verified fields
+        - Log identity changes with warning (bypasses cooldown)
+        - Record audit event
         """
-        # Check if identity changed
+        from django.utils import timezone
+        
+        # Check verification status changes
         if change:
             try:
                 old_obj = GameProfile.objects.get(pk=obj.pk)
+                
+                # Auto-populate verification fields when status changes
+                if obj.verification_status != old_obj.verification_status:
+                    if obj.verification_status == 'VERIFIED':
+                        # Auto-set verified_by and verified_at
+                        if not obj.verified_by:
+                            obj.verified_by = request.user
+                        if not obj.verified_at:
+                            obj.verified_at = timezone.now()
+                        
+                        self.message_user(
+                            request,
+                            f"Passport verified! Auto-populated 'Verified by' → {request.user.username}, 'Verified at' → now",
+                            level=messages.SUCCESS
+                        )
+                    elif old_obj.verification_status == 'VERIFIED':
+                        # Reverting from VERIFIED: clear verification fields
+                        obj.verified_by = None
+                        obj.verified_at = None
+                        
+                        self.message_user(
+                            request,
+                            "Verification status changed from VERIFIED: cleared 'Verified by' and 'Verified at' fields",
+                            level=messages.INFO
+                        )
+                
+                # Check if identity changed
                 if old_obj.in_game_name != obj.in_game_name:
                     # Identity changed via admin - log warning
                     self.message_user(
@@ -931,6 +989,7 @@ class GameProfileAdmin(admin.ModelAdmin):
                     'game': obj.game,
                     'identity_key': obj.identity_key,
                     'edited_by_admin': request.user.username,
+                    'verification_status': obj.verification_status,
                 }
             )
     
@@ -960,6 +1019,113 @@ class GameProfileAdmin(admin.ModelAdmin):
                 }
             )
     unlock_identity_changes.short_description = "Unlock identity changes (remove cooldown)"
+    
+    # Phase 8B: Verification status actions and display
+    def verification_status_display(self, obj):
+        """Display verification status with color coding"""
+        status_colors = {
+            'PENDING': 'orange',
+            'VERIFIED': 'green',
+            'FLAGGED': 'red',
+        }
+        color = status_colors.get(obj.verification_status, 'gray')
+        icon_map = {
+            'PENDING': '⏳',
+            'VERIFIED': '✓',
+            'FLAGGED': '⚠',
+        }
+        icon = icon_map.get(obj.verification_status, '?')
+        return format_html(
+            '<span style="color: {};">{} {}</span>',
+            color, icon, obj.get_verification_status_display()
+        )
+    verification_status_display.short_description = 'Verification Status'
+    
+    def mark_as_verified(self, request, queryset):
+        """Admin action to mark passports as VERIFIED"""
+        from django.utils import timezone
+        count = queryset.update(
+            verification_status='VERIFIED',
+            verified_at=timezone.now(),
+            verified_by=request.user
+        )
+        self.message_user(
+            request,
+            f"Marked {count} passport(s) as VERIFIED.",
+            level=messages.SUCCESS
+        )
+        
+        # Audit each verification
+        for passport in queryset:
+            AuditService.record_event(
+                subject_user_id=passport.user.id,
+                actor_user_id=request.user.id,
+                event_type='game_passport.verified',
+                source_app='user_profile',
+                object_type='GameProfile',
+                object_id=passport.id,
+                metadata={
+                    'game': str(passport.game),
+                    'verified_by_admin': request.user.username,
+                }
+            )
+    mark_as_verified.short_description = "✓ Mark as VERIFIED"
+    
+    def mark_as_pending(self, request, queryset):
+        """Admin action to mark passports as PENDING"""
+        count = queryset.update(
+            verification_status='PENDING',
+            verified_at=None,
+            verified_by=None
+        )
+        self.message_user(
+            request,
+            f"Marked {count} passport(s) as PENDING verification.",
+            level=messages.SUCCESS
+        )
+        
+        # Audit each status change
+        for passport in queryset:
+            AuditService.record_event(
+                subject_user_id=passport.user.id,
+                actor_user_id=request.user.id,
+                event_type='game_passport.verification_reset',
+                source_app='user_profile',
+                object_type='GameProfile',
+                object_id=passport.id,
+                metadata={
+                    'game': str(passport.game),
+                    'reset_by_admin': request.user.username,
+                }
+            )
+    mark_as_pending.short_description = "⏳ Mark as PENDING"
+    
+    def mark_as_flagged(self, request, queryset):
+        """Admin action to mark passports as FLAGGED"""
+        count = queryset.update(
+            verification_status='FLAGGED'
+        )
+        self.message_user(
+            request,
+            f"Marked {count} passport(s) as FLAGGED for review.",
+            level=messages.WARNING
+        )
+        
+        # Audit each flag
+        for passport in queryset:
+            AuditService.record_event(
+                subject_user_id=passport.user.id,
+                actor_user_id=request.user.id,
+                event_type='game_passport.flagged',
+                source_app='user_profile',
+                object_type='GameProfile',
+                object_id=passport.id,
+                metadata={
+                    'game': str(passport.game),
+                    'flagged_by_admin': request.user.username,
+                }
+            )
+    mark_as_flagged.short_description = "⚠ Mark as FLAGGED"
     
     def pin_passports(self, request, queryset):
         """Admin action to pin passports"""

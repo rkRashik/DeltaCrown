@@ -986,19 +986,8 @@
                     </div>
                 </div>
 
-                <!-- GAME PASSPORTS TAB (PHASE 7B: FULL CRUD) -->
-                <div id="tab-passports" class="tab-section space-y-6">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-3xl font-display font-bold text-white">Game Passports</h2>
-                        <button onclick="openPassportModal()" class="bg-white/10 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase hover:bg-white/20 transition flex items-center gap-2">
-                            <i class="fa-solid fa-link"></i> Link New
-                        </button>
-                    </div>
-                    
-                    <div id="passports-list">
-                        <!-- Passports loaded dynamically -->
-                    </div>
-                </div>
+                <!-- GAME PASSPORTS TAB (PHASE 7D: FULL REBUILD) -->
+                {% include "user_profile/profile/settings/partials/_game_passports.html" %}
 
                 <!-- LOADOUT TAB (READY) -->
                 <div id="tab-loadout" class="tab-section space-y-6">
@@ -1454,10 +1443,24 @@
             }
         });
 
+        // PHASE 9A: Initialize Game Passports tab on first activation
+        if (targetId === 'passports' && window.gamePassports && !window.gamePassports._initialized) {
+            window.gamePassports._initialized = true;
+            window.gamePassports.init();
+        }
+
         // Scroll Mobile Nav
         if(window.innerWidth < 1024) {
             const mobileBtn = document.querySelector(`.mobile-nav-btn[data-target="${targetId}"]`);
             if(mobileBtn) mobileBtn.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+        }
+        
+        // Phase 9A-10C: Persist active tab to localStorage
+        try {
+            localStorage.setItem('settings_active_tab', targetId);
+        } catch (e) {
+            // Graceful degradation if localStorage unavailable
+            console.warn('Could not persist tab selection:', e);
         }
     }
 
@@ -2062,386 +2065,6 @@
         }
     }
 
-    // GP-FE-MVP-01: Delete game passport (REAL IMPLEMENTATION)
-    // ========== PHASE 7B: GAME PASSPORTS FULL CRUD ==========
-    
-    // Load passports list
-    async function loadPassportsList() {
-        try {
-            const response = await fetch('{% url "user_profile:list_game_passports_api" %}');
-            const result = await response.json();
-            
-            if (result.success && result.passports) {
-                renderPassportsList(result.passports);
-            } else {
-                showToast('Failed to load game passports', 'error');
-            }
-        } catch (error) {
-            console.error('Error loading passports:', error);
-            showToast('Network error loading passports', 'error');
-        }
-    }
-    
-    // Render passports list
-    function renderPassportsList(passports) {
-        const container = document.getElementById('passports-list');
-        if (!container) return;
-        
-        if (!passports || passports.length === 0) {
-            container.innerHTML = `
-                <div class="glass-panel p-8 text-center text-gray-400">
-                    <i class="fa-solid fa-gamepad text-4xl mb-4 opacity-50"></i>
-                    <p>No game accounts linked. Click "Link New" to add your first passport.</p>
-                </div>
-            `;
-            return;
-        }
-        
-        container.innerHTML = passports.map((passport, index) => `
-            <div class="glass-panel p-5 border-l-4 border-l-z-cyan flex flex-col md:flex-row justify-between items-center gap-4 mb-4" data-passport-id="${passport.id}">
-                <div class="flex items-center gap-4 w-full md:w-auto">
-                    <div class="w-12 h-12 bg-[#ff4655] rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
-                        <i class="fa-solid fa-gamepad"></i>
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h3 class="font-bold text-white">${escapeHtml(passport.game.name)}</h3>
-                            ${passport.pinned ? '<span class="bg-z-cyan text-black text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">Pinned</span>' : ''}
-                        </div>
-                        <p class="text-sm text-gray-400 font-mono">${escapeHtml(passport.ign)}</p>
-                        ${passport.region ? `<p class="text-xs text-gray-500">${escapeHtml(passport.region)}</p>` : ''}
-                    </div>
-                </div>
-                <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-                    ${index > 0 ? `<button onclick="reorderPassport(${passport.id}, 'up')" class="text-gray-500 hover:text-z-cyan transition" title="Move Up"><i class="fa-solid fa-arrow-up"></i></button>` : ''}
-                    ${index < passports.length - 1 ? `<button onclick="reorderPassport(${passport.id}, 'down')" class="text-gray-500 hover:text-z-cyan transition" title="Move Down"><i class="fa-solid fa-arrow-down"></i></button>` : ''}
-                    <button onclick="togglePin(${passport.id}, ${passport.pinned})" class="text-gray-500 hover:text-yellow-400 transition" title="${passport.pinned ? 'Unpin' : 'Pin'}">
-                        <i class="fa-solid fa-${passport.pinned ? 'star' : 'star text-gray-600'}"></i>
-                    </button>
-                    <button onclick="editPassport(${passport.id})" class="text-gray-500 hover:text-blue-400 transition" title="Edit">
-                        <i class="fa-solid fa-edit"></i>
-                    </button>
-                    <button onclick="deletePassport(${passport.id})" class="text-gray-500 hover:text-red-400 transition" title="Delete">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    // Open passport modal (create)
-    async function openPassportModal() {
-        const modal = document.getElementById('passport-modal');
-        if (!modal) {
-            createPassportModal();
-            return;
-        }
-        
-        // Reset form
-        document.getElementById('passport-form').reset();
-        document.getElementById('passport-modal-title').textContent = 'Link New Game';
-        document.getElementById('passport-id').value = '';
-        
-        // Load games
-        await loadGamesForPassport();
-        
-        modal.classList.remove('hidden');
-    }
-    
-    // Edit passport
-    async function editPassport(passportId) {
-        try {
-            const response = await fetch('{% url "user_profile:list_game_passports_api" %}');
-            const result = await response.json();
-            
-            if (result.success) {
-                const passport = result.passports.find(p => p.id === passportId);
-                if (passport) {
-                    openEditModal(passport);
-                }
-            }
-        } catch (error) {
-            console.error('Error loading passport:', error);
-            showToast('Failed to load passport data', 'error');
-        }
-    }
-    
-    // Open edit modal
-    async function openEditModal(passport) {
-        const modal = document.getElementById('passport-modal');
-        if (!modal) {
-            createPassportModal();
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
-        
-        document.getElementById('passport-modal-title').textContent = 'Edit Game Passport';
-        document.getElementById('passport-id').value = passport.id;
-        
-        await loadGamesForPassport();
-        
-        document.getElementById('passport-game').value = passport.game.id;
-        document.getElementById('passport-game').disabled = true; // Can't change game
-        document.getElementById('passport-ign').value = passport.ign;
-        document.getElementById('passport-region').value = passport.region || '';
-        document.getElementById('passport-rank').value = passport.rank || '';
-        
-        modal.classList.remove('hidden');
-    }
-    
-    // Load games for passport modal
-    async function loadGamesForPassport() {
-        try {
-            const response = await fetch('{% url "user_profile:get_available_games" %}');
-            const result = await response.json();
-            
-            if (result.success && result.games) {
-                const select = document.getElementById('passport-game');
-                if (select) {
-                    select.innerHTML = '<option value="">Select a game...</option>' +
-                        result.games.map(game => `<option value="${game.id}">${escapeHtml(game.name)}</option>`).join('');
-                }
-            }
-        } catch (error) {
-            console.error('Failed to load games:', error);
-        }
-    }
-    
-    // Save passport (create or update)
-    async function savePassport(event) {
-        event.preventDefault();
-        
-        const form = event.target;
-        const button = form.querySelector('button[type="submit"]');
-        const originalHTML = button.innerHTML;
-        
-        button.disabled = true;
-        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-        
-        const passportId = document.getElementById('passport-id').value;
-        const isUpdate = Boolean(passportId);
-        
-        const data = {
-            game_id: parseInt(document.getElementById('passport-game').value),
-            ign: document.getElementById('passport-ign').value.trim(),
-            region: document.getElementById('passport-region').value.trim() || null,
-            rank: document.getElementById('passport-rank').value.trim() || null
-        };
-        
-        if (isUpdate) {
-            data.id = parseInt(passportId);
-        }
-        
-        try {
-            const url = isUpdate ? '{% url "user_profile:update_game_passport_api" %}' : '{% url "user_profile:create_game_passport_api" %}';
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify(data)
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showToast(`✅ Game passport ${isUpdate ? 'updated' : 'created'} successfully`, 'success');
-                closePassportModal();
-                loadPassportsList();
-            } else {
-                showToast(`❌ ${result.error || 'Failed to save passport'}`, 'error');
-            }
-        } catch (error) {
-            console.error('Error saving passport:', error);
-            showToast('❌ Network error', 'error');
-        } finally {
-            button.disabled = false;
-            button.innerHTML = originalHTML;
-        }
-    }
-    
-    // Delete passport
-    async function deletePassport(passportId) {
-        if (!confirm('Delete this game passport? This cannot be undone.')) return;
-        
-        try {
-            const response = await fetch('{% url "user_profile:delete_game_passport_api" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({ id: passportId })
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showToast('✅ Game passport deleted successfully', 'success');
-                loadPassportsList();
-            } else {
-                showToast(`❌ ${result.error || 'Failed to delete passport'}`, 'error');
-            }
-        } catch (error) {
-            console.error('Delete passport error:', error);
-            showToast('❌ Network error', 'error');
-        }
-    }
-    
-    // Toggle pin
-    async function togglePin(passportId, currentlyPinned) {
-        try {
-            // Find game slug from current list
-            const passport = Array.from(document.querySelectorAll('[data-passport-id]'))
-                .find(el => el.dataset.passportId == passportId);
-            if (!passport) return;
-            
-            const response = await fetch('{% url "user_profile:list_game_passports_api" %}');
-            const result = await response.json();
-            
-            if (result.success) {
-                const passportData = result.passports.find(p => p.id === passportId);
-                if (!passportData) return;
-                
-                const pinResponse = await fetch('{% url "user_profile:passport_pin" %}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    body: JSON.stringify({
-                        game: passportData.game.slug,
-                        pin: !currentlyPinned
-                    })
-                });
-                
-                const pinResult = await pinResponse.json();
-                
-                if (pinResult.success) {
-                    showToast(pinResult.message, 'success');
-                    loadPassportsList();
-                } else {
-                    showToast(`❌ ${pinResult.error || 'Failed to toggle pin'}`, 'error');
-                }
-            }
-        } catch (error) {
-            console.error('Error toggling pin:', error);
-            showToast('❌ Network error', 'error');
-        }
-    }
-    
-    // Reorder passport
-    async function reorderPassport(passportId, direction) {
-        const container = document.getElementById('passports-list');
-        const items = Array.from(container.querySelectorAll('[data-passport-id]'));
-        const currentIndex = items.findIndex(el => el.dataset.passportId == passportId);
-        
-        if (currentIndex === -1) return;
-        
-        const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-        if (newIndex < 0 || newIndex >= items.length) return;
-        
-        // Swap in DOM
-        if (direction === 'up') {
-            items[currentIndex].parentNode.insertBefore(items[currentIndex], items[newIndex]);
-        } else {
-            items[currentIndex].parentNode.insertBefore(items[newIndex], items[currentIndex]);
-        }
-        
-        // Get new order
-        const newOrder = Array.from(container.querySelectorAll('[data-passport-id]'))
-            .map(el => parseInt(el.dataset.passportId));
-        
-        // Save to backend
-        try {
-            // Note: Reorder endpoint expects game slugs, need to fetch current list first
-            const response = await fetch('{% url "user_profile:list_game_passports_api" %}');
-            const result = await response.json();
-            
-            if (result.success) {
-                const game_order = newOrder.map(id => {
-                    const passport = result.passports.find(p => p.id === id);
-                    return passport ? passport.game.slug : null;
-                }).filter(Boolean);
-                
-                const reorderResponse = await fetch('{% url "user_profile:passport_reorder" %}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    body: JSON.stringify({ game_order })
-                });
-                
-                const reorderResult = await reorderResponse.json();
-                
-                if (reorderResult.success) {
-                    showToast('✅ Order saved', 'success');
-                } else {
-                    showToast('❌ Failed to save order', 'error');
-                    loadPassportsList(); // Reload to restore correct order
-                }
-            }
-        } catch (error) {
-            console.error('Error reordering:', error);
-            showToast('❌ Network error', 'error');
-            loadPassportsList();
-        }
-    }
-    
-    // Create passport modal HTML
-    function createPassportModal() {
-        const modalHTML = `
-            <div id="passport-modal" class="hidden fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center p-4" onclick="if(event.target===this) closePassportModal()">
-                <div class="glass-panel p-6 w-full max-w-md" onclick="event.stopPropagation()">
-                    <h3 id="passport-modal-title" class="text-2xl font-bold text-white mb-6">Link New Game</h3>
-                    <form id="passport-form" onsubmit="savePassport(event)">
-                        <input type="hidden" id="passport-id">
-                        
-                        <div class="space-y-4">
-                            <div>
-                                <label class="z-label">Game *</label>
-                                <select id="passport-game" class="z-input w-full" required>
-                                    <option value="">Select a game...</option>
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label class="z-label">In-Game Name (IGN) *</label>
-                                <input type="text" id="passport-ign" class="z-input w-full" required placeholder="YourGamertag">
-                            </div>
-                            
-                            <div>
-                                <label class="z-label">Region</label>
-                                <input type="text" id="passport-region" class="z-input w-full" placeholder="NA, EU, ASIA, etc.">
-                            </div>
-                            
-                            <div>
-                                <label class="z-label">Rank</label>
-                                <input type="text" id="passport-rank" class="z-input w-full" placeholder="Diamond, Gold, etc.">
-                            </div>
-                        </div>
-                        
-                        <div class="flex gap-3 mt-6">
-                            <button type="button" onclick="closePassportModal()" class="flex-1 bg-white/10 text-white px-4 py-2 rounded-lg hover:bg-white/20 transition">Cancel</button>
-                            <button type="submit" class="flex-1 bg-z-cyan text-black px-4 py-2 rounded-lg font-bold hover:bg-z-cyan/80 transition">Save</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-    }
-    
-    // Close passport modal
-    function closePassportModal() {
-        const modal = document.getElementById('passport-modal');
-        if (modal) {
-            modal.classList.add('hidden');
-        }
-    }
-
     // ========== PHASE 7C-P0: PRIVACY FULL MATRIX SAVE ==========
     
     async function savePrivacyFull(event) {
@@ -2647,6 +2270,8 @@
         }
     }
 
+    // ========== PHASE 7B LEGACY - ADDITIONAL PASSPORT FUNCTION DISABLED ==========
+    /*
     // GP-FE-MVP-01: Create game passport
     async function createGamePassport(data) {
         try {
@@ -2677,6 +2302,8 @@
             showToast('❌ Network error', 'error');
         }
     }
+    */
+    // ========== END ADDITIONAL LEGACY PASSPORT CODE ==========
 
     // ========== PHASE 3B: ACCOUNT DELETION ==========
     
@@ -3515,7 +3142,22 @@
 
     // Init
     document.addEventListener('DOMContentLoaded', () => {
-        switchTab('identity');
+        // Phase 9A-10C: Restore last active tab from localStorage
+        let initialTab = 'identity';
+        try {
+            const savedTab = localStorage.getItem('settings_active_tab');
+            if (savedTab) {
+                // Verify tab exists before restoring
+                const targetSection = document.getElementById('tab-' + savedTab);
+                if (targetSection) {
+                    initialTab = savedTab;
+                }
+            }
+        } catch (e) {
+            console.warn('Could not restore tab selection:', e);
+        }
+        
+        switchTab(initialTab);
         
         // Add event listeners to all inputs to track changes
         document.querySelectorAll('input, textarea, select').forEach(el => {
@@ -3542,10 +3184,11 @@
             loadPlatformSettings();
         }
         
-        // PHASE 7B: Load game passports if passports tab exists
-        if (document.getElementById('tab-passports')) {
-            loadPassportsList();
-        }
+        // PHASE 7B: DISABLED - Legacy passport code replaced by Phase 9A
+        // Phase 9A uses on-demand initialization via switchTab() hook
+        // if (document.getElementById('tab-passports')) {
+        //     loadPassportsList();
+        // }
         
         // PHASE 7C-P0: Load follow requests if privacy tab exists
         if (document.getElementById('tab-privacy')) {

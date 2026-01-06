@@ -129,21 +129,26 @@ class GameProfileAdminForm(forms.ModelForm):
             unsupported_count = total_games - passport_supported_games.count()
             self.fields['game'].help_text += f' ({unsupported_count} unsupported games hidden)'
         
-        # If editing existing passport, populate structured fields
+        # Phase 9A-15 Section E: Add rank_name field as ChoiceField for schema-driven dropdowns
+        self.fields['rank_name'] = forms.ChoiceField(
+            required=False,
+            label="Rank",
+            help_text="Current rank (choices from game schema)",
+            choices=[('', '---------')]
+        )
+        
+        # If editing existing passport, populate structured fields and dropdown choices
         if self.instance and self.instance.pk:
             self._populate_structured_fields_from_instance()
-            self._populate_region_choices()  # GP-2D: Populate region dropdown from schema
+            self._populate_dropdown_choices()  # Phase 9A-15: Populate all dropdowns from schema
         
-        # If creating new passport and game is in POST data, populate region choices
+        # Phase 9A-15: If creating new passport and game is in POST data, populate dropdown choices
         if not self.instance.pk and 'game' in self.data:
-            self._populate_region_choices_from_post()
+            self._populate_dropdown_choices_from_post()
         
         # Make in_game_name optional (auto-computed from ign/discriminator)
         self.fields['in_game_name'].help_text = 'Display name (auto-computed from identity fields if left blank)'
         self.fields['in_game_name'].required = False
-        
-        # Remove role-related help text (GP-2D: role removed from passport)
-        self.fields['rank_name'].help_text = 'Current rank (free text or select from schema choices)'
     
     def _populate_structured_fields_from_instance(self):
         """
@@ -158,45 +163,133 @@ class GameProfileAdminForm(forms.ModelForm):
             self.initial['platform'] = self.instance.platform
         if self.instance.region:
             self.initial['region'] = self.instance.region
+        if self.instance.rank_name:
+            self.initial['rank_name'] = self.instance.rank_name
     
-    # GP-2E: _customize_field_labels_for_game() removed
-    # All label customization now handled by GP-2D JavaScript (schema-driven)
-    
-    def _populate_region_choices(self):
+    def _populate_dropdown_choices(self):
         """
-        GP-2D: Populate region dropdown from GamePassportSchema.
+        Phase 9A-15 Section E: Populate ALL dropdown choices from GamePassportSchema.
         Called when editing an existing passport.
+        Populates: region, rank_name, platform (based on schema field types).
         """
         if not self.instance or not self.instance.game:
             return
         
         try:
-            schema = GamePassportSchema.objects.get(game=self.instance.game)
-            choices = [('', '---------')]
-            choices.extend(schema.get_region_choices_for_form())
-            self.fields['region'].choices = choices
-            self.fields['region'].required = schema.region_required
-        except GamePassportSchema.DoesNotExist:
-            # No schema: allow free text via CharField
-            self.fields['region'].widget = forms.TextInput()
+            from apps.games.models import GamePlayerIdentityConfig
+            
+            # Get all identity configs for this game
+            configs = GamePlayerIdentityConfig.objects.filter(
+                game=self.instance.game
+            ).select_related('game')
+            
+            for config in configs:
+                field_name = config.field_name
+                
+                # Region dropdown
+                if field_name == 'region' and config.field_type == 'select':
+                    choices = [('', '---------')]
+                    if config.choices_json:
+                        choices.extend([
+                            (choice['value'], choice['label'])
+                            for choice in config.choices_json
+                        ])
+                    self.fields['region'].choices = choices
+                    self.fields['region'].required = config.is_required
+                
+                # Rank dropdown
+                elif field_name == 'rank' and config.field_type == 'select':
+                    choices = [('', '---------')]
+                    if config.choices_json:
+                        choices.extend([
+                            (choice['value'], choice['label'])
+                            for choice in config.choices_json
+                        ])
+                    self.fields['rank_name'].choices = choices
+                    self.fields['rank_name'].required = config.is_required
+                
+                # Platform dropdown
+                elif field_name == 'platform' and config.field_type == 'select':
+                    # Convert platform to ChoiceField
+                    choices = [('', '---------')]
+                    if config.choices_json:
+                        choices.extend([
+                            (choice['value'], choice['label'])
+                            for choice in config.choices_json
+                        ])
+                    self.fields['platform'] = forms.ChoiceField(
+                        required=config.is_required,
+                        label=config.display_name,
+                        help_text=config.help_text,
+                        choices=choices
+                    )
+                
+        except Exception as e:
+            # Log error but don't fail form initialization
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"[Admin Form] Failed to populate dropdown choices: {e}")
     
-    def _populate_region_choices_from_post(self):
+    def _populate_dropdown_choices_from_post(self):
         """
-        GP-2D: Populate region dropdown when creating new passport.
+        Phase 9A-15 Section E: Populate dropdown choices when creating new passport.
         Called when form is submitted with a game selection.
         """
         try:
+            from apps.games.models import GamePlayerIdentityConfig
+            
             game_id = self.data.get('game')
-            if game_id:
-                game = Game.objects.get(pk=game_id)
-                schema = GamePassportSchema.objects.get(game=game)
-                choices = [('', '---------')]
-                choices.extend(schema.get_region_choices_for_form())
-                self.fields['region'].choices = choices
-                self.fields['region'].required = schema.region_required
-        except (Game.DoesNotExist, GamePassportSchema.DoesNotExist, ValueError):
-            # No game selected or no schema: keep default empty dropdown
-            pass
+            if not game_id:
+                return
+            
+            game = Game.objects.get(pk=game_id)
+            configs = GamePlayerIdentityConfig.objects.filter(game=game)
+            
+            for config in configs:
+                field_name = config.field_name
+                
+                # Region dropdown
+                if field_name == 'region' and config.field_type == 'select':
+                    choices = [('', '---------')]
+                    if config.choices_json:
+                        choices.extend([
+                            (choice['value'], choice['label'])
+                            for choice in config.choices_json
+                        ])
+                    self.fields['region'].choices = choices
+                    self.fields['region'].required = config.is_required
+                
+                # Rank dropdown
+                elif field_name == 'rank' and config.field_type == 'select':
+                    choices = [('', '---------')]
+                    if config.choices_json:
+                        choices.extend([
+                            (choice['value'], choice['label'])
+                            for choice in config.choices_json
+                        ])
+                    self.fields['rank_name'].choices = choices
+                    self.fields['rank_name'].required = config.is_required
+                
+                # Platform dropdown
+                elif field_name == 'platform' and config.field_type == 'select':
+                    choices = [('', '---------')]
+                    if config.choices_json:
+                        choices.extend([
+                            (choice['value'], choice['label'])
+                            for choice in config.choices_json
+                        ])
+                    self.fields['platform'] = forms.ChoiceField(
+                        required=config.is_required,
+                        label=config.display_name,
+                        help_text=config.help_text,
+                        choices=choices
+                    )
+                    
+        except (Game.DoesNotExist, ValueError) as e:
+            # No game selected: keep default empty dropdowns
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.debug(f"[Admin Form] Could not populate dropdowns: {e}")
     
     def clean(self):
         """GP-2A Schema-driven validation using structured identity fields"""

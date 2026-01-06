@@ -1,0 +1,328 @@
+"""
+Passport Integration Service Layer
+===================================
+
+Clean, reusable functions for Teams & Tournaments passport requirements.
+Single source of truth for passport validation and identity data access.
+
+Version: 1.0 (January 2026 - Phase 9A-12)
+"""
+
+import logging
+from typing import Optional, Dict, Any, List
+from django.contrib.auth.models import User
+from apps.user_profile.models import GameProfile
+from apps.games.models import Game
+
+logger = logging.getLogger(__name__)
+
+
+class ValidationResult:
+    """Structured validation result with actionable errors."""
+    
+    def __init__(self, is_valid: bool, errors: Optional[List[str]] = None, 
+                 missing_fields: Optional[List[str]] = None, 
+                 passport: Optional[GameProfile] = None):
+        self.is_valid = is_valid
+        self.errors = errors or []
+        self.missing_fields = missing_fields or []
+        self.passport = passport
+        self.help_url = "/settings/#game-passports"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to JSON-serializable dict for API responses."""
+        return {
+            'is_valid': self.is_valid,
+            'errors': self.errors,
+            'missing_fields': self.missing_fields,
+            'help_url': self.help_url,
+        }
+
+
+def get_passport_for_game(user: User, game_slug: str) -> Optional[GameProfile]:
+    """
+    Get user's passport for a specific game.
+    
+    Args:
+        user: Django User instance
+        game_slug: Game slug (e.g., 'valorant', 'cs2')
+    
+    Returns:
+        GameProfile instance or None if not found
+    """
+    try:
+        game = Game.objects.get(slug=game_slug)
+        passport = GameProfile.objects.filter(
+            user=user,
+            game=game
+        ).select_related('game').first()
+        
+        return passport
+    except Game.DoesNotExist:
+        logger.warning(f"Game not found: {game_slug}")
+        return None
+    except Exception as e:
+        logger.error(f"Error fetching passport for {user.username}/{game_slug}: {e}")
+        return None
+
+
+def validate_passport_for_team_action(
+    user: User, 
+    game_slug: str, 
+    action: str = 'create'
+) -> ValidationResult:
+    """
+    Validate user has required passport for team action.
+    
+    Args:
+        user: Django User instance
+        game_slug: Game slug (e.g., 'valorant', 'cs2')
+        action: Action type ('create', 'join', 'register')
+    
+    Returns:
+        ValidationResult with is_valid, errors, missing_fields
+    """
+    try:
+        game = Game.objects.get(slug=game_slug)
+    except Game.DoesNotExist:
+        return ValidationResult(
+            is_valid=False,
+            errors=[f"Game '{game_slug}' not found"],
+            missing_fields=[]
+        )
+    
+    # Get passport
+    passport = get_passport_for_game(user, game_slug)
+    
+    if not passport:
+        action_verb = {
+            'create': 'create a team',
+            'join': 'join this team',
+            'register': 'register for this tournament'
+        }.get(action, 'perform this action')
+        
+        return ValidationResult(
+            is_valid=False,
+            errors=[f"You need a Game Passport for {game.display_name} to {action_verb}"],
+            missing_fields=['passport'],
+            passport=None
+        )
+    
+    # Get identity config for required fields
+    from apps.games.services.game_service import GameService
+    identity_configs = GameService.get_identity_validation_rules(game)
+    
+    missing_fields = []
+    errors = []
+    
+    # Check required identity fields
+    for config in identity_configs:
+        if config.is_required:
+            field_value = getattr(passport, config.field_name, None)
+            if not field_value:
+                missing_fields.append(config.field_name)
+                errors.append(
+                    f"Missing required field: {config.display_name}"
+                )
+    
+    # Check verification status (if FLAGGED, block action)
+    if passport.verification_status == 'FLAGGED':
+        return ValidationResult(
+            is_valid=False,
+            errors=[
+                f"Your {game.display_name} passport is flagged. Please contact support."
+            ],
+            missing_fields=[],
+            passport=passport
+        )
+    
+    if missing_fields:
+        return ValidationResult(
+            is_valid=False,
+            errors=errors,
+            missing_fields=missing_fields,
+            passport=passport
+        )
+    
+    # All checks passed
+    return ValidationResult(
+        is_valid=True,
+        errors=[],
+        missing_fields=[],
+        passport=passport
+    )
+
+
+def build_team_identity_payload(user: User, game_slug: str) -> Dict[str, Any]:
+    """
+    Build identity payload from user's passport for team operations.
+    
+    Used for:
+    - Team roster display
+    - Tournament registration auto-fill
+    - Identity snapshots
+    
+    Args:
+        user: Django User instance
+        game_slug: Game slug (e.g., 'valorant', 'cs2')
+    
+    Returns:
+        Dict with ign, rank, platform, region, server, etc. from passport
+        Empty dict if passport not found
+    """
+    passport = get_passport_for_game(user, game_slug)
+    
+    if not passport:
+        return {}
+    
+    # Build payload from passport
+    payload = {
+        'user_id': user.id,
+        'username': user.username,
+        'game_slug': game_slug,
+        'ign': passport.ign,
+        'passport_id': passport.id,
+        'verification_status': passport.verification_status,
+        'created_at': passport.created_at.isoformat(),
+        'updated_at': passport.updated_at.isoformat(),
+    }
+    
+    # Add optional fields if present
+    optional_fields = [
+        'rank', 'division', 'platform', 'region', 'server', 'preferred_mode',
+        'riot_id', 'riot_tagline', 'steam_id', 'ea_id', 'konami_id',
+        'pubg_id', 'garena_id', 'activision_id', 'ubisoft_username',
+        'epic_games_id', 'moonton_id'
+    ]
+    
+    for field in optional_fields:
+        value = getattr(passport, field, None)
+        if value:
+            payload[field] = value
+    
+    return payload
+
+
+def get_roster_passports_bulk(
+    users: List[User], 
+    game_slug: str
+) -> Dict[int, Optional[GameProfile]]:
+    """
+    Bulk fetch passports for a roster of users.
+    
+    Optimized for tournament registration validation and team roster display.
+    
+    Args:
+        users: List of Django User instances
+        game_slug: Game slug (e.g., 'valorant', 'cs2')
+    
+    Returns:
+        Dict mapping user_id -> GameProfile (or None if not found)
+    """
+    try:
+        game = Game.objects.get(slug=game_slug)
+    except Game.DoesNotExist:
+        logger.warning(f"Game not found: {game_slug}")
+        return {user.id: None for user in users}
+    
+    user_ids = [user.id for user in users]
+    
+    passports = GameProfile.objects.filter(
+        user_id__in=user_ids,
+        game=game
+    ).select_related('game')
+    
+    # Build mapping
+    passport_map = {p.user_id: p for p in passports}
+    
+    # Ensure all user IDs are in map (with None for missing passports)
+    for user_id in user_ids:
+        if user_id not in passport_map:
+            passport_map[user_id] = None
+    
+    return passport_map
+
+
+def validate_roster_passports(
+    users: List[User], 
+    game_slug: str
+) -> Dict[str, Any]:
+    """
+    Validate all roster members have valid passports.
+    
+    Used for tournament registration pre-validation.
+    
+    Args:
+        users: List of Django User instances
+        game_slug: Game slug (e.g., 'valorant', 'cs2')
+    
+    Returns:
+        Dict with:
+            - is_valid (bool): All members have valid passports
+            - errors (List[Dict]): Per-member errors
+            - missing_count (int): Count of missing passports
+    """
+    passport_map = get_roster_passports_bulk(users, game_slug)
+    
+    errors = []
+    missing_count = 0
+    
+    try:
+        game = Game.objects.get(slug=game_slug)
+    except Game.DoesNotExist:
+        return {
+            'is_valid': False,
+            'errors': [{'username': 'all', 'error': f"Game '{game_slug}' not found"}],
+            'missing_count': len(users),
+        }
+    
+    # Get identity config for required fields
+    from apps.games.services.game_service import GameService
+    identity_configs = GameService.get_identity_validation_rules(game)
+    required_fields = [c.field_name for c in identity_configs if c.is_required]
+    
+    for user in users:
+        passport = passport_map.get(user.id)
+        
+        if not passport:
+            errors.append({
+                'user_id': user.id,
+                'username': user.username,
+                'error': f"No passport for {game.display_name}",
+                'missing_fields': ['passport'],
+                'passport_url': f"/settings/#game-passports",
+            })
+            missing_count += 1
+            continue
+        
+        # Check verification status
+        if passport.verification_status == 'FLAGGED':
+            errors.append({
+                'user_id': user.id,
+                'username': user.username,
+                'error': f"Passport is flagged for {game.display_name}",
+                'missing_fields': [],
+            })
+            continue
+        
+        # Check required fields
+        member_missing_fields = []
+        for field_name in required_fields:
+            if not getattr(passport, field_name, None):
+                member_missing_fields.append(field_name)
+        
+        if member_missing_fields:
+            errors.append({
+                'user_id': user.id,
+                'username': user.username,
+                'error': f"Missing required fields: {', '.join(member_missing_fields)}",
+                'missing_fields': member_missing_fields,
+                'passport_url': f"/settings/#game-passports",
+            })
+    
+    return {
+        'is_valid': len(errors) == 0,
+        'errors': errors,
+        'missing_count': missing_count,
+        'total_members': len(users),
+    }

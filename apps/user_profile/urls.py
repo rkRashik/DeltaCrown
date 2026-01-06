@@ -1,5 +1,6 @@
 # apps/user_profile/urls.py
 from django.urls import path
+from django.views.generic import TemplateView
 from .views import (
     MyProfileUpdateView, profile_view, my_tournaments_view,
     kyc_upload_view, kyc_status_view, privacy_settings_view, settings_view,
@@ -61,7 +62,8 @@ from .views.social_links_api import (
 # UP-PHASE15-SESSION3: Game Passports API
 from .views.game_passports_api import (
     list_game_passports_api, create_game_passport_api,
-    update_game_passport_api, delete_game_passport_api
+    update_game_passport_api, delete_game_passport_api,
+    check_identity_availability_api
 )
 # UP-PASSPORT-CREATE-01: Passport creation endpoint
 from .views.passport_create import create_passport
@@ -127,10 +129,24 @@ logger = logging.getLogger(__name__)
 
 
 def redirect_to_modern_profile(request, username):
-    """301 redirect from legacy /u/<username>/ or /<username>/ to /@<username>/"""
-    target_url = url_reverse('user_profile:public_profile', kwargs={'username': username})
+    """
+    301 redirect from legacy /u/<username>/ or /<username>/ to /@<username>/
+    Phase 9A-10: Fixed redirect loop by using direct URL construction.
+    """
+    from django.contrib.auth import get_user_model
+    from django.http import Http404
+    
+    User = get_user_model()
+    
+    # Verify user exists
+    if not User.objects.filter(username=username).exists():
+        raise Http404(f"User '{username}' not found")
+    
+    # Direct URL construction (not reverse to avoid loop)
+    target_url = f"/@{username}/"
     if request.GET:
         target_url = f"{target_url}?{request.GET.urlencode()}"
+    
     user_id = request.user.id if request.user.is_authenticated else None
     logger.info(f"LEGACY_PROFILE_REDIRECT: {request.path} → {target_url} (user_id={user_id})")
     return HttpResponsePermanentRedirect(target_url)
@@ -162,6 +178,9 @@ urlpatterns = [
     path("me/privacy/", profile_privacy_view, name="profile_privacy"),
     # UP-PHASE2E-HOTFIX: Backward compatibility alias for old route name
     path("me/privacy-v2/", profile_privacy_view, name="profile_privacy_v2"),
+    
+    # Phase 9A-21: Game Passport Rules & Fair Play Documentation
+    path("game-passport-rules/", TemplateView.as_view(template_name="user_profile/game_passport_rules.html"), name="game_passport_rules"),
     
     # UP-FE-MVP-02: Settings mutation endpoints
     path("me/settings/basic/", update_basic_info, name="update_basic_info"),
@@ -205,11 +224,13 @@ urlpatterns = [
     path("api/game-passports/create/", create_game_passport_api, name="create_game_passport_api"),
     path("api/game-passports/update/", update_game_passport_api, name="update_game_passport_api"),
     path("api/game-passports/delete/", delete_game_passport_api, name="delete_game_passport_api"),
+    path("api/game-passports/check-identity/", check_identity_availability_api, name="check_identity_api"),
     # Frontend compatibility aliases (template expects /profile/api/game-passports/)
     path("profile/api/game-passports/", list_game_passports_api, name="game_passports_list_alias"),
     path("profile/api/game-passports/create/", create_game_passport_api, name="game_passports_create_alias"),
     path("profile/api/game-passports/update/", update_game_passport_api, name="game_passports_update_alias"),
     path("profile/api/game-passports/delete/", delete_game_passport_api, name="game_passports_delete_alias"),
+    path("profile/api/game-passports/check-identity/", check_identity_availability_api, name="check_identity_alias"),
     path("api/platform-settings/", get_platform_settings, name="get_platform_settings"),
     path("me/settings/platform/", update_platform_settings, name="update_platform_settings"),
     path("api/profile/data/", get_profile_data, name="get_profile_data"),

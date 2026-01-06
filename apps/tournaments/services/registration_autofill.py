@@ -178,65 +178,108 @@ class RegistrationAutoFillService:
     
     @staticmethod
     def _get_game_account_data(user, game) -> Dict[str, AutoFillField]:
-        """Get auto-fill data from game accounts"""
+        """
+        Get auto-fill data from Game Passports.
+        
+        PHASE 9A-12: Single source of truth - uses Game Passports instead of PlayerGameAccount.
+        """
         data = {}
         
         try:
-            from apps.players.models import PlayerGameAccount
+            from apps.user_profile.services.game_passport_service import GamePassportService
             
-            # Get game account for this game
-            game_account = PlayerGameAccount.objects.filter(
-                player__user=user,
-                game=game,
-                is_verified=True
-            ).first()
+            # Get passport for this game
+            passport = GamePassportService.get_passport(user, game.slug)
             
-            if game_account:
+            if passport:
                 # In-Game Name
-                data['ign'] = AutoFillField(
-                    field_name='ign',
-                    value=game_account.in_game_name,
-                    source='game_account',
-                    confidence='high'
-                )
-                
-                # Player ID
-                if game_account.player_id:
-                    data['player_id'] = AutoFillField(
-                        field_name='player_id',
-                        value=game_account.player_id,
-                        source='game_account',
+                if passport.ign:
+                    data['ign'] = AutoFillField(
+                        field_name='ign',
+                        value=passport.ign,
+                        source='game_passport',
                         confidence='high'
                     )
                 
+                # Player ID (game-specific identity fields)
+                # Map identity fields based on game
+                identity_field_map = {
+                    'valorant': ('riot_id', 'Riot ID'),
+                    'counter-strike-2': ('steam_id', 'Steam ID'),
+                    'dota-2': ('steam_id', 'Steam ID'),
+                    'mobile-legends': ('moonton_id', 'Moonton ID'),
+                    'pubg-mobile': ('pubg_id', 'PUBG ID'),
+                    'free-fire': ('garena_id', 'Garena ID'),
+                    'call-of-duty-mobile': ('activision_id', 'Activision ID'),
+                    'efootball': ('konami_id', 'Konami ID'),
+                    'ea-sports-fc-26': ('ea_id', 'EA ID'),
+                    'rainbow-six-siege': ('ubisoft_username', 'Ubisoft Username'),
+                    'rocket-league': ('epic_games_id', 'Epic Games ID'),
+                }
+                
+                if game.slug in identity_field_map:
+                    field_name, display_name = identity_field_map[game.slug]
+                    field_value = getattr(passport, field_name, None)
+                    if field_value:
+                        data['player_id'] = AutoFillField(
+                            field_name='player_id',
+                            value=field_value,
+                            source='game_passport',
+                            confidence='high'
+                        )
+                
                 # Rank
-                if game_account.rank:
+                if passport.rank:
                     data['rank'] = AutoFillField(
                         field_name='rank',
-                        value=game_account.rank,
-                        source='game_account',
+                        value=passport.rank,
+                        source='game_passport',
                         confidence='high'
                     )
                 
                 # Platform
-                if game_account.platform:
+                if passport.platform:
                     data['platform'] = AutoFillField(
                         field_name='platform',
-                        value=game_account.platform,
-                        source='game_account',
+                        value=passport.platform,
+                        source='game_passport',
                         confidence='high'
                     )
-            else:
-                # No game account found
-                data['ign'] = AutoFillField(
-                    field_name='ign',
-                    value='',
-                    source='game_account',
-                    confidence='low',
-                    missing=True,
-                    update_url=f'/players/game-accounts/add/?game={game.slug}'
-                )
-        except:
+                
+                # Region
+                if passport.region:
+                    data['region'] = AutoFillField(
+                        field_name='region',
+                        value=passport.region,
+                        source='game_passport',
+                        confidence='high'
+                    )
+                
+                # Server
+                if passport.server:
+                    data['server'] = AutoFillField(
+                        field_name='server',
+                        value=passport.server,
+                        source='game_passport',
+                        confidence='high'
+                    )
+                
+                return data
+            
+            # No passport found - suggest creating one
+            data['ign'] = AutoFillField(
+                field_name='ign',
+                value='',
+                source='game_passport',
+                confidence='low',
+                missing=True,
+                update_url='/settings/#game-passports'
+            )
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to get game account data for {user.username}/{game.slug}: {e}")
             pass
         
         return data
@@ -347,16 +390,25 @@ class RegistrationAutoFillService:
     
     @staticmethod
     def _get_member_ign(user, game) -> Optional[str]:
-        """Get member's IGN for a specific game"""
+        """
+        Get member's IGN for a specific game from Game Passport.
+        
+        PHASE 9A-12: Single source of truth - uses Game Passports instead of legacy fields.
+        """
         try:
-            from apps.players.models import PlayerGameAccount
-            game_account = PlayerGameAccount.objects.filter(
-                player__user=user,
-                game=game,
-                is_verified=True
-            ).first()
-            return game_account.in_game_name if game_account else None
-        except:
+            from apps.user_profile.services.game_passport_service import GamePassportService
+            
+            passport = GamePassportService.get_passport(user, game.slug)
+            if passport and passport.ign:
+                return passport.ign
+            
+            # Phase 9A-14: No passport found, return None
+            return None
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to get IGN for {user.username}/{game.slug}: {e}")
             return None
     
     @staticmethod

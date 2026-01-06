@@ -1,0 +1,350 @@
+"""
+Game Passport Service Layer (Phase 9A-4)
+
+Smart gap-filling and integration helpers for Game Passports.
+Used by teams/tournaments to autofill identity fields and enforce passport requirements.
+"""
+
+from typing import Dict, List, Optional, Tuple
+from django.contrib.auth import get_user_model
+from apps.games.models import Game, GamePlayerIdentityConfig
+
+User = get_user_model()
+
+
+def get_passport_for_game(user: User, game: Game) -> Optional[Dict]:
+    """
+    Get user's passport for a specific game.
+    
+    Args:
+        user: User instance
+        game: Game instance
+        
+    Returns:
+        Dict with passport data or None if no passport exists
+        {
+            'id': int,
+            'ign': str,
+            'region': str,
+            'metadata': dict,
+            'is_locked': bool,
+            'is_verified': bool,
+            'visibility': str
+        }
+    """
+    from apps.user_profile.models_main import GameProfile
+    from django.utils import timezone
+    
+    try:
+        passport = GameProfile.objects.get(user=user, game=game)
+        
+        is_locked = passport.locked_until and passport.locked_until > timezone.now()
+        
+        return {
+            'id': passport.id,
+            'ign': passport.ign,
+            'region': passport.region,
+            'rank': passport.rank_name,
+            'metadata': passport.metadata or {},
+            'is_locked': is_locked,
+            'is_verified': passport.verification_status == 'VERIFIED',
+            'verification_status': passport.verification_status,
+            'visibility': passport.visibility,
+            'locked_until': passport.locked_until.isoformat() if passport.locked_until else None,
+        }
+    except GameProfile.DoesNotExist:
+        return None
+
+
+def get_missing_passport_fields(
+    user: User,
+    game: Game,
+    required_fields: List[str]
+) -> Tuple[List[str], Dict]:
+    """
+    Check which required identity fields are missing from user's passport.
+    
+    Args:
+        user: User instance
+        game: Game instance
+        required_fields: List of field names required (e.g., ['riot_id', 'region'])
+        
+    Returns:
+        Tuple of (missing_field_names, existing_passport_data)
+        
+    Example:
+        missing, existing = get_missing_passport_fields(user, valorant, ['riot_id', 'region', 'rank'])
+        if missing:
+            # Prompt user to complete passport
+            # Show only missing fields
+        else:
+            # Use existing passport data
+    """
+    passport = get_passport_for_game(user, game)
+    
+    if not passport:
+        # No passport exists - all fields are missing
+        return required_fields, {}
+    
+    # Check which required fields are missing
+    missing = []
+    metadata = passport.get('metadata', {})
+    
+    for field in required_fields:
+        # Check both metadata and top-level passport fields
+        if not metadata.get(field) and not passport.get(field):
+            missing.append(field)
+    
+    return missing, passport
+
+
+def apply_gap_fill(
+    user: User,
+    game: Game,
+    patch_data: Dict,
+    lock_on_fill: bool = False
+) -> Tuple[bool, Optional[str], Optional[Dict]]:
+    """
+    Fill missing passport fields (smart gap-filling).
+    
+    Creates passport if none exists, or updates existing passport with missing fields.
+    Validates against game schema before applying.
+    
+    Args:
+        user: User instance
+        game: Game instance
+        patch_data: Dict of fields to add/update (e.g., {'region': 'NA', 'rank': 'Diamond'})
+        lock_on_fill: Whether to apply 30-day lock after filling (default False for gap-fill)
+        
+    Returns:
+        Tuple of (success: bool, error_message: Optional[str], passport_data: Optional[Dict])
+        
+    Example:
+        success, error, passport = apply_gap_fill(
+            user,
+            valorant,
+            {'region': 'NA', 'rank': 'Diamond'},
+            lock_on_fill=False
+        )
+        if success:
+            # Use passport data for tournament registration
+        else:
+            # Show error to user
+    """
+    from apps.user_profile.models_main import GameProfile
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    # Validate patch_data against game schema
+    identity_configs = GamePlayerIdentityConfig.objects.filter(game=game).order_by('order')
+    
+    # Check required fields from schema
+    missing_required = []
+    for config in identity_configs:
+        if config.is_required:
+            field_value = patch_data.get(config.field_name, '').strip() if isinstance(patch_data.get(config.field_name), str) else patch_data.get(config.field_name)
+            if not field_value:
+                missing_required.append(config.display_name or config.field_name)
+    
+    # Get existing passport or prepare to create
+    try:
+        passport = GameProfile.objects.get(user=user, game=game)
+        is_new = False
+        
+        # Merge patch_data into existing metadata
+        metadata = passport.metadata.copy() if passport.metadata else {}
+        metadata.update(patch_data)
+        
+    except GameProfile.DoesNotExist:
+        passport = None
+        is_new = True
+        metadata = patch_data.copy()
+    
+    # Check if required fields are satisfied (considering existing data)
+    if passport:
+        for config in identity_configs:
+            if config.is_required:
+                existing_value = passport.metadata.get(config.field_name) if passport.metadata else None
+                new_value = metadata.get(config.field_name)
+                if not existing_value and not new_value:
+                    if config.field_name not in [f.replace('_', '') for f in missing_required]:
+                        missing_required.append(config.display_name or config.field_name)
+    
+    if missing_required and is_new:
+        return False, f"Missing required fields: {', '.join(missing_required)}", None
+    
+    # Derive IGN from metadata for database column
+    ign = metadata.get('ign', '').strip()
+    discriminator = metadata.get('discriminator', '').strip() or None
+    region = metadata.get('region', '').strip() or None
+    rank = metadata.get('rank', '').strip() or None
+    
+    # Auto-derive IGN from riot_id if not provided
+    if not ign and metadata.get('riot_id'):
+        riot_id = metadata['riot_id'].strip()
+        if '#' in riot_id:
+            name, tag = riot_id.split('#', 1)
+            ign = name.strip()
+            discriminator = tag.strip()
+        else:
+            ign = riot_id
+    
+    # Fallback to other identity fields
+    if not ign:
+        for field in ['steam_id', 'uid', 'player_id', 'pubg_id', 'epic_id']:
+            if metadata.get(field):
+                ign = str(metadata[field]).strip()
+                break
+    
+    if not ign:
+        return False, "Could not determine player identity from provided fields", None
+    
+    # Create or update passport
+    try:
+        if is_new:
+            passport = GameProfile.objects.create(
+                user=user,
+                game=game,
+                ign=ign,
+                discriminator=discriminator,
+                region=region,
+                rank_name=rank or "",
+                metadata=metadata,
+                locked_until=timezone.now() + timedelta(days=30) if lock_on_fill else None
+            )
+        else:
+            # Update existing passport (gap-fill only adds missing fields)
+            passport.metadata = metadata
+            if ign:
+                passport.ign = ign
+            if discriminator:
+                passport.discriminator = discriminator
+            if region:
+                passport.region = region
+            if rank:
+                passport.rank_name = rank
+            
+            if lock_on_fill and not passport.locked_until:
+                passport.locked_until = timezone.now() + timedelta(days=30)
+            
+            passport.save()
+        
+        return True, None, get_passport_for_game(user, game)
+        
+    except Exception as e:
+        return False, f"Failed to save passport: {str(e)}", None
+
+
+def build_registration_identity(user: User, game: Game) -> Optional[Dict]:
+    """
+    Build canonical identity payload for tournament registration from passport.
+    
+    Used by tournament services to autofill player identity during registration.
+    Returns standardized identity dict derived from passport metadata + schema.
+    
+    Args:
+        user: User instance
+        game: Game instance
+        
+    Returns:
+        Dict with identity payload or None if no passport exists
+        {
+            'game_id': int,
+            'primary_id': str,  # Main identity field (riot_id, steam_id, uid, etc.)
+            'ign': str,
+            'region': str,
+            'rank': str,
+            'additional_fields': dict  # Other metadata fields
+        }
+        
+    Example:
+        identity = build_registration_identity(user, valorant)
+        if identity:
+            # Autofill tournament registration form
+            registration.riot_id = identity['primary_id']
+            registration.region = identity['region']
+        else:
+            # Block registration, prompt to create passport
+    """
+    passport = get_passport_for_game(user, game)
+    
+    if not passport:
+        return None
+    
+    metadata = passport.get('metadata', {})
+    
+    # Determine primary identity field based on game schema
+    identity_configs = GamePlayerIdentityConfig.objects.filter(
+        game=game,
+        is_immutable=True  # Primary IDs are typically immutable
+    ).order_by('order').first()
+    
+    primary_id = None
+    if identity_configs:
+        primary_id = metadata.get(identity_configs.field_name)
+    
+    # Fallback: try common primary ID fields
+    if not primary_id:
+        for field in ['riot_id', 'steam_id', 'uid', 'player_id', 'pubg_id', 'epic_id', 'ea_id']:
+            if metadata.get(field):
+                primary_id = metadata[field]
+                break
+    
+    # If still no primary ID, use IGN
+    if not primary_id:
+        primary_id = passport.get('ign')
+    
+    return {
+        'game_id': game.id,
+        'game_slug': game.slug,
+        'primary_id': primary_id,
+        'ign': passport.get('ign'),
+        'region': passport.get('region'),
+        'rank': passport.get('rank'),
+        'metadata': metadata,
+        'passport_id': passport.get('id'),
+        'is_verified': passport.get('is_verified'),
+        'verification_status': passport.get('verification_status'),
+    }
+
+
+def validate_passport_for_tournament(
+    user: User,
+    game: Game,
+    tournament_visibility: str = 'PUBLIC'
+) -> Tuple[bool, Optional[str]]:
+    """
+    Validate user's passport meets tournament requirements.
+    
+    Phase 9A-4: Check visibility policy - PRIVATE passports cannot join tournaments.
+    
+    Args:
+        user: User instance
+        game: Game instance
+        tournament_visibility: Tournament visibility requirement (default PUBLIC)
+        
+    Returns:
+        Tuple of (is_valid: bool, error_message: Optional[str])
+        
+    Example:
+        valid, error = validate_passport_for_tournament(user, valorant)
+        if not valid:
+            # Block registration with error message
+            return JsonResponse({'error': error}, status=403)
+    """
+    passport = get_passport_for_game(user, game)
+    
+    if not passport:
+        return False, f"You must create a Game Passport for {game.display_name} before registering for tournaments."
+    
+    # Phase 9A-4: Visibility enforcement
+    if passport.get('visibility') == 'PRIVATE':
+        return False, "Cannot register for tournaments with a PRIVATE passport. Change visibility to PUBLIC or PROTECTED in Settings → Game Passports."
+    
+    # Check if passport is verified (optional requirement, can be enforced per tournament)
+    # For now, just warn but don't block
+    if not passport.get('is_verified'):
+        # This is just informational - tournaments can choose to require verification
+        pass
+    
+    return True, None

@@ -1545,7 +1545,44 @@ class GameProfile(models.Model):
     is_verified = models.BooleanField(
         default=False,
         editable=False,
-        help_text="DEPRECATED: Verification removed in GP-0"
+        help_text="DEPRECATED: Use verification_status instead"
+    )
+    
+    # Phase 8B: Verification status upgrade
+    VERIFICATION_PENDING = 'PENDING'
+    VERIFICATION_VERIFIED = 'VERIFIED'
+    VERIFICATION_FLAGGED = 'FLAGGED'
+    
+    VERIFICATION_STATUS_CHOICES = [
+        (VERIFICATION_PENDING, 'Pending Verification'),
+        (VERIFICATION_VERIFIED, 'Verified'),
+        (VERIFICATION_FLAGGED, 'Flagged for Review'),
+    ]
+    
+    verification_status = models.CharField(
+        max_length=20,
+        choices=VERIFICATION_STATUS_CHOICES,
+        default=VERIFICATION_PENDING,
+        db_index=True,
+        help_text="Verification pipeline status: PENDING → VERIFIED or FLAGGED"
+    )
+    verification_notes = models.TextField(
+        blank=True,
+        default="",
+        help_text="Admin notes for verification/flagging"
+    )
+    verified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when passport was verified"
+    )
+    verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='verified_passports',
+        help_text="Admin who verified this passport"
     )
     
     # Timestamps
@@ -1573,7 +1610,43 @@ class GameProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.game.display_name}"
     
+    @property
+    def win_loss_record(self):
+        """Calculate W-L record from win rate"""
+        if self.matches_played == 0:
+            return "0-0"
+        wins = int(self.matches_played * (self.win_rate / 100))
+        losses = self.matches_played - wins
+        return f"{wins}-{losses}"
+    
+    def is_identity_locked(self) -> bool:
+        """Check if identity changes are currently locked"""
+        if not self.locked_until:
+            return False
+        return timezone.now() < self.locked_until
+    
+    @property
+    def is_verified_computed(self) -> bool:
+        """
+        Phase 8B: Computed property for backward compatibility.
+        Returns True if verification_status == VERIFIED.
+        """
+        return self.verification_status == self.VERIFICATION_VERIFIED
+    
     def save(self, *args, **kwargs):
+        """
+        Phase 8B: Sync is_verified with verification_status.
+        If is_verified is set manually (legacy code), update verification_status.
+        """
+        # Sync is_verified → verification_status (backward compatibility)
+        if self.is_verified and self.verification_status == self.VERIFICATION_PENDING:
+            self.verification_status = self.VERIFICATION_VERIFIED
+            if not self.verified_at:
+                self.verified_at = timezone.now()
+        
+        # Sync verification_status → is_verified
+        self.is_verified = (self.verification_status == self.VERIFICATION_VERIFIED)
+        
         # Auto-populate display name from Game model
         if not self.game_display_name and self.game:
             self.game_display_name = self.game.display_name
@@ -1595,21 +1668,6 @@ class GameProfile(models.Model):
             self.identity_key = identity_key or "unknown"
         
         super().save(*args, **kwargs)
-    
-    @property
-    def win_loss_record(self):
-        """Calculate W-L record from win rate"""
-        if self.matches_played == 0:
-            return "0-0"
-        wins = int(self.matches_played * (self.win_rate / 100))
-        losses = self.matches_played - wins
-        return f"{wins}-{losses}"
-    
-    def is_identity_locked(self) -> bool:
-        """Check if identity changes are currently locked"""
-        if not self.locked_until:
-            return False
-        return timezone.now() < self.locked_until
 
 
 class GameProfileAlias(models.Model):

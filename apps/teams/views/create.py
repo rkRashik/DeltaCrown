@@ -34,6 +34,7 @@ from apps.teams.services.team_service import TeamService
 from apps.games.services.game_service import GameService
 from apps.common.region_config import get_regions_for_game
 from apps.user_profile.models import UserProfile
+from apps.user_profile.services.game_passport_service import GamePassportService
 
 logger = logging.getLogger(__name__)
 
@@ -188,6 +189,30 @@ def _handle_team_creation_post(request, profile):
     if form.is_valid():
         try:
             with transaction.atomic():
+                # PHASE 9A-12: Validate passport requirement
+                game_slug = form.cleaned_data['game']
+                validation_result = GamePassportService.validate_passport_for_team_action(
+                    user=request.user,
+                    game_slug=game_slug,
+                    action='create'
+                )
+                
+                if not validation_result.is_valid:
+                    error_message = validation_result.errors[0] if validation_result.errors else "Game Passport required"
+                    
+                    if is_ajax:
+                        return JsonResponse({
+                            'success': False,
+                            'error': error_message,
+                            'passport_required': True,
+                            'game_slug': game_slug,
+                            'missing_fields': validation_result.missing_fields,
+                            'help_url': validation_result.help_url,
+                        }, status=400)
+                    
+                    messages.error(request, f"{error_message}. Please create a Game Passport first.")
+                    return redirect('user_profile:settings')
+                
                 # Create team via service layer (SINGLE SOURCE OF TRUTH)
                 team = TeamService.create_team(
                     name=form.cleaned_data['name'],
@@ -206,29 +231,8 @@ def _handle_team_creation_post(request, profile):
                     twitch=form.cleaned_data.get('twitch', ''),
                 )
                 
-                # Save game ID to user profile if provided
-                game_id = request.POST.get('game_id', '').strip()
-                if game_id:
-                    game_code = team.game
-                    
-                    # Map game slugs to profile fields (using actual slugs from Game model)
-                    game_id_fields = {
-                        'valorant': 'riot_id',
-                        'counter-strike-2': 'steam_id',
-                        'dota-2': 'steam_id',
-                        'mobile-legends': 'mlbb_id',
-                        'pubg-mobile': 'pubg_mobile_id',
-                        'free-fire': 'free_fire_id',
-                        'call-of-duty-mobile': 'codm_uid',
-                        'efootball': 'efootball_id',
-                        'ea-sports-fc-26': 'ea_id',
-                    }
-                    
-                    field_name = game_id_fields.get(game_code)
-                    if field_name and not getattr(profile, field_name):
-                        setattr(profile, field_name, game_id)
-                        profile.save(update_fields=[field_name])
-                        logger.info(f"Saved {field_name} to profile for user {request.user.id}")
+                # Phase 9A-14: game_id saving removed - all identity data must come from Game Passports
+                # No more direct profile field updates during team creation
                 
                 # Clear draft from cache
                 _clear_draft_from_cache(request.user.id)

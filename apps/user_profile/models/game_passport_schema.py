@@ -88,6 +88,51 @@ class GamePassportSchema(models.Model):
         """
     )
     
+    # Platform Choices (Phase 9A-7: Cross-platform games)
+    platform_choices = models.JSONField(
+        default=list,
+        help_text="""
+        Platform choices for cross-platform games.
+        Format: ["ps5", "xbox", "pc", "switch", "mobile"]
+        """
+    )
+    
+    # Server Choices (Phase 9A-7: Server-based games like Dota 2)
+    server_choices = models.JSONField(
+        default=list,
+        help_text="""
+        Server/datacenter choices for games with server-based regions.
+        Format: ["use", "usw", "euw", "eue", "sea", "etc."]
+        """
+    )
+    
+    # Mode Choices (Phase 9A-7: Games with multiple modes)
+    mode_choices = models.JSONField(
+        default=list,
+        help_text="""
+        Game mode choices (PUBG modes, Rocket League playlists, etc.).
+        Format: ["tpp", "fpp", "1v1", "2v2", "3v3", etc.]
+        """
+    )
+    
+    # Premier Rating Choices (Phase 9A-7: CS2 Premier system)
+    premier_rating_choices = models.JSONField(
+        default=list,
+        help_text="""
+        CS2 Premier rating ranges.
+        Format: ["0-5000", "5000-10000", "10000-15000", etc.]
+        """
+    )
+    
+    # Division Choices (Phase 9A-7: EA FC/eFootball divisions)
+    division_choices = models.JSONField(
+        default=list,
+        help_text="""
+        EA FC/eFootball division choices.
+        Format: ["div10", "div9", "div8", ..., "elite"]
+        """
+    )
+    
     # Rank System Configuration
     rank_system = models.CharField(
         max_length=50,

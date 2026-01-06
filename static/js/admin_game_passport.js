@@ -84,15 +84,33 @@
     }
 
     /**
-     * UP-PHASE15: Populate rank choices (future enhancement)
-     * For now, rank_name is a free text field, but this prepares for dropdown
+     * Phase 9A-16: Populate rank dropdown dynamically from server data
      */
-    function populateRankChoices(ranks) {
-        // TODO: If rank_name becomes a dropdown, populate it here
-        // For now, just log available ranks for reference
-        if (ranks && ranks.length > 0) {
-            console.log('[GP Admin] Available ranks:', ranks.map(r => r.label).join(', '));
+    function populateRankDropdown(ranks, currentValue) {
+        const rankSelect = $('#id_rank_name');
+        if (!rankSelect.length) {
+            return;
         }
+
+        // Clear existing options
+        rankSelect.empty();
+
+        // Add default empty option
+        rankSelect.append($('<option>', {
+            value: '',
+            text: '---------'
+        }));
+
+        // Add rank options from server
+        ranks.forEach(rank => {
+            rankSelect.append($('<option>', {
+                value: rank.value,
+                text: rank.label,
+                selected: rank.value === currentValue
+            }));
+        });
+
+        console.log('[GP Admin] Populated', ranks.length, 'ranks in dropdown');
     }
 
     /**
@@ -174,6 +192,7 @@
     /**
      * Update field labels and visibility based on selected game (GP-2D: schema-driven)
      * UP-PHASE15: Now fetches regions/ranks from server via AJAX
+     * Phase 9A-16: Actually populate region/rank dropdowns from metadata
      */
     async function updateFieldLabelsAndVisibility(gameId, gameSlug) {
         if (!gameId && !gameSlug) {
@@ -185,6 +204,21 @@
 
         // UP-PHASE15: Fetch game metadata from server (regions, ranks, schema config)
         const metadata = await fetchGameMetadata(gameId);
+        
+        // Phase 9A-16: Populate region/rank dropdowns from metadata
+        if (metadata) {
+            // Preserve current values
+            const currentRegion = $('#id_region').val();
+            const currentRank = $('#id_rank_name').val();
+            
+            // Populate dropdowns
+            if (metadata.regions && metadata.regions.length > 0) {
+                populateRegionDropdown(metadata.regions, currentRegion);
+            }
+            if (metadata.ranks && metadata.ranks.length > 0) {
+                populateRankDropdown(metadata.ranks, currentRank);
+            }
+        }
         
         let config;
         if (metadata && metadata.schema) {
@@ -221,7 +255,7 @@
             discriminatorField.show().removeClass('gp-hidden-field');
             const discLabel = discriminatorField.find('label');
             const discInput = discriminatorField.find('input');
-            const discHelp = discriminatorField.find('.help');
+            const discHelp = discriminatorField.find('help');
 
             if (discLabel.length) {
                 discLabel.text(config.discriminator_label + ':');

@@ -226,25 +226,48 @@ class SettingsController {
         const hash = window.location.hash.slice(1); // Remove #
         const validSections = ['profile', 'privacy', 'notifications', 'platform', 'wallet', 'account', 'about', 'game-passports', 'kyc', 'security', 'social'];
         
+        // Phase 9A-15 Section F: Smart tab persistence
+        // If user explicitly navigated to a hash, use that
         if (hash && validSections.includes(hash)) {
             this.switchSection(hash);
+            // Store as last visited for future persistence
+            try {
+                localStorage.setItem('settings_last_section', hash);
+            } catch (e) {
+                // Ignore localStorage errors
+            }
         } else {
-            // Default to profile if no hash or invalid hash
-            this.switchSection('profile');
-            window.location.hash = 'profile';
-        }
-        
-        // Store last visited section in localStorage for persistence
-        try {
-            localStorage.setItem('settings_last_section', hash || 'profile');
-        } catch (e) {
-            // Ignore localStorage errors
+            // No hash provided - check if user previously navigated to a specific tab
+            let targetSection = 'profile'; // Default for fresh visits
+            
+            try {
+                const lastSection = localStorage.getItem('settings_last_section');
+                // Only restore if:
+                // 1. lastSection exists
+                // 2. It's a valid section
+                // 3. User is not being redirected with a forced hash (e.g., from teams)
+                if (lastSection && validSections.includes(lastSection) && !hash) {
+                    targetSection = lastSection;
+                }
+            } catch (e) {
+                // localStorage not available - use default
+            }
+            
+            this.switchSection(targetSection);
+            window.location.hash = targetSection;
         }
     }
     
     switchSection(section) {
         this.activeSection = section;
         window.location.hash = section;
+        
+        // Phase 9A-15 Section F: Store last visited section for smart persistence
+        try {
+            localStorage.setItem('settings_last_section', section);
+        } catch (e) {
+            // Ignore localStorage errors
+        }
         
         // Update nav active state
         this.navItems.forEach(item => {

@@ -24,9 +24,8 @@ from .forms import GameProfileAdminForm
 class GameProfileAliasInline(admin.TabularInline):
     """
     Inline display of alias history for a game passport.
-    Read-only view of all identity changes (GP-2A: now includes structured fields).
-    
-    BLOCKER-2-FIX: Use get_queryset to safely handle legacy alias records
+    Read-only view of all identity changes.
+    Phase 9A-10: Clean labels, defensive queryset loading.
     """
     model = GameProfileAlias
     extra = 0
@@ -60,21 +59,14 @@ class GameProfileAliasInline(admin.TabularInline):
     safe_old_discriminator.short_description = 'Old Discriminator'
     
     def get_queryset(self, request):
-        """Override queryset to handle potential column issues"""
+        """
+        Override queryset to avoid column issues.
+        Phase 9A-9: Remove .only() to avoid ProgrammingError if columns missing.
+        Migration 0051 should have added all columns, but safer to load all fields.
+        """
         qs = super().get_queryset(request)
-        # Select all fields we display (including old_ign and old_discriminator from GP-2A)
-        return qs.only(
-            'id',
-            'game_profile',
-            'old_in_game_name',
-            'old_ign',
-            'old_discriminator',
-            'old_platform',
-            'old_region',
-            'changed_at',
-            'changed_by_user_id',
-            'reason'
-        )
+        # Don't use .only() - let Django load all fields to avoid column errors
+        return qs
     
     def has_add_permission(self, request, obj=None):
         """Aliases created by GamePassportService only"""
@@ -158,7 +150,7 @@ class GameProfileAdmin(admin.ModelAdmin):
             ],
             'description': 'User and game association'
         }),
-        ('Structured Identity (GP-2A)', {
+        ('Identity Fields', {
             'fields': [
                 'ign',
                 'discriminator',
@@ -167,7 +159,7 @@ class GameProfileAdmin(admin.ModelAdmin):
                 'in_game_name',
                 'identity_key',
             ],
-            'description': 'Identity fields. Labels and visibility adapt based on selected game (dynamic JS).'
+            'description': 'Player identity information. Field labels and available options adapt based on selected game. Run seed_identity_configs_2026 command if dropdown options are missing.'
         }),
         ('Visibility & Status', {
             'fields': [
@@ -182,21 +174,22 @@ class GameProfileAdmin(admin.ModelAdmin):
                 'pinned_order',
             ]
         }),
-        ('Security (Identity Lock)', {
+        ('Fair Play Protocol (Identity Lock)', {
             'fields': [
                 'locked_until',
                 'locked_until_display',
                 'lock_countdown_display',
-            ]
+            ],
+            'description': '30-day identity lock prevents frequent changes to combat smurfing and identity abuse.'
         }),
-        ('Showcase Metadata (GP-2D)', {
+        ('Competitive Fields', {
             'fields': [
                 'rank_name',
                 'rank_image',
                 'metadata',
             ],
             'classes': ['collapse'],
-            'description': 'metadata JSON is for showcase/config fields ONLY (NOT identity). Role removed - use Team context instead.'
+            'description': 'Optional competitive information (rank, role, stats). metadata JSON stores game-specific fields beyond core identity.'
         }),
         ('Timestamps', {
             'fields': ['created_at', 'updated_at'],

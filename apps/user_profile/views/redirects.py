@@ -17,9 +17,22 @@ def redirect_to_modern_profile(request, username):
     - /u/<username>/ → /@<username>/
     - /<username>/ → /@<username>/
     
+    Phase 9A-10: Fixed redirect loop by constructing URL directly.
     Preserves query parameters and logs redirect for monitoring.
     """
-    target_url = reverse('user_profile:profile', kwargs={'username': username})
+    # Phase 9A-10: Use direct URL construction to avoid circular reference
+    # (reverse would point back to the redirect route itself)
+    from django.contrib.auth import get_user_model
+    from django.http import Http404
+    
+    User = get_user_model()
+    
+    # Verify user exists (Phase 9A-10: return 404 if not found)
+    if not User.objects.filter(username=username).exists():
+        raise Http404(f"User '{username}' not found")
+    
+    # Construct canonical profile URL: /@username/
+    target_url = f"/@{username}/"
     
     # Preserve query parameters
     if request.GET:

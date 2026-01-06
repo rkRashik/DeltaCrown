@@ -13,8 +13,10 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib.auth.decorators import login_required
 
-from apps.games.models import Game
+from apps.games.models import Game, GamePlayerIdentityConfig
 from apps.user_profile.models_main import SocialLink, PrivacySettings
+from apps.user_profile.models.game_passport_schema import GamePassportSchema
+from django.conf import settings
 
 import logging
 
@@ -36,42 +38,238 @@ def safe_image_url(field):
 def get_available_games(request):
     """
     GET /api/games/
-    Returns list of all available games for game passport creation
+    Returns list of all available games for game passport creation with dynamic schemas.
+    
+    Phase 8A: Backend-Driven Schema Architecture
+    Phase 9A-14: Added schema_version for frontend caching
+    
+    Returns per-game field configurations from GamePlayerIdentityConfig.
     
     Response:
     {
+        "schema_version": "2026-01-05T14:32:15",  # Phase 9A-14: Cache key
         "games": [
-            {"id": 1, "name": "VALORANT", "slug": "valorant", "icon_url": "..."},
-            {"id": 2, "name": "CS2", "slug": "cs2", "icon_url": "..."}
+            {
+                "id": 1,
+                "slug": "valorant",
+                "display_name": "VALORANT",
+                "icon_url": "...",
+                "primary_color": "#ff4655",
+                "passport_schema": [
+                    {
+                        "key": "riot_id",
+                        "label": "Riot ID",
+                        "type": "text",
+                        "required": true,
+                        "immutable": false,
+                        "placeholder": "PlayerName#1234",
+                        "help_text": "Your full Riot ID including tag"
+                    }
+                ],
+                "rules": {
+                    "lock_days": 30,
+                    "one_passport": true,
+                    "region_restricted": false
+                }
+            }
         ]
     }
     """
     try:
-        games = Game.objects.filter(is_active=True).order_by('name')
+        # Phase 9A-14: Calculate schema version from latest updated timestamp
+        # Version changes when any GamePlayerIdentityConfig or GamePassportSchema changes
+        from django.db.models import Max
         
-        games_data = [
-            {
+        config_updated = GamePlayerIdentityConfig.objects.aggregate(Max('updated_at'))['updated_at__max']
+        schema_updated = GamePassportSchema.objects.aggregate(Max('updated_at'))['updated_at__max']
+        
+        # Use the most recent timestamp between configs and schemas
+        if config_updated and schema_updated:
+            schema_version_timestamp = max(config_updated, schema_updated)
+        elif config_updated:
+            schema_version_timestamp = config_updated
+        elif schema_updated:
+            schema_version_timestamp = schema_updated
+        else:
+            # No schemas exist yet, use fixed version
+            from django.utils import timezone
+            schema_version_timestamp = timezone.now()
+        
+        # Format as ISO 8601 string for cache key
+        schema_version = schema_version_timestamp.isoformat()
+        
+        # Phase 9A-9: Use EXPLICIT query to avoid relationship issues
+        # Get all active games without prefetch (we'll query configs explicitly)
+        games = Game.objects.filter(is_active=True).order_by('display_name')
+        
+        games_data = []
+        for game in games:
+            # Phase 9A-6 FIX: Explicit query to avoid empty prefetch issues
+            identity_configs = GamePlayerIdentityConfig.objects.filter(
+                game=game
+            ).order_by('order', 'id')
+            
+            # DEBUG diagnostics
+            config_count = identity_configs.count()
+            if settings.DEBUG and config_count == 0:
+                logger.warning(
+                    f"⚠️  Game '{game.display_name}' (slug={game.slug}) has ZERO identity configs. "
+                    f"Run: python manage.py seed_identity_configs --game {game.slug}"
+                )
+            
+            # Get GamePassportSchema for select field options (Phase 9A-7: all 8 choice types)
+            try:
+                game_schema = GamePassportSchema.objects.get(game=game)
+                region_options = game_schema.region_choices or []
+                rank_options = game_schema.rank_choices or []
+                role_options = game_schema.role_choices or []
+                platform_options = game_schema.platform_choices or []
+                server_options = game_schema.server_choices or []
+                mode_options = game_schema.mode_choices or []
+                premier_rating_options = game_schema.premier_rating_choices or []
+                division_options = game_schema.division_choices or []
+            except GamePassportSchema.DoesNotExist:
+                region_options = []
+                rank_options = []
+                role_options = []
+                platform_options = []
+                server_options = []
+                mode_options = []
+                premier_rating_options = []
+                division_options = []
+            
+            # Serialize passport schema from GamePlayerIdentityConfig
+            passport_schema = []
+            
+            for config in identity_configs:
+                field_data = {
+                    'key': config.field_name,
+                    'label': config.display_name,
+                    'type': config.field_type.lower() if config.field_type else 'text',
+                    'required': config.is_required,
+                    'immutable': config.is_immutable,
+                    'placeholder': config.placeholder or '',
+                    'help_text': config.help_text or '',
+                    'validation_regex': config.validation_regex or '',
+                    'min_length': config.min_length,
+                    'max_length': config.max_length
+                }
+                
+                # Phase 9A-7: Add options for select fields from GamePassportSchema
+                if config.field_type and config.field_type.lower() == 'select':
+                    # Map field name to appropriate options (2026 schema with 8 choice types)
+                    if 'region' in config.field_name.lower():
+                        field_data['options'] = region_options
+                    elif 'rank' in config.field_name.lower():
+                        field_data['options'] = rank_options
+                    elif 'role' in config.field_name.lower():
+                        field_data['options'] = role_options
+                    elif 'platform' in config.field_name.lower():
+                        field_data['options'] = platform_options
+                    elif 'server' in config.field_name.lower():
+                        field_data['options'] = server_options
+                    elif 'mode' in config.field_name.lower():
+                        field_data['options'] = mode_options
+                    elif 'premier' in config.field_name.lower():
+                        field_data['options'] = premier_rating_options
+                    elif 'division' in config.field_name.lower():
+                        field_data['options'] = division_options
+                    else:
+                        field_data['options'] = []
+                
+                passport_schema.append(field_data)
+            
+            # Backward compatibility: If no schema exists, provide basic fallback
+            if not passport_schema:
+                # PHASE 9A-6: Only warn, don't create fake schema
+                logger.warning(
+                    f"No passport_schema found for game: {game.display_name} (slug={game.slug}). "
+                    f"Run: python manage.py seed_identity_configs --game {game.slug}"
+                )
+                passport_schema = [
+                    {
+                        'key': 'ign',
+                        'label': 'In-Game Name',
+                        'type': 'text',
+                        'required': True,
+                        'immutable': False,
+                        'placeholder': '',
+                        'help_text': '',
+                        'validation_regex': '',
+                        'min_length': None,
+                        'max_length': None
+                    },
+                    {
+                        'key': 'region',
+                        'label': 'Region',
+                        'type': 'text',
+                        'required': False,
+                        'immutable': False,
+                        'placeholder': '',
+                        'help_text': '',
+                        'validation_regex': '',
+                        'min_length': None,
+                        'max_length': None
+                    },
+                    {
+                        'key': 'rank_name',
+                        'label': 'Rank',
+                        'type': 'text',
+                        'required': False,
+                        'immutable': False,
+                        'placeholder': '',
+                        'help_text': '',
+                        'validation_regex': '',
+                        'min_length': None,
+                        'max_length': None
+                    }
+                ]
+            
+            game_data = {
                 'id': game.id,
-                'name': game.name,
                 'slug': game.slug,
-                'short_name': getattr(game, 'short_name', game.name),
+                'name': game.name,  # Backward compatibility (Phase 7B)
+                'display_name': game.display_name,  # Phase 8A standard
                 'icon_url': safe_image_url(game.icon),
-                'color': getattr(game, 'brand_color', '#6366f1')
+                'primary_color': game.primary_color or '#7c3aed',
+                'passport_schema': passport_schema,
+                'rules': {
+                    'lock_days': 30,  # Fair Play Protocol: 30-day ID lock
+                    'one_passport': True,  # One passport per game per user
+                    'region_restricted': game.has_servers  # Regional restrictions if game has servers
+                }
             }
-            for game in games
-        ]
+            
+            # Phase 9A-6: DEBUG diagnostics
+            if settings.DEBUG:
+                game_data['_debug_identity_config_count'] = config_count
+            
+            games_data.append(game_data)
         
         return JsonResponse({
             'success': True,
+            'schema_version': schema_version,  # Phase 9A-14: Cache invalidation key
             'games': games_data
         })
         
     except Exception as e:
-        logger.error(f"Failed to fetch games list: {e}", exc_info=True)
-        return JsonResponse({
+        error_msg = f"Failed to fetch games list: {e.__class__.__name__}: {e}"
+        logger.error(error_msg, exc_info=True)
+        
+        # Phase 9A-9: Enhanced error response for debugging
+        response_data = {
             'success': False,
-            'message': 'Failed to load games'
-        }, status=500)
+            'error': 'Failed to load games'
+        }
+        
+        # Include exception details in DEBUG mode
+        if settings.DEBUG:
+            import traceback
+            response_data['error_detail'] = str(e)
+            response_data['error_type'] = e.__class__.__name__
+            response_data['traceback'] = traceback.format_exc()
+        
+        return JsonResponse(response_data, status=500)
 
 
 @require_http_methods(["GET"])

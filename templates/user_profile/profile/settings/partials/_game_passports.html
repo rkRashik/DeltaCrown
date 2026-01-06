@@ -1,0 +1,1856 @@
+{% comment %}
+PHASE 9A-3: Game Passports Template-Parity UX Rebuild
+Production-grade implementation matching template design philosophy
+
+Key Changes:
+- ✅ Clean main page (education moved to Info Drawer)
+- ✅ Info (i) button opens right-side drawer
+- ✅ Minimal passport cards (icon, ID, status only)
+- ✅ Grouped form fields (Core/Competitive/Optional)
+- ✅ Mobile responsive drawer (full-screen)
+- ✅ Backend-driven schema (NO hardcoding)
+- ✅ Lock/verification badges with countdown
+
+API Contract:
+- GET /profile/api/games/ → passport_schema with options
+- GET /profile/api/game-passports/ → metadata + lock + verification
+- POST create/update/delete → respects lock
+{% endcomment %}
+
+<!-- Game Passports Section -->
+<div id="tab-passports" class="tab-section">
+    
+    <!-- Clean Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8 border-b border-white/5 pb-6">
+        <div class="flex-1">
+            <div class="flex items-center gap-3">
+                <h2 class="text-3xl font-display font-bold text-white tracking-wide">Game Passports</h2>
+                <button id="gp-info-btn" class="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition flex items-center justify-center" title="Learn about Game Passports">
+                    <i class="fa-solid fa-circle-info"></i>
+                </button>
+            </div>
+            <p class="text-gray-400 mt-2 text-sm leading-relaxed max-w-2xl">
+                Link official accounts for tournament eligibility.
+                <span class="inline-block ml-2 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/30 text-yellow-500 text-xs font-bold">
+                    <i class="fa-solid fa-lock mr-1"></i> 30-Day Lock
+                </span>
+            </p>
+        </div>
+        <button id="gp-link-btn" class="w-full md:w-auto bg-[#00F0FF] text-black px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition shadow-[0_0_20px_rgba(0,240,255,0.3)] flex items-center justify-center gap-2">
+            <i class="fa-solid fa-link"></i> Link New Game
+        </button>
+    </div>
+
+    <!-- Passports Grid -->
+    <div id="gp-passports-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+        <div class="col-span-full text-center py-12 text-gray-500">
+            <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+            <p class="text-sm">Loading passports...</p>
+        </div>
+    </div>
+
+    <!-- Phase 9A-18/19: Inline Game Passport Builder (modern, clean) -->
+    <div id="gp-builder" class="hidden">
+        <div class="border-t border-white/5 pt-6">
+            <div class="bg-[#0F0B1E] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+                
+                <!-- Builder Header -->
+                <div class="p-5 border-b border-white/10 bg-gradient-to-r from-[#080612] to-[#0F0B1E]">
+                    <h3 id="gp-builder-title" class="text-xl font-display font-bold text-white">Link New Game</h3>
+                    <p class="text-sm text-gray-400 mt-1">Select a game and fill in your account details</p>
+                </div>
+
+                <!-- Step 1: Game Selector -->
+                <div id="gp-step-selector" class="p-5">
+                    <div id="gp-games-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+                </div>
+
+                <!-- Step 2: Form -->
+                <div id="gp-step-form" class="hidden">
+                    <!-- Game Header -->
+                    <div class="px-6 py-4 bg-white/5 flex items-center gap-4 border-b border-white/5">
+                        <div id="gp-form-icon" class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg"></div>
+                        <div class="flex-1">
+                            <h4 id="gp-form-game-name" class="font-bold text-white text-lg">Game Name</h4>
+                            <button id="gp-back-btn" type="button" class="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 mt-1">
+                                <i class="fa-solid fa-arrow-left"></i> Change Game
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Form Body -->
+                    <div class="p-5">
+                        <form id="gp-form">
+                            
+                            <!-- Core Identity Section -->
+                            <div class="mb-5 p-4 bg-white/[0.02] rounded-lg border border-white/5">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <i class="fa-solid fa-id-card text-blue-400 text-lg"></i>
+                                    <h5 class="font-bold text-white text-sm uppercase tracking-wider">Core Identity</h5>
+                                </div>
+                                <div id="gp-fields-identity" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                            </div>
+
+                            <!-- Competitive Info Section -->
+                            <div class="mb-5 p-4 bg-white/[0.02] rounded-lg border border-white/5" id="gp-section-competitive" style="display: none;">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <i class="fa-solid fa-trophy text-purple-400 text-lg"></i>
+                                    <h5 class="font-bold text-white text-sm uppercase tracking-wider">Competitive Info</h5>
+                                </div>
+                                <div id="gp-fields-competitive" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                            </div>
+
+                            <!-- Optional Section (Collapsible Accordion) -->
+                            <div class="mb-5" id="gp-section-optional" style="display: none;">
+                                <button type="button" id="gp-optional-toggle" class="flex items-center justify-between w-full mb-3 p-3 bg-white/[0.03] hover:bg-white/[0.06] rounded-lg transition border border-white/5">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-sliders text-gray-400 text-lg"></i>
+                                        <h5 class="font-bold text-white text-sm uppercase tracking-wider">Optional Fields</h5>
+                                    </div>
+                                    <i class="fa-solid fa-chevron-down text-gray-400 transition-transform duration-200" id="gp-optional-icon"></i>
+                                </button>
+                                <div id="gp-fields-optional" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden p-4 bg-white/[0.02] rounded-lg border border-white/5"></div>
+                            </div>
+
+                            <!-- Learn More Inline Accordion -->
+                            <div class="mb-5" id="gp-learn-more-section">
+                                <button type="button" id="gp-learn-more-toggle" class="flex items-center justify-between w-full p-3 bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/20 rounded-lg transition">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-circle-info text-blue-400 text-lg"></i>
+                                        <span class="font-bold text-blue-400 text-sm uppercase tracking-wider">Learn About Game Passports</span>
+                                    </div>
+                                    <i class="fa-solid fa-chevron-down text-blue-400 transition-transform duration-200" id="gp-learn-more-icon"></i>
+                                </button>
+                                <div id="gp-learn-more-content" class="hidden mt-3 p-4 bg-white/[0.03] rounded-lg border border-white/10">
+                                    <div class="space-y-4 text-sm text-gray-300">
+                                        <p><strong class="text-white">Why needed?</strong> Links skill ratings to real accounts, prevents smurf/fake abuse. Required for tournaments and team rosters.</p>
+                                        <p><strong class="text-white">30-day lock:</strong> Core identity fields locked for 30 days to prevent abuse. You can update competitive info but not core ID.</p>
+                                        <p><strong class="text-white">Verification:</strong> PENDING → admin review → VERIFIED (full access). FLAGGED = under investigation.</p>
+                                        <p><strong class="text-red-400">Game bans:</strong> Official anti-cheat bans (VAC/Riot/PUBG) = immediate platform suspension.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Fair Play Protocol -->
+                            <div class="p-4 bg-yellow-500/5 border-l-4 border-yellow-500 rounded-lg" id="gp-terms-section">
+                                <div class="flex gap-3 mb-3">
+                                    <i class="fa-solid fa-shield-halved text-yellow-500"></i>
+                                    <div class="flex-1">
+                                        <h5 class="font-bold text-white text-sm">Fair Play Protocol</h5>
+                                        <p class="text-xs text-gray-400 mt-1">By linking this account, you agree to:</p>
+                                        <ul class="text-xs text-gray-400 mt-2 space-y-1 list-disc pl-4">
+                                            <li>I own this account (no smurfing/sharing)</li>
+                                            <li>Core identity locked for <strong>30 days</strong></li>
+                                            <li>Game bans = immediate suspension</li>
+                                        </ul>
+                                        <a href="{% url 'user_profile:game_passport_rules' %}" target="_blank" class="text-xs text-[#00F0FF] hover:underline mt-2 inline-block">
+                                            <i class="fa-solid fa-external-link"></i> Read Full Rules & Policy
+                                        </a>
+                                    </div>
+                                </div>
+                                <label class="flex items-start gap-3 pt-3 border-t border-white/10 cursor-pointer group">
+                                    <input type="checkbox" id="gp-terms-check" class="mt-1 accent-[#00F0FF] w-4 h-4 rounded">
+                                    <span class="text-xs font-bold text-gray-300 group-hover:text-white transition flex-1">
+                                        I confirm ownership and agree to Fair Play rules.
+                                    </span>
+                                </label>
+                                <!-- Phase 9A-21: Inline error for unchecked Fair Play -->
+                                <div id="gp-terms-error" class="hidden mt-2 text-xs text-red-400 flex items-center gap-2">
+                                    <i class="fa-solid fa-circle-exclamation"></i>
+                                    <span>Please confirm Fair Play Protocol to continue.</span>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Builder Footer -->
+                    <div class="p-4 border-t border-white/10 bg-gradient-to-r from-[#080612] to-[#0F0B1E] flex justify-end gap-3">
+                        <button id="gp-cancel-btn" type="button" class="px-6 py-2.5 rounded-lg text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 uppercase transition border border-white/10 hover:border-white/20">Cancel</button>
+                        <button id="gp-save-btn" type="button" disabled class="px-8 py-2.5 rounded-lg text-xs font-bold bg-gray-700 text-gray-400 uppercase cursor-not-allowed transition flex items-center gap-2 border border-gray-600">
+                            <i class="fa-solid fa-check"></i> <span id="gp-save-text">Save Passport</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div> <!-- End tab-passports -->
+
+<!-- Info Drawer (still accessible from info button) -->
+<div id="gp-info-drawer" class="fixed inset-y-0 right-0 w-full md:w-[500px] bg-[#0F0B1E] border-l border-white/10 shadow-2xl z-[9998] transform translate-x-full transition-transform duration-300 overflow-y-auto">
+    <div class="sticky top-0 bg-[#080612] border-b border-white/10 p-6 flex justify-between items-center z-10">
+        <h3 class="text-xl font-display font-bold text-white">About Game Passports</h3>
+        <button id="gp-info-close" class="w-8 h-8 rounded-full hover:bg-white/10 transition flex items-center justify-center text-gray-400 hover:text-white">
+            <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+    </div>
+
+    <div class="p-6 space-y-6">
+        <!-- Why Section -->
+        <section class="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
+            <div class="flex items-start gap-3 mb-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 flex-shrink-0">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white text-lg">Why Game Passports?</h4>
+                    <p class="text-xs text-gray-400 mt-1">The foundation of competitive integrity</p>
+                </div>
+            </div>
+            <ul class="text-sm text-gray-300 space-y-2 pl-2">
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-check text-blue-400 mt-1 flex-shrink-0"></i>
+                    <span><strong>Anti-Smurf Protection:</strong> Links skill ratings to real accounts, preventing fake identity abuse</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-check text-blue-400 mt-1 flex-shrink-0"></i>
+                    <span><strong>Tournament Eligibility:</strong> Required for competitive events to ensure fair matchmaking</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-check text-blue-400 mt-1 flex-shrink-0"></i>
+                    <span><strong>Team Verification:</strong> Auto-fills roster forms, reduces manual data entry</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-check text-blue-400 mt-1 flex-shrink-0"></i>
+                    <span><strong>Reward Distribution:</strong> Ties achievements and earnings to verified identity</span>
+                </li>
+            </ul>
+        </section>
+
+        <!-- Where Used Section -->
+        <section class="p-4 bg-purple-500/5 border border-purple-500/20 rounded-xl">
+            <div class="flex items-start gap-3 mb-3">
+                <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400 flex-shrink-0">
+                    <i class="fa-solid fa-network-wired"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white text-lg">Where Your Passport is Used</h4>
+                    <p class="text-xs text-gray-400 mt-1">Seamless integration across the platform</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 gap-3 text-sm">
+                <div class="p-3 bg-white/5 rounded-lg">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-users text-purple-400"></i>
+                        <strong class="text-white">Teams</strong>
+                    </div>
+                    <p class="text-gray-400 text-xs">Auto-fills roster forms, captain sees verified stats</p>
+                </div>
+                <div class="p-3 bg-white/5 rounded-lg">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-trophy text-purple-400"></i>
+                        <strong class="text-white">Tournaments</strong>
+                    </div>
+                    <p class="text-gray-400 text-xs">Pre-populates registration, validates eligibility</p>
+                </div>
+                <div class="p-3 bg-white/5 rounded-lg">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-crosshairs text-purple-400"></i>
+                        <strong class="text-white">Bounties</strong>
+                    </div>
+                    <p class="text-gray-400 text-xs">Validates rank-based achievements, prevents fraud</p>
+                </div>
+                <div class="p-3 bg-white/5 rounded-lg">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-coins text-purple-400"></i>
+                        <strong class="text-white">Economy</strong>
+                    </div>
+                    <p class="text-gray-400 text-xs">Links rewards and earnings to verified account</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Fair Play Protocol Section -->
+        <section class="p-4 bg-yellow-500/5 border-l-4 border-yellow-500 rounded-lg">
+            <div class="flex items-start gap-3 mb-3">
+                <div class="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center text-yellow-500 flex-shrink-0">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white text-lg">Fair Play Protocol</h4>
+                    <p class="text-xs text-gray-400 mt-1">Rules to maintain competitive integrity</p>
+                </div>
+            </div>
+            <div class="space-y-3 text-sm text-gray-300">
+                <div class="p-3 bg-black/20 rounded-lg">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-lock text-yellow-500"></i>
+                        <strong class="text-white">30-Day Identity Lock</strong>
+                    </div>
+                    <p class="text-xs text-gray-400">Core identity fields locked for 30 days after creation to prevent abuse. You can update competitive info but not core ID.</p>
+                </div>
+                <div class="p-3 bg-black/20 rounded-lg">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-badge-check text-yellow-500"></i>
+                        <strong class="text-white">Verification Statuses</strong>
+                    </div>
+                    <ul class="text-xs text-gray-400 space-y-1 mt-1">
+                        <li><span class="text-orange-400">● PENDING:</span> New accounts awaiting review</li>
+                        <li><span class="text-green-400">● VERIFIED:</span> Confirmed by admin, full access</li>
+                        <li><span class="text-red-400">● FLAGGED:</span> Suspicious activity, under investigation</li>
+                    </ul>
+                </div>
+                <div class="p-3 bg-black/20 rounded-lg">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-user-lock text-yellow-500"></i>
+                        <strong class="text-white">Immutable Fields</strong>
+                    </div>
+                    <p class="text-xs text-gray-400">Some fields cannot be changed after creation (lock icon). Includes Steam ID, Riot ID, PUBG UID.</p>
+                </div>
+                <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-ban text-red-400"></i>
+                        <strong class="text-red-400">Game Ban Policy</strong>
+                    </div>
+                    <p class="text-xs text-gray-400">Official game bans (VAC, Riot, PUBG anti-cheat) = immediate platform suspension.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<!-- Info Drawer Overlay (mobile) -->
+<div id="gp-info-overlay" class="fixed inset-0 bg-black/70 z-[65] hidden md:hidden"></div>
+
+<!-- Phase 9A-19: Modern Toast Container -->
+<div id="gp-toast-container" class="fixed bottom-6 right-6 z-[9999] flex flex-col-reverse gap-3 pointer-events-none" role="status" aria-live="polite" aria-atomic="false"></div>
+
+<style>
+/* Game Passports Scoped Styles */
+
+/* PHASE 9A-6: Mobile Modal Fixes */
+.gp-modal-open {
+    overflow: hidden !important;
+    position: fixed;
+    width: 100%;
+}
+
+/* Safe area support for iOS notch */
+.pb-safe-area-inset-bottom {
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+/* Modal z-index ensures it's above navbar */
+#gp-modal {
+    z-index: 9999;
+}
+
+/* Mobile viewport fixes */
+@media (max-width: 768px) {
+    #gp-modal > div {
+        max-height: 100vh;
+        max-height: 100dvh; /* Dynamic viewport height for mobile */
+        margin: 0;
+        border-radius: 0;
+    }
+    
+    #gp-step-form {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    
+    #gp-step-form .overflow-y-auto {
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    }
+}
+
+/* Passport Cards */
+.gp-passport-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 1.25rem;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.gp-passport-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    border-color: rgba(0, 240, 255, 0.3);
+}
+
+.gp-passport-card.locked {
+    border-left: 4px solid #fbbf24;
+}
+
+.gp-passport-card.verified {
+    border-left: 4px solid #10b981;
+}
+
+.gp-passport-card .game-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+}
+
+/* Phase 9A-19: Fix dropdown readability for inline builder (white-on-white issue) */
+#gp-builder .gp-field-group select {
+    background-color: #1a1625;
+    color: white;
+}
+
+#gp-builder .gp-field-group select option {
+    background-color: #1a1625;
+    color: white;
+    padding: 0.5rem;
+}
+
+#gp-builder .gp-field-group select:focus {
+    background-color: #0f0b1e;
+    border-color: #00F0FF;
+}
+
+/* Valid CSS only for option hover/focus */
+#gp-builder .gp-field-group select option:checked,
+#gp-builder .gp-field-group select option:hover {
+    background-color: #2a2635;
+    color: #00F0FF;
+}
+
+/* Phase 9A-21: Inline field error styling */
+.field-error {
+    color: #f87171;
+    font-size: 0.75rem;
+    margin-top: 0.375rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.field-error::before {
+    content: "⚠";
+    font-size: 0.875rem;
+}
+
+.field-error.hidden {
+    display: none;
+}
+
+.gp-passport-card .game-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.gp-passport-card .identity-text {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.status-badge.locked {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.status-badge.verified {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-badge.pending {
+    background: rgba(249, 115, 22, 0.1);
+    color: #f97316;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.status-badge.flagged {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Phase 9A-19: Modernized Game Selector Cards */
+.game-selector-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 140px;
+    position: relative;
+}
+
+.game-selector-card:hover:not(.disabled) {
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(0, 240, 255, 0.05));
+    border-color: #00F0FF;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 240, 255, 0.2);
+}
+
+.game-selector-card.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: rgba(255,255,255,0.02);
+    filter: grayscale(1);
+}
+
+.game-selector-card .game-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 0.75rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+/* Form Fields */
+.gp-field-group {
+    position: relative;
+}
+
+.gp-field-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+}
+
+.gp-field-group label .immutable-icon {
+    color: #fbbf24;
+    font-size: 0.875rem;
+}
+
+.gp-field-group input,
+.gp-field-group select,
+.gp-field-group textarea {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    color: white;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.gp-field-group input:focus,
+.gp-field-group select:focus,
+.gp-field-group textarea:focus {
+    outline: none;
+    border-color: #00F0FF;
+    box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.1);
+    background: rgba(0, 240, 255, 0.02);
+}
+
+.gp-field-group input:disabled,
+.gp-field-group select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(255,255,255,0.05);
+}
+
+.gp-field-group .help-text {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 0.25rem;
+}
+
+/* Info Drawer Transitions */
+#gp-info-drawer.open {
+    transform: translateX(0);
+}
+
+@media (max-width: 768px) {
+    #gp-info-drawer {
+        width: 100%;
+    }
+}
+
+/* Empty State */
+.gp-empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.gp-empty-state i {
+    font-size: 3rem;
+    color: #475569;
+    margin-bottom: 1rem;
+}
+
+.gp-empty-state h4 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+.gp-empty-state p {
+    color: #64748b;
+    font-size: 0.875rem;
+}
+
+/* Phase 9A-19: Modern Toast System */
+.gp-toast {
+    pointer-events: auto;
+    min-width: 320px;
+    max-width: 420px;
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, rgba(15, 11, 30, 0.98), rgba(8, 6, 18, 0.98));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: start;
+    gap: 0.75rem;
+    animation: slideInRight 0.3s ease-out;
+}
+
+.gp-toast.removing {
+    animation: slideOutRight 0.3s ease-out forwards;
+}
+
+.gp-toast.success {
+    border-left: 4px solid #10b981;
+}
+
+.gp-toast.error {
+    border-left: 4px solid #ef4444;
+}
+
+.gp-toast.info {
+    border-left: 4px solid #3b82f6;
+}
+
+.gp-toast-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.gp-toast.success .gp-toast-icon {
+    color: #10b981;
+}
+
+.gp-toast.error .gp-toast-icon {
+    color: #ef4444;
+}
+
+.gp-toast.info .gp-toast-icon {
+    color: #3b82f6;
+}
+
+.gp-toast-content {
+    flex: 1;
+    color: white;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.gp-toast-close {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.gp-toast-close:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+@media (max-width: 640px) {
+    .gp-toast {
+        min-width: calc(100vw - 2rem);
+        max-width: calc(100vw - 2rem);
+    }
+    
+    #gp-toast-container {
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+    }
+}
+</style>
+
+<script>
+(function() {
+    'use strict';
+
+    // ========== STATE ==========
+    const state = {
+        games: [],
+        passports: [],
+        currentGame: null,
+        editingPassport: null,
+        formData: {}, // Phase 9A-10: Preserve form inputs across UI interactions
+        gamesCache: null, // Phase 9A-10: Cache games schema to avoid refetch
+        gamesCacheTime: null
+    };
+
+    // ========== DOM ELEMENTS (Phase 9A-18: Inline Builder) ==========
+    const els = {
+        grid: document.getElementById('gp-passports-grid'),
+        linkBtn: document.getElementById('gp-link-btn'),
+        infoBtn: document.getElementById('gp-info-btn'),
+        infoDrawer: document.getElementById('gp-info-drawer'),
+        infoOverlay: document.getElementById('gp-info-overlay'),
+        infoClose: document.getElementById('gp-info-close'),
+        stepSelector: document.getElementById('gp-step-selector'),
+        stepForm: document.getElementById('gp-step-form'),
+        gamesGrid: document.getElementById('gp-games-grid'),
+        formIcon: document.getElementById('gp-form-icon'),
+        formGameName: document.getElementById('gp-form-game-name'),
+        backBtn: document.getElementById('gp-back-btn'),
+        form: document.getElementById('gp-form'),
+        fieldsIdentity: document.getElementById('gp-fields-identity'),
+        fieldsCompetitive: document.getElementById('gp-fields-competitive'),
+        fieldsOptional: document.getElementById('gp-fields-optional'),
+        sectionCompetitive: document.getElementById('gp-section-competitive'),
+        sectionOptional: document.getElementById('gp-section-optional'),
+        optionalToggle: document.getElementById('gp-optional-toggle'),
+        optionalIcon: document.getElementById('gp-optional-icon'),
+        termsSection: document.getElementById('gp-terms-section'),
+        termsCheck: document.getElementById('gp-terms-check'),
+        cancelBtn: document.getElementById('gp-cancel-btn'),
+        saveBtn: document.getElementById('gp-save-btn'),
+        saveText: document.getElementById('gp-save-text')
+    };
+
+    // ========== UTILITY FUNCTIONS ==========
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+               document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+    }
+
+    async function apiCall(url, options = {}) {
+        const defaultOptions = {
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'Content-Type': 'application/json'
+            }
+        };
+        
+        // PHASE 9A-4: Enhanced logging for debugging
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        try {
+            if (isDev && options.method === 'POST') {
+                console.log('[GP] API Call:', {
+                    endpoint: url,
+                    method: options.method,
+                    payloadKeys: options.body ? Object.keys(JSON.parse(options.body)) : []
+                });
+            }
+            
+            const response = await fetch(url, { ...defaultOptions, ...options });
+            
+            // Phase 9A-22: Parse JSON if available, handle non-JSON 500s
+            let data;
+            try {
+                data = await response.json();
+            } catch (jsonError) {
+                // Non-JSON response (true server error)
+                console.error('[GP] Non-JSON response:', response.status, response.statusText);
+                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+            }
+            
+            if (isDev) {
+                console.log('[GP] API Response:', {
+                    endpoint: url,
+                    status: response.status,
+                    success: data.success || response.ok,
+                    errorCode: data.error_code,
+                    errorMsg: data.error || data.message || null,
+                    fieldErrors: data.field_errors || null,
+                    fullResponse: data  // Log full response for debugging
+                });
+            }
+            
+            if (!response.ok) {
+                // Phase 9A-22: Create structured error with backend details
+                const error = new Error(data.message || data.error || `Request failed (${response.status})`);
+                error.status = response.status;
+                error.errorCode = data.error_code;
+                error.fieldErrors = data.field_errors || {};
+                error.requestId = data.request_id;
+                throw error;
+            }
+            
+            return data;
+        } catch (error) {
+            if (isDev) {
+                console.error('[GP] API Error:', {
+                    endpoint: url,
+                    error: error.message,
+                    status: error.status,
+                    errorCode: error.errorCode,
+                    fieldErrors: error.fieldErrors,
+                    stack: error.stack
+                });
+            }
+            throw error;
+        }
+    }
+
+    // Phase 9A-19: Modern Toast System
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('gp-toast-container');
+        if (!container) {
+            console.warn('[GP Toast] Container not found, falling back to alert');
+            alert(message);
+            return;
+        }
+
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `gp-toast ${type}`;
+        
+        // Icon based on type
+        const icons = {
+            success: 'fa-circle-check',
+            error: 'fa-circle-exclamation',
+            info: 'fa-circle-info'
+        };
+        const icon = icons[type] || icons.info;
+        
+        toast.innerHTML = `
+            <div class="gp-toast-icon">
+                <i class="fa-solid ${icon}"></i>
+            </div>
+            <div class="gp-toast-content">${escapeHtml(message)}</div>
+            <button class="gp-toast-close" aria-label="Close notification">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        `;
+        
+        // Add to container
+        container.appendChild(toast);
+        
+        // Close button handler
+        const closeBtn = toast.querySelector('.gp-toast-close');
+        closeBtn.addEventListener('click', () => removeToast(toast));
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => removeToast(toast), 5000);
+    }
+    
+    function removeToast(toast) {
+        if (!toast || !toast.parentElement) return;
+        
+        toast.classList.add('removing');
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.parentElement.removeChild(toast);
+            }
+        }, 300);
+    }
+
+    // ========== HELPER: Extract Passports from API Response ==========
+    // Phase 9A-21: Robust parser for API response structure variations
+    function extractPassports(response) {
+        // Handle both response shapes:
+        // 1. {success: true, data: {passports: [...]}}  <- success_response() wrapper
+        // 2. {success: true, passports: [...]}          <- legacy/direct
+        // 3. {passports: [...]}                         <- unwrapped
+        
+        if (!response) return [];
+        
+        // Try nested data.passports first (current backend standard)
+        if (response.data && Array.isArray(response.data.passports)) {
+            return response.data.passports;
+        }
+        
+        // Fallback to top-level passports
+        if (Array.isArray(response.passports)) {
+            return response.passports;
+        }
+        
+        // If response itself is an array (unlikely but defensive)
+        if (Array.isArray(response)) {
+            return response;
+        }
+        
+        console.warn('[extractPassports] Unexpected response shape:', response);
+        return [];
+    }
+
+    // ========== INFO DRAWER ==========
+    
+    function openInfoDrawer() {
+        // Phase 9A-10F: Save form state before opening drawer
+        state.formData = {};
+        const form = document.getElementById('gp-step-form');
+        if (form) {
+            form.querySelectorAll('input, select, textarea').forEach(input => {
+                const key = input.name || input.id;
+                if (key) {
+                    if (input.type === 'checkbox') {
+                        state.formData[key] = input.checked;
+                    } else {
+                        state.formData[key] = input.value;
+                    }
+                }
+            });
+        }
+        
+        els.infoDrawer.classList.add('open');
+        els.infoOverlay?.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        document.addEventListener('keydown', handleInfoEsc);
+        const focusable = els.infoDrawer.querySelectorAll('button, a, [tabindex]:not([tabindex="-1"])');
+        if (focusable.length > 0) focusable[0].focus();
+    }
+
+    function closeInfoDrawer() {
+        els.infoDrawer.classList.remove('open');
+        els.infoOverlay?.classList.add('hidden');
+        
+        // Phase 9A-16: Restore modal opacity when closing info drawer
+        if (els.modal) {
+            els.modal.style.opacity = '1';
+        }
+        
+        // Phase 9A-10F: Restore form state after closing drawer
+        const form = document.getElementById('gp-step-form');
+        if (form && state.formData && Object.keys(state.formData).length > 0) {
+            Object.keys(state.formData).forEach(key => {
+                const input = form.querySelector(`[name="${key}"], #${key}`);
+                if (input) {
+                    if (input.type === 'checkbox') {
+                        input.checked = state.formData[key];
+                    } else {
+                        input.value = state.formData[key];
+                    }
+                }
+            });
+        }
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', handleInfoEsc);
+    }
+
+    function handleInfoEsc(e) {
+        if (e.key === 'Escape') closeInfoDrawer();
+    }
+
+    // ========== INITIALIZATION ==========
+    
+    async function init() {
+        // Phase 9A-14: Improved caching with schema_version for proper invalidation
+        try {
+            // Show skeleton immediately (Phase 9A-10: no blocking loader)
+            renderSkeletonPassports();
+            
+            // Check cache for games schema with version-based invalidation
+            let gamesData;
+            const cachedGames = localStorage.getItem('gp_games_cache');
+            const cachedVersion = localStorage.getItem('gp_schema_version');
+            
+            if (cachedGames && cachedVersion) {
+                // Have cached data, but need to verify version is still current
+                // Fetch just to check version (lightweight check)
+                try {
+                    const freshData = await apiCall('/profile/api/games/');
+                    if (freshData.schema_version === cachedVersion) {
+                        // Cache still valid, use it
+                        gamesData = {
+                            schema_version: cachedVersion,
+                            games: JSON.parse(cachedGames)
+                        };
+                        console.log('[Game Passports] Using cached schema (version match)');
+                    } else {
+                        // Schema changed, use fresh data and update cache
+                        gamesData = freshData;
+                        localStorage.setItem('gp_games_cache', JSON.stringify(freshData.games));
+                        localStorage.setItem('gp_schema_version', freshData.schema_version);
+                        console.log('[Game Passports] Schema updated, cache refreshed');
+                    }
+                } catch (error) {
+                    // Network error during version check, use cache anyway
+                    gamesData = {
+                        schema_version: cachedVersion,
+                        games: JSON.parse(cachedGames)
+                    };
+                    console.warn('[Game Passports] Version check failed, using cache');
+                }
+            } else {
+                // No cache, fetch fresh
+                gamesData = await apiCall('/profile/api/games/');
+                localStorage.setItem('gp_games_cache', JSON.stringify(gamesData.games));
+                localStorage.setItem('gp_schema_version', gamesData.schema_version);
+                console.log('[Game Passports] No cache, fetched fresh schema');
+            }
+            
+            // Always fetch fresh passports (user-specific, can't cache)
+            const passportsData = await apiCall('/profile/api/game-passports/');
+            
+            state.games = gamesData.games || [];
+            state.passports = extractPassports(passportsData);
+            
+            renderPassportsGrid();
+            renderGamesGrid();
+        } catch (error) {
+            console.error('[Game Passports] Init failed:', error);
+            els.grid.innerHTML = `<div class="col-span-full gp-empty-state">
+                <i class="fa-solid fa-circle-exclamation text-red-400"></i>
+                <h4 class="text-red-400">Failed to load</h4>
+                <p>${escapeHtml(error.message)}</p>
+            </div>`;
+        }
+    }
+    
+    // Phase 9A-10: Skeleton loading state (fast paint, no blocking)
+    function renderSkeletonPassports() {
+        els.grid.innerHTML = `
+            ${[1, 2, 3].map(() => `
+                <div class="gp-passport-card animate-pulse">
+                    <div class="flex items-start gap-3 mb-3">
+                        <div class="w-12 h-12 rounded-lg bg-white/10"></div>
+                        <div class="flex-1">
+                            <div class="h-5 bg-white/10 rounded w-24 mb-2"></div>
+                            <div class="h-4 bg-white/10 rounded w-32"></div>
+                        </div>
+                    </div>
+                    <div class="h-px bg-white/5 my-3"></div>
+                    <div class="flex gap-2">
+                        <div class="h-8 bg-white/10 rounded flex-1"></div>
+                        <div class="h-8 bg-white/10 rounded flex-1"></div>
+                    </div>
+                </div>
+            `).join('')}
+        `;
+    }
+
+    // ========== RENDERING ==========
+    
+    function renderPassportsGrid() {
+        if (!state.passports || state.passports.length === 0) {
+            els.grid.innerHTML = `<div class="col-span-full gp-empty-state">
+                <i class="fa-solid fa-gamepad"></i>
+                <h4>No Game Passports</h4>
+                <p>Link your first game account to start competing</p>
+            </div>`;
+            return;
+        }
+
+        els.grid.innerHTML = state.passports.map(p => {
+            const game = state.games.find(g => g.id === p.game_id) || p.game;
+            const color = game?.primary_color || '#7c3aed';
+            
+            const primaryId = p.metadata ? Object.values(p.metadata)[0] : (p.ign || 'N/A');
+            const region = p.region || p.metadata?.region || '';
+            
+            let badge = '';
+            if (p.is_locked) {
+                badge = `<div class="status-badge locked"><i class="fa-solid fa-lock"></i> Locked (${p.days_locked}d)</div>`;
+            } else if (p.verification_status === 'VERIFIED') {
+                badge = `<div class="status-badge verified"><i class="fa-solid fa-circle-check"></i> Verified</div>`;
+            } else if (p.verification_status === 'FLAGGED') {
+                badge = `<div class="status-badge flagged"><i class="fa-solid fa-flag"></i> Flagged</div>`;
+            } else {
+                badge = `<div class="status-badge pending"><i class="fa-solid fa-clock"></i> Pending</div>`;
+            }
+
+            const editDisabled = p.is_locked ? 'disabled title="Locked for ' + p.days_locked + ' days"' : '';
+            const deleteDisabled = p.is_locked ? 'disabled' : '';
+
+            return `
+                <div class="gp-passport-card ${p.is_locked ? 'locked' : ''} ${p.verification_status === 'VERIFIED' ? 'verified' : ''}">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="game-icon" style="background-color: ${color}">
+                                ${game?.icon_url ? `<img src="${escapeHtml(game.icon_url)}" alt="">` : '<i class="fa-solid fa-gamepad"></i>'}
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white text-lg">${escapeHtml(game?.display_name || 'Game')}</h4>
+                                ${region ? `<p class="text-xs text-gray-400">${escapeHtml(region)}</p>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="window.gamePassports.editPassport(${p.id})" ${editDisabled} class="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                                <i class="fa-solid fa-pen text-xs text-gray-400"></i>
+                            </button>
+                            <button onclick="window.gamePassports.deletePassport(${p.id})" ${deleteDisabled} class="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-red-500/20 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                                <i class="fa-solid fa-trash text-xs text-gray-400"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="identity-text mb-3">
+                        <span class="text-white">${escapeHtml(primaryId)}</span>
+                        <button onclick="window.gamePassports.copyId('${escapeHtml(primaryId)}')" class="text-gray-500 hover:text-white transition" title="Copy ID">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                    
+                    ${p.rank_name ? `<p class="text-sm text-gray-300 mb-2"><strong>Rank:</strong> <span style="color:${color}">${escapeHtml(p.rank_name)}</span></p>` : ''}
+                    ${badge}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderGamesGrid() {
+        if (!state.games || state.games.length === 0) {
+            els.gamesGrid.innerHTML = '<p class="col-span-full text-center text-gray-500">No games available</p>';
+            return;
+        }
+
+        // PHASE 9A-4: Filter out games already linked (prevent duplicates UX-side)
+        const linkedGameIds = new Set(state.passports.map(p => p.game_id));
+        const availableGames = state.games.filter(g => !linkedGameIds.has(g.id));
+        
+        if (availableGames.length === 0) {
+            els.gamesGrid.innerHTML = `
+                <div class="col-span-full text-center py-8">
+                    <i class="fa-solid fa-check-circle text-green-400 text-3xl mb-2"></i>
+                    <p class="text-white font-bold">All Games Linked</p>
+                    <p class="text-gray-400 text-sm">You've linked passports for all available games</p>
+                </div>
+            `;
+            return;
+        }
+
+        els.gamesGrid.innerHTML = availableGames.map(game => {
+            const color = game.primary_color || '#7c3aed';
+            const isLinked = linkedGameIds.has(game.id);
+            const cardClass = isLinked ? 'game-selector-card disabled' : 'game-selector-card';
+            const onclick = isLinked ? '' : `onclick="window.gamePassports.selectGame(${game.id})"`;
+            
+            return `
+                <div class="${cardClass}" ${onclick}>
+                    <div class="game-icon" style="background-color: ${color}">
+                        ${game.icon_url ? `<img src="${escapeHtml(game.icon_url)}" alt="">` : '<i class="fa-solid fa-gamepad"></i>'}
+                    </div>
+                    <h5 class="font-bold text-white text-sm">${escapeHtml(game.display_name)}</h5>
+                    ${isLinked ? '<div class="absolute top-2 right-2 bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded border border-green-500/30">LINKED</div>' : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function selectGame(gameId) {
+        state.currentGame = state.games.find(g => g.id === gameId);
+        if (!state.currentGame) return;
+
+        const color = state.currentGame.primary_color || '#7c3aed';
+        els.formIcon.style.backgroundColor = color;
+        els.formIcon.innerHTML = state.currentGame.icon_url 
+            ? `<img src="${escapeHtml(state.currentGame.icon_url)}" alt="">`
+            : '<i class="fa-solid fa-gamepad"></i>';
+        els.formGameName.textContent = state.currentGame.display_name;
+
+        renderDynamicFields();
+
+        // Phase 9A-18: Show form step in inline builder
+        els.stepSelector.style.display = 'none';
+        els.stepForm.classList.remove('hidden');
+    }
+
+    function renderDynamicFields() {
+        // PHASE 9A-4: Enhanced schema validation and debug UI
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        if (!state.currentGame) {
+            els.fieldsIdentity.innerHTML = '<p class="text-red-400">No game selected</p>';
+            return;
+        }
+        
+        if (!state.currentGame.passport_schema || state.currentGame.passport_schema.length === 0) {
+            const debugMsg = isDev 
+                ? `<div class="text-yellow-400"><strong>⚠️ Development Notice:</strong> No identity schema found for ${escapeHtml(state.currentGame.display_name)}. Run: <code class="bg-black/30 px-2 py-1 rounded">python manage.py seed_identity_configs --game ${escapeHtml(state.currentGame.slug)}</code></div>`
+                : `<p class="text-gray-400">Schema not configured for this game</p>`;
+            
+            els.fieldsIdentity.innerHTML = debugMsg;
+            console.warn(`[GP] No passport_schema for game: ${state.currentGame.display_name} (${state.currentGame.slug})`);
+            return;
+        }
+
+        // Clear all sections
+        els.fieldsIdentity.innerHTML = '';
+        els.fieldsCompetitive.innerHTML = '';
+        els.fieldsOptional.innerHTML = '';
+        
+        const schema = state.currentGame.passport_schema;
+        
+        if (isDev) {
+            console.log(`[GP] Rendering ${schema.length} fields for ${state.currentGame.display_name}:`, schema.map(f => f.key));
+        }
+        
+        // Categorize fields intelligently
+        const identityFields = [];
+        const competitiveFields = [];
+        const optionalFields = [];
+        
+        schema.forEach(field => {
+            // Identity: immutable OR contains 'id' OR is primary identity field
+            const isIdentity = field.immutable || 
+                               field.key.includes('id') || 
+                               field.key === 'ign' || 
+                               field.key === 'uid' ||
+                               field.key === 'steam' ||
+                               field.key === 'riot' ||
+                               field.key === 'pubg' ||
+                               field.key === 'epic' ||
+                               field.required;  // Required fields usually identity
+            
+            // Competitive: rank/region/role/server/tier fields (but not peak_rank)
+            const isCompetitive = ['region', 'rank', 'role', 'server', 'tier', 'division'].some(k => 
+                field.key.includes(k) && !field.key.includes('peak')
+            );
+            
+            if (isIdentity) {
+                identityFields.push(field);
+            } else if (isCompetitive) {
+                competitiveFields.push(field);
+            } else {
+                optionalFields.push(field);
+            }
+        });
+
+        // Render Core Identity
+        identityFields.forEach(field => {
+            els.fieldsIdentity.appendChild(createFieldElement(field));
+        });
+
+        // Render Competitive (show section if has fields)
+        if (competitiveFields.length > 0) {
+            els.sectionCompetitive.style.display = 'block';
+            competitiveFields.forEach(field => {
+                els.fieldsCompetitive.appendChild(createFieldElement(field));
+            });
+        } else {
+            els.sectionCompetitive.style.display = 'none';
+        }
+
+        // Render Optional (show section if has fields)
+        if (optionalFields.length > 0) {
+            els.sectionOptional.style.display = 'block';
+            optionalFields.forEach(field => {
+                els.fieldsOptional.appendChild(createFieldElement(field));
+            });
+        } else {
+            els.sectionOptional.style.display = 'none';
+        }
+
+        // Show/hide terms based on edit mode
+        if (state.editingPassport) {
+            els.termsSection.style.display = 'none';
+            els.saveText.textContent = 'Update Passport';
+        } else {
+            els.termsSection.style.display = 'block';
+            els.saveText.textContent = 'Save Passport';
+        }
+
+        updateSaveButton();
+    }
+
+    function createFieldElement(field) {
+        const div = document.createElement('div');
+        div.className = 'gp-field-group';
+        
+        const value = state.editingPassport?.metadata?.[field.key] || '';
+        const isDisabled = field.immutable && state.editingPassport ? 'disabled' : '';
+        const isRequired = field.required ? 'required' : '';
+        
+        const label = document.createElement('label');
+        label.innerHTML = `
+            ${escapeHtml(field.label)}
+            ${field.required ? '<span class="text-red-400">*</span>' : ''}
+            ${field.immutable ? '<i class="fa-solid fa-lock immutable-icon" title="Cannot be changed after creation"></i>' : ''}
+        `;
+        div.appendChild(label);
+
+        if (field.type === 'select' && field.options?.length) {
+            const select = document.createElement('select');
+            select.name = field.key;
+            if (isRequired) select.required = true;
+            if (isDisabled) select.disabled = true;
+            
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = 'Select...';
+            select.appendChild(emptyOption);
+            
+            field.options.forEach(opt => {
+                const option = document.createElement('option');
+                const optValue = typeof opt === 'string' ? opt : opt.value;
+                const optLabel = typeof opt === 'string' ? opt : opt.label;
+                option.value = optValue;
+                option.textContent = optLabel;
+                if (value === optValue) option.selected = true;
+                select.appendChild(option);
+            });
+            
+            div.appendChild(select);
+        } else if (field.type === 'textarea') {
+            const textarea = document.createElement('textarea');
+            textarea.name = field.key;
+            textarea.value = value;
+            textarea.placeholder = field.placeholder || '';
+            if (isRequired) textarea.required = true;
+            if (isDisabled) textarea.disabled = true;
+            if (field.min_length) textarea.minLength = field.min_length;
+            if (field.max_length) textarea.maxLength = field.max_length;
+            div.appendChild(textarea);
+        } else {
+            const input = document.createElement('input');
+            input.type = field.type || 'text';
+            input.name = field.key;
+            input.value = value;
+            input.placeholder = field.placeholder || '';
+            if (isRequired) input.required = true;
+            if (isDisabled) input.disabled = true;
+            if (field.validation_regex) input.pattern = field.validation_regex;
+            if (field.min_length) input.minLength = field.min_length;
+            if (field.max_length) input.maxLength = field.max_length;
+            div.appendChild(input);
+        }
+
+        if (field.help_text) {
+            const help = document.createElement('div');
+            help.className = 'help-text';
+            help.textContent = field.help_text;
+            div.appendChild(help);
+        }
+        
+        // Phase 9A-21: Inline error container for real-time validation
+        const errorDiv = document.createElement('div');
+        errorDiv.id = `error-${field.key}`;
+        errorDiv.className = 'field-error hidden';
+        errorDiv.style.cssText = 'color: #f87171; font-size: 0.75rem; margin-top: 0.25rem; display: none;';
+        div.appendChild(errorDiv);
+
+        return div;
+    }
+
+    // ========== INLINE BUILDER CONTROLS (Phase 9A-18) ==========
+    
+    function openBuilder() {
+        state.editingPassport = null;
+        const builder = document.getElementById('gp-builder');
+        builder.classList.remove('hidden');
+        els.stepSelector.style.display = 'block';
+        els.stepForm.classList.add('hidden');
+        els.saveText.textContent = 'Save Passport';
+        els.termsCheck.checked = false;
+        
+        // Scroll to builder
+        builder.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        updateSaveButton();
+    }
+
+    function closeBuilder() {
+        const builder = document.getElementById('gp-builder');
+        builder.classList.add('hidden');
+        els.form.reset();
+        state.editingPassport = null;
+        state.currentGame = null;
+    }
+
+    function backToSelector() {
+        els.stepSelector.style.display = 'block';
+        els.stepForm.classList.add('hidden');
+    }
+
+    // ========== CRUD OPERATIONS ==========
+    
+    async function savePassport() {
+        if (!state.currentGame) return;
+
+        const formData = new FormData(els.form);
+        const metadata = {};
+        
+        for (const [key, value] of formData.entries()) {
+            if (value) metadata[key] = value;
+        }
+
+        els.saveBtn.disabled = true;
+        els.saveText.textContent = 'Saving...';
+
+        try {
+            // CRITICAL: Build backend-compatible payload
+            // Backend expects: {game_id, metadata: {...}, pinned}
+            // Backend no longer requires top-level 'ign' for all games (Phase 9A-21)
+            
+            const payload = derivePayloadFromMetadata(metadata);
+            
+            // IGN derivation is now optional and game-aware (handled by backend)
+            // No longer blocking save if IGN not found - backend validates per schema
+            
+            const url = state.editingPassport 
+                ? '/profile/api/game-passports/update/'
+                : '/profile/api/game-passports/create/';
+            
+            // Phase 9A-9: Backend expects 'id' for updates, not 'passport_id'
+            if (state.editingPassport) {
+                payload.id = state.editingPassport.id;
+            }
+
+            const result = await apiCall(url, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            showToast(`✅ Passport ${state.editingPassport ? 'updated' : 'created'} successfully`, 'success');
+            closeBuilder(); // Phase 9A-18: Close inline builder instead of modal
+            
+            // Phase 9A-18: Fix API response accessor - backend returns {success, data: {passports: [...]}}
+            const passportsData = await apiCall('/profile/api/game-passports/');
+            state.passports = extractPassports(passportsData);
+            renderPassportsGrid();
+            renderGamesGrid(); // Update available games to reflect new linked passport
+            
+        } catch (error) {
+            console.error('[Game Passports] Save failed:', error);
+            
+            // Phase 9A-23: Handle IDENTITY_ALREADY_IN_USE and DUPLICATE_GAME_PASSPORT
+            if (error.status === 409) {
+                if (error.errorCode === 'IDENTITY_ALREADY_IN_USE') {
+                    // Global identity conflict - show field-level error
+                    showToast('❌ This game identity is already linked to another account', 'error');
+                    
+                    if (error.fieldErrors) {
+                        Object.keys(error.fieldErrors).forEach(fieldKey => {
+                            const errorDiv = document.getElementById(`error-${fieldKey}`);
+                            if (errorDiv) {
+                                errorDiv.textContent = `⚠ ${error.fieldErrors[fieldKey]}`;
+                                errorDiv.style.display = 'block';
+                                errorDiv.classList.remove('hidden');
+                            }
+                        });
+                    }
+                } else if (error.errorCode === 'DUPLICATE_GAME_PASSPORT') {
+                    // User already has passport for this game
+                    showToast('❌ You already have a passport for this game. Edit it instead.', 'error');
+                } else if (error.errorCode === 'DUPLICATE_IDENTITY') {
+                    // Legacy error code (backward compatibility)
+                    showToast('❌ This game identity is already linked to another account', 'error');
+                    
+                    if (error.fieldErrors) {
+                        Object.keys(error.fieldErrors).forEach(fieldKey => {
+                            const errorDiv = document.getElementById(`error-${fieldKey}`);
+                            if (errorDiv) {
+                                errorDiv.textContent = `⚠ ${error.fieldErrors[fieldKey]}`;
+                                errorDiv.style.display = 'block';
+                                errorDiv.classList.remove('hidden');
+                            }
+                        });
+                    }
+                } else {
+                    // Generic 409 conflict
+                    showToast(`❌ ${error.message || 'Conflict detected'}`, 'error');
+                }
+            } else if (error.status === 400 && error.fieldErrors) {
+                // Validation errors - show field-level errors
+                showToast(`❌ ${error.message || 'Validation failed'}`, 'error');
+                
+                Object.keys(error.fieldErrors).forEach(fieldKey => {
+                    const errorDiv = document.getElementById(`error-${fieldKey}`);
+                    if (errorDiv) {
+                        const errorMsg = Array.isArray(error.fieldErrors[fieldKey]) 
+                            ? error.fieldErrors[fieldKey][0] 
+                            : error.fieldErrors[fieldKey];
+                        errorDiv.textContent = `⚠ ${errorMsg}`;
+                        errorDiv.style.display = 'block';
+                        errorDiv.classList.remove('hidden');
+                    }
+                });
+            } else if (error.status === 500) {
+                // Server error - show detailed message in DEBUG or generic in production
+                const errorMsg = error.message || 'A server error occurred';
+                showToast(`❌ ${errorMsg}`, 'error');
+                
+                // In DEBUG mode, backend includes detailed error info
+                if (error.exception_type || error.traceback) {
+                    console.error('[GP] Server error details:', {
+                        type: error.exception_type,
+                        message: error.exception_message,
+                        requestId: error.requestId,
+                        traceback: error.traceback
+                    });
+                    
+                    // Show detailed error in console for debugging
+                    if (error.exception_message) {
+                        console.error('[GP] Exception:', error.exception_message);
+                    }
+                }
+            } else {
+                // Other errors - show message or generic error
+                const errorMsg = error.message || 'An unexpected error occurred';
+                showToast(`❌ ${errorMsg}`, 'error');
+            }
+        } finally {
+            els.saveBtn.disabled = false;
+            els.saveText.textContent = state.editingPassport ? 'Update Passport' : 'Save Passport';
+        }
+    }
+    
+    /**
+     * Derive backend-compatible payload from schema metadata
+     * Backend contract (Phase 9A-9): {game_id, metadata: {...}, visibility?, pinned?}
+     * Backend also accepts top-level ign/region/rank/discriminator for backward compatibility
+     */
+    function derivePayloadFromMetadata(metadata) {
+        const payload = {
+            game_id: state.currentGame.id,
+            metadata: {}, // Phase 9A-9: Use 'metadata' key (backend accepts metadata OR passport_data)
+            pinned: false
+        };
+        
+        // Copy all metadata fields
+        Object.assign(payload.metadata, metadata);
+        
+        // IGN Derivation Rules (Priority Order):
+        // 1. Explicit 'ign' field in metadata
+        if (metadata.ign) {
+            payload.ign = metadata.ign.trim();
+        }
+        // 2. Parse 'riot_id' format: "Name#TAG" → ign=Name, discriminator=TAG
+        else if (metadata.riot_id) {
+            const riotId = metadata.riot_id.trim();
+            if (riotId.includes('#')) {
+                const [name, tag] = riotId.split('#');
+                payload.ign = name.trim();
+                payload.discriminator = tag.trim();
+            } else {
+                // Riot ID without tag (fallback)
+                payload.ign = riotId;
+            }
+        }
+        // 3. Fallback to first identity field (steam_id, uid, player_id, etc.)
+        else {
+            const identityFields = ['steam_id', 'uid', 'player_id', 'pubg_id', 'epic_id', 'xbox_gamertag', 'psn_id'];
+            for (const field of identityFields) {
+                if (metadata[field]) {
+                    payload.ign = metadata[field].trim();
+                    break;
+                }
+            }
+        }
+        
+        // Region extraction (if backend expects top-level)
+        if (metadata.region) {
+            payload.region = metadata.region;
+        }
+        
+        // Rank extraction (backend uses 'rank' not 'rank_name' in payload)
+        if (metadata.rank) {
+            payload.rank = metadata.rank;
+        } else if (metadata.rank_name) {
+            payload.rank = metadata.rank_name;
+        } else if (metadata.tier) {
+            payload.rank = metadata.tier; // PUBG uses 'tier' instead of 'rank'
+        }
+        
+        // Server extraction (some games use 'server' instead of 'region')
+        if (metadata.server && !payload.region) {
+            payload.region = metadata.server;
+        }
+        
+        return payload;
+    }
+
+    async function editPassport(passportId) {
+        const passport = state.passports.find(p => p.id === passportId);
+        if (!passport) return;
+
+        state.editingPassport = passport;
+        state.currentGame = state.games.find(g => g.id === passport.game_id);
+        
+        if (!state.currentGame) {
+            showToast('❌ Game not found', 'error');
+            return;
+        }
+
+        openModal();
+        selectGame(state.currentGame.id);
+        els.modalTitle.textContent = `Edit ${state.currentGame.display_name}`;
+        els.saveText.textContent = 'Update Passport';
+    }
+
+    async function deletePassport(passportId) {
+        if (!confirm('Delete this passport? This cannot be undone.')) return;
+
+        try {
+            // PHASE 9A-4 FIX: Backend expects {id: passport_id}, not {passport_id: passport_id}
+            await apiCall('/profile/api/game-passports/delete/', {
+                method: 'POST',
+                body: JSON.stringify({ id: passportId })
+            });
+
+            showToast('✅ Passport deleted', 'success');
+            
+            const passportsData = await apiCall('/profile/api/game-passports/');
+            state.passports = extractPassports(passportsData);
+            renderPassportsGrid();
+            
+        } catch (error) {
+            showToast(`❌ ${error.message}`, 'error');
+        }
+    }
+
+    function copyId(idText) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(idText).then(() => {
+                showToast('✅ ID copied to clipboard', 'success');
+            });
+        } else {
+            showToast('📋 ' + idText, 'info');
+        }
+    }
+
+    // ========== VALIDATION ==========
+    
+    function updateSaveButton() {
+        // Phase 9A-10G: Schema-aware validation
+        if (!state.currentGame || !state.currentGame.passport_schema) {
+            els.saveBtn.disabled = true;
+            return;
+        }
+        
+        const schema = state.currentGame.passport_schema;
+        const form = document.getElementById('gp-step-form');
+        let allValid = true;
+        const validationLog = {
+            game: state.currentGame.slug,
+            requiredFields: [],
+            invalidFields: [],
+            validFields: []
+        };
+        
+        // Check each schema field for validity
+        schema.forEach(field => {
+            const input = form.querySelector(`[name="${field.key}"]`);
+            const errorDiv = document.getElementById(`error-${field.key}`);
+            
+            if (field.required) {
+                validationLog.requiredFields.push(field.key);
+                
+                if (!input) {
+                    allValid = false;
+                    validationLog.invalidFields.push({field: field.key, reason: 'input not found'});
+                    return;
+                }
+                
+                // Phase 9A-21: Proper validation for select vs text fields
+                const value = input.value ? input.value.trim() : '';
+                if (!value || value === '') {
+                    allValid = false;
+                    validationLog.invalidFields.push({field: field.key, reason: 'empty or missing'});
+                    if (errorDiv) {
+                        errorDiv.textContent = `${field.label} is required`;
+                        errorDiv.style.display = 'block';
+                        errorDiv.classList.remove('hidden');
+                    }
+                    return;
+                }
+                
+                // Check validation_regex if present
+                if (field.validation_regex) {
+                    try {
+                        const regex = new RegExp(field.validation_regex);
+                        if (!regex.test(value)) {
+                            allValid = false;
+                            validationLog.invalidFields.push({field: field.key, reason: 'regex validation failed'});
+                            if (errorDiv) {
+                                errorDiv.textContent = field.validation_error_message || `${field.label} format is invalid`;
+                                errorDiv.style.display = 'block';
+                                errorDiv.classList.remove('hidden');
+                            }
+                            return;
+                        }
+                    } catch (e) {
+                        // Invalid regex, skip validation
+                    }
+                }
+                
+                // Check min/max length
+                if (field.min_length && value.length < field.min_length) {
+                    allValid = false;
+                    validationLog.invalidFields.push({field: field.key, reason: `too short (min ${field.min_length})`});
+                    if (errorDiv) {
+                        errorDiv.textContent = `Minimum ${field.min_length} characters required`;
+                        errorDiv.style.display = 'block';
+                        errorDiv.classList.remove('hidden');
+                    }
+                    return;
+                }
+                if (field.max_length && value.length > field.max_length) {
+                    allValid = false;
+                    validationLog.invalidFields.push({field: field.key, reason: `too long (max ${field.max_length})`});
+                    if (errorDiv) {
+                        errorDiv.textContent = `Maximum ${field.max_length} characters allowed`;
+                        errorDiv.style.display = 'block';
+                        errorDiv.classList.remove('hidden');
+                    }
+                    return;
+                }
+                
+                // Field is valid - hide error
+                if (errorDiv) {
+                    errorDiv.style.display = 'none';
+                    errorDiv.classList.add('hidden');
+                }
+                validationLog.validFields.push(field.key);
+            }
+        });
+        
+        // Terms check only required for new passports
+        const termsChecked = state.editingPassport || els.termsCheck.checked;
+        const isEnabled = allValid && termsChecked;
+        
+        // Phase 9A-21: Show/hide inline error for Fair Play checkbox
+        const termsError = document.getElementById('gp-terms-error');
+        if (!state.editingPassport && !els.termsCheck.checked && allValid) {
+            // All fields valid but checkbox unchecked - show error
+            termsError.classList.remove('hidden');
+        } else {
+            termsError.classList.add('hidden');
+        }
+        
+        // Phase 9A-18: Debug logging for eFootball validation
+        console.log('[SAVE BTN]', {
+            enabled: isEnabled,
+            allFieldsValid: allValid,
+            termsChecked,
+            validation: validationLog
+        });
+        
+        els.saveBtn.disabled = !isEnabled;
+        
+        if (isEnabled) {
+            els.saveBtn.classList.remove('bg-gray-700', 'text-gray-400', 'cursor-not-allowed', 'border-gray-600');
+            els.saveBtn.classList.add('bg-[#00F0FF]', 'text-black', 'cursor-pointer', 'hover:bg-white', 'hover:shadow-[0_0_20px_rgba(0,240,255,0.4)]', 'border-[#00F0FF]');
+        } else {
+            els.saveBtn.classList.add('bg-gray-700', 'text-gray-400', 'cursor-not-allowed', 'border-gray-600');
+            els.saveBtn.classList.remove('bg-[#00F0FF]', 'text-black', 'cursor-pointer', 'hover:bg-white', 'hover:shadow-[0_0_20px_rgba(0,240,255,0.4)]', 'border-[#00F0FF]');
+        }
+    }
+
+    // ========== EVENT LISTENERS (Phase 9A-18: Inline Builder) ==========
+    
+    els.linkBtn.addEventListener('click', openBuilder);
+    els.cancelBtn.addEventListener('click', closeBuilder);
+    els.backBtn.addEventListener('click', backToSelector);
+    els.saveBtn.addEventListener('click', savePassport);
+    
+    els.infoBtn.addEventListener('click', openInfoDrawer);
+    els.infoClose.addEventListener('click', closeInfoDrawer);
+    els.infoOverlay?.addEventListener('click', closeInfoDrawer);
+    
+    // Phase 9A-18: Learn More inline accordion toggle
+    const learnMoreToggle = document.getElementById('gp-learn-more-toggle');
+    const learnMoreContent = document.getElementById('gp-learn-more-content');
+    const learnMoreIcon = document.getElementById('gp-learn-more-icon');
+    
+    learnMoreToggle?.addEventListener('click', (e) => {
+        e.preventDefault();
+        learnMoreContent.classList.toggle('hidden');
+        learnMoreIcon.classList.toggle('rotate-180');
+    });
+    
+    // Phase 9A-21: Debounced validation for better UX
+    let validationTimeout;
+    const debouncedValidation = () => {
+        clearTimeout(validationTimeout);
+        validationTimeout = setTimeout(updateSaveButton, 200);
+    };
+    
+    els.termsCheck.addEventListener('change', updateSaveButton);
+    els.form.addEventListener('input', debouncedValidation);
+    els.form.addEventListener('change', updateSaveButton);
+    
+    els.optionalToggle?.addEventListener('click', () => {
+        els.fieldsOptional.classList.toggle('hidden');
+        els.optionalIcon.classList.toggle('rotate-180');
+    });
+
+    // ========== EXPOSE PUBLIC API ==========
+    
+    window.gamePassports = {
+        init,
+        selectGame,
+        editPassport,
+        deletePassport,
+        copyId,
+        openInfo: openInfoDrawer
+    };
+
+    // DO NOT auto-init - init() called by switchTab() when 'passports' tab activated (Phase 9A-1 fix)
+
+})();
+</script>
