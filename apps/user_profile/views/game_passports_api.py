@@ -175,11 +175,30 @@ def list_game_passports_api(request):
             user=request.user
         ).select_related('game').order_by('-is_pinned', 'game__name')
         
+        # Phase 9A-28: Import cooldown model
+        from apps.user_profile.models.cooldown import GamePassportCooldown
+        
         passports_list = []
         for passport in passports:
             # Calculate lock status
             is_locked = passport.locked_until and passport.locked_until > timezone.now()
             days_left = (passport.locked_until - timezone.now()).days + 1 if is_locked else 0
+            
+            # Phase 9A-28: Check for active cooldown
+            cooldown_data = None
+            has_cooldown, cooldown_obj = GamePassportCooldown.check_cooldown(
+                request.user, 
+                passport.game, 
+                cooldown_type='POST_DELETE'
+            )
+            if has_cooldown and cooldown_obj:
+                cooldown_data = {
+                    'is_active': True,
+                    'type': cooldown_obj.cooldown_type,
+                    'expires_at': cooldown_obj.expires_at.isoformat(),
+                    'days_remaining': cooldown_obj.days_remaining(),
+                    'reason': cooldown_obj.reason
+                }
             
             passports_list.append({
                 'id': passport.id,
@@ -204,6 +223,8 @@ def list_game_passports_api(request):
                 'is_verified': passport.is_verified,
                 # Phase 9A-4: Visibility
                 'visibility': passport.visibility,
+                # Phase 9A-28: Cooldown data
+                'cooldown': cooldown_data,
             })
         
         return success_response({'passports': passports_list})

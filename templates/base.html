@@ -43,6 +43,8 @@
     <link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+    <!-- Phase 9A-24: Toastify.js for modern toast notifications -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css">
 
     {# 🔽 allow pages to inject extra CSS (e.g., tournaments-detail.css) #}
     {% block extra_css %}{% endblock %}
@@ -89,12 +91,35 @@
     <script src="{% static 'siteui/js/reg_wizard.js' %}"></script>
     <script src="{% static 'siteui/js/follow.js' %}"></script>
 
+    <!-- Phase 9A-24: Toastify.js + Messages Init -->
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.js"></script>
+    <script src="{% static 'siteui/js/toast.js' %}"></script>
+    
     {% if messages %}
-    <script id="dj-messages" type="application/json">[
+    <script id="messages-data" type="application/json">[
       {% for message in messages %}
         {"level":"{{ message.tags|default:'info' }}","text":"{{ message|escapejs }}"}{% if not forloop.last %},{% endif %}
       {% endfor %}
     ]</script>
+    <script>
+      // Phase 9A-24: Auto-show Django messages as toasts on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        const messagesEl = document.getElementById('messages-data');
+        if (messagesEl && window.showToast) {
+          try {
+            const messages = JSON.parse(messagesEl.textContent);
+            messages.forEach(msg => {
+              const type = msg.level === 'error' ? 'error' : 
+                          msg.level === 'warning' ? 'warning' : 
+                          msg.level === 'success' ? 'success' : 'info';
+              window.showToast({type, message: msg.text});
+            });
+          } catch(e) {
+            console.error('[Toast] Failed to parse Django messages:', e);
+          }
+        }
+      });
+    </script>
     {% endif %}
 
     {# 🔽 allow pages to inject extra JS (e.g., tournament-detail.js) #}

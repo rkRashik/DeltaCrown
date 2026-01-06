@@ -65,6 +65,10 @@ from .views.game_passports_api import (
     update_game_passport_api, delete_game_passport_api,
     check_identity_availability_api
 )
+# Phase 9A-27: OTP Delete Confirmation API
+from .views.game_passports_delete import (
+    request_delete_otp, confirm_delete
+)
 # UP-PASSPORT-CREATE-01: Passport creation endpoint
 from .views.passport_create import create_passport
 
@@ -111,7 +115,8 @@ from .views.loadout_api import (
 )
 from .views.trophy_showcase_api import update_trophy_showcase
 
-from .views_public import public_profile, profile_api
+from .views.public import public_profile, game_passport_rules_view
+from .views_public import profile_api
 from .api_views import get_game_id, update_game_id
 from .api.game_id_api import (
     check_game_id_api,
@@ -176,6 +181,10 @@ urlpatterns = [
     path("me/settings/", profile_settings_view, name="profile_settings"),
     path("me/settings/", profile_settings_view, name="settings"),  # Alias for template compatibility
     path("me/privacy/", profile_privacy_view, name="profile_privacy"),
+    
+    # Phase 9A-24: Game Passport Rules & Policy page
+    path("game-passport-rules/", game_passport_rules_view, name="game_passport_rules"),
+    
     # UP-PHASE2E-HOTFIX: Backward compatibility alias for old route name
     path("me/privacy-v2/", profile_privacy_view, name="profile_privacy_v2"),
     
@@ -225,12 +234,16 @@ urlpatterns = [
     path("api/game-passports/update/", update_game_passport_api, name="update_game_passport_api"),
     path("api/game-passports/delete/", delete_game_passport_api, name="delete_game_passport_api"),
     path("api/game-passports/check-identity/", check_identity_availability_api, name="check_identity_api"),
+    path("api/game-passports/request-delete-otp/", request_delete_otp, name="request_delete_otp"),  # Phase 9A-27
+    path("api/game-passports/confirm-delete/", confirm_delete, name="confirm_delete"),  # Phase 9A-27
     # Frontend compatibility aliases (template expects /profile/api/game-passports/)
     path("profile/api/game-passports/", list_game_passports_api, name="game_passports_list_alias"),
     path("profile/api/game-passports/create/", create_game_passport_api, name="game_passports_create_alias"),
     path("profile/api/game-passports/update/", update_game_passport_api, name="game_passports_update_alias"),
     path("profile/api/game-passports/delete/", delete_game_passport_api, name="game_passports_delete_alias"),
     path("profile/api/game-passports/check-identity/", check_identity_availability_api, name="check_identity_alias"),
+    path("profile/api/game-passports/request-delete-otp/", request_delete_otp, name="request_delete_otp_alias"),  # Phase 9A-27
+    path("profile/api/game-passports/confirm-delete/", confirm_delete, name="confirm_delete_alias"),  # Phase 9A-27
     path("api/platform-settings/", get_platform_settings, name="get_platform_settings"),
     path("me/settings/platform/", update_platform_settings, name="update_platform_settings"),
     path("api/profile/data/", get_profile_data, name="get_profile_data"),

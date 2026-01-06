@@ -30,6 +30,8 @@ from apps.user_profile.models.bounties import (  # P0 Bounties
     BountyStatus,
     DisputeStatus,
 )
+from apps.user_profile.models.delete_otp import GamePassportDeleteOTP  # Phase 9A-27
+from apps.user_profile.models.cooldown import GamePassportCooldown  # Phase 9A-27
 from apps.user_profile.models.career import (  # Phase 2A Career & Matchmaking
     CareerProfile,
     MatchmakingPreferences,

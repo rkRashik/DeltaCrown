@@ -765,21 +765,21 @@ class GameProfileAdmin(admin.ModelAdmin):
         'game',
         'in_game_name',
         'identity_key',
-        'visibility',
-        'is_lft',
-        'is_pinned',
+        'verification_status_badge',  # Phase 9A-29: Visual badge
+        'cooldown_badge',  # Phase 9A-29: Cooldown status
         'lock_status_display',
+        'visibility',
         'updated_at',
     ]
     
     list_filter = [
+        'verification_status',  # Phase 9A-30: Prioritize verification workflow
         'game',
+        ('locked_until', admin.EmptyFieldListFilter),  # Active locks
         'visibility',
-        'is_lft',
-        'is_pinned',
         'status',
-        'verification_status',  # Phase 8B: Verification filter
-        ('locked_until', admin.EmptyFieldListFilter),  # GP-FE-MVP-01: Locked/unlocked filter
+        'is_pinned',
+        'is_lft',
         'created_at',
     ]
     
@@ -806,6 +806,10 @@ class GameProfileAdmin(admin.ModelAdmin):
         'mark_as_verified',
         'mark_as_pending',
         'mark_as_flagged',
+        'override_cooldown_action',
+        'unlock_identity_changes',
+        'pin_passports',
+        'unpin_passports',
     ]
     
     fieldsets = [
@@ -993,7 +997,32 @@ class GameProfileAdmin(admin.ModelAdmin):
                 }
             )
     
-    actions = ['unlock_identity_changes', 'pin_passports', 'unpin_passports']
+    actions = ['unlock_identity_changes', 'pin_passports', 'unpin_passports', 'override_cooldown_action', 'mark_as_verified', 'mark_as_flagged']
+    
+    # Phase 9A-28: Cooldown override action
+    def override_cooldown_action(self, request, queryset):
+        """Admin action to override active cooldowns"""
+        from apps.user_profile.models.cooldown import GamePassportCooldown
+        from django.utils import timezone
+        
+        count = 0
+        for passport in queryset:
+            has_cooldown, cooldown = GamePassportCooldown.check_cooldown(
+                passport.user, passport.game, cooldown_type='POST_DELETE'
+            )
+            if has_cooldown and cooldown:
+                cooldown.override(
+                    admin_user=request.user,
+                    reason=f"Admin override by {request.user.username}"
+                )
+                count += 1
+        
+        self.message_user(
+            request,
+            f"Overridden cooldown for {count} passport(s)",
+            level=messages.SUCCESS
+        )
+    override_cooldown_action.short_description = "Override active cooldowns (allows deletion)"
     
     def unlock_identity_changes(self, request, queryset):
         """Admin action to unlock identity changes"""
@@ -1019,6 +1048,41 @@ class GameProfileAdmin(admin.ModelAdmin):
                 }
             )
     unlock_identity_changes.short_description = "Unlock identity changes (remove cooldown)"
+    
+    # Phase 9A-29: Enhanced display methods for list view
+    def verification_status_badge(self, obj):
+        """Compact visual badge for verification status"""
+        if obj.verification_status == 'VERIFIED':
+            return format_html(
+                '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">✓ VERIFIED</span>'
+            )
+        elif obj.verification_status == 'FLAGGED':
+            return format_html(
+                '<span style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">⚠ FLAGGED</span>'
+            )
+        return format_html(
+            '<span style="background: #6b7280; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">PENDING</span>'
+        )
+    verification_status_badge.short_description = 'Verification'
+    
+    def cooldown_badge(self, obj):
+        """Show cooldown status in list"""
+        from apps.user_profile.models.cooldown import GamePassportCooldown
+        
+        has_cooldown, cooldown = GamePassportCooldown.check_cooldown(
+            obj.user, obj.game, cooldown_type='POST_DELETE'
+        )
+        
+        if has_cooldown and cooldown:
+            days = cooldown.days_remaining()
+            return format_html(
+                '<span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">🔒 {days}d</span>',
+                days=days
+            )
+        return format_html(
+            '<span style="color: #10b981; font-size: 11px;">✓ None</span>'
+        )
+    cooldown_badge.short_description = 'Cooldown'
     
     # Phase 8B: Verification status actions and display
     def verification_status_display(self, obj):

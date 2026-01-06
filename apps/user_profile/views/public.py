@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 
@@ -110,3 +111,12 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     }
 
     return render(request, "user_profile/profile.html", context)
+
+
+@login_required
+def game_passport_rules_view(request: HttpRequest) -> HttpResponse:
+    """
+    Phase 9A-24: Game Passport Rules & Policy page
+    Shows comprehensive rules, verification process, locking policy, etc.
+    """
+    return render(request, "user_profile/game_passport_rules.html")

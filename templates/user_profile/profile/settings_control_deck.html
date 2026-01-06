@@ -1444,9 +1444,21 @@
         });
 
         // PHASE 9A: Initialize Game Passports tab on first activation
-        if (targetId === 'passports' && window.gamePassports && !window.gamePassports._initialized) {
-            window.gamePassports._initialized = true;
-            window.gamePassports.init();
+        if (targetId === 'passports') {
+            console.log('[Settings] Passports tab activated');
+            console.log('[Settings] window.gamePassports exists:', !!window.gamePassports);
+            if (window.gamePassports) {
+                console.log('[Settings] window.gamePassports._initialized:', window.gamePassports._initialized);
+                if (!window.gamePassports._initialized) {
+                    console.log('[Settings] Initializing Game Passports for first time');
+                    window.gamePassports._initialized = true;
+                    window.gamePassports.init();
+                } else {
+                    console.log('[Settings] Game Passports already initialized');
+                }
+            } else {
+                console.error('[Settings] window.gamePassports NOT FOUND - script may not have loaded');
+            }
         }
 
         // Scroll Mobile Nav

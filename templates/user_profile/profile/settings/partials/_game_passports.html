@@ -32,7 +32,7 @@ API Contract:
             <p class="text-gray-400 mt-2 text-sm leading-relaxed max-w-2xl">
                 Link official accounts for tournament eligibility.
                 <span class="inline-block ml-2 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/30 text-yellow-500 text-xs font-bold">
-                    <i class="fa-solid fa-lock mr-1"></i> 30-Day Lock
+                    <i class="fa-solid fa-lock mr-1"></i> Identity Lock Policy
                 </span>
             </p>
         </div>
@@ -124,7 +124,7 @@ API Contract:
                                 <div id="gp-learn-more-content" class="hidden mt-3 p-4 bg-white/[0.03] rounded-lg border border-white/10">
                                     <div class="space-y-4 text-sm text-gray-300">
                                         <p><strong class="text-white">Why needed?</strong> Links skill ratings to real accounts, prevents smurf/fake abuse. Required for tournaments and team rosters.</p>
-                                        <p><strong class="text-white">30-day lock:</strong> Core identity fields locked for 30 days to prevent abuse. You can update competitive info but not core ID.</p>
+                                        <p><strong class="text-white">Identity lock:</strong> Core identity fields (IGN, Riot ID, etc.) are locked after linking to prevent smurf switching. Lock duration varies by game (typically 30-90 days). You can update competitive stats but not core ID.</p>
                                         <p><strong class="text-white">Verification:</strong> PENDING → admin review → VERIFIED (full access). FLAGGED = under investigation.</p>
                                         <p><strong class="text-red-400">Game bans:</strong> Official anti-cheat bans (VAC/Riot/PUBG) = immediate platform suspension.</p>
                                     </div>
@@ -140,7 +140,7 @@ API Contract:
                                         <p class="text-xs text-gray-400 mt-1">By linking this account, you agree to:</p>
                                         <ul class="text-xs text-gray-400 mt-2 space-y-1 list-disc pl-4">
                                             <li>I own this account (no smurfing/sharing)</li>
-                                            <li>Core identity locked for <strong>30 days</strong></li>
+                                            <li>Core identity locked after linking (duration varies by game)</li>
                                             <li>Game bans = immediate suspension</li>
                                         </ul>
                                         <a href="{% url 'user_profile:game_passport_rules' %}" target="_blank" class="text-xs text-[#00F0FF] hover:underline mt-2 inline-block">
@@ -736,6 +736,125 @@ API Contract:
         bottom: 1rem;
     }
 }
+
+/* ========== PHASE 9A-26: MODERN VALIDATION STYLING (TOUCHED/DIRTY) ========== */
+
+/* Input base states */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+    @apply transition-all duration-200;
+}
+
+/* Phase 9A-26: Only show valid state if field is touched AND valid AND has value */
+input.touched:valid:not(:placeholder-shown):not([type="checkbox"]):not([type="radio"]):not([disabled]),
+select.touched:valid:not([disabled]),
+textarea.touched:valid:not(:placeholder-shown):not([disabled]) {
+    @apply border-green-500/50 bg-green-500/5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2310b981'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+    padding-right: 42px !important;
+}
+
+/* Phase 9A-26: Only show invalid state if field is touched */
+input.touched:invalid:not([type="checkbox"]):not([type="radio"]),
+select.touched:invalid,
+textarea.touched:invalid {
+    @apply border-red-500 ring-2 ring-red-500/20 bg-red-500/5;
+}
+
+/* Phase 9A-26: Optional empty fields show NO state even if touched */
+input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type="radio"]) {
+    @apply border-slate-600 ring-0 bg-transparent;
+    background-image: none;
+    padding-right: 12px !important;
+}
+
+/* Shake animation for validation errors */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.field-invalid-shake {
+    animation: shake 0.5s ease-in-out;
+    @apply border-red-500 ring-2 ring-red-500/30;
+}
+
+/* Checking indicator (for duplicate ID check) */
+.checking-indicator {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #3b82f6;
+    font-size: 14px;
+}
+
+.checking-indicator i {
+    animation: spin-check 1s linear infinite;
+}
+
+@keyframes spin-check {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Field error messages */
+.field-error {
+    @apply text-red-400 text-xs mt-1 flex items-center gap-1.5;
+}
+
+.field-error i {
+    @apply text-sm;
+}
+
+/* Duplicate error styling */
+.duplicate-error {
+    @apply border-red-500 ring-2 ring-red-500/30 bg-red-500/5;
+}
+
+/* Phase 9A-28: Validation UX - No validation on load, only after user interaction */
+.gp-field-group input:not(.touched):not(:focus),
+.gp-field-group select:not(.touched):not(:focus),
+.gp-field-group textarea:not(.touched):not(:focus) {
+    /* No validation styling until touched */
+}
+
+/* Phase 9A-28: Subtle valid indicator (green ring) only after blur */
+.gp-field-group input.touched:user-valid:not([data-duplicate]),
+.gp-field-group select.touched:user-valid,
+.gp-field-group textarea.touched:user-valid {
+    @apply border-green-500/40 focus:border-green-500;
+}
+
+/* Phase 9A-28: Invalid styling (red ring) only after blur */
+.gp-field-group input.touched:user-invalid,
+.gp-field-group select.touched:user-invalid,
+.gp-field-group textarea.touched:user-invalid {
+    @apply border-red-500 ring-2 ring-red-500/30 bg-red-500/5;
+}
+
+/* Phase 9A-28: Shake animation on submit failure */
+@keyframes field-shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-10px); }
+    40%, 80% { transform: translateX(10px); }
+}
+
+.field-invalid-shake {
+    animation: field-shake 0.4s ease-in-out;
+}
+
+/* Phase 9A-28: Optional empty field - NO green checkmark */
+.gp-field-group input:not([required]):placeholder-shown {
+    /* Don't show valid indicator for empty optional fields */
+    @apply border-gray-600;
+}
+
 </style>
 
 <script>
@@ -750,7 +869,8 @@ API Contract:
         editingPassport: null,
         formData: {}, // Phase 9A-10: Preserve form inputs across UI interactions
         gamesCache: null, // Phase 9A-10: Cache games schema to avoid refetch
-        gamesCacheTime: null
+        gamesCacheTime: null,
+        touched: {} // Phase 9A-26: Track which fields user has interacted with (only show validation after interaction)
     };
 
     // ========== DOM ELEMENTS (Phase 9A-18: Inline Builder) ==========
@@ -866,57 +986,160 @@ API Contract:
         }
     }
 
-    // Phase 9A-19: Modern Toast System
-    function showToast(message, type = 'success') {
-        const container = document.getElementById('gp-toast-container');
-        if (!container) {
-            console.warn('[GP Toast] Container not found, falling back to alert');
-            alert(message);
+    // Phase 9A-24: Use global showToast from toast.js (Toastify-based)
+    // Old Phase 9A-19 custom toast replaced with modern Toastify system
+
+    // ========== PHASE 9A-25: DUPLICATE CHECKING & VALIDATION HELPERS ==========
+    
+    // Debounce helper for duplicate checking
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func.apply(this, args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Phase 9A-26: Validate individual field and show/hide error messages
+    function validateField(element, field) {
+        const fieldKey = field.key;
+        const errorDiv = document.getElementById(`error-${fieldKey}`);
+        if (!errorDiv) return;
+
+        // Only validate if field is touched
+        if (!state.touched[fieldKey]) {
             return;
         }
 
-        // Create toast element
-        const toast = document.createElement('div');
-        toast.className = `gp-toast ${type}`;
-        
-        // Icon based on type
-        const icons = {
-            success: 'fa-circle-check',
-            error: 'fa-circle-exclamation',
-            info: 'fa-circle-info'
-        };
-        const icon = icons[type] || icons.info;
-        
-        toast.innerHTML = `
-            <div class="gp-toast-icon">
-                <i class="fa-solid ${icon}"></i>
-            </div>
-            <div class="gp-toast-content">${escapeHtml(message)}</div>
-            <button class="gp-toast-close" aria-label="Close notification">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-        `;
-        
-        // Add to container
-        container.appendChild(toast);
-        
-        // Close button handler
-        const closeBtn = toast.querySelector('.gp-toast-close');
-        closeBtn.addEventListener('click', () => removeToast(toast));
-        
-        // Auto-dismiss after 5 seconds
-        setTimeout(() => removeToast(toast), 5000);
+        // Check validity using Constraint Validation API
+        if (element.checkValidity()) {
+            // Valid - hide error
+            errorDiv.classList.add('hidden');
+            errorDiv.style.display = 'none';
+            errorDiv.innerHTML = '';
+        } else {
+            // Invalid - show error with message
+            const message = element.validationMessage || `${field.label} is invalid`;
+            errorDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(message)}`;
+            errorDiv.classList.remove('hidden');
+            errorDiv.style.display = 'flex';
+        }
     }
-    
-    function removeToast(toast) {
-        if (!toast || !toast.parentElement) return;
+
+    // Real-time duplicate identity checking
+    let identityCheckController = null;
+
+    async function checkIdentityAvailability(fieldKey, value, inputEl) {
+        if (!state.currentGame || !value || !inputEl) return;
         
-        toast.classList.add('removing');
-        setTimeout(() => {
-            if (toast.parentElement) {
-                toast.parentElement.removeChild(toast);
+        // Skip if editing existing passport (would match itself)
+        if (state.editingPassport) {
+            console.log('[GP] Skipping duplicate check in edit mode');
+            return;
+        }
+        
+        const errorDiv = document.getElementById(`error-${fieldKey}`);
+        if (!errorDiv) return;
+
+        // Cancel previous check
+        if (identityCheckController) {
+            identityCheckController.abort();
+        }
+        identityCheckController = new AbortController();
+
+        // Show checking indicator
+        const fieldGroup = inputEl.closest('.gp-field-group');
+        let indicator = fieldGroup?.querySelector('.checking-indicator');
+        if (!indicator && fieldGroup) {
+            indicator = document.createElement('div');
+            indicator.className = 'checking-indicator';
+            indicator.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            fieldGroup.style.position = 'relative';
+            fieldGroup.appendChild(indicator);
+        }
+
+        try {
+            const metadata = {};
+            metadata[fieldKey] = value;
+
+            const response = await fetch('/profile/api/game-passports/check-identity/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    game_id: state.currentGame.id,
+                    metadata: metadata
+                }),
+                signal: identityCheckController.signal
+            });
+
+            // Remove indicator
+            if (indicator) indicator.remove();
+
+            // Phase 9A-26: Handle non-200 responses gracefully
+            if (!response.ok) {
+                console.error('[GP] Identity check API error:', response.status);
+                showToast({
+                    type: 'warning',
+                    title: 'Could not verify ID',
+                    message: 'Couldn\'t verify this ID right now. You can still try saving.',
+                    duration: 4000
+                });
+                return;
             }
-        }, 300);
+
+            const data = await response.json();
+
+            // Phase 9A-26: Handle duplicate identity (structured response)
+            if (data.success && !data.available) {
+                // Identity taken
+                const errorMsg = data.field_errors?.[fieldKey] || 'This ID is already linked to another player';
+                errorDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(errorMsg)}`;
+                errorDiv.classList.remove('hidden');
+                errorDiv.style.display = 'flex';
+
+                inputEl.classList.add('duplicate-error');
+                inputEl.setAttribute('data-duplicate', 'true');
+
+                // Show toast once
+                if (!inputEl.getAttribute('data-toast-shown')) {
+                    showToast({
+                        type: 'error',
+                        title: 'Identity Already in Use',
+                        message: 'This game identity is already linked to another account'
+                    });
+                    inputEl.setAttribute('data-toast-shown', 'true');
+                }
+
+                updateSaveButton();
+            } else if (data.success && data.available) {
+                // Available - clear errors
+                errorDiv.classList.add('hidden');
+                errorDiv.style.display = 'none';
+                inputEl.classList.remove('duplicate-error');
+                inputEl.removeAttribute('data-duplicate');
+                inputEl.removeAttribute('data-toast-shown');
+                updateSaveButton();
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            console.error('[GP] Identity check failed:', error);
+            if (indicator) indicator.remove();
+            
+            // Phase 9A-26: User-friendly error message
+            showToast({
+                type: 'warning',
+                title: 'Could not verify ID',
+                message: 'Network error. You can still try saving.',
+                duration: 4000
+            });
+        }
     }
 
     // ========== HELPER: Extract Passports from API Response ==========
@@ -927,20 +1150,28 @@ API Contract:
         // 2. {success: true, passports: [...]}          <- legacy/direct
         // 3. {passports: [...]}                         <- unwrapped
         
-        if (!response) return [];
+        console.log('[extractPassports] Input response:', response);
+        
+        if (!response) {
+            console.warn('[extractPassports] No response provided');
+            return [];
+        }
         
         // Try nested data.passports first (current backend standard)
         if (response.data && Array.isArray(response.data.passports)) {
+            console.log('[extractPassports] Found data.passports:', response.data.passports.length, 'items');
             return response.data.passports;
         }
         
         // Fallback to top-level passports
         if (Array.isArray(response.passports)) {
+            console.log('[extractPassports] Found top-level passports:', response.passports.length, 'items');
             return response.passports;
         }
         
         // If response itself is an array (unlikely but defensive)
         if (Array.isArray(response)) {
+            console.log('[extractPassports] Response is array:', response.length, 'items');
             return response;
         }
         
@@ -1010,6 +1241,7 @@ API Contract:
     
     async function init() {
         // Phase 9A-14: Improved caching with schema_version for proper invalidation
+        console.log('[Game Passports] ========== INIT CALLED ==========');
         try {
             // Show skeleton immediately (Phase 9A-10: no blocking loader)
             renderSkeletonPassports();
@@ -1018,6 +1250,12 @@ API Contract:
             let gamesData;
             const cachedGames = localStorage.getItem('gp_games_cache');
             const cachedVersion = localStorage.getItem('gp_schema_version');
+            
+            console.log('[Game Passports] Cache check:', {
+                hasCachedGames: !!cachedGames,
+                hasCachedVersion: !!cachedVersion,
+                cachedVersion: cachedVersion
+            });
             
             if (cachedGames && cachedVersion) {
                 // Have cached data, but need to verify version is still current
@@ -1057,13 +1295,26 @@ API Contract:
             // Always fetch fresh passports (user-specific, can't cache)
             const passportsData = await apiCall('/profile/api/game-passports/');
             
+            console.log('[Game Passports] API Response:', {
+                passportsData: passportsData,
+                hasData: !!passportsData.data,
+                hasPassports: !!passportsData.data?.passports,
+                passportCount: passportsData.data?.passports?.length
+            });
+            
             state.games = gamesData.games || [];
             state.passports = extractPassports(passportsData);
+            
+            console.log('[Game Passports] State after extraction:', {
+                gamesCount: state.games.length,
+                passportsCount: state.passports.length
+            });
             
             renderPassportsGrid();
             renderGamesGrid();
         } catch (error) {
             console.error('[Game Passports] Init failed:', error);
+            console.error('[Game Passports] Error stack:', error.stack);
             els.grid.innerHTML = `<div class="col-span-full gp-empty-state">
                 <i class="fa-solid fa-circle-exclamation text-red-400"></i>
                 <h4 class="text-red-400">Failed to load</h4>
@@ -1127,8 +1378,23 @@ API Contract:
             const editDisabled = p.is_locked ? 'disabled title="Locked for ' + p.days_locked + ' days"' : '';
             const deleteDisabled = p.is_locked ? 'disabled' : '';
 
+            // Phase 9A-28: Check for cooldown data
+            let cooldownHtml = '';
+            if (p.cooldown && p.cooldown.is_active) {
+                cooldownHtml = `
+                    <div class="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mt-3">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-clock text-yellow-400"></i>
+                            <strong class="text-yellow-400 text-sm">Cooldown Active</strong>
+                        </div>
+                        <p class="text-xs text-gray-300">You can change this passport in <strong>${p.cooldown.days_remaining} days</strong></p>
+                        <a href="mailto:support@deltacrown.gg?subject=Passport%20Cooldown%20Override%20Request" class="text-xs text-cyan-400 hover:text-cyan-300 underline">Contact Support</a>
+                    </div>
+                `;
+            }
+
             return `
-                <div class="gp-passport-card ${p.is_locked ? 'locked' : ''} ${p.verification_status === 'VERIFIED' ? 'verified' : ''}">
+                <div class="gp-passport-card ${p.is_locked ? 'locked' : ''} ${p.verification_status === 'VERIFIED' ? 'verified' : ''}" id="passport-card-${p.id}">
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <div class="game-icon" style="background-color: ${color}">
@@ -1143,7 +1409,7 @@ API Contract:
                             <button onclick="window.gamePassports.editPassport(${p.id})" ${editDisabled} class="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed">
                                 <i class="fa-solid fa-pen text-xs text-gray-400"></i>
                             </button>
-                            <button onclick="window.gamePassports.deletePassport(${p.id})" ${deleteDisabled} class="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-red-500/20 transition disabled:opacity-30 disabled:cursor-not-allowed">
+                            <button onclick="window.gamePassports.initiateOTPDelete(${p.id})" ${deleteDisabled} class="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-red-500/20 transition disabled:opacity-30 disabled:cursor-not-allowed">
                                 <i class="fa-solid fa-trash text-xs text-gray-400"></i>
                             </button>
                         </div>
@@ -1158,6 +1424,52 @@ API Contract:
                     
                     ${p.rank_name ? `<p class="text-sm text-gray-300 mb-2"><strong>Rank:</strong> <span style="color:${color}">${escapeHtml(p.rank_name)}</span></p>` : ''}
                     ${badge}
+                    ${cooldownHtml}
+                    
+                    <!-- Phase 9A-28: OTP Delete UI (inline, hidden by default) -->
+                    <div id="otp-delete-${p.id}" class="hidden mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fa-solid fa-shield-halved text-red-400"></i>
+                            <strong class="text-red-400 text-sm">Confirm Deletion</strong>
+                        </div>
+                        <p class="text-xs text-gray-300 mb-3">A 6-digit code has been sent to your email. Enter it below to confirm deletion.</p>
+                        
+                        <div class="flex gap-2 mb-3">
+                            <input type="text" 
+                                   id="otp-input-${p.id}" 
+                                   class="flex-1 bg-[#1a1625] border border-gray-600 rounded px-3 py-2 text-white text-center text-lg tracking-widest" 
+                                   placeholder="000000" 
+                                   maxlength="6" 
+                                   pattern="[0-9]{6}"
+                                   inputmode="numeric" />
+                        </div>
+                        
+                        <div id="otp-error-${p.id}" class="hidden text-xs text-red-400 mb-3">
+                            <i class="fa-solid fa-circle-exclamation"></i> <span></span>
+                        </div>
+                        
+                        <div class="flex gap-2 mb-2">
+                            <button onclick="window.gamePassports.confirmOTPDelete(${p.id})" 
+                                    id="otp-confirm-btn-${p.id}"
+                                    class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium transition">
+                                Delete Passport
+                            </button>
+                            <button onclick="window.gamePassports.cancelOTPDelete(${p.id})" 
+                                    class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition">
+                                Cancel
+                            </button>
+                        </div>
+                        
+                        <div class="text-xs text-gray-400 text-center">
+                            <span id="otp-countdown-${p.id}">Expires in 10:00</span> • 
+                            <button onclick="window.gamePassports.resendOTP(${p.id})" 
+                                    id="otp-resend-btn-${p.id}"
+                                    class="text-cyan-400 hover:text-cyan-300 underline">
+                                Resend Code
+                            </button>
+                            <span id="otp-resend-cooldown-${p.id}" class="hidden">(Wait <span></span>s)</span>
+                        </div>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -1323,8 +1635,12 @@ API Contract:
         div.className = 'gp-field-group';
         
         const value = state.editingPassport?.metadata?.[field.key] || '';
-        const isDisabled = field.immutable && state.editingPassport ? 'disabled' : '';
+        const isLocked = field.immutable && state.editingPassport;
+        const isDisabled = isLocked ? 'disabled' : '';
         const isRequired = field.required ? 'required' : '';
+        
+        // Phase 9A-25: Determine if field is identity field (for duplicate checking)
+        const isIdentityField = field.immutable && field.required;
         
         const label = document.createElement('label');
         label.innerHTML = `
@@ -1332,6 +1648,15 @@ API Contract:
             ${field.required ? '<span class="text-red-400">*</span>' : ''}
             ${field.immutable ? '<i class="fa-solid fa-lock immutable-icon" title="Cannot be changed after creation"></i>' : ''}
         `;
+        
+        // Phase 9A-25: Show lock message if field is disabled due to locking
+        if (isLocked) {
+            const lockMsg = document.createElement('div');
+            lockMsg.className = 'text-xs text-yellow-400 mt-1 flex items-center gap-1.5';
+            lockMsg.innerHTML = '<i class="fa-solid fa-lock"></i> This field is locked and cannot be changed';
+            label.appendChild(lockMsg);
+        }
+        
         div.appendChild(label);
 
         if (field.type === 'select' && field.options?.length) {
@@ -1339,6 +1664,20 @@ API Contract:
             select.name = field.key;
             if (isRequired) select.required = true;
             if (isDisabled) select.disabled = true;
+            
+            // Phase 9A-25: Add validation attributes
+            select.setAttribute('data-field-key', field.key);
+            select.setAttribute('aria-required', field.required ? 'true' : 'false');
+            if (field.help_text) select.title = field.help_text;
+            
+            // Phase 9A-26: Add touched tracking
+            const markTouched = () => {
+                state.touched[field.key] = true;
+                select.classList.add('touched');
+                validateField(select, field);
+            };
+            select.addEventListener('blur', markTouched);
+            select.addEventListener('change', markTouched);
             
             const emptyOption = document.createElement('option');
             emptyOption.value = '';
@@ -1365,6 +1704,21 @@ API Contract:
             if (isDisabled) textarea.disabled = true;
             if (field.min_length) textarea.minLength = field.min_length;
             if (field.max_length) textarea.maxLength = field.max_length;
+            
+            // Phase 9A-25: Add validation attributes
+            textarea.setAttribute('data-field-key', field.key);
+            textarea.setAttribute('aria-required', field.required ? 'true' : 'false');
+            if (field.help_text) textarea.title = field.help_text;
+            
+            // Phase 9A-26: Add touched tracking
+            const markTouched = () => {
+                state.touched[field.key] = true;
+                textarea.classList.add('touched');
+                validateField(textarea, field);
+            };
+            textarea.addEventListener('blur', markTouched);
+            textarea.addEventListener('change', markTouched);
+            
             div.appendChild(textarea);
         } else {
             const input = document.createElement('input');
@@ -1374,9 +1728,37 @@ API Contract:
             input.placeholder = field.placeholder || '';
             if (isRequired) input.required = true;
             if (isDisabled) input.disabled = true;
-            if (field.validation_regex) input.pattern = field.validation_regex;
+            if (field.validation_regex) {
+                input.pattern = field.validation_regex;
+                input.title = field.help_text || `Please match the required format`;
+            }
             if (field.min_length) input.minLength = field.min_length;
             if (field.max_length) input.maxLength = field.max_length;
+            
+            // Phase 9A-25: Add validation and data attributes
+            input.setAttribute('data-field-key', field.key);
+            input.setAttribute('aria-required', field.required ? 'true' : 'false');
+            if (field.help_text) input.title = field.help_text;
+            
+            // Phase 9A-26: Add touched tracking - mark field as touched on blur or change
+            const markTouched = () => {
+                state.touched[field.key] = true;
+                input.classList.add('touched');
+                validateField(input, field);
+            };
+            input.addEventListener('blur', markTouched);
+            input.addEventListener('change', markTouched);
+            
+            // Phase 9A-25: Add duplicate checking for identity fields
+            if (isIdentityField && !isLocked) {
+                input.addEventListener('blur', debounce(function() {
+                    const val = this.value.trim();
+                    if (val) {
+                        checkIdentityAvailability(field.key, val, this);
+                    }
+                }, 500));
+            }
+            
             div.appendChild(input);
         }
 
@@ -1387,11 +1769,11 @@ API Contract:
             div.appendChild(help);
         }
         
-        // Phase 9A-21: Inline error container for real-time validation
+        // Phase 9A-25: Enhanced inline error container
         const errorDiv = document.createElement('div');
         errorDiv.id = `error-${field.key}`;
         errorDiv.className = 'field-error hidden';
-        errorDiv.style.cssText = 'color: #f87171; font-size: 0.75rem; margin-top: 0.25rem; display: none;';
+        errorDiv.style.display = 'none';
         div.appendChild(errorDiv);
 
         return div;
@@ -1401,6 +1783,7 @@ API Contract:
     
     function openBuilder() {
         state.editingPassport = null;
+        state.touched = {}; // Phase 9A-26: Clear touched state for new form
         const builder = document.getElementById('gp-builder');
         builder.classList.remove('hidden');
         els.stepSelector.style.display = 'block';
@@ -1419,6 +1802,7 @@ API Contract:
         els.form.reset();
         state.editingPassport = null;
         state.currentGame = null;
+        state.touched = {}; // Phase 9A-26: Clear touched state
     }
 
     function backToSelector() {
@@ -1430,6 +1814,61 @@ API Contract:
     
     async function savePassport() {
         if (!state.currentGame) return;
+
+        // Phase 9A-26: Mark all fields as touched on submit attempt
+        const form = els.form;
+        const allInputs = form.querySelectorAll('input:not([type="checkbox"]), select, textarea');
+        allInputs.forEach(input => {
+            const fieldKey = input.getAttribute('data-field-key');
+            if (fieldKey) {
+                state.touched[fieldKey] = true;
+                input.classList.add('touched');
+            }
+        });
+
+        // Phase 9A-26: Validate form using Constraint Validation API
+        if (!form.checkValidity()) {
+            const invalidField = form.querySelector(':invalid');
+            if (invalidField) {
+                // Phase 9A-26: Shake animation
+                invalidField.classList.add('field-invalid-shake');
+                setTimeout(() => invalidField.classList.remove('field-invalid-shake'), 500);
+                
+                // Focus and scroll to first invalid field
+                invalidField.focus();
+                invalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Show validation message in error div
+                const fieldKey = invalidField.getAttribute('data-field-key');
+                if (fieldKey) {
+                    const errorDiv = document.getElementById(`error-${fieldKey}`);
+                    if (errorDiv) {
+                        errorDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(invalidField.validationMessage)}`;
+                        errorDiv.classList.remove('hidden');
+                        errorDiv.style.display = 'flex';
+                    }
+                }
+            }
+            
+            showToast({
+                type: 'error',
+                title: 'Validation Failed',
+                message: 'Please check all required fields'
+            });
+            
+            return; // Don't proceed with save
+        }
+
+        // Phase 9A-25: Check for duplicate identity errors
+        const hasDuplicateError = Array.from(document.querySelectorAll('input[data-duplicate="true"]')).length > 0;
+        if (hasDuplicateError) {
+            showToast({
+                type: 'error',
+                title: 'Duplicate Identity',
+                message: 'Please fix the duplicate identity error before saving'
+            });
+            return;
+        }
 
         const formData = new FormData(els.form);
         const metadata = {};
@@ -1465,7 +1904,7 @@ API Contract:
                 body: JSON.stringify(payload)
             });
 
-            showToast(`✅ Passport ${state.editingPassport ? 'updated' : 'created'} successfully`, 'success');
+            showToast({type: 'success', message: `Passport ${state.editingPassport ? 'updated' : 'created'} successfully`});
             closeBuilder(); // Phase 9A-18: Close inline builder instead of modal
             
             // Phase 9A-18: Fix API response accessor - backend returns {success, data: {passports: [...]}}
@@ -1481,7 +1920,7 @@ API Contract:
             if (error.status === 409) {
                 if (error.errorCode === 'IDENTITY_ALREADY_IN_USE') {
                     // Global identity conflict - show field-level error
-                    showToast('❌ This game identity is already linked to another account', 'error');
+                    showToast({type: 'error', title: 'Identity Already in Use', message: 'This game identity is already linked to another account'});
                     
                     if (error.fieldErrors) {
                         Object.keys(error.fieldErrors).forEach(fieldKey => {
@@ -1495,10 +1934,10 @@ API Contract:
                     }
                 } else if (error.errorCode === 'DUPLICATE_GAME_PASSPORT') {
                     // User already has passport for this game
-                    showToast('❌ You already have a passport for this game. Edit it instead.', 'error');
+                    showToast({type: 'error', title: 'Duplicate Passport', message: 'You already have a passport for this game. Edit it instead.'});
                 } else if (error.errorCode === 'DUPLICATE_IDENTITY') {
                     // Legacy error code (backward compatibility)
-                    showToast('❌ This game identity is already linked to another account', 'error');
+                    showToast({type: 'error', title: 'Identity Already in Use', message: 'This game identity is already linked to another account'});
                     
                     if (error.fieldErrors) {
                         Object.keys(error.fieldErrors).forEach(fieldKey => {
@@ -1512,11 +1951,11 @@ API Contract:
                     }
                 } else {
                     // Generic 409 conflict
-                    showToast(`❌ ${error.message || 'Conflict detected'}`, 'error');
+                    showToast({type: 'error', message: error.message || 'Conflict detected'});
                 }
             } else if (error.status === 400 && error.fieldErrors) {
                 // Validation errors - show field-level errors
-                showToast(`❌ ${error.message || 'Validation failed'}`, 'error');
+                showToast({type: 'error', title: 'Validation Failed', message: error.message || 'Please check the form for errors'});
                 
                 Object.keys(error.fieldErrors).forEach(fieldKey => {
                     const errorDiv = document.getElementById(`error-${fieldKey}`);
@@ -1532,7 +1971,7 @@ API Contract:
             } else if (error.status === 500) {
                 // Server error - show detailed message in DEBUG or generic in production
                 const errorMsg = error.message || 'A server error occurred';
-                showToast(`❌ ${errorMsg}`, 'error');
+                showToast({type: 'error', title: 'Server Error', message: errorMsg});
                 
                 // In DEBUG mode, backend includes detailed error info
                 if (error.exception_type || error.traceback) {
@@ -1551,7 +1990,7 @@ API Contract:
             } else {
                 // Other errors - show message or generic error
                 const errorMsg = error.message || 'An unexpected error occurred';
-                showToast(`❌ ${errorMsg}`, 'error');
+                showToast({type: 'error', title: 'Error', message: errorMsg});
             }
         } finally {
             els.saveBtn.disabled = false;
@@ -1632,44 +2071,324 @@ API Contract:
         state.currentGame = state.games.find(g => g.id === passport.game_id);
         
         if (!state.currentGame) {
-            showToast('❌ Game not found', 'error');
+            showToast({type: 'error', message: 'Game not found'});
             return;
         }
 
-        openModal();
-        selectGame(state.currentGame.id);
-        els.modalTitle.textContent = `Edit ${state.currentGame.display_name}`;
-        els.saveText.textContent = 'Update Passport';
+        // Phase 9A-25: Open inline builder for editing
+        const builder = document.getElementById('gp-builder');
+        builder.classList.remove('hidden');
+        
+        // Show form step directly (skip game selection)
+        els.stepSelector.style.display = 'none';
+        els.stepForm.classList.remove('hidden');
+        
+        // Update builder header
+        const color = state.currentGame.primary_color || '#7c3aed';
+        els.formIcon.style.backgroundColor = color;
+        els.formIcon.innerHTML = state.currentGame.icon_url 
+            ? `<img src="${escapeHtml(state.currentGame.icon_url)}" alt="">`
+            : '<i class="fa-solid fa-gamepad"></i>';
+        els.formGameName.textContent = state.currentGame.display_name;
+        
+        // Render fields with existing data
+        renderDynamicFields();
+        
+        // Scroll to builder
+        builder.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    async function deletePassport(passportId) {
-        if (!confirm('Delete this passport? This cannot be undone.')) return;
+    // Phase 9A-28: OTP-based delete flow
+    const otpTimers = {}; // Store countdown timers
+    const otpExpiry = {}; // Store expiry timestamps
+
+    async function initiateOTPDelete(passportId) {
+        const passport = state.passports.find(p => p.id === passportId);
+        if (!passport) {
+            showToast({type: 'error', message: 'Passport not found'});
+            return;
+        }
+
+        // Frontend validation (backend also validates)
+        if (passport.verification_status === 'VERIFIED') {
+            showToast({
+                type: 'error',
+                title: 'Cannot Delete',
+                message: 'Verified passports cannot be deleted. Contact support if needed.',
+                duration: 5000
+            });
+            return;
+        }
+
+        if (passport.is_locked) {
+            showToast({
+                type: 'warning',
+                title: 'Passport Locked',
+                message: `This passport is locked for ${passport.days_locked} more days.`,
+                duration: 5000
+            });
+            return;
+        }
 
         try {
-            // PHASE 9A-4 FIX: Backend expects {id: passport_id}, not {passport_id: passport_id}
-            await apiCall('/profile/api/game-passports/delete/', {
+            // Request OTP
+            const response = await apiCall('/profile/api/game-passports/request-delete-otp/', {
                 method: 'POST',
-                body: JSON.stringify({ id: passportId })
+                body: JSON.stringify({ passport_id: passportId })
             });
 
-            showToast('✅ Passport deleted', 'success');
-            
-            const passportsData = await apiCall('/profile/api/game-passports/');
-            state.passports = extractPassports(passportsData);
-            renderPassportsGrid();
-            
+            if (response.success) {
+                // Show OTP UI
+                const otpUI = document.getElementById(`otp-delete-${passportId}`);
+                otpUI.classList.remove('hidden');
+
+                // Start countdown timer (10 minutes)
+                const expiryTime = Date.now() + (10 * 60 * 1000);
+                otpExpiry[passportId] = expiryTime;
+                startOTPCountdown(passportId);
+
+                // Clear input
+                document.getElementById(`otp-input-${passportId}`).value = '';
+                document.getElementById(`otp-input-${passportId}`).focus();
+
+                // Clear any previous errors
+                hideOTPError(passportId);
+
+                showToast({
+                    type: 'info',
+                    title: 'Code Sent',
+                    message: 'Check your email for the 6-digit confirmation code',
+                    duration: 4000
+                });
+            }
         } catch (error) {
-            showToast(`❌ ${error.message}`, 'error');
+            // Phase 9A-30: Handle specific error codes
+            if (error.code === 'EMAIL_NOT_CONFIGURED') {
+                showToast({
+                    type: 'error',
+                    title: 'Email Service Unavailable',
+                    message: error.message || 'Contact support@deltacrown.gg for assistance',
+                    duration: 8000
+                });
+                // Show dev fallback code if available
+                if (error.metadata?.otp_code) {
+                    console.log('[DEV MODE] OTP Code:', error.metadata.otp_code);
+                    showOTPError(passportId, `[DEV MODE] Code: ${error.metadata.otp_code}`);
+                }
+            } else if (error.code === 'TEAM_MEMBERSHIP_BLOCK') {
+                showToast({
+                    type: 'error',
+                    title: 'Team Membership Active',
+                    message: error.message || 'Leave your team before deleting this passport',
+                    duration: 6000
+                });
+            } else if (error.code === 'TOURNAMENT_LOCK_BLOCK') {
+                showToast({
+                    type: 'error',
+                    title: 'Tournament Registration Active',
+                    message: error.message || 'Withdraw from active tournaments before deleting',
+                    duration: 6000
+                });
+            } else if (error.code === 'RESEND_COOLDOWN') {
+                const seconds = error.metadata?.seconds_remaining || 60;
+                showToast({
+                    type: 'warning',
+                    title: 'Please Wait',
+                    message: `Wait ${seconds} seconds before requesting a new code`,
+                    duration: 3000
+                });
+            } else {
+                showToast({type: 'error', title: 'Request Failed', message: error.message});
+            }
         }
+    }
+
+    function startOTPCountdown(passportId) {
+        const countdownEl = document.getElementById(`otp-countdown-${passportId}`);
+        
+        // Clear existing timer
+        if (otpTimers[passportId]) {
+            clearInterval(otpTimers[passportId]);
+        }
+
+        otpTimers[passportId] = setInterval(() => {
+            const remaining = Math.max(0, otpExpiry[passportId] - Date.now());
+            
+            if (remaining === 0) {
+                clearInterval(otpTimers[passportId]);
+                countdownEl.textContent = 'Code expired';
+                countdownEl.classList.add('text-red-400');
+                showOTPError(passportId, 'This code has expired. Request a new one.');
+                return;
+            }
+
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            countdownEl.textContent = `Expires in ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }, 1000);
+    }
+
+    async function confirmOTPDelete(passportId) {
+        const input = document.getElementById(`otp-input-${passportId}`);
+        const code = input.value.trim();
+
+        if (!code || code.length !== 6) {
+            showOTPError(passportId, 'Please enter the 6-digit code from your email');
+            return;
+        }
+
+        const btn = document.getElementById(`otp-confirm-btn-${passportId}`);
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
+
+        try {
+            const response = await apiCall('/profile/api/game-passports/confirm-delete/', {
+                method: 'POST',
+                body: JSON.stringify({ passport_id: passportId, otp_code: code })
+            });
+
+            if (response.success) {
+                // Phase 9A-29: Clear timer and state
+                if (otpTimers[passportId]) {
+                    clearInterval(otpTimers[passportId]);
+                    delete otpTimers[passportId];
+                    delete otpExpiry[passportId];
+                }
+
+                const passport = state.passports.find(p => p.id === passportId);
+                const game = state.games.find(g => g.id === passport?.game_id);
+                const gameName = game?.display_name || 'Game';
+
+                // Phase 9A-29: Enhanced success message with cooldown explanation
+                const cooldownMsg = response.cooldown_message || `You can re-add ${gameName} after 90 days. Contact support@deltacrown.gg if you need assistance.`;
+                
+                showToast({
+                    type: 'success',
+                    title: 'Passport Deleted',
+                    message: cooldownMsg,
+                    duration: 8000  // Longer duration for important info
+                });
+
+                // Phase 9A-29: Close OTP UI first to prevent UI flicker
+                cancelOTPDelete(passportId);
+
+                // Refresh data
+                const passportsData = await apiCall('/profile/api/game-passports/');
+                state.passports = extractPassports(passportsData);
+                await loadGames();
+                renderPassportsGrid();
+                renderGamesGrid();
+            }
+        } catch (error) {
+            btn.disabled = false;
+            btn.innerHTML = 'Delete Passport';
+
+            if (error.code === 'INVALID_OTP') {
+                showOTPError(passportId, error.message || 'Invalid code. Please try again.');
+            } else {
+                showOTPError(passportId, error.message || 'Deletion failed. Please try again.');
+            }
+        }
+    }
+
+    async function resendOTP(passportId) {
+        const resendBtn = document.getElementById(`otp-resend-btn-${passportId}`);
+        const cooldownSpan = document.getElementById(`otp-resend-cooldown-${passportId}`);
+
+        resendBtn.classList.add('hidden');
+        cooldownSpan.classList.remove('hidden');
+
+        // 60-second cooldown
+        let secondsLeft = 60;
+        cooldownSpan.querySelector('span').textContent = secondsLeft;
+
+        const cooldownInterval = setInterval(() => {
+            secondsLeft--;
+            cooldownSpan.querySelector('span').textContent = secondsLeft;
+
+            if (secondsLeft === 0) {
+                clearInterval(cooldownInterval);
+                resendBtn.classList.remove('hidden');
+                cooldownSpan.classList.add('hidden');
+            }
+        }, 1000);
+
+        try {
+            await apiCall('/profile/api/game-passports/request-delete-otp/', {
+                method: 'POST',
+                body: JSON.stringify({ passport_id: passportId })
+            });
+
+            // Reset countdown
+            const expiryTime = Date.now() + (10 * 60 * 1000);
+            otpExpiry[passportId] = expiryTime;
+            startOTPCountdown(passportId);
+
+            showToast({
+                type: 'success',
+                message: 'New code sent to your email',
+                duration: 3000
+            });
+        } catch (error) {
+            showToast({type: 'error', message: error.message});
+        }
+    }
+
+    function cancelOTPDelete(passportId) {
+        const otpUI = document.getElementById(`otp-delete-${passportId}`);
+        if (!otpUI) return;
+        
+        otpUI.classList.add('hidden');
+
+        // Phase 9A-29: Full state cleanup
+        if (otpTimers[passportId]) {
+            clearInterval(otpTimers[passportId]);
+            delete otpTimers[passportId];
+        }
+        
+        if (otpExpiry[passportId]) {
+            delete otpExpiry[passportId];
+        }
+
+        // Clear input and errors
+        const input = document.getElementById(`otp-input-${passportId}`);
+        if (input) input.value = '';
+        
+        hideOTPError(passportId);
+        
+        // Reset countdown display
+        const countdownEl = document.getElementById(`otp-countdown-${passportId}`);
+        if (countdownEl) {
+            countdownEl.textContent = 'Expires in 10:00';
+            countdownEl.classList.remove('text-red-400');
+        }
+        
+        // Reset confirm button
+        const btn = document.getElementById(`otp-confirm-btn-${passportId}`);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = 'Delete Passport';
+        }
+    }
+
+    function showOTPError(passportId, message) {
+        const errorEl = document.getElementById(`otp-error-${passportId}`);
+        errorEl.querySelector('span').textContent = message;
+        errorEl.classList.remove('hidden');
+    }
+
+    function hideOTPError(passportId) {
+        const errorEl = document.getElementById(`otp-error-${passportId}`);
+        errorEl.classList.add('hidden');
     }
 
     function copyId(idText) {
         if (navigator.clipboard) {
             navigator.clipboard.writeText(idText).then(() => {
-                showToast('✅ ID copied to clipboard', 'success');
+                showToast({type: 'success', message: 'ID copied to clipboard'});
             });
         } else {
-            showToast('📋 ' + idText, 'info');
+            showToast({type: 'info', message: idText});
         }
     }
 
@@ -1769,9 +2488,12 @@ API Contract:
             }
         });
         
+        // Phase 9A-25: Check for duplicate identity errors
+        const hasDuplicateError = Array.from(document.querySelectorAll('input[data-duplicate="true"]')).length > 0;
+        
         // Terms check only required for new passports
         const termsChecked = state.editingPassport || els.termsCheck.checked;
-        const isEnabled = allValid && termsChecked;
+        const isEnabled = allValid && termsChecked && !hasDuplicateError;
         
         // Phase 9A-21: Show/hide inline error for Fair Play checkbox
         const termsError = document.getElementById('gp-terms-error');
@@ -1845,9 +2567,13 @@ API Contract:
         init,
         selectGame,
         editPassport,
-        deletePassport,
         copyId,
-        openInfo: openInfoDrawer
+        openInfo: openInfoDrawer,
+        // Phase 9A-28: OTP Delete Functions
+        initiateOTPDelete,
+        confirmOTPDelete,
+        resendOTP,
+        cancelOTPDelete
     };
 
     // DO NOT auto-init - init() called by switchTab() when 'passports' tab activated (Phase 9A-1 fix)
