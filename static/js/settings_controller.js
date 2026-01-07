@@ -291,6 +291,12 @@ class SettingsController {
             }
         });
         
+        // Task 1 Performance Fix: Lazy load game passports when tab is activated
+        if (section === 'game-passports' && window.gamePassports && !window.gamePassports._initialized) {
+            window.gamePassports.init();
+            window.gamePassports._initialized = true;
+        }
+        
         // Error handling: If section not found in DOM, show alert
         if (!sectionFound) {
             console.warn(`Settings section "${section}" not found in DOM`);

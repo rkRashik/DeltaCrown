@@ -163,6 +163,9 @@ API Contract:
                         </form>
                     </div>
 
+                    <!-- Task 3: Edit Actions Container (cooldown warning + delete button) -->
+                    <div id="gp-edit-actions" class="px-5 pb-3"></div>
+
                     <!-- Builder Footer -->
                     <div class="p-4 border-t border-white/10 bg-gradient-to-r from-[#080612] to-[#0F0B1E] flex justify-end gap-3">
                         <button id="gp-cancel-btn" type="button" class="px-6 py-2.5 rounded-lg text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 uppercase transition border border-white/10 hover:border-white/20">Cancel</button>
@@ -363,15 +366,16 @@ API Contract:
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 16px;
     padding: 1.25rem;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
 }
 
+/* Task 5: Enhanced hover effects with scale and glow */
 .gp-passport-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    border-color: rgba(0, 240, 255, 0.3);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 30px rgba(0, 240, 255, 0.25);
+    border-color: rgba(0, 240, 255, 0.4);
 }
 
 .gp-passport-card.locked {
@@ -746,10 +750,10 @@ textarea {
     @apply transition-all duration-200;
 }
 
-/* Phase 9A-26: Only show valid state if field is touched AND valid AND has value */
-input.touched:valid:not(:placeholder-shown):not([type="checkbox"]):not([type="radio"]):not([disabled]),
-select.touched:valid:not([disabled]),
-textarea.touched:valid:not(:placeholder-shown):not([disabled]) {
+/* Task 4: Only show valid state if field is touched AND valid AND NOT being checked for duplicates */
+input.touched:valid:not(:placeholder-shown):not([type="checkbox"]):not([type="radio"]):not([disabled]):not([data-duplicate]):not(.checking),
+select.touched:valid:not([disabled]):not([data-duplicate]):not(.checking),
+textarea.touched:valid:not(:placeholder-shown):not([disabled]):not([data-duplicate]):not(.checking) {
     @apply border-green-500/50 bg-green-500/5;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2310b981'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
@@ -853,6 +857,28 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
 .gp-field-group input:not([required]):placeholder-shown {
     /* Don't show valid indicator for empty optional fields */
     @apply border-gray-600;
+}
+
+/* Modern OTP Digit Input Styles */
+.otp-digit-input {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.otp-digit-input:focus {
+    outline: none;
+    transform: scale(1.05);
+}
+
+.otp-digit-input.border-red-500 {
+    animation: shake-digit 0.4s ease-in-out;
+}
+
+@keyframes shake-digit {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
 }
 
 </style>
@@ -1051,6 +1077,11 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
         }
         identityCheckController = new AbortController();
 
+        // Task 4: Add checking class to prevent premature green checkmark
+        inputEl.classList.add('checking');
+        inputEl.classList.remove('duplicate-error');
+        inputEl.removeAttribute('data-duplicate');
+
         // Show checking indicator
         const fieldGroup = inputEl.closest('.gp-field-group');
         let indicator = fieldGroup?.querySelector('.checking-indicator');
@@ -1079,8 +1110,9 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                 signal: identityCheckController.signal
             });
 
-            // Remove indicator
+            // Remove indicator and checking class
             if (indicator) indicator.remove();
+            inputEl.classList.remove('checking');
 
             // Phase 9A-26: Handle non-200 responses gracefully
             if (!response.ok) {
@@ -1098,7 +1130,7 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
 
             // Phase 9A-26: Handle duplicate identity (structured response)
             if (data.success && !data.available) {
-                // Identity taken
+                // Identity taken - Task 4: Add duplicate class and data attribute
                 const errorMsg = data.field_errors?.[fieldKey] || 'This ID is already linked to another player';
                 errorDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${escapeHtml(errorMsg)}`;
                 errorDiv.classList.remove('hidden');
@@ -1119,7 +1151,7 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
 
                 updateSaveButton();
             } else if (data.success && data.available) {
-                // Available - clear errors
+                // Task 4: Available - clear errors and allow green checkmark
                 errorDiv.classList.add('hidden');
                 errorDiv.style.display = 'none';
                 inputEl.classList.remove('duplicate-error');
@@ -1131,6 +1163,7 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
             if (error.name === 'AbortError') return;
             console.error('[GP] Identity check failed:', error);
             if (indicator) indicator.remove();
+            inputEl.classList.remove('checking');
             
             // Phase 9A-26: User-friendly error message
             showToast({
@@ -1246,54 +1279,50 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
             // Show skeleton immediately (Phase 9A-10: no blocking loader)
             renderSkeletonPassports();
             
-            // Check cache for games schema with version-based invalidation
-            let gamesData;
+            // Task 1 Performance Fix: Optimized cache strategy
             const cachedGames = localStorage.getItem('gp_games_cache');
             const cachedVersion = localStorage.getItem('gp_schema_version');
+            const cacheTimestamp = localStorage.getItem('gp_cache_timestamp');
+            const now = Date.now();
+            const CACHE_TTL = 60 * 60 * 1000; // 1 hour
             
             console.log('[Game Passports] Cache check:', {
                 hasCachedGames: !!cachedGames,
                 hasCachedVersion: !!cachedVersion,
-                cachedVersion: cachedVersion
+                cacheAge: cacheTimestamp ? Math.floor((now - parseInt(cacheTimestamp)) / 1000) + 's' : 'N/A'
             });
             
-            if (cachedGames && cachedVersion) {
-                // Have cached data, but need to verify version is still current
-                // Fetch just to check version (lightweight check)
-                try {
-                    const freshData = await apiCall('/profile/api/games/');
-                    if (freshData.schema_version === cachedVersion) {
-                        // Cache still valid, use it
-                        gamesData = {
-                            schema_version: cachedVersion,
-                            games: JSON.parse(cachedGames)
-                        };
-                        console.log('[Game Passports] Using cached schema (version match)');
-                    } else {
-                        // Schema changed, use fresh data and update cache
-                        gamesData = freshData;
-                        localStorage.setItem('gp_games_cache', JSON.stringify(freshData.games));
-                        localStorage.setItem('gp_schema_version', freshData.schema_version);
-                        console.log('[Game Passports] Schema updated, cache refreshed');
-                    }
-                } catch (error) {
-                    // Network error during version check, use cache anyway
-                    gamesData = {
-                        schema_version: cachedVersion,
-                        games: JSON.parse(cachedGames)
-                    };
-                    console.warn('[Game Passports] Version check failed, using cache');
-                }
+            let gamesDataPromise;
+            let useCache = false;
+            
+            // Use cache if:
+            // 1. Cache exists
+            // 2. Cache is less than 1 hour old
+            // 3. Has version
+            if (cachedGames && cachedVersion && cacheTimestamp && (now - parseInt(cacheTimestamp)) < CACHE_TTL) {
+                // Cache is fresh, use it immediately without API check
+                useCache = true;
+                gamesDataPromise = Promise.resolve({
+                    schema_version: cachedVersion,
+                    games: JSON.parse(cachedGames)
+                });
+                console.log('[Game Passports] Using fresh cache (no API check)');
             } else {
-                // No cache, fetch fresh
-                gamesData = await apiCall('/profile/api/games/');
-                localStorage.setItem('gp_games_cache', JSON.stringify(gamesData.games));
-                localStorage.setItem('gp_schema_version', gamesData.schema_version);
-                console.log('[Game Passports] No cache, fetched fresh schema');
+                // Cache is stale or missing, fetch fresh
+                gamesDataPromise = apiCall('/profile/api/games/').then(freshData => {
+                    localStorage.setItem('gp_games_cache', JSON.stringify(freshData.games));
+                    localStorage.setItem('gp_schema_version', freshData.schema_version);
+                    localStorage.setItem('gp_cache_timestamp', now.toString());
+                    console.log('[Game Passports] Fetched fresh schema and cached');
+                    return freshData;
+                });
             }
             
-            // Always fetch fresh passports (user-specific, can't cache)
-            const passportsData = await apiCall('/profile/api/game-passports/');
+            // Task 1 Performance Fix: Parallel API calls instead of sequential
+            const passportsDataPromise = apiCall('/profile/api/game-passports/');
+            
+            // Wait for both in parallel
+            const [gamesData, passportsData] = await Promise.all([gamesDataPromise, passportsDataPromise]);
             
             console.log('[Game Passports] API Response:', {
                 passportsData: passportsData,
@@ -1347,6 +1376,28 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
 
     // ========== RENDERING ==========
     
+    /**
+     * Task 2: Remove passport from state and DOM with smooth animation
+     */
+    function removePassportFromState(passportId) {
+        const cardEl = document.getElementById(`passport-card-${passportId}`);
+        if (cardEl) {
+            // Smooth fade-out animation
+            cardEl.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+            cardEl.style.opacity = '0';
+            cardEl.style.transform = 'scale(0.95)';
+            
+            setTimeout(() => {
+                state.passports = state.passports.filter(p => p.id !== passportId);
+                renderPassportsGrid();
+            }, 300);
+        } else {
+            // Fallback if element not found
+            state.passports = state.passports.filter(p => p.id !== passportId);
+            renderPassportsGrid();
+        }
+    }
+
     function renderPassportsGrid() {
         if (!state.passports || state.passports.length === 0) {
             els.grid.innerHTML = `<div class="col-span-full gp-empty-state">
@@ -1376,25 +1427,36 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
             }
 
             const editDisabled = p.is_locked ? 'disabled title="Locked for ' + p.days_locked + ' days"' : '';
-            const deleteDisabled = p.is_locked ? 'disabled' : '';
 
-            // Phase 9A-28: Check for cooldown data
-            let cooldownHtml = '';
-            if (p.cooldown && p.cooldown.is_active) {
-                cooldownHtml = `
-                    <div class="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mt-3">
-                        <div class="flex items-center gap-2 mb-1">
-                            <i class="fa-solid fa-clock text-yellow-400"></i>
-                            <strong class="text-yellow-400 text-sm">Cooldown Active</strong>
-                        </div>
-                        <p class="text-xs text-gray-300">You can change this passport in <strong>${p.cooldown.days_remaining} days</strong></p>
-                        <a href="mailto:support@deltacrown.gg?subject=Passport%20Cooldown%20Override%20Request" class="text-xs text-cyan-400 hover:text-cyan-300 underline">Contact Support</a>
-                    </div>
-                `;
+            // Task 3: Cooldown hidden from main card (shown in edit modal)
+            // Task 5: Build metadata pills for region, role, etc.
+            let metadataPills = '';
+            const pillsData = [];
+            if (region) pillsData.push({label: region, icon: 'fa-globe'});
+            if (p.main_role) pillsData.push({label: p.main_role, icon: 'fa-user'});
+            if (p.platform) pillsData.push({label: p.platform, icon: 'fa-gamepad'});
+            
+            if (pillsData.length > 0) {
+                metadataPills = `<div class="flex flex-wrap gap-2 mt-3">
+                    ${pillsData.map(pill => `
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-300">
+                            <i class="fa-solid ${pill.icon} text-[10px]"></i>
+                            <span>${escapeHtml(pill.label)}</span>
+                        </span>
+                    `).join('')}
+                </div>`;
             }
 
+            // Task 5: Splash art background with gradient overlay
+            const splashArt = game?.splash_art_url || '';
+            const cardStyle = splashArt 
+                ? `background: linear-gradient(135deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.75) 100%), url('${splashArt}') center/cover;`
+                : `background: linear-gradient(135deg, ${color}15 0%, ${color}05 100%);`;
+
             return `
-                <div class="gp-passport-card ${p.is_locked ? 'locked' : ''} ${p.verification_status === 'VERIFIED' ? 'verified' : ''}" id="passport-card-${p.id}">
+                <div class="gp-passport-card ${p.is_locked ? 'locked' : ''} ${p.verification_status === 'VERIFIED' ? 'verified' : ''}" 
+                     id="passport-card-${p.id}"
+                     style="${cardStyle}">
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <div class="game-icon" style="background-color: ${color}">
@@ -1402,29 +1464,29 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                             </div>
                             <div>
                                 <h4 class="font-bold text-white text-lg">${escapeHtml(game?.display_name || 'Game')}</h4>
-                                ${region ? `<p class="text-xs text-gray-400">${escapeHtml(region)}</p>` : ''}
                             </div>
                         </div>
                         <div class="flex gap-2">
+                            <!-- Task 3: Only edit button visible, delete moved to modal -->
                             <button onclick="window.gamePassports.editPassport(${p.id})" ${editDisabled} class="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed">
                                 <i class="fa-solid fa-pen text-xs text-gray-400"></i>
-                            </button>
-                            <button onclick="window.gamePassports.initiateOTPDelete(${p.id})" ${deleteDisabled} class="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-red-500/20 transition disabled:opacity-30 disabled:cursor-not-allowed">
-                                <i class="fa-solid fa-trash text-xs text-gray-400"></i>
                             </button>
                         </div>
                     </div>
                     
-                    <div class="identity-text mb-3">
-                        <span class="text-white">${escapeHtml(primaryId)}</span>
-                        <button onclick="window.gamePassports.copyId('${escapeHtml(primaryId)}')" class="text-gray-500 hover:text-white transition" title="Copy ID">
-                            <i class="fa-regular fa-copy"></i>
-                        </button>
-                    </div>
+                    <!-- Task 5: Identity as prominent H3 heading -->
+                    <h3 class="text-2xl font-bold text-white tracking-wide mb-2">${escapeHtml(primaryId)}</h3>
                     
-                    ${p.rank_name ? `<p class="text-sm text-gray-300 mb-2"><strong>Rank:</strong> <span style="color:${color}">${escapeHtml(p.rank_name)}</span></p>` : ''}
+                    <!-- Task 5: Rank icon instead of text -->
+                    ${p.rank_icon_url ? `
+                        <div class="flex items-center gap-2 mb-2">
+                            <img src="${escapeHtml(p.rank_icon_url)}" alt="${escapeHtml(p.rank_name || 'Rank')}" class="w-6 h-6" />
+                            <span class="text-sm font-semibold" style="color:${color}">${escapeHtml(p.rank_name)}</span>
+                        </div>
+                    ` : (p.rank_name ? `<p class="text-sm text-gray-300 mb-2"><strong>Rank:</strong> <span style="color:${color}">${escapeHtml(p.rank_name)}</span></p>` : '')}
+                    
                     ${badge}
-                    ${cooldownHtml}
+                    ${metadataPills}
                     
                     <!-- Phase 9A-28: OTP Delete UI (inline, hidden by default) -->
                     <div id="otp-delete-${p.id}" class="hidden mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -2094,6 +2156,83 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
         // Render fields with existing data
         renderDynamicFields();
         
+        // Modern Danger Zone UI in edit modal
+        const editActionsContainer = document.getElementById('gp-edit-actions');
+        if (editActionsContainer) {
+            let cooldownHtml = '';
+            if (passport.cooldown && passport.cooldown.is_active) {
+                cooldownHtml = `
+                    <div class="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mb-3">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-clock text-yellow-400"></i>
+                            <strong class="text-yellow-400 text-sm">Cooldown Active</strong>
+                        </div>
+                        <p class="text-xs text-gray-300">You can change this passport in <strong>${passport.cooldown.days_remaining} days</strong></p>
+                        <a href="mailto:support@deltacrown.gg?subject=Passport%20Cooldown%20Override%20Request" class="text-xs text-cyan-400 hover:text-cyan-300 underline">Contact Support</a>
+                    </div>
+                `;
+            }
+            
+            const isLocked = passport.is_locked || (passport.cooldown && passport.cooldown.is_active);
+            const deleteDisabled = isLocked || passport.verification_status === 'VERIFIED';
+            const daysRemaining = passport.days_locked || passport.cooldown?.days_remaining || 0;
+            
+            let dangerZone = '';
+            
+            if (isLocked) {
+                // Show lock warning instead of delete button
+                dangerZone = `
+                    <div class="border-2 border-red-500 rounded-lg p-4 bg-red-500/10 mt-4">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-shrink-0">
+                                <i class="fa-solid fa-ban text-red-400 text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="text-red-400 font-bold text-sm mb-1">🚫 Deletion Currently Locked</h4>
+                                <p class="text-xs text-gray-300 mb-2">
+                                    Protected by the 30-Day Fair Play Protocol to prevent rapid identity switching.
+                                </p>
+                                <div class="flex items-center gap-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs">
+                                    <i class="fa-solid fa-clock text-yellow-400"></i>
+                                    <span class="text-white">Available for deletion in <strong>${daysRemaining} days</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (passport.verification_status === 'VERIFIED') {
+                // Show verified warning
+                dangerZone = `
+                    <div class="border-2 border-blue-500/30 rounded-lg p-4 bg-blue-500/5 mt-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fa-solid fa-shield-halved text-blue-400"></i>
+                            <h4 class="text-blue-400 font-bold text-sm">Verified Passport</h4>
+                        </div>
+                        <p class="text-xs text-gray-300">This passport has been verified and cannot be deleted through the standard process. Contact support for assistance.</p>
+                    </div>
+                `;
+            } else {
+                // Show normal danger zone with delete button
+                dangerZone = `
+                    <div class="border-2 border-red-500/30 rounded-lg p-4 bg-red-500/5 mt-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fa-solid fa-triangle-exclamation text-red-400"></i>
+                            <h4 class="text-red-400 font-bold text-sm uppercase tracking-wider">Danger Zone</h4>
+                        </div>
+                        <p class="text-xs text-gray-300 mb-3">Permanently delete this game passport. This action cannot be undone.</p>
+                        <button id="gp-delete-btn-${passportId}" 
+                                onclick="window.gamePassports.initiateOTPDelete(${passportId})" 
+                                class="w-full py-2.5 px-4 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-bold text-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-trash"></i>
+                            <span>Request Deletion</span>
+                        </button>
+                    </div>
+                `;
+            }
+            
+            editActionsContainer.innerHTML = cooldownHtml + dangerZone;
+        }
+        
         // Scroll to builder
         builder.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
@@ -2102,6 +2241,213 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
     const otpTimers = {}; // Store countdown timers
     const otpExpiry = {}; // Store expiry timestamps
 
+    // Modern OTP Verification Modal UI
+    function renderOTPVerificationModal(passportId, passport) {
+        const editActionsContainer = document.getElementById('gp-edit-actions');
+        if (!editActionsContainer) return;
+        
+        const game = state.games.find(g => g.id === passport.game_id) || passport.game;
+        const gameName = game?.display_name || 'Game';
+        
+        // Smooth fade transition
+        editActionsContainer.style.opacity = '0';
+        editActionsContainer.style.transition = 'opacity 0.3s ease';
+        
+        setTimeout(() => {
+            editActionsContainer.innerHTML = `
+                <div class="border-2 border-red-500/50 rounded-lg p-5 bg-red-500/10 mt-4">
+                    <!-- Header -->
+                    <div class="text-center mb-4">
+                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-500/20 mb-3">
+                            <i class="fa-solid fa-shield-halved text-red-400 text-xl"></i>
+                        </div>
+                        <h3 class="text-red-400 font-bold text-lg">Confirm Deletion</h3>
+                        <p class="text-xs text-gray-300 mt-2">We sent a 6-digit code to your email.<br>Enter it below to permanently delete <strong>${escapeHtml(gameName)}</strong> passport.</p>
+                    </div>
+                    
+                    <!-- 6-Digit OTP Input -->
+                    <div class="mb-4">
+                        <div class="flex gap-2 justify-center mb-2">
+                            <input type="text" id="otp-digit-1-${passportId}" maxlength="1" 
+                                   class="otp-digit-input w-12 h-14 text-center text-2xl font-bold bg-[#1a1625] border-2 border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition" 
+                                   inputmode="numeric" pattern="[0-9]" />
+                            <input type="text" id="otp-digit-2-${passportId}" maxlength="1" 
+                                   class="otp-digit-input w-12 h-14 text-center text-2xl font-bold bg-[#1a1625] border-2 border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition" 
+                                   inputmode="numeric" pattern="[0-9]" />
+                            <input type="text" id="otp-digit-3-${passportId}" maxlength="1" 
+                                   class="otp-digit-input w-12 h-14 text-center text-2xl font-bold bg-[#1a1625] border-2 border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition" 
+                                   inputmode="numeric" pattern="[0-9]" />
+                            <span class="flex items-center text-gray-500 text-2xl">-</span>
+                            <input type="text" id="otp-digit-4-${passportId}" maxlength="1" 
+                                   class="otp-digit-input w-12 h-14 text-center text-2xl font-bold bg-[#1a1625] border-2 border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition" 
+                                   inputmode="numeric" pattern="[0-9]" />
+                            <input type="text" id="otp-digit-5-${passportId}" maxlength="1" 
+                                   class="otp-digit-input w-12 h-14 text-center text-2xl font-bold bg-[#1a1625] border-2 border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition" 
+                                   inputmode="numeric" pattern="[0-9]" />
+                            <input type="text" id="otp-digit-6-${passportId}" maxlength="1" 
+                                   class="otp-digit-input w-12 h-14 text-center text-2xl font-bold bg-[#1a1625] border-2 border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition" 
+                                   inputmode="numeric" pattern="[0-9]" />
+                        </div>
+                        <div id="otp-error-${passportId}" class="hidden text-xs text-red-400 text-center mt-2">
+                            <i class="fa-solid fa-circle-exclamation"></i> <span></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Timer & Resend -->
+                    <div class="text-center mb-4">
+                        <p class="text-xs text-gray-400">
+                            <i class="fa-solid fa-clock"></i> 
+                            <span id="otp-countdown-${passportId}">Expires in 10:00</span>
+                        </p>
+                        <button id="otp-resend-btn-${passportId}" 
+                                onclick="window.gamePassports.resendOTP(${passportId})" 
+                                class="hidden text-xs text-cyan-400 hover:text-cyan-300 underline mt-2">
+                            Resend Code
+                        </button>
+                        <span id="otp-resend-cooldown-${passportId}" class="hidden text-xs text-gray-400 mt-2">
+                            Resend in <span>60</span>s
+                        </span>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex gap-3">
+                        <button onclick="window.gamePassports.cancelOTPDelete(${passportId})" 
+                                class="flex-1 py-2.5 px-4 rounded bg-white/5 hover:bg-white/10 text-gray-300 font-medium transition">
+                            <i class="fa-solid fa-arrow-left"></i> Cancel
+                        </button>
+                        <button id="otp-confirm-btn-${passportId}" 
+                                onclick="window.gamePassports.confirmOTPDelete(${passportId})" 
+                                disabled
+                                title="Please enter all 6 digits to confirm"
+                                class="flex-1 py-2.5 px-4 rounded bg-red-500/50 hover:bg-red-600 text-white font-bold transition opacity-30 cursor-not-allowed disabled:opacity-30 disabled:cursor-not-allowed disabled:bg-red-500/50">
+                            <i class="fa-solid fa-check"></i> Confirm Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Setup 6-digit input auto-advance
+            setupOTPInputs(passportId);
+            
+            // Focus first input
+            document.getElementById(`otp-digit-1-${passportId}`)?.focus();
+            
+            // Fade in
+            editActionsContainer.style.opacity = '1';
+        }, 300);
+    }
+    
+    // Setup OTP input auto-advance and validation
+    function setupOTPInputs(passportId) {
+        console.log('[OTP] Setting up inputs for passport', passportId);
+        
+        for (let i = 1; i <= 6; i++) {
+            const input = document.getElementById(`otp-digit-${i}-${passportId}`);
+            if (!input) {
+                console.error(`[OTP] Input otp-digit-${i}-${passportId} not found!`);
+                continue;
+            }
+            
+            console.log(`[OTP] Setting up input ${i}`);
+            
+            input.addEventListener('input', (e) => {
+                const value = e.target.value;
+                
+                // Only allow digits
+                if (!/^[0-9]$/.test(value)) {
+                    e.target.value = '';
+                    return;
+                }
+                
+                console.log(`[OTP] Digit ${i} entered: ${value}`);
+                
+                // Auto-advance to next input
+                if (value && i < 6) {
+                    document.getElementById(`otp-digit-${i + 1}-${passportId}`)?.focus();
+                }
+                
+                // Check if all 6 digits are filled
+                checkOTPComplete(passportId);
+            });
+            
+            input.addEventListener('keydown', (e) => {
+                // Backspace: move to previous input
+                if (e.key === 'Backspace' && !e.target.value && i > 1) {
+                    document.getElementById(`otp-digit-${i - 1}-${passportId}`)?.focus();
+                }
+                
+                // Arrow keys navigation
+                if (e.key === 'ArrowLeft' && i > 1) {
+                    document.getElementById(`otp-digit-${i - 1}-${passportId}`)?.focus();
+                }
+                if (e.key === 'ArrowRight' && i < 6) {
+                    document.getElementById(`otp-digit-${i + 1}-${passportId}`)?.focus();
+                }
+            });
+            
+            // Paste handling
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                
+                for (let j = 0; j < pastedData.length && j < 6; j++) {
+                    const digitInput = document.getElementById(`otp-digit-${j + 1}-${passportId}`);
+                    if (digitInput) {
+                        digitInput.value = pastedData[j];
+                    }
+                }
+                
+                // Focus last filled input or 6th
+                const lastIndex = Math.min(pastedData.length, 5) + 1;
+                document.getElementById(`otp-digit-${lastIndex}-${passportId}`)?.focus();
+                
+                checkOTPComplete(passportId);
+            });
+        }
+    }
+    
+    // Check if OTP is complete and enable confirm button
+    function checkOTPComplete(passportId) {
+        let code = '';
+        let allFilled = true;
+        
+        for (let i = 1; i <= 6; i++) {
+            const input = document.getElementById(`otp-digit-${i}-${passportId}`);
+            if (!input || !input.value) {
+                allFilled = false;
+                break;
+            }
+            code += input.value;
+        }
+        
+        const confirmBtn = document.getElementById(`otp-confirm-btn-${passportId}`);
+        if (!confirmBtn) return;
+        
+        if (allFilled && code.length === 6) {
+            // Enable button with visual feedback
+            confirmBtn.disabled = false;
+            confirmBtn.classList.remove('opacity-30', 'cursor-not-allowed', 'bg-red-500/50');
+            confirmBtn.classList.add('opacity-100', 'cursor-pointer', 'bg-red-500');
+            confirmBtn.title = 'Click to confirm deletion';
+        } else {
+            // Keep disabled with tooltip explaining why
+            confirmBtn.disabled = true;
+            confirmBtn.classList.add('opacity-30', 'cursor-not-allowed', 'bg-red-500/50');
+            confirmBtn.classList.remove('opacity-100', 'cursor-pointer', 'bg-red-500');
+            confirmBtn.title = 'Please enter all 6 digits to confirm';
+        }
+    }
+    
+    // Get OTP code from 6 inputs
+    function getOTPCode(passportId) {
+        let code = '';
+        for (let i = 1; i <= 6; i++) {
+            const input = document.getElementById(`otp-digit-${i}-${passportId}`);
+            if (input) code += input.value;
+        }
+        return code;
+    }
+
     async function initiateOTPDelete(passportId) {
         const passport = state.passports.find(p => p.id === passportId);
         if (!passport) {
@@ -2109,7 +2455,7 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
             return;
         }
 
-        // Frontend validation (backend also validates)
+        // Frontend validation: Check verification status
         if (passport.verification_status === 'VERIFIED') {
             showToast({
                 type: 'error',
@@ -2120,14 +2466,54 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
             return;
         }
 
-        if (passport.is_locked) {
+        // CRITICAL CHECK: Fair Play Protocol Lock
+        if (passport.is_locked || passport.cooldown?.is_active) {
+            const daysRemaining = passport.days_locked || passport.cooldown?.days_remaining || 0;
+            
+            // Show red warning banner instead of OTP screen
+            const editActionsContainer = document.getElementById('gp-edit-actions');
+            if (editActionsContainer) {
+                editActionsContainer.innerHTML = `
+                    <div class="border-2 border-red-500 rounded-lg p-4 bg-red-500/10 mt-4">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-shrink-0">
+                                <i class="fa-solid fa-ban text-red-400 text-2xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="text-red-400 font-bold text-base mb-2">🚫 Deletion Locked</h4>
+                                <p class="text-sm text-gray-300 mb-3">
+                                    This passport is protected by the <strong>30-Day Fair Play Protocol</strong>. 
+                                    This prevents rapid identity switching and maintains competitive integrity.
+                                </p>
+                                <div class="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded">
+                                    <i class="fa-solid fa-clock text-yellow-400"></i>
+                                    <p class="text-sm text-white">
+                                        <strong>You can delete this passport in ${daysRemaining} days.</strong>
+                                    </p>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-3">
+                                    Need immediate deletion? Contact <a href="mailto:support@deltacrown.gg" class="text-cyan-400 hover:text-cyan-300 underline">support@deltacrown.gg</a>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
             showToast({
                 type: 'warning',
                 title: 'Passport Locked',
-                message: `This passport is locked for ${passport.days_locked} more days.`,
-                duration: 5000
+                message: `Protected by Fair Play Protocol. Available for deletion in ${daysRemaining} days.`,
+                duration: 6000
             });
             return;
+        }
+
+        // Instant loading feedback
+        const deleteBtn = document.getElementById(`gp-delete-btn-${passportId}`);
+        if (deleteBtn) {
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Sending Code...</span>';
         }
 
         try {
@@ -2138,30 +2524,29 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
             });
 
             if (response.success) {
-                // Show OTP UI
-                const otpUI = document.getElementById(`otp-delete-${passportId}`);
-                otpUI.classList.remove('hidden');
+                // Render modern OTP UI inside modal
+                renderOTPVerificationModal(passportId, passport);
 
                 // Start countdown timer (10 minutes)
                 const expiryTime = Date.now() + (10 * 60 * 1000);
                 otpExpiry[passportId] = expiryTime;
                 startOTPCountdown(passportId);
 
-                // Clear input
-                document.getElementById(`otp-input-${passportId}`).value = '';
-                document.getElementById(`otp-input-${passportId}`).focus();
-
-                // Clear any previous errors
-                hideOTPError(passportId);
-
                 showToast({
-                    type: 'info',
+                    type: 'success',
                     title: 'Code Sent',
                     message: 'Check your email for the 6-digit confirmation code',
                     duration: 4000
                 });
             }
         } catch (error) {
+            // Restore delete button on error
+            const deleteBtn = document.getElementById(`gp-delete-btn-${passportId}`);
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i> <span>Request Deletion</span>';
+            }
+            
             // Phase 9A-30: Handle specific error codes
             if (error.code === 'EMAIL_NOT_CONFIGURED') {
                 showToast({
@@ -2173,7 +2558,14 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                 // Show dev fallback code if available
                 if (error.metadata?.otp_code) {
                     console.log('[DEV MODE] OTP Code:', error.metadata.otp_code);
-                    showOTPError(passportId, `[DEV MODE] Code: ${error.metadata.otp_code}`);
+                    // Still render OTP modal with dev code
+                    renderOTPVerificationModal(passportId, passport);
+                    showToast({
+                        type: 'warning',
+                        title: 'DEV MODE',
+                        message: `Code: ${error.metadata.otp_code}`,
+                        duration: 10000
+                    });
                 }
             } else if (error.code === 'TEAM_MEMBERSHIP_BLOCK') {
                 showToast({
@@ -2205,6 +2597,7 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
 
     function startOTPCountdown(passportId) {
         const countdownEl = document.getElementById(`otp-countdown-${passportId}`);
+        if (!countdownEl) return;
         
         // Clear existing timer
         if (otpTimers[passportId]) {
@@ -2217,7 +2610,12 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
             if (remaining === 0) {
                 clearInterval(otpTimers[passportId]);
                 countdownEl.textContent = 'Code expired';
-                countdownEl.classList.add('text-red-400');
+                countdownEl.parentElement.classList.add('text-red-400');
+                
+                // Show resend button
+                const resendBtn = document.getElementById(`otp-resend-btn-${passportId}`);
+                if (resendBtn) resendBtn.classList.remove('hidden');
+                
                 showOTPError(passportId, 'This code has expired. Request a new one.');
                 return;
             }
@@ -2229,11 +2627,10 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
     }
 
     async function confirmOTPDelete(passportId) {
-        const input = document.getElementById(`otp-input-${passportId}`);
-        const code = input.value.trim();
+        const code = getOTPCode(passportId);
 
         if (!code || code.length !== 6) {
-            showOTPError(passportId, 'Please enter the 6-digit code from your email');
+            showOTPError(passportId, 'Please enter all 6 digits');
             return;
         }
 
@@ -2270,31 +2667,24 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                 });
 
                 // Phase 9A-29: Close OTP UI first to prevent UI flicker
-                cancelOTPDelete(passportId);
+                // Close the builder/modal
+                const builder = document.getElementById('gp-builder');
+                if (builder) builder.classList.add('hidden');
 
-                // Phase 9A-30: Force immediate refresh of passports list
-                console.log('[Game Passports] Refreshing after delete...');
-                try {
-                    const passportsData = await apiCall('/profile/api/game-passports/');
-                    console.log('[Game Passports] Fetched passports:', passportsData);
-                    state.passports = extractPassports(passportsData);
-                    console.log('[Game Passports] State updated, passport count:', state.passports.length);
-                    
-                    // Reload games to update cooldown status
-                    await loadGames();
-                    
-                    // Re-render both grids
-                    renderPassportsGrid();
+                // Task 2: Immediate DOM removal with smooth animation
+                removePassportFromState(passportId);
+                
+                // Reload games in background to update cooldown status
+                loadGames().then(() => {
                     renderGamesGrid();
-                    console.log('[Game Passports] UI refreshed successfully');
-                } catch (refreshError) {
-                    console.error('[Game Passports] Failed to refresh:', refreshError);
-                    // Still show success toast even if refresh fails
-                }
+                    console.log('[Game Passports] Games grid updated with new cooldowns');
+                }).catch(error => {
+                    console.error('[Game Passports] Failed to reload games:', error);
+                });
             }
         } catch (error) {
             btn.disabled = false;
-            btn.innerHTML = 'Delete Passport';
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Confirm Delete';
 
             if (error.code === 'INVALID_OTP') {
                 showOTPError(passportId, error.message || 'Invalid code. Please try again.');
@@ -2308,21 +2698,22 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
         const resendBtn = document.getElementById(`otp-resend-btn-${passportId}`);
         const cooldownSpan = document.getElementById(`otp-resend-cooldown-${passportId}`);
 
-        resendBtn.classList.add('hidden');
-        cooldownSpan.classList.remove('hidden');
+        if (resendBtn) resendBtn.classList.add('hidden');
+        if (cooldownSpan) cooldownSpan.classList.remove('hidden');
 
         // 60-second cooldown
         let secondsLeft = 60;
-        cooldownSpan.querySelector('span').textContent = secondsLeft;
+        const cooldownSpanText = cooldownSpan?.querySelector('span');
+        if (cooldownSpanText) cooldownSpanText.textContent = secondsLeft;
 
         const cooldownInterval = setInterval(() => {
             secondsLeft--;
-            cooldownSpan.querySelector('span').textContent = secondsLeft;
+            if (cooldownSpanText) cooldownSpanText.textContent = secondsLeft;
 
             if (secondsLeft === 0) {
                 clearInterval(cooldownInterval);
-                resendBtn.classList.remove('hidden');
-                cooldownSpan.classList.add('hidden');
+                if (resendBtn) resendBtn.classList.remove('hidden');
+                if (cooldownSpan) cooldownSpan.classList.add('hidden');
             }
         }, 1000);
 
@@ -2331,6 +2722,22 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                 method: 'POST',
                 body: JSON.stringify({ passport_id: passportId })
             });
+
+            // Clear OTP inputs
+            for (let i = 1; i <= 6; i++) {
+                const input = document.getElementById(`otp-digit-${i}-${passportId}`);
+                if (input) input.value = '';
+            }
+            
+            // Disable confirm button until new code entered
+            const confirmBtn = document.getElementById(`otp-confirm-btn-${passportId}`);
+            if (confirmBtn) confirmBtn.disabled = true;
+            
+            // Clear errors
+            hideOTPError(passportId);
+            
+            // Focus first input
+            document.getElementById(`otp-digit-1-${passportId}`)?.focus();
 
             // Reset countdown
             const expiryTime = Date.now() + (10 * 60 * 1000);
@@ -2348,11 +2755,6 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
     }
 
     function cancelOTPDelete(passportId) {
-        const otpUI = document.getElementById(`otp-delete-${passportId}`);
-        if (!otpUI) return;
-        
-        otpUI.classList.add('hidden');
-
         // Phase 9A-29: Full state cleanup
         if (otpTimers[passportId]) {
             clearInterval(otpTimers[passportId]);
@@ -2362,37 +2764,35 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
         if (otpExpiry[passportId]) {
             delete otpExpiry[passportId];
         }
-
-        // Clear input and errors
-        const input = document.getElementById(`otp-input-${passportId}`);
-        if (input) input.value = '';
         
-        hideOTPError(passportId);
-        
-        // Reset countdown display
-        const countdownEl = document.getElementById(`otp-countdown-${passportId}`);
-        if (countdownEl) {
-            countdownEl.textContent = 'Expires in 10:00';
-            countdownEl.classList.remove('text-red-400');
-        }
-        
-        // Reset confirm button
-        const btn = document.getElementById(`otp-confirm-btn-${passportId}`);
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = 'Delete Passport';
+        // Return to edit view (re-render edit actions)
+        const passport = state.passports.find(p => p.id === passportId);
+        if (passport) {
+            editPassport(passportId);
         }
     }
 
     function showOTPError(passportId, message) {
         const errorEl = document.getElementById(`otp-error-${passportId}`);
-        errorEl.querySelector('span').textContent = message;
-        errorEl.classList.remove('hidden');
+        if (errorEl) {
+            const span = errorEl.querySelector('span');
+            if (span) span.textContent = message;
+            errorEl.classList.remove('hidden');
+            
+            // Shake animation on error
+            for (let i = 1; i <= 6; i++) {
+                const input = document.getElementById(`otp-digit-${i}-${passportId}`);
+                if (input) {
+                    input.classList.add('border-red-500');
+                    setTimeout(() => input.classList.remove('border-red-500'), 2000);
+                }
+            }
+        }
     }
 
     function hideOTPError(passportId) {
         const errorEl = document.getElementById(`otp-error-${passportId}`);
-        errorEl.classList.add('hidden');
+        if (errorEl) errorEl.classList.add('hidden');
     }
 
     function copyId(idText) {
