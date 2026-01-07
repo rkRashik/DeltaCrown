@@ -1048,15 +1048,18 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
     profile = get_user_profile_safe(request.user)
     
     try:
-        # Accept both JSON and form data
-        if request.content_type == 'application/json' or request.body:
+        # Accept both JSON and form data (check content-type before accessing body)
+        if request.content_type == 'application/json':
             try:
                 data = json.loads(request.body)
             except (json.JSONDecodeError, UnicodeDecodeError):
-                # Fallback to POST dict
-                data = request.POST.dict()
-        else:
+                return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        elif request.content_type and 'multipart/form-data' in request.content_type:
+            # FormData from frontend
             data = request.POST.dict()
+        else:
+            # Regular form POST or empty content-type
+            data = request.POST.dict() if request.POST else {}
         
         # Capture before state for audit
         before_snapshot = {
@@ -1111,6 +1114,18 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
             return JsonResponse({'success': False, 'error': 'Phone must be 20 characters or less'}, status=400)
         profile.phone = phone
         
+        # Email update (on User model, not profile)
+        email = data.get('email', '').strip()
+        if email:
+            from django.core.validators import validate_email
+            from django.core.exceptions import ValidationError as EmailValidationError
+            try:
+                validate_email(email)
+                request.user.email = email
+                request.user.save()
+            except EmailValidationError:
+                return JsonResponse({'success': False, 'error': 'Invalid email address'}, status=400)
+        
         # ===== LEGAL IDENTITY & KYC =====
         # Only allow updating if not KYC verified
         if profile.kyc_status != 'verified':
@@ -1160,6 +1175,72 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
         if len(emergency_contact_relation) > 50:
             return JsonResponse({'success': False, 'error': 'Emergency contact relation must be 50 characters or less'}, status=400)
         profile.emergency_contact_relation = emergency_contact_relation
+        
+        # ===== SOCIAL MEDIA LINKS =====
+        # Validate URLs if provided
+        from django.core.validators import URLValidator
+        from django.core.exceptions import ValidationError
+        url_validator = URLValidator()
+        
+        # YouTube
+        youtube_link = data.get('youtube_link', '').strip()
+        if youtube_link:
+            try:
+                url_validator(youtube_link)
+            except ValidationError:
+                return JsonResponse({'success': False, 'error': 'Invalid YouTube URL'}, status=400)
+        profile.youtube_link = youtube_link
+        
+        # Twitch
+        twitch_link = data.get('twitch_link', '').strip()
+        if twitch_link:
+            try:
+                url_validator(twitch_link)
+            except ValidationError:
+                return JsonResponse({'success': False, 'error': 'Invalid Twitch URL'}, status=400)
+        profile.twitch_link = twitch_link
+        
+        # Twitter
+        twitter = data.get('twitter', '').strip()
+        if twitter:
+            try:
+                url_validator(twitter)
+            except ValidationError:
+                return JsonResponse({'success': False, 'error': 'Invalid Twitter URL'}, status=400)
+        profile.twitter = twitter
+        
+        # Facebook
+        facebook = data.get('facebook', '').strip()
+        if facebook:
+            try:
+                url_validator(facebook)
+            except ValidationError:
+                return JsonResponse({'success': False, 'error': 'Invalid Facebook URL'}, status=400)
+        profile.facebook = facebook
+        
+        # Instagram
+        instagram = data.get('instagram', '').strip()
+        if instagram:
+            try:
+                url_validator(instagram)
+            except ValidationError:
+                return JsonResponse({'success': False, 'error': 'Invalid Instagram URL'}, status=400)
+        profile.instagram = instagram
+        
+        # TikTok
+        tiktok = data.get('tiktok', '').strip()
+        if tiktok:
+            try:
+                url_validator(tiktok)
+            except ValidationError:
+                return JsonResponse({'success': False, 'error': 'Invalid TikTok URL'}, status=400)
+        profile.tiktok = tiktok
+        
+        # Discord (not a URL, just username)
+        discord_id = data.get('discord_id', '').strip()
+        if len(discord_id) > 64:
+            return JsonResponse({'success': False, 'error': 'Discord ID must be 64 characters or less'}, status=400)
+        profile.discord_id = discord_id
         
         profile.save()
         

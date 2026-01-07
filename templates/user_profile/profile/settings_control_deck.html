@@ -238,6 +238,7 @@
                     <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Account</div>
                     <div class="space-y-1">
                         <button onclick="switchTab('identity')" class="nav-btn active" data-target="identity"><i class="fa-regular fa-id-card w-5 text-center"></i> Identity</button>
+                        <button onclick="switchTab('connections')" class="nav-btn" data-target="connections"><i class="fa-solid fa-address-book w-5 text-center"></i> Connections</button>
                         <button onclick="switchTab('security')" class="nav-btn" data-target="security"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Security & KYC</button>
                         <button onclick="switchTab('privacy')" class="nav-btn" data-target="privacy"><i class="fa-solid fa-user-shield w-5 text-center"></i> Privacy & Vis.</button>
                         <button onclick="switchTab('platform')" class="nav-btn" data-target="platform"><i class="fa-solid fa-globe w-5 text-center"></i> Platform</button>
@@ -272,6 +273,7 @@
 
         <div class="lg:hidden absolute top-0 left-0 right-0 h-14 bg-z-bg/95 border-b border-white/5 z-40 overflow-x-auto no-scrollbar flex items-center px-4 gap-3">
             <button onclick="switchTab('identity')" class="mobile-nav-btn active" data-target="identity">Identity</button>
+            <button onclick="switchTab('connections')" class="mobile-nav-btn" data-target="connections">Connections</button>
             <button onclick="switchTab('recruitment')" class="mobile-nav-btn" data-target="recruitment">Career</button>
             <button onclick="switchTab('matchmaking')" class="mobile-nav-btn" data-target="matchmaking">Bounties</button>
             <button onclick="switchTab('privacy')" class="mobile-nav-btn" data-target="privacy">Privacy</button>
@@ -290,7 +292,15 @@
                 <!-- IDENTITY TAB (READY) -->
                 <div id="tab-identity" class="tab-section active">
                     <h2 class="text-3xl font-display font-bold text-white mb-2">Identity Protocol</h2>
-                    <p class="text-gray-400 mb-8">Manage how you appear to the world and team scouts.</p>
+                    <p class="text-gray-400 mb-4">Manage how you appear to the world and team scouts.</p>
+                    
+                    <!-- Info Card -->
+                    <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-8 flex gap-3">
+                        <i class="fa-solid fa-circle-info text-blue-400 text-xl flex-shrink-0 mt-1"></i>
+                        <div class="text-sm text-gray-300">
+                            <strong class="text-white">Privacy Control:</strong> Use the <a href="#" onclick="switchTab('privacy'); return false;" class="text-blue-400 hover:text-blue-300 underline">Privacy tab</a> to control which information is visible on your public profile. All fields are optional except Display Name.
+                        </div>
+                    </div>
 
                     <div class="glass-panel p-1 mb-8 group overflow-hidden">
                         <div class="relative h-40 md:h-56 bg-gray-800 rounded-t-[18px] overflow-hidden">
@@ -324,13 +334,24 @@
 
                     <form id="identity-form" class="glass-panel p-8 grid grid-cols-1 md:grid-cols-2 gap-6" onsubmit="saveIdentity(event)">
                         {% csrf_token %}
+                        
                         <div class="md:col-span-2">
                             <label class="z-label">Display Name</label>
-                            <input type="text" name="display_name" class="z-input" value="{{ user_profile.display_name|default:'' }}" oninput="markUnsaved()">
+                            <input type="text" name="display_name" class="z-input" value="{{ user_profile.display_name|default:'' }}" oninput="markUnsaved()" required>
                         </div>
                         <div>
                             <label class="z-label">Gamertag (Unique ID)</label>
                             <input type="text" class="z-input text-z-cyan font-bold" value="@{{ request.user.username }}" disabled>
+                        </div>
+                        <div>
+                            <label class="z-label">Gender <span class="text-gray-500 text-xs normal-case">(Optional)</span></label>
+                            <select name="gender" class="z-input" oninput="markUnsaved()">
+                                <option value="">Prefer not to say</option>
+                                <option value="male" {% if user_profile.gender == 'male' %}selected{% endif %}>Male</option>
+                                <option value="female" {% if user_profile.gender == 'female' %}selected{% endif %}>Female</option>
+                                <option value="other" {% if user_profile.gender == 'other' %}selected{% endif %}>Other</option>
+                                <option value="prefer_not_to_say" {% if user_profile.gender == 'prefer_not_to_say' %}selected{% endif %}>Prefer not to say</option>
+                            </select>
                         </div>
                         <div>
                             <label class="z-label">City</label>
@@ -344,7 +365,8 @@
                             <label class="z-label">Bio (Max 500)</label>
                             <textarea name="bio" class="z-input h-24 resize-none" oninput="markUnsaved()">{{ user_profile.bio|default:'' }}</textarea>
                         </div>
-                        <div class="md:col-span-2">
+
+                        <div class="md:col-span-2 pt-6">
                             <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
                                 <i class="fa-solid fa-floppy-disk"></i> Save Identity
                             </button>
@@ -352,7 +374,174 @@
                     </form>
                 </div>
 
-                <!-- CAREER & LFT TAB (UP-PHASE2A - ENABLED) -->
+                <!-- CONNECTIONS TAB (Contact & Social) -->
+                <div id="tab-connections" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white mb-2">Connections Hub</h2>
+                    <p class="text-gray-400 mb-4">Manage how people can reach you and connect with your social presence.</p>
+                    
+                    <!-- Info Card -->
+                    <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 mb-8 flex gap-3">
+                        <i class="fa-solid fa-circle-info text-purple-400 text-xl flex-shrink-0 mt-1"></i>
+                        <div class="text-sm text-gray-300">
+                            <strong class="text-white">Direct Connect:</strong> Contact methods you add here will appear on your public profile with clickable buttons that take visitors directly to your messaging apps.
+                        </div>
+                    </div>
+
+                    <form id="connections-form" class="space-y-8" onsubmit="saveConnections(event)">
+                        {% csrf_token %}
+                        
+                        <!-- Hidden fields to preserve identity data -->
+                        <input type="hidden" name="display_name" value="{{ user_profile.display_name|default:'' }}">
+                        <input type="hidden" name="bio" value="{{ user_profile.bio|default:'' }}">
+                        <input type="hidden" name="gender" value="{{ user_profile.gender|default:'' }}">
+                        <input type="hidden" name="city" value="{{ user_profile.city|default:'' }}">
+                        <input type="hidden" name="country" value="{{ user_profile.country|default:'' }}">
+                        
+                        <!-- Contact Information Section -->
+                        <div class="glass-panel p-8">
+                            <div class="mb-6 flex items-center gap-3">
+                                <i class="fa-solid fa-address-card text-3xl text-z-cyan"></i>
+                                <div>
+                                    <h3 class="text-xl font-bold text-white">Contact Information</h3>
+                                    <p class="text-sm text-gray-400">Primary ways for tournament organizers and team managers to reach you</p>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="md:col-span-2">
+                                    <label class="z-label">
+                                        <i class="fa-solid fa-envelope text-blue-400"></i> Email Address
+                                    </label>
+                                    <input type="email" name="email" class="z-input" value="{{ request.user.email|default:'' }}" placeholder="your@email.com" oninput="markUnsaved()">
+                                    <p class="text-xs text-gray-500 mt-1">Your primary email for official communications</p>
+                                </div>
+                                
+                                <div>
+                                    <label class="z-label">
+                                        <i class="fa-solid fa-phone text-green-400"></i> Phone Number
+                                    </label>
+                                    <input type="tel" name="phone" class="z-input" value="{{ user_profile.phone|default:'' }}" placeholder="+880 1XXX-XXXXXX" oninput="markUnsaved()">
+                                    <p class="text-xs text-gray-500 mt-1">For tournament verification</p>
+                                </div>
+                                
+                                <div>
+                                    <label class="z-label">
+                                        <i class="fa-brands fa-whatsapp text-green-500"></i> WhatsApp Number
+                                    </label>
+                                    <input type="tel" name="whatsapp" class="z-input" value="{{ user_profile.phone|default:'' }}" placeholder="+880 1XXX-XXXXXX" oninput="markUnsaved()">
+                                    <p class="text-xs text-gray-500 mt-1">Instant messaging for quick contact</p>
+                                </div>
+                                
+                                <div class="md:col-span-2">
+                                    <label class="z-label">
+                                        <i class="fa-brands fa-facebook-messenger text-blue-500"></i> Facebook Messenger
+                                    </label>
+                                    <input type="url" name="facebook_messenger" class="z-input" value="{{ user_profile.facebook|default:'' }}" placeholder="https://m.me/yourusername or Facebook profile URL" oninput="markUnsaved()">
+                                    <p class="text-xs text-gray-500 mt-1">Will create a direct message link on your profile</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Emergency Contact Section -->
+                        <div class="glass-panel p-8">
+                            <div class="mb-6 flex items-center gap-3">
+                                <i class="fa-solid fa-user-shield text-3xl text-red-400"></i>
+                                <div>
+                                    <h3 class="text-xl font-bold text-white">Emergency Contact</h3>
+                                    <p class="text-sm text-gray-400">Required for LAN events, tournaments, and international competitions</p>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="md:col-span-2">
+                                    <label class="z-label">Emergency Contact Full Name</label>
+                                    <input type="text" name="emergency_contact_name" class="z-input" value="{{ user_profile.emergency_contact_name|default:'' }}" placeholder="Full legal name" oninput="markUnsaved()">
+                                </div>
+                                <div>
+                                    <label class="z-label">Emergency Contact Phone</label>
+                                    <input type="tel" name="emergency_contact_phone" class="z-input" value="{{ user_profile.emergency_contact_phone|default:'' }}" placeholder="+880 1XXX-XXXXXX" oninput="markUnsaved()">
+                                </div>
+                                <div>
+                                    <label class="z-label">Relationship</label>
+                                    <select name="emergency_contact_relation" class="z-input" oninput="markUnsaved()">
+                                        <option value="">Select relationship</option>
+                                        <option value="Parent" {% if user_profile.emergency_contact_relation == 'Parent' %}selected{% endif %}>Parent</option>
+                                        <option value="Guardian" {% if user_profile.emergency_contact_relation == 'Guardian' %}selected{% endif %}>Guardian</option>
+                                        <option value="Spouse" {% if user_profile.emergency_contact_relation == 'Spouse' %}selected{% endif %}>Spouse</option>
+                                        <option value="Sibling" {% if user_profile.emergency_contact_relation == 'Sibling' %}selected{% endif %}>Sibling</option>
+                                        <option value="Friend" {% if user_profile.emergency_contact_relation == 'Friend' %}selected{% endif %}>Friend</option>
+                                        <option value="Other" {% if user_profile.emergency_contact_relation == 'Other' %}selected{% endif %}>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Social Media Section -->
+                        <div class="glass-panel p-8">
+                            <div class="mb-6 flex items-center gap-3">
+                                <i class="fa-solid fa-share-nodes text-3xl text-pink-400"></i>
+                                <div>
+                                    <h3 class="text-xl font-bold text-white">Social Media & Streaming</h3>
+                                    <p class="text-sm text-gray-400">Your social presence and content platforms - visible on your public profile</p>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="z-label">
+                                        <i class="fa-brands fa-youtube text-red-500"></i> YouTube Channel
+                                    </label>
+                                    <input type="url" name="youtube_link" class="z-input" value="{{ user_profile.youtube_link|default:'' }}" placeholder="https://youtube.com/@username" oninput="markUnsaved()">
+                                </div>
+                                <div>
+                                    <label class="z-label">
+                                        <i class="fa-brands fa-twitch text-purple-500"></i> Twitch Channel
+                                    </label>
+                                    <input type="url" name="twitch_link" class="z-input" value="{{ user_profile.twitch_link|default:'' }}" placeholder="https://twitch.tv/username" oninput="markUnsaved()">
+                                </div>
+                                <div>
+                                    <label class="z-label">
+                                        <i class="fa-brands fa-x-twitter text-sky-400"></i> Twitter/X Profile
+                                    </label>
+                                    <input type="url" name="twitter" class="z-input" value="{{ user_profile.twitter|default:'' }}" placeholder="https://twitter.com/username" oninput="markUnsaved()">
+                                </div>
+                                <div>
+                                    <label class="z-label">
+                                        <i class="fa-brands fa-facebook text-blue-500"></i> Facebook Profile
+                                    </label>
+                                    <input type="url" name="facebook" class="z-input" value="{{ user_profile.facebook|default:'' }}" placeholder="https://facebook.com/username" oninput="markUnsaved()">
+                                </div>
+                                <div>
+                                    <label class="z-label">
+                                        <i class="fa-brands fa-instagram text-pink-500"></i> Instagram Profile
+                                    </label>
+                                    <input type="url" name="instagram" class="z-input" value="{{ user_profile.instagram|default:'' }}" placeholder="https://instagram.com/username" oninput="markUnsaved()">
+                                </div>
+                                <div>
+                                    <label class="z-label">
+                                        <i class="fa-brands fa-tiktok text-cyan-400"></i> TikTok Profile
+                                    </label>
+                                    <input type="url" name="tiktok" class="z-input" value="{{ user_profile.tiktok|default:'' }}" placeholder="https://tiktok.com/@username" oninput="markUnsaved()">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="z-label">
+                                        <i class="fa-brands fa-discord text-indigo-400"></i> Discord Username
+                                    </label>
+                                    <input type="text" name="discord_id" class="z-input" value="{{ user_profile.discord_id|default:'' }}" placeholder="username#1234 or just username" oninput="markUnsaved()">
+                                    <p class="text-xs text-gray-500 mt-1">Others can add you as a friend on Discord</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button type="submit" class="bg-z-cyan text-black px-8 py-3 rounded-xl text-sm font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i> Save All Connections
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- RECRUITMENT TAB (Career & LFT) -->
                 <div id="tab-recruitment" class="tab-section space-y-6">
                     <div class="flex justify-between items-center">
                         <h2 class="text-3xl font-display font-bold text-white">Career & LFT</h2>
@@ -1396,6 +1585,7 @@
         const tabId = activeTab.id;
         const formMap = {
             'tab-identity': 'identity-form',
+            'tab-connections': 'connections-form',
             'tab-recruitment': 'career-form',
             'tab-matchmaking': 'matchmaking-form',
             'tab-notifications': 'notifications-form',
@@ -1513,6 +1703,49 @@
             console.error('Identity save error:', error);
             showToast('Network error', 'error');
             showInlineFeedback('identity-form', 'Network error', 'error');
+        } finally {
+            // Restore button
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
+    }
+
+    async function saveConnections(event) {
+        event.preventDefault();
+        const form = event.target;
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button.innerHTML;
+        
+        // Loading state
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        
+        const formData = new FormData(form);
+        
+        try {
+            const response = await fetch('{% url "user_profile:update_basic_info" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Connections updated successfully', 'success');
+                showInlineFeedback('connections-form', 'Saved successfully', 'success');
+                markSaved();
+            } else {
+                const errorMsg = result.message || result.error || 'Failed to update connections';
+                showToast(errorMsg, 'error');
+                showInlineFeedback('connections-form', errorMsg, 'error');
+            }
+        } catch (error) {
+            console.error('Connections save error:', error);
+            showToast('Network error', 'error');
+            showInlineFeedback('connections-form', 'Network error', 'error');
         } finally {
             // Restore button
             button.disabled = false;
