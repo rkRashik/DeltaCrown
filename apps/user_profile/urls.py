@@ -46,6 +46,10 @@ from .api.settings_career_api import (
 from .api.settings_notifications_api import (
     notifications_settings_get, notifications_settings_save
 )
+# Email Verification API (2026-01-08)
+from .views.email_verification_api import (
+    send_verification_otp, verify_otp_code
+)
 # PHASE-5A: Platform Preferences API (Global Wiring)
 from .api.platform_prefs_api import (
     get_platform_global_settings, save_platform_global_settings
@@ -210,6 +214,10 @@ urlpatterns = [
     path("me/settings/media/remove/", remove_media_api, name="remove_media"),
     path("me/settings/privacy/", get_privacy_settings, name="get_privacy_settings"),
     path("me/settings/privacy/save/", update_privacy_settings, name="update_privacy_settings"),
+    
+    # Email Verification API (2026-01-08)
+    path("me/settings/send-verification-otp/", send_verification_otp, name="send_verification_otp"),
+    path("me/settings/verify-otp-code/", verify_otp_code, name="verify_otp_code"),
     
     # UP-PHASE2A: Career & Matchmaking Settings API
     path("me/settings/career/", career_settings_get, name="settings_career_get"),

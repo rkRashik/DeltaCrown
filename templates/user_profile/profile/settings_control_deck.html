@@ -135,6 +135,14 @@
     @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     
+    /* OTP Input Shake Animation */
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+    .animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+    
     /* Avatar Ring */
     .holo-ring {
         position: absolute; inset: -4px; border-radius: 50%;
@@ -408,22 +416,153 @@
                             </div>
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Modern Email Verification Section -->
                                 <div class="md:col-span-2">
-                                    <label class="z-label">
-                                        <i class="fa-solid fa-envelope text-blue-400"></i> Public Email Address
-                                    </label>
-                                    <input type="email" name="secondary_email" class="z-input" value="{{ user_profile.secondary_email|default:'' }}" placeholder="public@email.com" oninput="markUnsaved()">
-                                    <div class="flex items-center gap-2 mt-1">
-                                        <p class="text-xs text-gray-500 flex-1">Visible on your profile. Your account email ({{ request.user.email }}) stays private.</p>
-                                        {% if user_profile.secondary_email_verified %}
-                                        <span class="text-xs text-green-400 flex items-center gap-1">
-                                            <i class="fa-solid fa-circle-check"></i> Verified
-                                        </span>
-                                        {% elif user_profile.secondary_email %}
-                                        <button type="button" onclick="verifySecondaryEmail()" class="text-xs text-z-cyan hover:underline">
-                                            Verify Now
-                                        </button>
-                                        {% endif %}
+                                    <div class="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-white/10 rounded-2xl p-6">
+                                        <div class="flex items-start justify-between mb-4">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                                                    <i class="fa-solid fa-envelope text-2xl text-blue-400"></i>
+                                                </div>
+                                                <div>
+                                                    <h3 class="text-lg font-bold text-white">Public Email</h3>
+                                                    <p class="text-sm text-gray-400">Displayed on your profile for contact</p>
+                                                </div>
+                                            </div>
+                                            {% if user_profile.secondary_email_verified %}
+                                            <span class="px-3 py-1.5 rounded-full bg-green-500/20 text-green-400 text-xs font-semibold flex items-center gap-1.5">
+                                                <i class="fa-solid fa-shield-check"></i> Verified
+                                            </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Email Source Toggle -->
+                                        <div class="mb-4">
+                                            <div class="grid grid-cols-2 gap-3 p-1 bg-black/30 rounded-xl">
+                                                <button type="button" id="use-primary-btn" onclick="toggleEmailSource('primary')" 
+                                                    class="email-source-btn py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 {% if user_profile.secondary_email == request.user.email %}bg-white/10 text-white{% else %}text-gray-400 hover:text-white{% endif %}">
+                                                    <i class="fa-solid fa-shield-halved mr-2"></i>Use Primary Email
+                                                </button>
+                                                <button type="button" id="use-custom-btn" onclick="toggleEmailSource('secondary')" 
+                                                    class="email-source-btn py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 {% if user_profile.secondary_email != request.user.email or not user_profile.secondary_email %}bg-white/10 text-white{% else %}text-gray-400 hover:text-white{% endif %}">
+                                                    <i class="fa-solid fa-at mr-2"></i>Secondary Email
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Primary Email Display (Always Verified) -->
+                                        <div id="primary-email-display" class="{% if user_profile.secondary_email != request.user.email or not user_profile.secondary_email %}hidden{% endif %}">
+                                            <div class="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-xl mb-4">
+                                                <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                                                    <i class="fa-solid fa-shield-check text-green-400"></i>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <p class="text-sm font-semibold text-white">{{ request.user.email }}</p>
+                                                    <p class="text-xs text-green-400 mt-0.5">
+                                                        <i class="fa-solid fa-circle-check mr-1"></i>Verified
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Secondary Email Input -->
+                                        <div id="secondary-email-display" class="{% if user_profile.secondary_email == request.user.email and user_profile.secondary_email %}hidden{% endif %}">
+                                            <div class="mb-4">
+                                                <input type="email" 
+                                                    id="secondary_email_input"
+                                                    name="secondary_email" 
+                                                    class="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition" 
+                                                    value="{% if user_profile.secondary_email != request.user.email %}{{ user_profile.secondary_email|default:'' }}{% endif %}" 
+                                                    placeholder="your.public@email.com"
+                                                    oninput="onEmailInputChange()"
+                                                    {% if user_profile.secondary_email_verified and user_profile.secondary_email != request.user.email %}readonly{% endif %}>
+                                            </div>
+                                        </div>
+
+                                        <!-- Verification Status & Actions -->
+                                        <div id="verification-section">
+                                            {% if user_profile.secondary_email_verified %}
+                                            <!-- Verified State -->
+                                            <div class="mb-3">
+                                                <div class="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+                                                    <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                                                        <i class="fa-solid fa-shield-check text-green-400"></i>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <p class="text-sm font-semibold text-white">{{ user_profile.secondary_email }}</p>
+                                                        <p class="text-xs text-green-400 mt-0.5">
+                                                            <i class="fa-solid fa-circle-check mr-1"></i>Verified
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Action Buttons -->
+                                            <div class="flex gap-3">
+                                                <button type="button" onclick="changeVerifiedEmail()" 
+                                                    class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/50 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
+                                                    <i class="fa-solid fa-pen-to-square text-sm"></i>
+                                                    <span>Change Email</span>
+                                                </button>
+                                                <button type="button" onclick="removeSecondaryEmail()" 
+                                                    class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/50 text-white hover:text-red-400 font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
+                                                    <i class="fa-solid fa-trash-can text-sm"></i>
+                                                    <span>Remove Email</span>
+                                                </button>
+                                            </div>
+                                            {% else %}
+                                            <!-- Unverified State -->
+                                            <div id="unverified-state" class="{% if not user_profile.secondary_email %}hidden{% endif %}">
+                                                <div class="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl mb-3">
+                                                    <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+                                                    <p class="text-sm text-amber-400 flex-1">Email not verified yet</p>
+                                                </div>
+                                                <button type="button" onclick="startEmailVerification()" 
+                                                    class="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group">
+                                                    <i class="fa-solid fa-shield-check"></i>
+                                                    <span>Verify Email Now</span>
+                                                    <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                                                </button>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- OTP Verification Modal (Hidden by default) -->
+                                        <div id="otp-verification-panel" class="hidden mt-4">
+                                            <div class="p-4 bg-black/40 border border-white/10 rounded-xl">
+                                                <div class="text-center mb-4">
+                                                    <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-purple-500/20 flex items-center justify-center">
+                                                        <i class="fa-solid fa-key text-3xl text-purple-400"></i>
+                                                    </div>
+                                                    <h4 class="text-lg font-bold text-white mb-1">Enter Verification Code</h4>
+                                                    <p class="text-sm text-gray-400">We sent a 6-digit code to <span id="otp-email-display" class="text-blue-400 font-medium"></span></p>
+                                                </div>
+                                                
+                                                <div class="flex justify-center gap-2 mb-4">
+                                                    <input type="text" maxlength="1" class="otp-digit w-12 h-14 text-center text-2xl font-bold bg-black/30 border-2 border-white/10 rounded-xl text-white focus:border-blue-500 focus:outline-none transition" data-index="0">
+                                                    <input type="text" maxlength="1" class="otp-digit w-12 h-14 text-center text-2xl font-bold bg-black/30 border-2 border-white/10 rounded-xl text-white focus:border-blue-500 focus:outline-none transition" data-index="1">
+                                                    <input type="text" maxlength="1" class="otp-digit w-12 h-14 text-center text-2xl font-bold bg-black/30 border-2 border-white/10 rounded-xl text-white focus:border-blue-500 focus:outline-none transition" data-index="2">
+                                                    <span class="flex items-center text-gray-600 text-2xl">-</span>
+                                                    <input type="text" maxlength="1" class="otp-digit w-12 h-14 text-center text-2xl font-bold bg-black/30 border-2 border-white/10 rounded-xl text-white focus:border-blue-500 focus:outline-none transition" data-index="3">
+                                                    <input type="text" maxlength="1" class="otp-digit w-12 h-14 text-center text-2xl font-bold bg-black/30 border-2 border-white/10 rounded-xl text-white focus:border-blue-500 focus:outline-none transition" data-index="4">
+                                                    <input type="text" maxlength="1" class="otp-digit w-12 h-14 text-center text-2xl font-bold bg-black/30 border-2 border-white/10 rounded-xl text-white focus:border-blue-500 focus:outline-none transition" data-index="5">
+                                                </div>
+
+                                                <div class="flex gap-2">
+                                                    <button type="button" onclick="cancelOtpVerification()" class="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl transition">
+                                                        Cancel
+                                                    </button>
+                                                    <button type="button" id="verify-otp-btn" onclick="verifyOtpCode()" class="flex-1 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition">
+                                                        Verify Code
+                                                    </button>
+                                                </div>
+
+                                                <button type="button" onclick="resendOtpCode()" class="w-full mt-3 py-2 text-xs text-gray-400 hover:text-white transition">
+                                                    Didn't receive code? <span class="text-blue-400 font-semibold">Resend</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <input type="hidden" name="secondary_email_hidden" id="secondary_email_hidden" value="{{ user_profile.secondary_email|default:'' }}">
                                     </div>
                                 </div>
                                 
@@ -1813,65 +1952,409 @@
         }
     }
 
-    // Verify secondary email with OTP
-    async function verifySecondaryEmail() {
-        const email = document.querySelector('input[name="secondary_email"]').value;
-        if (!email) {
-            showToast('Please enter an email address first', 'warning');
+    // ========== EMAIL VERIFICATION (Simplified System) ==========
+    
+    let currentEmailSource = '{{ user_profile.secondary_email }}' === '{{ request.user.email }}' ? 'primary' : 'secondary';
+    let currentVerificationEmail = '';
+
+    function toggleEmailSource(source) {
+        currentEmailSource = source;
+        
+        // Update button states
+        document.getElementById('use-primary-btn').classList.toggle('bg-white/10', source === 'primary');
+        document.getElementById('use-primary-btn').classList.toggle('text-white', source === 'primary');
+        document.getElementById('use-primary-btn').classList.toggle('text-gray-400', source !== 'primary');
+        
+        document.getElementById('use-custom-btn').classList.toggle('bg-white/10', source === 'secondary');
+        document.getElementById('use-custom-btn').classList.toggle('text-white', source === 'secondary');
+        document.getElementById('use-custom-btn').classList.toggle('text-gray-400', source !== 'secondary');
+        
+        // Toggle displays
+        document.getElementById('primary-email-display').classList.toggle('hidden', source !== 'primary');
+        document.getElementById('secondary-email-display').classList.toggle('hidden', source !== 'secondary');
+        
+        // For primary email, hide verification section (already verified)
+        // For secondary email, show/hide unverified state based on email input
+        const verificationSection = document.getElementById('verification-section');
+        if (source === 'primary') {
+            verificationSection.classList.add('hidden');
+        } else {
+            verificationSection.classList.remove('hidden');
+            const email = document.getElementById('secondary_email_input').value;
+            const unverifiedState = document.getElementById('unverified-state');
+            if (unverifiedState) {
+                unverifiedState.classList.toggle('hidden', !email);
+            }
+        }
+        
+        markUnsaved();
+    }
+
+    function onEmailInputChange() {
+        const email = document.getElementById('secondary_email_input').value;
+        const unverifiedState = document.getElementById('unverified-state');
+        unverifiedState.classList.toggle('hidden', !email);
+        markUnsaved();
+    }
+
+    function changeVerifiedEmail() {
+        // Store current email for cancel functionality
+        const emailInput = document.getElementById('secondary_email_input');
+        const currentEmail = emailInput.value;
+        emailInput.setAttribute('data-original-email', currentEmail);
+        
+        // Reset verification section to editing mode
+        const verificationSection = document.getElementById('verification-section');
+        verificationSection.innerHTML = `
+            <div id="unverified-state">
+                <div class="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mb-3">
+                    <i class="fa-solid fa-info-circle text-blue-400"></i>
+                    <p class="text-sm text-blue-400 flex-1">Enter new email and verify to update</p>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="startEmailVerification()" 
+                        class="flex-1 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group">
+                        <i class="fa-solid fa-shield-check"></i>
+                        <span>Verify New Email</span>
+                    </button>
+                    <button type="button" onclick="cancelEmailChange()" 
+                        class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-red-500/50 text-white hover:text-red-400 font-medium rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-xmark"></i>
+                        <span>Cancel</span>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Enable and focus the email input
+        emailInput.readOnly = false;
+        emailInput.classList.remove('cursor-not-allowed', 'bg-black/20');
+        emailInput.focus();
+        
+        markUnsaved();
+    }
+    
+    function cancelEmailChange() {
+        const emailInput = document.getElementById('secondary_email_input');
+        const originalEmail = emailInput.getAttribute('data-original-email');
+        
+        // Restore original email
+        if (originalEmail) {
+            emailInput.value = originalEmail;
+            emailInput.removeAttribute('data-original-email');
+        }
+        
+        // Restore verified state
+        updateUIToVerified(originalEmail || emailInput.value);
+        
+        showToast('Changes cancelled', 'info');
+    }
+    
+    async function removeSecondaryEmail() {
+        if (!confirm('Are you sure you want to remove your secondary email? This will make your profile contact information less visible.')) {
             return;
         }
         
-        showToast('Sending verification code...', 'info');
+        showToast('Removing secondary email...', 'info');
         
         try {
-            const response = await fetch('/me/settings/verify-secondary-email/', {
+            // Clear the input
+            document.getElementById('secondary_email_input').value = '';
+            document.getElementById('secondary_email_hidden').value = '';
+            
+            // Update UI to show empty state
+            const verificationSection = document.getElementById('verification-section');
+            verificationSection.innerHTML = `
+                <div id="unverified-state" class="hidden">
+                    <div class="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl mb-3">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+                        <p class="text-sm text-amber-400 flex-1">Email not verified yet</p>
+                    </div>
+                    <button type="button" onclick="startEmailVerification()" 
+                        class="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group">
+                        <i class="fa-solid fa-shield-check"></i>
+                        <span>Verify Email Now</span>
+                        <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </button>
+                </div>
+            `;
+            
+            showToast('Secondary email removed', 'success');
+            markUnsaved();
+            
+        } catch (error) {
+            console.error('Error removing email:', error);
+            showToast('Failed to remove email', 'error');
+        }
+    }
+
+    async function startEmailVerification() {
+        let email;
+        let usePrimary = currentEmailSource === 'primary';
+        
+        if (usePrimary) {
+            email = '{{ request.user.email }}';
+        } else {
+            email = document.getElementById('secondary_email_input').value.trim();
+        }
+        
+        if (!email) {
+            showToast('Please enter an email address', 'warning');
+            return;
+        }
+        
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showToast('Please enter a valid email address', 'error');
+            return;
+        }
+        
+        showToast(usePrimary ? 'Setting primary email...' : 'Sending verification code...', 'info');
+        
+        try {
+            const response = await fetch('/me/settings/send-verification-otp/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken'),
                 },
-                body: JSON.stringify({ email: email }),
+                body: JSON.stringify({ 
+                    email: email,
+                    use_primary: usePrimary
+                }),
             });
             
             const result = await response.json();
             
             if (result.success) {
-                const code = prompt('Enter the 6-digit code sent to ' + email + ':');
-                if (code) {
-                    await confirmSecondaryEmail(email, code);
+                if (result.already_verified) {
+                    // Primary email - no OTP needed, already verified
+                    showToast('Primary email set successfully!', 'success');
+                    
+                    // Update UI to verified state immediately
+                    updateUIToVerified(email);
+                } else {
+                    // Custom email - show OTP panel
+                    currentVerificationEmail = email;
+                    showOtpPanel(email);
+                    showToast('Verification code sent! Check your email.', 'success');
                 }
             } else {
-                showToast(result.error || 'Failed to send verification code', 'error');
+                showToast(result.error || 'Failed to process request', 'error');
             }
         } catch (error) {
             console.error('Verification error:', error);
-            showToast('Network error', 'error');
+            showToast('Network error. Please try again.', 'error');
         }
     }
 
-    async function confirmSecondaryEmail(email, code) {
+    function showOtpPanel(email) {
+        document.getElementById('otp-email-display').textContent = email;
+        document.getElementById('otp-verification-panel').classList.remove('hidden');
+        document.getElementById('unverified-state').classList.add('hidden');
+        
+        // Focus first OTP digit
+        setTimeout(() => {
+            document.querySelector('.otp-digit[data-index="0"]').focus();
+        }, 100);
+        
+        // Setup OTP input behavior
+        setupOtpInputs();
+    }
+
+    function setupOtpInputs() {
+        const otpDigits = document.querySelectorAll('.otp-digit');
+        
+        otpDigits.forEach((input, index) => {
+            // Clear previous listeners
+            input.replaceWith(input.cloneNode(true));
+        });
+        
+        // Re-query after cloning
+        const freshDigits = document.querySelectorAll('.otp-digit');
+        
+        freshDigits.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                const value = e.target.value;
+                
+                // Only allow numbers
+                if (!/^\d$/.test(value)) {
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Move to next input
+                if (value && index < 5) {
+                    freshDigits[index + 1].focus();
+                }
+            });
+            
+            input.addEventListener('keydown', (e) => {
+                // Backspace - move to previous input
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    freshDigits[index - 1].focus();
+                }
+                
+                // Arrow keys navigation
+                if (e.key === 'ArrowLeft' && index > 0) {
+                    freshDigits[index - 1].focus();
+                }
+                if (e.key === 'ArrowRight' && index < 5) {
+                    freshDigits[index + 1].focus();
+                }
+                
+                // Enter - submit
+                if (e.key === 'Enter') {
+                    verifyOtpCode();
+                }
+            });
+            
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pastedData = e.clipboardData.getData('text').replace(/\D/g, '');
+                
+                if (pastedData.length === 6) {
+                    freshDigits.forEach((digit, i) => {
+                        digit.value = pastedData[i] || '';
+                    });
+                    freshDigits[5].focus();
+                }
+            });
+        });
+    }
+
+    async function verifyOtpCode() {
+        const otpDigits = document.querySelectorAll('.otp-digit');
+        const code = Array.from(otpDigits).map(input => input.value).join('');
+        
+        if (code.length !== 6) {
+            showToast('Please enter all 6 digits', 'warning');
+            return;
+        }
+        
+        const button = document.getElementById('verify-otp-btn');
+        const originalHTML = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
+        
         try {
-            const response = await fetch('/me/settings/confirm-secondary-email/', {
+            const response = await fetch('/me/settings/verify-otp-code/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken'),
                 },
-                body: JSON.stringify({ email: email, code: code }),
+                body: JSON.stringify({ 
+                    email: currentVerificationEmail,
+                    code: code
+                }),
             });
             
             const result = await response.json();
             
             if (result.success) {
                 showToast('Email verified successfully!', 'success');
-                location.reload(); // Refresh to show verified badge
+                
+                // Update UI to verified state
+                updateUIToVerified(currentVerificationEmail);
+                
+                // Hide OTP panel
+                document.getElementById('otp-verification-panel').classList.add('hidden');
+                
             } else {
-                showToast(result.error || 'Invalid code', 'error');
+                showToast(result.error || 'Invalid verification code', 'error');
+                
+                // Shake animation on error
+                otpDigits.forEach(input => {
+                    input.classList.add('animate-shake');
+                    input.value = '';
+                });
+                setTimeout(() => {
+                    otpDigits.forEach(input => input.classList.remove('animate-shake'));
+                    otpDigits[0].focus();
+                }, 500);
             }
         } catch (error) {
-            console.error('Confirmation error:', error);
-            showToast('Network error', 'error');
+            console.error('Verification error:', error);
+            showToast('Network error. Please try again.', 'error');
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalHTML;
         }
+    }
+
+    function cancelOtpVerification() {
+        document.getElementById('otp-verification-panel').classList.add('hidden');
+        document.getElementById('unverified-state').classList.remove('hidden');
+        
+        // Clear OTP inputs
+        document.querySelectorAll('.otp-digit').forEach(input => input.value = '');
+    }
+
+    async function resendOtpCode() {
+        showToast('Resending verification code...', 'info');
+        await startEmailVerification();
+    }
+
+    function updateUIToVerified(email) {
+        // Update verification section to verified state
+        document.getElementById('verification-section').innerHTML = `
+            <div class="mb-3">
+                <div class="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+                    <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <i class="fa-solid fa-shield-check text-green-400"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-white">${email}</p>
+                        <p class="text-xs text-green-400 mt-0.5">
+                            <i class="fa-solid fa-circle-check mr-1"></i>Verified
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button type="button" onclick="changeVerifiedEmail()" 
+                    class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/50 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-sm"></i>
+                    <span>Change Email</span>
+                </button>
+                <button type="button" onclick="removeSecondaryEmail()" 
+                    class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/50 text-white hover:text-red-400 font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-trash-can text-sm"></i>
+                    <span>Remove Email</span>
+                </button>
+            </div>
+        `;
+        
+        // Add verified badge to header if not present
+        const headerSection = document.querySelector('.bg-gradient-to-br.from-blue-500\\/10 .flex.items-start.justify-between');
+        if (headerSection && !headerSection.querySelector('.bg-green-500\\/20')) {
+            const existingBadge = headerSection.querySelector('.px-3.py-1\\.5');
+            if (!existingBadge) {
+                const badge = document.createElement('span');
+                badge.className = 'px-3 py-1.5 rounded-full bg-green-500/20 text-green-400 text-xs font-semibold flex items-center gap-1.5';
+                badge.innerHTML = '<i class="fa-solid fa-shield-check"></i> Verified';
+                headerSection.appendChild(badge);
+            }
+        }
+        
+        // Update hidden input
+        document.getElementById('secondary_email_hidden').value = email;
+        
+        // Make email input readonly and update its value
+        const emailInput = document.getElementById('secondary_email_input');
+        emailInput.value = email;
+        emailInput.readOnly = true;
+        emailInput.classList.add('cursor-not-allowed', 'bg-black/20');
+        
+        // Clear unsaved state (no page reload needed - UI already updated)
+        markSaved();
+    }
+
+    // Verify secondary email with OTP (DEPRECATED - keeping for backward compatibility)
+    async function verifySecondaryEmail() {
+        await startEmailVerification();
     }
 
     // Select preferred contact method (card UI)
