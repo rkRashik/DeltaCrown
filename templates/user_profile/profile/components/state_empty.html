@@ -1,0 +1,33 @@
+{# Empty State Component #}
+{# UP-PHASE-2: Reusable empty state for sections with no content #}
+{# 
+  Usage: {% include 'user_profile/profile/components/state_empty.html' with icon="fa-video" title="No highlights yet" message="Add your first clip" cta_label="Add Highlight" cta_action="openEditHighlightsModal()" %}
+  Params:
+    - icon: Font Awesome icon class
+    - title: Main heading
+    - message: Optional subtitle message
+    - cta_label: Optional CTA button label
+    - cta_action: Optional CTA button onclick handler
+    - show_cta: Optional boolean (default: is_owner)
+#}
+
+<div class="z-card p-12 text-center border-dashed border-white/10 bg-black/30">
+    <div class="flex flex-col items-center justify-center space-y-4">
+        <i class="fa-solid {{ icon|default:'fa-inbox' }} text-5xl text-gray-700"></i>
+        <div>
+            <h3 class="text-lg font-display font-bold text-white mb-1">{{ title|default:"Nothing here yet" }}</h3>
+            {% if message %}
+            <p class="text-sm text-gray-500">{{ message }}</p>
+            {% endif %}
+        </div>
+        
+        {% if cta_label and cta_action %}
+            {% if show_cta or is_owner %}
+            <button onclick="{{ cta_action }}" class="mt-2 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-black font-bold px-6 py-2 rounded-lg transition flex items-center gap-2 text-sm uppercase tracking-wider">
+                <i class="fa-solid fa-plus"></i>
+                {{ cta_label }}
+            </button>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>

@@ -2113,7 +2113,7 @@
         showToast(usePrimary ? 'Setting primary email...' : 'Sending verification code...', 'info');
         
         try {
-            const response = await fetch('/me/settings/send-verification-otp/', {
+            const response = await fetch('{% url "user_profile:send_verification_otp" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2239,7 +2239,7 @@
         button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
         
         try {
-            const response = await fetch('/me/settings/verify-otp-code/', {
+            const response = await fetch('{% url "user_profile:verify_otp_code" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

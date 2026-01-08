@@ -2257,6 +2257,87 @@
 {{ game_configs|json_script:"gameConfigsData" }}
 
 <script>
+// ============================================================================
+// GLOBAL PROFILE CONTEXT (Server-Rendered)
+// ============================================================================
+const IS_OWN_PROFILE = {{ is_owner|yesno:"true,false" }};
+const IS_AUTHENTICATED = {{ request.user.is_authenticated|yesno:"true,false" }};
+const PROFILE_USERNAME = '{{ profile_user.username|escapejs }}';
+const VIEWER_USERNAME = '{{ request.user.username|escapejs }}';
+const DEBUG_PROFILE = false; // Set to true for debugging
+
+// ============================================================================
+// URL HELPER FOR DYNAMIC IDS
+// ============================================================================
+/**
+ * Safely replace placeholder ID in Django-generated URL with actual ID.
+ * Handles trailing slashes and various URL formats.
+ * 
+ * @param {string} urlTemplate - URL with placeholder ID (e.g., /api/bounties/0/accept/)
+ * @param {number|string} actualId - The real ID to substitute
+ * @returns {string} URL with actual ID
+ * 
+ * Examples:
+ *   urlWithId('/api/bounties/0/accept/', 123) => '/api/bounties/123/accept/'
+ *   urlWithId('/api/hardware/0/', 456) => '/api/hardware/456/'
+ */
+function urlWithId(urlTemplate, actualId) {
+    // Replace /0/ or /0 at end with actual ID, preserving trailing slash
+    return urlTemplate.replace(/\/0(\/?)$/, `/${actualId}$1`);
+}
+
+// ============================================================================
+// CSRF TOKEN HELPER
+// ============================================================================
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function getCSRFToken() {
+    // Try cookie first
+    let token = getCookie('csrftoken');
+    
+    // Fallback to meta tag or hidden input
+    if (!token) {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta) token = meta.getAttribute('content');
+    }
+    
+    if (!token) {
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input) token = input.value;
+    }
+    
+    if (!token && DEBUG_PROFILE) {
+        console.error('CSRF token not found!');
+    }
+    
+    return token;
+}
+
+// ============================================================================
+// DEBUG LOGGER
+// ============================================================================
+function debugLog(message, data) {
+    if (DEBUG_PROFILE) {
+        console.log(`[Profile Debug] ${message}`, data || '');
+    }
+}
+
+// ============================================================================
+// TAB SWITCHING
+// ============================================================================
 function switchTab(tabId) {
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(el => {
@@ -2354,7 +2435,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const city = document.getElementById('cityInput').value.trim();
             
             try {
-                const response = await fetch('/user-profile/me/settings/basic/', {
+                const response = await fetch('{% url "user_profile:update_basic_info" %}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2411,7 +2492,7 @@ function closeGamePassportsModal() {
 
 async function loadAvailableGames() {
     try {
-        const response = await fetch('/user-profile/api/games/available/');
+        const response = await fetch('{% url "user_profile:get_available_games" %}');
         const data = await response.json();
         
         if (data.success && data.games) {
@@ -2433,7 +2514,7 @@ async function loadAvailableGames() {
 
 async function loadGamePassports() {
     try {
-        const response = await fetch('/user-profile/profile/api/game-passports/');
+        const response = await fetch('{% url "user_profile:list_game_passports_api" %}');
         const data = await response.json();
         
         const container = document.getElementById('passportsList');
@@ -2520,7 +2601,7 @@ async function deletePassport(passportId, gameName) {
     }
     
     try {
-        const response = await fetch('/user-profile/profile/api/game-passports/delete/', {
+        const response = await fetch('{% url "user_profile:delete_game_passport_api" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2561,7 +2642,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             try {
-                const response = await fetch('/user-profile/profile/api/game-passports/create/', {
+                const response = await fetch('{% url "user_profile:create_game_passport_api" %}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2745,7 +2826,7 @@ function submitBounty() {
         expires_in_hours: parseInt(form.expires_in_hours.value),
     };
     
-    fetch('/user-profile/api/bounties/create/', {
+    fetch('{% url "user_profile:create_bounty" %}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -2782,10 +2863,13 @@ function acceptBounty(bountyId) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Accepting...';
     
-    fetch(`/user-profile/api/bounties/${bountyId}/accept/`, {
+    const url = urlWithId('{% url "user_profile:accept_bounty" bounty_id=0 %}', bountyId);
+    debugLog('Accept bounty', { bountyId, url });
+    
+    fetch(url, {
         method: 'POST',
         headers: {
-            'X-CSRFToken': '{{ csrf_token }}'
+            'X-CSRFToken': getCSRFToken()
         }
     })
     .then(response => response.json())
@@ -2964,11 +3048,12 @@ document.getElementById('hardwareForm').addEventListener('submit', async (e) => 
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
     
     try {
-        const response = await fetch('/api/profile/loadout/hardware/', {
+        debugLog('Save hardware', payload);
+        const response = await fetch('{% url "user_profile:save_hardware" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': getCSRFToken()
             },
             body: JSON.stringify(payload)
         });
@@ -3012,10 +3097,13 @@ async function deleteHardware(id, category) {
     if (!confirm(`Delete this ${category.toLowerCase()}? This cannot be undone.`)) return;
     
     try {
-        const response = await fetch(`/api/profile/loadout/hardware/${id}/`, {
+        const url = urlWithId('{% url "user_profile:delete_hardware" hardware_id=0 %}', id);
+        debugLog('Delete hardware', { id, url });
+        
+        const response = await fetch(url, {
             method: 'DELETE',
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': getCSRFToken()
             }
         });
         
@@ -3048,7 +3136,7 @@ function resetHardwareForm() {
 // Load Available Games
 async function loadAvailableGamesForConfigs() {
     try {
-        const response = await fetch('/api/games/available/');
+        const response = await fetch('{% url "user_profile:get_available_games" %}');
         const data = await response.json();
         
         if (data.games) {
@@ -3165,11 +3253,12 @@ document.getElementById('gameConfigForm').addEventListener('submit', async (e) =
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
     
     try {
-        const response = await fetch('/api/profile/loadout/game-config/', {
+        debugLog('Save game config', payload);
+        const response = await fetch('{% url "user_profile:save_game_config" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': getCSRFToken()
             },
             body: JSON.stringify(payload)
         });
@@ -3239,10 +3328,13 @@ async function deleteGameConfig(id, gameName) {
     if (!confirm(`Delete config for ${gameName}? This cannot be undone.`)) return;
     
     try {
-        const response = await fetch(`/api/profile/loadout/game-config/${id}/`, {
+        const url = urlWithId('{% url "user_profile:delete_game_config" config_id=0 %}', id);
+        debugLog('Delete game config', { id, url });
+        
+        const response = await fetch(url, {
             method: 'DELETE',
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': getCSRFToken()
             }
         });
         
@@ -3306,11 +3398,14 @@ function startMatch(bountyId) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Starting...';
     
-    fetch(`/user-profile/api/bounties/${bountyId}/start/`, {
+    const url = urlWithId('{% url "user_profile:start_match" bounty_id=0 %}', bountyId);
+    debugLog('Start match', { bountyId, url });
+    
+    fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
+            'X-CSRFToken': getCSRFToken()
         }
     })
     .then(response => response.json())
@@ -3385,11 +3480,14 @@ function submitProof() {
         description: description
     };
     
-    fetch(`/user-profile/api/bounties/${currentProofBountyId}/submit-proof/`, {
+    const url = urlWithId('{% url "user_profile:submit_proof" bounty_id=0 %}', currentProofBountyId);
+    debugLog('Submit proof', { bountyId: currentProofBountyId, url });
+    
+    fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(data)
     })
@@ -3416,11 +3514,14 @@ function confirmResult(bountyId) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Confirming...';
     
-    fetch(`/user-profile/api/bounties/${bountyId}/confirm-result/`, {
+    const url = urlWithId('{% url "user_profile:confirm_result" bounty_id=0 %}', bountyId);
+    debugLog('Confirm result', { bountyId, url });
+    
+    fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
+            'X-CSRFToken': getCSRFToken()
         }
     })
     .then(response => response.json())
