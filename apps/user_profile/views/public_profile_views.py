@@ -1114,17 +1114,36 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
             return JsonResponse({'success': False, 'error': 'Phone must be 20 characters or less'}, status=400)
         profile.phone = phone
         
-        # Email update (on User model, not profile)
-        email = data.get('email', '').strip()
-        if email:
+        # WhatsApp (separate from phone)
+        whatsapp = data.get('whatsapp', '').strip()
+        if len(whatsapp) > 20:
+            return JsonResponse({'success': False, 'error': 'WhatsApp must be 20 characters or less'}, status=400)
+        profile.whatsapp = whatsapp
+        
+        # Secondary/Public Email (requires verification for display)
+        secondary_email = data.get('secondary_email', '').strip()
+        if secondary_email:
             from django.core.validators import validate_email
             from django.core.exceptions import ValidationError as EmailValidationError
             try:
-                validate_email(email)
-                request.user.email = email
-                request.user.save()
+                validate_email(secondary_email)
+                # If email changed, mark as unverified
+                if profile.secondary_email != secondary_email:
+                    profile.secondary_email = secondary_email
+                    profile.secondary_email_verified = False
+                    # TODO: Send OTP verification email
             except EmailValidationError:
                 return JsonResponse({'success': False, 'error': 'Invalid email address'}, status=400)
+        else:
+            profile.secondary_email = ''
+            profile.secondary_email_verified = False
+        
+        # Preferred Contact Method
+        preferred_contact = data.get('preferred_contact_method', '').strip()
+        valid_methods = ['email', 'phone', 'whatsapp', 'discord', 'facebook']
+        if preferred_contact and preferred_contact not in valid_methods:
+            return JsonResponse({'success': False, 'error': 'Invalid contact method'}, status=400)
+        profile.preferred_contact_method = preferred_contact
         
         # ===== LEGAL IDENTITY & KYC =====
         # Only allow updating if not KYC verified

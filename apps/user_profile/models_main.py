@@ -125,6 +125,34 @@ class UserProfile(models.Model):
         default="",
         help_text="Primary phone number (international format preferred: +8801XXXXXXXXX)"
     )
+    whatsapp = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="WhatsApp number (can be different from phone, international format)"
+    )
+    secondary_email = models.EmailField(
+        blank=True,
+        default="",
+        help_text="Public/secondary email for contact (primary email stays private)"
+    )
+    secondary_email_verified = models.BooleanField(
+        default=False,
+        help_text="Whether secondary email has been verified via OTP"
+    )
+    preferred_contact_method = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        choices=[
+            ('email', 'Email'),
+            ('phone', 'Phone'),
+            ('whatsapp', 'WhatsApp'),
+            ('discord', 'Discord'),
+            ('facebook', 'Facebook'),
+        ],
+        help_text="User's preferred method of contact"
+    )
     
     # ===== EMERGENCY CONTACT (LAN Events) =====
     emergency_contact_name = models.CharField(

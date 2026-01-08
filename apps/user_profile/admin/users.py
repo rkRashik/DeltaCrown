@@ -1,4 +1,20 @@
 # apps/user_profile/admin/users.py
+"""User Profile Admin - MAIN Configuration.
+
+⚠️ IMPORTANT: This file contains the OFFICIAL UserProfile admin registration.
+DO NOT register UserProfile in apps/user_profile/admin.py to avoid conflicts.
+
+All UserProfile fieldsets, list_display, filters, and customizations should be done here.
+
+Admin URL: http://127.0.0.1:8000/admin/user_profile/userprofile/
+
+Recent additions (2026-01-08):
+- whatsapp: Separate WhatsApp number field
+- secondary_email: Public/contact email (separate from account email)  
+- secondary_email_verified: OTP verification status (readonly)
+- preferred_contact_method: User's preferred way to be contacted
+"""
+
 import json
 import tempfile
 from datetime import datetime
@@ -123,6 +139,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     
     readonly_fields = (
         "uuid", "slug", "public_id", "created_at", "updated_at", "kyc_verified_at",
+        "secondary_email_verified",  # Only system can verify via OTP
         "deltacoin_balance",  # UP-PHASE11: Economy-owned (read-only)
         "lifetime_earnings",  # UP-PHASE11: Economy-owned (read-only)
     )
@@ -139,7 +156,17 @@ class UserProfileAdmin(admin.ModelAdmin):
             'description': 'KYC-verified data is locked and cannot be changed by users.'
         }),
         ('Contact Information', {
-            'fields': ('phone', 'country', 'city', 'postal_code', 'address')
+            'fields': (
+                'phone',
+                'whatsapp', 
+                'secondary_email',
+                'secondary_email_verified',
+                'preferred_contact_method',
+                'country', 
+                'city', 
+                'postal_code', 
+                'address'
+            )
         }),
         ('Demographics', {
             'fields': ('gender',)
