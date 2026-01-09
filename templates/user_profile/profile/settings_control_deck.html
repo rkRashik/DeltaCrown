@@ -3528,6 +3528,7 @@
     
     async function loadRequests(isPolling = false) {
         try {
+            // TODO: Add 'inventory:requests_list' URL pattern or verify this is correct
             const response = await fetch('/me/inventory/requests/');
             const data = await response.json();
             
@@ -3961,6 +3962,7 @@
         }
         
         try {
+            // TODO: Add 'inventory:trade_respond' URL pattern or verify this is correct
             const response = await fetch('/me/inventory/trade/respond/', {
                 method: 'POST',
                 headers: {

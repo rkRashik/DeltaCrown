@@ -195,11 +195,7 @@
     <!-- Edit Cover Button (Owner Only) -->
     {% if is_owner %}
     <input type="file" id="coverInput" accept="image/jpeg,image/jpg,image/png,image/webp" style="display:none;">
-    <div class="absolute top-28 right-8 z-30 opacity-0 group-hover/hero:opacity-100 transition-all duration-300 transform translate-y-2 group-hover/hero:translate-y-0">
-        <button onclick="document.getElementById('coverInput').click()" class="bg-black/60 hover:bg-white hover:text-black text-white border border-white/10 px-5 py-2 rounded-full backdrop-blur-md text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition shadow-lg">
-            <i class="fa-solid fa-image"></i> Change Cover
-        </button>
-    </div>
+    <!-- Removed inline edit button. To edit profile, go to Settings -->
     {% endif %}
 
     <!-- Profile Content -->
@@ -213,10 +209,7 @@
 
                     {% if is_owner %}
                     <input type="file" id="avatarInput" accept="image/jpeg,image/jpg,image/png,image/webp" style="display:none;">
-                    <button onclick="document.getElementById('avatarInput').click()" class="absolute inset-0 z-10 bg-black/60 rounded-full flex flex-col items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition duration-300 backdrop-blur-[2px] border-4 border-[var(--z-bg)] cursor-pointer text-white">
-                        <i class="fa-solid fa-camera text-2xl mb-1"></i>
-                        <span class="text-[10px] font-bold uppercase tracking-widest">Update</span>
-                    </button>
+                    <!-- Removed inline edit button. To edit avatar, go to Settings -->
                     {% endif %}
 
                     <!-- Online Status -->
@@ -239,11 +232,7 @@
                     <h1 class="text-6xl md:text-8xl font-display font-black text-white tracking-tighter leading-none drop-shadow-2xl">
                         {{ profile.display_name|upper }}
                     </h1>
-                    {% if is_owner %}
-                    <button class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/20 flex items-center justify-center text-gray-400 hover:text-white transition opacity-0 group-hover/hero:opacity-100">
-                        <i class="fa-solid fa-pen text-sm"></i>
-                    </button>
-                    {% endif %}
+                    <!-- Removed inline edit button. To edit display name, go to Settings -->
                 </div>
 
                 <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-5">
@@ -261,9 +250,19 @@
                     {% endif %}
                 </div>
 
-                <p class="text-gray-300 text-lg font-light max-w-2xl leading-relaxed mb-8 mx-auto md:mx-0">
+                <p class="text-gray-300 text-lg font-light max-w-2xl leading-relaxed mb-4 mx-auto md:mx-0">
                     {{ profile.bio|default:"Building the future of South Asian Esports." }}
                 </p>
+                
+                {% if is_owner %}
+                <div class="mb-8 max-w-2xl mx-auto md:mx-0">
+                    <a href="{% url 'user_profile:profile_settings' %}" class="inline-flex items-center gap-2 text-xs text-[var(--z-cyan)] hover:text-white transition group">
+                        <i class="fa-solid fa-gear group-hover:rotate-90 transition-transform"></i>
+                        <span>To edit your profile, go to Settings</span>
+                        <i class="fa-solid fa-arrow-right opacity-0 group-hover:opacity-100 transition"></i>
+                    </a>
+                </div>
+                {% endif %}
 
                 <!-- Stats Bar -->
                 <div class="z-card p-4 inline-flex flex-wrap items-center justify-center md:justify-start gap-8 bg-black/40 backdrop-blur-md border-white/5">
@@ -370,6 +369,9 @@
                 <i class="fa-solid fa-gamepad text-xs opacity-50"></i> Loadout
             </button>
             <button onclick="switchTab('career')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Career</button>
+            <button onclick="switchTab('game-ids')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-id-card text-xs opacity-50"></i> Game IDs
+            </button>
             <button onclick="switchTab('stats')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Stats</button>
             <button onclick="switchTab('highlights')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Highlights</button>
             <button onclick="switchTab('bounties')" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">
@@ -529,136 +531,222 @@
 
     <!-- MAIN CONTENT AREA -->
     <section class="lg:col-span-6 min-h-[800px]">
-        <!-- OVERVIEW TAB -->
+        <!-- OVERVIEW TAB (Dashboard Summary) -->
         <div id="tab-overview" class="tab-content active space-y-8">
-            <!-- Pinned Highlight OR Quick Stats -->
-            {% if pinned_highlight %}
-            <div class="z-card p-0 overflow-hidden relative group h-80 md:h-96 border-[var(--z-cyan)]/30 shadow-[0_0_10px_rgba(0,240,255,0.3)]">
-                <img src="{{ pinned_highlight.thumbnail_url }}" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-700 transform group-hover:scale-105" alt="{{ pinned_highlight.title }}">
-
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <button onclick="openVideoModal('{{ pinned_highlight.embed_url|escapejs }}', '{{ pinned_highlight.title|escapejs }}')" class="w-20 h-20 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/20 group-hover:border-[var(--z-cyan)] group-hover:bg-[var(--z-cyan)] group-hover:text-black transition-all duration-300 cursor-pointer shadow-2xl">
-                        <i class="fa-solid fa-play text-2xl ml-1"></i>
-                    </button>
-                </div>
-
-                <div class="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-[var(--z-bg)] via-[var(--z-bg)]/90 to-transparent">
-                    <div class="flex items-center gap-3 mb-3">
-                        <span class="bg-[var(--z-purple)]/90 text-white text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg">
-                            <i class="fa-solid fa-thumbtack"></i> Pinned
-                        </span>
-                    </div>
-                    <h3 class="text-white font-display font-bold text-3xl mb-2 drop-shadow-md">{{ pinned_highlight.title }}</h3>
-                    <div class="flex gap-6 text-xs text-gray-300 font-mono">
-                        <span class="flex items-center gap-2"><i class="fa-solid fa-gamepad text-[var(--z-cyan)]"></i> {{ pinned_highlight.game|upper }}</span>
-                    </div>
-                </div>
-            </div>
-            {% else %}
-            <!-- Quick Stats (shown when no pinned highlight) -->
+            <!-- About Section -->
+            {% if profile.bio or profile.pronouns or profile.country %}
             <div class="z-card p-8">
-                <h2 class="text-xl font-display font-bold text-white mb-8 flex items-center gap-3">
-                    <i class="fa-solid fa-chart-line text-[var(--z-cyan)]"></i> Quick Stats
-                </h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-cyan)]/50 transition">
-                        <div class="text-3xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-cyan)] transition">{{ user_stats.total_matches|default:"—" }}</div>
-                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Matches</div>
-                    </div>
-                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-green)]/50 transition">
-                        <div class="text-3xl font-display font-bold text-[var(--z-green)] mb-1">{{ user_stats.total_wins|default:"—" }}</div>
-                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Wins</div>
-                    </div>
-                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-gold)]/50 transition">
-                        <div class="text-3xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-gold)] transition">{{ user_stats.win_rate|default:"—" }}{% if user_stats.win_rate %}%{% endif %}</div>
-                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Win Rate</div>
-                    </div>
-                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-purple)]/50 transition">
-                        <div class="text-3xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-purple)] transition">{{ profile.level|default:"1" }}</div>
-                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Level</div>
-                    </div>
+                <div class="flex items-center gap-3 mb-6">
+                    <i class="fa-solid fa-user text-[var(--z-cyan)] text-xl"></i>
+                    <h2 class="text-2xl font-display font-bold text-white">About</h2>
                 </div>
-            </div>
-
-            {% if not highlight_clips and not active_bounties %}
-            <div class="z-card p-8 border-dashed border-white/10 bg-black/30 text-center space-y-4">
-                <div class="text-3xl">✨</div>
-                <div class="text-lg font-display font-bold text-white">Showcase your first moment</div>
-                <p class="text-sm text-gray-400 max-w-xl mx-auto">Add a highlight clip, play a match, or create a bounty to light up your profile. Visitors see this space first.</p>
-                {% if is_owner %}
-                <div class="flex flex-wrap justify-center gap-3 text-sm font-bold uppercase tracking-wider">
-                    <button onclick="openEditHighlightsModal()" class="px-4 py-2 rounded-lg bg-[var(--z-cyan)] text-black hover:bg-[var(--z-cyan)]/80 transition flex items-center gap-2">
-                        <i class="fa-solid fa-video"></i> Add Highlight
-                    </button>
-                    <button onclick="openGamePassportsModal()" class="px-4 py-2 rounded-lg bg-white/10 text-white border border-white/10 hover:border-[var(--z-cyan)] transition flex items-center gap-2">
-                        <i class="fa-solid fa-id-card"></i> Add Game ID
-                    </button>
-                    <button onclick="openCreateBountyModal()" class="px-4 py-2 rounded-lg bg-[var(--z-purple)]/20 text-white border border-[var(--z-purple)]/40 hover:border-[var(--z-purple)] transition flex items-center gap-2">
-                        <i class="fa-solid fa-crosshairs"></i> Create Bounty
-                    </button>
-                </div>
-                {% endif %}
-            </div>
-            {% endif %}
-            {% endif %}
-
-            <!-- Active Bounties -->
-            {% if active_bounties %}
-            {% for bounty in active_bounties|slice:":1" %}
-            <div class="z-card p-1 bg-gradient-to-r from-[var(--z-red)]/20 to-transparent relative group">
-                <div class="bg-[var(--z-panel)]/90 backdrop-blur-xl p-6 rounded-[18px] flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div class="flex items-center gap-5 w-full">
-                        <div class="w-16 h-16 rounded-2xl bg-[var(--z-red)]/10 text-[var(--z-red)] flex items-center justify-center text-3xl border border-[var(--z-red)]/20 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
-                            <i class="fa-solid fa-crosshairs"></i>
+                <div class="space-y-4">
+                    {% if profile.bio %}
+                    <p class="text-gray-300 text-base leading-relaxed">{{ profile.bio }}</p>
+                    {% endif %}
+                    <div class="flex flex-wrap gap-4 text-sm">
+                        {% if profile.pronouns %}
+                        <div class="flex items-center gap-2 text-gray-400">
+                            <i class="fa-solid fa-id-badge text-[var(--z-purple)]"></i>
+                            <span>{{ profile.pronouns }}</span>
                         </div>
-                        <div>
-                            <h3 class="text-white font-display text-xl font-bold tracking-wide">{{ bounty.title|upper }}</h3>
-                            <div class="flex gap-3 mt-2 text-xs text-gray-400 font-mono">
-                                {% if bounty.game %}<span class="border border-white/10 px-2 py-0.5 rounded">{{ bounty.game|upper }}</span>{% endif %}
-                            </div>
+                        {% endif %}
+                        {% if profile.country %}
+                        <div class="flex items-center gap-2 text-gray-400">
+                            <i class="fa-solid fa-location-dot text-[var(--z-gold)]"></i>
+                            <span>{{ profile.country }}</span>
                         </div>
-                    </div>
-                    <div class="text-center md:text-right min-w-max">
-                        <div class="text-4xl font-display font-black text-[var(--z-gold)] drop-shadow-md">{{ bounty.stake_amount }} DC</div>
-                        {% if not is_owner %}
-                        <button class="w-full mt-2 bg-white text-black text-[10px] font-black uppercase tracking-widest px-6 py-2.5 rounded-lg hover:bg-[var(--z-red)] hover:text-white transition shadow-lg">
-                            Accept Challenge
-                        </button>
                         {% endif %}
                     </div>
                 </div>
             </div>
-            {% endfor %}
             {% endif %}
-
-            <!-- Skill Matrix (Endorsements) -->
-            {% if endorsements.total_count > 0 %}
-            <div class="z-card p-8">
-                <div class="flex justify-between items-end mb-8">
-                    <div>
-                        <h2 class="text-xl font-display font-bold text-white flex items-center gap-3 tracking-wide">
-                            <i class="fa-solid fa-certificate text-[var(--z-gold)]"></i> Skill Matrix
-                        </h2>
-                        <p class="text-xs text-gray-500 mt-1 uppercase tracking-widest">Community Verified Stats</p>
+            
+            <!-- Dashboard Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <!-- Career Card -->
+                <div onclick="switchTab('career')" class="z-card p-6 cursor-pointer hover:border-[var(--z-cyan)]/50 transition-all transform hover:-translate-y-1 group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)] text-2xl group-hover:scale-110 transition">
+                            <i class="fa-solid fa-timeline"></i>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-cyan)] transition"></i>
                     </div>
-                    {% if not is_owner %}
-                    <button class="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-lg transition text-gray-300 hover:text-white uppercase font-bold tracking-wider">
-                        + Endorse User
-                    </button>
+                    <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-cyan)] transition">Career</h3>
+                    {% if user_teams %}
+                    <p class="text-sm text-gray-400 mb-3">Currently on <span class="text-white font-bold">{{ user_teams|length }} team{{ user_teams|length|pluralize }}</span></p>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-1 bg-[var(--z-cyan)]/10 text-[var(--z-cyan)] rounded font-mono">{{ user_teams.0.name|truncatechars:15 }}</span>
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-gray-500">No team history yet</p>
                     {% endif %}
                 </div>
-
-                <div class="space-y-4">
-                    {% for skill, count in endorsements.by_skill.items|slice:":3" %}
-                    <div class="flex items-center justify-between group p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 transition cursor-default">
-                        <div class="flex items-center gap-5">
-                            <div class="w-12 h-12 rounded-xl bg-[var(--z-purple)]/20 flex items-center justify-center text-[var(--z-purple)] font-display font-bold text-xl border border-[var(--z-purple)]/30">{{ count }}</div>
-                            <div>
-                                <h4 class="text-sm font-bold text-white group-hover:text-[var(--z-purple)] transition uppercase tracking-wider">{{ skill|title }}</h4>
+                
+                <!-- Stats Card -->
+                <div onclick="switchTab('stats')" class="z-card p-6 cursor-pointer hover:border-[var(--z-gold)]/50 transition-all transform hover:-translate-y-1 group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-[var(--z-gold)]/10 flex items-center justify-center text-[var(--z-gold)] text-2xl group-hover:scale-110 transition">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-gold)] transition"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-gold)] transition">Stats</h3>
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                            <div class="text-2xl font-bold text-[var(--z-green)]">{{ user_stats.total_wins|default:0 }}</div>
+                            <div class="text-xs text-gray-500">Wins</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-white">{{ user_stats.win_rate|default:0 }}%</div>
+                            <div class="text-xs text-gray-500">Win Rate</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Inventory Card -->
+                <div onclick="switchTab('inventory')" class="z-card p-6 cursor-pointer hover:border-[var(--z-purple)]/50 transition-all transform hover:-translate-y-1 group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-[var(--z-purple)]/10 flex items-center justify-center text-[var(--z-purple)] text-2xl group-hover:scale-110 transition">
+                            <i class="fa-solid fa-box-open"></i>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-purple)] transition"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-purple)] transition">Inventory</h3>
+                    {% if showcase.equipped.border or showcase.equipped.frame or showcase.equipped.badges %}
+                    <p class="text-sm text-gray-400">
+                        <span class="text-white font-bold">{{ showcase.equipped|length|default:0 }}</span> equipped items
+                    </p>
+                    {% else %}
+                    <p class="text-sm text-gray-500">No cosmetics equipped</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Media Card -->
+                <div onclick="switchTab('media')" class="z-card p-6 cursor-pointer hover:border-[var(--z-pink)]/50 transition-all transform hover:-translate-y-1 group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-[var(--z-pink)]/10 flex items-center justify-center text-[var(--z-pink)] text-2xl group-hover:scale-110 transition">
+                            <i class="fa-solid fa-image"></i>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-pink)] transition"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-pink)] transition">Media</h3>
+                    <p class="text-sm text-gray-500">Gallery coming soon</p>
+                </div>
+                
+                <!-- Loadouts Card -->
+                <div onclick="switchTab('loadout')" class="z-card p-6 cursor-pointer hover:border-[var(--z-green)]/50 transition-all transform hover:-translate-y-1 group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-[var(--z-green)]/10 flex items-center justify-center text-[var(--z-green)] text-2xl group-hover:scale-110 transition">
+                            <i class="fa-solid fa-computer-mouse"></i>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-green)] transition"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-green)] transition">Loadouts</h3>
+                    {% if hardware_gear.mouse or hardware_gear.keyboard %}
+                    <p class="text-sm text-gray-400">
+                        {% if hardware_gear.mouse %}<span class="text-white">{{ hardware_gear.mouse.brand }}</span>{% endif %}
+                        {% if hardware_gear.keyboard %}<span class="text-gray-600 mx-2">•</span><span class="text-white">{{ hardware_gear.keyboard.brand }}</span>{% endif %}
+                    </p>
+                    {% else %}
+                    <p class="text-sm text-gray-500">No hardware configured</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Bounties Card -->
+                <div onclick="switchTab('bounties')" class="z-card p-6 cursor-pointer hover:border-[var(--z-red)]/50 transition-all transform hover:-translate-y-1 group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-[var(--z-red)]/10 flex items-center justify-center text-[var(--z-red)] text-2xl group-hover:scale-110 transition">
+                            <i class="fa-solid fa-crosshairs"></i>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-red)] transition"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-red)] transition">Bounties</h3>
+                    {% if bounties.stats.open_count or bounties.stats.in_progress_count %}
+                    <div class="flex gap-4 text-sm">
+                        <div>
+                            <div class="text-xl font-bold text-[var(--z-gold)]">{{ bounties.stats.open_count|default:0 }}</div>
+                            <div class="text-xs text-gray-500">Open</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold text-[var(--z-cyan)]">{{ bounties.stats.in_progress_count|default:0 }}</div>
+                            <div class="text-xs text-gray-500">Active</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-gray-500">No active bounties</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Highlights Section (if any) -->
+            {% if highlight_clips %}
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-video text-[var(--z-red)]"></i> Featured Highlights
+                    </h2>
+                    <button onclick="switchTab('highlights')" class="text-xs text-[var(--z-cyan)] hover:text-white transition">
+                        View All <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for clip in highlight_clips|slice:":2" %}
+                    <div class="z-card p-0 overflow-hidden group cursor-pointer relative aspect-video border-[var(--z-red)]/20 hover:border-[var(--z-red)] transition" onclick="openVideoModal('{{ clip.embed_url|escapejs }}', '{{ clip.title|escapejs }}', '{{ clip.url|escapejs }}')">
+                        {% if clip.thumbnail_url %}
+                        <img src="{{ clip.thumbnail_url }}" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition" alt="{{ clip.title }}">
+                        {% else %}
+                        <div class="w-full h-full bg-gradient-to-br from-[var(--z-red)]/20 to-[var(--z-red)]/5 flex items-center justify-center">
+                            <i class="fa-solid fa-video text-6xl text-[var(--z-red)]/30"></i>
+                        </div>
+                        {% endif %}
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition">
+                                <i class="fa-solid fa-play text-white text-xl"></i>
                             </div>
+                        </div>
+                        <div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black to-transparent">
+                            <div class="text-sm font-bold text-white">{{ clip.title }}</div>
                         </div>
                     </div>
                     {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Skill Matrix (if endorsements exist) -->
+            {% if endorsements.total_count > 0 %}
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-certificate text-[var(--z-gold)]"></i> Skill Matrix
+                    </h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {% for skill, count in endorsements.by_skill.items|slice:":3" %}
+                    <div class="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                        <div class="w-12 h-12 rounded-xl bg-[var(--z-purple)]/20 flex items-center justify-center text-[var(--z-purple)] font-bold text-xl">{{ count }}</div>
+                        <div class="text-sm font-bold text-white uppercase tracking-wider">{{ skill|title }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Empty State (if new profile) -->
+            {% if not user_teams and not highlight_clips and not endorsements.total_count %}
+            <div class="z-card p-12 border-dashed border-white/10 bg-black/30 text-center space-y-6">
+                <div class="text-6xl">✨</div>
+                <div class="space-y-2">
+                    <h3 class="text-2xl font-display font-bold text-white">Welcome to Your Profile!</h3>
+                    <p class="text-gray-400 max-w-xl mx-auto">
+                        {% if is_owner %}
+                        Start by exploring the tabs above. Add your game IDs, create bounties, upload highlights, or join a team to build your esports profile.
+                        {% else %}
+                        This profile is just getting started. Check back soon!
+                        {% endif %}
+                    </p>
                 </div>
             </div>
             {% endif %}
@@ -1135,6 +1223,112 @@
                 <div class="text-center text-gray-500 py-12">
                     <i class="fa-solid fa-users text-4xl mb-4 opacity-20"></i>
                     <p class="text-sm">No team history yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- GAME IDs TAB -->
+        <div id="tab-game-ids" class="tab-content space-y-6">
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                            <i class="fa-solid fa-id-card text-[var(--z-purple)]"></i> Game Accounts
+                        </h2>
+                        <p class="text-xs text-gray-500 mt-2">Your connected gaming accounts and stats</p>
+                    </div>
+                    {% if is_owner %}
+                    <button onclick="openGamePassportsModal()" class="px-4 py-2 bg-[var(--z-purple)] hover:bg-[var(--z-purple)]/80 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Add Game ID
+                    </button>
+                    {% endif %}
+                </div>
+
+                {% if game_passports %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {% for passport in game_passports %}
+                    <div class="z-card p-6 hover:border-[var(--z-purple)]/50 transition group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center gap-4">
+                                {% if passport.game.icon_url %}
+                                <img src="{{ passport.game.icon_url }}" class="w-12 h-12 rounded-lg" alt="{{ passport.game.name }}">
+                                {% else %}
+                                <div class="w-12 h-12 rounded-lg bg-[var(--z-purple)]/20 flex items-center justify-center text-[var(--z-purple)] text-xl">
+                                    <i class="fa-solid fa-gamepad"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <h3 class="text-lg font-bold text-white group-hover:text-[var(--z-purple)] transition">{{ passport.game.name }}</h3>
+                                    <p class="text-xs text-gray-500 uppercase tracking-wider">{{ passport.game.short_name|default:passport.game.name }}</p>
+                                </div>
+                            </div>
+                            {% if passport.is_verified %}
+                            <span class="bg-[var(--z-green)]/20 text-[var(--z-green)] text-[8px] px-2 py-1 rounded font-bold uppercase tracking-widest flex items-center gap-1">
+                                <i class="fa-solid fa-check-circle"></i> Verified
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="space-y-3">
+                            {% if passport.in_game_name %}
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-user text-gray-600 text-sm"></i>
+                                <span class="text-sm text-white font-mono">{{ passport.in_game_name }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if passport.current_rank %}
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-trophy text-[var(--z-gold)] text-sm"></i>
+                                <span class="text-sm text-gray-300">{{ passport.current_rank }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if passport.region %}
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-globe text-[var(--z-cyan)] text-sm"></i>
+                                <span class="text-sm text-gray-400 uppercase">{{ passport.region }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if passport.stats %}
+                            <div class="mt-4 pt-4 border-t border-white/5">
+                                <div class="grid grid-cols-2 gap-4">
+                                    {% for key, value in passport.stats.items|slice:":4" %}
+                                    <div class="text-center p-2 bg-white/5 rounded">
+                                        <div class="text-lg font-bold text-white">{{ value }}</div>
+                                        <div class="text-[9px] text-gray-500 uppercase tracking-wider">{{ key|title }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if is_owner %}
+                        <div class="mt-4 pt-4 border-t border-white/5 flex gap-2">
+                            <button class="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white transition">
+                                <i class="fa-solid fa-refresh mr-1"></i> Refresh
+                            </button>
+                            <button class="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 rounded text-xs transition">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-16 text-gray-500">
+                    <i class="fa-solid fa-id-card text-6xl mb-4 opacity-20"></i>
+                    <p class="text-lg mb-2">No game accounts connected</p>
+                    <p class="text-sm text-gray-600 mb-6">Link your gaming accounts to display your ranks, stats, and achievements</p>
+                    {% if is_owner %}
+                    <button onclick="openGamePassportsModal()" class="px-6 py-3 bg-[var(--z-purple)] hover:bg-[var(--z-purple)]/80 text-white font-bold text-sm uppercase tracking-wider rounded-lg transition inline-flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Add Your First Game ID
+                    </button>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>
@@ -3579,11 +3773,12 @@ function submitDispute() {
     
     const data = { reason: reason };
     
-    fetch(`/user-profile/api/bounties/${currentDisputeBountyId}/dispute/`, {
+    const disputeUrl = urlWithId('{% url "user_profile:raise_dispute" bounty_id=0 %}', currentDisputeBountyId);
+    fetch(disputeUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(data)
     })
@@ -3674,11 +3869,12 @@ function submitEndorsement() {
         receiver_id: currentEndorseReceiverId
     };
     
-    fetch(`/user-profile/api/bounties/${currentEndorseBountyId}/endorse/`, {
+    const endorseUrl = urlWithId('{% url "user_profile:award_bounty_endorsement" bounty_id=0 %}', currentEndorseBountyId);
+    fetch(endorseUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
+            'X-CSRFToken': getCSRFToken()
         },
         body: JSON.stringify(data)
     })
@@ -3739,10 +3935,10 @@ async function handleMediaUpload(file, mediaType) {
     formData.append('media_type', mediaType);
     
     try {
-        const response = await fetch('/user-profile/me/settings/media/', {
+        const response = await fetch('{% url "user_profile:upload_media" %}', {
             method: 'POST',
             headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': getCSRFToken()
             },
             body: formData
         });
@@ -3804,7 +4000,7 @@ async function loadSocialLinks() {
     container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
     
     try {
-        const response = await fetch('/user-profile/api/social-links/');
+        const response = await fetch('{% url "user_profile:social_links_list_api" %}');
         const data = await response.json();
         
         if (response.ok && data.success) {
@@ -3879,11 +4075,11 @@ async function addSocialLink() {
     }
     
     try {
-        const response = await fetch('/user-profile/api/social-links/create/', {
+        const response = await fetch('{% url "user_profile:social_link_create_api" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': getCSRFToken()
             },
             body: JSON.stringify({
                 platform: platform,
@@ -3918,11 +4114,11 @@ async function deleteSocialLink(linkId, platform) {
     }
     
     try {
-        const response = await fetch('/user-profile/api/social-links/delete/', {
+        const response = await fetch('{% url "user_profile:social_link_delete_api" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': getCSRFToken()
             },
             body: JSON.stringify({
                 id: linkId
@@ -3985,7 +4181,8 @@ async function loadFollowersList() {
     container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
     
     try {
-        const response = await fetch(`/user-profile/api/profile/${username}/followers/`);
+        const followersUrl = '{% url "user_profile:get_followers" username="PLACEHOLDER" %}'.replace('PLACEHOLDER', username);
+        const response = await fetch(followersUrl);
         const data = await response.json();
         
         if (response.ok && data.success) {
@@ -4027,7 +4224,8 @@ async function loadFollowingList() {
     container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
     
     try {
-        const response = await fetch(`/user-profile/api/profile/${username}/following/`);
+        const followingUrl = '{% url "user_profile:get_following" username="PLACEHOLDER" %}'.replace('PLACEHOLDER', username);
+        const response = await fetch(followingUrl);
         const data = await response.json();
         
         if (response.ok && data.success) {
@@ -4089,10 +4287,13 @@ async function handleFollowAction(username, action, button) {
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     
     try {
-        const response = await fetch(`/user-profile/api/profile/${username}/${action}/`, {
+        const followUrl = action === 'follow' 
+            ? '{% url "user_profile:follow_user_v2" username="PLACEHOLDER" %}'.replace('PLACEHOLDER', username)
+            : '{% url "user_profile:unfollow_user_v2" username="PLACEHOLDER" %}'.replace('PLACEHOLDER', username);
+        const response = await fetch(followUrl, {
             method: 'POST',
             headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
+                'X-CSRFToken': getCSRFToken(),
                 'Content-Type': 'application/json'
             }
         });
