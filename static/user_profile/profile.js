@@ -1,6 +1,9 @@
 // DeltaCrown Profile JavaScript
 // Auto-extracted from public_profile.html
-// Phase 3.7 Hardened - Visitor Safe, Error Resilient
+// Phase 3.8.1 - Systematic Hardening Complete: All fetch() -> safeFetch(), requireOwner() guards added
+// Build: PROFILE_BUILD_2026-01-09_PHASE3.8.1_COMPLETE
+window.__PROFILE_BUILD__ = "PROFILE_BUILD_2026-01-09_PHASE3.8.1_COMPLETE";
+console.log("[PROFILE] Build loaded:", window.__PROFILE_BUILD__);
 
 // ============================================================================
 // GLOBAL PROFILE CONTEXT (Server-Rendered)
@@ -37,48 +40,76 @@ function safeGetById(id) {
 }
 
 /**
- * Safe fetch with error handling and JSON parsing
+ * Safe fetch with error handling, JSON parsing, and automatic CSRF
+ * Phase 3.8: Enhanced with CSRF injection for mutations
  */
 async function safeFetch(url, options = {}) {
     try {
-        const res = await fetch(url, options);
+        // Auto-inject CSRF for mutations
+        const method = (options.method || 'GET').toUpperCase();
+        const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+        
+        const enhancedOptions = { ...options };
+        if (isMutation && !enhancedOptions.headers?.['X-CSRFToken']) {
+            enhancedOptions.headers = {
+                ...enhancedOptions.headers,
+                'X-CSRFToken': getCSRFToken()
+            };
+        }
+        
+        const res = await fetch(url, enhancedOptions);
         if (!res.ok) {
             const data = await res.json().catch(() => ({ error: 'Network error' }));
+            debugLog('HTTP error', { status: res.status, url, data });
             throw { status: res.status, data };
         }
         return await res.json();
     } catch (err) {
         debugLog('Fetch failed', { url, err: err.message || err });
         // Show user-friendly message
-        if (typeof alert !== 'undefined') {
-            alert('Something went wrong. Please try again.');
-        }
+        const errorMsg = err.data?.error || err.message || 'Something went wrong. Please try again.';
+        showToast(errorMsg, 'error');
         return null;
     }
 }
 
 /**
  * Owner-only action guard - prevents visitors from triggering mutations
+ * Phase 3.8: Enhanced with toast notification
  */
 function requireOwner(actionName = 'this action') {
     if (IS_VISITOR) {
         debugLog('Blocked action for visitor', actionName);
+        showToast('Only the profile owner can perform this action', 'error');
         return false;
     }
     return true;
 }
 
 /**
+ * Debug logging helper - only logs when DEBUG_PROFILE is true
+ * Phase 3.8: Conditional logging for production cleanliness
+ */
+function debugLog(...args) {
+    if (DEBUG_PROFILE) {
+        console.log('[PROFILE DEBUG]', ...args);
+    }
+}
+
+/**
  * Toast notification helper (graceful fallback to alert)
+ * Phase 3.8: Enhanced for better UX
  */
 function showToast(message, type = 'info') {
-    if (DEBUG_PROFILE) {
-        console.log(`[Toast ${type}]`, message);
-    }
-    // Fallback to alert for now (can be upgraded to toast library later)
+    debugLog(`Toast ${type}:`, message);
+    
+    // For now, use alert for errors (can be upgraded to toast library later)
     if (type === 'error' && typeof alert !== 'undefined') {
         alert(message);
+    } else if (type === 'success' && typeof alert !== 'undefined') {
+        alert(message);
     }
+    // info type: silent for now (could show as notification badge)
 }
 
 // ============================================================================
@@ -151,30 +182,43 @@ function debugLog(message, data) {
 }
 
 // ============================================================================
-// TAB SWITCHING
+// TAB SWITCHING SYSTEM (PHASE 3.7.3 - Production-Ready)
 // ============================================================================
+
+/**
+ * Production-ready tab switching with DOM-based discovery
+ * No assumptions about tab names - discovers from actual DOM
+ */
 function switchTab(tabId) {
+    console.log('[TAB] Switching to:', tabId);
+    
     // Hide all tab contents
-    document.querySelectorAll('.tab-content').forEach(el => {
+    const allTabs = document.querySelectorAll('.tab-content');
+    allTabs.forEach(el => {
         el.classList.remove('active');
     });
 
-    // Reset all buttons
-    document.querySelectorAll('.z-tab-btn').forEach(el => {
-        el.classList.remove('active');
+    // Reset all tab buttons
+    const allButtons = document.querySelectorAll('.z-tab-btn');
+    allButtons.forEach(btn => {
+        btn.classList.remove('active');
     });
 
     // Show selected content
     const selectedContent = document.getElementById('tab-' + tabId);
-    if(selectedContent) {
+    if (selectedContent) {
         selectedContent.classList.add('active');
+        console.log('[TAB] Activated content:', 'tab-' + tabId);
+    } else {
+        console.warn('[TAB] Content not found for:', 'tab-' + tabId);
     }
 
-    // Highlight active button
-    const buttons = document.querySelectorAll('.z-tab-btn');
-    buttons.forEach(btn => {
-        if(btn.getAttribute('onclick').includes(tabId)) {
+    // Highlight active button - find by checking onclick attribute
+    allButtons.forEach(btn => {
+        const onclickAttr = btn.getAttribute('onclick');
+        if (onclickAttr && onclickAttr.includes(`'${tabId}'`)) {
             btn.classList.add('active');
+            console.log('[TAB] Activated button for:', tabId);
         }
     });
     
@@ -187,15 +231,29 @@ function switchTab(tabId) {
 // PHASE-3.7.1 FIX: Expose switchTab globally for onclick handlers
 window.switchTab = switchTab;
 
-// PHASE-3.7.1 FIX: Hash navigation support - switch to tab on page load
+// PHASE-3.7.3: Hash navigation + Tab discovery on page load
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('[TAB] DOM loaded, initializing tabs...');
+    
+    // Discover all tabs in DOM
+    const allTabs = document.querySelectorAll('.tab-content');
+    const allButtons = document.querySelectorAll('.z-tab-btn');
+    console.log(`[TAB] Found ${allTabs.length} tab contents, ${allButtons.length} tab buttons`);
+    
+    // Log discovered tabs for debugging
+    allTabs.forEach((tab, idx) => {
+        console.log(`[TAB] Content ${idx + 1}:`, tab.id);
+    });
+    
     // Check if there's a hash in URL (e.g., #career)
     const hash = window.location.hash.slice(1); // Remove the '#'
     if (hash) {
+        console.log('[TAB] Hash detected:', hash);
         // Switch to the tab specified in hash
         switchTab(hash);
     } else {
         // Default to overview tab
+        console.log('[TAB] No hash, defaulting to overview');
         switchTab('overview');
     }
 });
@@ -421,30 +479,21 @@ function createPassportElement(passport) {
 }
 
 async function deletePassport(passportId, gameName) {
+    if (!requireOwner('deletePassport')) return;
     if (!confirm(`Delete ${gameName} game ID? This cannot be undone.`)) {
         return;
     }
     
-    try {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ passport_id: passportId })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            await loadGamePassports();
-            setTimeout(() => location.reload(), 500);
-        } else {
-            alert(data.error || 'Failed to delete passport');
+    const data = await safeFetch(`/api/profile/${PROFILE_USERNAME}/game-passports/${passportId}/`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
         }
-    } catch (error) {
-        console.error('Error deleting passport:', error);
-        alert('Network error. Please try again.');
+    });
+    
+    if (data && data.success) {
+        await loadGamePassports();
+        setTimeout(() => location.reload(), 500);
     }
 }
 
@@ -454,6 +503,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (addPassportForm) {
         addPassportForm.addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            if (!requireOwner('addPassport')) return;
             
             const gameId = document.getElementById('passportGameSelect').value;
             const ign = document.getElementById('passportIgnInput').value.trim();
@@ -465,34 +516,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            try {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    body: JSON.stringify({
-                        game_id: parseInt(gameId),
-                        ign: ign,
-                        region: region,
-                        rank: rank,
-                        pinned: false,
-                        passport_data: {}
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok && data.success) {
-                    addPassportForm.reset();
-                    await loadGamePassports();
-                    setTimeout(() => location.reload(), 500);
-                } else {
-                    alert(data.error || 'Failed to add passport');
-                }
-            } catch (error) {
-                console.error('Error adding passport:', error);
-                alert('Network error. Please try again.');
+            const data = await safeFetch('/api/profile/add-passport/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    game_id: parseInt(gameId),
+                    ign: ign,
+                    region: region,
+                    rank: rank,
+                    pinned: false,
+                    passport_data: {}
+                })
+            });
+            
+            if (data && data.success) {
+                addPassportForm.reset();
+                await loadGamePassports();
+                setTimeout(() => location.reload(), 500);
             }
         });
     }
@@ -649,7 +691,9 @@ function closeCreateBountyModal() {
     document.getElementById('createBountyError').classList.add('hidden');
 }
 
-function submitBounty() {
+async function submitBounty() {
+    if (!requireOwner('submitBounty')) return;
+    
     const form = document.getElementById('createBountyForm');
     const errorDiv = document.getElementById('createBountyError');
     const submitBtn = document.getElementById('submitBountyBtn');
@@ -666,35 +710,30 @@ function submitBounty() {
         expires_in_hours: parseInt(form.expires_in_hours.value),
     };
     
+    const result = await safeFetch('/api/bounties/create/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(`Bounty created! ${data.stake_amount} DC locked in escrow.`);
-            closeCreateBountyModal();
-            location.reload();  // Reload to show new bounty
-        } else {
-            errorDiv.textContent = data.error || 'Failed to create bounty';
-            errorDiv.classList.remove('hidden');
-        }
-    })
-    .catch(error => {
-        errorDiv.textContent = 'Network error. Please try again.';
-        errorDiv.classList.remove('hidden');
-    })
-    .finally(() => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fa-solid fa-plus mr-2"></i> Create Bounty';
     });
+    
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fa-solid fa-plus mr-2"></i> Create Bounty';
+    
+    if (result && result.success) {
+        alert(`Bounty created! ${result.stake_amount} DC locked in escrow.`);
+        closeCreateBountyModal();
+        location.reload();
+    } else if (result) {
+        errorDiv.textContent = result.error || 'Failed to create bounty';
+        errorDiv.classList.remove('hidden');
+    }
 }
 
 // Accept Bounty
-function acceptBounty(bountyId) {
+async function acceptBounty(bountyId, url) {
+    if (!requireOwner('acceptBounty')) return;
     if (!confirm('Accept this bounty challenge?')) return;
     
     const btn = event.target.closest('button');
@@ -703,28 +742,17 @@ function acceptBounty(bountyId) {
     
     debugLog('Accept bounty', { bountyId, url });
     
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCSRFToken()
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            location.reload();
-        } else {
-            alert(data.error || 'Failed to accept bounty');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-handshake mr-2"></i> Accept';
-        }
-    })
-    .catch(error => {
-        alert('Network error. Please try again.');
+    const data = await safeFetch(url, {
+        method: 'POST'
+    });
+    
+    if (data && data.success) {
+        alert(data.message);
+        location.reload();
+    } else {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-handshake mr-2"></i> Accept';
-    });
+    }
 }
 
 // ============================================================================
@@ -856,6 +884,8 @@ async function loadHardwareList() {
 document.getElementById('hardwareForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    if (!requireOwner('saveHardware')) return;
+    
     const id = document.getElementById('hardwareId').value;
     const category = document.getElementById('hardwareCategory').value;
     const brand = document.getElementById('hardwareBrand').value.trim();
@@ -894,29 +924,26 @@ document.getElementById('hardwareForm').addEventListener('submit', async (e) => 
     
     try {
         debugLog('Save hardware', payload);
+        const data = await safeFetch('/api/profile/hardware/save/', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
         });
         
-        const data = await response.json();
-        
-        if (data.success) {
-            alert(data.message || 'Hardware saved successfully!');
-            resetHardwareForm();
-            // Reload page to refresh context
-            window.location.reload();
-        } else {
-            alert('Error: ' + (data.error || 'Failed to save hardware'));
-        }
-    } catch (err) {
-        alert('Network error: ' + err.message);
-    } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>Save Hardware';
+        
+        if (data && data.success) {
+            alert(data.message || 'Hardware saved successfully!');
+            resetHardwareForm();
+            window.location.reload();
+        }
+    } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>Save Hardware';
+        alert('Network error: ' + err.message);
     }
 });
 
@@ -938,29 +965,16 @@ function editHardware(item) {
 
 // Delete Hardware
 async function deleteHardware(id, category) {
+    if (!requireOwner('deleteHardware')) return;
     if (!confirm(`Delete this ${category.toLowerCase()}? This cannot be undone.`)) return;
     
-    try {
-        debugLog('Delete hardware', { id, url });
-        
-        const response = await fetch(url, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRFToken': getCSRFToken()
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            alert(data.message || 'Hardware deleted successfully!');
-            // Reload page to refresh context
-            window.location.reload();
-        } else {
-            alert('Error: ' + (data.error || 'Failed to delete hardware'));
-        }
-    } catch (err) {
-        alert('Network error: ' + err.message);
+    const url = `/api/profile/hardware/${id}/delete/`;
+    debugLog('Delete hardware', { id, url });
+    
+    const data = await safeFetch(url, { method: 'DELETE' });
+    if (data && data.success) {
+        alert(data.message || 'Hardware deleted successfully!');
+        window.location.reload();
     }
 }
 
@@ -1050,6 +1064,8 @@ async function loadGameConfigList() {
 document.getElementById('gameConfigForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    if (!requireOwner('saveGameConfig')) return;
+    
     const id = document.getElementById('gameConfigId').value;
     const gameId = document.getElementById('gameConfigGame').value;
     const dpi = document.getElementById('gameConfigDPI').value.trim();
@@ -1094,31 +1110,20 @@ document.getElementById('gameConfigForm').addEventListener('submit', async (e) =
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
     
-    try {
-        debugLog('Save game config', payload);
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()
-            },
-            body: JSON.stringify(payload)
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            alert(data.message || 'Game config saved successfully!');
-            resetGameConfigForm();
-            // Reload page to refresh context
-            window.location.reload();
-        } else {
-            alert('Error: ' + (data.error || 'Failed to save config'));
-        }
-    } catch (err) {
-        alert('Network error: ' + err.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>Save Config';
+    debugLog('Save game config', payload);
+    const data = await safeFetch('/api/profile/game-config/save/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>Save Config';
+    
+    if (data && data.success) {
+        alert(data.message || 'Game config saved successfully!');
+        resetGameConfigForm();
+        window.location.reload();
     }
 });
 
@@ -1166,29 +1171,16 @@ function editGameConfig(config) {
 
 // Delete Game Config
 async function deleteGameConfig(id, gameName) {
+    if (!requireOwner('deleteGameConfig')) return;
     if (!confirm(`Delete config for ${gameName}? This cannot be undone.`)) return;
     
-    try {
-        debugLog('Delete game config', { id, url });
-        
-        const response = await fetch(url, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRFToken': getCSRFToken()
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            alert(data.message || 'Game config deleted successfully!');
-            // Reload page to refresh context
-            window.location.reload();
-        } else {
-            alert('Error: ' + (data.error || 'Failed to delete config'));
-        }
-    } catch (err) {
-        alert('Network error: ' + err.message);
+    const url = `/api/profile/game-config/${id}/delete/`;
+    debugLog('Delete game config', { id, url });
+    
+    const data = await safeFetch(url, { method: 'DELETE' });
+    if (data && data.success) {
+        alert(data.message || 'Game config deleted successfully!');
+        window.location.reload();
     }
 }
 
@@ -1239,38 +1231,26 @@ document.addEventListener('keydown', (e) => {
 // ============================================================================
 
 // Start Match
-function startMatch(bountyId) {
+async function startMatch(bountyId) {
+    if (!requireOwner('startMatch')) return;
     if (!confirm('Start this match now? Both players should be ready.')) return;
     
     const btn = event.target;
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Starting...';
     
+    const url = `/api/bounty/${bountyId}/start/`;
     debugLog('Start match', { bountyId, url });
     
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            location.reload();
-        } else {
-            alert(data.error || 'Failed to start match');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> Start Match';
-        }
-    })
-    .catch(error => {
-        alert('Network error. Please try again.');
+    const data = await safeFetch(url, { method: 'POST' });
+    
+    if (data && data.success) {
+        alert(data.message);
+        location.reload();
+    } else {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> Start Match';
-    });
+    }
 }
 
 // Proof Submission Modal
@@ -1307,7 +1287,9 @@ function closeProofModal() {
     document.getElementById('proofDescription').value = '';
 }
 
-function submitProof() {
+async function submitProof() {
+    if (!requireOwner('submitProof')) return;
+    
     const winnerId = document.getElementById('proofWinner').value;
     const proofUrl = document.getElementById('proofUrl').value.trim();
     const proofType = document.getElementById('proofType').value;
@@ -1330,64 +1312,43 @@ function submitProof() {
         description: description
     };
     
+    const url = `/api/bounty/${currentProofBountyId}/proof/`;
     debugLog('Submit proof', { bountyId: currentProofBountyId, url });
     
-    fetch(url, {
+    const result = await safeFetch(url, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            closeProofModal();
-            location.reload();
-        } else {
-            alert(data.error || 'Failed to submit proof');
-        }
-    })
-    .catch(error => {
-        alert('Network error. Please try again.');
     });
+    
+    if (result && result.success) {
+        alert(result.message);
+        closeProofModal();
+        location.reload();
+    }
 }
 
 // Confirm Result
-function confirmResult(bountyId) {
+async function confirmResult(bountyId) {
+    if (!requireOwner('confirmResult')) return;
     if (!confirm('Confirm this result? Winner will receive 95% of stake (5% platform fee). This action cannot be undone.')) return;
     
     const btn = event.target;
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Confirming...';
     
+    const url = `/api/bounty/${bountyId}/confirm/`;
     debugLog('Confirm result', { bountyId, url });
     
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            location.reload();
-        } else {
-            alert(data.error || 'Failed to confirm result');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Confirm Result';
-        }
-    })
-    .catch(error => {
-        alert('Network error. Please try again.');
+    const data = await safeFetch(url, { method: 'POST' });
+    
+    if (data && data.success) {
+        alert(data.message);
+        location.reload();
+    } else {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Confirm Result';
-    });
+    }
 }
 
 // Dispute Modal
@@ -1424,7 +1385,9 @@ function closeDisputeModal() {
     document.getElementById('disputeCharCount').textContent = '0';
 }
 
-function submitDispute() {
+async function submitDispute() {
+    if (!requireOwner('submitDispute')) return;
+    
     const reason = document.getElementById('disputeReason').value.trim();
     
     if (reason.length < 50) {
@@ -1433,28 +1396,19 @@ function submitDispute() {
     }
     
     const data = { reason: reason };
+    const disputeUrl = `/api/bounty/${currentDisputeBountyId}/dispute/`;
     
-    fetch(disputeUrl, {
+    const result = await safeFetch(disputeUrl, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            closeDisputeModal();
-            location.reload();
-        } else {
-            alert(data.error || 'Failed to raise dispute');
-        }
-    })
-    .catch(error => {
-        alert('Network error. Please try again.');
     });
+    
+    if (result && result.success) {
+        alert(result.message);
+        closeDisputeModal();
+        location.reload();
+    }
 }
 
 // UP-PHASE2E-PART2: Endorsement Modal Functions
@@ -1511,7 +1465,8 @@ function closeEndorseModal() {
     document.body.style.overflow = '';
 }
 
-function submitEndorsement() {
+async function submitEndorsement() {
+    if (!requireOwner('submitEndorsement')) return;
     if (selectedSkills.size === 0) {
         alert('Please select at least one skill to endorse');
         return;
@@ -1529,31 +1484,21 @@ function submitEndorsement() {
         receiver_id: currentEndorseReceiverId
     };
     
-    fetch(endorseUrl, {
+    const endorseUrl = `/api/bounty/${currentEndorseBountyId}/endorse/`;
+    const result = await safeFetch(endorseUrl, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message || 'Endorsement submitted!');
-            closeEndorseModal();
-            location.reload();
-        } else {
-            alert(data.error || 'Failed to submit endorsement');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-star mr-2"></i>Submit Endorsement';
-        }
-    })
-    .catch(error => {
-        alert('Network error. Please try again.');
+    });
+    
+    if (result && result.success) {
+        alert(result.message || 'Endorsement submitted!');
+        closeEndorseModal();
+        location.reload();
+    } else {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-star mr-2"></i>Submit Endorsement';
-    });
+    }
 }
 
 // UP-PHASE2F: Avatar and Cover Upload
@@ -1575,6 +1520,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function handleMediaUpload(file, mediaType) {
+    if (!requireOwner('handleMediaUpload')) return;
     if (!file) return;
     
     // Validate file type
@@ -1593,42 +1539,33 @@ async function handleMediaUpload(file, mediaType) {
     formData.append('file', file);
     formData.append('media_type', mediaType);
     
-    try {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCSRFToken()
-            },
-            body: formData
-        });
+    const data = await safeFetch('/api/profile/upload-media/', {
+        method: 'POST',
+        body: formData
+        // NOTE: Do NOT set Content-Type - browser will set multipart/form-data with boundary
+    });
+    
+    if (data && data.success) {
+        alert(`${mediaType === 'avatar' ? 'Avatar' : 'Cover'} updated successfully!`);
         
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            alert(`${mediaType === 'avatar' ? 'Avatar' : 'Cover'} updated successfully!`);
-            
-            // Update preview
-            if (mediaType === 'avatar') {
-                const avatarPreview = document.getElementById('avatarPreview');
-                if (avatarPreview) {
-                    avatarPreview.src = data.url;
-                }
-            } else {
-                // Reload to show new cover
-                location.reload();
+        // Update preview
+        if (mediaType === 'avatar') {
+            const avatarPreview = document.getElementById('avatarPreview');
+            if (avatarPreview) {
+                avatarPreview.src = data.url;
             }
         } else {
-            alert(data.error || 'Failed to upload image');
+            location.reload();
         }
-    } catch (error) {
-        console.error('Upload error:', error);
-        alert('Network error. Please try again.');
     }
 }
 
 // UP-PHASE2F: Follower/Following Modal System
 function openFollowersModal() {
+    if (!IS_OWN_PROFILE) {
         alert('This followers list is private');
         return;
+    }
     
     const modal = document.getElementById('followersModal');
     if (modal) {
@@ -1657,41 +1594,36 @@ async function loadSocialLinks() {
     const container = document.getElementById('socialLinksList');
     container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
     
-    try {
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            if (data.links.length === 0) {
-                container.innerHTML = '<div class="text-center py-8 text-gray-500">No social links yet. Add one above!</div>';
-                return;
-            }
-            
-            container.innerHTML = `
-                <h3 class="text-sm font-bold text-white mb-3 uppercase tracking-wider">Your Links</h3>
-                <div class="space-y-2">
-                    ${data.links.map(link => `
-                        <div class="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition group">
-                            <div class="w-10 h-10 rounded-lg bg-black/30 flex items-center justify-center text-gray-400">
-                                <i class="fa-brands fa-${link.platform} text-lg"></i>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="font-bold text-white text-sm capitalize">${getPlatformName(link.platform)}</div>
-                                <div class="text-xs text-gray-500 truncate">${link.url}</div>
-                            </div>
-                            <button onclick="deleteSocialLink(${link.id}, '${link.platform}')" 
-                                    class="opacity-0 group-hover:opacity-100 transition px-3 py-2 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white rounded-lg text-sm">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        } else {
-            container.innerHTML = '<div class="text-center py-8 text-red-500">Failed to load links</div>';
+    const data = await safeFetch('/api/profile/social-links/');
+    
+    if (data && data.success) {
+        if (data.links.length === 0) {
+            container.innerHTML = '<div class="text-center py-8 text-gray-500">No social links yet. Add one above!</div>';
+            return;
         }
-    } catch (error) {
-        console.error('Error loading social links:', error);
-        container.innerHTML = '<div class="text-center py-8 text-red-500">Network error</div>';
+        
+        container.innerHTML = `
+            <h3 class="text-sm font-bold text-white mb-3 uppercase tracking-wider">Your Links</h3>
+            <div class="space-y-2">
+                ${data.links.map(link => `
+                    <div class="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition group">
+                        <div class="w-10 h-10 rounded-lg bg-black/30 flex items-center justify-center text-gray-400">
+                            <i class="fa-brands fa-${link.platform} text-lg"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-white text-sm capitalize">${getPlatformName(link.platform)}</div>
+                            <div class="text-xs text-gray-500 truncate">${link.url}</div>
+                        </div>
+                        <button onclick="deleteSocialLink(${link.id}, '${link.platform}')" 
+                                class="opacity-0 group-hover:opacity-100 transition px-3 py-2 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white rounded-lg text-sm">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } else {
+        container.innerHTML = '<div class="text-center py-8 text-red-500">Failed to load links</div>';
     }
 }
 
@@ -1714,6 +1646,8 @@ function getPlatformName(platform) {
 }
 
 async function addSocialLink() {
+    if (!requireOwner('addSocialLink')) return;
+    
     const platformSelect = document.getElementById('newLinkPlatform');
     const urlInput = document.getElementById('newLinkUrl');
     
@@ -1731,69 +1665,33 @@ async function addSocialLink() {
         return;
     }
     
-    try {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()
-            },
-            body: JSON.stringify({
-                platform: platform,
-                url: url
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            // Clear form
-            platformSelect.value = '';
-            urlInput.value = '';
-            
-            // Reload list
-            loadSocialLinks();
-            
-            // Show success
-            alert('Social link added successfully!');
-        } else {
-            alert(data.error || 'Failed to add social link');
-        }
-    } catch (error) {
-        console.error('Error adding social link:', error);
-        alert('Network error. Please try again.');
+    const data = await safeFetch('/api/profile/social-links/add/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform, url })
+    });
+    
+    if (data && data.success) {
+        platformSelect.value = '';
+        urlInput.value = '';
+        loadSocialLinks();
+        alert('Social link added successfully!');
     }
 }
 
 async function deleteSocialLink(linkId, platform) {
-    if (!confirm(`Delete your ${getPlatformName(platform)} link?`)) {
-        return;
-    }
+    if (!requireOwner('deleteSocialLink')) return;
+    if (!confirm(`Delete your ${getPlatformName(platform)} link?`)) return;
     
-    try {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()
-            },
-            body: JSON.stringify({
-                id: linkId
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            // Reload list
-            loadSocialLinks();
-            
-            // Reload page to update display
-            setTimeout(() => location.reload(), 500);
-        } else {
-            alert(data.error || 'Failed to delete social link');
-        }
-    } catch (error) {
-        console.error('Error deleting social link:', error);
-        alert('Network error. Please try again.');
+    const data = await safeFetch(`/api/profile/social-links/${linkId}/delete/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: linkId })
+    });
+    
+    if (data && data.success) {
+        loadSocialLinks();
+        setTimeout(() => location.reload(), 500);
     }
 }
 
@@ -1832,39 +1730,33 @@ async function loadFollowersList() {
     
     container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
     
-    try {
-        const response = await fetch(followersUrl);
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            if (data.followers.length === 0) {
-                container.innerHTML = '<div class="text-center py-12 text-gray-500">No followers yet</div>';
-                return;
-            }
-            
-            container.innerHTML = data.followers.map(user => `
-                <div class="flex items-center justify-between p-4 hover:bg-white/5 transition">
-                    <div class="flex items-center gap-3">
-                        <img src="${user.avatar_url || '/static/images/default-avatar.png'}" 
-                             alt="${user.display_name}" 
-                             class="w-12 h-12 rounded-full border border-white/10">
-                        <div>
-                            <div class="font-bold text-white flex items-center gap-2">
-                                ${user.display_name}
-                                ${user.is_verified ? '<i class="fas fa-check-circle text-[var(--z-cyan)] text-sm"></i>' : ''}
-                            </div>
-                            <div class="text-sm text-gray-500">@${user.username}</div>
-                        </div>
-                    </div>
-                    ${renderFollowButton(user)}
-                </div>
-            `).join('');
-        } else {
-            container.innerHTML = `<div class="text-center py-12 text-red-500">${data.error || 'Failed to load followers'}</div>`;
+    const data = await safeFetch(followersUrl);
+    
+    if (data && data.success) {
+        if (data.followers.length === 0) {
+            container.innerHTML = '<div class="text-center py-12 text-gray-500">No followers yet</div>';
+            return;
         }
-    } catch (error) {
-        console.error('Error loading followers:', error);
-        container.innerHTML = '<div class="text-center py-12 text-red-500">Network error</div>';
+        
+        container.innerHTML = data.followers.map(user => `
+            <div class="flex items-center justify-between p-4 hover:bg-white/5 transition">
+                <div class="flex items-center gap-3">
+                    <img src="${user.avatar_url || '/static/images/default-avatar.png'}" 
+                         alt="${user.display_name}" 
+                         class="w-12 h-12 rounded-full border border-white/10">
+                    <div>
+                        <div class="font-bold text-white flex items-center gap-2">
+                            ${user.display_name}
+                            ${user.is_verified ? '<i class="fas fa-check-circle text-[var(--z-cyan)] text-sm"></i>' : ''}
+                        </div>
+                        <div class="text-sm text-gray-500">@${user.username}</div>
+                    </div>
+                </div>
+                ${renderFollowButton(user)}
+            </div>
+        `).join('');
+    } else {
+        container.innerHTML = `<div class="text-center py-12 text-red-500">${data?.error || 'Failed to load followers'}</div>`;
     }
 }
 
@@ -1873,39 +1765,33 @@ async function loadFollowingList() {
     
     container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
     
-    try {
-        const response = await fetch(followingUrl);
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            if (data.following.length === 0) {
-                container.innerHTML = '<div class="text-center py-12 text-gray-500">Not following anyone yet</div>';
-                return;
-            }
-            
-            container.innerHTML = data.following.map(user => `
-                <div class="flex items-center justify-between p-4 hover:bg-white/5 transition">
-                    <div class="flex items-center gap-3">
-                        <img src="${user.avatar_url || '/static/images/default-avatar.png'}" 
-                             alt="${user.display_name}" 
-                             class="w-12 h-12 rounded-full border border-white/10">
-                        <div>
-                            <div class="font-bold text-white flex items-center gap-2">
-                                ${user.display_name}
-                                ${user.is_verified ? '<i class="fas fa-check-circle text-[var(--z-cyan)] text-sm"></i>' : ''}
-                            </div>
-                            <div class="text-sm text-gray-500">@${user.username}</div>
-                        </div>
-                    </div>
-                    ${renderFollowButton(user)}
-                </div>
-            `).join('');
-        } else {
-            container.innerHTML = `<div class="text-center py-12 text-red-500">${data.error || 'Failed to load following'}</div>`;
+    const data = await safeFetch(followingUrl);
+    
+    if (data && data.success) {
+        if (data.following.length === 0) {
+            container.innerHTML = '<div class="text-center py-12 text-gray-500">Not following anyone yet</div>';
+            return;
         }
-    } catch (error) {
-        console.error('Error loading following:', error);
-        container.innerHTML = '<div class="text-center py-12 text-red-500">Network error</div>';
+        
+        container.innerHTML = data.following.map(user => `
+            <div class="flex items-center justify-between p-4 hover:bg-white/5 transition">
+                <div class="flex items-center gap-3">
+                    <img src="${user.avatar_url || '/static/images/default-avatar.png'}" 
+                         alt="${user.display_name}" 
+                         class="w-12 h-12 rounded-full border border-white/10">
+                    <div>
+                        <div class="font-bold text-white flex items-center gap-2">
+                            ${user.display_name}
+                            ${user.is_verified ? '<i class="fas fa-check-circle text-[var(--z-cyan)] text-sm"></i>' : ''}
+                        </div>
+                        <div class="text-sm text-gray-500">@${user.username}</div>
+                    </div>
+                </div>
+                ${renderFollowButton(user)}
+            </div>
+        `).join('');
+    } else {
+        container.innerHTML = `<div class="text-center py-12 text-red-500">${data?.error || 'Failed to load following'}</div>`;
     }
 }
 
@@ -1932,37 +1818,19 @@ async function handleFollowAction(username, action, button) {
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     
-    try {
-        const followUrl = action === 'follow' 
-        const response = await fetch(followUrl, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCSRFToken(),
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            // Reload the current list
-            const followersModalOpen = !document.getElementById('followersModal').classList.contains('hidden');
-            if (followersModalOpen) {
-                loadFollowersList();
-            } else {
-                loadFollowingList();
-            }
-            
-            // Update counts on page
-            location.reload();
+    const followUrl = action === 'follow' ? `/api/social/follow/${username}/` : `/api/social/unfollow/${username}/`;
+    const data = await safeFetch(followUrl, { method: 'POST' });
+    
+    if (data && data.success) {
+        // Reload the current list
+        const followersModalOpen = !document.getElementById('followersModal').classList.contains('hidden');
+        if (followersModalOpen) {
+            loadFollowersList();
         } else {
-            alert(data.error || `Failed to ${action}`);
-            button.disabled = false;
-            button.innerHTML = action === 'follow' ? 'Follow' : 'Following';
+            loadFollowingList();
         }
-    } catch (error) {
-        console.error(`Error ${action}ing user:`, error);
-        alert('Network error. Please try again.');
+        location.reload();
+    } else {
         button.disabled = false;
         button.innerHTML = action === 'follow' ? 'Follow' : 'Following';
     }

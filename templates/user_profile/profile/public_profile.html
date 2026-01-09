@@ -4,6 +4,10 @@
 
 {% block title %}{{ profile.display_name }} (@{{ profile.username }}) - DeltaCrown Profile{% endblock %}
 
+{% block extra_head %}
+<meta name="profile-build" content="PROFILE_BUILD_2026-01-09_PHASE3.8_INFRA">
+{% endblock %}
+
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'user_profile/profile.css' %}">
@@ -82,39 +86,11 @@
 {{ game_configs|json_script:"gameConfigsData" }}
 
 <script>
-// Django template variables
+// Django template variables for profile.js
 const IS_OWN_PROFILE = {{ is_owner|yesno:"true,false" }};
 const IS_AUTHENTICATED = {{ request.user.is_authenticated|yesno:"true,false" }};
 const PROFILE_USERNAME = '{{ profile_user.username|escapejs }}';
 const VIEWER_USERNAME = '{{ request.user.username|escapejs }}';
-            const displayName = '{{ profile.display_name|escapejs }}' || '{{ request.user.username|escapejs }}';
-                const response = await fetch('{% url "user_profile:update_basic_info" %}', {
-        const response = await fetch('{% url "user_profile:get_available_games" %}');
-        const response = await fetch('{% url "user_profile:list_game_passports_api" %}');
-        const response = await fetch('{% url "user_profile:delete_game_passport_api" %}', {
-                const response = await fetch('{% url "user_profile:create_game_passport_api" %}', {
-    const url = urlWithId('{% url "user_profile:accept_bounty" bounty_id=0 %}', bountyId);
-        const response = await fetch('{% url "user_profile:save_hardware" %}', {
-        const url = urlWithId('{% url "user_profile:delete_hardware" hardware_id=0 %}', id);
-        const response = await fetch('{% url "user_profile:get_available_games" %}');
-        const response = await fetch('{% url "user_profile:save_game_config" %}', {
-        const url = urlWithId('{% url "user_profile:delete_game_config" config_id=0 %}', id);
-    const url = urlWithId('{% url "user_profile:start_match" bounty_id=0 %}', bountyId);
-    const url = urlWithId('{% url "user_profile:submit_proof" bounty_id=0 %}', currentProofBountyId);
-    const url = urlWithId('{% url "user_profile:confirm_result" bounty_id=0 %}', bountyId);
-    const disputeUrl = urlWithId('{% url "user_profile:raise_dispute" bounty_id=0 %}', currentDisputeBountyId);
-    const endorseUrl = urlWithId('{% url "user_profile:award_bounty_endorsement" bounty_id=0 %}', currentEndorseBountyId);
-        const response = await fetch('{% url "user_profile:upload_media" %}', {
-        const response = await fetch('{% url "user_profile:social_links_list_api" %}');
-        const response = await fetch('{% url "user_profile:social_link_create_api" %}', {
-        const response = await fetch('{% url "user_profile:social_link_delete_api" %}', {
-    const username = '{{ profile_user.username }}';
-        const followersUrl = '{% url "user_profile:get_followers" username="PLACEHOLDER" %}'.replace('PLACEHOLDER', username);
-    const username = '{{ profile_user.username }}';
-        const followingUrl = '{% url "user_profile:get_following" username="PLACEHOLDER" %}'.replace('PLACEHOLDER', username);
-    const isOwner = '{{ request.user.is_authenticated|yesno:"true,false" }}' === 'true' && '{{ request.user.username }}' === '{{ profile_user.username }}';
-    const isLoggedIn = '{{ request.user.is_authenticated|yesno:"true,false" }}' === 'true';
-    const isSelf = isLoggedIn && '{{ request.user.username }}' === user.username;
 </script>
 
 <script src="{% static 'user_profile/profile.js' %}"></script>
