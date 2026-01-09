@@ -1,8 +1,8 @@
 // DeltaCrown Profile JavaScript
 // Auto-extracted from public_profile.html
-// Phase 3.8.1 - Systematic Hardening Complete: All fetch() -> safeFetch(), requireOwner() guards added
-// Build: PROFILE_BUILD_2026-01-09_PHASE3.8.1_COMPLETE
-window.__PROFILE_BUILD__ = "PROFILE_BUILD_2026-01-09_PHASE3.8.1_COMPLETE";
+// Phase 3.8.3 - DOM Safety: All queries use safe wrappers, defensive initialization
+// Build: PROFILE_BUILD_2026-01-09_PHASE3.8.3_DOM_SAFETY
+window.__PROFILE_BUILD__ = "PROFILE_BUILD_2026-01-09_PHASE3.8.3_DOM_SAFETY";
 console.log("[PROFILE] Build loaded:", window.__PROFILE_BUILD__);
 
 // ============================================================================
@@ -35,6 +35,23 @@ function safeGetById(id) {
         return document.getElementById(id);
     } catch (err) {
         debugLog('getElementById failed', { id, err: err.message });
+        return null;
+    }
+}
+
+/**
+ * Safe querySelector within an element - never throws errors
+ * Phase 3.8.3: For safeQueryIn(element, ) patterns
+ */
+function safeQueryIn(element, selector) {
+    if (!element) {
+        debugLog('safeQueryIn: element is null/undefined', { selector });
+        return null;
+    }
+    try {
+        return safeQueryIn(element, selector);
+    } catch (err) {
+        debugLog('safeQueryIn failed', { selector, err: err.message });
         return null;
     }
 }
@@ -156,12 +173,12 @@ function getCSRFToken() {
     
     // Fallback to meta tag or hidden input
     if (!token) {
-        const meta = document.querySelector('meta[name="csrf-token"]');
+        const meta = safeQuery('meta[name="csrf-token"]');
         if (meta) token = meta.getAttribute('content');
     }
     
     if (!token) {
-        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        const input = safeQuery('[name=csrfmiddlewaretoken]');
         if (input) token = input.value;
     }
     
@@ -187,6 +204,9 @@ function debugLog(message, data) {
 
 /**
  * Production-ready tab switching with DOM-based discovery
+/**
+ * switchTab - Switches between profile tabs
+ * Phase 3.8.2: Event-driven, works with data-tab-button/data-tab-panel attributes
  * No assumptions about tab names - discovers from actual DOM
  */
 function switchTab(tabId) {
@@ -199,13 +219,13 @@ function switchTab(tabId) {
     });
 
     // Reset all tab buttons
-    const allButtons = document.querySelectorAll('.z-tab-btn');
+    const allButtons = document.querySelectorAll('.z-tab-btn, [data-tab-button]');
     allButtons.forEach(btn => {
         btn.classList.remove('active');
     });
 
     // Show selected content
-    const selectedContent = document.getElementById('tab-' + tabId);
+    const selectedContent = safeGetById('tab-' + tabId);
     if (selectedContent) {
         selectedContent.classList.add('active');
         console.log('[TAB] Activated content:', 'tab-' + tabId);
@@ -213,10 +233,10 @@ function switchTab(tabId) {
         console.warn('[TAB] Content not found for:', 'tab-' + tabId);
     }
 
-    // Highlight active button - find by checking onclick attribute
+    // Highlight active button - check data-tab-button attribute (Phase 3.8.2)
     allButtons.forEach(btn => {
-        const onclickAttr = btn.getAttribute('onclick');
-        if (onclickAttr && onclickAttr.includes(`'${tabId}'`)) {
+        const tabKey = btn.getAttribute('data-tab-button');
+        if (tabKey === tabId) {
             btn.classList.add('active');
             console.log('[TAB] Activated button for:', tabId);
         }
@@ -228,16 +248,16 @@ function switchTab(tabId) {
     }
 }
 
-// PHASE-3.7.1 FIX: Expose switchTab globally for onclick handlers
+// PHASE-3.7.1 FIX: Expose switchTab globally for backward compatibility
 window.switchTab = switchTab;
 
-// PHASE-3.7.3: Hash navigation + Tab discovery on page load
+// PHASE-3.8.2: Event delegation for tab switching
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[TAB] DOM loaded, initializing tabs...');
+    console.log('[TAB] Phase 3.8.2 - Event-driven tabs initializing...');
     
     // Discover all tabs in DOM
     const allTabs = document.querySelectorAll('.tab-content');
-    const allButtons = document.querySelectorAll('.z-tab-btn');
+    const allButtons = document.querySelectorAll('[data-tab-button]');
     console.log(`[TAB] Found ${allTabs.length} tab contents, ${allButtons.length} tab buttons`);
     
     // Log discovered tabs for debugging
@@ -245,17 +265,48 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(`[TAB] Content ${idx + 1}:`, tab.id);
     });
     
-    // Check if there's a hash in URL (e.g., #career)
+    // ===== EVENT DELEGATION: Single click handler for all tab triggers =====
+    document.addEventListener('click', function(e) {
+        // Find the closest element with data-tab-button (supports nested elements)
+        const tabTrigger = e.target.closest('[data-tab-button]');
+        
+        if (tabTrigger) {
+            e.preventDefault();
+            const tabKey = tabTrigger.getAttribute('data-tab-button');
+            if (tabKey) {
+                debugLog('Tab clicked via delegation', { tabKey });
+                switchTab(tabKey);
+            }
+        }
+    });
+    
+    // ===== KEYBOARD ACCESSIBILITY: Enter/Space on focusable tab triggers =====
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            const tabTrigger = e.target.closest('[data-tab-button]');
+            
+            if (tabTrigger && (tabTrigger.getAttribute('role') === 'button' || tabTrigger.tagName === 'BUTTON')) {
+                e.preventDefault();
+                const tabKey = tabTrigger.getAttribute('data-tab-button');
+                if (tabKey) {
+                    debugLog('Tab activated via keyboard', { tabKey, key: e.key });
+                    switchTab(tabKey);
+                }
+            }
+        }
+    });
+    
+    // ===== HASH NAVIGATION: Open tab from URL hash =====
     const hash = window.location.hash.slice(1); // Remove the '#'
     if (hash) {
         console.log('[TAB] Hash detected:', hash);
-        // Switch to the tab specified in hash
         switchTab(hash);
     } else {
-        // Default to overview tab
         console.log('[TAB] No hash, defaulting to overview');
         switchTab('overview');
     }
+    
+    console.log('[TAB] Event delegation active - tabs work without inline onclick');
 });
 
 // Clipboard copy function for crosshair codes (UP-PHASE-2C2)
@@ -287,7 +338,7 @@ function openAboutModal() {
         document.body.style.overflow = 'hidden';
         
         // Update char counter
-        const bioInput = document.getElementById('bioInput');
+        const bioInput = safeGetById('bioInput');
         if (bioInput) {
             updateCharCount();
             bioInput.addEventListener('input', updateCharCount);
@@ -371,7 +422,8 @@ function closeGamePassportsModal() {
     if (modal) {
         modal.classList.add('hidden');
         document.body.style.overflow = '';
-        document.getElementById('addPassportForm').reset();
+        const form = safeGetById('addPassportForm');
+        if (form) form.reset();
     }
 }
 
@@ -381,7 +433,8 @@ async function loadAvailableGames() {
         
         if (data.success && data.games) {
             availableGames = data.games;
-            const select = document.getElementById('passportGameSelect');
+            const select = safeGetById('passportGameSelect');
+            if (!select) return;
             select.innerHTML = '<option value="">Select a game...</option>';
             
             data.games.forEach(game => {
@@ -400,7 +453,8 @@ async function loadGamePassports() {
     try {
         const data = await response.json();
         
-        const container = document.getElementById('passportsList');
+        const container = safeGetById('passportsList');
+        if (!container) return;
         
         if (!data.success || !data.passports || data.passports.length === 0) {
             container.innerHTML = '<div class="text-center text-gray-500 py-8">No game IDs yet. Add one above!</div>';
@@ -414,7 +468,7 @@ async function loadGamePassports() {
         });
     } catch (error) {
         console.error('Error loading passports:', error);
-        document.getElementById('passportsList').innerHTML = '<div class="text-center text-red-500 py-8">Error loading passports</div>';
+        safeGetById('passportsList').innerHTML = '<div class="text-center text-red-500 py-8">Error loading passports</div>';
     }
 }
 
@@ -499,17 +553,17 @@ async function deletePassport(passportId, gameName) {
 
 // Handle Add Passport form submission
 document.addEventListener('DOMContentLoaded', function() {
-    const addPassportForm = document.getElementById('addPassportForm');
+    const addPassportForm = safeGetById('addPassportForm');
     if (addPassportForm) {
         addPassportForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             if (!requireOwner('addPassport')) return;
             
-            const gameId = document.getElementById('passportGameSelect').value;
-            const ign = document.getElementById('passportIgnInput').value.trim();
-            const region = document.getElementById('passportRegionInput').value.trim() || null;
-            const rank = document.getElementById('passportRankInput').value.trim() || null;
+            const gameId = safeGetById('passportGameSelect').value;
+            const ign = safeGetById('passportIgnInput').value.trim();
+            const region = safeGetById('passportRegionInput').value.trim() || null;
+            const rank = safeGetById('passportRankInput').value.trim() || null;
             
             if (!gameId || !ign) {
                 alert('Please select a game and enter your IGN');
@@ -595,12 +649,14 @@ function openEditHighlightsModal() {
     if (!requireOwner('openEditHighlightsModal')) return;
     
     const modal = safeGetById('editHighlightsModal');
+    if (!modal) return;
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 }
 
 function closeEditHighlightsModal() {
     const modal = safeGetById('editHighlightsModal');
+    if (!modal) return;
     modal.classList.add('hidden');
     document.body.style.overflow = '';
 }
@@ -619,43 +675,43 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Close modals on background click
-document.getElementById('aboutModal')?.addEventListener('click', (e) => {
+safeGetById('aboutModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'aboutModal') {
         closeAboutModal();
     }
 });
 
-document.getElementById('gamePassportsModal')?.addEventListener('click', (e) => {
+safeGetById('gamePassportsModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'gamePassportsModal') {
         closeGamePassportsModal();
     }
 });
 
-document.getElementById('videoModal')?.addEventListener('click', (e) => {
+safeGetById('videoModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'videoModal') {
         closeVideoModal();
     }
 });
 
-document.getElementById('editHighlightsModal')?.addEventListener('click', (e) => {
+safeGetById('editHighlightsModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'editHighlightsModal') {
         closeEditHighlightsModal();
     }
 });
 
-document.getElementById('followersModal')?.addEventListener('click', (e) => {
+safeGetById('followersModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'followersModal') {
         closeFollowersModal();
     }
 });
 
-document.getElementById('followingModal')?.addEventListener('click', (e) => {
+safeGetById('followingModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'followingModal') {
         closeFollowingModal();
     }
 });
 
-document.getElementById('socialLinksModal')?.addEventListener('click', (e) => {
+safeGetById('socialLinksModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'socialLinksModal') {
         closeSocialLinksModal();
     }
@@ -687,16 +743,16 @@ function closeCreateBountyModal() {
     
     modal.classList.add('hidden');
     document.body.style.overflow = '';
-    document.getElementById('createBountyForm').reset();
-    document.getElementById('createBountyError').classList.add('hidden');
+    safeGetById('createBountyForm').reset();
+    safeGetById('createBountyError').classList.add('hidden');
 }
 
 async function submitBounty() {
     if (!requireOwner('submitBounty')) return;
     
-    const form = document.getElementById('createBountyForm');
-    const errorDiv = document.getElementById('createBountyError');
-    const submitBtn = document.getElementById('submitBountyBtn');
+    const form = safeGetById('createBountyForm');
+    const errorDiv = safeGetById('createBountyError');
+    const submitBtn = safeGetById('submitBountyBtn');
     
     errorDiv.classList.add('hidden');
     submitBtn.disabled = true;
@@ -767,19 +823,19 @@ function switchLoadoutTab(tabId) {
     currentLoadoutTab = tabId;
     
     // Update tab buttons
-    document.getElementById('loadoutTabHardware').classList.toggle('text-white', tabId === 'hardware');
-    document.getElementById('loadoutTabHardware').classList.toggle('text-gray-400', tabId !== 'hardware');
-    document.getElementById('loadoutTabHardware').classList.toggle('border-[var(--z-cyan)]', tabId === 'hardware');
-    document.getElementById('loadoutTabHardware').classList.toggle('border-transparent', tabId !== 'hardware');
+    safeGetById('loadoutTabHardware').classList.toggle('text-white', tabId === 'hardware');
+    safeGetById('loadoutTabHardware').classList.toggle('text-gray-400', tabId !== 'hardware');
+    safeGetById('loadoutTabHardware').classList.toggle('border-[var(--z-cyan)]', tabId === 'hardware');
+    safeGetById('loadoutTabHardware').classList.toggle('border-transparent', tabId !== 'hardware');
     
-    document.getElementById('loadoutTabGameConfigs').classList.toggle('text-white', tabId === 'gameconfigs');
-    document.getElementById('loadoutTabGameConfigs').classList.toggle('text-gray-400', tabId !== 'gameconfigs');
-    document.getElementById('loadoutTabGameConfigs').classList.toggle('border-[var(--z-cyan)]', tabId === 'gameconfigs');
-    document.getElementById('loadoutTabGameConfigs').classList.toggle('border-transparent', tabId !== 'gameconfigs');
+    safeGetById('loadoutTabGameConfigs').classList.toggle('text-white', tabId === 'gameconfigs');
+    safeGetById('loadoutTabGameConfigs').classList.toggle('text-gray-400', tabId !== 'gameconfigs');
+    safeGetById('loadoutTabGameConfigs').classList.toggle('border-[var(--z-cyan)]', tabId === 'gameconfigs');
+    safeGetById('loadoutTabGameConfigs').classList.toggle('border-transparent', tabId !== 'gameconfigs');
     
     // Update content visibility
-    document.getElementById('loadoutContentHardware').classList.toggle('hidden', tabId !== 'hardware');
-    document.getElementById('loadoutContentGameConfigs').classList.toggle('hidden', tabId !== 'gameconfigs');
+    safeGetById('loadoutContentHardware').classList.toggle('hidden', tabId !== 'hardware');
+    safeGetById('loadoutContentGameConfigs').classList.toggle('hidden', tabId !== 'gameconfigs');
 }
 
 // Open Modal
@@ -817,10 +873,10 @@ function closeEditLoadoutModal() {
 
 // Load Hardware List
 async function loadHardwareList() {
-    const container = document.getElementById('hardwareList');
+    const container = safeGetById('hardwareList');
     
     // Get hardware from JSON script tag
-    const hardware = JSON.parse(document.getElementById('hardwareData').textContent);
+    const hardware = JSON.parse(safeGetById('hardwareData').textContent);
     
     container.innerHTML = '';
     
@@ -881,17 +937,17 @@ async function loadHardwareList() {
 }
 
 // Hardware Form Submit
-document.getElementById('hardwareForm').addEventListener('submit', async (e) => {
+safeGetById('hardwareForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
     if (!requireOwner('saveHardware')) return;
     
-    const id = document.getElementById('hardwareId').value;
-    const category = document.getElementById('hardwareCategory').value;
-    const brand = document.getElementById('hardwareBrand').value.trim();
-    const model = document.getElementById('hardwareModel').value.trim();
-    const specsRaw = document.getElementById('hardwareSpecs').value.trim();
-    const isPublic = document.getElementById('hardwareIsPublic').checked;
+    const id = safeGetById('hardwareId').value;
+    const category = safeGetById('hardwareCategory').value;
+    const brand = safeGetById('hardwareBrand').value.trim();
+    const model = safeGetById('hardwareModel').value.trim();
+    const specsRaw = safeGetById('hardwareSpecs').value.trim();
+    const isPublic = safeGetById('hardwareIsPublic').checked;
     
     // Parse specs JSON
     let specs = {};
@@ -918,7 +974,7 @@ document.getElementById('hardwareForm').addEventListener('submit', async (e) => 
     }
     
     // Submit
-    const btn = e.target.querySelector('button[type="submit"]');
+    const btn = e.safeQueryIn(target, 'button[type="submit"]');
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
     
@@ -949,18 +1005,18 @@ document.getElementById('hardwareForm').addEventListener('submit', async (e) => 
 
 // Edit Hardware
 function editHardware(item) {
-    document.getElementById('hardwareId').value = item.id;
-    document.getElementById('hardwareCategory').value = item.category;
-    document.getElementById('hardwareBrand').value = item.brand;
-    document.getElementById('hardwareModel').value = item.model;
-    document.getElementById('hardwareSpecs').value = item.specs && Object.keys(item.specs).length > 0 
+    safeGetById('hardwareId').value = item.id;
+    safeGetById('hardwareCategory').value = item.category;
+    safeGetById('hardwareBrand').value = item.brand;
+    safeGetById('hardwareModel').value = item.model;
+    safeGetById('hardwareSpecs').value = item.specs && Object.keys(item.specs).length > 0 
         ? JSON.stringify(item.specs, null, 2) : '';
-    document.getElementById('hardwareIsPublic').checked = item.is_public;
+    safeGetById('hardwareIsPublic').checked = item.is_public;
     
-    document.getElementById('hardwareFormTitle').textContent = 'Edit Hardware';
+    safeGetById('hardwareFormTitle').textContent = 'Edit Hardware';
     
     // Scroll to form
-    document.getElementById('hardwareForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    safeGetById('hardwareForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // Delete Hardware
@@ -980,10 +1036,10 @@ async function deleteHardware(id, category) {
 
 // Reset Hardware Form
 function resetHardwareForm() {
-    document.getElementById('hardwareForm').reset();
-    document.getElementById('hardwareId').value = '';
-    document.getElementById('hardwareFormTitle').textContent = 'Add Hardware';
-    document.getElementById('hardwareIsPublic').checked = true;
+    safeGetById('hardwareForm').reset();
+    safeGetById('hardwareId').value = '';
+    safeGetById('hardwareFormTitle').textContent = 'Add Hardware';
+    safeGetById('hardwareIsPublic').checked = true;
 }
 
 // ============================================================================
@@ -998,7 +1054,7 @@ async function loadAvailableGamesForConfigs() {
         if (data.games) {
             loadoutAvailableGames = data.games;
             
-            const select = document.getElementById('gameConfigGame');
+            const select = safeGetById('gameConfigGame');
             select.innerHTML = '<option value="">Select Game...</option>';
             
             data.games.forEach(game => {
@@ -1015,10 +1071,10 @@ async function loadAvailableGamesForConfigs() {
 
 // Load Game Config List
 async function loadGameConfigList() {
-    const container = document.getElementById('gameConfigList');
+    const container = safeGetById('gameConfigList');
     
     // Get configs from JSON script tag
-    const configs = JSON.parse(document.getElementById('gameConfigsData').textContent);
+    const configs = JSON.parse(safeGetById('gameConfigsData').textContent);
     
     container.innerHTML = '';
     
@@ -1061,19 +1117,19 @@ async function loadGameConfigList() {
 }
 
 // Game Config Form Submit
-document.getElementById('gameConfigForm').addEventListener('submit', async (e) => {
+safeGetById('gameConfigForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
     if (!requireOwner('saveGameConfig')) return;
     
-    const id = document.getElementById('gameConfigId').value;
-    const gameId = document.getElementById('gameConfigGame').value;
-    const dpi = document.getElementById('gameConfigDPI').value.trim();
-    const sens = document.getElementById('gameConfigSens').value.trim();
-    const res = document.getElementById('gameConfigRes').value.trim();
-    const settingsRaw = document.getElementById('gameConfigSettings').value.trim();
-    const notes = document.getElementById('gameConfigNotes').value.trim();
-    const isPublic = document.getElementById('gameConfigIsPublic').checked;
+    const id = safeGetById('gameConfigId').value;
+    const gameId = safeGetById('gameConfigGame').value;
+    const dpi = safeGetById('gameConfigDPI').value.trim();
+    const sens = safeGetById('gameConfigSens').value.trim();
+    const res = safeGetById('gameConfigRes').value.trim();
+    const settingsRaw = safeGetById('gameConfigSettings').value.trim();
+    const notes = safeGetById('gameConfigNotes').value.trim();
+    const isPublic = safeGetById('gameConfigIsPublic').checked;
     
     // Build settings object
     let settings = {};
@@ -1106,7 +1162,7 @@ document.getElementById('gameConfigForm').addEventListener('submit', async (e) =
     }
     
     // Submit
-    const btn = e.target.querySelector('button[type="submit"]');
+    const btn = e.safeQueryIn(target, 'button[type="submit"]');
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
     
@@ -1129,17 +1185,17 @@ document.getElementById('gameConfigForm').addEventListener('submit', async (e) =
 
 // Edit Game Config
 function editGameConfig(config) {
-    document.getElementById('gameConfigId').value = config.id;
+    safeGetById('gameConfigId').value = config.id;
     
     // Find game ID from available games
     const game = loadoutAvailableGames.find(g => g.name === config.game || g.slug === config.game_slug);
     if (game) {
-        document.getElementById('gameConfigGame').value = game.id;
+        safeGetById('gameConfigGame').value = game.id;
     }
     
-    document.getElementById('gameConfigDPI').value = config.settings?.dpi || config.dpi || '';
-    document.getElementById('gameConfigSens').value = config.settings?.sensitivity || config.sensitivity || '';
-    document.getElementById('gameConfigRes').value = config.settings?.resolution || config.resolution || '';
+    safeGetById('gameConfigDPI').value = config.settings?.dpi || config.dpi || '';
+    safeGetById('gameConfigSens').value = config.settings?.sensitivity || config.sensitivity || '';
+    safeGetById('gameConfigRes').value = config.settings?.resolution || config.resolution || '';
     
     // Extract non-standard settings for JSON field
     const standardKeys = ['dpi', 'sensitivity', 'resolution'];
@@ -1152,13 +1208,13 @@ function editGameConfig(config) {
         });
     }
     
-    document.getElementById('gameConfigSettings').value = Object.keys(additionalSettings).length > 0 
+    safeGetById('gameConfigSettings').value = Object.keys(additionalSettings).length > 0 
         ? JSON.stringify(additionalSettings, null, 2) : '';
     
-    document.getElementById('gameConfigNotes').value = config.notes || '';
-    document.getElementById('gameConfigIsPublic').checked = config.is_public;
+    safeGetById('gameConfigNotes').value = config.notes || '';
+    safeGetById('gameConfigIsPublic').checked = config.is_public;
     
-    document.getElementById('gameConfigFormTitle').textContent = 'Edit Game Config';
+    safeGetById('gameConfigFormTitle').textContent = 'Edit Game Config';
     
     // Switch to game configs tab if not already there
     if (currentLoadoutTab !== 'gameconfigs') {
@@ -1166,7 +1222,7 @@ function editGameConfig(config) {
     }
     
     // Scroll to form
-    document.getElementById('gameConfigForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    safeGetById('gameConfigForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // Delete Game Config
@@ -1186,10 +1242,10 @@ async function deleteGameConfig(id, gameName) {
 
 // Reset Game Config Form
 function resetGameConfigForm() {
-    document.getElementById('gameConfigForm').reset();
-    document.getElementById('gameConfigId').value = '';
-    document.getElementById('gameConfigFormTitle').textContent = 'Add Game Config';
-    document.getElementById('gameConfigIsPublic').checked = true;
+    safeGetById('gameConfigForm').reset();
+    safeGetById('gameConfigId').value = '';
+    safeGetById('gameConfigFormTitle').textContent = 'Add Game Config';
+    safeGetById('gameConfigIsPublic').checked = true;
 }
 
 // ============================================================================
@@ -1264,36 +1320,36 @@ function openProofModal(bountyId, bountyTitle, creatorId, creatorName, acceptorI
     if (titleEl) titleEl.textContent = bountyTitle;
     
     // Populate winner dropdown
-    const winnerSelect = document.getElementById('proofWinner');
+    const winnerSelect = safeGetById('proofWinner');
     winnerSelect.innerHTML = `
         <option value="">Select winner...</option>
         <option value="${creatorId}">${creatorName}</option>
         <option value="${acceptorId}">${acceptorName}</option>
     `;
     
-    document.getElementById('proofModal').classList.remove('hidden');
+    safeGetById('proofModal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 }
 
 function closeProofModal() {
     currentProofBountyId = null;
-    document.getElementById('proofModal').classList.add('hidden');
+    safeGetById('proofModal').classList.add('hidden');
     document.body.style.overflow = '';
     
     // Reset form
-    document.getElementById('proofWinner').value = '';
-    document.getElementById('proofUrl').value = '';
-    document.getElementById('proofType').value = 'screenshot';
-    document.getElementById('proofDescription').value = '';
+    safeGetById('proofWinner').value = '';
+    safeGetById('proofUrl').value = '';
+    safeGetById('proofType').value = 'screenshot';
+    safeGetById('proofDescription').value = '';
 }
 
 async function submitProof() {
     if (!requireOwner('submitProof')) return;
     
-    const winnerId = document.getElementById('proofWinner').value;
-    const proofUrl = document.getElementById('proofUrl').value.trim();
-    const proofType = document.getElementById('proofType').value;
-    const description = document.getElementById('proofDescription').value.trim();
+    const winnerId = safeGetById('proofWinner').value;
+    const proofUrl = safeGetById('proofUrl').value.trim();
+    const proofType = safeGetById('proofType').value;
+    const description = safeGetById('proofDescription').value.trim();
     
     if (!winnerId) {
         alert('Please select a winner');
@@ -1368,8 +1424,8 @@ function openDisputeModal(bountyId, bountyTitle) {
     document.body.style.overflow = 'hidden';
     
     // Character counter
-    const textarea = document.getElementById('disputeReason');
-    const counter = document.getElementById('disputeCharCount');
+    const textarea = safeGetById('disputeReason');
+    const counter = safeGetById('disputeCharCount');
     textarea.addEventListener('input', () => {
         counter.textContent = textarea.value.length;
     });
@@ -1377,18 +1433,18 @@ function openDisputeModal(bountyId, bountyTitle) {
 
 function closeDisputeModal() {
     currentDisputeBountyId = null;
-    document.getElementById('disputeModal').classList.add('hidden');
+    safeGetById('disputeModal').classList.add('hidden');
     document.body.style.overflow = '';
     
     // Reset form
-    document.getElementById('disputeReason').value = '';
-    document.getElementById('disputeCharCount').textContent = '0';
+    safeGetById('disputeReason').value = '';
+    safeGetById('disputeCharCount').textContent = '0';
 }
 
 async function submitDispute() {
     if (!requireOwner('submitDispute')) return;
     
-    const reason = document.getElementById('disputeReason').value.trim();
+    const reason = safeGetById('disputeReason').value.trim();
     
     if (reason.length < 50) {
         alert('Dispute reason must be at least 50 characters');
@@ -1442,7 +1498,7 @@ function openEndorseModal(bountyId, receiverId) {
             }
             
             // Update hint
-            const hint = document.getElementById('endorseSkillHint');
+            const hint = safeGetById('endorseSkillHint');
             if (selectedSkills.size > 0) {
                 hint.textContent = `${selectedSkills.size} skill(s) selected`;
                 hint.classList.add('text-[var(--z-gold)]');
@@ -1453,7 +1509,7 @@ function openEndorseModal(bountyId, receiverId) {
         };
     });
     
-    document.getElementById('endorseModal').classList.remove('hidden');
+    safeGetById('endorseModal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 }
 
@@ -1461,7 +1517,7 @@ function closeEndorseModal() {
     currentEndorseBountyId = null;
     currentEndorseReceiverId = null;
     selectedSkills.clear();
-    document.getElementById('endorseModal').classList.add('hidden');
+    safeGetById('endorseModal').classList.add('hidden');
     document.body.style.overflow = '';
 }
 
@@ -1503,8 +1559,8 @@ async function submitEndorsement() {
 
 // UP-PHASE2F: Avatar and Cover Upload
 document.addEventListener('DOMContentLoaded', function() {
-    const avatarInput = document.getElementById('avatarInput');
-    const coverInput = document.getElementById('coverInput');
+    const avatarInput = safeGetById('avatarInput');
+    const coverInput = safeGetById('coverInput');
     
     if (avatarInput) {
         avatarInput.addEventListener('change', function(e) {
@@ -1550,7 +1606,7 @@ async function handleMediaUpload(file, mediaType) {
         
         // Update preview
         if (mediaType === 'avatar') {
-            const avatarPreview = document.getElementById('avatarPreview');
+            const avatarPreview = safeGetById('avatarPreview');
             if (avatarPreview) {
                 avatarPreview.src = data.url;
             }
@@ -1567,7 +1623,7 @@ function openFollowersModal() {
         return;
     }
     
-    const modal = document.getElementById('followersModal');
+    const modal = safeGetById('followersModal');
     if (modal) {
         modal.classList.remove('hidden');
         loadFollowersList();
@@ -1586,12 +1642,12 @@ function openSocialLinksModal() {
 }
 
 function closeSocialLinksModal() {
-    const modal = document.getElementById('socialLinksModal');
+    const modal = safeGetById('socialLinksModal');
     if (modal) modal.classList.add('hidden');
 }
 
 async function loadSocialLinks() {
-    const container = document.getElementById('socialLinksList');
+    const container = safeGetById('socialLinksList');
     container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
     
     const data = await safeFetch('/api/profile/social-links/');
@@ -1648,8 +1704,8 @@ function getPlatformName(platform) {
 async function addSocialLink() {
     if (!requireOwner('addSocialLink')) return;
     
-    const platformSelect = document.getElementById('newLinkPlatform');
-    const urlInput = document.getElementById('newLinkUrl');
+    const platformSelect = safeGetById('newLinkPlatform');
+    const urlInput = safeGetById('newLinkUrl');
     
     const platform = platformSelect.value.trim();
     const url = urlInput.value.trim();
@@ -1697,7 +1753,7 @@ async function deleteSocialLink(linkId, platform) {
 
 // UP-PHASE2F: Follower/Following Modal System (continued)
 function openFollowersModal() {
-    const modal = document.getElementById('followersModal');
+    const modal = safeGetById('followersModal');
     if (modal) {
         modal.classList.remove('hidden');
         loadFollowersList();
@@ -1708,7 +1764,7 @@ function openFollowingModal() {
         alert('This following list is private');
         return;
     
-    const modal = document.getElementById('followingModal');
+    const modal = safeGetById('followingModal');
     if (modal) {
         modal.classList.remove('hidden');
         loadFollowingList();
@@ -1716,17 +1772,17 @@ function openFollowingModal() {
 }
 
 function closeFollowersModal() {
-    const modal = document.getElementById('followersModal');
+    const modal = safeGetById('followersModal');
     if (modal) modal.classList.add('hidden');
 }
 
 function closeFollowingModal() {
-    const modal = document.getElementById('followingModal');
+    const modal = safeGetById('followingModal');
     if (modal) modal.classList.add('hidden');
 }
 
 async function loadFollowersList() {
-    const container = document.getElementById('followersList');
+    const container = safeGetById('followersList');
     
     container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
     
@@ -1761,7 +1817,7 @@ async function loadFollowersList() {
 }
 
 async function loadFollowingList() {
-    const container = document.getElementById('followingList');
+    const container = safeGetById('followingList');
     
     container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
     
@@ -1823,7 +1879,7 @@ async function handleFollowAction(username, action, button) {
     
     if (data && data.success) {
         // Reload the current list
-        const followersModalOpen = !document.getElementById('followersModal').classList.contains('hidden');
+        const followersModalOpen = !safeGetById('followersModal').classList.contains('hidden');
         if (followersModalOpen) {
             loadFollowersList();
         } else {

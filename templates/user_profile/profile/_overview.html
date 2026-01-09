@@ -13,7 +13,7 @@ REASON: Overview is user-facing and changes impact UX expectations.
 -->
 
 <!-- OVERVIEW TAB (Dashboard Summary) -->
-<div id="tab-overview" class="tab-content active space-y-8">
+<div id="tab-overview" class="tab-content active space-y-8" data-tab-panel="overview">
     <!-- About Section -->
     {% if profile.bio or profile.pronouns or profile.country %}
     <div class="z-card p-8">
@@ -47,7 +47,7 @@ REASON: Overview is user-facing and changes impact UX expectations.
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
         <!-- Career Card -->
-        <div onclick="switchTab('career')" class="z-card p-6 cursor-pointer hover:border-[var(--z-cyan)]/50 transition-all transform hover:-translate-y-1 group">
+        <div role="button" tabindex="0" data-tab-button="career" class="z-card p-6 cursor-pointer hover:border-[var(--z-cyan)]/50 transition-all transform hover:-translate-y-1 group">
             <div class="flex items-start justify-between mb-4">
                 <div class="w-12 h-12 rounded-xl bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)] text-2xl group-hover:scale-110 transition">
                     <i class="fa-solid fa-timeline"></i>
@@ -66,7 +66,7 @@ REASON: Overview is user-facing and changes impact UX expectations.
         </div>
         
         <!-- Stats Card -->
-        <div onclick="switchTab('stats')" class="z-card p-6 cursor-pointer hover:border-[var(--z-gold)]/50 transition-all transform hover:-translate-y-1 group">
+        <div role="button" tabindex="0" data-tab-button="stats" class="z-card p-6 cursor-pointer hover:border-[var(--z-gold)]/50 transition-all transform hover:-translate-y-1 group">
             <div class="flex items-start justify-between mb-4">
                 <div class="w-12 h-12 rounded-xl bg-[var(--z-gold)]/10 flex items-center justify-center text-[var(--z-gold)] text-2xl group-hover:scale-110 transition">
                     <i class="fa-solid fa-chart-line"></i>
@@ -87,7 +87,7 @@ REASON: Overview is user-facing and changes impact UX expectations.
         </div>
         
         <!-- Inventory Card -->
-        <div onclick="switchTab('inventory')" class="z-card p-6 cursor-pointer hover:border-[var(--z-purple)]/50 transition-all transform hover:-translate-y-1 group">
+        <div role="button" tabindex="0" data-tab-button="inventory" class="z-card p-6 cursor-pointer hover:border-[var(--z-purple)]/50 transition-all transform hover:-translate-y-1 group">
             <div class="flex items-start justify-between mb-4">
                 <div class="w-12 h-12 rounded-xl bg-[var(--z-purple)]/10 flex items-center justify-center text-[var(--z-purple)] text-2xl group-hover:scale-110 transition">
                     <i class="fa-solid fa-box-open"></i>
@@ -105,7 +105,7 @@ REASON: Overview is user-facing and changes impact UX expectations.
         </div>
         
         <!-- Media Card -->
-        <div onclick="switchTab('media')" class="z-card p-6 cursor-pointer hover:border-[var(--z-pink)]/50 transition-all transform hover:-translate-y-1 group">
+        <div role="button" tabindex="0" data-tab-button="media" class="z-card p-6 cursor-pointer hover:border-[var(--z-pink)]/50 transition-all transform hover:-translate-y-1 group">
             <div class="flex items-start justify-between mb-4">
                 <div class="w-12 h-12 rounded-xl bg-[var(--z-pink)]/10 flex items-center justify-center text-[var(--z-pink)] text-2xl group-hover:scale-110 transition">
                     <i class="fa-solid fa-image"></i>
@@ -117,7 +117,7 @@ REASON: Overview is user-facing and changes impact UX expectations.
         </div>
         
         <!-- Loadouts Card -->
-        <div onclick="switchTab('loadout')" class="z-card p-6 cursor-pointer hover:border-[var(--z-green)]/50 transition-all transform hover:-translate-y-1 group">
+        <div role="button" tabindex="0" data-tab-button="loadout" class="z-card p-6 cursor-pointer hover:border-[var(--z-green)]/50 transition-all transform hover:-translate-y-1 group">
             <div class="flex items-start justify-between mb-4">
                 <div class="w-12 h-12 rounded-xl bg-[var(--z-green)]/10 flex items-center justify-center text-[var(--z-green)] text-2xl group-hover:scale-110 transition">
                     <i class="fa-solid fa-computer-mouse"></i>
@@ -136,7 +136,7 @@ REASON: Overview is user-facing and changes impact UX expectations.
         </div>
         
         <!-- Bounties Card -->
-        <div onclick="switchTab('bounties')" class="z-card p-6 cursor-pointer hover:border-[var(--z-red)]/50 transition-all transform hover:-translate-y-1 group">
+        <div role="button" tabindex="0" data-tab-button="bounties" class="z-card p-6 cursor-pointer hover:border-[var(--z-red)]/50 transition-all transform hover:-translate-y-1 group">
             <div class="flex items-start justify-between mb-4">
                 <div class="w-12 h-12 rounded-xl bg-[var(--z-red)]/10 flex items-center justify-center text-[var(--z-red)] text-2xl group-hover:scale-110 transition">
                     <i class="fa-solid fa-crosshairs"></i>
@@ -161,7 +161,7 @@ REASON: Overview is user-facing and changes impact UX expectations.
         </div>
         
         <!-- Game IDs Card (NEW) -->
-        <div onclick="switchTab('game-ids')" class="z-card p-6 cursor-pointer hover:border-[var(--z-cyan)]/50 transition-all transform hover:-translate-y-1 group">
+        <div role="button" tabindex="0" data-tab-button="game-ids" class="z-card p-6 cursor-pointer hover:border-[var(--z-cyan)]/50 transition-all transform hover:-translate-y-1 group">
             <div class="flex items-start justify-between mb-4">
                 <div class="w-12 h-12 rounded-xl bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)] text-2xl group-hover:scale-110 transition">
                     <i class="fa-solid fa-id-card"></i>
@@ -186,7 +186,7 @@ REASON: Overview is user-facing and changes impact UX expectations.
             <h2 class="text-2xl font-display font-bold text-white flex items-center gap-3">
                 <i class="fa-solid fa-video text-[var(--z-red)]"></i> Featured Highlights
             </h2>
-            <button onclick="switchTab('highlights')" class="text-xs text-[var(--z-cyan)] hover:text-white transition">
+            <button type="button" data-tab-button="highlights" class="text-xs text-[var(--z-cyan)] hover:text-white transition">
                 View All <i class="fa-solid fa-arrow-right ml-1"></i>
             </button>
         </div>
