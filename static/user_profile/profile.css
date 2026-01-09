@@ -1,0 +1,168 @@
+/* Aurora Zenith Visual System */
+:root {
+    --z-bg: #030014;
+    --z-panel: #0F0B1E;
+    --z-cyan: #00F0FF;
+    --z-purple: #7B2CBF;
+    --z-gold: #FFD60A;
+    --z-pink: #FF007A;
+    --z-green: #39FF14;
+    --z-red: #EF4444;
+    --z-border: rgba(255, 255, 255, 0.08);
+}
+
+body {
+    background-color: var(--z-bg);
+    color: #e5e7eb;
+    overflow-x: hidden;
+    background-image:
+        radial-gradient(circle at 15% 50%, rgba(123, 44, 191, 0.05), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(0, 240, 255, 0.05), transparent 25%);
+}
+
+/* Prismatic Glass Panels */
+.z-card {
+    background: rgba(15, 11, 30, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.z-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+    transition: 0.5s;
+}
+
+.z-card:hover::before {
+    left: 100%;
+}
+
+.z-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(20, 15, 40, 0.7);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* Holographic Avatar Ring */
+.holo-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent, var(--z-cyan), var(--z-purple), var(--z-pink), transparent);
+    animation: spin 4s linear infinite;
+    filter: blur(5px);
+    z-index: 0;
+}
+
+.holo-img {
+    position: relative;
+    z-index: 1;
+    border-radius: 50%;
+    border: 3px solid var(--z-bg);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Neon Tabs */
+.z-tab-btn {
+    position: relative;
+    color: #94a3b8;
+    transition: all 0.3s ease;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 1.5rem;
+    height: 100%;
+}
+
+.z-tab-btn:hover {
+    color: #fff;
+}
+
+.z-tab-btn.active {
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.z-tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--z-cyan), var(--z-purple));
+    box-shadow: 0 0 10px var(--z-cyan);
+}
+
+/* Edit Mode Toggles */
+.edit-trigger {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.group:hover .edit-trigger {
+    opacity: 1;
+}
+
+/* Text Gradients */
+.text-gradient-gold {
+    background: linear-gradient(to right, var(--z-gold), #FFE566);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.text-gradient-cyan {
+    background: linear-gradient(to right, var(--z-cyan), #80F7FF);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--z-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--z-cyan);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}

@@ -1,0 +1,165 @@
+{% load static %}
+
+<!-- LOADOUT TAB - UP-PHASE-2C2 -->
+<div id="tab-loadout" class="tab-content space-y-6">
+    <!-- Hardware Gear -->
+    <div class="z-card p-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                <i class="fa-solid fa-computer-mouse text-[var(--z-gold)]"></i> Hardware Setup
+            </h2>
+            {% if is_owner %}
+            <button onclick="openEditLoadoutModal()" class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white hover:bg-white/10 transition">
+                <i class="fa-solid fa-pen mr-2"></i> Edit Loadout
+            </button>
+            {% endif %}
+        </div>
+        
+        {% if hardware_gear.mouse or hardware_gear.keyboard or hardware_gear.headset or hardware_gear.monitor or hardware_gear.mousepad %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% if hardware_gear.mouse %}
+            <div class="z-card p-5 hover:border-[var(--z-gold)]/30 transition group">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-[var(--z-gold)]/10 flex items-center justify-center text-[var(--z-gold)] text-2xl group-hover:scale-110 transition">
+                        <i class="fa-solid fa-computer-mouse"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Mouse</div>
+                        <div class="text-sm font-bold text-white">{{ hardware_gear.mouse.brand }} {{ hardware_gear.mouse.model }}</div>
+                        {% if hardware_gear.mouse.specs.dpi %}
+                        <div class="text-xs text-gray-400 mt-1">{{ hardware_gear.mouse.specs.dpi }} DPI</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if hardware_gear.keyboard %}
+            <div class="z-card p-5 hover:border-[var(--z-cyan)]/30 transition group">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)] text-2xl group-hover:scale-110 transition">
+                        <i class="fa-solid fa-keyboard"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Keyboard</div>
+                        <div class="text-sm font-bold text-white">{{ hardware_gear.keyboard.brand }} {{ hardware_gear.keyboard.model }}</div>
+                        {% if hardware_gear.keyboard.specs %}
+                        <div class="text-xs text-gray-400 mt-1">{{ hardware_gear.keyboard.specs|truncatechars:30 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if hardware_gear.headset %}
+            <div class="z-card p-5 hover:border-[var(--z-purple)]/30 transition group">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-[var(--z-purple)]/10 flex items-center justify-center text-[var(--z-purple)] text-2xl group-hover:scale-110 transition">
+                        <i class="fa-solid fa-headphones"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Headset</div>
+                        <div class="text-sm font-bold text-white">{{ hardware_gear.headset.brand }} {{ hardware_gear.headset.model }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if hardware_gear.monitor %}
+            <div class="z-card p-5 hover:border-[var(--z-pink)]/30 transition group">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-[var(--z-pink)]/10 flex items-center justify-center text-[var(--z-pink)] text-2xl group-hover:scale-110 transition">
+                        <i class="fa-solid fa-display"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Monitor</div>
+                        <div class="text-sm font-bold text-white">{{ hardware_gear.monitor.brand }} {{ hardware_gear.monitor.model }}</div>
+                        {% if hardware_gear.monitor.specs.refresh_rate %}
+                        <div class="text-xs text-gray-400 mt-1">{{ hardware_gear.monitor.specs.refresh_rate }}Hz</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if hardware_gear.mousepad %}
+            <div class="z-card p-5 hover:border-white/20 transition group">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-gray-400 text-2xl group-hover:scale-110 transition">
+                        <i class="fa-solid fa-square"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Mousepad</div>
+                        <div class="text-sm font-bold text-white">{{ hardware_gear.mousepad.brand }} {{ hardware_gear.mousepad.model }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="text-center py-12 text-gray-500">
+            <i class="fa-solid fa-gamepad text-5xl mb-4 opacity-20"></i>
+            <p class="text-sm">No hardware setup configured yet.</p>
+            {% if is_owner %}
+            <p class="text-xs mt-2">Add your gaming gear to showcase your setup!</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Game Configs -->
+    {% if game_configs %}
+    <div class="z-card p-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                <i class="fa-solid fa-sliders text-[var(--z-cyan)]"></i> Game Settings
+            </h2>
+        </div>
+        
+        <div class="space-y-4">
+            {% for config in game_configs %}
+            <div class="z-card p-6 hover:bg-white/[0.03] transition">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">{{ config.game }}</h3>
+                        <p class="text-xs text-gray-500 mt-1">Updated {{ config.updated_at|timesince }} ago</p>
+                    </div>
+                    <div class="text-xs font-mono px-3 py-1 rounded-full border border-white/10 text-gray-400">
+                        eDPI: {{ config.effective_dpi|floatformat:0 }}
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div class="text-center p-3 bg-white/5 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">DPI</div>
+                        <div class="text-lg font-bold text-white">{{ config.dpi }}</div>
+                    </div>
+                    <div class="text-center p-3 bg-white/5 rounded-lg">
+                        <div class="text-xs text-gray-500 mb-1">Sensitivity</div>
+                        <div class="text-lg font-bold text-white">{{ config.sensitivity }}</div>
+                    </div>
+                    <div class="text-center p-3 bg-white/5 rounded-lg col-span-2">
+                        <div class="text-xs text-gray-500 mb-1">Resolution</div>
+                        <div class="text-lg font-bold text-white">{{ config.resolution }}</div>
+                    </div>
+                </div>
+                
+                {% if config.crosshair %}
+                <div class="bg-black/40 border border-white/5 rounded-lg p-4">
+                    <div class="flex justify-between items-center">
+                        <div class="flex-1">
+                            <div class="text-xs text-gray-500 mb-2">Crosshair Code</div>
+                            <code class="text-sm text-[var(--z-cyan)] font-mono break-all">{{ config.crosshair }}</code>
+                        </div>
+                        <button onclick="copyToClipboard('{{ config.crosshair|escapejs }}')" class="ml-4 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white hover:bg-white/10 transition">
+                            <i class="fa-solid fa-copy mr-2"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>

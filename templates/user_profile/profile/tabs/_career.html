@@ -1,0 +1,35 @@
+{% load static %}
+
+<!-- CAREER TAB -->
+<div id="tab-career" class="tab-content space-y-6">
+    <div class="z-card p-8">
+        <div class="flex justify-between items-center mb-10 border-b border-white/5 pb-4">
+            <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                <i class="fa-solid fa-timeline text-[var(--z-cyan)]"></i> Team History
+            </h2>
+        </div>
+
+        {% if user_teams %}
+        <div class="relative ml-4 space-y-8">
+            {% for team in user_teams|slice:":3" %}
+            <div class="relative pl-12 group/item">
+                <div class="absolute -left-[5px] top-0 w-4 h-4 bg-[var(--z-cyan)] rounded-full border-4 border-[var(--z-bg)] shadow-[0_0_15px_var(--z-cyan)] z-10"></div>
+                <div class="z-card p-6 border-l-2 border-l-[var(--z-cyan)] bg-[var(--z-cyan)]/5 hover:bg-[var(--z-cyan)]/10 transition">
+                    <span class="absolute top-4 right-4 bg-[var(--z-cyan)] text-black text-[9px] font-bold px-2 py-1 rounded uppercase tracking-widest">Active</span>
+                    <h3 class="text-2xl font-display font-bold text-white mb-1">{{ team.name }}</h3>
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-[10px] bg-white/10 text-white px-2 py-0.5 rounded border border-white/10 font-mono">{{ team.role|upper }}</span>
+                        <span class="text-[10px] bg-white/10 text-white px-2 py-0.5 rounded border border-white/10 font-mono">{{ team.game|upper }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center text-gray-500 py-12">
+            <i class="fa-solid fa-users text-4xl mb-4 opacity-20"></i>
+            <p class="text-sm">No team history yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>

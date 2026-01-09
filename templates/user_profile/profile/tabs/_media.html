@@ -1,0 +1,29 @@
+{% load static %}
+
+<!-- MEDIA TAB -->
+<div id="tab-media" class="tab-content space-y-6">
+    <div class="z-card p-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                <i class="fa-solid fa-image text-[var(--z-purple)]"></i> Media Gallery
+            </h2>
+            {% if is_owner %}
+            <button class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white hover:bg-white/10 transition">
+                <i class="fa-solid fa-upload mr-2"></i> Upload Media
+            </button>
+            {% endif %}
+        </div>
+        
+        <!-- Placeholder: Media Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <!-- Empty state -->
+            <div class="col-span-2 md:col-span-3 text-center py-12 text-gray-500">
+                <i class="fa-solid fa-photo-film text-5xl mb-4 opacity-20"></i>
+                <p class="text-sm">No media uploaded yet.</p>
+                {% if is_owner %}
+                <p class="text-xs mt-2">Upload your best screenshots, highlights, and moments!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

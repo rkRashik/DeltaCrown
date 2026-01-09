@@ -1,0 +1,22 @@
+<!-- UP-PHASE2F: Followers Modal -->
+<div id="followersModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-xl shadow-2xl max-w-md w-full max-h-[70vh] flex flex-col">
+        <!-- Header -->
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <h2 class="text-2xl font-display font-bold text-white">
+                <i class="fa-solid fa-users text-[var(--z-cyan)] mr-2"></i>
+                Followers
+            </h2>
+            <button onclick="closeFollowersModal()" class="text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <!-- Scrollable List -->
+        <div id="followersList" class="flex-1 overflow-y-auto">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
+            </div>
+        </div>
+    </div>
+</div>

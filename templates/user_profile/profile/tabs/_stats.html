@@ -1,0 +1,38 @@
+{% load static %}
+
+<!-- STATS TAB -->
+<div id="tab-stats" class="tab-content space-y-6">
+    <div class="z-card p-8">
+        <h2 class="text-xl font-display font-bold text-white mb-8">Career Performance</h2>
+
+        <div class="grid grid-cols-3 gap-6 mb-8">
+            <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-cyan)]/50 transition">
+                <div class="text-4xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-cyan)] transition">{{ user_stats.total_matches|default:0 }}</div>
+                <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Matches</div>
+            </div>
+            <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-gold)]/50 transition">
+                <div class="text-4xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-gold)] transition">{{ user_stats.tournaments_played|default:0 }}</div>
+                <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Tournaments</div>
+            </div>
+            <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-purple)]/50 transition">
+                <div class="text-4xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-purple)] transition">{{ user_teams|length|default:0 }}</div>
+                <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Teams</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+            <div class="bg-[var(--z-green)]/10 p-4 rounded-xl border border-[var(--z-green)]/20 text-center">
+                <div class="text-3xl font-display font-bold text-[var(--z-green)]">{{ user_stats.total_wins|default:0 }}</div>
+                <div class="text-[10px] text-[var(--z-green)]/70 uppercase font-bold tracking-widest">Wins</div>
+            </div>
+            <div class="bg-[var(--z-red)]/10 p-4 rounded-xl border border-[var(--z-red)]/20 text-center">
+                <div class="text-3xl font-display font-bold text-[var(--z-red)]">{{ user_stats.total_losses|default:0 }}</div>
+                <div class="text-[10px] text-[var(--z-red)]/70 uppercase font-bold tracking-widest">Losses</div>
+            </div>
+            <div class="bg-white/5 p-4 rounded-xl border border-white/10 text-center">
+                <div class="text-3xl font-display font-bold text-white">{{ user_stats.win_rate|default:0 }}%</div>
+                <div class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Win Rate</div>
+            </div>
+        </div>
+    </div>
+</div>

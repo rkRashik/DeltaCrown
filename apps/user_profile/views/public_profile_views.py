@@ -157,8 +157,10 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         
         # UP-UI-REBIRTH-02: Add profile_user to context for template access
         context['profile_user'] = profile_user
-        # CRITICAL FIX: Template expects 'profile' not 'user_profile'
-        context['profile'] = user_profile
+        # PHASE-3.7.1 FIX: DO NOT overwrite context['profile'] dict!
+        # The build_public_profile_context() already created a safe profile dict
+        # with avatar_url and banner_url. Overwriting with ORM object breaks image rendering.
+        # Templates that need ORM fields should use profile_user instead.
         
         # Attach team badge data to each passport (NO ROLE - role belongs to team context)
         if user_profile:

@@ -1,0 +1,30 @@
+<!-- UP-PHASE2D: Manage Showcase Modal (Placeholder MVP) -->
+<div id="manageShowcaseModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-3xl">
+        <button onclick="closeManageShowcaseModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="bg-[var(--z-panel)] rounded-xl p-8 border border-white/10">
+            <h2 class="text-2xl font-display font-bold text-white mb-4 flex items-center gap-3">
+                <i class="fa-solid fa-trophy text-[var(--z-gold)]"></i> Manage Showcase
+            </h2>
+            <div class="bg-[var(--z-gold)]/10 border border-[var(--z-gold)]/30 rounded-lg p-6 text-center">
+                <i class="fa-solid fa-hammer text-[var(--z-gold)] text-4xl mb-4"></i>
+                <p class="text-white font-bold mb-2">Coming Next: Full Showcase Manager</p>
+                <p class="text-gray-400 text-sm mb-4">You'll be able to:</p>
+                <ul class="text-left text-gray-300 text-sm space-y-2 max-w-md mx-auto">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Equip/unequip borders and frames</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Pin up to 3 badges on your profile</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Browse unlocked cosmetics grid</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Preview changes before saving</li>
+                </ul>
+                <p class="text-xs text-gray-500 mt-4">For now, contact support to manage your showcase.</p>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeManageShowcaseModal()" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-2 rounded-lg transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

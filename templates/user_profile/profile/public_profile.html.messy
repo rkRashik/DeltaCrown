@@ -1,0 +1,3669 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load profile_tags %}
+
+{% block title %}{{ profile.display_name }} (@{{ profile.username }}) - DeltaCrown Profile{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    /* Aurora Zenith Visual System */
+    :root {
+        --z-bg: #030014;
+        --z-panel: #0F0B1E;
+        --z-cyan: #00F0FF;
+        --z-purple: #7B2CBF;
+        --z-gold: #FFD60A;
+        --z-pink: #FF007A;
+        --z-green: #39FF14;
+        --z-red: #EF4444;
+        --z-border: rgba(255, 255, 255, 0.08);
+    }
+
+    body {
+        background-color: var(--z-bg);
+        color: #e5e7eb;
+        overflow-x: hidden;
+        background-image:
+            radial-gradient(circle at 15% 50%, rgba(123, 44, 191, 0.05), transparent 25%),
+            radial-gradient(circle at 85% 30%, rgba(0, 240, 255, 0.05), transparent 25%);
+    }
+
+    /* Prismatic Glass Panels */
+    .z-card {
+        background: rgba(15, 11, 30, 0.6);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .z-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+        transition: 0.5s;
+    }
+
+    .z-card:hover::before {
+        left: 100%;
+    }
+
+    .z-card:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(20, 15, 40, 0.7);
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Holographic Avatar Ring */
+    .holo-ring {
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg, transparent, var(--z-cyan), var(--z-purple), var(--z-pink), transparent);
+        animation: spin 4s linear infinite;
+        filter: blur(5px);
+        z-index: 0;
+    }
+
+    .holo-img {
+        position: relative;
+        z-index: 1;
+        border-radius: 50%;
+        border: 3px solid var(--z-bg);
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Neon Tabs */
+    .z-tab-btn {
+        position: relative;
+        color: #94a3b8;
+        transition: all 0.3s ease;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0 1.5rem;
+        height: 100%;
+    }
+
+    .z-tab-btn:hover {
+        color: #fff;
+    }
+
+    .z-tab-btn.active {
+        color: #fff;
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+
+    .z-tab-btn.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, var(--z-cyan), var(--z-purple));
+        box-shadow: 0 0 10px var(--z-cyan);
+    }
+
+    /* Edit Mode Toggles */
+    .edit-trigger {
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .group:hover .edit-trigger {
+        opacity: 1;
+    }
+
+    /* Text Gradients */
+    .text-gradient-gold {
+        background: linear-gradient(to right, var(--z-gold), #FFE566);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .text-gradient-cyan {
+        background: linear-gradient(to right, var(--z-cyan), #80F7FF);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: var(--z-bg);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--z-cyan);
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{# === HERO SECTION === #}
+{% include 'user_profile/profile/_hero.html' %}
+
+{# === TAB NAVIGATION === #}
+{% include 'user_profile/profile/_tabs.html' %}
+
+<!-- MAIN CONTENT -->
+<main class="max-w-[1800px] mx-auto px-4 md:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-32">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="lg:col-span-3 space-y-6">
+        <!-- About Card -->
+        <div class="z-card p-6 relative group">
+            <div class="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">About</h3>
+                {% if is_owner %}
+                <button onclick="openAboutModal()" class="text-gray-500 hover:text-white transition edit-trigger" title="Edit About">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                {% endif %}
+            </div>
+            <div class="space-y-5">
+                {% if profile.country %}
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 border border-white/5">
+                        <i class="fa-solid fa-flag"></i>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-0.5">Location</div>
+                        <div class="text-white text-sm font-medium">{{ profile.country }}</div>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 border border-white/5">
+                        <i class="fa-solid fa-calendar"></i>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-0.5">Joined</div>
+                        <div class="text-white text-sm font-medium">{{ profile.created_at|date:"F Y" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Passports -->
+        {% if pinned_passports or unpinned_passports %}
+        <div class="z-card overflow-hidden group">
+            <div class="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
+                <h3 class="text-xs font-bold text-white uppercase tracking-widest">Game IDs ({{ pinned_passports|length|add:unpinned_passports|length }})</h3>
+                {% if is_owner %}
+                <button onclick="openGamePassportsModal()" class="text-gray-500 hover:text-white transition edit-trigger" title="Manage Game IDs">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                {% endif %}
+            </div>
+
+            {% for passport in pinned_passports %}
+            <div class="p-5 border-l-[3px] border-l-[var(--z-cyan)] bg-gradient-to-r from-[var(--z-cyan)]/10 to-transparent relative group/item">
+                <div class="flex justify-between items-center mb-1">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-bold text-white">{{ passport.game.display_name }}</span>
+                    </div>
+                    <span class="text-[9px] bg-[var(--z-cyan)] text-black px-1.5 rounded font-bold uppercase">Pinned</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="font-mono text-xs text-gray-300">{{ passport.ign }}</span>
+                    {% if passport.rank %}
+                    <div class="flex items-center gap-1 text-xs font-bold text-[var(--z-gold)]">
+                        <i class="fa-solid fa-trophy"></i> {{ passport.rank }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+            {% for passport in unpinned_passports|slice:":2" %}
+            <div class="p-4 border-b border-white/5 hover:bg-white/5 transition relative group/item">
+                <div class="flex justify-between items-center mb-1">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-bold text-gray-400 group-hover/item:text-white transition">{{ passport.game.display_name }}</span>
+                    </div>
+                </div>
+                <div class="text-xs font-mono text-gray-500">{{ passport.ign }}</div>
+            </div>
+            {% endfor %}
+
+            {% if is_owner %}
+            <button onclick="openGamePassportsModal()" class="w-full py-3 text-[10px] font-bold text-gray-500 hover:text-white hover:bg-white/5 transition uppercase tracking-widest border-t border-white/5">
+                + Link New Account
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Loadout -->
+        {% if has_loadout %}
+        <div class="z-card p-6 relative group">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Loadout</h3>
+                {% if is_owner %}
+                <button class="text-gray-500 hover:text-white transition edit-trigger" onclick="openEditLoadoutModal()" title="Edit Loadout">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                {% endif %}
+            </div>
+            <div class="space-y-3">
+                {% if hardware_gear.mouse %}
+                <div class="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition">
+                    <div class="w-8 h-8 flex items-center justify-center text-lg text-gray-600 group-hover/item:text-[var(--z-gold)] transition">
+                        <i class="fa-solid fa-computer-mouse"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-white font-bold group-hover/item:text-[var(--z-gold)] transition">{{ hardware_gear.mouse.brand }} {{ hardware_gear.mouse.model }}</div>
+                        {% if hardware_gear.mouse.specs %}
+                        <div class="text-[10px] text-gray-500">{{ hardware_gear.mouse.specs }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if hardware_gear.keyboard %}
+                <div class="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition">
+                    <div class="w-8 h-8 flex items-center justify-center text-lg text-gray-600 group-hover/item:text-[var(--z-gold)] transition">
+                        <i class="fa-solid fa-keyboard"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-white font-bold group-hover/item:text-[var(--z-gold)] transition">{{ hardware_gear.keyboard.brand }} {{ hardware_gear.keyboard.model }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if hardware_gear.headset %}
+                <div class="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition">
+                    <div class="w-8 h-8 flex items-center justify-center text-lg text-gray-600 group-hover/item:text-[var(--z-gold)] transition">
+                        <i class="fa-solid fa-headphones"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-white font-bold group-hover/item:text-[var(--z-gold)] transition">{{ hardware_gear.headset.brand }} {{ hardware_gear.headset.model }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <section class="lg:col-span-6 min-h-[800px]">
+        {# === OVERVIEW TAB === #}
+        {% include 'user_profile/profile/_overview.html' %}
+
+        {# === POSTS TAB === #}
+        {% include 'user_profile/profile/tabs/_posts.html' %}
+
+        {# === LOADOUTS TAB === #}
+        {% include 'user_profile/profile/tabs/_loadouts.html' %}
+
+        {# === BOUNTIES TAB === #}
+        {% include 'user_profile/profile/tabs/_bounties.html' %}
+
+        <!-- MEDIA TAB -->
+                
+                <div class="space-y-4">
+                    {% for bounty in bounties.open %}
+                    <div class="z-card p-6 border-l-4 border-l-[var(--z-gold)] hover:bg-white/[0.03] transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold text-white mb-2">{{ bounty.title }}</h3>
+                                {% if bounty.description %}
+                                <p class="text-sm text-gray-400 mb-3">{{ bounty.description|truncatewords:20 }}</p>
+                                {% endif %}
+                                <div class="flex gap-3 text-xs">
+                                    <span class="px-2 py-1 bg-white/5 border border-white/10 rounded">{{ bounty.game }}</span>
+                                    <span class="px-2 py-1 bg-white/5 border border-white/10 rounded">{{ bounty.mode|upper }}</span>
+                                    <span class="px-2 py-1 bg-white/5 border border-white/10 rounded text-gray-400">Expires {{ bounty.expires_at|timeuntil }}</span>
+                                </div>
+                            </div>
+                            <div class="text-right ml-4">
+                                <div class="text-3xl font-bold text-[var(--z-gold)] mb-1">{{ bounty.stake_amount }} DC</div>
+                                {% if not is_owner %}
+                                <button onclick="acceptBounty({{ bounty.id }})" class="px-4 py-2 bg-[var(--z-gold)] text-black font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-white transition">
+                                    <i class="fa-solid fa-handshake mr-1"></i> Accept
+                                </button>
+                                {% else %}
+                                <span class="text-xs text-gray-500">Your bounty</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- In Progress Bounties -->
+            {% if bounties.in_progress %}
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-crosshairs text-[var(--z-cyan)]"></i> In Progress
+                    </h2>
+                </div>
+                
+                <div class="space-y-4">
+                    {% for bounty in bounties.in_progress %}
+                    <div class="z-card p-6 border-l-4 border-l-[var(--z-cyan)] hover:bg-white/[0.03] transition">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold text-white mb-2">{{ bounty.title }}</h3>
+                                <div class="flex gap-3 text-sm mb-3">
+                                    <span class="text-gray-400">{{ bounty.creator }} vs {{ bounty.acceptor }}</span>
+                                </div>
+                                <div class="flex gap-3 text-xs">
+                                    <span class="px-2 py-1 bg-white/5 border border-white/10 rounded">{{ bounty.game }}</span>
+                                    <span class="px-2 py-1 bg-[var(--z-cyan)]/20 border border-[var(--z-cyan)]/30 text-[var(--z-cyan)] rounded">{{ bounty.status_display }}</span>
+                                </div>
+                                
+                                <!-- UP-PHASE2E: Match Progression Actions -->
+                                {% if is_owner %}
+                                <div class="mt-4 flex gap-3">
+                                    {% if bounty.status == 'ACCEPTED' %}
+                                        <!-- Start Match (both participants) -->
+                                        <button onclick="startMatch({{ bounty.id }})"
+                                                class="px-4 py-2 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-black font-bold rounded transition">
+                                            <i class="fa-solid fa-play mr-2"></i>Start Match
+                                        </button>
+                                    {% elif bounty.status == 'IN_PROGRESS' %}
+                                        <!-- Submit Proof (both participants) -->
+                                        <button onclick="openProofModal({{ bounty.id }}, '{{ bounty.title }}', {{ bounty.creator_id }}, '{{ bounty.creator }}', {{ bounty.acceptor_id }}, '{{ bounty.acceptor }}')"
+                                                class="px-4 py-2 bg-[var(--z-purple)] hover:bg-[var(--z-purple)]/80 text-white font-bold rounded transition">
+                                            <i class="fa-solid fa-upload mr-2"></i>Submit Proof
+                                        </button>
+                                    {% elif bounty.status == 'PENDING_RESULT' %}
+                                        <!-- Creator can confirm -->
+                                        {% if profile.user == bounty.creator %}
+                                        <button onclick="confirmResult({{ bounty.id }})"
+                                                class="px-4 py-2 bg-[var(--z-green)] hover:bg-[var(--z-green)]/80 text-black font-bold rounded transition">
+                                            <i class="fa-solid fa-check mr-2"></i>Confirm Result
+                                        </button>
+                                        {% endif %}
+                                        
+                                        <!-- Participant can dispute (24hr window) -->
+                                        {% if bounty.can_dispute %}
+                                        <button onclick="openDisputeModal({{ bounty.id }}, '{{ bounty.title }}')"
+                                                class="px-4 py-2 bg-[var(--z-red)]/20 hover:bg-[var(--z-red)]/30 border border-[var(--z-red)]/50 text-[var(--z-red)] font-bold rounded transition">
+                                            <i class="fa-solid fa-flag mr-2"></i>Raise Dispute
+                                        </button>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="text-right ml-4">
+                                <div class="text-2xl font-bold text-white">{{ bounty.stake_amount }} DC</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Completed Bounties -->
+            {% if bounties.completed %}
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-trophy text-[var(--z-green)]"></i> Completed
+                    </h2>
+                </div>
+                
+                <div class="space-y-4">
+                    {% for bounty in bounties.completed %}
+                    <div class="z-card p-6 {% if bounty.was_winner %}border-l-4 border-l-[var(--z-green)]{% else %}border-l-4 border-l-[var(--z-red)]{% endif %} hover:bg-white/[0.03] transition">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold text-white mb-2">{{ bounty.title }}</h3>
+                                <div class="flex gap-3 text-sm mb-2">
+                                    <span class="text-gray-400">Winner: <span class="text-white font-bold">{{ bounty.winner }}</span></span>
+                                </div>
+                                <div class="text-xs text-gray-500">Completed {{ bounty.completed_at|timesince }} ago</div>
+                            </div>
+                            <div class="text-right ml-4">
+                                <div class="text-2xl font-bold {% if bounty.was_winner %}text-[var(--z-green)]{% else %}text-gray-500{% endif %}">
+                                    {% if bounty.was_winner %}+{% endif %}{{ bounty.payout_amount|default:bounty.stake_amount }} DC
+                                </div>
+                                {% if request.user.is_authenticated and not bounty.already_endorsed %}
+                                <button 
+                                    onclick="openEndorseModal({{ bounty.id }}, {{ bounty.opponent_id }})"
+                                    class="mt-2 px-4 py-2 bg-[var(--z-purple)] text-white text-xs font-bold uppercase rounded-lg hover:bg-opacity-80 transition"
+                                    title="Rate your opponent's skills">
+                                    <i class="fa-solid fa-star mr-1"></i> Rate Opponent
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if not bounties.open and not bounties.in_progress and not bounties.completed %}
+            <div class="z-card p-12 text-center">
+                <i class="fa-solid fa-crosshairs text-6xl mb-4 opacity-20 text-gray-500"></i>
+                <p class="text-gray-400 text-lg mb-2">No bounties yet</p>
+                <p class="text-gray-500 text-sm">Challenge opponents to 1v1 matches and win DeltaCoins!</p>
+                {% if is_owner %}
+                <button onclick="openCreateBountyModal()" class="mt-6 px-6 py-3 bg-[var(--z-gold)] text-black font-bold text-sm uppercase tracking-wider rounded-lg hover:bg-white transition">
+                    <i class="fa-solid fa-plus mr-2"></i> Create Bounty
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {% if is_owner %}
+            <!-- Owner-only Create Button -->
+            <div class="flex justify-center">
+                <button onclick="openCreateBountyModal()" class="px-8 py-4 bg-[var(--z-gold)] text-black font-bold text-sm uppercase tracking-wider rounded-xl hover:bg-white transition shadow-lg">
+                    <i class="fa-solid fa-plus mr-2"></i> Create New Bounty
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- MEDIA TAB -->
+        <div id="tab-media" class="tab-content space-y-6">
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-image text-[var(--z-purple)]"></i> Media Gallery
+                    </h2>
+                    {% if is_owner %}
+                    <button class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white hover:bg-white/10 transition">
+                        <i class="fa-solid fa-upload mr-2"></i> Upload Media
+                    </button>
+                    {% endif %}
+                </div>
+                
+                <!-- Placeholder: Media Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <!-- Empty state -->
+                    <div class="col-span-2 md:col-span-3 text-center py-12 text-gray-500">
+                        <i class="fa-solid fa-photo-film text-5xl mb-4 opacity-20"></i>
+                        <p class="text-sm">No media uploaded yet.</p>
+                        {% if is_owner %}
+                        <p class="text-xs mt-2">Upload your best screenshots, highlights, and moments!</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAREER TAB -->
+        <div id="tab-career" class="tab-content space-y-6">
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-10 border-b border-white/5 pb-4">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-timeline text-[var(--z-cyan)]"></i> Team History
+                    </h2>
+                </div>
+
+                {% if user_teams %}
+                <div class="relative ml-4 space-y-8">
+                    {% for team in user_teams|slice:":3" %}
+                    <div class="relative pl-12 group/item">
+                        <div class="absolute -left-[5px] top-0 w-4 h-4 bg-[var(--z-cyan)] rounded-full border-4 border-[var(--z-bg)] shadow-[0_0_15px_var(--z-cyan)] z-10"></div>
+                        <div class="z-card p-6 border-l-2 border-l-[var(--z-cyan)] bg-[var(--z-cyan)]/5 hover:bg-[var(--z-cyan)]/10 transition">
+                            <span class="absolute top-4 right-4 bg-[var(--z-cyan)] text-black text-[9px] font-bold px-2 py-1 rounded uppercase tracking-widest">Active</span>
+                            <h3 class="text-2xl font-display font-bold text-white mb-1">{{ team.name }}</h3>
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="text-[10px] bg-white/10 text-white px-2 py-0.5 rounded border border-white/10 font-mono">{{ team.role|upper }}</span>
+                                <span class="text-[10px] bg-white/10 text-white px-2 py-0.5 rounded border border-white/10 font-mono">{{ team.game|upper }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-gray-500 py-12">
+                    <i class="fa-solid fa-users text-4xl mb-4 opacity-20"></i>
+                    <p class="text-sm">No team history yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- GAME IDs TAB -->
+        <div id="tab-game-ids" class="tab-content space-y-6">
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                            <i class="fa-solid fa-id-card text-[var(--z-purple)]"></i> Game Accounts
+                        </h2>
+                        <p class="text-xs text-gray-500 mt-2">Your connected gaming accounts and stats</p>
+                    </div>
+                    {% if is_owner %}
+                    <button onclick="openGamePassportsModal()" class="px-4 py-2 bg-[var(--z-purple)] hover:bg-[var(--z-purple)]/80 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Add Game ID
+                    </button>
+                    {% endif %}
+                </div>
+
+                {% if game_passports %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {% for passport in game_passports %}
+                    <div class="z-card p-6 hover:border-[var(--z-purple)]/50 transition group">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center gap-4">
+                                {% if passport.game.icon_url %}
+                                <img src="{{ passport.game.icon_url }}" class="w-12 h-12 rounded-lg" alt="{{ passport.game.name }}">
+                                {% else %}
+                                <div class="w-12 h-12 rounded-lg bg-[var(--z-purple)]/20 flex items-center justify-center text-[var(--z-purple)] text-xl">
+                                    <i class="fa-solid fa-gamepad"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <h3 class="text-lg font-bold text-white group-hover:text-[var(--z-purple)] transition">{{ passport.game.name }}</h3>
+                                    <p class="text-xs text-gray-500 uppercase tracking-wider">{{ passport.game.short_name|default:passport.game.name }}</p>
+                                </div>
+                            </div>
+                            {% if passport.is_verified %}
+                            <span class="bg-[var(--z-green)]/20 text-[var(--z-green)] text-[8px] px-2 py-1 rounded font-bold uppercase tracking-widest flex items-center gap-1">
+                                <i class="fa-solid fa-check-circle"></i> Verified
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="space-y-3">
+                            {% if passport.in_game_name %}
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-user text-gray-600 text-sm"></i>
+                                <span class="text-sm text-white font-mono">{{ passport.in_game_name }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if passport.current_rank %}
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-trophy text-[var(--z-gold)] text-sm"></i>
+                                <span class="text-sm text-gray-300">{{ passport.current_rank }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if passport.region %}
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-globe text-[var(--z-cyan)] text-sm"></i>
+                                <span class="text-sm text-gray-400 uppercase">{{ passport.region }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if passport.stats %}
+                            <div class="mt-4 pt-4 border-t border-white/5">
+                                <div class="grid grid-cols-2 gap-4">
+                                    {% for key, value in passport.stats.items|slice:":4" %}
+                                    <div class="text-center p-2 bg-white/5 rounded">
+                                        <div class="text-lg font-bold text-white">{{ value }}</div>
+                                        <div class="text-[9px] text-gray-500 uppercase tracking-wider">{{ key|title }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if is_owner %}
+                        <div class="mt-4 pt-4 border-t border-white/5 flex gap-2">
+                            <button class="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white transition">
+                                <i class="fa-solid fa-refresh mr-1"></i> Refresh
+                            </button>
+                            <button class="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 rounded text-xs transition">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-16 text-gray-500">
+                    <i class="fa-solid fa-id-card text-6xl mb-4 opacity-20"></i>
+                    <p class="text-lg mb-2">No game accounts connected</p>
+                    <p class="text-sm text-gray-600 mb-6">Link your gaming accounts to display your ranks, stats, and achievements</p>
+                    {% if is_owner %}
+                    <button onclick="openGamePassportsModal()" class="px-6 py-3 bg-[var(--z-purple)] hover:bg-[var(--z-purple)]/80 text-white font-bold text-sm uppercase tracking-wider rounded-lg transition inline-flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Add Your First Game ID
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- STATS TAB -->
+        <div id="tab-stats" class="tab-content space-y-6">
+            <div class="z-card p-8">
+                <h2 class="text-xl font-display font-bold text-white mb-8">Career Performance</h2>
+
+                <div class="grid grid-cols-3 gap-6 mb-8">
+                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-cyan)]/50 transition">
+                        <div class="text-4xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-cyan)] transition">{{ user_stats.total_matches|default:0 }}</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Matches</div>
+                    </div>
+                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-gold)]/50 transition">
+                        <div class="text-4xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-gold)] transition">{{ user_stats.tournaments_played|default:0 }}</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Tournaments</div>
+                    </div>
+                    <div class="bg-black/40 p-5 rounded-2xl border border-white/5 text-center group hover:border-[var(--z-purple)]/50 transition">
+                        <div class="text-4xl font-display font-bold text-white mb-1 group-hover:text-[var(--z-purple)] transition">{{ user_teams|length|default:0 }}</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Teams</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-[var(--z-green)]/10 p-4 rounded-xl border border-[var(--z-green)]/20 text-center">
+                        <div class="text-3xl font-display font-bold text-[var(--z-green)]">{{ user_stats.total_wins|default:0 }}</div>
+                        <div class="text-[10px] text-[var(--z-green)]/70 uppercase font-bold tracking-widest">Wins</div>
+                    </div>
+                    <div class="bg-[var(--z-red)]/10 p-4 rounded-xl border border-[var(--z-red)]/20 text-center">
+                        <div class="text-3xl font-display font-bold text-[var(--z-red)]">{{ user_stats.total_losses|default:0 }}</div>
+                        <div class="text-[10px] text-[var(--z-red)]/70 uppercase font-bold tracking-widest">Losses</div>
+                    </div>
+                    <div class="bg-white/5 p-4 rounded-xl border border-white/10 text-center">
+                        <div class="text-3xl font-display font-bold text-white">{{ user_stats.win_rate|default:0 }}%</div>
+                        <div class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Win Rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HIGHLIGHTS TAB -->
+        <div id="tab-highlights" class="tab-content space-y-6">
+            {% if is_owner %}
+            <div class="flex justify-end mb-4">
+                <button onclick="openEditHighlightsModal()" class="bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-black font-bold px-6 py-2 rounded-lg transition flex items-center gap-2 text-sm uppercase tracking-wider">
+                    <i class="fa-solid fa-pen-to-square"></i> Edit Highlights
+                </button>
+            </div>
+            {% endif %}
+            {% if highlight_clips %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for clip in highlight_clips|slice:":6" %}
+                <div class="z-card p-0 overflow-hidden group cursor-pointer relative aspect-video border-[var(--z-red)]/20 hover:border-[var(--z-red)] transition" onclick="openVideoModal('{{ clip.embed_url|escapejs }}', '{{ clip.title|escapejs }}', '{{ clip.url|escapejs }}')">
+                    {% if clip.thumbnail_url %}
+                    <img src="{{ clip.thumbnail_url }}" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition grayscale group-hover:grayscale-0" alt="{{ clip.title }}">
+                    {% else %}
+                    <!-- UP-PHASE2E-HOTFIX: Fallback for clips without thumbnails -->
+                    <div class="w-full h-full bg-gradient-to-br from-[var(--z-red)]/20 to-[var(--z-red)]/5 flex items-center justify-center">
+                        <i class="fa-solid fa-video text-6xl text-[var(--z-red)]/30"></i>
+                    </div>
+                    {% endif %}
+                    <div class="absolute top-2 right-2 bg-[var(--z-red)] text-white text-[9px] px-2 py-0.5 font-bold uppercase tracking-wider rounded">{{ clip.platform|upper }}</div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition pointer-events-none">
+                            <i class="fa-solid fa-play text-white text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black to-transparent">
+                        <div class="text-sm font-bold text-white uppercase tracking-wide">{{ clip.title }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="z-card p-12 text-center">
+                <i class="fa-solid fa-video text-4xl text-gray-700 mb-4"></i>
+                <p class="text-gray-500">No highlights uploaded yet</p>
+                {% if is_owner %}
+                <p class="text-xs text-gray-600 mt-2">Click "Edit Highlights" to add your first clip!</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- WALLET TAB (Owner Only) -->
+        {% if is_owner %}
+        <div id="tab-wallet" class="tab-content space-y-6">
+            <div class="z-card p-8 bg-gradient-to-br from-[var(--z-gold)]/10 to-transparent border-[var(--z-gold)]/20 relative overflow-hidden group">
+                <div class="absolute -right-10 -top-10 text-9xl text-[var(--z-gold)] opacity-5 rotate-12 transition-transform duration-1000 group-hover:rotate-0">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+
+                <div class="relative z-10 flex flex-col md:flex-row justify-between items-end gap-6">
+                    <div>
+                        <div class="text-xs font-bold text-[var(--z-gold)] uppercase tracking-[0.2em] mb-2">Available Balance</div>
+                        <div class="text-6xl font-display font-black text-white mb-2 drop-shadow-[0_0_15px_rgba(255,214,10,0.4)]">
+                            {% if wallet %}{{ wallet.cached_balance|floatformat:0 }}{% else %}0{% endif %} <span class="text-2xl text-[var(--z-gold)]/80 font-sans font-light">DC</span>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button class="bg-[var(--z-gold)] text-black font-bold px-6 py-3 rounded-lg hover:bg-white transition shadow-[0_0_10px_rgba(255,214,10,0.3)] flex items-center gap-2 uppercase text-xs tracking-wider">
+                            <i class="fa-solid fa-plus"></i> Top Up
+                        </button>
+                        <button class="bg-white/10 text-white font-bold px-6 py-3 rounded-lg hover:bg-white/20 transition flex items-center gap-2 border border-white/10 uppercase text-xs tracking-wider">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Withdraw
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            {% if wallet_transactions %}
+            <div class="z-card p-0 overflow-hidden">
+                <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                    <h3 class="font-bold text-white text-sm uppercase tracking-widest">Recent Transactions</h3>
+                </div>
+                <div class="divide-y divide-white/5">
+                    {% for txn in wallet_transactions|slice:":5" %}
+                    <div class="p-5 flex justify-between items-center hover:bg-white/[0.02] transition">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-[var(--z-green)]/10 text-[var(--z-green)] flex items-center justify-center">
+                                <i class="fa-solid fa-arrow-up"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-white">{{ txn.description|default:"Transaction" }}</div>
+                                <div class="text-[10px] text-gray-500 uppercase tracking-wide">{{ txn.timestamp|date:"M d, Y" }}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-bold text-[var(--z-green)]">{% if txn.amount > 0 %}+{% endif %}{{ txn.amount }} DC</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- INVENTORY TAB - UP-PHASE-2C2 -->
+        <div id="tab-inventory" class="tab-content space-y-6">
+            <!-- Equipped Cosmetics -->
+            <div class="z-card p-8 bg-gradient-to-br from-[var(--z-purple)]/10 to-transparent border-[var(--z-purple)]/30">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-2 uppercase tracking-wide">
+                        <i class="fa-solid fa-star text-[var(--z-gold)]"></i> Equipped Items
+                    </h2>
+                    {% if is_owner %}
+                    <button onclick="openManageShowcaseModal()" class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white hover:bg-white/10 transition">
+                        <i class="fa-solid fa-pen mr-2"></i> Manage Showcase
+                    </button>
+                    {% endif %}
+                </div>
+
+                {% if showcase.equipped.border or showcase.equipped.frame or showcase.equipped.badges %}
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {% if showcase.equipped.border %}
+                    <div class="relative z-card p-6 text-center border-[var(--z-gold)] group cursor-pointer hover:-translate-y-2 transition-transform">
+                        <div class="absolute top-2 right-2 text-[8px] bg-[var(--z-gold)] text-black font-bold px-2 py-0.5 rounded uppercase">Equipped</div>
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-[var(--z-gold)] flex items-center justify-center text-2xl text-[var(--z-gold)]">
+                            <i class="fa-solid fa-border-all"></i>
+                        </div>
+                        <div class="text-sm font-bold text-white relative z-10 uppercase tracking-wider">{{ showcase.equipped.border.name|default:"Profile Border" }}</div>
+                        <div class="text-[10px] text-[var(--z-gold)] mt-1 uppercase">Border</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if showcase.equipped.frame %}
+                    <div class="relative z-card p-6 text-center border-[var(--z-purple)] group cursor-pointer hover:-translate-y-2 transition-transform">
+                        <div class="absolute top-2 right-2 text-[8px] bg-[var(--z-purple)] text-white font-bold px-2 py-0.5 rounded uppercase">Equipped</div>
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-lg border-4 border-[var(--z-purple)] flex items-center justify-center text-2xl text-[var(--z-purple)]">
+                            <i class="fa-solid fa-image-portrait"></i>
+                        </div>
+                        <div class="text-sm font-bold text-white relative z-10 uppercase tracking-wider">{{ showcase.equipped.frame.name|default:"Avatar Frame" }}</div>
+                        <div class="text-[10px] text-[var(--z-purple)] mt-1 uppercase">Frame</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if showcase.equipped.badges %}
+                    <div class="relative z-card p-6 text-center border-[var(--z-cyan)] group cursor-pointer hover:-translate-y-2 transition-transform">
+                        <div class="absolute top-2 right-2 text-[8px] bg-[var(--z-cyan)] text-black font-bold px-2 py-0.5 rounded uppercase">{{ showcase.equipped.badges|length }} Pinned</div>
+                        <div class="flex justify-center gap-2 mb-4">
+                            {% for badge in showcase.equipped.badges|slice:":3" %}
+                            <div class="w-12 h-12 rounded-full bg-[var(--z-cyan)]/10 border-2 border-[var(--z-cyan)] flex items-center justify-center text-sm text-[var(--z-cyan)]">
+                                <i class="fa-solid fa-trophy"></i>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="text-sm font-bold text-white relative z-10 uppercase tracking-wider">Badges</div>
+                        <div class="text-[10px] text-[var(--z-cyan)] mt-1 uppercase">Pinned Achievements</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="text-center py-12 text-gray-500">
+                    <i class="fa-solid fa-box-open text-5xl mb-4 opacity-20"></i>
+                    <p class="text-sm">No cosmetics equipped yet</p>
+                    {% if is_owner %}
+                    <p class="text-xs mt-2">Unlock cosmetics by earning achievements!</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Unlocked Cosmetics -->
+            {% if showcase.unlocked %}
+            <div class="z-card p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-palette text-[var(--z-purple)]"></i> Unlocked Cosmetics
+                    </h2>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {% for item in showcase.unlocked %}
+                    <div class="z-card p-5 text-center group cursor-pointer hover:border-[var(--z-cyan)]/30 transition">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-lg bg-white/5 flex items-center justify-center text-xl text-gray-400 group-hover:text-[var(--z-cyan)] transition">
+                            {% if item.type == 'border' %}
+                            <i class="fa-solid fa-border-all"></i>
+                            {% elif item.type == 'frame' %}
+                            <i class="fa-solid fa-image-portrait"></i>
+                            {% else %}
+                            <i class="fa-solid fa-trophy"></i>
+                            {% endif %}
+                        </div>
+                        <div class="text-xs font-bold text-white uppercase tracking-wider">{{ item.item.name|default:"Cosmetic" }}</div>
+                        <div class="text-[9px] text-gray-500 uppercase mt-1">{{ item.type|title }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside class="lg:col-span-3 space-y-6">
+        <!-- Live Feed Widget -->
+        <div class="z-card p-1 bg-gradient-to-b from-green-500/30 to-transparent relative group overflow-hidden">
+            <div class="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[length:100%_4px] opacity-20 pointer-events-none"></div>
+            
+            <div class="bg-[var(--z-bg)]/90 backdrop-blur-xl p-6 rounded-[18px]">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        {% if live_feed.is_live %}
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        <span class="text-[10px] font-bold text-green-500 tracking-[0.2em] uppercase">Live Feed</span>
+                        {% else %}
+                        <span class="w-2 h-2 bg-gray-600 rounded-full"></span>
+                        <span class="text-[10px] font-bold text-gray-500 tracking-[0.2em] uppercase">Live Feed</span>
+                        {% endif %}
+                    </div>
+                    <i class="fa-solid fa-trophy text-[var(--z-gold)] text-lg opacity-80"></i>
+                </div>
+                
+                {% if live_feed.is_live %}
+                <!-- Live Match State -->
+                <h3 class="text-white font-display font-bold text-xl uppercase italic leading-none mb-1">{{ live_feed.title }}</h3>
+                <p class="text-[10px] text-gray-400 mb-5 font-mono uppercase">{{ live_feed.subtitle }}</p>
+                
+                {% if live_feed.stream_url %}
+                <a href="{{ live_feed.stream_url }}" target="_blank" rel="noopener" class="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.3)] transition rounded-lg flex items-center justify-center gap-2 mb-3">
+                    <i class="fa-solid fa-video"></i> Watch Stream
+                </a>
+                {% endif %}
+                
+                {% if live_feed.cta_url %}
+                <a href="{{ live_feed.cta_url }}" class="w-full py-3 bg-green-500 hover:bg-white text-black font-bold text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(57,255,20,0.3)] transition rounded-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-eye"></i> {{ live_feed.cta_label|default:"View Match" }}
+                </a>
+                {% endif %}
+                {% else %}
+                <!-- Empty State -->
+                <div class="text-center py-8">
+                    <i class="fa-solid fa-satellite-dish text-3xl text-gray-600 mb-3"></i>
+                    <p class="text-xs text-gray-500">{{ live_feed.title }}</p>
+                    <p class="text-[10px] text-gray-600 mt-2">{{ live_feed.subtitle }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Stream Embed -->
+        {% if stream_config %}
+        <div class="z-card p-0 overflow-hidden border-[var(--z-purple)]/30">
+            <div class="p-4 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-[var(--z-purple)]/10 to-transparent">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-[var(--z-purple)] rounded-full animate-pulse"></span>
+                    <h3 class="text-xs font-bold text-white uppercase tracking-[0.2em]">Live Stream</h3>
+                </div>
+                <span class="text-[8px] bg-[var(--z-purple)]/20 text-[var(--z-purple)] px-2 py-0.5 rounded font-bold uppercase">{{ stream_config.platform|upper }}</span>
+            </div>
+            <div class="aspect-video bg-black">
+                {% if stream_config.embed_url %}
+                <iframe 
+                    src="{{ stream_config.embed_url }}" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    scrolling="no" 
+                    height="100%" 
+                    width="100%"
+                    class="w-full h-full"
+                    title="{{ stream_config.title }}">
+                </iframe>
+                {% else %}
+                <div class="w-full h-full flex flex-col items-center justify-center text-gray-400 p-8 text-center">
+                    <i class="fa-solid fa-video-slash text-4xl mb-4 text-gray-600"></i>
+                    <p class="font-bold text-white mb-2">Stream unavailable to embed</p>
+                    <p class="text-sm text-gray-500">This stream may be private, deleted, or restricted.</p>
+                    {% if stream_config.stream_url %}
+                    <a href="{{ stream_config.stream_url }}" target="_blank" rel="noopener" class="mt-4 px-6 py-2 bg-[var(--z-purple)] hover:bg-[var(--z-purple)]/80 text-white font-bold text-xs uppercase tracking-wider transition rounded-lg flex items-center gap-2">
+                        <i class="fa-solid fa-external-link-alt"></i> Open on {{ stream_config.platform|title }}
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% if stream_config.stream_url %}
+            <div class="p-4 bg-[var(--z-bg)]/50">
+                <a href="{{ stream_config.stream_url }}" target="_blank" rel="noopener" class="w-full py-2 bg-[var(--z-purple)] hover:bg-[var(--z-purple)]/80 text-white font-bold text-xs uppercase tracking-widest transition rounded-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-external-link-alt"></i> Open Full Stream
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Teams -->
+        {% if user_teams %}
+        <div class="z-card p-6">
+            <div class="flex justify-between items-center mb-5 border-b border-white/5 pb-2">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">Teams</h3>
+            </div>
+            <div class="space-y-4">
+                {% for team in user_teams|slice:":3" %}
+                <div class="flex items-center gap-4 group cursor-pointer hover:bg-white/5 p-2 rounded transition -mx-2">
+                    {% if team.logo_url %}
+                    <img src="{{ team.logo_url }}" class="w-12 h-12 rounded border border-white/10" alt="{{ team.name }}">
+                    {% else %}
+                    <div class="w-12 h-12 bg-[var(--z-panel)] border border-white/10 flex items-center justify-center text-white font-display font-bold text-lg shadow-lg rounded">
+                        {{ team.tag|default:team.name|slice:":2"|upper }}
+                    </div>
+                    {% endif %}
+                    <div class="flex-1">
+                        <h4 class="text-sm font-bold text-white uppercase tracking-wide group-hover:text-[var(--z-cyan)] transition">{{ team.name }}</h4>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[8px] bg-[var(--z-cyan)]/10 text-[var(--z-cyan)] px-1.5 rounded font-bold uppercase">{{ team.game }}</span>
+                            <span class="text-[8px] text-gray-500 uppercase">{{ team.role }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Achievements Cabinet -->
+        {% if achievements %}
+        <div class="z-card p-6">
+            <div class="flex justify-between items-center mb-5 border-b border-white/5 pb-2">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">Achievements</h3>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+                {% for badge in achievements|slice:":6" %}
+                <div class="aspect-square bg-[var(--z-gold)]/10 flex items-center justify-center border border-[var(--z-gold)]/30 hover:scale-105 transition cursor-help relative group rounded-xl">
+                    <div class="text-3xl">{{ badge.icon|default:"🏆" }}</div>
+                    <div class="absolute bottom-full mb-2 hidden group-hover:block bg-black text-[10px] text-white p-2 rounded whitespace-nowrap z-50">
+                        {{ badge.name }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </aside>
+</main>
+
+<!-- Video Modal for Inline Playback -->
+<div id="videoModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-5xl">
+        <button onclick="closeVideoModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="bg-[var(--z-panel)] rounded-xl overflow-hidden border border-white/10">
+            <div class="p-4 border-b border-white/10">
+                <h3 id="videoModalTitle" class="text-white font-bold text-lg"></h3>
+            </div>
+            <div class="aspect-video bg-black">
+                <iframe 
+                    id="videoModalIframe" 
+                    src="" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                    allowfullscreen
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    class="w-full h-full">
+                </iframe>
+                <div id="videoModalFallback" class="hidden w-full h-full flex flex-col items-center justify-center text-gray-400 p-8 text-center">
+                    <i class="fa-solid fa-lock text-4xl mb-4 text-gray-600"></i>
+                    <p class="font-bold text-white mb-2">This video can't be embedded</p>
+                    <p class="text-sm text-gray-500 mb-4">It may be private, deleted, or restricted.</p>
+                    <a id="videoModalExternalLink" href="#" target="_blank" rel="noopener" class="px-6 py-2 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-black font-bold text-xs uppercase tracking-wider transition rounded-lg flex items-center gap-2">
+                        <i class="fa-solid fa-external-link-alt"></i> Open Externally
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit About Modal -->
+<div id="aboutModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative max-w-2xl w-full">
+        <button onclick="closeAboutModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-times"></i>
+        </button>
+        <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl border border-white/10 p-8 max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 bg-[var(--z-cyan)]/20 rounded-xl flex items-center justify-center">
+                    <i class="fa-solid fa-user text-[var(--z-cyan)] text-xl"></i>
+                </div>
+                <h2 class="text-2xl font-display font-bold text-white">Edit About</h2>
+            </div>
+            
+            <form id="aboutForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">
+                        Bio
+                        <span class="text-gray-500 font-normal ml-2">(max 500 characters)</span>
+                    </label>
+                    <textarea 
+                        id="bioInput" 
+                        name="bio"
+                        rows="4" 
+                        maxlength="500"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                        placeholder="Tell us about yourself...">{{ profile.bio }}</textarea>
+                    <div class="text-xs text-gray-500 mt-1" id="bioCharCount">0 / 500</div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Pronouns</label>
+                    <input 
+                        type="text" 
+                        id="pronounsInput"
+                        name="pronouns"
+                        maxlength="50"
+                        value="{{ profile.pronouns|default:'' }}"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                        placeholder="e.g., he/him, she/her, they/them">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Country</label>
+                    <input 
+                        type="text" 
+                        id="countryInput"
+                        name="country"
+                        maxlength="100"
+                        value="{{ profile.country|default:'' }}"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                        placeholder="e.g., Bangladesh, India, Pakistan">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">City</label>
+                    <input 
+                        type="text" 
+                        id="cityInput"
+                        name="city"
+                        maxlength="100"
+                        value="{{ profile.city|default:'' }}"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                        placeholder="e.g., Dhaka, Mumbai, Lahore">
+                </div>
+                
+                <div class="flex justify-end gap-3 pt-4 border-t border-white/10">
+                    <button type="button" onclick="closeAboutModal()" class="px-6 py-2 bg-white/10 hover:bg-white/20 text-white font-bold rounded-lg transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-black font-bold rounded-lg transition flex items-center gap-2">
+                        <i class="fa-solid fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Game Passports Modal -->
+<div id="gamePassportsModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative max-w-3xl w-full">
+        <button onclick="closeGamePassportsModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-times"></i>
+        </button>
+        <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl border border-white/10 p-8 max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 bg-[var(--z-cyan)]/20 rounded-xl flex items-center justify-center">
+                    <i class="fa-solid fa-gamepad text-[var(--z-cyan)] text-xl"></i>
+                </div>
+                <h2 class="text-2xl font-display font-bold text-white">Manage Game IDs</h2>
+            </div>
+            
+            <!-- Add New Passport Form -->
+            <div class="bg-white/5 border border-white/10 rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-plus-circle text-[var(--z-green)]"></i> Add New Game ID
+                </h3>
+                <form id="addPassportForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-300 mb-2">Game</label>
+                            <select id="passportGameSelect" name="game_id" required
+                                class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition">
+                                <option value="">Select a game...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-300 mb-2">In-Game Name (IGN)</label>
+                            <input type="text" id="passportIgnInput" name="ign" required maxlength="64"
+                                class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                                placeholder="YourGameName">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-300 mb-2">Region <span class="text-gray-500 font-normal">(optional)</span></label>
+                            <input type="text" id="passportRegionInput" name="region" maxlength="20"
+                                class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                                placeholder="NA, EU, ASIA, etc.">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-300 mb-2">Rank <span class="text-gray-500 font-normal">(optional)</span></label>
+                            <input type="text" id="passportRankInput" name="rank" maxlength="50"
+                                class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                                placeholder="Diamond, Global Elite, etc.">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-[var(--z-green)] hover:bg-[var(--z-green)]/80 text-black font-bold px-6 py-3 rounded-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Add Game ID
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Existing Passports List -->
+            <div class="space-y-3">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-list text-gray-400"></i> Your Game IDs
+                </h3>
+                <div id="passportsList" class="space-y-2">
+                    <div class="text-center text-gray-500 py-8">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Highlights Modal (MVP Placeholder) -->
+<div id="editHighlightsModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-2xl">
+        <button onclick="closeEditHighlightsModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="bg-[var(--z-panel)] rounded-xl p-8 border border-white/10">
+            <h2 class="text-2xl font-display font-bold text-white mb-4 flex items-center gap-3">
+                <i class="fa-solid fa-video text-[var(--z-cyan)]"></i> Highlight Management
+            </h2>
+            <div class="bg-[var(--z-cyan)]/10 border border-[var(--z-cyan)]/30 rounded-lg p-6 text-center">
+                <i class="fa-solid fa-hammer text-[var(--z-cyan)] text-4xl mb-4"></i>
+                <p class="text-white font-bold mb-2">Coming Next: Full Highlight Editor</p>
+                <p class="text-gray-400 text-sm mb-4">You'll be able to:</p>
+                <ul class="text-left text-gray-300 text-sm space-y-2 max-w-md mx-auto">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Add new highlight URLs (YouTube, Twitch, Medal.tv)</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Pin your best clip to the Overview tab</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Reorder clips by dragging</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Delete unwanted highlights</li>
+                </ul>
+                <p class="text-xs text-gray-500 mt-4">For now, contact support to manage your highlights.</p>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeEditHighlightsModal()" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-2 rounded-lg transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UP-PHASE2D: Create Bounty Modal -->
+{% if is_owner %}
+<div id="createBountyModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-2xl">
+        <button onclick="closeCreateBountyModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="bg-[var(--z-panel)] rounded-xl p-8 border border-white/10">
+            <h2 class="text-2xl font-display font-bold text-white mb-4 flex items-center gap-3">
+                <i class="fa-solid fa-crosshairs text-[var(--z-gold)]"></i> Create Bounty
+            </h2>
+            
+            <div id="createBountyError" class="hidden bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4 text-red-400 text-sm"></div>
+            
+            <form id="createBountyForm" class="space-y-4">
+                <div>
+                    <label class="block text-white font-bold mb-2 text-sm">Challenge Title</label>
+                    <input type="text" name="title" required 
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none"
+                        placeholder="e.g., 1v1 Aim Duel - First to 100k Gridshot">
+                </div>
+                
+                <div>
+                    <label class="block text-white font-bold mb-2 text-sm">Game</label>
+                    <select name="game" required 
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none">
+                        <option value="">Select Game...</option>
+                        {% for game in games %}
+                        <option value="{{ game.id }}">{{ game.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-white font-bold mb-2 text-sm">Description (Optional)</label>
+                    <textarea name="description" rows="3"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none resize-none"
+                        placeholder="Challenge rules, map, specific conditions..."></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-white font-bold mb-2 text-sm">Stake Amount (DC)</label>
+                        <input type="number" name="stake_amount" required min="100" max="50000" value="500"
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none">
+                        <p class="text-xs text-gray-400 mt-1">Min: 100 DC | Max: 50,000 DC</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-white font-bold mb-2 text-sm">Expires In (Hours)</label>
+                        <select name="expires_in_hours" required
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none">
+                            <option value="24">24 hours (1 day)</option>
+                            <option value="48">48 hours (2 days)</option>
+                            <option value="72" selected>72 hours (3 days)</option>
+                            <option value="168">168 hours (1 week)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 text-yellow-400 text-xs">
+                    <i class="fa-solid fa-info-circle mr-2"></i>
+                    <strong>Escrow Lock:</strong> Your stake will be locked in escrow when you create the bounty. 
+                    If no one accepts before expiry, you'll get a full refund.
+                </div>
+            </form>
+            
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="closeCreateBountyModal()" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-lg transition">
+                    Cancel
+                </button>
+                <button id="submitBountyBtn" onclick="submitBounty()" class="bg-[var(--z-gold)] hover:bg-white text-black font-bold px-6 py-3 rounded-lg transition">
+                    <i class="fa-solid fa-plus mr-2"></i> Create Bounty
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UP-PHASE2D: Edit Loadout Modal (Placeholder MVP) -->
+<div id="editLoadoutModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <button onclick="closeEditLoadoutModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="bg-[var(--z-panel)] rounded-xl p-8 border border-white/10">
+            <h2 class="text-2xl font-display font-bold text-white mb-6 flex items-center gap-3">
+                <i class="fa-solid fa-gamepad text-[var(--z-cyan)]"></i> Edit Loadout
+            </h2>
+
+            <!-- Tabs: Hardware vs Game Configs -->
+            <div class="flex gap-2 mb-6 border-b border-white/10">
+                <button onclick="switchLoadoutTab('hardware')" id="loadoutTabHardware" class="px-4 py-2 text-sm font-bold text-white border-b-2 border-[var(--z-cyan)] transition">
+                    <i class="fa-solid fa-computer-mouse mr-2"></i>Hardware
+                </button>
+                <button onclick="switchLoadoutTab('gameconfigs')" id="loadoutTabGameConfigs" class="px-4 py-2 text-sm font-bold text-gray-400 border-b-2 border-transparent hover:text-white transition">
+                    <i class="fa-solid fa-sliders mr-2"></i>Game Configs
+                </button>
+            </div>
+
+            <!-- Hardware Tab -->
+            <div id="loadoutContentHardware" class="space-y-4">
+                <!-- Hardware Form -->
+                <div class="bg-white/5 border border-white/10 rounded-lg p-4">
+                    <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-plus text-[var(--z-gold)]"></i>
+                        <span id="hardwareFormTitle">Add Hardware</span>
+                    </h3>
+                    <form id="hardwareForm" class="space-y-3">
+                        <input type="hidden" id="hardwareId" value="">
+                        
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Category</label>
+                            <select id="hardwareCategory" required class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                                <option value="">Select Category...</option>
+                                <option value="MOUSE">Mouse</option>
+                                <option value="KEYBOARD">Keyboard</option>
+                                <option value="HEADSET">Headset</option>
+                                <option value="MONITOR">Monitor</option>
+                                <option value="MOUSEPAD">Mousepad</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Brand</label>
+                                <input type="text" id="hardwareBrand" required placeholder="e.g., Logitech" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Model</label>
+                                <input type="text" id="hardwareModel" required placeholder="e.g., G Pro X" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Specs (JSON) <span class="text-gray-500">Optional</span></label>
+                            <textarea id="hardwareSpecs" placeholder='{"dpi": 800, "weight": "63g"}' rows="2" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none resize-none font-mono"></textarea>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="hardwareIsPublic" checked class="w-4 h-4 bg-white/5 border-white/10 rounded">
+                            <label for="hardwareIsPublic" class="text-xs text-gray-300">Make public on my profile</label>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button type="submit" class="flex-1 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-white font-bold px-4 py-2 rounded-lg transition text-sm">
+                                <i class="fa-solid fa-check mr-2"></i>Save Hardware
+                            </button>
+                            <button type="button" onclick="resetHardwareForm()" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition text-sm">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Hardware List -->
+                <div>
+                    <h3 class="text-sm font-bold text-white mb-3">Current Hardware</h3>
+                    <div id="hardwareList" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- Game Configs Tab -->
+            <div id="loadoutContentGameConfigs" class="space-y-4 hidden">
+                <!-- Game Config Form -->
+                <div class="bg-white/5 border border-white/10 rounded-lg p-4">
+                    <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-plus text-[var(--z-gold)]"></i>
+                        <span id="gameConfigFormTitle">Add Game Config</span>
+                    </h3>
+                    <form id="gameConfigForm" class="space-y-3">
+                        <input type="hidden" id="gameConfigId" value="">
+                        
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Game</label>
+                            <select id="gameConfigGame" required class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                                <option value="">Select Game...</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">DPI</label>
+                                <input type="number" id="gameConfigDPI" placeholder="800" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Sensitivity</label>
+                                <input type="text" id="gameConfigSens" placeholder="0.45" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Resolution</label>
+                                <input type="text" id="gameConfigRes" placeholder="1920x1080" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Settings (JSON) <span class="text-gray-500">Optional</span></label>
+                            <textarea id="gameConfigSettings" placeholder='{"crosshair": "0;P;c;5;o;1", "viewmodel_fov": 68}' rows="2" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none resize-none font-mono"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Notes <span class="text-gray-500">Optional</span></label>
+                            <input type="text" id="gameConfigNotes" placeholder="Tournament setup, aggressive entry fragger..." class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-[var(--z-cyan)] focus:outline-none">
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="gameConfigIsPublic" checked class="w-4 h-4 bg-white/5 border-white/10 rounded">
+                            <label for="gameConfigIsPublic" class="text-xs text-gray-300">Make public on my profile</label>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button type="submit" class="flex-1 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-white font-bold px-4 py-2 rounded-lg transition text-sm">
+                                <i class="fa-solid fa-check mr-2"></i>Save Config
+                            </button>
+                            <button type="button" onclick="resetGameConfigForm()" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition text-sm">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Game Configs List -->
+                <div>
+                    <h3 class="text-sm font-bold text-white mb-3">Current Game Configs</h3>
+                    <div id="gameConfigList" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeEditLoadoutModal()" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-2 rounded-lg transition">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UP-PHASE2D: Manage Showcase Modal (Placeholder MVP) -->
+<div id="manageShowcaseModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-3xl">
+        <button onclick="closeManageShowcaseModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="bg-[var(--z-panel)] rounded-xl p-8 border border-white/10">
+            <h2 class="text-2xl font-display font-bold text-white mb-4 flex items-center gap-3">
+                <i class="fa-solid fa-trophy text-[var(--z-gold)]"></i> Manage Showcase
+            </h2>
+            <div class="bg-[var(--z-gold)]/10 border border-[var(--z-gold)]/30 rounded-lg p-6 text-center">
+                <i class="fa-solid fa-hammer text-[var(--z-gold)] text-4xl mb-4"></i>
+                <p class="text-white font-bold mb-2">Coming Next: Full Showcase Manager</p>
+                <p class="text-gray-400 text-sm mb-4">You'll be able to:</p>
+                <ul class="text-left text-gray-300 text-sm space-y-2 max-w-md mx-auto">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Equip/unequip borders and frames</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Pin up to 3 badges on your profile</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Browse unlocked cosmetics grid</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-check text-[var(--z-green)]"></i> Preview changes before saving</li>
+                </ul>
+                <p class="text-xs text-gray-500 mt-4">For now, contact support to manage your showcase.</p>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeManageShowcaseModal()" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-2 rounded-lg transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- UP-PHASE2E: Proof Submission Modal -->
+{% if is_owner %}
+<div id="proofModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+    <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-xl shadow-2xl max-w-lg w-full mx-4">
+        <div class="p-8">
+            <h2 class="text-2xl font-display font-bold text-white mb-2">Submit Match Proof</h2>
+            <p class="text-gray-400 text-sm mb-6" id="proofBountyTitle"></p>
+            
+            <div class="space-y-4">
+                <!-- Winner Selection -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">Who Won?</label>
+                    <select id="proofWinner" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[var(--z-cyan)]">
+                        <option value="">Select winner...</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                
+                <!-- Proof URL -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">Proof URL (Screenshot/Video/Replay)</label>
+                    <input type="url" id="proofUrl" placeholder="https://imgur.com/your-screenshot.png" 
+                           class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)]">
+                    <p class="text-xs text-gray-500 mt-1">Upload your proof to Imgur, YouTube, or a replay sharing site</p>
+                </div>
+                
+                <!-- Proof Type -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">Proof Type</label>
+                    <select id="proofType" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[var(--z-cyan)]">
+                        <option value="screenshot">Screenshot</option>
+                        <option value="video">Video</option>
+                        <option value="replay">Replay File</option>
+                    </select>
+                </div>
+                
+                <!-- Description -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">Description (Optional)</label>
+                    <textarea id="proofDescription" rows="3" placeholder="Final scoreboard showing 13-5 victory" 
+                              class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)]"></textarea>
+                </div>
+                
+                <div class="bg-[var(--z-purple)]/10 border border-[var(--z-purple)]/30 rounded-lg p-4">
+                    <p class="text-sm text-gray-300">
+                        <i class="fa-solid fa-clock mr-2 text-[var(--z-purple)]"></i>
+                        After submission, opponent has <strong class="text-white">24 hours</strong> to raise a dispute. If no dispute, winner receives <strong class="text-[var(--z-green)]">95% of stake</strong> (5% platform fee).
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex gap-3">
+                <button onclick="closeProofModal()" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-lg transition">
+                    Cancel
+                </button>
+                <button onclick="submitProof()" class="flex-1 bg-[var(--z-purple)] hover:bg-[var(--z-purple)]/80 text-white font-bold px-6 py-3 rounded-lg transition">
+                    <i class="fa-solid fa-upload mr-2"></i>Submit Proof
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UP-PHASE2E: Dispute Modal -->
+<div id="disputeModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+    <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-xl shadow-2xl max-w-lg w-full mx-4">
+        <div class="p-8">
+            <h2 class="text-2xl font-display font-bold text-white mb-2">Raise Dispute</h2>
+            <p class="text-gray-400 text-sm mb-6" id="disputeBountyTitle"></p>
+            
+            <div class="space-y-4">
+                <!-- Reason -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-2">Dispute Reason (min 50 characters)</label>
+                    <textarea id="disputeReason" rows="6" placeholder="Explain why you believe the submitted result is incorrect. Provide as much detail as possible..." 
+                              class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-red)]"></textarea>
+                    <p class="text-xs text-gray-500 mt-1"><span id="disputeCharCount">0</span>/50 characters</p>
+                </div>
+                
+                <div class="bg-[var(--z-red)]/10 border border-[var(--z-red)]/30 rounded-lg p-4">
+                    <p class="text-sm text-gray-300">
+                        <i class="fa-solid fa-scale-balanced mr-2 text-[var(--z-red)]"></i>
+                        Disputes freeze the escrow and require <strong class="text-white">moderator review</strong>. Frivolous disputes may result in penalties. Only dispute if you have legitimate concerns about the result.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex gap-3">
+                <button onclick="closeDisputeModal()" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-lg transition">
+                    Cancel
+                </button>
+                <button onclick="submitDispute()" class="flex-1 bg-[var(--z-red)] hover:bg-[var(--z-red)]/80 text-white font-bold px-6 py-3 rounded-lg transition">
+                    <i class="fa-solid fa-flag mr-2"></i>Submit Dispute
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- UP-PHASE2E-PART2: Endorsement Modal -->
+<div id="endorseModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+    <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-xl shadow-2xl max-w-lg w-full mx-4">
+        <div class="p-8">
+            <h2 class="text-2xl font-display font-bold text-white mb-2">
+                <i class="fa-solid fa-star text-[var(--z-gold)] mr-2"></i>
+                Rate Your Opponent
+            </h2>
+            <p class="text-gray-400 text-sm mb-6">
+                Select skills to endorse. This helps build their reputation!
+            </p>
+            
+            <div class="space-y-4">
+                <!-- Skill Selection Grid -->
+                <div>
+                    <label class="block text-sm font-bold text-white mb-3">Skills (Select one or more)</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" class="skill-btn px-4 py-3 bg-white/5 border-2 border-white/10 rounded-lg text-white text-sm font-bold hover:bg-white/10 transition" data-skill="aim">
+                            <i class="fa-solid fa-crosshairs mr-2 text-[var(--z-red)]"></i>Aim
+                        </button>
+                        <button type="button" class="skill-btn px-4 py-3 bg-white/5 border-2 border-white/10 rounded-lg text-white text-sm font-bold hover:bg-white/10 transition" data-skill="shotcalling">
+                            <i class="fa-solid fa-bullhorn mr-2 text-[var(--z-cyan)]"></i>Shot Calling
+                        </button>
+                        <button type="button" class="skill-btn px-4 py-3 bg-white/5 border-2 border-white/10 rounded-lg text-white text-sm font-bold hover:bg-white/10 transition" data-skill="clutch">
+                            <i class="fa-solid fa-fire mr-2 text-[var(--z-gold)]"></i>Clutch
+                        </button>
+                        <button type="button" class="skill-btn px-4 py-3 bg-white/5 border-2 border-white/10 rounded-lg text-white text-sm font-bold hover:bg-white/10 transition" data-skill="support">
+                            <i class="fa-solid fa-heart mr-2 text-[var(--z-green)]"></i>Support
+                        </button>
+                        <button type="button" class="skill-btn px-4 py-3 bg-white/5 border-2 border-white/10 rounded-lg text-white text-sm font-bold hover:bg-white/10 transition" data-skill="igl">
+                            <i class="fa-solid fa-chess mr-2 text-[var(--z-purple)]"></i>IGL
+                        </button>
+                        <button type="button" class="skill-btn px-4 py-3 bg-white/5 border-2 border-white/10 rounded-lg text-white text-sm font-bold hover:bg-white/10 transition" data-skill="entry_fragging">
+                            <i class="fa-solid fa-bolt mr-2 text-[var(--z-red)]"></i>Entry Fragger
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2" id="endorseSkillHint">Click skills to select/deselect</p>
+                </div>
+                
+                <div class="bg-[var(--z-gold)]/10 border border-[var(--z-gold)]/30 rounded-lg p-4">
+                    <p class="text-sm text-gray-300">
+                        <i class="fa-solid fa-trophy mr-2 text-[var(--z-gold)]"></i>
+                        Endorsements are <strong class="text-white">permanent</strong> and contribute to your opponent's reputation score. Be fair and honest!
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex gap-3">
+                <button onclick="closeEndorseModal()" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-lg transition">
+                    Cancel
+                </button>
+                <button onclick="submitEndorsement()" class="flex-1 bg-[var(--z-gold)] hover:bg-[var(--z-gold)]/80 text-black font-bold px-6 py-3 rounded-lg transition">
+                    <i class="fa-solid fa-star mr-2"></i>Submit Endorsement
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UP-PHASE2F: Followers Modal -->
+<div id="followersModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-xl shadow-2xl max-w-md w-full max-h-[70vh] flex flex-col">
+        <!-- Header -->
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <h2 class="text-2xl font-display font-bold text-white">
+                <i class="fa-solid fa-users text-[var(--z-cyan)] mr-2"></i>
+                Followers
+            </h2>
+            <button onclick="closeFollowersModal()" class="text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <!-- Scrollable List -->
+        <div id="followersList" class="flex-1 overflow-y-auto">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UP-PHASE2F: Following Modal -->
+<div id="followingModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-xl shadow-2xl max-w-md w-full max-h-[70vh] flex flex-col">
+        <!-- Header -->
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <h2 class="text-2xl font-display font-bold text-white">
+                <i class="fa-solid fa-user-check text-[var(--z-purple)] mr-2"></i>
+                Following
+            </h2>
+            <button onclick="closeFollowingModal()" class="text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <!-- Scrollable List -->
+        <div id="followingList" class="flex-1 overflow-y-auto">
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UP-PHASE2F-PART3: Social Links Editor Modal -->
+<div id="socialLinksModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border border-white/10 rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+        <!-- Header -->
+        <div class="p-6 border-b border-white/10 flex items-center justify-between">
+            <h2 class="text-2xl font-display font-bold text-white">
+                <i class="fa-solid fa-link text-blue-500 mr-2"></i>
+                Edit Social Links
+            </h2>
+            <button onclick="closeSocialLinksModal()" class="text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <!-- Add New Link Form -->
+            <div class="mb-6 p-4 bg-white/5 border border-white/10 rounded-lg">
+                <h3 class="text-sm font-bold text-white mb-3 uppercase tracking-wider">Add New Link</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <select id="newLinkPlatform" class="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[var(--z-cyan)] focus:outline-none">
+                        <option value="">Select Platform</option>
+                        <option value="twitch">Twitch</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="twitter">Twitter/X</option>
+                        <option value="discord">Discord</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="kick">Kick</option>
+                        <option value="steam">Steam</option>
+                        <option value="github">GitHub</option>
+                    </select>
+                    <input type="url" id="newLinkUrl" placeholder="https://..." 
+                           class="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:border-[var(--z-cyan)] focus:outline-none">
+                </div>
+                <button onclick="addSocialLink()" class="mt-3 w-full bg-gradient-to-r from-[var(--z-cyan)] to-blue-500 hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg transition">
+                    <i class="fa-solid fa-plus mr-2"></i>Add Link
+                </button>
+            </div>
+            
+            <!-- Existing Links List -->
+            <div id="socialLinksList">
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ hardware_gear|json_script:"hardwareData" }}
+{{ game_configs|json_script:"gameConfigsData" }}
+
+<script>
+// ============================================================================
+// GLOBAL PROFILE CONTEXT (Server-Rendered)
+// ============================================================================
+const IS_OWN_PROFILE = {{ is_owner|yesno:"true,false" }};
+const IS_AUTHENTICATED = {{ request.user.is_authenticated|yesno:"true,false" }};
+const PROFILE_USERNAME = '{{ profile_user.username|escapejs }}';
+const VIEWER_USERNAME = '{{ request.user.username|escapejs }}';
+const DEBUG_PROFILE = false; // Set to true for debugging
+
+// ============================================================================
+// URL HELPER FOR DYNAMIC IDS
+// ============================================================================
+/**
+ * Safely replace placeholder ID in Django-generated URL with actual ID.
+ * Handles trailing slashes and various URL formats.
+ * 
+ * @param {string} urlTemplate - URL with placeholder ID (e.g., /api/bounties/0/accept/)
+ * @param {number|string} actualId - The real ID to substitute
+ * @returns {string} URL with actual ID
+ * 
+ * Examples:
+ *   urlWithId('/api/bounties/0/accept/', 123) => '/api/bounties/123/accept/'
+ *   urlWithId('/api/hardware/0/', 456) => '/api/hardware/456/'
+ */
+function urlWithId(urlTemplate, actualId) {
+    // Replace /0/ or /0 at end with actual ID, preserving trailing slash
+    return urlTemplate.replace(/\/0(\/?)$/, `/${actualId}$1`);
+}
+
+// ============================================================================
+// CSRF TOKEN HELPER
+// ============================================================================
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function getCSRFToken() {
+    // Try cookie first
+    let token = getCookie('csrftoken');
+    
+    // Fallback to meta tag or hidden input
+    if (!token) {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta) token = meta.getAttribute('content');
+    }
+    
+    if (!token) {
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input) token = input.value;
+    }
+    
+    if (!token && DEBUG_PROFILE) {
+        console.error('CSRF token not found!');
+    }
+    
+    return token;
+}
+
+// ============================================================================
+// DEBUG LOGGER
+// ============================================================================
+function debugLog(message, data) {
+    if (DEBUG_PROFILE) {
+        console.log(`[Profile Debug] ${message}`, data || '');
+    }
+}
+
+// ============================================================================
+// TAB SWITCHING
+// ============================================================================
+function switchTab(tabId) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.remove('active');
+    });
+
+    // Reset all buttons
+    document.querySelectorAll('.z-tab-btn').forEach(el => {
+        el.classList.remove('active');
+    });
+
+    // Show selected content
+    const selectedContent = document.getElementById('tab-' + tabId);
+    if(selectedContent) {
+        selectedContent.classList.add('active');
+    }
+
+    // Highlight active button
+    const buttons = document.querySelectorAll('.z-tab-btn');
+    buttons.forEach(btn => {
+        if(btn.getAttribute('onclick').includes(tabId)) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+// Clipboard copy function for crosshair codes (UP-PHASE-2C2)
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show success feedback
+        const btn = event.target.closest('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Copied!';
+        btn.classList.add('bg-green-500/20', 'border-green-500/30');
+        
+        setTimeout(function() {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('bg-green-500/20', 'border-green-500/30');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Failed to copy: ', err);
+        alert('Failed to copy to clipboard. Please copy manually.');
+    });
+}
+
+// About Modal Functions
+function openAboutModal() {
+    const modal = document.getElementById('aboutModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        
+        // Update char counter
+        const bioInput = document.getElementById('bioInput');
+        if (bioInput) {
+            updateCharCount();
+            bioInput.addEventListener('input', updateCharCount);
+        }
+    }
+}
+
+function closeAboutModal() {
+    const modal = document.getElementById('aboutModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+}
+
+function updateCharCount() {
+    const bioInput = document.getElementById('bioInput');
+    const charCount = document.getElementById('bioCharCount');
+    if (bioInput && charCount) {
+        const count = bioInput.value.length;
+        charCount.textContent = `${count} / 500`;
+        if (count > 450) {
+            charCount.classList.add('text-[var(--z-gold)]');
+        } else {
+            charCount.classList.remove('text-[var(--z-gold)]');
+        }
+    }
+}
+
+// Handle About form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const aboutForm = document.getElementById('aboutForm');
+    if (aboutForm) {
+        aboutForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const displayName = '{{ profile.display_name|escapejs }}' || '{{ request.user.username|escapejs }}';
+            const bio = document.getElementById('bioInput').value.trim();
+            const pronouns = document.getElementById('pronounsInput').value.trim();
+            const country = document.getElementById('countryInput').value.trim();
+            const city = document.getElementById('cityInput').value.trim();
+            
+            try {
+                const response = await fetch('{% url "user_profile:update_basic_info" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        display_name: displayName,
+                        bio: bio,
+                        pronouns: pronouns,
+                        country: country,
+                        city: city
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    closeAboutModal();
+                    location.reload(); // Refresh to show updated info
+                } else {
+                    alert(data.error || 'Failed to save changes');
+                }
+            } catch (error) {
+                console.error('Error saving About info:', error);
+                alert('Network error. Please try again.');
+            }
+        });
+    }
+});
+
+// Game Passports Modal Functions
+let availableGames = [];
+
+async function openGamePassportsModal() {
+    const modal = document.getElementById('gamePassportsModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        
+        // Load available games and passports
+        await loadAvailableGames();
+        await loadGamePassports();
+    }
+}
+
+function closeGamePassportsModal() {
+    const modal = document.getElementById('gamePassportsModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        document.getElementById('addPassportForm').reset();
+    }
+}
+
+async function loadAvailableGames() {
+    try {
+        const response = await fetch('{% url "user_profile:get_available_games" %}');
+        const data = await response.json();
+        
+        if (data.success && data.games) {
+            availableGames = data.games;
+            const select = document.getElementById('passportGameSelect');
+            select.innerHTML = '<option value="">Select a game...</option>';
+            
+            data.games.forEach(game => {
+                const option = document.createElement('option');
+                option.value = game.id;
+                option.textContent = `${game.icon} ${game.name}`;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading games:', error);
+    }
+}
+
+async function loadGamePassports() {
+    try {
+        const response = await fetch('{% url "user_profile:list_game_passports_api" %}');
+        const data = await response.json();
+        
+        const container = document.getElementById('passportsList');
+        
+        if (!data.success || !data.passports || data.passports.length === 0) {
+            container.innerHTML = '<div class="text-center text-gray-500 py-8">No game IDs yet. Add one above!</div>';
+            return;
+        }
+        
+        container.innerHTML = '';
+        data.passports.forEach(passport => {
+            const passportEl = createPassportElement(passport);
+            container.appendChild(passportEl);
+        });
+    } catch (error) {
+        console.error('Error loading passports:', error);
+        document.getElementById('passportsList').innerHTML = '<div class="text-center text-red-500 py-8">Error loading passports</div>';
+    }
+}
+
+function createPassportElement(passport) {
+    const div = document.createElement('div');
+    div.className = 'bg-white/5 border border-white/10 rounded-lg p-4 flex justify-between items-center hover:bg-white/10 transition';
+    
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'flex-1';
+    
+    const titleRow = document.createElement('div');
+    titleRow.className = 'flex items-center gap-2 mb-1';
+    
+    const gameIcon = document.createElement('span');
+    gameIcon.textContent = passport.game.icon || '🎮';
+    gameIcon.className = 'text-xl';
+    
+    const gameName = document.createElement('span');
+    gameName.textContent = passport.game.name;
+    gameName.className = 'font-bold text-white';
+    
+    if (passport.pinned) {
+        const pinnedBadge = document.createElement('span');
+        pinnedBadge.textContent = 'PINNED';
+        pinnedBadge.className = 'text-[9px] bg-[var(--z-cyan)] text-black px-1.5 rounded font-bold uppercase';
+        titleRow.appendChild(gameIcon);
+        titleRow.appendChild(gameName);
+        titleRow.appendChild(pinnedBadge);
+    } else {
+        titleRow.appendChild(gameIcon);
+        titleRow.appendChild(gameName);
+    }
+    
+    const ignRow = document.createElement('div');
+    ignRow.className = 'text-sm font-mono text-gray-300';
+    ignRow.textContent = passport.ign;
+    
+    if (passport.region || passport.rank) {
+        const metaRow = document.createElement('div');
+        metaRow.className = 'text-xs text-gray-500 mt-1';
+        const parts = [];
+        if (passport.region) parts.push(`Region: ${passport.region}`);
+        if (passport.rank) parts.push(`Rank: ${passport.rank}`);
+        metaRow.textContent = parts.join(' • ');
+        infoDiv.appendChild(titleRow);
+        infoDiv.appendChild(ignRow);
+        infoDiv.appendChild(metaRow);
+    } else {
+        infoDiv.appendChild(titleRow);
+        infoDiv.appendChild(ignRow);
+    }
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    deleteBtn.className = 'px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition';
+    deleteBtn.onclick = () => deletePassport(passport.id, passport.game.name);
+    
+    div.appendChild(infoDiv);
+    div.appendChild(deleteBtn);
+    
+    return div;
+}
+
+async function deletePassport(passportId, gameName) {
+    if (!confirm(`Delete ${gameName} game ID? This cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('{% url "user_profile:delete_game_passport_api" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ passport_id: passportId })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            await loadGamePassports();
+            setTimeout(() => location.reload(), 500);
+        } else {
+            alert(data.error || 'Failed to delete passport');
+        }
+    } catch (error) {
+        console.error('Error deleting passport:', error);
+        alert('Network error. Please try again.');
+    }
+}
+
+// Handle Add Passport form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const addPassportForm = document.getElementById('addPassportForm');
+    if (addPassportForm) {
+        addPassportForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const gameId = document.getElementById('passportGameSelect').value;
+            const ign = document.getElementById('passportIgnInput').value.trim();
+            const region = document.getElementById('passportRegionInput').value.trim() || null;
+            const rank = document.getElementById('passportRankInput').value.trim() || null;
+            
+            if (!gameId || !ign) {
+                alert('Please select a game and enter your IGN');
+                return;
+            }
+            
+            try {
+                const response = await fetch('{% url "user_profile:create_game_passport_api" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        game_id: parseInt(gameId),
+                        ign: ign,
+                        region: region,
+                        rank: rank,
+                        pinned: false,
+                        passport_data: {}
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    addPassportForm.reset();
+                    await loadGamePassports();
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    alert(data.error || 'Failed to add passport');
+                }
+            } catch (error) {
+                console.error('Error adding passport:', error);
+                alert('Network error. Please try again.');
+            }
+        });
+    }
+});
+
+// Video Modal Functions
+function openVideoModal(embedUrl, title, originalUrl) {
+    const modal = document.getElementById('videoModal');
+    const iframe = document.getElementById('videoModalIframe');
+    const fallback = document.getElementById('videoModalFallback');
+    const externalLink = document.getElementById('videoModalExternalLink');
+    const titleEl = document.getElementById('videoModalTitle');
+    
+    titleEl.textContent = title;
+    
+    const isFacebook = embedUrl && embedUrl.includes('facebook.com');
+
+    // If embed URL is missing/invalid or Facebook blocks playback, show fallback
+    if (!embedUrl || embedUrl.trim() === '' || isFacebook) {
+        iframe.style.display = 'none';
+        fallback.classList.remove('hidden');
+        const linkTarget = originalUrl || embedUrl;
+        if (linkTarget) {
+            externalLink.href = linkTarget;
+            externalLink.textContent = 'Open in Facebook';
+        }
+    } else {
+        iframe.style.display = 'block';
+        fallback.classList.add('hidden');
+        iframe.src = embedUrl;
+    }
+    
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeVideoModal() {
+    const modal = document.getElementById('videoModal');
+    const iframe = document.getElementById('videoModalIframe');
+    const fallback = document.getElementById('videoModalFallback');
+    
+    iframe.src = '';  // Stop video playback
+    iframe.style.display = 'block';
+    fallback.classList.add('hidden');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Edit Highlights Modal Functions
+function openEditHighlightsModal() {
+    const modal = document.getElementById('editHighlightsModal');
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEditHighlightsModal() {
+    const modal = document.getElementById('editHighlightsModal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Close modals on ESC key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeAboutModal();
+        closeGamePassportsModal();
+        closeVideoModal();
+        closeEditHighlightsModal();
+        closeFollowersModal();
+        closeFollowingModal();
+        closeSocialLinksModal();
+    }
+});
+
+// Close modals on background click
+document.getElementById('aboutModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'aboutModal') {
+        closeAboutModal();
+    }
+});
+
+document.getElementById('gamePassportsModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'gamePassportsModal') {
+        closeGamePassportsModal();
+    }
+});
+
+document.getElementById('videoModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'videoModal') {
+        closeVideoModal();
+    }
+});
+
+document.getElementById('editHighlightsModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'editHighlightsModal') {
+        closeEditHighlightsModal();
+    }
+});
+
+document.getElementById('followersModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'followersModal') {
+        closeFollowersModal();
+    }
+});
+
+document.getElementById('followingModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'followingModal') {
+        closeFollowingModal();
+    }
+});
+
+document.getElementById('socialLinksModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'socialLinksModal') {
+        closeSocialLinksModal();
+    }
+});
+
+// Initialize Overview tab on page load
+document.addEventListener('DOMContentLoaded', () => {
+    switchTab('overview');
+});
+
+// ============================================================================
+// UP-PHASE2D: Interactive Owner Flows
+// ============================================================================
+
+// Create Bounty Modal
+function openCreateBountyModal() {
+    document.getElementById('createBountyModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeCreateBountyModal() {
+    document.getElementById('createBountyModal').classList.add('hidden');
+    document.body.style.overflow = '';
+    document.getElementById('createBountyForm').reset();
+    document.getElementById('createBountyError').classList.add('hidden');
+}
+
+function submitBounty() {
+    const form = document.getElementById('createBountyForm');
+    const errorDiv = document.getElementById('createBountyError');
+    const submitBtn = document.getElementById('submitBountyBtn');
+    
+    errorDiv.classList.add('hidden');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Creating...';
+    
+    const data = {
+        title: form.title.value,
+        game_id: form.game.value,
+        description: form.description.value,
+        stake_amount: parseInt(form.stake_amount.value),
+        expires_in_hours: parseInt(form.expires_in_hours.value),
+    };
+    
+    fetch('{% url "user_profile:create_bounty" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Bounty created! ${data.stake_amount} DC locked in escrow.`);
+            closeCreateBountyModal();
+            location.reload();  // Reload to show new bounty
+        } else {
+            errorDiv.textContent = data.error || 'Failed to create bounty';
+            errorDiv.classList.remove('hidden');
+        }
+    })
+    .catch(error => {
+        errorDiv.textContent = 'Network error. Please try again.';
+        errorDiv.classList.remove('hidden');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-plus mr-2"></i> Create Bounty';
+    });
+}
+
+// Accept Bounty
+function acceptBounty(bountyId) {
+    if (!confirm('Accept this bounty challenge?')) return;
+    
+    const btn = event.target.closest('button');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Accepting...';
+    
+    const url = urlWithId('{% url "user_profile:accept_bounty" bounty_id=0 %}', bountyId);
+    debugLog('Accept bounty', { bountyId, url });
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to accept bounty');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-handshake mr-2"></i> Accept';
+        }
+    })
+    .catch(error => {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-handshake mr-2"></i> Accept';
+    });
+}
+
+// ============================================================================
+// LOADOUT EDIT MODAL (Phase 2F Part 5C)
+// ============================================================================
+
+let currentLoadoutTab = 'hardware';
+let loadoutAvailableGames = [];
+
+// Tab Switching
+function switchLoadoutTab(tabId) {
+    currentLoadoutTab = tabId;
+    
+    // Update tab buttons
+    document.getElementById('loadoutTabHardware').classList.toggle('text-white', tabId === 'hardware');
+    document.getElementById('loadoutTabHardware').classList.toggle('text-gray-400', tabId !== 'hardware');
+    document.getElementById('loadoutTabHardware').classList.toggle('border-[var(--z-cyan)]', tabId === 'hardware');
+    document.getElementById('loadoutTabHardware').classList.toggle('border-transparent', tabId !== 'hardware');
+    
+    document.getElementById('loadoutTabGameConfigs').classList.toggle('text-white', tabId === 'gameconfigs');
+    document.getElementById('loadoutTabGameConfigs').classList.toggle('text-gray-400', tabId !== 'gameconfigs');
+    document.getElementById('loadoutTabGameConfigs').classList.toggle('border-[var(--z-cyan)]', tabId === 'gameconfigs');
+    document.getElementById('loadoutTabGameConfigs').classList.toggle('border-transparent', tabId !== 'gameconfigs');
+    
+    // Update content visibility
+    document.getElementById('loadoutContentHardware').classList.toggle('hidden', tabId !== 'hardware');
+    document.getElementById('loadoutContentGameConfigs').classList.toggle('hidden', tabId !== 'gameconfigs');
+}
+
+// Open Modal
+async function openEditLoadoutModal() {
+    document.getElementById('editLoadoutModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Load available games for configs
+    await loadAvailableGamesForConfigs();
+    
+    // Load current data
+    await loadHardwareList();
+    await loadGameConfigList();
+}
+
+// Close Modal
+function closeEditLoadoutModal() {
+    document.getElementById('editLoadoutModal').classList.add('hidden');
+    document.body.style.overflow = '';
+    resetHardwareForm();
+    resetGameConfigForm();
+}
+
+// ============================================================================
+// HARDWARE MANAGEMENT
+// ============================================================================
+
+// Load Hardware List
+async function loadHardwareList() {
+    const container = document.getElementById('hardwareList');
+    
+    // Get hardware from JSON script tag
+    const hardware = JSON.parse(document.getElementById('hardwareData').textContent);
+    
+    container.innerHTML = '';
+    
+    const categories = {
+        'MOUSE': { icon: 'fa-computer-mouse', label: 'Mouse' },
+        'KEYBOARD': { icon: 'fa-keyboard', label: 'Keyboard' },
+        'HEADSET': { icon: 'fa-headphones', label: 'Headset' },
+        'MONITOR': { icon: 'fa-tv', label: 'Monitor' },
+        'MOUSEPAD': { icon: 'fa-square', label: 'Mousepad' }
+    };
+    
+    Object.entries(categories).forEach(([category, meta]) => {
+        const item = hardware[category];
+        
+        if (item) {
+            // Existing hardware
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between bg-white/5 border border-white/10 rounded-lg p-3 hover:border-[var(--z-cyan)]/30 transition';
+            div.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)]">
+                        <i class="fa-solid ${meta.icon}"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-400">${meta.label}</div>
+                        <div class="text-sm text-white font-bold">${item.brand} ${item.model}</div>
+                        ${item.specs && Object.keys(item.specs).length > 0 ? 
+                            `<div class="text-xs text-gray-500 mt-1">${JSON.stringify(item.specs)}</div>` : ''}
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick='editHardware(${JSON.stringify(item).replace(/'/g, "&apos;")})' 
+                        class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-xs transition">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button onclick="deleteHardware(${item.id}, '${category}')" 
+                        class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-xs transition">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+        } else {
+            // Empty slot
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between bg-white/5 border border-white/10 border-dashed rounded-lg p-3 opacity-50';
+            div.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-gray-600">
+                        <i class="fa-solid ${meta.icon}"></i>
+                    </div>
+                    <div class="text-sm text-gray-500">No ${meta.label.toLowerCase()} added</div>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+    });
+}
+
+// Hardware Form Submit
+document.getElementById('hardwareForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const id = document.getElementById('hardwareId').value;
+    const category = document.getElementById('hardwareCategory').value;
+    const brand = document.getElementById('hardwareBrand').value.trim();
+    const model = document.getElementById('hardwareModel').value.trim();
+    const specsRaw = document.getElementById('hardwareSpecs').value.trim();
+    const isPublic = document.getElementById('hardwareIsPublic').checked;
+    
+    // Parse specs JSON
+    let specs = {};
+    if (specsRaw) {
+        try {
+            specs = JSON.parse(specsRaw);
+        } catch (err) {
+            alert('Invalid JSON in specs field. Use format: {"key": "value"}');
+            return;
+        }
+    }
+    
+    // Build payload
+    const payload = {
+        category,
+        brand,
+        model,
+        specs,
+        is_public: isPublic
+    };
+    
+    if (id) {
+        payload.id = parseInt(id);
+    }
+    
+    // Submit
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
+    
+    try {
+        debugLog('Save hardware', payload);
+        const response = await fetch('{% url "user_profile:save_hardware" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message || 'Hardware saved successfully!');
+            resetHardwareForm();
+            // Reload page to refresh context
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to save hardware'));
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>Save Hardware';
+    }
+});
+
+// Edit Hardware
+function editHardware(item) {
+    document.getElementById('hardwareId').value = item.id;
+    document.getElementById('hardwareCategory').value = item.category;
+    document.getElementById('hardwareBrand').value = item.brand;
+    document.getElementById('hardwareModel').value = item.model;
+    document.getElementById('hardwareSpecs').value = item.specs && Object.keys(item.specs).length > 0 
+        ? JSON.stringify(item.specs, null, 2) : '';
+    document.getElementById('hardwareIsPublic').checked = item.is_public;
+    
+    document.getElementById('hardwareFormTitle').textContent = 'Edit Hardware';
+    
+    // Scroll to form
+    document.getElementById('hardwareForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Delete Hardware
+async function deleteHardware(id, category) {
+    if (!confirm(`Delete this ${category.toLowerCase()}? This cannot be undone.`)) return;
+    
+    try {
+        const url = urlWithId('{% url "user_profile:delete_hardware" hardware_id=0 %}', id);
+        debugLog('Delete hardware', { id, url });
+        
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCSRFToken()
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message || 'Hardware deleted successfully!');
+            // Reload page to refresh context
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to delete hardware'));
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    }
+}
+
+// Reset Hardware Form
+function resetHardwareForm() {
+    document.getElementById('hardwareForm').reset();
+    document.getElementById('hardwareId').value = '';
+    document.getElementById('hardwareFormTitle').textContent = 'Add Hardware';
+    document.getElementById('hardwareIsPublic').checked = true;
+}
+
+// ============================================================================
+// GAME CONFIG MANAGEMENT
+// ============================================================================
+
+// Load Available Games
+async function loadAvailableGamesForConfigs() {
+    try {
+        const response = await fetch('{% url "user_profile:get_available_games" %}');
+        const data = await response.json();
+        
+        if (data.games) {
+            loadoutAvailableGames = data.games;
+            
+            const select = document.getElementById('gameConfigGame');
+            select.innerHTML = '<option value="">Select Game...</option>';
+            
+            data.games.forEach(game => {
+                const option = document.createElement('option');
+                option.value = game.id;
+                option.textContent = game.name;
+                select.appendChild(option);
+            });
+        }
+    } catch (err) {
+        console.error('Failed to load games:', err);
+    }
+}
+
+// Load Game Config List
+async function loadGameConfigList() {
+    const container = document.getElementById('gameConfigList');
+    
+    // Get configs from JSON script tag
+    const configs = JSON.parse(document.getElementById('gameConfigsData').textContent);
+    
+    container.innerHTML = '';
+    
+    if (configs.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 py-8 border border-dashed border-white/10 rounded-lg">No game configs added yet</div>';
+        return;
+    }
+    
+    configs.forEach(config => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between bg-white/5 border border-white/10 rounded-lg p-3 hover:border-[var(--z-cyan)]/30 transition';
+        
+        const dpi = config.settings?.dpi || config.dpi || '—';
+        const sens = config.settings?.sensitivity || config.sensitivity || '—';
+        const res = config.settings?.resolution || config.resolution || '—';
+        
+        div.innerHTML = `
+            <div class="flex-1">
+                <div class="text-sm text-white font-bold mb-1">${config.game}</div>
+                <div class="flex gap-4 text-xs text-gray-400">
+                    <span><i class="fa-solid fa-crosshairs mr-1"></i>DPI: ${dpi}</span>
+                    <span><i class="fa-solid fa-sliders mr-1"></i>Sens: ${sens}</span>
+                    <span><i class="fa-solid fa-tv mr-1"></i>${res}</span>
+                </div>
+                ${config.notes ? `<div class="text-xs text-gray-500 mt-1">${config.notes}</div>` : ''}
+            </div>
+            <div class="flex gap-2">
+                <button onclick='editGameConfig(${JSON.stringify(config).replace(/'/g, "&apos;")})' 
+                    class="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-xs transition">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button onclick="deleteGameConfig(${config.id}, '${config.game}')" 
+                    class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-xs transition">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// Game Config Form Submit
+document.getElementById('gameConfigForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const id = document.getElementById('gameConfigId').value;
+    const gameId = document.getElementById('gameConfigGame').value;
+    const dpi = document.getElementById('gameConfigDPI').value.trim();
+    const sens = document.getElementById('gameConfigSens').value.trim();
+    const res = document.getElementById('gameConfigRes').value.trim();
+    const settingsRaw = document.getElementById('gameConfigSettings').value.trim();
+    const notes = document.getElementById('gameConfigNotes').value.trim();
+    const isPublic = document.getElementById('gameConfigIsPublic').checked;
+    
+    // Build settings object
+    let settings = {};
+    
+    if (dpi) settings.dpi = parseInt(dpi);
+    if (sens) settings.sensitivity = parseFloat(sens);
+    if (res) settings.resolution = res;
+    
+    // Merge with additional settings JSON
+    if (settingsRaw) {
+        try {
+            const additionalSettings = JSON.parse(settingsRaw);
+            settings = { ...settings, ...additionalSettings };
+        } catch (err) {
+            alert('Invalid JSON in settings field. Use format: {"key": "value"}');
+            return;
+        }
+    }
+    
+    // Build payload
+    const payload = {
+        game_id: parseInt(gameId),
+        settings,
+        notes,
+        is_public: isPublic
+    };
+    
+    if (id) {
+        payload.id = parseInt(id);
+    }
+    
+    // Submit
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
+    
+    try {
+        debugLog('Save game config', payload);
+        const response = await fetch('{% url "user_profile:save_game_config" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message || 'Game config saved successfully!');
+            resetGameConfigForm();
+            // Reload page to refresh context
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to save config'));
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>Save Config';
+    }
+});
+
+// Edit Game Config
+function editGameConfig(config) {
+    document.getElementById('gameConfigId').value = config.id;
+    
+    // Find game ID from available games
+    const game = loadoutAvailableGames.find(g => g.name === config.game || g.slug === config.game_slug);
+    if (game) {
+        document.getElementById('gameConfigGame').value = game.id;
+    }
+    
+    document.getElementById('gameConfigDPI').value = config.settings?.dpi || config.dpi || '';
+    document.getElementById('gameConfigSens').value = config.settings?.sensitivity || config.sensitivity || '';
+    document.getElementById('gameConfigRes').value = config.settings?.resolution || config.resolution || '';
+    
+    // Extract non-standard settings for JSON field
+    const standardKeys = ['dpi', 'sensitivity', 'resolution'];
+    const additionalSettings = {};
+    if (config.settings) {
+        Object.keys(config.settings).forEach(key => {
+            if (!standardKeys.includes(key)) {
+                additionalSettings[key] = config.settings[key];
+            }
+        });
+    }
+    
+    document.getElementById('gameConfigSettings').value = Object.keys(additionalSettings).length > 0 
+        ? JSON.stringify(additionalSettings, null, 2) : '';
+    
+    document.getElementById('gameConfigNotes').value = config.notes || '';
+    document.getElementById('gameConfigIsPublic').checked = config.is_public;
+    
+    document.getElementById('gameConfigFormTitle').textContent = 'Edit Game Config';
+    
+    // Switch to game configs tab if not already there
+    if (currentLoadoutTab !== 'gameconfigs') {
+        switchLoadoutTab('gameconfigs');
+    }
+    
+    // Scroll to form
+    document.getElementById('gameConfigForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Delete Game Config
+async function deleteGameConfig(id, gameName) {
+    if (!confirm(`Delete config for ${gameName}? This cannot be undone.`)) return;
+    
+    try {
+        const url = urlWithId('{% url "user_profile:delete_game_config" config_id=0 %}', id);
+        debugLog('Delete game config', { id, url });
+        
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCSRFToken()
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message || 'Game config deleted successfully!');
+            // Reload page to refresh context
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to delete config'));
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    }
+}
+
+// Reset Game Config Form
+function resetGameConfigForm() {
+    document.getElementById('gameConfigForm').reset();
+    document.getElementById('gameConfigId').value = '';
+    document.getElementById('gameConfigFormTitle').textContent = 'Add Game Config';
+    document.getElementById('gameConfigIsPublic').checked = true;
+}
+
+// ============================================================================
+// END LOADOUT MODAL
+// ============================================================================
+
+// Manage Showcase Modal
+function openManageShowcaseModal() {
+    document.getElementById('manageShowcaseModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeManageShowcaseModal() {
+    document.getElementById('manageShowcaseModal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Close modals on ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeCreateBountyModal();
+        closeEditLoadoutModal();
+        closeManageShowcaseModal();
+        closeProofModal();
+        closeDisputeModal();
+    }
+});
+
+// ============================================================================
+// UP-PHASE2E: MATCH PROGRESSION ACTIONS
+// ============================================================================
+
+// Start Match
+function startMatch(bountyId) {
+    if (!confirm('Start this match now? Both players should be ready.')) return;
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Starting...';
+    
+    const url = urlWithId('{% url "user_profile:start_match" bounty_id=0 %}', bountyId);
+    debugLog('Start match', { bountyId, url });
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to start match');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> Start Match';
+        }
+    })
+    .catch(error => {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> Start Match';
+    });
+}
+
+// Proof Submission Modal
+let currentProofBountyId = null;
+
+function openProofModal(bountyId, bountyTitle, creatorId, creatorName, acceptorId, acceptorName) {
+    currentProofBountyId = bountyId;
+    document.getElementById('proofBountyTitle').textContent = bountyTitle;
+    
+    // Populate winner dropdown
+    const winnerSelect = document.getElementById('proofWinner');
+    winnerSelect.innerHTML = `
+        <option value="">Select winner...</option>
+        <option value="${creatorId}">${creatorName}</option>
+        <option value="${acceptorId}">${acceptorName}</option>
+    `;
+    
+    document.getElementById('proofModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeProofModal() {
+    currentProofBountyId = null;
+    document.getElementById('proofModal').classList.add('hidden');
+    document.body.style.overflow = '';
+    
+    // Reset form
+    document.getElementById('proofWinner').value = '';
+    document.getElementById('proofUrl').value = '';
+    document.getElementById('proofType').value = 'screenshot';
+    document.getElementById('proofDescription').value = '';
+}
+
+function submitProof() {
+    const winnerId = document.getElementById('proofWinner').value;
+    const proofUrl = document.getElementById('proofUrl').value.trim();
+    const proofType = document.getElementById('proofType').value;
+    const description = document.getElementById('proofDescription').value.trim();
+    
+    if (!winnerId) {
+        alert('Please select a winner');
+        return;
+    }
+    
+    if (!proofUrl) {
+        alert('Please provide a proof URL');
+        return;
+    }
+    
+    const data = {
+        claimed_winner_id: parseInt(winnerId),
+        proof_url: proofUrl,
+        proof_type: proofType,
+        description: description
+    };
+    
+    const url = urlWithId('{% url "user_profile:submit_proof" bounty_id=0 %}', currentProofBountyId);
+    debugLog('Submit proof', { bountyId: currentProofBountyId, url });
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            closeProofModal();
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to submit proof');
+        }
+    })
+    .catch(error => {
+        alert('Network error. Please try again.');
+    });
+}
+
+// Confirm Result
+function confirmResult(bountyId) {
+    if (!confirm('Confirm this result? Winner will receive 95% of stake (5% platform fee). This action cannot be undone.')) return;
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Confirming...';
+    
+    const url = urlWithId('{% url "user_profile:confirm_result" bounty_id=0 %}', bountyId);
+    debugLog('Confirm result', { bountyId, url });
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to confirm result');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Confirm Result';
+        }
+    })
+    .catch(error => {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Confirm Result';
+    });
+}
+
+// Dispute Modal
+let currentDisputeBountyId = null;
+
+function openDisputeModal(bountyId, bountyTitle) {
+    currentDisputeBountyId = bountyId;
+    document.getElementById('disputeBountyTitle').textContent = bountyTitle;
+    document.getElementById('disputeModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Character counter
+    const textarea = document.getElementById('disputeReason');
+    const counter = document.getElementById('disputeCharCount');
+    textarea.addEventListener('input', () => {
+        counter.textContent = textarea.value.length;
+    });
+}
+
+function closeDisputeModal() {
+    currentDisputeBountyId = null;
+    document.getElementById('disputeModal').classList.add('hidden');
+    document.body.style.overflow = '';
+    
+    // Reset form
+    document.getElementById('disputeReason').value = '';
+    document.getElementById('disputeCharCount').textContent = '0';
+}
+
+function submitDispute() {
+    const reason = document.getElementById('disputeReason').value.trim();
+    
+    if (reason.length < 50) {
+        alert('Dispute reason must be at least 50 characters');
+        return;
+    }
+    
+    const data = { reason: reason };
+    
+    const disputeUrl = urlWithId('{% url "user_profile:raise_dispute" bounty_id=0 %}', currentDisputeBountyId);
+    fetch(disputeUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            closeDisputeModal();
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to raise dispute');
+        }
+    })
+    .catch(error => {
+        alert('Network error. Please try again.');
+    });
+}
+
+// UP-PHASE2E-PART2: Endorsement Modal Functions
+let currentEndorseBountyId = null;
+let currentEndorseReceiverId = null;
+let selectedSkills = new Set();
+
+function openEndorseModal(bountyId, receiverId) {
+    currentEndorseBountyId = bountyId;
+    currentEndorseReceiverId = receiverId;
+    selectedSkills.clear();
+    
+    // Reset skill buttons
+    document.querySelectorAll('.skill-btn').forEach(btn => {
+        btn.classList.remove('bg-[var(--z-gold)]', 'border-[var(--z-gold)]');
+        btn.classList.add('bg-white/5', 'border-white/10');
+    });
+    
+    // Skill button click handlers
+    document.querySelectorAll('.skill-btn').forEach(btn => {
+        btn.onclick = function() {
+            const skill = this.dataset.skill;
+            if (selectedSkills.has(skill)) {
+                selectedSkills.delete(skill);
+                this.classList.remove('bg-[var(--z-gold)]', 'border-[var(--z-gold)]');
+                this.classList.add('bg-white/5', 'border-white/10');
+            } else {
+                selectedSkills.add(skill);
+                this.classList.add('bg-[var(--z-gold)]', 'border-[var(--z-gold)]');
+                this.classList.remove('bg-white/5', 'border-white/10');
+            }
+            
+            // Update hint
+            const hint = document.getElementById('endorseSkillHint');
+            if (selectedSkills.size > 0) {
+                hint.textContent = `${selectedSkills.size} skill(s) selected`;
+                hint.classList.add('text-[var(--z-gold)]');
+            } else {
+                hint.textContent = 'Click skills to select/deselect';
+                hint.classList.remove('text-[var(--z-gold)]');
+            }
+        };
+    });
+    
+    document.getElementById('endorseModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEndorseModal() {
+    currentEndorseBountyId = null;
+    currentEndorseReceiverId = null;
+    selectedSkills.clear();
+    document.getElementById('endorseModal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function submitEndorsement() {
+    if (selectedSkills.size === 0) {
+        alert('Please select at least one skill to endorse');
+        return;
+    }
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Submitting...';
+    
+    // Backend supports one skill per endorsement
+    const skill = Array.from(selectedSkills)[0];
+    
+    const data = {
+        skill: skill,
+        receiver_id: currentEndorseReceiverId
+    };
+    
+    const endorseUrl = urlWithId('{% url "user_profile:award_bounty_endorsement" bounty_id=0 %}', currentEndorseBountyId);
+    fetch(endorseUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || 'Endorsement submitted!');
+            closeEndorseModal();
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to submit endorsement');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-star mr-2"></i>Submit Endorsement';
+        }
+    })
+    .catch(error => {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-star mr-2"></i>Submit Endorsement';
+    });
+}
+
+// UP-PHASE2F: Avatar and Cover Upload
+document.addEventListener('DOMContentLoaded', function() {
+    const avatarInput = document.getElementById('avatarInput');
+    const coverInput = document.getElementById('coverInput');
+    
+    if (avatarInput) {
+        avatarInput.addEventListener('change', function(e) {
+            handleMediaUpload(e.target.files[0], 'avatar');
+        });
+    }
+    
+    if (coverInput) {
+        coverInput.addEventListener('change', function(e) {
+            handleMediaUpload(e.target.files[0], 'banner');
+        });
+    }
+});
+
+async function handleMediaUpload(file, mediaType) {
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+    }
+    
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Image must be smaller than 5MB');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('media_type', mediaType);
+    
+    try {
+        const response = await fetch('{% url "user_profile:upload_media" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            alert(`${mediaType === 'avatar' ? 'Avatar' : 'Cover'} updated successfully!`);
+            
+            // Update preview
+            if (mediaType === 'avatar') {
+                const avatarPreview = document.getElementById('avatarPreview');
+                if (avatarPreview) {
+                    avatarPreview.src = data.url;
+                }
+            } else {
+                // Reload to show new cover
+                location.reload();
+            }
+        } else {
+            alert(data.error || 'Failed to upload image');
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('Network error. Please try again.');
+    }
+}
+
+// UP-PHASE2F: Follower/Following Modal System
+function openFollowersModal() {
+    {% if not privacy.show_followers_list and not is_owner %}
+        alert('This followers list is private');
+        return;
+    {% endif %}
+    
+    const modal = document.getElementById('followersModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadFollowersList();
+    }
+}
+
+// UP-PHASE2F-PART3: Social Links Management
+function openSocialLinksModal() {
+    const modal = document.getElementById('socialLinksModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadSocialLinks();
+    }
+}
+
+function closeSocialLinksModal() {
+    const modal = document.getElementById('socialLinksModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function loadSocialLinks() {
+    const container = document.getElementById('socialLinksList');
+    container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
+    
+    try {
+        const response = await fetch('{% url "user_profile:social_links_list_api" %}');
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            if (data.links.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-gray-500">No social links yet. Add one above!</div>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <h3 class="text-sm font-bold text-white mb-3 uppercase tracking-wider">Your Links</h3>
+                <div class="space-y-2">
+                    ${data.links.map(link => `
+                        <div class="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition group">
+                            <div class="w-10 h-10 rounded-lg bg-black/30 flex items-center justify-center text-gray-400">
+                                <i class="fa-brands fa-${link.platform} text-lg"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-bold text-white text-sm capitalize">${getPlatformName(link.platform)}</div>
+                                <div class="text-xs text-gray-500 truncate">${link.url}</div>
+                            </div>
+                            <button onclick="deleteSocialLink(${link.id}, '${link.platform}')" 
+                                    class="opacity-0 group-hover:opacity-100 transition px-3 py-2 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white rounded-lg text-sm">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else {
+            container.innerHTML = '<div class="text-center py-8 text-red-500">Failed to load links</div>';
+        }
+    } catch (error) {
+        console.error('Error loading social links:', error);
+        container.innerHTML = '<div class="text-center py-8 text-red-500">Network error</div>';
+    }
+}
+
+function getPlatformName(platform) {
+    const names = {
+        'twitch': 'Twitch',
+        'youtube': 'YouTube',
+        'twitter': 'Twitter/X',
+        'discord': 'Discord',
+        'instagram': 'Instagram',
+        'tiktok': 'TikTok',
+        'facebook': 'Facebook',
+        'kick': 'Kick',
+        'steam': 'Steam',
+        'github': 'GitHub',
+        'facebook_gaming': 'Facebook Gaming',
+        'riot': 'Riot Games'
+    };
+    return names[platform] || platform;
+}
+
+async function addSocialLink() {
+    const platformSelect = document.getElementById('newLinkPlatform');
+    const urlInput = document.getElementById('newLinkUrl');
+    
+    const platform = platformSelect.value.trim();
+    const url = urlInput.value.trim();
+    
+    if (!platform || !url) {
+        alert('Please select a platform and enter a URL');
+        return;
+    }
+    
+    // Basic URL validation
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        alert('Please enter a valid URL (must start with http:// or https://)');
+        return;
+    }
+    
+    try {
+        const response = await fetch('{% url "user_profile:social_link_create_api" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                platform: platform,
+                url: url
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // Clear form
+            platformSelect.value = '';
+            urlInput.value = '';
+            
+            // Reload list
+            loadSocialLinks();
+            
+            // Show success
+            alert('Social link added successfully!');
+        } else {
+            alert(data.error || 'Failed to add social link');
+        }
+    } catch (error) {
+        console.error('Error adding social link:', error);
+        alert('Network error. Please try again.');
+    }
+}
+
+async function deleteSocialLink(linkId, platform) {
+    if (!confirm(`Delete your ${getPlatformName(platform)} link?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('{% url "user_profile:social_link_delete_api" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                id: linkId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // Reload list
+            loadSocialLinks();
+            
+            // Reload page to update display
+            setTimeout(() => location.reload(), 500);
+        } else {
+            alert(data.error || 'Failed to delete social link');
+        }
+    } catch (error) {
+        console.error('Error deleting social link:', error);
+        alert('Network error. Please try again.');
+    }
+}
+
+// UP-PHASE2F: Follower/Following Modal System (continued)
+function openFollowersModal() {
+    const modal = document.getElementById('followersModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadFollowersList();
+    }
+}
+
+function openFollowingModal() {
+    {% if not privacy.show_following_list and not is_owner %}
+        alert('This following list is private');
+        return;
+    {% endif %}
+    
+    const modal = document.getElementById('followingModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadFollowingList();
+    }
+}
+
+function closeFollowersModal() {
+    const modal = document.getElementById('followersModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function closeFollowingModal() {
+    const modal = document.getElementById('followingModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function loadFollowersList() {
+    const container = document.getElementById('followersList');
+    const username = '{{ profile_user.username }}';
+    
+    container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
+    
+    try {
+        const followersUrl = '{% url "user_profile:get_followers" username="PLACEHOLDER" %}'.replace('PLACEHOLDER', username);
+        const response = await fetch(followersUrl);
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            if (data.followers.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-500">No followers yet</div>';
+                return;
+            }
+            
+            container.innerHTML = data.followers.map(user => `
+                <div class="flex items-center justify-between p-4 hover:bg-white/5 transition">
+                    <div class="flex items-center gap-3">
+                        <img src="${user.avatar_url || '/static/images/default-avatar.png'}" 
+                             alt="${user.display_name}" 
+                             class="w-12 h-12 rounded-full border border-white/10">
+                        <div>
+                            <div class="font-bold text-white flex items-center gap-2">
+                                ${user.display_name}
+                                ${user.is_verified ? '<i class="fas fa-check-circle text-[var(--z-cyan)] text-sm"></i>' : ''}
+                            </div>
+                            <div class="text-sm text-gray-500">@${user.username}</div>
+                        </div>
+                    </div>
+                    ${renderFollowButton(user)}
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = `<div class="text-center py-12 text-red-500">${data.error || 'Failed to load followers'}</div>`;
+        }
+    } catch (error) {
+        console.error('Error loading followers:', error);
+        container.innerHTML = '<div class="text-center py-12 text-red-500">Network error</div>';
+    }
+}
+
+async function loadFollowingList() {
+    const container = document.getElementById('followingList');
+    const username = '{{ profile_user.username }}';
+    
+    container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
+    
+    try {
+        const followingUrl = '{% url "user_profile:get_following" username="PLACEHOLDER" %}'.replace('PLACEHOLDER', username);
+        const response = await fetch(followingUrl);
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            if (data.following.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-500">Not following anyone yet</div>';
+                return;
+            }
+            
+            container.innerHTML = data.following.map(user => `
+                <div class="flex items-center justify-between p-4 hover:bg-white/5 transition">
+                    <div class="flex items-center gap-3">
+                        <img src="${user.avatar_url || '/static/images/default-avatar.png'}" 
+                             alt="${user.display_name}" 
+                             class="w-12 h-12 rounded-full border border-white/10">
+                        <div>
+                            <div class="font-bold text-white flex items-center gap-2">
+                                ${user.display_name}
+                                ${user.is_verified ? '<i class="fas fa-check-circle text-[var(--z-cyan)] text-sm"></i>' : ''}
+                            </div>
+                            <div class="text-sm text-gray-500">@${user.username}</div>
+                        </div>
+                    </div>
+                    ${renderFollowButton(user)}
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = `<div class="text-center py-12 text-red-500">${data.error || 'Failed to load following'}</div>`;
+        }
+    } catch (error) {
+        console.error('Error loading following:', error);
+        container.innerHTML = '<div class="text-center py-12 text-red-500">Network error</div>';
+    }
+}
+
+function renderFollowButton(user) {
+    const isOwner = '{{ request.user.is_authenticated|yesno:"true,false" }}' === 'true' && '{{ request.user.username }}' === '{{ profile_user.username }}';
+    const isLoggedIn = '{{ request.user.is_authenticated|yesno:"true,false" }}' === 'true';
+    const isSelf = isLoggedIn && '{{ request.user.username }}' === user.username;
+    
+    if (isOwner || isSelf || !isLoggedIn) {
+        return '';
+    }
+    
+    if (user.is_following) {
+        return `<button onclick="handleFollowAction('${user.username}', 'unfollow', this)" 
+                       class="px-4 py-2 bg-white/10 hover:bg-red-500/20 text-white rounded-lg transition text-sm font-bold border border-white/20">
+                    Following
+                </button>`;
+    } else {
+        return `<button onclick="handleFollowAction('${user.username}', 'follow', this)" 
+                       class="px-4 py-2 bg-gradient-to-r from-[var(--z-cyan)] to-[var(--z-purple)] hover:opacity-90 text-white rounded-lg transition text-sm font-bold">
+                    Follow
+                </button>`;
+    }
+}
+
+async function handleFollowAction(username, action, button) {
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    try {
+        const followUrl = action === 'follow' 
+            ? '{% url "user_profile:follow_user_v2" username="PLACEHOLDER" %}'.replace('PLACEHOLDER', username)
+            : '{% url "user_profile:unfollow_user_v2" username="PLACEHOLDER" %}'.replace('PLACEHOLDER', username);
+        const response = await fetch(followUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // Reload the current list
+            const followersModalOpen = !document.getElementById('followersModal').classList.contains('hidden');
+            if (followersModalOpen) {
+                loadFollowersList();
+            } else {
+                loadFollowingList();
+            }
+            
+            // Update counts on page
+            location.reload();
+        } else {
+            alert(data.error || `Failed to ${action}`);
+            button.disabled = false;
+            button.innerHTML = action === 'follow' ? 'Follow' : 'Following';
+        }
+    } catch (error) {
+        console.error(`Error ${action}ing user:`, error);
+        alert('Network error. Please try again.');
+        button.disabled = false;
+        button.innerHTML = action === 'follow' ? 'Follow' : 'Following';
+    }
+}
+
+</script>
+{% endblock %}
+
+

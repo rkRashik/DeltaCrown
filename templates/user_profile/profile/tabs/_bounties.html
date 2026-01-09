@@ -1,0 +1,195 @@
+{% load static %}
+
+<!-- BOUNTIES TAB - UP-PHASE-2C2 -->
+<div id="tab-bounties" class="tab-content space-y-6">
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="z-card p-5 text-center hover:bg-white/[0.03] transition">
+            <div class="text-3xl font-bold text-[var(--z-gold)] mb-1">{{ bounties.stats.open_count|default:0 }}</div>
+            <div class="text-xs text-gray-500 uppercase tracking-wider">Open</div>
+        </div>
+        <div class="z-card p-5 text-center hover:bg-white/[0.03] transition">
+            <div class="text-3xl font-bold text-[var(--z-cyan)] mb-1">{{ bounties.stats.in_progress_count|default:0 }}</div>
+            <div class="text-xs text-gray-500 uppercase tracking-wider">In Progress</div>
+        </div>
+        <div class="z-card p-5 text-center hover:bg-white/[0.03] transition">
+            <div class="text-3xl font-bold text-[var(--z-green)] mb-1">{{ bounty_stats.won_count|default:0 }}</div>
+            <div class="text-xs text-gray-500 uppercase tracking-wider">Won</div>
+        </div>
+        <div class="z-card p-5 text-center hover:bg-white/[0.03] transition">
+            <div class="text-3xl font-bold text-white mb-1">{{ bounty_stats.win_rate|floatformat:0|default:0 }}%</div>
+            <div class="text-xs text-gray-500 uppercase tracking-wider">Win Rate</div>
+        </div>
+    </div>
+    
+    <!-- Open Bounties -->
+    {% if bounties.open %}
+    <div class="z-card p-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                <i class="fa-solid fa-flag-checkered text-[var(--z-gold)]"></i> Open Bounties
+            </h2>
+        </div>
+        
+        <div class="space-y-4">
+            {% for bounty in bounties.open %}
+            <div class="z-card p-6 border-l-4 border-l-[var(--z-gold)] hover:bg-white/[0.03] transition">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-white mb-2">{{ bounty.title }}</h3>
+                        {% if bounty.description %}
+                        <p class="text-sm text-gray-400 mb-3">{{ bounty.description|truncatewords:20 }}</p>
+                        {% endif %}
+                        <div class="flex gap-3 text-xs">
+                            <span class="px-2 py-1 bg-white/5 border border-white/10 rounded">{{ bounty.game }}</span>
+                            <span class="px-2 py-1 bg-white/5 border border-white/10 rounded">{{ bounty.mode|upper }}</span>
+                            <span class="px-2 py-1 bg-white/5 border border-white/10 rounded text-gray-400">Expires {{ bounty.expires_at|timeuntil }}</span>
+                        </div>
+                    </div>
+                    <div class="text-right ml-4">
+                        <div class="text-3xl font-bold text-[var(--z-gold)] mb-1">{{ bounty.stake_amount }} DC</div>
+                        {% if not is_owner %}
+                        <button onclick="acceptBounty({{ bounty.id }})" class="px-4 py-2 bg-[var(--z-gold)] text-black font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-white transition">
+                            <i class="fa-solid fa-handshake mr-1"></i> Accept
+                        </button>
+                        {% else %}
+                        <span class="text-xs text-gray-500">Your bounty</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- In Progress Bounties -->
+    {% if bounties.in_progress %}
+    <div class="z-card p-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                <i class="fa-solid fa-crosshairs text-[var(--z-cyan)]"></i> In Progress
+            </h2>
+        </div>
+        
+        <div class="space-y-4">
+            {% for bounty in bounties.in_progress %}
+            <div class="z-card p-6 border-l-4 border-l-[var(--z-cyan)] hover:bg-white/[0.03] transition">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-white mb-2">{{ bounty.title }}</h3>
+                        <div class="flex gap-3 text-sm mb-3">
+                            <span class="text-gray-400">{{ bounty.creator }} vs {{ bounty.acceptor }}</span>
+                        </div>
+                        <div class="flex gap-3 text-xs">
+                            <span class="px-2 py-1 bg-white/5 border border-white/10 rounded">{{ bounty.game }}</span>
+                            <span class="px-2 py-1 bg-[var(--z-cyan)]/20 border border-[var(--z-cyan)]/30 text-[var(--z-cyan)] rounded">{{ bounty.status_display }}</span>
+                        </div>
+                        
+                        <!-- UP-PHASE2E: Match Progression Actions -->
+                        {% if is_owner %}
+                        <div class="mt-4 flex gap-3">
+                            {% if bounty.status == 'ACCEPTED' %}
+                                <!-- Start Match (both participants) -->
+                                <button onclick="startMatch({{ bounty.id }})"
+                                        class="px-4 py-2 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-black font-bold rounded transition">
+                                    <i class="fa-solid fa-play mr-2"></i>Start Match
+                                </button>
+                            {% elif bounty.status == 'IN_PROGRESS' %}
+                                <!-- Submit Proof (both participants) -->
+                                <button onclick="openProofModal({{ bounty.id }}, '{{ bounty.title }}', {{ bounty.creator_id }}, '{{ bounty.creator }}', {{ bounty.acceptor_id }}, '{{ bounty.acceptor }}')"
+                                        class="px-4 py-2 bg-[var(--z-purple)] hover:bg-[var(--z-purple)]/80 text-white font-bold rounded transition">
+                                    <i class="fa-solid fa-upload mr-2"></i>Submit Proof
+                                </button>
+                            {% elif bounty.status == 'PENDING_RESULT' %}
+                                <!-- Creator can confirm -->
+                                {% if profile.user == bounty.creator %}
+                                <button onclick="confirmResult({{ bounty.id }})"
+                                        class="px-4 py-2 bg-[var(--z-green)] hover:bg-[var(--z-green)]/80 text-black font-bold rounded transition">
+                                    <i class="fa-solid fa-check mr-2"></i>Confirm Result
+                                </button>
+                                {% endif %}
+                                
+                                <!-- Participant can dispute (24hr window) -->
+                                {% if bounty.can_dispute %}
+                                <button onclick="openDisputeModal({{ bounty.id }}, '{{ bounty.title }}')"
+                                        class="px-4 py-2 bg-[var(--z-red)]/20 hover:bg-[var(--z-red)]/30 border border-[var(--z-red)]/50 text-[var(--z-red)] font-bold rounded transition">
+                                    <i class="fa-solid fa-flag mr-2"></i>Raise Dispute
+                                </button>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="text-right ml-4">
+                        <div class="text-2xl font-bold text-white">{{ bounty.stake_amount }} DC</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Completed Bounties -->
+    {% if bounties.completed %}
+    <div class="z-card p-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-display font-bold text-white flex items-center gap-3">
+                <i class="fa-solid fa-trophy text-[var(--z-green)]"></i> Completed
+            </h2>
+        </div>
+        
+        <div class="space-y-4">
+            {% for bounty in bounties.completed %}
+            <div class="z-card p-6 {% if bounty.was_winner %}border-l-4 border-l-[var(--z-green)]{% else %}border-l-4 border-l-[var(--z-red)]{% endif %} hover:bg-white/[0.03] transition">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-white mb-2">{{ bounty.title }}</h3>
+                        <div class="flex gap-3 text-sm mb-2">
+                            <span class="text-gray-400">Winner: <span class="text-white font-bold">{{ bounty.winner }}</span></span>
+                        </div>
+                        <div class="text-xs text-gray-500">Completed {{ bounty.completed_at|timesince }} ago</div>
+                    </div>
+                    <div class="text-right ml-4">
+                        <div class="text-2xl font-bold {% if bounty.was_winner %}text-[var(--z-green)]{% else %}text-gray-500{% endif %}">
+                            {% if bounty.was_winner %}+{% endif %}{{ bounty.payout_amount|default:bounty.stake_amount }} DC
+                        </div>
+                        {% if request.user.is_authenticated and not bounty.already_endorsed %}
+                        <button 
+                            onclick="openEndorseModal({{ bounty.id }}, {{ bounty.opponent_id }})"
+                            class="mt-2 px-4 py-2 bg-[var(--z-purple)] text-white text-xs font-bold uppercase rounded-lg hover:bg-opacity-80 transition"
+                            title="Rate your opponent's skills">
+                            <i class="fa-solid fa-star mr-1"></i> Rate Opponent
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if not bounties.open and not bounties.in_progress and not bounties.completed %}
+    <div class="z-card p-12 text-center">
+        <i class="fa-solid fa-crosshairs text-6xl mb-4 opacity-20 text-gray-500"></i>
+        <p class="text-gray-400 text-lg mb-2">No bounties yet</p>
+        <p class="text-gray-500 text-sm">Challenge opponents to 1v1 matches and win DeltaCoins!</p>
+        {% if is_owner %}
+        <button onclick="openCreateBountyModal()" class="mt-6 px-6 py-3 bg-[var(--z-gold)] text-black font-bold text-sm uppercase tracking-wider rounded-lg hover:bg-white transition">
+            <i class="fa-solid fa-plus mr-2"></i> Create Bounty
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% if is_owner %}
+    <!-- Owner-only Create Button -->
+    <div class="flex justify-center">
+        <button onclick="openCreateBountyModal()" class="px-8 py-4 bg-[var(--z-gold)] text-black font-bold text-sm uppercase tracking-wider rounded-xl hover:bg-white transition shadow-lg">
+            <i class="fa-solid fa-plus mr-2"></i> Create New Bounty
+        </button>
+    </div>
+    {% endif %}
+</div>
