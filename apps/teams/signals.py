@@ -14,7 +14,33 @@ def _lower_or_none(value):
     return s.lower() if s else None
 
 
+# Phase 4F: Auto-populate left_at when membership becomes REMOVED
+@receiver(pre_save, sender='teams.TeamMembership')
+def auto_populate_left_at(sender, instance, **kwargs):
+    """
+    Automatically set left_at when a membership transitions to REMOVED status.
+    Only sets if left_at is currently NULL (don't overwrite existing values).
+    """
+    if instance.pk:  # Only for updates, not new memberships
+        try:
+            TeamMembership = apps.get_model('teams', 'TeamMembership')
+            old_instance = TeamMembership.objects.get(pk=instance.pk)
+            
+            # Check if status changed from non-REMOVED to REMOVED
+            if old_instance.status != 'REMOVED' and instance.status == 'REMOVED':
+                # Set left_at to now if not already set
+                if not instance.left_at:
+                    instance.left_at = timezone.now()
+                    logger.info(f"Auto-populated left_at for TeamMembership {instance.pk} (team={instance.team.name}, user={instance.profile.username})")
+        except TeamMembership.DoesNotExist:
+            # New instance, skip
+            pass
+        except Exception as e:
+            logger.error(f"Error auto-populating left_at for TeamMembership {instance.pk}: {e}")
+
+
 @receiver(pre_save)
+def team_ci_autofill(sender, instance, **kwargs):
 def team_ci_autofill(sender, instance, **kwargs):
     """
     Populate Team.name_ci / Team.tag_ci from name/tag without touching the legacy model code.

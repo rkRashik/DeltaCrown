@@ -1,12 +1,13 @@
 {% load static %}
 
 <!-- 
-PHASE 4C: Redesigned Overview Dashboard
-- Modern hierarchy with primary/secondary content
-- Profile completeness widget
-- Preview cards (max 2 items each) with navigation
-- No duplicates (About is primary, sidebar has mini-cards)
-- Empty states with CTAs
+PHASE 4H: Dedup + Layout Polish + Career/Overview/Sidebar Cohesion
+- About: Canonical in Overview (Phase 4C About Data Command Center)
+- Career Preview: Game-wise sections (max 2 games shown)
+- Game IDs Preview: Limited to 2 items, links to game-ids tab
+- Connect: Removed (canonical location is Sidebar)
+- Smart Empty States: Content-driven layout with CTAs
+- No duplicate sections across tabs/sidebar
 -->
 
 <!-- OVERVIEW TAB (Dashboard Summary) -->
@@ -51,65 +52,68 @@ PHASE 4C: Redesigned Overview Dashboard
     <!-- Secondary Content: Preview Cards Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
-        <!-- Teams Preview -->
-        <div role="button" tabindex="0" data-tab-button="career" class="z-card p-6 cursor-pointer hover:border-[var(--z-cyan)]/50 transition-all transform hover:-translate-y-1 group">
+        <!-- PHASE 4H: Career Preview (Game-wise) -->
+        <div role="button" tabindex="0" data-tab-button="career" class="z-card p-6 cursor-pointer hover:border-[var(--z-gold)]/50 transition-all transform hover:-translate-y-1 group">
             <div class="flex items-start justify-between mb-4">
-                <div class="w-12 h-12 rounded-xl bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)] text-2xl group-hover:scale-110 transition">
-                    <i class="fa-solid fa-users"></i>
+                <div class="w-12 h-12 rounded-xl bg-[var(--z-gold)]/10 flex items-center justify-center text-[var(--z-gold)] text-2xl group-hover:scale-110 transition">
+                    <i class="fa-solid fa-trophy"></i>
                 </div>
-                <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-cyan)] transition"></i>
+                <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-gold)] transition"></i>
             </div>
-            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-cyan)] transition">Teams</h3>
-            {% if user_teams %}
-                <p class="text-sm text-gray-400 mb-3">Active on <span class="text-white font-bold">{{ user_teams|length }}</span> team{{ user_teams|length|pluralize }}</p>
+            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-gold)] transition">Career</h3>
+            {% if career_by_game %}
+                <p class="text-sm text-gray-400 mb-3">Active in <span class="text-white font-bold">{{ career_by_game|length }}</span> game{{ career_by_game|length|pluralize }}</p>
                 <div class="space-y-2">
-                    {% for team in user_teams|slice:":2" %}
+                    {% for game_section in career_by_game|slice:":2" %}
                     <div class="flex items-center gap-2 p-2 rounded-lg bg-white/[0.02] border border-white/5">
-                        {% if team.logo_url %}
-                        <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-8 h-8 rounded object-cover">
-                        {% else %}
-                        <div class="w-8 h-8 rounded bg-[var(--z-purple)]/20 flex items-center justify-center text-[var(--z-purple)] text-xs font-bold">{{ team.tag|default:team.name|slice:":2"|upper }}</div>
-                        {% endif %}
+                        <img src="{{ game_section.game_icon }}" alt="{{ game_section.game_name }}" class="w-8 h-8 rounded object-cover">
                         <div class="flex-1 min-w-0">
-                            <div class="text-xs font-bold text-white truncate">{{ team.name }}</div>
-                            <div class="text-[10px] text-gray-500 truncate">{{ team.role }}</div>
+                            <div class="text-xs font-bold text-white truncate">{{ game_section.game_name }}</div>
+                            {% if game_section.current_team %}
+                            <div class="text-[10px] text-[var(--z-gold)] truncate">{{ game_section.current_team.name }}</div>
+                            {% else %}
+                            <div class="text-[10px] text-gray-500 truncate">{{ game_section.history|length }} former team{{ game_section.history|length|pluralize }}</div>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
                 </div>
-                {% if user_teams|length > 2 %}
-                <p class="text-xs text-[var(--z-cyan)] mt-3 font-semibold">+ {{ user_teams|length|add:"-2" }} more</p>
+                {% if career_by_game|length > 2 %}
+                <p class="text-xs text-[var(--z-gold)] mt-3 font-semibold">+ {{ career_by_game|length|add:"-2" }} more</p>
                 {% endif %}
             {% elif is_owner %}
                 <div class="text-center py-6 border-2 border-dashed border-white/10 rounded-lg">
-                    <i class="fa-solid fa-users-slash text-2xl text-gray-600 mb-2"></i>
-                    <p class="text-xs text-gray-500 mb-3">Not on any teams yet</p>
-                    <a href="/teams/" class="text-xs text-[var(--z-cyan)] hover:text-white transition font-semibold">Browse Teams →</a>
+                    <i class="fa-solid fa-briefcase text-2xl text-gray-600 mb-2"></i>
+                    <p class="text-xs text-gray-500 mb-3">No team history yet</p>
+                    <a href="/teams/" class="text-xs text-[var(--z-gold)] hover:text-white transition font-semibold">Find Teams →</a>
                 </div>
             {% else %}
-                <p class="text-sm text-gray-500">No team history</p>
+                <p class="text-sm text-gray-500">No career history</p>
             {% endif %}
         </div>
         
-        <!-- Game IDs Preview -->
-        <div role="button" tabindex="0" data-tab-button="career" class="z-card p-6 cursor-pointer hover:border-[var(--z-gold)]/50 transition-all transform hover:-translate-y-1 group">
+        <!-- Teams Preview -->
+        <!-- PHASE 4H: Removed - use Career preview above instead -->
+        
+        <!-- Game IDs Preview (Limited to 2-3 max) -->
+        <div role="button" tabindex="0" data-tab-button="game-ids" class="z-card p-6 cursor-pointer hover:border-[var(--z-cyan)]/50 transition-all transform hover:-translate-y-1 group">
             <div class="flex items-start justify-between mb-4">
-                <div class="w-12 h-12 rounded-xl bg-[var(--z-gold)]/10 flex items-center justify-center text-[var(--z-gold)] text-2xl group-hover:scale-110 transition">
+                <div class="w-12 h-12 rounded-xl bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)] text-2xl group-hover:scale-110 transition">
                     <i class="fa-solid fa-id-card"></i>
                 </div>
-                <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-gold)] transition"></i>
+                <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-cyan)] transition"></i>
             </div>
-            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-gold)] transition">Game IDs</h3>
+            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-cyan)] transition">Game IDs</h3>
             {% if pinned_passports or unpinned_passports %}
                 {% with all_passports=pinned_passports|add:unpinned_passports %}
                 <p class="text-sm text-gray-400 mb-3"><span class="text-white font-bold">{{ all_passports|length }}</span> game{{ all_passports|length|pluralize }} linked</p>
                 <div class="space-y-2">
                     {% for passport in all_passports|slice:":2" %}
                     <div class="flex items-center gap-2 p-2 rounded-lg bg-white/[0.02] border border-white/5">
-                        <div class="w-8 h-8 rounded bg-[var(--z-purple)]/20 flex items-center justify-center text-xs font-bold text-[var(--z-purple)]">{{ passport.game|upper|slice:":2" }}</div>
+                        <div class="w-8 h-8 rounded bg-[var(--z-purple)]/20 flex items-center justify-center text-xs font-bold text-[var(--z-purple)]">{{ passport.game.display_name|upper|slice:":2" }}</div>
                         <div class="flex-1 min-w-0">
                             <div class="text-xs font-bold text-white truncate">{{ passport.in_game_name|default:"Not set" }}</div>
-                            <div class="text-[10px] text-gray-500 truncate">{{ passport.game|upper }}</div>
+                            <div class="text-[10px] text-gray-500 truncate">{{ passport.game.display_name }}</div>
                         </div>
                         {% if passport.is_pinned %}
                         <i class="fa-solid fa-star text-[var(--z-gold)] text-xs"></i>
@@ -118,14 +122,14 @@ PHASE 4C: Redesigned Overview Dashboard
                     {% endfor %}
                 </div>
                 {% if all_passports|length > 2 %}
-                <p class="text-xs text-[var(--z-gold)] mt-3 font-semibold">+ {{ all_passports|length|add:"-2" }} more</p>
+                <p class="text-xs text-[var(--z-cyan)] mt-3 font-semibold">+ {{ all_passports|length|add:"-2" }} more</p>
                 {% endif %}
                 {% endwith %}
             {% elif is_owner %}
                 <div class="text-center py-6 border-2 border-dashed border-white/10 rounded-lg">
                     <i class="fa-solid fa-gamepad text-2xl text-gray-600 mb-2"></i>
                     <p class="text-xs text-gray-500 mb-3">No game IDs added yet</p>
-                    <a href="/me/settings/#game-ids" class="text-xs text-[var(--z-gold)] hover:text-white transition font-semibold">Add Game IDs →</a>
+                    <a href="/me/settings/#identity" class="text-xs text-[var(--z-cyan)] hover:text-white transition font-semibold">Add Game IDs →</a>
                 </div>
             {% else %}
                 <p class="text-sm text-gray-500">No game IDs added</p>
@@ -161,7 +165,7 @@ PHASE 4C: Redesigned Overview Dashboard
                 <div class="text-center py-6 border-2 border-dashed border-white/10 rounded-lg">
                     <i class="fa-solid fa-mouse text-2xl text-gray-600 mb-2"></i>
                     <p class="text-xs text-gray-500 mb-3">No hardware configured</p>
-                    <a href="/me/settings/#loadout" class="text-xs text-[var(--z-green)] hover:text-white transition font-semibold">Add Loadout →</a>
+                    <a href="/me/settings/#loadout" class="text-xs text-[var(--z-cyan)] hover:text-white transition font-semibold">Add Loadout →</a>
                 </div>
             {% else %}
                 <p class="text-sm text-gray-500">No hardware configured</p>
@@ -258,22 +262,31 @@ PHASE 4C: Redesigned Overview Dashboard
         
     </div>
     
-    <!-- Completely Empty State (Owner Only, New Profile) -->
-    {% if is_owner and not user_teams and not pinned_passports and not unpinned_passports and not hardware_loadout.is_complete and not highlight_clips and profile_completeness < 50 %}
+    <!-- PHASE 4H: Smart Empty State (Owner Only, New Profile) -->
+    {% if is_owner and not career_by_game and not pinned_passports and not unpinned_passports and not hardware_loadout.is_complete and not highlight_clips and profile_completeness < 50 %}
     <div class="z-card p-12 border-2 border-dashed border-white/10 bg-gradient-to-br from-[var(--z-cyan)]/5 to-transparent text-center space-y-6">
         <div class="text-6xl">🚀</div>
         <div class="space-y-2">
-            <h3 class="text-2xl font-display font-bold text-white">Welcome to Your Esports Profile!</h3>
+            <h3 class="text-2xl font-display font-bold text-white">Build Your Esports Profile!</h3>
             <p class="text-gray-400 max-w-xl mx-auto">
-                Your profile is your esports identity. Complete your About section, add game IDs, join teams, and showcase your highlights to stand out in the community.
+                Your profile is your esports identity. Start by completing your About section, adding game IDs, and joining teams.
             </p>
         </div>
-        <div class="flex flex-wrap justify-center gap-4">
-            <a href="/me/settings/" class="px-6 py-3 bg-[var(--z-cyan)] hover:bg-white text-black font-bold text-sm rounded-xl transition">
-                <i class="fa-solid fa-user-plus mr-2"></i> Complete Profile
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
+            <a href="/me/settings/#about" class="p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[var(--z-cyan)]/50 transition group">
+                <i class="fa-solid fa-address-card text-2xl text-[var(--z-cyan)] mb-2 group-hover:scale-110 transition inline-block"></i>
+                <h4 class="font-bold text-white mb-1">Complete About</h4>
+                <p class="text-xs text-gray-500">Add bio, location, and career info</p>
             </a>
-            <a href="/teams/" class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-sm rounded-xl transition">
-                <i class="fa-solid fa-users mr-2"></i> Browse Teams
+            <a href="/me/settings/#identity" class="p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[var(--z-cyan)]/50 transition group">
+                <i class="fa-solid fa-gamepad text-2xl text-[var(--z-cyan)] mb-2 group-hover:scale-110 transition inline-block"></i>
+                <h4 class="font-bold text-white mb-1">Link Game IDs</h4>
+                <p class="text-xs text-gray-500">Connect your accounts from various games</p>
+            </a>
+            <a href="/teams/" class="p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[var(--z-cyan)]/50 transition group">
+                <i class="fa-solid fa-users text-2xl text-[var(--z-cyan)] mb-2 group-hover:scale-110 transition inline-block"></i>
+                <h4 class="font-bold text-white mb-1">Join a Team</h4>
+                <p class="text-xs text-gray-500">Find teams or create your own</p>
             </a>
         </div>
     </div>

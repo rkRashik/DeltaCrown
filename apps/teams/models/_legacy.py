@@ -639,6 +639,13 @@ class TeamMembership(models.Model):
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
     joined_at = models.DateTimeField(default=timezone.now)
     
+    # Phase 4F: Track when member left/was removed
+    left_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the member left or was removed from the team"
+    )
+    
     # ═══════════════════════════════════════════════════════════════════════
     # ROSTER SLOT SYSTEM: Separate from organizational role
     # Defines the member's position in the active roster (game-specific)

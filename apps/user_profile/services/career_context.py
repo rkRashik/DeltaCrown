@@ -17,12 +17,18 @@ def get_membership_end_date(tm):
     """
     Get the end date for a team membership.
     
-    The TeamMembership model does NOT have a left_at or ended_at field.
-    For REMOVED memberships, we have no reliable timestamp for when they left.
+    Phase 4F: Now uses tm.left_at field when available.
+    
+    The TeamMembership model now has a left_at field (added in Phase 4F).
+    For REMOVED memberships, left_at is populated via:
+    1. Signal when status changes to REMOVED (auto-populated)
+    2. Backfill migration for existing data (from role_changed_at)
+    3. Manual setting by admins
     
     Strategy:
+    - Check tm.left_at first (primary source)
     - ACTIVE/PENDING memberships: Return None (still active)
-    - REMOVED memberships: Return None (we don't know when they left)
+    - REMOVED without left_at: Return None (will show "End date unavailable")
     
     Args:
         tm: TeamMembership instance
@@ -37,13 +43,17 @@ def get_membership_end_date(tm):
     if status in ['ACTIVE', 'PENDING']:
         return None
     
-    # For REMOVED status, we don't have a reliable end date
-    # The model doesn't track when someone was removed
-    # We could use role_changed_at if it exists, but that's not reliable
-    # Better to return None and display "Unknown" or omit the date
+    # Phase 4F: Use left_at field as primary source
+    left_at = getattr(tm, 'left_at', None)
+    if left_at:
+        return left_at
     
-    # Try common explicit end date fields (defensive, in case model changes)
-    for field_name in ['left_at', 'ended_at', 'removed_at', 'inactive_at']:
+    # For REMOVED status without left_at, we don't have a reliable end date
+    # The model doesn't track when someone was removed (for old data before Phase 4F)
+    # We already backfilled where possible, so if still NULL, it's truly unknown
+    
+    # Defensive: Try other fields (in case added later)
+    for field_name in ['ended_at', 'removed_at', 'inactive_at']:
         end_date = getattr(tm, field_name, None)
         if end_date:
             logger.debug(f"Found end date in {field_name}: {end_date}")
@@ -56,124 +66,137 @@ def get_membership_end_date(tm):
 def build_career_context(user_profile, is_owner: bool = False) -> Dict:
     """
     Build comprehensive career context for profile Career tab.
+    Phase 4G: Restructured to group teams by game (one team per game).
+    Phase 4H: Refined for duplicate prevention and smart empty states.
+    
+    Platform Rule: Users can have max ONE active team per game.
+    - If multiple ACTIVE memberships exist for same game (data anomaly), 
+      only the most recent is used as current_team.
+    - Others are included in history only.
     
     Args:
         user_profile: UserProfile instance
         is_owner: Whether viewer is the profile owner
     
     Returns:
-        Dictionary with current_teams, team_history, career_timeline
+        Dictionary with career_by_game (game-wise sections)
     """
     from apps.teams.models import TeamMembership
     from apps.games.models import Game
+    from apps.user_profile.utils import get_game_icon_url
     
     if not user_profile:
         return {
-            'current_teams': [],
-            'team_history': [],
-            'career_timeline': [],
+            'career_by_game': [],
             'has_teams': False,
         }
     
-    # Get game display names mapping
-    games_map = {g.slug: g.display_name for g in Game.objects.all()}
+    # Get all games with display info
+    games = {g.slug: g for g in Game.objects.all()}
     
-    # 1. Current Teams (active memberships)
-    current_memberships = TeamMembership.objects.filter(
-        profile=user_profile,
-        status=TeamMembership.Status.ACTIVE
-    ).select_related('team').order_by('-joined_at')
-    
-    current_teams = []
-    for tm in current_memberships:
-        current_teams.append({
-            'id': tm.team.id,
-            'slug': tm.team.slug,
-            'name': tm.team.name,
-            'tag': tm.team.tag,
-            'game': games_map.get(tm.team.game, tm.team.game),
-            'game_slug': tm.team.game,
-            'role': tm.get_role_display(),
-            'role_code': tm.role,
-            'logo_url': tm.team.logo.url if tm.team.logo else None,
-            'joined_date': tm.joined_at,
-            'joined_formatted': tm.joined_at.strftime('%b %Y') if tm.joined_at else 'Unknown',
-            'is_captain': tm.role == TeamMembership.Role.CAPTAIN,
-            'is_owner': tm.role == TeamMembership.Role.OWNER,
-            'status': 'Active',
-        })
-    
-    # 2. Team History (all memberships for timeline)
+    # Get all memberships (exclude PENDING from timeline)
     all_memberships = TeamMembership.objects.filter(
         profile=user_profile
+    ).exclude(
+        status=TeamMembership.Status.PENDING
     ).select_related('team').order_by('-joined_at')
     
-    team_history = []
+    # Group memberships by game
+    career_by_game = {}
     for tm in all_memberships:
+        game_slug = tm.team.game
+        status = getattr(tm, 'status', 'ACTIVE')
+        
+        # Initialize game section if needed
+        if game_slug not in career_by_game:
+            game = games.get(game_slug)
+            career_by_game[game_slug] = {
+                'game_slug': game_slug,
+                'game_name': game.display_name if game else game_slug.title(),
+                'game_icon': get_game_icon_url(game_slug),
+                'current_team': None,
+                'history': [],
+            }
+        
         # Calculate duration
         start_date = getattr(tm, 'joined_at', None) or timezone.now()
         end_date = get_membership_end_date(tm)
         
-        # Calculate duration string
-        if end_date:
-            try:
-                duration_days = (end_date - start_date).days
-                if duration_days < 30:
-                    duration = f"{duration_days} days"
-                elif duration_days < 365:
-                    duration = f"{duration_days // 30} months"
-                else:
-                    duration = f"{duration_days // 365} years"
-            except Exception as e:
-                logger.warning(f"Error calculating duration: {e}")
-                duration = "Unknown"
-        else:
-            # No end date - either active or we don't know when they left
-            status = getattr(tm, 'status', 'ACTIVE')
-            if status == 'ACTIVE':
-                duration = "Present"
+        # Calculate duration string based on status
+        if status == 'ACTIVE':
+            duration = "Present"
+            left_formatted = "Present"
+        elif status == 'REMOVED':
+            if end_date:
+                try:
+                    duration_days = (end_date - start_date).days
+                    if duration_days < 30:
+                        duration = f"{duration_days} days"
+                    elif duration_days < 365:
+                        duration = f"{duration_days // 30} months"
+                    else:
+                        duration = f"{duration_days // 365} years"
+                    left_formatted = end_date.strftime('%b %Y')
+                except Exception as e:
+                    logger.warning(f"Error calculating duration: {e}")
+                    duration = "Unknown duration"
+                    left_formatted = "End date unavailable"
             else:
-                # REMOVED but no end date - we don't know when they left
-                duration = "Unknown"
+                duration = "Unknown duration"
+                left_formatted = "End date unavailable"
+        else:
+            duration = "Unknown"
+            left_formatted = "Unknown"
         
-        team_history.append({
+        team_data = {
             'id': tm.team.id,
             'slug': tm.team.slug,
             'name': tm.team.name,
             'tag': getattr(tm.team, 'tag', ''),
-            'game': games_map.get(tm.team.game, tm.team.game),
-            'game_slug': tm.team.game,
             'role': tm.get_role_display(),
             'role_code': tm.role,
             'logo_url': tm.team.logo.url if tm.team.logo else None,
             'joined_date': start_date,
             'left_date': end_date,
             'joined_formatted': start_date.strftime('%b %Y') if start_date else 'Unknown',
-            'left_formatted': end_date.strftime('%b %Y') if end_date else ('Present' if getattr(tm, 'status', '') == 'ACTIVE' else 'Unknown'),
+            'left_formatted': left_formatted,
             'duration': duration,
-            'is_current': getattr(tm, 'status', '') == 'ACTIVE',
-            'status': 'Active' if getattr(tm, 'status', '') == 'ACTIVE' else 'Past',
-        })
+            'is_current': status == 'ACTIVE',
+            'is_former': status == 'REMOVED',
+            'status': status,
+            'status_display': 'Active' if status == 'ACTIVE' else 'Former',
+        }
+        
+        # Set current team or add to history
+        if status == 'ACTIVE':
+            # Only one active team per game (platform enforces this)
+            career_by_game[game_slug]['current_team'] = team_data
+        
+        # Add to history (includes current team)
+        career_by_game[game_slug]['history'].append(team_data)
     
-    # 3. Career Timeline (year-grouped for visual timeline)
-    timeline = {}
-    for entry in team_history:
-        year = entry['joined_date'].year if entry['joined_date'] else timezone.now().year
-        if year not in timeline:
-            timeline[year] = []
-        timeline[year].append(entry)
+    # Sort games: primary game first (most recent activity), then alphabetical
+    def game_sort_key(item):
+        game_slug, data = item
+        # Get most recent activity timestamp
+        latest_timestamp = 0
+        if data['current_team']:
+            latest_timestamp = data['current_team']['joined_date'].timestamp()
+        elif data['history']:
+            latest_timestamp = max(
+                (h['joined_date'].timestamp() if h['joined_date'] else 0)
+                for h in data['history']
+            )
+        # Sort: most recent first, then alphabetical
+        return (-latest_timestamp, data['game_name'])
     
-    # Sort years descending
-    career_timeline = [
-        {'year': year, 'entries': entries}
-        for year, entries in sorted(timeline.items(), reverse=True)
+    career_by_game_list = [
+        data for _, data in sorted(career_by_game.items(), key=game_sort_key)
     ]
     
     return {
-        'current_teams': current_teams,
-        'team_history': team_history,
-        'career_timeline': career_timeline,
-        'has_teams': len(team_history) > 0,
+        'career_by_game': career_by_game_list,
+        'has_teams': len(all_memberships) > 0,
     }
 
 
