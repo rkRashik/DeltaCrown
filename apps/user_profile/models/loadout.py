@@ -262,3 +262,82 @@ class GameConfig(models.Model):
             except (ValueError, TypeError):
                 return None
         return None
+
+
+# ============================================================================
+# SIMPLE HARDWARE LOADOUT (Phase 4)
+# ============================================================================
+
+class HardwareLoadout(models.Model):
+    """
+    Simple hardware loadout for profile showcase.
+    Maps directly to Loadout tab inputs in settings_control_deck.html.
+    
+    Phase 4B: Backend persistence for previously non-functional Loadout tab.
+    This is a simpler alternative to HardwareGear for basic profile display.
+    """
+    user_profile = models.OneToOneField(
+        'user_profile.UserProfile',
+        on_delete=models.CASCADE,
+        related_name='hardware_loadout',
+        help_text="User profile this hardware loadout belongs to"
+    )
+    
+    # ===== PERIPHERAL GEAR (Simple Text Fields) =====
+    mouse_brand = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Mouse brand/model (e.g., 'Logitech G Pro X Superlight')"
+    )
+    
+    keyboard_brand = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Keyboard brand/model (e.g., 'Wooting 60HE')"
+    )
+    
+    headset_brand = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Headset brand/model (e.g., 'HyperX Cloud II')"
+    )
+    
+    monitor_brand = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Monitor brand/model (e.g., 'BenQ Zowie XL2546K 240Hz')"
+    )
+    
+    # ===== METADATA =====
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'user_profile_hardware_loadout'
+        verbose_name = 'Hardware Loadout'
+        verbose_name_plural = 'Hardware Loadouts'
+    
+    def __str__(self):
+        return f"{self.user_profile.display_name} - Hardware Loadout"
+    
+    def get_gear_summary(self):
+        """Return list of non-empty gear items for display."""
+        gear = []
+        if self.mouse_brand:
+            gear.append(('Mouse', self.mouse_brand))
+        if self.keyboard_brand:
+            gear.append(('Keyboard', self.keyboard_brand))
+        if self.headset_brand:
+            gear.append(('Headset', self.headset_brand))
+        if self.monitor_brand:
+            gear.append(('Monitor', self.monitor_brand))
+        return gear
+    
+    @property
+    def is_complete(self):
+        """Check if loadout has at least one hardware item."""
+        return bool(self.mouse_brand or self.keyboard_brand or self.headset_brand or self.monitor_brand)

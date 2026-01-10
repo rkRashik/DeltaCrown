@@ -291,6 +291,66 @@ class UserProfile(models.Model):
         help_text="UI theme preference"
     )
     
+    # ===== ABOUT SECTION FIELDS (Phase 4) =====
+    device_platform = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        choices=[
+            ('PC', 'PC'),
+            ('CONSOLE_PS', 'PlayStation'),
+            ('CONSOLE_XBOX', 'Xbox'),
+            ('MOBILE_ANDROID', 'Mobile (Android)'),
+            ('MOBILE_IOS', 'Mobile (iOS)'),
+        ],
+        help_text="Primary gaming platform/device"
+    )
+    
+    play_style = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        choices=[
+            ('CASUAL', 'Casual Player'),
+            ('COMPETITIVE', 'Competitive'),
+            ('PROFESSIONAL', 'Professional'),
+            ('CONTENT_CREATOR', 'Content Creator'),
+        ],
+        help_text="Player's competitive intent and play style"
+    )
+    
+    lan_availability = models.BooleanField(
+        default=False,
+        help_text="Available for LAN tournaments and offline events"
+    )
+    
+    main_role = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Primary competitive role (e.g., 'Entry Fragger', 'Support', 'IGL')"
+    )
+    
+    secondary_role = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Secondary competitive role for flexibility"
+    )
+    
+    communication_languages = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of languages for team communication (e.g., ['en', 'bn', 'hi'])"
+    )
+    
+    active_hours = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Typical active gaming hours (e.g., '14:00-22:00 UTC' or '6PM-2AM local')"
+    )
+    
     # ===== METADATA (Future-Proof Extensibility) =====
     attributes = models.JSONField(
         default=dict,
@@ -893,6 +953,36 @@ class PrivacySettings(models.Model):
     is_private_account = models.BooleanField(
         default=False,
         help_text="When enabled, people must request to follow you (follow requests require approval)"
+    )
+    
+    # ===== PHASE 4: ABOUT SECTION PRIVACY =====
+    show_pronouns = models.BooleanField(
+        default=True,
+        help_text="Show pronouns on public profile"
+    )
+    show_nationality = models.BooleanField(
+        default=True,
+        help_text="Show nationality on public profile"
+    )
+    show_device_platform = models.BooleanField(
+        default=True,
+        help_text="Show gaming device/platform (PC, Console, Mobile)"
+    )
+    show_play_style = models.BooleanField(
+        default=True,
+        help_text="Show play style (Casual, Competitive, Professional)"
+    )
+    show_roles = models.BooleanField(
+        default=True,
+        help_text="Show competitive roles (main/secondary)"
+    )
+    show_active_hours = models.BooleanField(
+        default=True,
+        help_text="Show active gaming hours"
+    )
+    show_preferred_contact = models.BooleanField(
+        default=False,
+        help_text="Show preferred contact method publicly"
     )
     
     # ===== METADATA =====

@@ -15,7 +15,7 @@ from apps.user_profile.models.settings import NotificationPreferences, WalletSet
 from apps.user_profile.models.showcase import ProfileShowcase  # UP-PHASE14C
 from apps.user_profile.models.about import ProfileAboutItem  # UP-PHASE15
 from apps.user_profile.models.media import StreamConfig, HighlightClip, PinnedHighlight  # P0 Media
-from apps.user_profile.models.loadout import HardwareGear, GameConfig  # P0 Loadout
+from apps.user_profile.models.loadout import HardwareGear, GameConfig, HardwareLoadout  # P0 Loadout + Phase 4 Simple Loadout
 from apps.user_profile.models.trophy_showcase import TrophyShowcaseConfig  # P0 Trophy Showcase
 from apps.user_profile.models.endorsements import (  # P0 Endorsements
     SkillEndorsement,
@@ -96,6 +96,7 @@ __all__ = [
     # P0 Loadout models
     'HardwareGear',
     'GameConfig',
+    'HardwareLoadout',  # Phase 4 simple loadout
     
     # P0 Trophy Showcase models
     'TrophyShowcaseConfig',

@@ -569,126 +569,154 @@ def settings_view(request):
     """
     Modular settings page with all settings sections in one place.
     Provides a unified interface for Profile, Privacy, KYC, Payment, Security, and Game Accounts.
+    
+    PHASE 4B REFACTOR:
+    - Uses Django ModelForms for all tabs instead of manual POST extraction
+    - Detects which tab submitted based on hidden input 'settings_tab'
+    - Routes to correct form based on tab: identity, recruitment, loadout, privacy, etc.
+    - Properly saves all 100+ UI fields with validation
     """
-    from apps.user_profile.models import PrivacySettings, VerificationRecord
+    from apps.user_profile.models import PrivacySettings, VerificationRecord, CareerProfile, HardwareLoadout
+    from apps.user_profile.forms import (
+        UserProfileSettingsForm,
+        CareerSettingsForm,
+        HardwareLoadoutForm,
+        PrivacySettingsFormComplete
+    )
     
     profile = request.user.profile
     
-    # Get or create privacy settings
-    privacy_settings, _ = PrivacySettings.objects.get_or_create(
-        user_profile=profile
-    )
-    
-    # Get verification record if exists
+    # Get or create related models
+    privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=profile)
     verification_record = VerificationRecord.objects.filter(user_profile=profile).first()
+    
+    # Get or create career profile
+    career_profile, _ = CareerProfile.objects.get_or_create(user_profile=profile)
+    
+    # Get or create hardware loadout
+    hardware_loadout, _ = HardwareLoadout.objects.get_or_create(user_profile=profile)
     
     # Get existing game profiles
     from apps.user_profile.models import GameProfile
     game_profiles = GameProfile.objects.filter(user=request.user).order_by('game')
     
     if request.method == 'POST':
-        # Handle profile updates
+        # Detect which settings tab was submitted
+        settings_tab = request.POST.get('settings_tab', 'identity')
+        
+        success = False
+        error_msg = None
+        
         try:
-            display_name = request.POST.get('display_name')
-            bio = request.POST.get('bio')
-            country = request.POST.get('country')
-            city = request.POST.get('city')
-            real_full_name = request.POST.get('real_full_name')
-            date_of_birth = request.POST.get('date_of_birth')
-            nationality = request.POST.get('nationality')
-            # Update profile fields if present
-            changed = False
-            if display_name is not None:
-                profile.display_name = display_name.strip()[:80]
-                changed = True
-            if bio is not None:
-                profile.bio = bio.strip()[:500]
-                changed = True
-            if country is not None:
-                profile.country = country.strip()
-                changed = True
-            if city is not None:
-                profile.city = city.strip()
-                changed = True
-            if real_full_name is not None:
-                # lock if KYC verified: follow existing behavior
-                if not profile.is_kyc_verified:
-                    profile.real_full_name = real_full_name.strip()
+            if settings_tab in ['identity', 'connections', 'social', 'platform', 'about']:
+                # Profile settings (all non-specialized tabs)
+                form = UserProfileSettingsForm(
+                    request.POST, 
+                    request.FILES, 
+                    instance=profile
+                )
+                if form.is_valid():
+                    # Handle real_full_name KYC lock
+                    if profile.is_kyc_verified and 'real_full_name' in form.changed_data:
+                        messages.warning(request, 'Cannot change legal name after KYC verification.')
+                        form.cleaned_data.pop('real_full_name', None)
+                    
+                    form.save()
+                    success = True
+                else:
+                    error_msg = f"Validation errors: {form.errors.as_text()}"
+                    
+            elif settings_tab == 'recruitment':
+                # Career/recruitment settings
+                form = CareerSettingsForm(request.POST, instance=career_profile)
+                if form.is_valid():
+                    form.save()
+                    success = True
+                else:
+                    error_msg = f"Validation errors: {form.errors.as_text()}"
+                    
+            elif settings_tab == 'loadout':
+                # Hardware loadout settings
+                form = HardwareLoadoutForm(request.POST, instance=hardware_loadout)
+                if form.is_valid():
+                    form.save()
+                    success = True
+                else:
+                    error_msg = f"Validation errors: {form.errors.as_text()}"
+                    
+            elif settings_tab == 'privacy':
+                # Privacy settings (all toggles)
+                form = PrivacySettingsFormComplete(request.POST, instance=privacy_settings)
+                if form.is_valid():
+                    form.save()
+                    # Also handle profile-level is_private field
+                    profile.is_private = bool(request.POST.get('is_private'))
+                    profile.save(update_fields=['is_private'])
+                    success = True
+                else:
+                    error_msg = f"Validation errors: {form.errors.as_text()}"
+            
+            else:
+                # Unknown tab - fallback to legacy behavior for backwards compatibility
+                logger.warning(f"Unknown settings_tab: {settings_tab}, using legacy save")
+                # Legacy manual save (for KYC, payment, security tabs not yet migrated)
+                changed = False
+                
+                # Basic profile fields
+                for field in ['display_name', 'bio', 'country', 'city', 'real_full_name', 'nationality']:
+                    value = request.POST.get(field)
+                    if value is not None:
+                        if field == 'real_full_name' and profile.is_kyc_verified:
+                            continue  # Skip KYC-locked field
+                        setattr(profile, field, value.strip())
+                        changed = True
+                
+                # Date of birth
+                dob = request.POST.get('date_of_birth')
+                if dob:
+                    try:
+                        from django.utils.dateparse import parse_date
+                        profile.date_of_birth = parse_date(dob)
+                        changed = True
+                    except Exception:
+                        pass
+                
+                # Files
+                if request.FILES.get('avatar'):
+                    profile.avatar = request.FILES['avatar']
                     changed = True
-            if date_of_birth:
-                try:
-                    from django.utils.dateparse import parse_date
-                    parsed = parse_date(date_of_birth)
-                    profile.date_of_birth = parsed
+                if request.FILES.get('banner'):
+                    profile.banner = request.FILES['banner']
                     changed = True
-                except Exception:
-                    pass
-            if nationality is not None:
-                profile.nationality = nationality.strip()
-                changed = True
-
-            # Files: avatar/banner
-            if request.FILES.get('avatar'):
-                profile.avatar = request.FILES.get('avatar')
-                changed = True
-            if request.FILES.get('banner'):
-                profile.banner = request.FILES.get('banner')
-                changed = True
-
-            # Game ID updates (legacy) - best effort
-            riot_id = request.POST.get('riot_id')
-            if riot_id is not None:
-                profile.riot_id = riot_id.strip()
-                changed = True
-            steam_id = request.POST.get('steam_id')
-            if steam_id is not None:
-                profile.steam_id = steam_id.strip()
-                changed = True
-            mlbb_id = request.POST.get('mlbb_id')
-            if mlbb_id is not None:
-                profile.mlbb_id = mlbb_id.strip()
-                changed = True
-            ea_id = request.POST.get('ea_id')
-            if ea_id is not None:
-                profile.ea_id = ea_id.strip()
-                changed = True
-            pubg_mobile_id = request.POST.get('pubg_mobile_id')
-            if pubg_mobile_id is not None:
-                profile.pubg_mobile_id = pubg_mobile_id.strip()
-                changed = True
-
-            if changed:
-                try:
+                
+                # Legacy game IDs
+                for game_id_field in ['riot_id', 'steam_id', 'mlbb_id', 'ea_id', 'pubg_mobile_id']:
+                    value = request.POST.get(game_id_field)
+                    if value is not None:
+                        setattr(profile, game_id_field, value.strip())
+                        changed = True
+                
+                if changed:
                     profile.save()
-                except Exception as e:
-                    logger.warning(f"Error saving profile data: {e}")
-
+                    success = True
+        
         except Exception as e:
-            logger.warning(f"Error handling profile update POST: {e}")
-
-        # Handle privacy settings POST
-        try:
-            from apps.user_profile.models import PrivacySettings
-            privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=profile)
-            privacy_settings.show_email = bool(request.POST.get('show_email'))
-            privacy_settings.show_phone = bool(request.POST.get('show_phone'))
-            privacy_settings.show_real_name = bool(request.POST.get('show_real_name'))
-            privacy_settings.show_age = bool(request.POST.get('show_age'))
-            privacy_settings.show_country = bool(request.POST.get('show_country'))
-            privacy_settings.show_social_links = bool(request.POST.get('show_socials'))
-            privacy_settings.allow_friend_requests = bool(request.POST.get('allow_friend_requests'))
-            # Profile-level 'is_private' lives on the UserProfile model
-            profile.is_private = bool(request.POST.get('is_private'))
-            privacy_settings.save()
-            profile.save()
-        except Exception as e:
-            logger.warning(f"Error saving privacy settings: {e}")
-
-        messages.success(request, 'Your settings have been updated.')
+            logger.error(f"Error saving {settings_tab} settings: {e}", exc_info=True)
+            error_msg = f"Server error: {str(e)}"
+        
+        # Return feedback to user
+        if success:
+            messages.success(request, f'Your {settings_tab} settings have been updated successfully.')
+        else:
+            msg = f'Failed to save {settings_tab} settings.'
+            if error_msg:
+                msg += f' {error_msg}'
+            messages.error(request, msg)
+        
         return redirect('user_profile:settings')
 
-    # Get all game profiles from the unified game_profiles JSON field
-    from apps.games.constants import ALL_GAMES, SUPPORTED_GAMES
+    # GET request - prepare context
+    from apps.games.constants import ALL_GAMES
     game_profile_data = {}
     for game_slug in ALL_GAMES:
         game_data = profile.get_game_profile(game_slug)
@@ -700,10 +728,16 @@ def settings_view(request):
         'privacy_settings': privacy_settings,
         'verification_record': verification_record,
         'game_profiles': game_profiles,
+        
+        # Phase 4B: Add career and hardware context
+        'career_settings': career_profile,  # Note: template uses 'career_settings' variable
+        'hardware_loadout': hardware_loadout,
+        
         **game_profile_data,  # Add all game profile data to context
     }
 
     return render(request, 'user_profile/settings.html', context)
+
 
 
 @login_required

@@ -248,6 +248,157 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     
     # UP-TOURNAMENT-DISPLAY-01: Add user's tournaments data
     # TODO: Implement tournament participation query when tournament app is ready
+    
+    # PHASE-4C: About Data Command Center - Privacy-Aware Fields
+    from apps.user_profile.models import PrivacySettings, CareerProfile, HardwareLoadout
+    
+    privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=user_profile)
+    career_profile, _ = CareerProfile.objects.get_or_create(user_profile=user_profile)
+    hardware_loadout, _ = HardwareLoadout.objects.get_or_create(user_profile=user_profile)
+    
+    is_owner = permissions.get('is_owner', False)
+    
+    # Build privacy-aware about_fields dict
+    about_fields = {
+        'personal': {
+            'country': {
+                'value': user_profile.country,
+                'visible': bool(user_profile.country) and (is_owner or privacy_settings.show_country),
+                'icon': 'fa-location-dot',
+                'label': 'Location'
+            },
+            'pronouns': {
+                'value': user_profile.pronouns,
+                'visible': bool(user_profile.pronouns) and (is_owner or privacy_settings.show_pronouns),
+                'icon': 'fa-id-badge',
+                'label': 'Pronouns'
+            },
+            'nationality': {
+                'value': user_profile.nationality,
+                'visible': bool(user_profile.nationality) and (is_owner or privacy_settings.show_nationality),
+                'icon': 'fa-flag',
+                'label': 'Nationality'
+            },
+            'age': {
+                'value': f"{user_profile.age} years" if user_profile.age else None,
+                'visible': bool(user_profile.age) and (is_owner or privacy_settings.show_age),
+                'icon': 'fa-cake-candles',
+                'label': 'Age'
+            },
+        },
+        'competitive': {
+            'device_platform': {
+                'value': user_profile.get_device_platform_display() if user_profile.device_platform else None,
+                'visible': bool(user_profile.device_platform) and (is_owner or privacy_settings.show_device_platform),
+                'icon': 'fa-gamepad',
+                'label': 'Platform'
+            },
+            'play_style': {
+                'value': user_profile.get_play_style_display() if user_profile.play_style else None,
+                'visible': bool(user_profile.play_style) and (is_owner or privacy_settings.show_play_style),
+                'icon': 'fa-bolt',
+                'label': 'Play Style'
+            },
+            'lan_availability': {
+                'value': 'LAN Ready' if user_profile.lan_availability else None,
+                'visible': bool(user_profile.lan_availability) and (is_owner or privacy_settings.show_active_hours),
+                'icon': 'fa-tower-broadcast',
+                'label': 'LAN Status',
+                'badge': True
+            },
+            'main_role': {
+                'value': user_profile.main_role,
+                'visible': bool(user_profile.main_role) and (is_owner or privacy_settings.show_roles),
+                'icon': 'fa-chess-king',
+                'label': 'Main Role'
+            },
+            'secondary_role': {
+                'value': user_profile.secondary_role,
+                'visible': bool(user_profile.secondary_role) and (is_owner or privacy_settings.show_roles),
+                'icon': 'fa-chess-rook',
+                'label': 'Secondary Role'
+            },
+            'career_status': {
+                'value': career_profile.get_career_status_display() if career_profile.career_status else None,
+                'visible': bool(career_profile.career_status),
+                'icon': 'fa-briefcase',
+                'label': 'Career Status'
+            },
+        },
+        'logistics': {
+            'communication_languages': {
+                'value': ', '.join(user_profile.communication_languages) if user_profile.communication_languages else None,
+                'visible': bool(user_profile.communication_languages),
+                'icon': 'fa-language',
+                'label': 'Languages'
+            },
+            'active_hours': {
+                'value': user_profile.active_hours,
+                'visible': bool(user_profile.active_hours) and (is_owner or privacy_settings.show_active_hours),
+                'icon': 'fa-clock',
+                'label': 'Active Hours'
+            },
+        },
+        'contact': {
+            'preferred_contact': {
+                'value': user_profile.get_preferred_contact_method_display() if user_profile.preferred_contact_method else None,
+                'visible': bool(user_profile.preferred_contact_method) and (is_owner or privacy_settings.show_preferred_contact),
+                'icon': 'fa-message',
+                'label': 'Preferred Contact'
+            },
+            'discord_id': {
+                'value': user_profile.discord_id,
+                'visible': bool(user_profile.discord_id) and user_profile.preferred_contact_method == 'DISCORD' and (is_owner or privacy_settings.show_preferred_contact),
+                'icon': 'fa-brands fa-discord',
+                'label': 'Discord ID'
+            },
+            'whatsapp': {
+                'value': user_profile.whatsapp,
+                'visible': bool(user_profile.whatsapp) and user_profile.preferred_contact_method == 'WHATSAPP' and (is_owner or privacy_settings.show_preferred_contact),
+                'icon': 'fa-brands fa-whatsapp',
+                'label': 'WhatsApp'
+            },
+        }
+    }
+    
+    context['about_fields'] = about_fields
+    
+    # PHASE-4C: Profile Completeness Calculator
+    total_fields = 25  # Approximate count of profile fields
+    filled_fields = 0
+    
+    # Count filled fields
+    if user_profile.display_name: filled_fields += 1
+    if user_profile.bio: filled_fields += 1
+    if user_profile.country: filled_fields += 1
+    if user_profile.city: filled_fields += 1
+    if user_profile.pronouns: filled_fields += 1
+    if user_profile.nationality: filled_fields += 1
+    if user_profile.device_platform: filled_fields += 1
+    if user_profile.play_style: filled_fields += 1
+    if user_profile.main_role: filled_fields += 1
+    if user_profile.secondary_role: filled_fields += 1
+    if user_profile.communication_languages: filled_fields += 1
+    if user_profile.active_hours: filled_fields += 1
+    if user_profile.discord_id: filled_fields += 1
+    if user_profile.avatar: filled_fields += 1
+    if user_profile.banner: filled_fields += 1
+    if all_passports: filled_fields += 2  # Game IDs worth 2 points
+    if context['user_teams']: filled_fields += 2  # Teams worth 2 points
+    if hardware_loadout.is_complete: filled_fields += 2  # Complete loadout worth 2 points
+    if career_profile.career_status: filled_fields += 1
+    if career_profile.primary_roles: filled_fields += 1
+    if career_profile.availability: filled_fields += 1
+    
+    profile_completeness = int((filled_fields / total_fields) * 100)
+    
+    context['profile_completeness'] = profile_completeness
+    context['profile_completeness_filled'] = filled_fields
+    context['profile_completeness_total'] = total_fields
+    
+    # PHASE-4C: Hardware Loadout for preview cards
+    context['hardware_loadout'] = hardware_loadout
+    context['career_settings'] = career_profile  # Alias for template compatibility
     context['user_tournaments'] = []
     
     # Phase 5B Workstream 3: Add follower count for real follow button
@@ -712,14 +863,112 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     Privacy:
     - Owner-only (requires authentication)
     - Uses build_public_profile_context with owner_only section
-    - POST to safe endpoints: save_game_profiles_safe, etc.
+    - POST to save settings via settings_tab routing (Phase 4C.1.2)
     
     Args:
         request: HTTP request (must be authenticated)
         
     Returns:
-        Rendered profile_settings.html template
+        Rendered profile_settings.html template (GET) or JSON response (POST)
     """
+    from apps.user_profile.models import UserProfile, PrivacySettings
+    from apps.user_profile.forms import UserProfileSettingsForm, AboutSettingsForm
+    from django.http import JsonResponse
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    user_profile = UserProfile.objects.get(user=request.user)
+    
+    # PHASE 4C.1.2: Handle POST requests for settings tabs
+    if request.method == 'POST':
+        settings_tab = request.POST.get('settings_tab', 'identity')
+        
+        try:
+            if settings_tab == 'about':
+                # Phase 4C.1.2 FIX: Use dedicated AboutSettingsForm to avoid requiring unrelated fields
+                form = AboutSettingsForm(
+                    request.POST, 
+                    instance=user_profile
+                )
+                
+                if form.is_valid():
+                    form.save()
+                    logger.info(f"About settings saved by user {request.user.username}")
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'About settings saved successfully'
+                    })
+                else:
+                    # Form validation failed
+                    error_messages = []
+                    for field, errors in form.errors.items():
+                        for error in errors:
+                            error_messages.append(f"{field}: {error}")
+                    
+                    logger.warning(f"About form validation failed: {error_messages}")
+                    logger.debug(f"POST data: {request.POST}")
+                    
+                    return JsonResponse({
+                        'success': False,
+                        'error': '; '.join(error_messages),
+                        'errors': form.errors
+                    }, status=400)
+                    
+            elif settings_tab in ['identity', 'connections', 'social', 'platform']:
+                # Profile settings (other tabs)
+                form = UserProfileSettingsForm(
+                    request.POST, 
+                    request.FILES, 
+                    instance=user_profile
+                )
+                
+                if form.is_valid():
+                    # Handle KYC-locked fields
+                    if user_profile.is_kyc_verified and 'real_full_name' in form.changed_data:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Cannot change legal name after KYC verification.'
+                        }, status=400)
+                    
+                    form.save()
+                    logger.info(f"Settings saved for tab '{settings_tab}' by user {request.user.username}")
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'message': f'{settings_tab.title()} settings saved successfully'
+                    })
+                else:
+                    # Form validation failed
+                    error_messages = []
+                    for field, errors in form.errors.items():
+                        for error in errors:
+                            error_messages.append(f"{field}: {error}")
+                    
+                    logger.warning(f"Form validation failed for tab '{settings_tab}': {error_messages}")
+                    
+                    return JsonResponse({
+                        'success': False,
+                        'error': '; '.join(error_messages),
+                        'errors': form.errors
+                    }, status=400)
+            else:
+                # Unknown tab
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Unknown settings tab: {settings_tab}'
+                }, status=400)
+                
+        except Exception as e:
+            logger.error(f"Error saving {settings_tab} settings: {e}", exc_info=True)
+            return JsonResponse({
+                'success': False,
+                'error': f'Server error: {str(e)}'
+            }, status=500)
+    
+    # GET request - render settings page
+    username = request.user.username
+    # GET request - render settings page
     username = request.user.username
     
     # Build safe context (owner view with edit permissions)
@@ -739,8 +988,6 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     context['current_page'] = 'settings'
     
     # Add UserProfile object for template access to FileFields (avatar, banner)
-    from apps.user_profile.models import UserProfile, PrivacySettings
-    user_profile = UserProfile.objects.get(user=request.user)
     context['user_profile'] = user_profile
     
     # Add privacy settings (for Control Deck)
@@ -903,6 +1150,14 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     # UP-PHASE2B: Notification settings
     from apps.user_profile.models import NotificationPreferences
     notification_settings, _ = NotificationPreferences.objects.get_or_create(user_profile=user_profile)
+    context['notification_settings'] = notification_settings
+    
+    # Phase 4C.1: Add communication_languages as comma-separated string for template
+    comm_langs = user_profile.communication_languages
+    if isinstance(comm_langs, list) and comm_langs:
+        context['communication_languages_str'] = ', '.join(comm_langs)
+    else:
+        context['communication_languages_str'] = ''
     context['notification_settings'] = notification_settings
     
     # UP-PHASE2B: Dynamic games list for matchmaking

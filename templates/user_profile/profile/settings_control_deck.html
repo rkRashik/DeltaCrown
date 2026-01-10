@@ -245,12 +245,13 @@
                 <div>
                     <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 pl-3">Account</div>
                     <div class="space-y-1">
-                        <button onclick="switchTab('identity')" class="nav-btn active" data-target="identity"><i class="fa-regular fa-id-card w-5 text-center"></i> Identity</button>
-                        <button onclick="switchTab('connections')" class="nav-btn" data-target="connections"><i class="fa-solid fa-address-book w-5 text-center"></i> Connections</button>
-                        <button onclick="switchTab('security')" class="nav-btn" data-target="security"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Security & KYC</button>
-                        <button onclick="switchTab('privacy')" class="nav-btn" data-target="privacy"><i class="fa-solid fa-user-shield w-5 text-center"></i> Privacy & Vis.</button>
-                        <button onclick="switchTab('platform')" class="nav-btn" data-target="platform"><i class="fa-solid fa-globe w-5 text-center"></i> Platform</button>
-                        <button onclick="switchTab('notifications')" class="nav-btn" data-target="notifications"><i class="fa-regular fa-bell w-5 text-center"></i> Notifications</button>
+                        <button onclick="switchTab('identity')" class="nav-btn active" data-target="identity" data-nav="identity"><i class="fa-regular fa-id-card w-5 text-center"></i> Identity</button>
+                        <button onclick="switchTab('about')" class="nav-btn" data-target="about" data-nav="about"><i class="fa-solid fa-address-card w-5 text-center"></i> About</button>
+                        <button onclick="switchTab('connections')" class="nav-btn" data-target="connections" data-nav="connections"><i class="fa-solid fa-address-book w-5 text-center"></i> Connections</button>
+                        <button onclick="switchTab('security')" class="nav-btn" data-target="security" data-nav="security"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Security & KYC</button>
+                        <button onclick="switchTab('privacy')" class="nav-btn" data-target="privacy" data-nav="privacy"><i class="fa-solid fa-user-shield w-5 text-center"></i> Privacy & Vis.</button>
+                        <button onclick="switchTab('platform')" class="nav-btn" data-target="platform" data-nav="platform"><i class="fa-solid fa-globe w-5 text-center"></i> Platform</button>
+                        <button onclick="switchTab('notifications')" class="nav-btn" data-target="notifications" data-nav="notifications"><i class="fa-regular fa-bell w-5 text-center"></i> Notifications</button>
                     </div>
                 </div>
 
@@ -280,18 +281,19 @@
         </aside>
 
         <div class="lg:hidden absolute top-0 left-0 right-0 h-14 bg-z-bg/95 border-b border-white/5 z-40 overflow-x-auto no-scrollbar flex items-center px-4 gap-3">
-            <button onclick="switchTab('identity')" class="mobile-nav-btn active" data-target="identity">Identity</button>
-            <button onclick="switchTab('connections')" class="mobile-nav-btn" data-target="connections">Connections</button>
-            <button onclick="switchTab('recruitment')" class="mobile-nav-btn" data-target="recruitment">Career</button>
-            <button onclick="switchTab('matchmaking')" class="mobile-nav-btn" data-target="matchmaking">Bounties</button>
-            <button onclick="switchTab('privacy')" class="mobile-nav-btn" data-target="privacy">Privacy</button>
-            <button onclick="switchTab('platform')" class="mobile-nav-btn" data-target="platform">Platform</button>
-            <button onclick="switchTab('passports')" class="mobile-nav-btn" data-target="passports">Games</button>
-            <button onclick="switchTab('loadout')" class="mobile-nav-btn" data-target="loadout">Loadout</button>
-            <button onclick="switchTab('stream')" class="mobile-nav-btn" data-target="stream">Stream</button>
-            <button onclick="switchTab('inventory')" class="mobile-nav-btn" data-target="inventory">Inv.</button>
-            <button onclick="switchTab('billing')" class="mobile-nav-btn" data-target="billing">Wallet</button>
-            <button onclick="switchTab('security')" class="mobile-nav-btn" data-target="security">Security</button>
+            <button onclick="switchTab('identity')" class="mobile-nav-btn active" data-target="identity" data-nav="identity">Identity</button>
+            <button onclick="switchTab('about')" class="mobile-nav-btn" data-target="about" data-nav="about">About</button>
+            <button onclick="switchTab('connections')" class="mobile-nav-btn" data-target="connections" data-nav="connections">Connections</button>
+            <button onclick="switchTab('recruitment')" class="mobile-nav-btn" data-target="recruitment" data-nav="recruitment">Career</button>
+            <button onclick="switchTab('matchmaking')" class="mobile-nav-btn" data-target="matchmaking" data-nav="matchmaking">Bounties</button>
+            <button onclick="switchTab('privacy')" class="mobile-nav-btn" data-target="privacy" data-nav="privacy">Privacy</button>
+            <button onclick="switchTab('platform')" class="mobile-nav-btn" data-target="platform" data-nav="platform">Platform</button>
+            <button onclick="switchTab('passports')" class="mobile-nav-btn" data-target="passports" data-nav="passports">Games</button>
+            <button onclick="switchTab('loadout')" class="mobile-nav-btn" data-target="loadout" data-nav="loadout">Loadout</button>
+            <button onclick="switchTab('stream')" class="mobile-nav-btn" data-target="stream" data-nav="stream">Stream</button>
+            <button onclick="switchTab('inventory')" class="mobile-nav-btn" data-target="inventory" data-nav="inventory">Inv.</button>
+            <button onclick="switchTab('billing')" class="mobile-nav-btn" data-target="billing" data-nav="billing">Wallet</button>
+            <button onclick="switchTab('security')" class="mobile-nav-btn" data-target="security" data-nav="security">Security</button>
         </div>
 
         <main class="flex-1 overflow-y-auto pt-16 lg:pt-8 p-4 lg:p-12 pb-32 scroll-smooth">
@@ -342,6 +344,7 @@
 
                     <form id="identity-form" class="glass-panel p-8 grid grid-cols-1 md:grid-cols-2 gap-6" onsubmit="saveIdentity(event)">
                         {% csrf_token %}
+                        <input type="hidden" name="settings_tab" value="identity">
                         
                         <div class="md:col-span-2">
                             <label class="z-label">Display Name</label>
@@ -397,6 +400,7 @@
 
                     <form id="connections-form" class="space-y-8" onsubmit="saveConnections(event)">
                         {% csrf_token %}
+                        <input type="hidden" name="settings_tab" value="connections">
                         
                         <!-- Hidden fields to preserve identity data -->
                         <input type="hidden" name="display_name" value="{{ user_profile.display_name|default:'' }}">
@@ -740,6 +744,200 @@
                     </form>
                 </div>
 
+                <!-- ABOUT TAB (Phase 4C.1) -->
+                <div id="tab-about" class="tab-section space-y-6">
+                    <h2 class="text-3xl font-display font-bold text-white mb-2">About / Competitive DNA</h2>
+                    <p class="text-gray-400 mb-4">Build your esports CV - visible on your public profile to recruiters and teammates.</p>
+                    
+                    <!-- Info Card -->
+                    <div class="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 mb-8 flex gap-3">
+                        <i class="fa-solid fa-circle-info text-cyan-400 text-xl flex-shrink-0 mt-1"></i>
+                        <div class="text-sm text-gray-300">
+                            <strong class="text-white">Privacy Control:</strong> Use the <a href="#" onclick="switchTab('privacy'); return false;" class="text-cyan-400 hover:text-cyan-300 underline">Privacy tab</a> to control which About fields are visible on your public profile. Unchecked fields stay completely private.
+                        </div>
+                    </div>
+
+                    <form id="about-form" onsubmit="saveAboutSettings(event)">
+                        {% csrf_token %}
+                        <input type="hidden" name="settings_tab" value="about">
+                        
+                        <!-- Competitive DNA -->
+                        <div class="glass-panel p-8 space-y-6 mb-6">
+                            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-crosshairs text-cyan-400"></i> Competitive DNA
+                            </h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="z-label">Device / Platform</label>
+                                    <select name="device_platform" class="z-input" oninput="markUnsaved()">
+                                        <option value="">Not specified</option>
+                                        <option value="PC" {% if user_profile.device_platform == 'PC' %}selected{% endif %}>PC</option>
+                                        <option value="CONSOLE_PS" {% if user_profile.device_platform == 'CONSOLE_PS' %}selected{% endif %}>PlayStation</option>
+                                        <option value="CONSOLE_XBOX" {% if user_profile.device_platform == 'CONSOLE_XBOX' %}selected{% endif %}>Xbox</option>
+                                        <option value="MOBILE_ANDROID" {% if user_profile.device_platform == 'MOBILE_ANDROID' %}selected{% endif %}>Mobile (Android)</option>
+                                        <option value="MOBILE_IOS" {% if user_profile.device_platform == 'MOBILE_IOS' %}selected{% endif %}>Mobile (iOS)</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="z-label">Play Style</label>
+                                    <select name="play_style" class="z-input" oninput="markUnsaved()">
+                                        <option value="">Not specified</option>
+                                        <option value="CASUAL" {% if user_profile.play_style == 'CASUAL' %}selected{% endif %}>Casual Player</option>
+                                        <option value="COMPETITIVE" {% if user_profile.play_style == 'COMPETITIVE' %}selected{% endif %}>Competitive</option>
+                                        <option value="PROFESSIONAL" {% if user_profile.play_style == 'PROFESSIONAL' %}selected{% endif %}>Professional</option>
+                                        <option value="CONTENT_CREATOR" {% if user_profile.play_style == 'CONTENT_CREATOR' %}selected{% endif %}>Content Creator</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="z-label">Main Role</label>
+                                    <select name="main_role" id="main_role_select" class="z-input" oninput="markUnsaved(); toggleCustomRole('main')">
+                                        <option value="">Not specified</option>
+                                        <option value="IGL" {% if user_profile.main_role == 'IGL' %}selected{% endif %}>IGL (In-Game Leader)</option>
+                                        <option value="Entry Fragger" {% if user_profile.main_role == 'Entry Fragger' %}selected{% endif %}>Entry Fragger</option>
+                                        <option value="Support" {% if user_profile.main_role == 'Support' %}selected{% endif %}>Support</option>
+                                        <option value="AWPer" {% if user_profile.main_role == 'AWPer' %}selected{% endif %}>AWPer/Sniper</option>
+                                        <option value="Rifler" {% if user_profile.main_role == 'Rifler' %}selected{% endif %}>Rifler</option>
+                                        <option value="Lurker" {% if user_profile.main_role == 'Lurker' %}selected{% endif %}>Lurker</option>
+                                        <option value="Anchor" {% if user_profile.main_role == 'Anchor' %}selected{% endif %}>Anchor</option>
+                                        <option value="Flex" {% if user_profile.main_role == 'Flex' %}selected{% endif %}>Flex</option>
+                                        <option value="Controller" {% if user_profile.main_role == 'Controller' %}selected{% endif %}>Controller</option>
+                                        <option value="Initiator" {% if user_profile.main_role == 'Initiator' %}selected{% endif %}>Initiator</option>
+                                        <option value="Sentinel" {% if user_profile.main_role == 'Sentinel' %}selected{% endif %}>Sentinel</option>
+                                        <option value="Duelist" {% if user_profile.main_role == 'Duelist' %}selected{% endif %}>Duelist</option>
+                                        <option value="Coach" {% if user_profile.main_role == 'Coach' %}selected{% endif %}>Coach</option>
+                                        <option value="Analyst" {% if user_profile.main_role == 'Analyst' %}selected{% endif %}>Analyst</option>
+                                        <option value="Content Creator" {% if user_profile.main_role == 'Content Creator' %}selected{% endif %}>Content Creator</option>
+                                        <option value="OTHER">Other (specify below)</option>
+                                    </select>
+                                    <input type="text" name="main_role_custom" id="main_role_custom" class="z-input mt-2" placeholder="Specify your custom role" style="display: none;" oninput="markUnsaved()">
+                                    <p class="text-xs text-gray-500 mt-1">Your primary competitive role</p>
+                                </div>
+                                
+                                <div>
+                                    <label class="z-label">Secondary Role</label>
+                                    <select name="secondary_role" id="secondary_role_select" class="z-input" oninput="markUnsaved(); toggleCustomRole('secondary')">
+                                        <option value="">Not specified</option>
+                                        <option value="IGL" {% if user_profile.secondary_role == 'IGL' %}selected{% endif %}>IGL (In-Game Leader)</option>
+                                        <option value="Entry Fragger" {% if user_profile.secondary_role == 'Entry Fragger' %}selected{% endif %}>Entry Fragger</option>
+                                        <option value="Support" {% if user_profile.secondary_role == 'Support' %}selected{% endif %}>Support</option>
+                                        <option value="AWPer" {% if user_profile.secondary_role == 'AWPer' %}selected{% endif %}>AWPer/Sniper</option>
+                                        <option value="Rifler" {% if user_profile.secondary_role == 'Rifler' %}selected{% endif %}>Rifler</option>
+                                        <option value="Lurker" {% if user_profile.secondary_role == 'Lurker' %}selected{% endif %}>Lurker</option>
+                                        <option value="Anchor" {% if user_profile.secondary_role == 'Anchor' %}selected{% endif %}>Anchor</option>
+                                        <option value="Flex" {% if user_profile.secondary_role == 'Flex' %}selected{% endif %}>Flex</option>
+                                        <option value="Controller" {% if user_profile.secondary_role == 'Controller' %}selected{% endif %}>Controller</option>
+                                        <option value="Initiator" {% if user_profile.secondary_role == 'Initiator' %}selected{% endif %}>Initiator</option>
+                                        <option value="Sentinel" {% if user_profile.secondary_role == 'Sentinel' %}selected{% endif %}>Sentinel</option>
+                                        <option value="Duelist" {% if user_profile.secondary_role == 'Duelist' %}selected{% endif %}>Duelist</option>
+                                        <option value="Coach" {% if user_profile.secondary_role == 'Coach' %}selected{% endif %}>Coach</option>
+                                        <option value="Analyst" {% if user_profile.secondary_role == 'Analyst' %}selected{% endif %}>Analyst</option>
+                                        <option value="Content Creator" {% if user_profile.secondary_role == 'Content Creator' %}selected{% endif %}>Content Creator</option>
+                                        <option value="OTHER">Other (specify below)</option>
+                                    </select>
+                                    <input type="text" name="secondary_role_custom" id="secondary_role_custom" class="z-input mt-2" placeholder="Specify your custom role" style="display: none;" oninput="markUnsaved()">
+                                    <p class="text-xs text-gray-500 mt-1">Backup role for flexibility</p>
+                                </div>
+                            </div>
+                            
+                            <script>
+                            // Phase 4C.1.1: Toggle custom role input when "Other" is selected
+                            function toggleCustomRole(type) {
+                                const select = document.getElementById(type + '_role_select');
+                                const customInput = document.getElementById(type + '_role_custom');
+                                if (select && customInput) {
+                                    customInput.style.display = (select.value === 'OTHER') ? 'block' : 'none';
+                                }
+                            }
+                            // Initialize on page load
+                            setTimeout(() => {
+                                toggleCustomRole('main');
+                                toggleCustomRole('secondary');
+                            }, 100);
+                            </script>
+                        </div>
+                        
+                        <!-- Logistics & Availability -->
+                        <div class="glass-panel p-8 space-y-6 mb-6">
+                            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-calendar-days text-purple-400"></i> Logistics & Availability
+                            </h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="z-label">Active Gaming Hours (BDT)</label>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="text-xs text-gray-500 mb-1 block">Start Time</label>
+                                            <input type="time" name="active_hours_start" id="active_hours_start" class="z-input" oninput="markUnsaved()">
+                                        </div>
+                                        <div>
+                                            <label class="text-xs text-gray-500 mb-1 block">End Time</label>
+                                            <input type="time" name="active_hours_end" id="active_hours_end" class="z-input" oninput="markUnsaved()">
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">When you're typically online (Bangladesh Time)</p>
+                                </div>
+                                
+                                <div>
+                                    <label class="z-label">Communication Languages</label>
+                                    <input type="text" name="communication_languages" class="z-input" value="{{ communication_languages_str|default:'' }}" placeholder="e.g., English, Bengali, Hindi" oninput="markUnsaved()">
+                                    <p class="text-xs text-gray-500 mt-1">Separate with commas (e.g., "English, Bengali")</p>
+                                </div>
+                                
+                                <script>
+                                // Phase 4C.1.1: Parse existing active_hours into start/end time inputs
+                                (function() {
+                                    const existingHours = "{{ user_profile.active_hours|default:'' }}";
+                                    if (existingHours) {
+                                        // Try to parse "HH:MM-HH:MM" format
+                                        const match = existingHours.match(/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/);
+                                        if (match) {
+                                            const startInput = document.getElementById('active_hours_start');
+                                            const endInput = document.getElementById('active_hours_end');
+                                            if (startInput && endInput) {
+                                                startInput.value = match[1];
+                                                endInput.value = match[2];
+                                            }
+                                        }
+                                    }
+                                })();
+                                </script>
+                                
+                                <div class="md:col-span-2">
+                                    <div class="flex items-center justify-between p-6 rounded-xl border border-white/10 bg-white/5">
+                                        <div>
+                                            <label class="font-bold text-white text-sm">LAN Availability</label>
+                                            <p class="text-xs text-gray-400">Available for offline/LAN tournaments</p>
+                                        </div>
+                                        <label class="z-toggle-wrapper">
+                                            <input type="checkbox" name="lan_availability" class="z-toggle-input" {% if user_profile.lan_availability %}checked{% endif %} oninput="markUnsaved()">
+                                            <span class="z-toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Removed: Preferred Contact (now managed in Connections Hub) -->
+                        <!-- Phase 4C.1.1: Contact preferences are managed in Connections tab only -->
+                        <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6 flex gap-3">
+                            <i class="fa-solid fa-info-circle text-blue-400 text-xl flex-shrink-0 mt-1"></i>
+                            <div class="text-sm text-gray-300">
+                                <strong class="text-white">Contact Preferences:</strong> Your preferred contact method and details (Discord, WhatsApp, Email, etc.) are managed in the <a href="#" onclick="switchTab('connections'); return false;" class="text-blue-400 hover:text-blue-300 underline font-bold">Connections Hub tab</a>. Recruiters will see your preferred method if you enable "Show Preferred Contact" in Privacy settings.
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button type="submit" class="bg-z-cyan text-black px-8 py-3 rounded-xl text-sm font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i> Save About Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
                 <!-- RECRUITMENT TAB (Career & LFT) -->
                 <div id="tab-recruitment" class="tab-section space-y-6">
                     <div class="flex justify-between items-center">
@@ -750,6 +948,7 @@
 
                     <form id="career-form" class="glass-panel p-8 space-y-8" onsubmit="saveCareerSettings(event)">
                         {% csrf_token %}
+                        <input type="hidden" name="settings_tab" value="recruitment">
                         
                         <!-- Career Status -->
                         <div>
@@ -957,6 +1156,7 @@
                     
                     <form id="privacy-form" onsubmit="savePrivacyFull(event)">
                         {% csrf_token %}
+                        <input type="hidden" name="settings_tab" value="privacy">
                         
                         <!-- Private Account -->
                         <div class="glass-panel p-6 space-y-4 mb-6">
@@ -1016,6 +1216,67 @@
                                     <span class="text-sm text-gray-300">Show Country</span>
                                     <label class="z-toggle-wrapper">
                                         <input type="checkbox" name="show_country" class="z-toggle-input" {% if privacy_settings.show_country %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- About Section Privacy (Phase 4C.1) -->
+                        <div class="glass-panel p-6 space-y-4 mb-6">
+                            <h3 class="font-bold text-white text-lg mb-4">About Section (Competitive DNA)</h3>
+                            <div class="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-3 mb-3">
+                                <p class="text-xs text-gray-300">
+                                    <i class="fa-solid fa-info-circle text-cyan-400"></i> These toggles control visibility of fields in your About section. Edit values in the <a href="#" onclick="switchTab('about'); return false;" class="text-cyan-400 hover:text-cyan-300 underline">About tab</a>.
+                                </p>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Pronouns</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_pronouns" class="z-toggle-input" {% if privacy_settings.show_pronouns %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Nationality</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_nationality" class="z-toggle-input" {% if privacy_settings.show_nationality %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Device/Platform</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_device_platform" class="z-toggle-input" {% if privacy_settings.show_device_platform %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Play Style</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_play_style" class="z-toggle-input" {% if privacy_settings.show_play_style %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Roles (Main/Secondary)</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_roles" class="z-toggle-input" {% if privacy_settings.show_roles %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Active Hours & LAN Availability</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_active_hours" class="z-toggle-input" {% if privacy_settings.show_active_hours %}checked{% endif %} onchange="autoSavePrivacy()">
+                                        <span class="z-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-300">Show Preferred Contact Method</span>
+                                    <label class="z-toggle-wrapper">
+                                        <input type="checkbox" name="show_preferred_contact" class="z-toggle-input" {% if privacy_settings.show_preferred_contact %}checked{% endif %} onchange="autoSavePrivacy()">
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
@@ -1159,6 +1420,7 @@
 
                     <form id="platform-form" onsubmit="savePlatformSettings(event)">
                         {% csrf_token %}
+                        <input type="hidden" name="settings_tab" value="platform">
                         
                         <!-- Language Selection -->
                         <div class="glass-panel p-6 space-y-4 mb-6">
@@ -1383,15 +1645,16 @@
                     <p class="text-gray-400">Share your gear so fans can replicate your setup.</p>
                     <form id="loadout-form" class="glass-panel p-6 md:p-8" onsubmit="saveLoadout(event)">
                         {% csrf_token %}
+                        <input type="hidden" name="settings_tab" value="loadout">
                         <div class="flex items-center gap-2 mb-6 text-z-purple">
                             <i class="fa-solid fa-microchip"></i>
                             <h3 class="text-sm font-bold uppercase tracking-widest">Hardware</h3>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="z-label">Mouse</label><input type="text" name="mouse_brand" class="z-input" placeholder="e.g., Logitech G Pro X" value="{{ hardware_gear.mouse.brand|default:'' }}" oninput="markUnsaved()"></div>
-                            <div><label class="z-label">Keyboard</label><input type="text" name="keyboard_brand" class="z-input" placeholder="e.g., Wooting 60HE" value="{{ hardware_gear.keyboard.brand|default:'' }}" oninput="markUnsaved()"></div>
-                            <div><label class="z-label">Headset</label><input type="text" name="headset_brand" class="z-input" placeholder="e.g., HyperX Cloud II" value="{{ hardware_gear.headset.brand|default:'' }}" oninput="markUnsaved()"></div>
-                            <div><label class="z-label">Monitor</label><input type="text" name="monitor_brand" class="z-input" placeholder="e.g., BenQ Zowie 240Hz" value="{{ hardware_gear.monitor.brand|default:'' }}" oninput="markUnsaved()"></div>
+                            <div><label class="z-label">Mouse</label><input type="text" name="mouse_brand" class="z-input" placeholder="e.g., Logitech G Pro X" value="{{ hardware_loadout.mouse_brand|default:'' }}" oninput="markUnsaved()"></div>
+                            <div><label class="z-label">Keyboard</label><input type="text" name="keyboard_brand" class="z-input" placeholder="e.g., Wooting 60HE" value="{{ hardware_loadout.keyboard_brand|default:'' }}" oninput="markUnsaved()"></div>
+                            <div><label class="z-label">Headset</label><input type="text" name="headset_brand" class="z-input" placeholder="e.g., HyperX Cloud II" value="{{ hardware_loadout.headset_brand|default:'' }}" oninput="markUnsaved()"></div>
+                            <div><label class="z-label">Monitor</label><input type="text" name="monitor_brand" class="z-input" placeholder="e.g., BenQ Zowie 240Hz" value="{{ hardware_loadout.monitor_brand|default:'' }}" oninput="markUnsaved()"></div>
                         </div>
                         <div class="mt-6">
                             <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
@@ -1784,6 +2047,7 @@
         const tabId = activeTab.id;
         const formMap = {
             'tab-identity': 'identity-form',
+            'tab-about': 'about-form',
             'tab-connections': 'connections-form',
             'tab-recruitment': 'career-form',
             'tab-matchmaking': 'matchmaking-form',
@@ -2651,6 +2915,143 @@
         }
     }
 
+    // Phase 4C.1: Save About Settings
+    async function saveAboutSettings(event) {
+        if (event) event.preventDefault();
+        
+        const form = document.getElementById('about-form');
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button ? button.innerHTML : '';
+        
+        // Loading state
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        }
+        
+        const formData = new FormData(form);
+        
+        // Phase 4C.1.1: Combine active_hours_start + active_hours_end into active_hours
+        const startTime = formData.get('active_hours_start');
+        const endTime = formData.get('active_hours_end');
+        if (startTime && endTime) {
+            formData.set('active_hours', `${startTime}-${endTime} BDT`);
+            formData.delete('active_hours_start');
+            formData.delete('active_hours_end');
+        } else if (startTime || endTime) {
+            // Partial data - keep as-is or clear
+            formData.set('active_hours', startTime || endTime || '');
+            formData.delete('active_hours_start');
+            formData.delete('active_hours_end');
+        }
+        
+        // Handle "Other" role inputs
+        const mainRole = formData.get('main_role');
+        if (mainRole === 'OTHER') {
+            const customMain = formData.get('main_role_custom');
+            if (customMain) {
+                formData.set('main_role', customMain);
+            }
+        }
+        formData.delete('main_role_custom');
+        
+        const secondaryRole = formData.get('secondary_role');
+        if (secondaryRole === 'OTHER') {
+            const customSecondary = formData.get('secondary_role_custom');
+            if (customSecondary) {
+                formData.set('secondary_role', customSecondary);
+            }
+        }
+        formData.delete('secondary_role_custom');
+        
+        try {
+            // Phase 4C.1.2 FIX: POST to profile_settings (routes via settings_tab=about)
+            const response = await fetch('{% url "user_profile:profile_settings" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+            });
+            
+            // Phase 4C.1.2: Robust error parsing
+            let result;
+            const contentType = response.headers.get('content-type');
+            
+            if (contentType && contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                // HTML response (fallback)
+                const html = await response.text();
+                if (response.ok) {
+                    result = { success: true, message: 'About settings saved successfully' };
+                } else {
+                    // Parse first error from HTML if possible
+                    const errorMatch = html.match(/<div class="errorlist">.*?<li>(.*?)<\/li>/s);
+                    result = {
+                        success: false,
+                        error: errorMatch ? errorMatch[1] : `Server error (${response.status})`,
+                    };
+                }
+            }
+            
+            // Phase 4C.1.2 DEBUG: Log response for debugging
+            if (window.DEBUG_SETTINGS) {
+                console.log('[About Save] Response:', result);
+                console.log('[About Save] Status:', response.status);
+            }
+            
+            if (response.ok && result.success) {
+                // SUCCESS: Show toast and keep values (no immediate reload for debugging)
+                const successMsg = String(result.message || 'About settings saved successfully');
+                showToast(successMsg, 'success');
+                showInlineFeedback('about-form', 'Saved successfully', 'success');
+                markSaved();
+                
+                // Phase 4C.1.2: Delayed reload to allow user to see success message
+                // Comment out for debugging, uncomment for production
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1200);
+            } else {
+                // ERROR: Show meaningful error message
+                let errorMsg = 'Failed to save About settings';
+                
+                if (result.error) {
+                    errorMsg = String(result.error);
+                } else if (result.message) {
+                    errorMsg = String(result.message);
+                } else if (result.errors) {
+                    // Django form errors dict
+                    const errorList = [];
+                    for (const [field, errors] of Object.entries(result.errors)) {
+                        if (Array.isArray(errors)) {
+                            errorList.push(`${field}: ${errors.join(', ')}`);
+                        } else {
+                            errorList.push(`${field}: ${errors}`);
+                        }
+                    }
+                    errorMsg = errorList.join('; ');
+                }
+                
+                console.error('About save failed:', result);
+                showToast(errorMsg, 'error');
+                showInlineFeedback('about-form', errorMsg, 'error');
+            }
+        } catch (error) {
+            console.error('About save error:', error);
+            const networkError = 'Network error - please check your connection and try again';
+            showToast(networkError, 'error');
+            showInlineFeedback('about-form', networkError, 'error');
+        } finally {
+            // Restore button
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        }
+    }
+
     // UP-PHASE2A: Save Matchmaking Settings
     async function saveMatchmakingSettings(event) {
         if (event) event.preventDefault();
@@ -2799,46 +3200,39 @@
         
         const formData = new FormData(form);
         
-        // Save each hardware category separately
-        const categories = ['mouse', 'keyboard', 'headset', 'monitor'];
-        let successCount = 0;
+        // Phase 4B: Use simple HardwareLoadout API (single row, 4 brand fields)
+        const data = {
+            mouse_brand: formData.get('mouse_brand') || '',
+            keyboard_brand: formData.get('keyboard_brand') || '',
+            headset_brand: formData.get('headset_brand') || '',
+            monitor_brand: formData.get('monitor_brand') || '',
+        };
         
         try {
-            for (const category of categories) {
-                const brand = formData.get(category + '_brand');
-                if (!brand || !brand.trim()) continue;
-                
-                try {
-                    const response = await fetch('{% url "user_profile:save_hardware" %}', {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': getCookie('csrftoken'),
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            category: category.toUpperCase(),
-                            brand: brand,
-                            model: brand, // Using brand as model for now
-                            is_public: true,
-                        }),
-                    });
-                    
-                    const result = await response.json();
-                    if (result.success) successCount++;
-                } catch (error) {
-                    console.error(`Failed to save ${category}:`, error);
-                }
-            }
+            const response = await fetch('{% url "user_profile:settings_loadout_save" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
             
-            if (successCount > 0) {
-                const msg = `Saved ${successCount} hardware item(s)`;
-                showToast(msg, 'success');
-                showInlineFeedback('loadout-form', msg, 'success');
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Loadout saved successfully', 'success');
+                showInlineFeedback('loadout-form', 'Saved successfully', 'success');
                 markSaved();
             } else {
-                showToast('No items saved', 'error');
-                showInlineFeedback('loadout-form', 'No items saved', 'error');
+                const errorMsg = result.message || result.error || 'Failed to save loadout';
+                showToast(errorMsg, 'error');
+                showInlineFeedback('loadout-form', errorMsg, 'error');
             }
+        } catch (error) {
+            console.error('Loadout save error:', error);
+            showToast('Network error', 'error');
+            showInlineFeedback('loadout-form', 'Network error', 'error');
         } finally {
             // Restore button
             button.disabled = false;
@@ -4052,6 +4446,37 @@
             loadFollowRequests('PENDING');
         }
     });
+    
+    // PHASE 4C: Deep-link tab switching support
+    // Allows profile page to link directly to specific settings tabs
+    // Example: /me/settings/#identity or /me/settings/?tab=recruitment
+    function initializeTabDeepLinking() {
+        // Check URL hash (e.g., #identity)
+        const hash = window.location.hash.slice(1); // Remove '#'
+        
+        // Check URL query param (e.g., ?tab=recruitment)
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        
+        const targetTab = hash || tabParam;
+        
+        if (targetTab) {
+            // Find the corresponding nav link
+            const navLink = document.querySelector(`[data-nav="${targetTab}"]`);
+            if (navLink) {
+                // Simulate click to switch tab
+                navLink.click();
+                
+                // Scroll to top after tab switch
+                setTimeout(() => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 100);
+            }
+        }
+    }
+    
+    // Run deep-linking after DOM is fully ready and tabs are initialized
+    setTimeout(initializeTabDeepLinking, 500);
 </script>
 
 <!-- PHASE 4B: Item Detail Modal -->

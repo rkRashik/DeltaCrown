@@ -354,3 +354,259 @@ class PrivacySettingsForm(forms.ModelForm):
             'allow_direct_messages': 'Allow other users to send you direct messages',
         }
 
+
+# ============================================================================
+# PHASE 4: COMPREHENSIVE SETTINGS FORMS
+# ============================================================================
+
+class UserProfileSettingsForm(forms.ModelForm):
+    """
+    Comprehensive profile settings form covering all tabs:
+    - Identity, Connections, Social, Platform, About
+    Phase 4B: Replaces manual POST extraction with proper form validation.
+    """
+    
+    class Meta:
+        model = UserProfile
+        fields = [
+            # Identity Tab
+            'display_name', 'gender', 'city', 'country', 'bio',
+            
+            # Connections Tab
+            'phone', 'whatsapp', 'secondary_email', 'preferred_contact_method',
+            'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
+            
+            # Social Links Tab
+            'discord_id', 'youtube_link', 'twitch_link', 'twitter', 
+            'facebook', 'instagram', 'tiktok',
+            
+            # Platform Tab
+            'preferred_language', 'timezone_pref', 'time_format',
+            
+            # About Section Fields (Phase 4)
+            'device_platform', 'play_style', 'lan_availability',
+            'main_role', 'secondary_role', 'communication_languages', 'active_hours',
+            
+            # Profile customization
+            'pronouns',
+        ]
+        
+        widgets = {
+            'bio': forms.Textarea(attrs={'rows': 4, 'maxlength': 500}),
+            'communication_languages': forms.SelectMultiple(),
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+        }
+    
+    def clean_communication_languages(self):
+        """
+        Phase 4C.1: Convert comma-separated string to JSON list.
+        Input: "English, Bengali, Hindi"
+        Output: ["English", "Bengali", "Hindi"]
+        """
+        data = self.cleaned_data.get('communication_languages')
+        
+        # If already a list (from JSON field), return as-is
+        if isinstance(data, list):
+            return data
+        
+        # If string, split by comma and clean
+        if isinstance(data, str) and data.strip():
+            languages = [lang.strip() for lang in data.split(',') if lang.strip()]
+            return languages
+        
+        # Default to empty list
+        return []
+    
+    def clean(self):
+        """
+        Phase 4C.1: Validate preferred_contact_method has required handle.
+        """
+        cleaned_data = super().clean()
+        preferred_method = cleaned_data.get('preferred_contact_method')
+        
+        if preferred_method:
+            # Check if required contact handle exists
+            if preferred_method == 'discord' and not cleaned_data.get('discord_id'):
+                self.add_error('preferred_contact_method', 
+                    'Discord ID is required when Discord is your preferred contact method. Fill it in the Connections tab.')
+            elif preferred_method == 'whatsapp' and not cleaned_data.get('whatsapp'):
+                self.add_error('preferred_contact_method', 
+                    'WhatsApp number is required when WhatsApp is your preferred contact method. Fill it in the Connections tab.')
+        
+        return cleaned_data
+
+
+class CareerSettingsForm(forms.ModelForm):
+    """
+    Career and recruitment settings form.
+    Maps to Recruitment tab in settings_control_deck.html.
+    Phase 4B: Enables persistence for previously non-functional Recruitment tab.
+    """
+    
+    class Meta:
+        model = apps.get_model('user_profile', 'CareerProfile')
+        fields = [
+            'career_status',
+            'lft_enabled',
+            'primary_roles',
+            'availability',
+            'salary_expectation_min',
+            'recruiter_visibility',
+            'allow_direct_contracts',
+        ]
+        exclude = ['user_profile']
+        
+        widgets = {
+            'career_status': forms.RadioSelect(),
+            'salary_expectation_min': forms.NumberInput(attrs={'min': 0, 'step': '0.01'}),
+        }
+        
+        help_texts = {
+            'career_status': 'Your current professional career status',
+            'lft_enabled': 'Show "Looking For Team" badge on your profile',
+            'primary_roles': 'Your main competitive roles (JSON array)',
+            'availability': 'Your time commitment availability',
+            'salary_expectation_min': 'Minimum monthly salary expectation',
+            'recruiter_visibility': 'Who can see your career information',
+            'allow_direct_contracts': 'Allow recruiters to send direct contract offers',
+        }
+
+
+class HardwareLoadoutForm(forms.ModelForm):
+    """
+    Hardware loadout form for gaming gear showcase.
+    Maps to Loadout tab in settings_control_deck.html.
+    Phase 4B: Enables persistence for previously non-functional Loadout tab.
+    """
+    
+    class Meta:
+        model = apps.get_model('user_profile', 'HardwareLoadout')
+        fields = ['mouse_brand', 'keyboard_brand', 'headset_brand', 'monitor_brand']
+        exclude = ['user_profile']
+        
+        widgets = {
+            'mouse_brand': forms.TextInput(attrs={
+                'placeholder': 'e.g., Logitech G Pro X Superlight',
+                'maxlength': 100
+            }),
+            'keyboard_brand': forms.TextInput(attrs={
+                'placeholder': 'e.g., Wooting 60HE',
+                'maxlength': 100
+            }),
+            'headset_brand': forms.TextInput(attrs={
+                'placeholder': 'e.g., HyperX Cloud II',
+                'maxlength': 100
+            }),
+            'monitor_brand': forms.TextInput(attrs={
+                'placeholder': 'e.g., BenQ Zowie XL2546K 240Hz',
+                'maxlength': 100
+            }),
+        }
+
+
+class AboutSettingsForm(forms.ModelForm):
+    """
+    Dedicated form for About tab settings ONLY.
+    Phase 4C.1.2: Separates About fields to prevent validation errors from other tabs.
+    
+    IMPORTANT: This form does NOT include identity/platform/connections fields like:
+    - display_name, preferred_language, timezone_pref, time_format (Identity/Platform)
+    - preferred_contact_method (Connections Hub)
+    
+    This ensures saving About tab doesn't require unrelated fields.
+    """
+    
+    class Meta:
+        model = UserProfile
+        fields = [
+            # Competitive DNA
+            'device_platform',
+            'play_style',
+            'main_role',
+            'secondary_role',
+            
+            # Logistics & Availability
+            'active_hours',
+            'communication_languages',
+            'lan_availability',
+        ]
+    
+    def clean_communication_languages(self):
+        """
+        Phase 4C.1: Convert comma-separated string to JSON list.
+        Input: "English, Bengali, Hindi"
+        Output: ["English", "Bengali", "Hindi"]
+        """
+        data = self.cleaned_data.get('communication_languages')
+        
+        # If already a list (from JSON field), return as-is
+        if isinstance(data, list):
+            return data
+        
+        # If string, split by comma and clean
+        if isinstance(data, str) and data.strip():
+            languages = [lang.strip() for lang in data.split(',') if lang.strip()]
+            return languages
+        
+        # Default to empty list
+        return []
+
+
+class PrivacySettingsFormComplete(forms.ModelForm):
+    """
+    Complete privacy settings form with ALL toggles.
+    Phase 4B: Ensures all UI checkboxes persist to database.
+    Replaces partial privacy save logic that only saved 7 of 19 fields.
+    """
+    
+    class Meta:
+        model = apps.get_model('user_profile', 'PrivacySettings')
+        fields = [
+            # Visibility Preset
+            'visibility_preset',
+            
+            # Personal Info Privacy
+            'show_real_name', 'show_phone', 'show_email', 'show_age', 
+            'show_gender', 'show_country', 'show_address',
+            
+            # Gaming & Activity Privacy
+            'show_game_ids', 'show_match_history', 'show_teams', 
+            'show_achievements', 'show_activity_feed', 'show_tournaments',
+            
+            # Economy & Inventory Privacy
+            'show_inventory_value', 'show_level_xp', 'inventory_visibility',
+            
+            # Social Privacy
+            'show_social_links', 'show_followers_count', 'show_following_count',
+            'show_followers_list', 'show_following_list',
+            
+            # Interaction Permissions
+            'allow_team_invites', 'allow_friend_requests', 'allow_direct_messages',
+            
+            # Private Account
+            'is_private_account',
+            
+            # Phase 4 About Section Privacy
+            'show_pronouns', 'show_nationality', 'show_device_platform',
+            'show_play_style', 'show_roles', 'show_active_hours', 'show_preferred_contact',
+        ]
+        exclude = ['user_profile']
+        
+        widgets = {
+            # All boolean fields as checkboxes
+            **{field: forms.CheckboxInput() for field in [
+                'show_real_name', 'show_phone', 'show_email', 'show_age', 
+                'show_gender', 'show_country', 'show_address',
+                'show_game_ids', 'show_match_history', 'show_teams', 
+                'show_achievements', 'show_activity_feed', 'show_tournaments',
+                'show_inventory_value', 'show_level_xp',
+                'show_social_links', 'show_followers_count', 'show_following_count',
+                'show_followers_list', 'show_following_list',
+                'allow_team_invites', 'allow_friend_requests', 'allow_direct_messages',
+                'is_private_account',
+                'show_pronouns', 'show_nationality', 'show_device_platform',
+                'show_play_style', 'show_roles', 'show_active_hours', 'show_preferred_contact',
+            ]},
+            'visibility_preset': forms.Select(),
+            'inventory_visibility': forms.Select(),
+        }

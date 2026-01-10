@@ -42,6 +42,12 @@ from .api.settings_career_api import (
     career_settings_get, career_settings_save,
     matchmaking_settings_get, matchmaking_settings_save
 )
+# UP-PHASE4B: Hardware Loadout Settings API
+from .api.settings_loadout_api import (
+    loadout_settings_get, loadout_settings_save
+)
+# UP-PHASE4B.1: Debug endpoint
+from .views.settings_debug import settings_debug_dump
 # UP-PHASE2B: Notifications Settings API
 from .api.settings_notifications_api import (
     notifications_settings_get, notifications_settings_save
@@ -224,6 +230,13 @@ urlpatterns = [
     path("me/settings/career/save/", career_settings_save, name="settings_career_save"),
     path("me/settings/matchmaking/", matchmaking_settings_get, name="settings_matchmaking_get"),
     path("me/settings/matchmaking/save/", matchmaking_settings_save, name="settings_matchmaking_save"),
+    
+    # UP-PHASE4B: Hardware Loadout Settings API
+    path("me/settings/loadout/", loadout_settings_get, name="settings_loadout_get"),
+    path("me/settings/loadout/save/", loadout_settings_save, name="settings_loadout_save"),
+    
+    # UP-PHASE4B.1: Debug endpoint (staff-only)
+    path("me/settings/debug-dump/", settings_debug_dump, name="settings_debug_dump"),
     
     # UP-PHASE2B: Notifications Settings API
     path("me/settings/notifications/", notifications_settings_get, name="settings_notifications_get"),
