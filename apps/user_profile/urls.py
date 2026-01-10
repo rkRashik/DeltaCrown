@@ -42,6 +42,11 @@ from .api.settings_career_api import (
     career_settings_get, career_settings_save,
     matchmaking_settings_get, matchmaking_settings_save
 )
+# UP-PHASE4C.3: Security & KYC Settings API
+from .views.security_views import (
+    change_password, save_dob, kyc_status_api, 
+    logout_other_sessions, session_info
+)
 # UP-PHASE4B: Hardware Loadout Settings API
 from .api.settings_loadout_api import (
     loadout_settings_get, loadout_settings_save
@@ -351,6 +356,13 @@ urlpatterns = [
     # KYC Verification
     path("me/kyc/upload/", kyc_upload_view, name="kyc_upload"),
     path("me/kyc/status/", kyc_status_view, name="kyc_status"),
+    
+    # PHASE 4C.3: Security & KYC API Endpoints
+    path("me/settings/security/change-password/", change_password, name="change_password"),
+    path("me/settings/security/dob/", save_dob, name="security_dob_save"),
+    path("me/settings/security/kyc/status/", kyc_status_api, name="kyc_status_api"),
+    path("me/settings/security/sessions/logout-others/", logout_other_sessions, name="logout_other_sessions"),
+    path("me/settings/security/sessions/info/", session_info, name="session_info"),
     
     # LEGACY: Privacy Settings (old route - redirects to v2)
     # path("me/privacy/", privacy_settings_view, name="privacy_settings"),  # Replaced by profile_privacy_v2

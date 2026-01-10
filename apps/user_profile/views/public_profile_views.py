@@ -246,6 +246,15 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     else:
         context['user_teams'] = []
     
+    # PHASE-4D: Career Context Service - Modern portfolio view
+    from apps.user_profile.services.career_context import build_career_context, get_game_passports_for_career
+    
+    career_data = build_career_context(user_profile, is_owner=permissions.get('is_owner', False))
+    context.update(career_data)  # Adds current_teams, team_history, career_timeline, has_teams
+    
+    # Add game passports preview for Career tab (top 3)
+    context['career_passports'] = get_game_passports_for_career(profile_user, limit=3)
+    
     # UP-TOURNAMENT-DISPLAY-01: Add user's tournaments data
     # TODO: Implement tournament participation query when tournament app is ready
     

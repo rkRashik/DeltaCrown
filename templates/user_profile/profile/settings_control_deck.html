@@ -1694,27 +1694,191 @@
                     </form>
                 </div>
 
-                <!-- SECURITY TAB (READY) -->
+                <!-- SECURITY & KYC TAB (PHASE 4C.3 - PRODUCTION READY) -->
                 <div id="tab-security" class="tab-section space-y-6">
                     <h2 class="text-3xl font-display font-bold text-white">Security & KYC</h2>
+                    <p class="text-gray-400 mb-6">Manage your account security, password, and identity verification</p>
                     
-                    <div class="glass-panel p-6 border-l-4 border-l-z-green mb-6 bg-z-green/5">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="font-bold text-white text-lg">Identity Status</h3>
-                            <i class="fa-solid fa-info-circle text-gray-400 text-xl"></i>
+                    <!-- KYC Status Card -->
+                    <div id="kyc-status-card" class="glass-panel p-6 border-l-4 border-l-z-cyan mb-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-bold text-white text-lg flex items-center gap-2">
+                                    <i class="fa-solid fa-id-card text-z-cyan"></i> Identity Verification (KYC)
+                                </h3>
+                                <p class="text-sm text-gray-400 mt-1">Required for prize withdrawals and premium tournaments</p>
+                            </div>
+                            <div id="kyc-status-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-gray-500/20 text-gray-400">
+                                <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+                            </div>
                         </div>
-                        <p class="text-sm text-gray-300">KYC verification allows withdrawals and tournament participation.</p>
+                        
+                        <div id="kyc-content" class="mt-4">
+                            <!-- Dynamic content loaded via JS -->
+                        </div>
                     </div>
 
+                    <!-- Change Password -->
                     <div class="glass-panel p-8">
-                        <h3 class="font-bold text-white mb-6">Change Password</h3>
+                        <h3 class="font-bold text-white mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-key text-z-gold"></i> Change Password
+                        </h3>
+                        <form id="change-password-form" class="space-y-4" onsubmit="changePassword(event)">
+                            {% csrf_token %}
+                            
+                            <div>
+                                <label class="z-label">Current Password</label>
+                                <input type="password" name="current_password" class="z-input" required autocomplete="current-password" oninput="markUnsaved()">
+                                <p class="text-xs text-gray-500 mt-1">Enter your current password for verification</p>
+                            </div>
+                            
+                            <div>
+                                <label class="z-label">New Password</label>
+                                <input type="password" name="new_password" id="new-password" class="z-input" required autocomplete="new-password" oninput="markUnsaved()">
+                                <p class="text-xs text-gray-500 mt-1">Minimum 8 characters, include letters and numbers</p>
+                            </div>
+                            
+                            <div>
+                                <label class="z-label">Confirm New Password</label>
+                                <input type="password" name="confirm_password" class="z-input" required autocomplete="new-password" oninput="markUnsaved()">
+                                <p class="text-xs text-gray-500 mt-1">Re-enter your new password</p>
+                            </div>
+                            
+                            <button type="submit" class="bg-z-cyan text-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-white transition flex items-center gap-2">
+                                <i class="fa-solid fa-shield-halved"></i> Change Password
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Date of Birth -->
+                    <div class="glass-panel p-8">
+                        <h3 class="font-bold text-white mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-cake-candles text-z-purple"></i> Date of Birth
+                        </h3>
+                        
+                        {% if user_profile.is_kyc_verified %}
+                        <!-- KYC Verified: DOB is locked -->
+                        <div class="flex items-center gap-4 p-4 rounded-xl bg-green-500/10 border border-green-500/30">
+                            <div class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                                <i class="fa-solid fa-lock text-green-400 text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-bold text-white mb-1">{{ user_profile.date_of_birth|date:"F d, Y"|default:"Not set" }}</div>
+                                <p class="text-xs text-gray-400">
+                                    <i class="fa-solid fa-info-circle"></i>
+                                    Date of birth is locked after KYC verification for security
+                                </p>
+                            </div>
+                            <div class="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-bold">
+                                <i class="fa-solid fa-shield-check"></i> Verified
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Not Verified: DOB can be edited -->
+                        <form id="dob-form" class="space-y-4" onsubmit="saveDateOfBirth(event)">
+                            {% csrf_token %}
+                            
+                            <div>
+                                <label class="z-label">Date of Birth</label>
+                                <input type="date" name="date_of_birth" class="z-input w-full md:w-auto" 
+                                       value="{{ user_profile.date_of_birth|date:'Y-m-d' }}" 
+                                       required 
+                                       max="{{ today|date:'Y-m-d' }}"
+                                       oninput="markUnsaved()">
+                                <p class="text-xs text-gray-500 mt-1">
+                                    <i class="fa-solid fa-lock-open"></i>
+                                    You can update this now. It will be locked after KYC verification.
+                                </p>
+                            </div>
+                            
+                            {% if user_profile.age %}
+                            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                                <div class="w-10 h-10 rounded-lg bg-z-cyan/10 flex items-center justify-center text-z-cyan">
+                                    <i class="fa-solid fa-calendar-days"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs text-gray-500 uppercase tracking-wider">Your Age</div>
+                                    <div class="text-lg font-bold text-white">{{ user_profile.age }} years old</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <button type="submit" class="bg-z-purple text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-z-purple/80 transition flex items-center gap-2">
+                                <i class="fa-solid fa-save"></i> Save Date of Birth
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+
+                    <!-- Session Management -->
+                    <div class="glass-panel p-8">
+                        <h3 class="font-bold text-white mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-desktop text-z-cyan"></i> Active Sessions
+                        </h3>
+                        
+                        <div id="session-info" class="space-y-4 mb-6">
+                            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                                <div class="w-10 h-10 rounded-lg bg-z-green/10 flex items-center justify-center text-z-green">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-xs text-gray-500 uppercase tracking-wider">Current Session</div>
+                                    <div class="text-sm font-semibold text-white">This device</div>
+                                </div>
+                            </div>
+                            
+                            <div id="other-sessions-info" class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                                <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-400">
+                                    <i class="fa-solid fa-spinner fa-spin"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-xs text-gray-500 uppercase tracking-wider">Other Sessions</div>
+                                    <div class="text-sm font-semibold text-white">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-4 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30 mb-4">
+                            <i class="fa-solid fa-triangle-exclamation text-yellow-400 text-xl mt-0.5"></i>
+                            <div>
+                                <div class="font-bold text-white text-sm mb-1">Security Tip</div>
+                                <p class="text-xs text-gray-400">
+                                    If you see suspicious activity, log out all other sessions and change your password immediately.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <button onclick="logoutOtherSessions()" class="bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-2">
+                            <i class="fa-solid fa-right-from-bracket"></i> Logout Other Sessions
+                        </button>
+                    </div>
+
+                    <!-- Account Info -->
+                    <div class="glass-panel p-8">
+                        <h3 class="font-bold text-white mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-info-circle text-gray-400"></i> Account Information
+                        </h3>
+                        
                         <div class="space-y-4">
-                            <input type="password" class="z-input" placeholder="Current Password" disabled>
-                            <input type="password" class="z-input" placeholder="New Password" disabled>
-                            <p class="text-xs text-gray-500">
-                                <i class="fa-solid fa-info-circle"></i>
-                                Password changes must be done through your account settings.
-                            </p>
+                            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                                <div class="w-10 h-10 rounded-lg bg-z-cyan/10 flex items-center justify-center text-z-cyan">
+                                    <i class="fa-solid fa-calendar-plus"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-xs text-gray-500 uppercase tracking-wider">Member Since</div>
+                                    <div class="text-sm font-semibold text-white">{{ request.user.date_joined|date:"F d, Y" }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                                <div class="w-10 h-10 rounded-lg bg-z-gold/10 flex items-center justify-center text-z-gold">
+                                    <i class="fa-solid fa-clock"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-xs text-gray-500 uppercase tracking-wider">Last Login</div>
+                                    <div class="text-sm font-semibold text-white">{{ request.user.last_login|date:"F d, Y g:i A"|default:"Never" }}</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -4477,6 +4641,270 @@
     
     // Run deep-linking after DOM is fully ready and tabs are initialized
     setTimeout(initializeTabDeepLinking, 500);
+
+    // ============================================================================
+    // PHASE 4C.3: SECURITY & KYC FUNCTIONS
+    // ============================================================================
+
+    // Change Password
+    async function changePassword(event) {
+        event.preventDefault();
+        
+        const form = document.getElementById('change-password-form');
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button.innerHTML;
+        
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Changing...';
+        
+        const formData = new FormData(form);
+        
+        try {
+            const response = await fetch('{% url "user_profile:change_password" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(String(result.message || 'Password changed successfully'), 'success');
+                form.reset();
+                markSaved();
+            } else {
+                showToast(String(result.error || 'Failed to change password'), 'error');
+            }
+        } catch (error) {
+            console.error('Password change error:', error);
+            showToast('Network error - please try again', 'error');
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
+    }
+
+    // Save Date of Birth
+    async function saveDateOfBirth(event) {
+        event.preventDefault();
+        
+        const form = document.getElementById('dob-form');
+        const button = form.querySelector('button[type="submit"]');
+        const originalHTML = button.innerHTML;
+        
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        
+        const formData = new FormData(form);
+        
+        try {
+            const response = await fetch('{% url "user_profile:security_dob_save" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(String(result.message || 'Date of birth saved successfully'), 'success');
+                markSaved();
+                // Reload page to show age
+                setTimeout(() => window.location.reload(), 1200);
+            } else {
+                showToast(String(result.error || 'Failed to save date of birth'), 'error');
+            }
+        } catch (error) {
+            console.error('DOB save error:', error);
+            showToast('Network error - please try again', 'error');
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
+    }
+
+    // Logout Other Sessions
+    async function logoutOtherSessions() {
+        if (!confirm('This will log you out of all other devices. Continue?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('{% url "user_profile:logout_other_sessions" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(String(result.message || 'Other sessions logged out'), 'success');
+                // Refresh session info
+                loadSessionInfo();
+            } else {
+                showToast(String(result.error || 'Failed to logout other sessions'), 'error');
+            }
+        } catch (error) {
+            console.error('Logout sessions error:', error);
+            showToast('Network error - please try again', 'error');
+        }
+    }
+
+    // Load Session Info
+    async function loadSessionInfo() {
+        try {
+            const response = await fetch('{% url "user_profile:session_info" %}');
+            const result = await response.json();
+            
+            if (result.success) {
+                const otherSessions = result.total_active_sessions - 1;
+                const infoDiv = document.getElementById('other-sessions-info');
+                
+                if (otherSessions > 0) {
+                    infoDiv.innerHTML = `
+                        <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-400">
+                            <i class="fa-solid fa-devices"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-xs text-gray-500 uppercase tracking-wider">Other Sessions</div>
+                            <div class="text-sm font-semibold text-white">${otherSessions} active session${otherSessions > 1 ? 's' : ''}</div>
+                        </div>
+                    `;
+                } else {
+                    infoDiv.innerHTML = `
+                        <div class="w-10 h-10 rounded-lg bg-z-green/10 flex items-center justify-center text-z-green">
+                            <i class="fa-solid fa-shield-check"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-xs text-gray-500 uppercase tracking-wider">Other Sessions</div>
+                            <div class="text-sm font-semibold text-white">No other active sessions</div>
+                        </div>
+                    `;
+                }
+            }
+        } catch (error) {
+            console.error('Session info error:', error);
+        }
+    }
+
+    // Load KYC Status
+    async function loadKYCStatus() {
+        try {
+            const response = await fetch('{% url "user_profile:kyc_status_api" %}');
+            const result = await response.json();
+            
+            if (result.success) {
+                const badge = document.getElementById('kyc-status-badge');
+                const content = document.getElementById('kyc-content');
+                
+                // Update badge
+                const statusConfig = {
+                    'verified': { 
+                        color: 'bg-green-500/20 text-green-400', 
+                        icon: 'fa-shield-check',
+                        text: 'Verified'
+                    },
+                    'pending': { 
+                        color: 'bg-yellow-500/20 text-yellow-400', 
+                        icon: 'fa-clock',
+                        text: 'Under Review'
+                    },
+                    'rejected': { 
+                        color: 'bg-red-500/20 text-red-400', 
+                        icon: 'fa-circle-xmark',
+                        text: 'Rejected'
+                    },
+                    'unverified': { 
+                        color: 'bg-gray-500/20 text-gray-400', 
+                        icon: 'fa-circle-question',
+                        text: 'Not Submitted'
+                    }
+                };
+                
+                const config = statusConfig[result.status] || statusConfig['unverified'];
+                badge.className = `px-3 py-1 rounded-full text-xs font-bold ${config.color}`;
+                badge.innerHTML = `<i class="fa-solid ${config.icon}"></i> ${config.text}`;
+                
+                // Update content
+                if (result.status === 'verified') {
+                    content.innerHTML = `
+                        <div class="flex items-center gap-4 p-4 rounded-xl bg-green-500/10 border border-green-500/30">
+                            <div class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                                <i class="fa-solid fa-shield-check text-green-400 text-2xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-bold text-white mb-1">Identity Verified</div>
+                                <p class="text-xs text-gray-400">
+                                    Your identity has been verified. You can now participate in premium tournaments and withdraw prizes.
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                } else if (result.status === 'pending') {
+                    content.innerHTML = `
+                        <div class="flex items-center gap-4 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+                            <div class="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                                <i class="fa-solid fa-clock text-yellow-400 text-2xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-bold text-white mb-1">Under Review</div>
+                                <p class="text-xs text-gray-400">
+                                    Your documents are being reviewed. This usually takes 24-48 hours.
+                                </p>
+                                ${result.submitted_at ? `<p class="text-xs text-gray-500 mt-2">Submitted: ${new Date(result.submitted_at).toLocaleString()}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                } else if (result.status === 'rejected') {
+                    content.innerHTML = `
+                        <div class="flex items-center gap-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 mb-4">
+                            <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                                <i class="fa-solid fa-circle-xmark text-red-400 text-2xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-bold text-white mb-1">Verification Rejected</div>
+                                <p class="text-xs text-gray-400 mb-2">
+                                    ${result.rejection_reason || 'Your documents did not meet our verification requirements.'}
+                                </p>
+                                <p class="text-xs text-gray-500">You can resubmit with corrected documents.</p>
+                            </div>
+                        </div>
+                        <a href="{% url 'user_profile:kyc_upload' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-z-cyan text-black rounded-lg text-sm font-bold hover:bg-white transition">
+                            <i class="fa-solid fa-upload"></i> Resubmit Documents
+                        </a>
+                    `;
+                } else {
+                    // unverified
+                    content.innerHTML = `
+                        <p class="text-sm text-gray-300 mb-4">
+                            Complete KYC verification to unlock premium tournaments, prize withdrawals, and exclusive features.
+                        </p>
+                        <a href="{% url 'user_profile:kyc_upload' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-z-cyan text-black rounded-lg text-sm font-bold hover:bg-white transition">
+                            <i class="fa-solid fa-id-card"></i> Start KYC Verification
+                        </a>
+                    `;
+                }
+            }
+        } catch (error) {
+            console.error('KYC status error:', error);
+            document.getElementById('kyc-status-badge').innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Error Loading';
+        }
+    }
+
+    // Initialize Security Tab on Page Load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load session info
+        loadSessionInfo();
+        
+        // Load KYC status
+        loadKYCStatus();
+    });
 </script>
 
 <!-- PHASE 4B: Item Detail Modal -->

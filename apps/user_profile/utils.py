@@ -130,3 +130,102 @@ def get_user_profile_safe(user) -> 'UserProfile':
     """
     profile, _ = get_or_create_user_profile(user)
     return profile
+
+
+# ============================================================================
+# Game Icons Utility (Phase 4D)
+# ============================================================================
+
+from django.templatetags.static import static
+
+# Comprehensive map of game slugs to their icon filenames
+GAME_ICON_MAP = {
+    # MOBAs
+    'league_of_legends': 'league-of-legends.svg',
+    'dota_2': 'dota-2.svg',
+    'mobile_legends': 'mobile-legends.svg',
+    
+    # Battle Royales
+    'fortnite': 'fortnite.svg',
+    'apex_legends': 'apex-legends.svg',
+    'pubg': 'pubg.svg',
+    'pubg_mobile': 'pubg-mobile.svg',
+    'call_of_duty_warzone': 'cod-warzone.svg',
+    
+    # FPS
+    'counter_strike_2': 'cs2.svg',
+    'cs2': 'cs2.svg',
+    'csgo': 'cs2.svg',  # Alias
+    'valorant': 'valorant.svg',
+    'rainbow_six_siege': 'rainbow-six.svg',
+    'overwatch_2': 'overwatch-2.svg',
+    'call_of_duty': 'call-of-duty.svg',
+    
+    # Fighting Games
+    'street_fighter_6': 'street-fighter-6.svg',
+    'tekken_8': 'tekken-8.svg',
+    'mortal_kombat': 'mortal-kombat.svg',
+    'super_smash_bros': 'smash-bros.svg',
+    
+    # Sports
+    'fifa': 'fifa.svg',
+    'ea_sports_fc': 'ea-fc.svg',
+    'nba_2k': 'nba-2k.svg',
+    'rocket_league': 'rocket-league.svg',
+    
+    # Strategy
+    'starcraft_2': 'starcraft-2.svg',
+    'age_of_empires': 'age-of-empires.svg',
+    'clash_royale': 'clash-royale.svg',
+    
+    # Card Games
+    'hearthstone': 'hearthstone.svg',
+    'legends_of_runeterra': 'legends-of-runeterra.svg',
+    'magic_the_gathering_arena': 'mtg-arena.svg',
+    
+    # Other
+    'minecraft': 'minecraft.svg',
+    'genshin_impact': 'genshin-impact.svg',
+}
+
+DEFAULT_ICON = 'default-game.svg'
+
+
+def get_game_icon_path(game_slug: str) -> str:
+    """
+    Get the filename for a game icon.
+    
+    Args:
+        game_slug: Game identifier (e.g., 'valorant', 'counter_strike_2')
+    
+    Returns:
+        str: Icon filename (e.g., 'valorant.svg', 'default-game.svg')
+    """
+    return GAME_ICON_MAP.get(game_slug, DEFAULT_ICON)
+
+
+def get_game_icon_url(game_slug: str) -> str:
+    """
+    Get the full static URL for a game icon.
+    
+    Args:
+        game_slug: Game identifier
+    
+    Returns:
+        str: Full static URL path (e.g., '/static/user_profile/game_icons/valorant.svg')
+    """
+    icon_filename = get_game_icon_path(game_slug)
+    return static(f'user_profile/game_icons/{icon_filename}')
+
+
+def has_custom_icon(game_slug: str) -> bool:
+    """
+    Check if a game has a custom icon or will use default.
+    
+    Args:
+        game_slug: Game identifier
+    
+    Returns:
+        bool: True if custom icon exists, False if will use default
+    """
+    return game_slug in GAME_ICON_MAP
