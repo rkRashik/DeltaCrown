@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeltaCrown | Pro Profile - Viper</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', "Liberation Mono", "Courier New", 'monospace'],
+                    },
+                    colors: {
+                        z: {
+                            bg: '#030014',       /* Deep Void */
+                            panel: '#0F0B1E',    /* Glass Panel */
+                            card: '#15102A',     /* Solid Card */
+                            cyan: '#00F0FF',     /* Cyber Cyan */
+                            purple: '#7B2CBF',   /* Electric Purple */
+                            gold: '#FFD60A',     /* Trophy Gold */
+                            red: '#FF007A',      /* Alert Red */
+                            green: '#10B981',    /* Success Green */
+                            accent: '#6366F1'    /* Indigo Accent */
+                        }
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                        'card-shine': 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.05) 25%, transparent 30%)',
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 0 20px rgba(0, 240, 255, 0.25)',
+                        'neon-purple': '0 0 20px rgba(123, 44, 191, 0.25)',
+                        'neon-gold': '0 0 20px rgba(255, 214, 10, 0.25)',
+                        'neon-red': '0 0 20px rgba(255, 0, 122, 0.25)',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'shine': 'shine 3s infinite linear',
+                    },
+                    keyframes: {
+                        shine: {
+                            '0%': { backgroundPosition: '200% center' },
+                            '100%': { backgroundPosition: '-200% center' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #030014;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(123, 44, 191, 0.15) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.1) 0%, transparent 20%);
+        }
+
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: rgba(15, 11, 30, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+        
+        .glass-card {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Gradient Text */
+        .text-gradient-gold {
+            background: linear-gradient(to right, #FFD60A, #FF9F0A);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .text-gradient-cyan {
+            background: linear-gradient(to right, #00F0FF, #0099FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #030014; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00F0FF; }
+
+        /* Grid Layout Fixes */
+        .dashboard-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: 1fr;
+            align-items: start; /* Prevents stretching to equalize height which looks bad when content differs */
+        }
+        
+        @media (min-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 320px minmax(0, 1fr) 320px;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="relative w-full h-[550px] lg:h-[650px] mb-8 group">
+        
+        <div class="absolute inset-0 w-full h-full overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-t from-z-bg via-z-bg/80 to-transparent z-10"></div>
+            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670&auto=format&fit=crop" 
+                 class="w-full h-full object-cover object-center opacity-60 group-hover:scale-105 transition duration-[3s]" alt="Cover">
+        </div>
+
+        <div class="absolute bottom-0 left-0 w-full z-20 px-4 md:px-8 pb-8">
+            <div class="max-w-[1600px] mx-auto flex flex-col md:flex-row items-end gap-8">
+                
+                <div class="relative shrink-0">
+                    <div class="w-36 h-36 md:w-44 md:h-44 rounded-3xl p-1 bg-gradient-to-br from-z-cyan via-z-purple to-z-red shadow-neon-cyan relative group">
+                        <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1000&auto=format&fit=crop" 
+                             class="w-full h-full object-cover rounded-2xl bg-z-bg" alt="Avatar">
+                        
+                        <div class="absolute -bottom-3 -right-3 bg-z-bg p-1 rounded-xl">
+                            <div class="bg-z-gold text-black font-black font-display text-sm px-3 py-1 rounded-lg border border-white/20 shadow-neon-gold">
+                                LVL 42
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1 mb-2">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="bg-white/10 backdrop-blur text-white text-[10px] font-bold px-2 py-0.5 rounded border border-white/10 hover:bg-white/20 cursor-pointer transition">
+                            [TL] TEAM LIQUID
+                        </span>
+                        <div class="flex items-center gap-1 bg-z-cyan/10 px-2 py-0.5 rounded border border-z-cyan/20">
+                            <i class="fa-solid fa-circle-check text-sm text-z-cyan"></i>
+                            <span class="text-[10px] text-z-cyan font-bold uppercase">Verified Pro</span>
+                        </div>
+                    </div>
+
+                    <h1 class="text-5xl md:text-7xl font-display font-bold text-white tracking-tight flex items-end gap-4 leading-none mb-2">
+                        Viper
+                        <span class="text-xl font-mono font-normal text-gray-500 mb-2 tracking-widest">#NA1</span>
+                    </h1>
+
+                    <p class="text-gray-300 text-base max-w-2xl font-light leading-relaxed border-l-2 border-z-purple pl-4 my-4">
+                        Entry Fragger for Team Liquid. Former Radiant #4. "The game starts when I press W."
+                    </p>
+
+                    <div class="flex flex-wrap items-center gap-8 mt-6">
+                        <div class="text-center group cursor-pointer">
+                            <div class="text-2xl font-bold text-white group-hover:text-z-cyan transition">12.5k</div>
+                            <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Followers</div>
+                        </div>
+                        <div class="text-center group cursor-pointer">
+                            <div class="text-2xl font-bold text-white group-hover:text-z-purple transition">248</div>
+                            <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Following</div>
+                        </div>
+                        <div class="text-center group cursor-pointer">
+                            <div class="text-2xl font-bold text-white group-hover:text-z-gold transition">14</div>
+                            <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Wins</div>
+                        </div>
+                        
+                        <div class="ml-auto md:ml-0 flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition cursor-pointer">
+                            <img src="https://flagcdn.com/bd.svg" class="w-6 h-auto rounded shadow-sm" alt="BD">
+                            <span class="text-xs text-white font-bold">Bangladesh</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex flex-col gap-3 shrink-0 mb-4">
+                    <button class="bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-signature"></i> Recruit
+                    </button>
+                    <div class="flex gap-2">
+                        <button class="flex-1 bg-z-purple/20 text-z-purple border border-z-purple/50 px-6 py-3 rounded-xl hover:bg-z-purple hover:text-white transition font-bold flex items-center justify-center gap-2">
+                            <i class="fa-brands fa-discord"></i> Connect
+                        </button>
+                        <button class="bg-white/5 text-white border border-white/10 px-5 py-3 rounded-xl hover:bg-white/10 transition">
+                            <i class="fa-solid fa-share-nodes"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+
+    <main class="max-w-[1600px] mx-auto px-4 md:px-8 pb-20 dashboard-grid">
+
+        <aside class="space-y-6 order-2 lg:order-1">
+            
+            <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group">
+                <div class="absolute -right-8 -top-8 bg-gradient-to-br from-z-gold/20 to-transparent w-32 h-32 rounded-full blur-2xl"></div>
+                
+                <div class="flex justify-between items-center mb-4 relative z-10">
+                    <h3 class="text-white font-bold font-display uppercase text-sm tracking-widest">Profile Status</h3>
+                    <div class="bg-z-gold/20 text-z-gold px-2 py-1 rounded text-xs font-bold border border-z-gold/30">85%</div>
+                </div>
+                
+                <div class="relative w-full h-3 bg-white/10 rounded-full mb-4 overflow-hidden">
+                    <div class="absolute top-0 left-0 h-full bg-gradient-to-r from-z-gold to-[#FF9F0A] rounded-full" style="width: 85%"></div>
+                </div>
+                
+                <p class="text-xs text-gray-400 mb-4">Complete your <span class="text-white font-bold">Hardware Loadout</span> to earn the Verified Badge.</p>
+                <button class="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-bold hover:bg-z-gold hover:text-black hover:border-z-gold transition uppercase">
+                    Complete Now
+                </button>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="flex items-center justify-between mb-5 border-b border-white/5 pb-3">
+                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-link text-z-cyan"></i> Connect
+                    </h3>
+                </div>
+
+                <div class="mb-4 p-3 rounded-xl bg-gradient-to-r from-z-purple/20 to-transparent border border-z-purple/30 flex items-center justify-between group cursor-pointer hover:border-z-purple/60 transition">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-z-purple flex items-center justify-center text-white text-lg shadow-lg">
+                            <i class="fa-brands fa-discord"></i>
+                        </div>
+                        <div>
+                            <div class="text-[9px] text-z-purple font-bold uppercase tracking-wider">Preferred</div>
+                            <div class="text-white font-mono text-sm font-bold">viper#0001</div>
+                        </div>
+                    </div>
+                    <i class="fa-regular fa-copy text-gray-400 group-hover:text-white"></i>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <a href="#" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#1DA1F2]/20 hover:border-[#1DA1F2]/50 transition group">
+                        <i class="fa-brands fa-twitter text-gray-400 group-hover:text-[#1DA1F2] text-xl mb-1"></i>
+                    </a>
+                    <a href="#" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#9146FF]/20 hover:border-[#9146FF]/50 transition group">
+                        <i class="fa-brands fa-twitch text-gray-400 group-hover:text-[#9146FF] text-xl mb-1"></i>
+                    </a>
+                    <a href="#" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#FF0000]/20 hover:border-[#FF0000]/50 transition group">
+                        <i class="fa-brands fa-youtube text-gray-400 group-hover:text-[#FF0000] text-xl mb-1"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl group cursor-pointer hover:border-z-green/30 transition">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-microchip text-z-green"></i> Gear
+                    </h3>
+                    <i class="fa-solid fa-arrow-right text-gray-600 -rotate-45 group-hover:text-z-green transition"></i>
+                </div>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-computer-mouse text-gray-500"></i>
+                        <span class="text-sm text-white font-bold">Logitech G Pro X</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <i class="fa-regular fa-keyboard text-gray-500"></i>
+                        <span class="text-sm text-white font-bold">Wooting 60HE</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-0 rounded-2xl overflow-hidden relative group cursor-pointer border border-z-gold/30">
+                <div class="absolute inset-0 bg-gradient-to-br from-z-gold/10 via-z-bg to-z-bg group-hover:from-z-gold/20 transition duration-500"></div>
+                
+                <div class="p-6 relative z-10">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-z-gold/20 flex items-center justify-center border border-z-gold/50 text-z-gold shadow-[0_0_15px_rgba(255,214,10,0.4)]">
+                                <i class="fa-solid fa-coins"></i>
+                            </div>
+                            <span class="text-xs font-bold text-z-gold uppercase tracking-wider">Delta Vault</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-z-gold/50"></i>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="text-[10px] text-gray-400 uppercase font-bold">Current Balance</div>
+                        <div class="text-3xl font-display font-black text-white flex items-end gap-1">
+                            1,250 <span class="text-sm font-sans text-z-gold font-bold mb-1">DC</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex gap-2">
+                        <button class="flex-1 py-2 rounded bg-z-gold text-black text-[10px] font-black uppercase hover:bg-white transition">Top Up</button>
+                        <button class="flex-1 py-2 rounded bg-white/5 text-white text-[10px] font-black uppercase border border-white/10 hover:bg-white/10 transition">History</button>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+
+        <section class="space-y-6 order-1 lg:order-2 min-w-0">
+
+            <nav class="flex overflow-x-auto pb-2 scrollbar-hide gap-2 border-b border-white/10 mb-4">
+                <button class="shrink-0 px-6 py-3 rounded-t-xl bg-z-cyan/10 border-b-2 border-z-cyan text-z-cyan font-bold text-sm tracking-wide shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]">Overview</button>
+                <button class="shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Posts</button>
+                <button class="shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Career</button>
+                <button class="shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Game IDs</button>
+                <button class="shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Inventory</button>
+            </nav>
+
+            <div class="glass-panel rounded-2xl overflow-hidden border-t border-t-white/10">
+                <div class="h-1 w-full bg-gradient-to-r from-z-cyan via-z-purple to-z-gold"></div>
+                
+                <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+                    <h2 class="font-display font-bold text-xl text-white flex items-center gap-3">
+                        <i class="fa-regular fa-address-card text-z-cyan"></i> About
+                    </h2>
+                    <button class="text-xs bg-black/40 hover:bg-white/10 text-white px-4 py-2 rounded-lg border border-white/10 transition flex items-center gap-2">
+                        <i class="fa-solid fa-pen"></i> Edit
+                    </button>
+                </div>
+
+                <div class="p-6 space-y-8">
+                    
+                    <div class="relative">
+                        <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-fingerprint text-z-cyan"></i> I. Identity
+                        </h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div class="bg-black/20 p-3 rounded-xl border border-white/5 hover:border-z-cyan/30 transition">
+                                <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Nationality</div>
+                                <div class="flex items-center gap-2 text-white font-bold text-sm">
+                                    <img src="https://flagcdn.com/bd.svg" class="w-5 rounded shadow"> BD
+                                </div>
+                            </div>
+                            <div class="bg-black/20 p-3 rounded-xl border border-white/5 hover:border-z-cyan/30 transition">
+                                <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Age</div>
+                                <div class="text-white font-bold text-sm">22 Years</div>
+                            </div>
+                            <div class="bg-black/20 p-3 rounded-xl border border-white/5 hover:border-z-cyan/30 transition">
+                                <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Gender</div>
+                                <div class="text-white font-bold text-sm">Male</div>
+                            </div>
+                            <div class="bg-black/20 p-3 rounded-xl border border-white/5 hover:border-z-cyan/30 transition">
+                                <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Pronouns</div>
+                                <div class="text-white font-bold text-sm">He/Him</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-dna text-z-purple"></i> II. Competitive DNA
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div class="glass-card p-4 rounded-xl flex items-center gap-4 border-l-2 border-l-white">
+                                <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xl text-white">
+                                    <i class="fa-solid fa-desktop"></i>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold">Platform</div>
+                                    <div class="text-white font-bold">PC / Windows</div>
+                                </div>
+                            </div>
+                            <div class="glass-card p-4 rounded-xl flex items-center gap-4 border-l-2 border-l-z-green bg-z-green/5">
+                                <div class="w-10 h-10 rounded-full bg-z-green/20 flex items-center justify-center text-xl text-z-green">
+                                    <i class="fa-solid fa-signature"></i>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] text-z-green uppercase font-bold">Status</div>
+                                    <div class="text-white font-bold">Signed</div>
+                                </div>
+                            </div>
+                            <div class="glass-card p-4 rounded-xl flex items-center gap-4 border-l-2 border-l-z-gold bg-z-gold/5">
+                                <div class="w-10 h-10 rounded-full bg-z-gold/20 flex items-center justify-center text-xl text-z-gold">
+                                    <i class="fa-solid fa-plane-departure"></i>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] text-z-gold uppercase font-bold">LAN Ready</div>
+                                    <div class="text-white font-bold">Yes</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-card p-5 rounded-xl border-t-2 border-t-z-cyan relative overflow-hidden">
+                            <div class="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-z-cyan/10 to-transparent"></div>
+                            <div class="flex items-center justify-between relative z-10">
+                                <div>
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold mb-2">Primary Role</div>
+                                    <div class="text-2xl font-display font-bold text-white flex items-center gap-2">
+                                        <i class="fa-solid fa-crosshairs text-z-cyan"></i> Entry Fragger
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold mb-2">Secondary</div>
+                                    <div class="text-lg font-bold text-gray-300">Flex / Initiator</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-globe text-z-gold"></i> Logistics
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
+                                    <span class="text-xs text-gray-400 uppercase font-bold">Language</span>
+                                    <span class="text-sm font-bold text-white">English, Bengali</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
+                                    <span class="text-xs text-gray-400 uppercase font-bold">Server</span>
+                                    <span class="text-sm font-bold text-white">Singapore / Mumbai</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
+                                    <span class="text-xs text-gray-400 uppercase font-bold">Hours</span>
+                                    <span class="text-sm font-bold text-white">6PM - 2AM (BDT)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Bio</h3>
+                            <div class="p-4 rounded-xl bg-gradient-to-br from-white/5 to-transparent border border-white/5 italic text-gray-300 text-sm leading-relaxed">
+                                <i class="fa-solid fa-quote-left text-z-purple text-xl mb-2 block"></i>
+                                Been playing FPS since CS 1.6. Transitioned to Valorant in Beta. 
+                                Known for aggressive Jett plays and clutch situations. 
+                                Currently focused on qualifying for Ascension 2026.
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-z-cyan"></i> Performance Analytics
+                    </h3>
+                    <select class="bg-black/40 text-white text-xs px-3 py-1 rounded border border-white/10 outline-none">
+                        <option>Last 20 Matches</option>
+                        <option>All Time</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">K/D Ratio</div>
+                        <div class="text-2xl font-black text-white">1.42</div>
+                        <div class="text-[10px] text-z-green mt-1 flex justify-center items-center gap-1"><i class="fa-solid fa-arrow-up"></i> 2.4%</div>
+                        <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-green to-transparent opacity-50"></div>
+                    </div>
+                    <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Win Rate</div>
+                        <div class="text-2xl font-black text-white">58%</div>
+                        <div class="text-[10px] text-gray-400 mt-1">42 W / 30 L</div>
+                         <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-cyan to-transparent opacity-50"></div>
+                    </div>
+                    <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Headshot %</div>
+                        <div class="text-2xl font-black text-white">32%</div>
+                        <div class="text-[10px] text-z-red mt-1 flex justify-center items-center gap-1"><i class="fa-solid fa-arrow-down"></i> 0.5%</div>
+                         <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-purple to-transparent opacity-50"></div>
+                    </div>
+                    <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Avg Score</div>
+                        <div class="text-2xl font-black text-white">284</div>
+                        <div class="text-[10px] text-z-green mt-1">S Tier</div>
+                         <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-gold to-transparent opacity-50"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <div class="glass-panel p-6 rounded-2xl hover:border-z-gold/50 transition duration-300 group cursor-pointer relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-40 h-40 bg-z-gold/5 rounded-full blur-3xl group-hover:bg-z-gold/10 transition"></div>
+                    
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-gold/20 to-transparent border border-z-gold/20 flex items-center justify-center text-z-gold text-xl shadow-lg">
+                            <i class="fa-solid fa-trophy"></i>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-white -rotate-45 transition"></i>
+                    </div>
+                    
+                    <h3 class="text-white font-bold font-display text-xl mb-1">Career</h3>
+                    <p class="text-xs text-gray-400 mb-6 font-medium">Active in 2 Games</p>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-4 relative pl-4 border-l-2 border-z-green">
+                            <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center"><i class="fa-solid fa-v text-[#ff4655] font-bold"></i></div>
+                            <div>
+                                <div class="text-white text-sm font-bold">Team Liquid</div>
+                                <div class="text-[10px] text-z-green font-bold uppercase tracking-wider">Current • 2024</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 relative pl-4 border-l-2 border-gray-700 opacity-60 group-hover:opacity-100 transition">
+                            <div class="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-xs font-bold">G2</div>
+                            <div>
+                                <div class="text-white text-sm font-bold">G2 Esports</div>
+                                <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Former • 2023</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl hover:border-z-purple/50 transition duration-300 group cursor-pointer relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-40 h-40 bg-z-purple/5 rounded-full blur-3xl group-hover:bg-z-purple/10 transition"></div>
+
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-purple/20 to-transparent border border-z-purple/20 flex items-center justify-center text-z-purple text-xl shadow-lg">
+                            <i class="fa-solid fa-gamepad"></i>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-white -rotate-45 transition"></i>
+                    </div>
+                    
+                    <h3 class="text-white font-bold font-display text-xl mb-1">Game IDs</h3>
+                    <p class="text-xs text-gray-400 mb-6 font-medium">4 Linked Accounts</p>
+
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded bg-[#ff4655] flex items-center justify-center text-white"><i class="fa-solid fa-v"></i></div>
+                                <div>
+                                    <div class="text-white text-xs font-bold font-mono">Viper#NA1</div>
+                                    <div class="text-[10px] text-z-cyan">Radiant • NA</div>
+                                </div>
+                            </div>
+                            <i class="fa-solid fa-circle-check text-z-cyan text-sm shadow-neon-cyan"></i>
+                        </div>
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded bg-[#1b2838] flex items-center justify-center text-white"><i class="fa-brands fa-steam"></i></div>
+                                <div>
+                                    <div class="text-white text-xs font-bold font-mono">ViperCS</div>
+                                    <div class="text-[10px] text-z-cyan">Global • EU</div>
+                                </div>
+                            </div>
+                            <i class="fa-solid fa-circle-check text-z-cyan text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <aside class="space-y-6 order-3">
+            
+            <div class="glass-panel p-6 rounded-2xl relative overflow-hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-tower-broadcast text-z-red animate-pulse"></i> Live
+                    </h3>
+                    <span class="text-[10px] bg-z-red/20 text-z-red px-2 py-0.5 rounded font-bold">ON AIR</span>
+                </div>
+                
+                <div class="bg-black/40 rounded-xl p-4 border border-white/10 text-center relative group cursor-pointer hover:border-z-red/50 transition">
+                    <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670&auto=format&fit=crop" class="absolute inset-0 opacity-20 w-full h-full object-cover">
+                    <div class="relative z-10">
+                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-2">Tournament • Finals</div>
+                        <div class="flex items-center justify-center gap-3 mb-3">
+                            <div class="font-black text-2xl text-white">TL</div>
+                            <div class="text-xs text-z-red font-mono font-bold">VS</div>
+                            <div class="font-black text-2xl text-white">SEN</div>
+                        </div>
+                        <button class="w-full py-2 rounded bg-z-red text-white text-xs font-bold hover:bg-white hover:text-z-red transition shadow-neon-red">
+                            Watch Stream
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest">Affiliations</h3>
+                </div>
+                
+                <div class="flex items-center gap-4 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-z-cyan/50 hover:bg-white/10 transition cursor-pointer group">
+                    <div class="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center font-black text-white border border-white/10">TL</div>
+                    <div class="flex-1">
+                        <div class="text-white font-bold text-sm group-hover:text-z-cyan transition">Team Liquid</div>
+                        <div class="text-[10px] text-gray-400">Captain • Valorant</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest">Trophies</h3>
+                    <i class="fa-solid fa-chevron-right text-xs text-gray-600"></i>
+                </div>
+                
+                <div class="grid grid-cols-4 gap-2">
+                    <div class="aspect-square rounded-xl bg-gradient-to-br from-z-gold/20 to-transparent border border-z-gold/30 flex items-center justify-center text-2xl hover:scale-110 transition cursor-help shadow-[0_0_15px_rgba(255,214,10,0.2)]">🏆</div>
+                    <div class="aspect-square rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl hover:bg-white/10 transition">🥇</div>
+                    <div class="aspect-square rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl hover:bg-white/10 transition">🥈</div>
+                    <div class="aspect-square rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl hover:bg-white/10 transition">🥉</div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-0 rounded-2xl overflow-hidden border border-z-red/30 relative group">
+                <div class="absolute inset-0 bg-gradient-to-t from-z-red/10 via-z-bg to-z-bg"></div>
+                
+                <div class="p-6 relative z-10">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-crosshairs text-z-red animate-pulse"></i>
+                            <span class="text-xs font-bold text-z-red uppercase tracking-wider">Active Bounty</span>
+                        </div>
+                        <div class="text-[10px] text-white bg-z-red px-2 py-0.5 rounded font-bold">HARD</div>
+                    </div>
+                    
+                    <h4 class="text-white font-bold text-sm leading-tight mb-2">Headhunter Challenge</h4>
+                    <p class="text-[10px] text-gray-400 mb-3">Get 50 Headshots in Ranked matches this week.</p>
+                    
+                    <div class="flex justify-between text-[10px] text-gray-300 mb-1 font-mono">
+                        <span>32 / 50</span>
+                        <span>64%</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-gray-800 rounded-full mb-4">
+                        <div class="h-full bg-z-red rounded-full shadow-neon-red" style="width: 64%"></div>
+                    </div>
+
+                    <div class="flex items-center justify-between border-t border-white/10 pt-3">
+                        <div class="flex items-center gap-1">
+                            <span class="text-xs font-bold text-z-gold">500</span>
+                            <span class="text-[9px] text-gray-400">DC REWARD</span>
+                        </div>
+                        <button class="text-[10px] text-white hover:text-z-red transition font-bold uppercase">View Details</button>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+    </main>
+
+    <div class="lg:hidden fixed bottom-0 left-0 w-full glass-panel border-t border-white/10 z-50 px-6 py-4 flex justify-between items-center text-2xl text-gray-500 pb-safe">
+        <button class="text-z-cyan drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]"><i class="fa-solid fa-user"></i></button>
+        <button class="hover:text-white transition"><i class="fa-solid fa-users"></i></button>
+        <div class="w-14 h-14 bg-gradient-to-br from-z-cyan to-z-purple rounded-full -mt-10 border-4 border-z-bg flex items-center justify-center text-white shadow-neon-purple hover:scale-110 transition cursor-pointer">
+            <i class="fa-solid fa-plus text-xl"></i>
+        </div>
+        <button class="hover:text-white transition"><i class="fa-solid fa-trophy"></i></button>
+        <button class="hover:text-white transition"><i class="fa-solid fa-bars"></i></button>
+    </div>
+
+</body>
+</html>
