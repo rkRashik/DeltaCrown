@@ -115,8 +115,45 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     # Phase 5B: Add permission flags to context
     context.update(permissions)
     
+    # UP.2 FIX: Add explicit is_owner (alias for is_own_profile) + user_profile for template
+    context['is_owner'] = permissions.get('is_own_profile', False)
+    context['user_profile'] = user_profile  # For level, kyc_status access
+    
+    # UP.2 HOTFIX: Compute wallet_balance safely (prevent VariableDoesNotExist crash)
+    wallet_balance = 0
+    if context['is_owner']:
+        dc_wallet = getattr(user_profile, 'dc_wallet', None)
+        if dc_wallet:
+            wallet_balance = dc_wallet.cached_balance or dc_wallet.balance or 0
+    
+    context['wallet_balance'] = wallet_balance  # Safe int for template
+    
+    # UP.2 FIX PASS #2: Social Links proper wiring (PART 1)
+    from apps.user_profile.models import SocialLink
+    if context['is_owner'] or permissions.get('can_view_social_links'):
+        social_links = SocialLink.objects.filter(user=profile_user).order_by('platform')
+        # Build platform map for easy access in template
+        social_links_map = {link.platform: link for link in social_links}
+        context['social_links'] = list(social_links)  # For iteration
+        context['social_links_map'] = social_links_map  # For platform-specific access
+    else:
+        context['social_links'] = []
+        context['social_links_map'] = {}
+    
+    # UP.2 FIX PASS #2: Hardware Gear wiring (PART 4)
+    from apps.user_profile.models import HardwareGear
+    # Owner always sees gear, visitors only if profile public (no specific gear privacy setting)
+    if context['is_owner'] or permissions.get('can_view_profile'):
+        hardware_gears = HardwareGear.objects.filter(
+            user=profile_user,
+            is_public=True
+        ).order_by('category')
+        context['hardware_gears'] = list(hardware_gears)
+    else:
+        context['hardware_gears'] = []
+    
     # P0 SAFETY: Wallet data ONLY for owner (never expose to non-owners)
-    if permissions.get('is_owner', False):
+    if context['is_owner']:
         try:
             from apps.economy.models import DeltaCrownWallet, DeltaCrownTransaction
             wallet, _ = DeltaCrownWallet.objects.get_or_create(user=profile_user)

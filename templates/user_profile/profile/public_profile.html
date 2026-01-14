@@ -134,8 +134,8 @@
         
         <div class="absolute inset-0 w-full h-full overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-t from-z-bg via-z-bg/80 to-transparent z-10"></div>
-            {% if profile.banner %}
-            <img src="{{ profile.banner.url }}" 
+            {% if profile.banner_url %}
+            <img src="{{ profile.banner_url }}" 
                  class="w-full h-full object-cover object-center opacity-60 group-hover:scale-105 transition duration-[3s]" alt="Cover">
             {% else %}
             <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670&auto=format&fit=crop" 
@@ -148,8 +148,8 @@
                 
                 <div class="relative shrink-0">
                     <div class="w-36 h-36 md:w-44 md:h-44 rounded-3xl p-1 bg-gradient-to-br from-z-cyan via-z-purple to-z-red shadow-neon-cyan relative group">
-                        {% if profile.avatar %}
-                        <img src="{{ profile.avatar.url }}" 
+                        {% if profile.avatar_url %}
+                        <img src="{{ profile.avatar_url }}" 
                              class="w-full h-full object-cover rounded-2xl bg-z-bg" alt="{{ profile_user.username }}">
                         {% else %}
                         <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1000&auto=format&fit=crop" 
@@ -158,7 +158,7 @@
                         
                         <div class="absolute -bottom-3 -right-3 bg-z-bg p-1 rounded-xl">
                             <div class="bg-z-gold text-black font-black font-display text-sm px-3 py-1 rounded-lg border border-white/20 shadow-neon-gold">
-                                LVL 42
+                                LVL {{ user_profile.level|default:"1" }}
                             </div>
                         </div>
                     </div>
@@ -171,10 +171,12 @@
                             [{{ user_teams.0.tag|upper }}] {{ user_teams.0.name|upper }}
                         </span>
                         {% endif %}
+                        {% if user_profile.kyc_status == 'verified' %}
                         <div class="flex items-center gap-1 bg-z-cyan/10 px-2 py-0.5 rounded border border-z-cyan/20">
                             <i class="fa-solid fa-circle-check text-sm text-z-cyan"></i>
                             <span class="text-[10px] text-z-cyan font-bold uppercase">Verified Pro</span>
                         </div>
+                        {% endif %}
                     </div>
 
                     <h1 class="text-5xl md:text-7xl font-display font-bold text-white tracking-tight flex items-end gap-4 leading-none mb-2">
@@ -257,46 +259,81 @@
                     </h3>
                 </div>
 
-                {% if social_links %}
-                    {% for link in social_links %}
-                        {% if link.platform == 'discord' %}
-                <div class="mb-4 p-3 rounded-xl bg-gradient-to-r from-z-purple/20 to-transparent border border-z-purple/30 flex items-center justify-between group cursor-pointer hover:border-z-purple/60 transition">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-z-purple flex items-center justify-center text-white text-lg shadow-lg">
-                            <i class="fa-brands fa-discord"></i>
+                {% if is_owner or permissions.can_view_social_links %}
+                    {% if social_links_map.discord %}
+                    {# Discord Preferred Area #}
+                    <div class="mb-4 p-3 rounded-xl bg-gradient-to-r from-z-purple/20 to-transparent border border-z-purple/30 flex items-center justify-between group cursor-pointer hover:border-z-purple/60 transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-z-purple flex items-center justify-center text-white text-lg shadow-lg">
+                                <i class="fa-brands fa-discord"></i>
+                            </div>
+                            <div>
+                                <div class="text-[9px] text-z-purple font-bold uppercase tracking-wider">Discord</div>
+                                <div class="text-white font-mono text-sm font-bold">{{ social_links_map.discord.handle|default:"Click to view" }}</div>
+                            </div>
                         </div>
-                        <div>
-                            <div class="text-[9px] text-z-purple font-bold uppercase tracking-wider">Preferred</div>
-                            <div class="text-white font-mono text-sm font-bold">{{ link.handle|default:link.url }}</div>
-                        </div>
+                        <i class="fa-regular fa-copy text-gray-400 group-hover:text-white"></i>
                     </div>
-                    <i class="fa-regular fa-copy text-gray-400 group-hover:text-white"></i>
-                </div>
-                        {% endif %}
-                    {% endfor %}
-                {% else %}
-                <div class="text-center text-gray-500 text-xs py-4">No contact info available</div>
-                {% endif %}
-
-                <div class="grid grid-cols-3 gap-2">
-                    {% if social_links %}
-                        {% for link in social_links %}
-                            {% if link.platform == 'twitter' %}
-                    <a href="{{ link.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#1DA1F2]/20 hover:border-[#1DA1F2]/50 transition group">
-                        <i class="fa-brands fa-twitter text-gray-400 group-hover:text-[#1DA1F2] text-xl mb-1"></i>
-                    </a>
-                            {% elif link.platform == 'twitch' %}
-                    <a href="{{ link.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#9146FF]/20 hover:border-[#9146FF]/50 transition group">
-                        <i class="fa-brands fa-twitch text-gray-400 group-hover:text-[#9146FF] text-xl mb-1"></i>
-                    </a>
-                            {% elif link.platform == 'youtube' %}
-                    <a href="{{ link.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#FF0000]/20 hover:border-[#FF0000]/50 transition group">
-                        <i class="fa-brands fa-youtube text-gray-400 group-hover:text-[#FF0000] text-xl mb-1"></i>
-                    </a>
-                            {% endif %}
-                        {% endfor %}
                     {% endif %}
+
+                    {# Social Platform Grid - Only show provided platforms #}
+                    <div class="grid grid-cols-3 gap-2">
+                        {% if social_links_map.twitter %}
+                        <a href="{{ social_links_map.twitter.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-black/40 hover:border-white/30 transition group" title="Twitter/X">
+                            <i class="fa-brands fa-x-twitter text-gray-400 group-hover:text-white text-xl mb-1"></i>
+                        </a>
+                        {% endif %}
+                        {% if social_links_map.twitch %}
+                        <a href="{{ social_links_map.twitch.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#9146FF]/20 hover:border-[#9146FF]/50 transition group" title="Twitch">
+                            <i class="fa-brands fa-twitch text-gray-400 group-hover:text-[#9146FF] text-xl mb-1"></i>
+                        </a>
+                        {% endif %}
+                        {% if social_links_map.youtube %}
+                        <a href="{{ social_links_map.youtube.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#FF0000]/20 hover:border-[#FF0000]/50 transition group" title="YouTube">
+                            <i class="fa-brands fa-youtube text-gray-400 group-hover:text-[#FF0000] text-xl mb-1"></i>
+                        </a>
+                        {% endif %}
+                        {% if social_links_map.facebook %}
+                        <a href="{{ social_links_map.facebook.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#1877F2]/20 hover:border-[#1877F2]/50 transition group" title="Facebook">
+                            <i class="fa-brands fa-facebook text-gray-400 group-hover:text-[#1877F2] text-xl mb-1"></i>
+                        </a>
+                        {% endif %}
+                        {% if social_links_map.instagram %}
+                        <a href="{{ social_links_map.instagram.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#E4405F]/20 hover:border-[#E4405F]/50 transition group" title="Instagram">
+                            <i class="fa-brands fa-instagram text-gray-400 group-hover:text-[#E4405F] text-xl mb-1"></i>
+                        </a>
+                        {% endif %}
+                        {% if social_links_map.tiktok %}
+                        <a href="{{ social_links_map.tiktok.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-black/40 hover:border-white/30 transition group" title="TikTok">
+                            <i class="fa-brands fa-tiktok text-gray-400 group-hover:text-white text-xl mb-1"></i>
+                        </a>
+                        {% endif %}
+                        {% if social_links_map.kick %}
+                        <a href="{{ social_links_map.kick.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#53FC18]/20 hover:border-[#53FC18]/50 transition group" title="Kick">
+                            <i class="fa-solid fa-k text-gray-400 group-hover:text-[#53FC18] text-xl mb-1"></i>
+                        </a>
+                        {% endif %}
+                        {% if social_links_map.steam %}
+                        <a href="{{ social_links_map.steam.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#171A21]/20 hover:border-white/30 transition group" title="Steam">
+                            <i class="fa-brands fa-steam text-gray-400 group-hover:text-white text-xl mb-1"></i>
+                        </a>
+                        {% endif %}
+                        {% if social_links_map.github %}
+                        <a href="{{ social_links_map.github.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-black/40 hover:border-white/30 transition group" title="GitHub">
+                            <i class="fa-brands fa-github text-gray-400 group-hover:text-white text-xl mb-1"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                    {% if not social_links %}
+                    <div class="text-center text-gray-500 text-xs py-4 italic">No social links connected</div>
+                    {% endif %}
+                {% else %}
+                <div class="text-center text-gray-500 text-xs py-8 italic">
+                    <i class="fa-solid fa-lock text-2xl mb-2 block"></i>
+                    Contact info is private
                 </div>
+                {% endif %}
             </div>
 
             <div class="glass-panel p-6 rounded-2xl group cursor-pointer hover:border-z-green/30 transition">
@@ -307,14 +344,28 @@
                     <i class="fa-solid fa-arrow-right text-gray-600 -rotate-45 group-hover:text-z-green transition"></i>
                 </div>
                 <div class="space-y-3">
-                    <div class="flex items-center gap-3">
-                        <i class="fa-solid fa-computer-mouse text-gray-500"></i>
-                        <span class="text-sm text-white font-bold">Logitech G Pro X</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <i class="fa-regular fa-keyboard text-gray-500"></i>
-                        <span class="text-sm text-white font-bold">Wooting 60HE</span>
-                    </div>
+                    {% if hardware_gears %}
+                        {% for gear in hardware_gears %}
+                        <div class="flex items-center gap-3">
+                            {% if gear.category == 'MOUSE' %}
+                            <i class="fa-solid fa-computer-mouse text-gray-500"></i>
+                            {% elif gear.category == 'KEYBOARD' %}
+                            <i class="fa-regular fa-keyboard text-gray-500"></i>
+                            {% elif gear.category == 'HEADSET' %}
+                            <i class="fa-solid fa-headphones text-gray-500"></i>
+                            {% elif gear.category == 'MONITOR' %}
+                            <i class="fa-solid fa-desktop text-gray-500"></i>
+                            {% elif gear.category == 'MOUSEPAD' %}
+                            <i class="fa-solid fa-square text-gray-500"></i>
+                            {% else %}
+                            <i class="fa-solid fa-microchip text-gray-500"></i>
+                            {% endif %}
+                            <span class="text-sm text-white font-bold">{{ gear.brand }} {{ gear.model }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-gray-500 text-xs py-2 italic">No gear configured</div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -327,19 +378,16 @@
                             <div class="w-8 h-8 rounded-full bg-z-gold/20 flex items-center justify-center border border-z-gold/50 text-z-gold shadow-[0_0_15px_rgba(255,214,10,0.4)]">
                                 <i class="fa-solid fa-coins"></i>
                             </div>
-                            <span class="text-xs font-bold text-z-gold uppercase tracking-wider">Delta Vault</span>
+                            <span class="text-xs font-bold text-z-gold uppercase tracking-wider">Wallet</span>
                         </div>
                         <i class="fa-solid fa-chevron-right text-xs text-z-gold/50"></i>
                     </div>
                     
+                    {% if is_owner %}
                     <div class="mt-4">
                         <div class="text-[10px] text-gray-400 uppercase font-bold">Current Balance</div>
                         <div class="text-3xl font-display font-black text-white flex items-end gap-1">
-                            {% if wallet %}
-                            {{ wallet.balance|floatformat:0 }}
-                            {% else %}
-                            0
-                            {% endif %}
+                            {{ wallet_balance|floatformat:0 }}
                             <span class="text-sm font-sans text-z-gold font-bold mb-1">DC</span>
                         </div>
                     </div>
@@ -348,6 +396,12 @@
                         <button class="flex-1 py-2 rounded bg-z-gold text-black text-[10px] font-black uppercase hover:bg-white transition">Top Up</button>
                         <button class="flex-1 py-2 rounded bg-white/5 text-white text-[10px] font-black uppercase border border-white/10 hover:bg-white/10 transition">History</button>
                     </div>
+                    {% else %}
+                    <div class="mt-4 text-center py-6">
+                        <i class="fa-solid fa-lock text-3xl text-gray-600 mb-2"></i>
+                        <div class="text-xs text-gray-500 italic">Wallet balance is private</div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -572,11 +626,13 @@
                         <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-white -rotate-45 transition"></i>
                     </div>
                     
-                    <h3 class="text-white font-bold font-display text-xl mb-1">Game IDs</h3>
+                    <h3 class="text-white font-bold font-display text-xl mb-1">Game Passports</h3>
                     <p class="text-xs text-gray-400 mb-6 font-medium">{{ pinned_passports|length|add:unpinned_passports|length }} Linked Account{{ pinned_passports|length|add:unpinned_passports|length|pluralize }}</p>
 
+                    {% if is_owner or permissions.can_view_game_passports %}
                     <div class="space-y-3">
-                        {% for passport in pinned_passports|slice:":2" %}
+                        {# Show pinned passports first #}
+                        {% for passport in pinned_passports %}
                         <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded bg-z-cyan flex items-center justify-center text-white"><i class="fa-solid fa-gamepad"></i></div>
@@ -589,10 +645,33 @@
                             <i class="fa-solid fa-circle-check text-z-cyan text-sm shadow-neon-cyan"></i>
                             {% endif %}
                         </div>
-                        {% empty %}
-                        <div class="text-center text-gray-500 text-xs py-4">No game IDs linked yet</div>
                         {% endfor %}
+                        {# Show unpinned passports #}
+                        {% for passport in unpinned_passports %}
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded bg-gray-700 flex items-center justify-center text-white"><i class="fa-solid fa-gamepad"></i></div>
+                                <div>
+                                    <div class="text-white text-xs font-bold font-mono">{{ passport.in_game_name }}{% if passport.discriminator %}#{{ passport.discriminator }}{% endif %}</div>
+                                    <div class="text-[10px] text-gray-400">{% if passport.rank_name %}{{ passport.rank_name }}{% endif %}{% if passport.platform %} • {{ passport.platform }}{% endif %}</div>
+                                </div>
+                            </div>
+                            {% if passport.is_verified %}
+                            <i class="fa-solid fa-circle-check text-gray-500 text-sm"></i>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        {# Empty state #}
+                        {% if not pinned_passports and not unpinned_passports %}
+                        <div class="text-center text-gray-500 text-xs py-4">No game passports linked yet</div>
+                        {% endif %}
                     </div>
+                    {% else %}
+                    <div class="text-center text-gray-500 text-xs py-8 italic">
+                        <i class="fa-solid fa-lock text-2xl mb-2 block"></i>
+                        Game Passports are private
+                    </div>
+                    {% endif %}
                 </div>
 
             </div>
