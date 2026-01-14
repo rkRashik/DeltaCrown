@@ -941,6 +941,174 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         for bounty in completed_bounties[:5]
     ]
     
+    # ========================================================================
+    # UP.3: IDENTITY + COMPETITIVE DNA + STATS + RELATIONSHIP CONTEXTS
+    # ========================================================================
+    
+    # 1) IDENTITY CONTEXT
+    # Build identity_ctx with privacy enforcement
+    identity_ctx = {
+        'display_name': user_profile.display_name or profile_user.username,
+        'username': profile_user.username,
+        'member_since': profile_user.date_joined,
+    }
+    
+    # Conditional identity fields (privacy enforced)
+    is_owner = permissions.get('is_own_profile', False)
+    privacy_settings = user_profile.privacy_settings
+    
+    # Country / Nationality (check privacy)
+    if is_owner or privacy_settings.show_nationality:
+        identity_ctx['country'] = user_profile.country or None
+        identity_ctx['nationality'] = user_profile.nationality or None
+    else:
+        identity_ctx['country'] = None
+        identity_ctx['nationality'] = None
+    
+    # Gender (check privacy - no specific show_gender privacy setting exists, assume public if set)
+    identity_ctx['gender'] = user_profile.gender or None
+    identity_ctx['gender_display'] = user_profile.get_gender_display() if user_profile.gender else None
+    
+    # Pronouns (check privacy)
+    if is_owner or privacy_settings.show_pronouns:
+        identity_ctx['pronouns'] = user_profile.pronouns or None
+    else:
+        identity_ctx['pronouns'] = None
+    
+    # Age / Date of Birth (owner only for now - no public DOB privacy setting)
+    if is_owner and user_profile.date_of_birth:
+        from datetime import date
+        today = date.today()
+        age = today.year - user_profile.date_of_birth.year - (
+            (today.month, today.day) < (user_profile.date_of_birth.month, user_profile.date_of_birth.day)
+        )
+        identity_ctx['age'] = age
+        identity_ctx['date_of_birth'] = user_profile.date_of_birth
+    else:
+        identity_ctx['age'] = None
+        identity_ctx['date_of_birth'] = None
+    
+    # Languages
+    languages = user_profile.communication_languages or []
+    identity_ctx['languages'] = languages if languages else None
+    identity_ctx['languages_display'] = ', '.join(languages) if languages else None
+    
+    context['identity_ctx'] = identity_ctx
+    
+    # 2) COMPETITIVE DNA CONTEXT
+    competitive_ctx = {}
+    
+    # Device platform (check privacy)
+    if is_owner or privacy_settings.show_device_platform:
+        competitive_ctx['platform'] = user_profile.device_platform or None
+        competitive_ctx['platform_display'] = user_profile.get_device_platform_display() if user_profile.device_platform else None
+    else:
+        competitive_ctx['platform'] = None
+        competitive_ctx['platform_display'] = None
+    
+    # Play style (check privacy)
+    if is_owner or privacy_settings.show_play_style:
+        competitive_ctx['play_style'] = user_profile.play_style or None
+        competitive_ctx['play_style_display'] = user_profile.get_play_style_display() if user_profile.play_style else None
+    else:
+        competitive_ctx['play_style'] = None
+        competitive_ctx['play_style_display'] = None
+    
+    # Roles (check privacy)
+    if is_owner or privacy_settings.show_roles:
+        competitive_ctx['primary_role'] = user_profile.main_role or None
+        competitive_ctx['secondary_role'] = user_profile.secondary_role or None
+    else:
+        competitive_ctx['primary_role'] = None
+        competitive_ctx['secondary_role'] = None
+    
+    # Region / Server
+    competitive_ctx['region'] = user_profile.region or None
+    competitive_ctx['region_display'] = user_profile.get_region_display() if user_profile.region else None
+    
+    # Active hours (check privacy)
+    if is_owner or privacy_settings.show_active_hours:
+        competitive_ctx['active_hours'] = user_profile.active_hours or None
+    else:
+        competitive_ctx['active_hours'] = None
+    
+    # LAN availability
+    competitive_ctx['lan_ready'] = user_profile.lan_availability
+    
+    # Status (no specific field, derive from profile state)
+    competitive_ctx['status'] = None  # Could add status field later
+    competitive_ctx['is_signed'] = False  # Could check team membership or org affiliation
+    
+    context['competitive_ctx'] = competitive_ctx
+    
+    # 3) STATS CONTEXT (already exists as user_stats, just ensure it's present)
+    # user_stats already added above (lines 650-673), just ensure all keys exist
+    if 'user_stats' not in context:
+        context['user_stats'] = {
+            'total_matches': 0,
+            'total_wins': 0,
+            'win_rate': 0,
+            'tournaments_played': 0,
+            'tournaments_won': 0,
+            'total_kills': 0,
+            'total_deaths': 0,
+            'kd_ratio': 0
+        }
+    
+    # Add stats_ctx as alias for clarity
+    context['stats_ctx'] = context['user_stats']
+    
+    # 4) RELATIONSHIP CONTEXT
+    relationship_ctx = {
+        'is_owner': is_owner,
+        'is_authenticated_viewer': request.user.is_authenticated,
+        'is_following': permissions.get('is_following', False),
+        'is_follower': permissions.get('is_follower', False),
+        'follow_requested': permissions.get('has_pending_request', False),
+        'is_private_account': privacy_settings.is_private_account,
+    }
+    
+    # Determine viewer role label
+    if is_owner:
+        relationship_ctx['viewer_role_label'] = 'Owner'
+    elif relationship_ctx['is_following'] and relationship_ctx['is_follower']:
+        relationship_ctx['viewer_role_label'] = 'Mutual'
+    elif relationship_ctx['is_following']:
+        relationship_ctx['viewer_role_label'] = 'Following'
+    elif relationship_ctx['is_follower']:
+        relationship_ctx['viewer_role_label'] = 'Follower'
+    elif request.user.is_authenticated:
+        relationship_ctx['viewer_role_label'] = 'Visitor'
+    else:
+        relationship_ctx['viewer_role_label'] = 'Guest'
+    
+    # Determine action permissions
+    if is_owner:
+        relationship_ctx['can_follow'] = False
+        relationship_ctx['can_message'] = False
+        relationship_ctx['can_recruit'] = False
+        relationship_ctx['can_invite_team'] = False
+        relationship_ctx['show_edit_button'] = True
+    elif request.user.is_authenticated:
+        relationship_ctx['can_follow'] = not relationship_ctx['is_following']
+        relationship_ctx['can_message'] = privacy_settings.allow_direct_messages
+        relationship_ctx['can_recruit'] = True  # Could add more logic
+        relationship_ctx['can_invite_team'] = privacy_settings.allow_team_invites
+        relationship_ctx['show_edit_button'] = False
+    else:
+        relationship_ctx['can_follow'] = False
+        relationship_ctx['can_message'] = False
+        relationship_ctx['can_recruit'] = False
+        relationship_ctx['can_invite_team'] = False
+        relationship_ctx['show_edit_button'] = False
+    
+    context['relationship_ctx'] = relationship_ctx
+    
+    # UP.3 HOTFIX #1: Add safe URL strings to avoid NoReverseMatch
+    context['settings_url'] = '/me/settings/'
+    context['follow_url'] = f'/actions/follow-safe/{profile_user.username}/'
+    context['unfollow_url'] = f'/actions/unfollow-safe/{profile_user.username}/'
+    
     # Render new Zenith profile template (Phase 2B.1)
     return render(request, 'user_profile/profile/public_profile.html', context)
 

@@ -213,11 +213,34 @@
                 </div>
 
                 <div class="hidden md:flex flex-col gap-3 shrink-0 mb-4">
-                    <button class="bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-file-signature"></i> Recruit
-                    </button>
+                    {% if relationship_ctx.show_edit_button %}
+                    <a href="{{ settings_url }}" class="bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-pen"></i> Edit Profile
+                    </a>
+                    {% else %}
+                        {% if relationship_ctx.can_follow %}
+                            {% if relationship_ctx.follow_requested %}
+                            <button disabled class="bg-gray-500/50 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl cursor-not-allowed flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-clock"></i> Requested
+                            </button>
+                            {% else %}
+                            <a href="{{ follow_url }}" class="bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-user-plus"></i> {% if relationship_ctx.is_private_account %}Request Follow{% else %}Follow{% endif %}
+                            </a>
+                            {% endif %}
+                        {% elif relationship_ctx.is_following %}
+                        <a href="{{ unfollow_url }}" class="bg-white/10 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-user-check"></i> Following
+                        </a>
+                        {% endif %}
+                        {% if relationship_ctx.can_recruit %}
+                        <button class="bg-z-purple/20 text-z-purple border border-z-purple/50 font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-z-purple hover:text-white transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-signature"></i> Recruit
+                        </button>
+                        {% endif %}
+                    {% endif %}
                     <div class="flex gap-2">
-                        {% if preferred_contact.href %}
+                        {% if preferred_contact.href and not relationship_ctx.show_edit_button %}
                         <a href="{{ preferred_contact.href }}" target="_blank" rel="noopener" class="flex-1 bg-z-purple/20 text-z-purple border border-z-purple/50 px-6 py-3 rounded-xl hover:bg-z-purple hover:text-white transition font-bold flex items-center justify-center gap-2">
                             <i class="{{ preferred_contact.icon }}"></i> Connect
                         </a>
@@ -442,24 +465,41 @@
                             <i class="fa-solid fa-fingerprint text-z-cyan"></i> I. Identity
                         </h3>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {% if identity_ctx.nationality %}
                             <div class="bg-black/20 p-3 rounded-xl border border-white/5 hover:border-z-cyan/30 transition">
                                 <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Nationality</div>
                                 <div class="flex items-center gap-2 text-white font-bold text-sm">
-                                    <img src="https://flagcdn.com/bd.svg" class="w-5 rounded shadow"> BD
+                                    {% if identity_ctx.nationality|length == 2 %}
+                                    <img src="https://flagcdn.com/{{ identity_ctx.nationality|lower }}.svg" class="w-5 rounded shadow">
+                                    {% endif %}
+                                    {{ identity_ctx.nationality|upper }}
                                 </div>
                             </div>
+                            {% endif %}
+                            {% if identity_ctx.age %}
                             <div class="bg-black/20 p-3 rounded-xl border border-white/5 hover:border-z-cyan/30 transition">
                                 <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Age</div>
-                                <div class="text-white font-bold text-sm">22 Years</div>
+                                <div class="text-white font-bold text-sm">{{ identity_ctx.age }} Years</div>
                             </div>
+                            {% endif %}
+                            {% if identity_ctx.gender_display %}
                             <div class="bg-black/20 p-3 rounded-xl border border-white/5 hover:border-z-cyan/30 transition">
                                 <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Gender</div>
-                                <div class="text-white font-bold text-sm">Male</div>
+                                <div class="text-white font-bold text-sm">{{ identity_ctx.gender_display }}</div>
                             </div>
+                            {% endif %}
+                            {% if identity_ctx.pronouns %}
                             <div class="bg-black/20 p-3 rounded-xl border border-white/5 hover:border-z-cyan/30 transition">
                                 <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Pronouns</div>
-                                <div class="text-white font-bold text-sm">He/Him</div>
+                                <div class="text-white font-bold text-sm">{{ identity_ctx.pronouns }}</div>
                             </div>
+                            {% endif %}
+                            {% if identity_ctx.member_since %}
+                            <div class="bg-black/20 p-3 rounded-xl border border-white/5 hover:border-z-cyan/30 transition">
+                                <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Member Since</div>
+                                <div class="text-white font-bold text-sm">{{ identity_ctx.member_since|date:"M Y" }}</div>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -469,50 +509,58 @@
                         </h3>
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            {% if competitive_ctx.platform_display %}
                             <div class="glass-card p-4 rounded-xl flex items-center gap-4 border-l-2 border-l-white">
                                 <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xl text-white">
                                     <i class="fa-solid fa-desktop"></i>
                                 </div>
                                 <div>
                                     <div class="text-[10px] text-gray-500 uppercase font-bold">Platform</div>
-                                    <div class="text-white font-bold">PC / Windows</div>
+                                    <div class="text-white font-bold">{{ competitive_ctx.platform_display }}</div>
                                 </div>
                             </div>
+                            {% endif %}
+                            {% if competitive_ctx.play_style_display %}
                             <div class="glass-card p-4 rounded-xl flex items-center gap-4 border-l-2 border-l-z-green bg-z-green/5">
                                 <div class="w-10 h-10 rounded-full bg-z-green/20 flex items-center justify-center text-xl text-z-green">
                                     <i class="fa-solid fa-signature"></i>
                                 </div>
                                 <div>
-                                    <div class="text-[10px] text-z-green uppercase font-bold">Status</div>
-                                    <div class="text-white font-bold">Signed</div>
+                                    <div class="text-[10px] text-z-green uppercase font-bold">Play Style</div>
+                                    <div class="text-white font-bold">{{ competitive_ctx.play_style_display }}</div>
                                 </div>
                             </div>
-                            <div class="glass-card p-4 rounded-xl flex items-center gap-4 border-l-2 border-l-z-gold bg-z-gold/5">
-                                <div class="w-10 h-10 rounded-full bg-z-gold/20 flex items-center justify-center text-xl text-z-gold">
+                            {% endif %}
+                            <div class="glass-card p-4 rounded-xl flex items-center gap-4 border-l-2 {% if competitive_ctx.lan_ready %}border-l-z-gold bg-z-gold/5{% else %}border-l-gray-500 bg-gray-500/5{% endif %}">
+                                <div class="w-10 h-10 rounded-full {% if competitive_ctx.lan_ready %}bg-z-gold/20{% else %}bg-gray-500/20{% endif %} flex items-center justify-center text-xl {% if competitive_ctx.lan_ready %}text-z-gold{% else %}text-gray-500{% endif %}">
                                     <i class="fa-solid fa-plane-departure"></i>
                                 </div>
                                 <div>
-                                    <div class="text-[10px] text-z-gold uppercase font-bold">LAN Ready</div>
-                                    <div class="text-white font-bold">Yes</div>
+                                    <div class="text-[10px] {% if competitive_ctx.lan_ready %}text-z-gold{% else %}text-gray-500{% endif %} uppercase font-bold">LAN Ready</div>
+                                    <div class="text-white font-bold">{% if competitive_ctx.lan_ready %}Yes{% else %}No{% endif %}</div>
                                 </div>
                             </div>
                         </div>
 
+                        {% if competitive_ctx.primary_role or competitive_ctx.secondary_role %}
                         <div class="glass-card p-5 rounded-xl border-t-2 border-t-z-cyan relative overflow-hidden">
                             <div class="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-z-cyan/10 to-transparent"></div>
                             <div class="flex items-center justify-between relative z-10">
                                 <div>
                                     <div class="text-[10px] text-gray-500 uppercase font-bold mb-2">Primary Role</div>
                                     <div class="text-2xl font-display font-bold text-white flex items-center gap-2">
-                                        <i class="fa-solid fa-crosshairs text-z-cyan"></i> Entry Fragger
+                                        <i class="fa-solid fa-crosshairs text-z-cyan"></i> {{ competitive_ctx.primary_role|default:"—" }}
                                     </div>
                                 </div>
+                                {% if competitive_ctx.secondary_role %}
                                 <div class="text-right">
                                     <div class="text-[10px] text-gray-500 uppercase font-bold mb-2">Secondary</div>
-                                    <div class="text-lg font-bold text-gray-300">Flex / Initiator</div>
+                                    <div class="text-lg font-bold text-gray-300">{{ competitive_ctx.secondary_role }}</div>
                                 </div>
+                                {% endif %}
                             </div>
                         </div>
+                        {% endif %}
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -521,28 +569,38 @@
                                 <i class="fa-solid fa-globe text-z-gold"></i> Logistics
                             </h3>
                             <div class="space-y-3">
+                                {% if identity_ctx.languages_display %}
                                 <div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
                                     <span class="text-xs text-gray-400 uppercase font-bold">Language</span>
-                                    <span class="text-sm font-bold text-white">English, Bengali</span>
+                                    <span class="text-sm font-bold text-white">{{ identity_ctx.languages_display }}</span>
                                 </div>
+                                {% endif %}
+                                {% if competitive_ctx.region_display %}
                                 <div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
-                                    <span class="text-xs text-gray-400 uppercase font-bold">Server</span>
-                                    <span class="text-sm font-bold text-white">Singapore / Mumbai</span>
+                                    <span class="text-xs text-gray-400 uppercase font-bold">Region</span>
+                                    <span class="text-sm font-bold text-white">{{ competitive_ctx.region_display }}</span>
                                 </div>
+                                {% endif %}
+                                {% if competitive_ctx.active_hours %}
                                 <div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
                                     <span class="text-xs text-gray-400 uppercase font-bold">Hours</span>
-                                    <span class="text-sm font-bold text-white">6PM - 2AM (BDT)</span>
+                                    <span class="text-sm font-bold text-white">{{ competitive_ctx.active_hours }}</span>
                                 </div>
+                                {% endif %}
                             </div>
                         </div>
                         <div>
                             <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Bio</h3>
+                            {% if profile.bio %}
                             <div class="p-4 rounded-xl bg-gradient-to-br from-white/5 to-transparent border border-white/5 italic text-gray-300 text-sm leading-relaxed">
                                 <i class="fa-solid fa-quote-left text-z-purple text-xl mb-2 block"></i>
-                                Been playing FPS since CS 1.6. Transitioned to Valorant in Beta. 
-                                Known for aggressive Jett plays and clutch situations. 
-                                Currently focused on qualifying for Ascension 2026.
+                                {{ profile.bio }}
                             </div>
+                            {% else %}
+                            <div class="p-4 rounded-xl bg-gradient-to-br from-white/5 to-transparent border border-white/5 text-gray-500 text-sm text-center">
+                                No bio added yet
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -563,26 +621,26 @@
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
                         <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">K/D Ratio</div>
-                        <div class="text-2xl font-black text-white">1.42</div>
-                        <div class="text-[10px] text-z-green mt-1 flex justify-center items-center gap-1"><i class="fa-solid fa-arrow-up"></i> 2.4%</div>
+                        <div class="text-2xl font-black text-white">{{ stats_ctx.kd_ratio|default:"0.00" }}</div>
+                        <div class="text-[10px] text-gray-400 mt-1">{{ stats_ctx.total_kills|default:0 }} K / {{ stats_ctx.total_deaths|default:0 }} D</div>
                         <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-green to-transparent opacity-50"></div>
                     </div>
                     <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
                         <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Win Rate</div>
-                        <div class="text-2xl font-black text-white">58%</div>
-                        <div class="text-[10px] text-gray-400 mt-1">42 W / 30 L</div>
+                        <div class="text-2xl font-black text-white">{{ stats_ctx.win_rate|default:0 }}%</div>
+                        <div class="text-[10px] text-gray-400 mt-1">{{ stats_ctx.total_wins|default:0 }} W / {{ stats_ctx.total_matches|default:0 }} M</div>
                          <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-cyan to-transparent opacity-50"></div>
                     </div>
                     <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
-                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Headshot %</div>
-                        <div class="text-2xl font-black text-white">32%</div>
-                        <div class="text-[10px] text-z-red mt-1 flex justify-center items-center gap-1"><i class="fa-solid fa-arrow-down"></i> 0.5%</div>
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Matches</div>
+                        <div class="text-2xl font-black text-white">{{ stats_ctx.total_matches|default:0 }}</div>
+                        <div class="text-[10px] text-gray-400 mt-1">Played</div>
                          <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-purple to-transparent opacity-50"></div>
                     </div>
                     <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
-                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Avg Score</div>
-                        <div class="text-2xl font-black text-white">284</div>
-                        <div class="text-[10px] text-z-green mt-1">S Tier</div>
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Tournaments</div>
+                        <div class="text-2xl font-black text-white">{{ stats_ctx.tournaments_won|default:0 }}</div>
+                        <div class="text-[10px] text-gray-400 mt-1">Won / {{ stats_ctx.tournaments_played|default:0 }} Played</div>
                          <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-gold to-transparent opacity-50"></div>
                     </div>
                 </div>
