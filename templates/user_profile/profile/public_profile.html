@@ -217,9 +217,11 @@
                         <i class="fa-solid fa-file-signature"></i> Recruit
                     </button>
                     <div class="flex gap-2">
-                        <button class="flex-1 bg-z-purple/20 text-z-purple border border-z-purple/50 px-6 py-3 rounded-xl hover:bg-z-purple hover:text-white transition font-bold flex items-center justify-center gap-2">
-                            <i class="fa-brands fa-discord"></i> Connect
-                        </button>
+                        {% if preferred_contact.href %}
+                        <a href="{{ preferred_contact.href }}" target="_blank" rel="noopener" class="flex-1 bg-z-purple/20 text-z-purple border border-z-purple/50 px-6 py-3 rounded-xl hover:bg-z-purple hover:text-white transition font-bold flex items-center justify-center gap-2">
+                            <i class="{{ preferred_contact.icon }}"></i> Connect
+                        </a>
+                        {% endif %}
                         <button class="bg-white/5 text-white border border-white/10 px-5 py-3 rounded-xl hover:bg-white/10 transition">
                             <i class="fa-solid fa-share-nodes"></i>
                         </button>
@@ -260,72 +262,75 @@
                 </div>
 
                 {% if is_owner or permissions.can_view_social_links %}
-                    {% if social_links_map.discord %}
-                    {# Discord Preferred Area #}
-                    <div class="mb-4 p-3 rounded-xl bg-gradient-to-r from-z-purple/20 to-transparent border border-z-purple/30 flex items-center justify-between group cursor-pointer hover:border-z-purple/60 transition">
-                        <div class="flex items-center gap-3">
+                    {# UP.2 FIX PASS #5 PART A: Discord-First Row with proper copy button (not inside <a>) #}
+                    {% if discord_handle or discord_url %}
+                    <div class="mb-4 p-3 rounded-xl bg-gradient-to-r from-z-purple/20 to-transparent border border-z-purple/30 flex items-center justify-between group">
+                        <a href="{{ discord_url|default:'https://discord.com/' }}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition">
                             <div class="w-10 h-10 rounded-lg bg-z-purple flex items-center justify-center text-white text-lg shadow-lg">
                                 <i class="fa-brands fa-discord"></i>
                             </div>
                             <div>
                                 <div class="text-[9px] text-z-purple font-bold uppercase tracking-wider">Discord</div>
-                                <div class="text-white font-mono text-sm font-bold">{{ social_links_map.discord.handle|default:"Click to view" }}</div>
+                                <div class="text-white font-mono text-sm font-bold">{{ discord_handle|default:"View Profile" }}</div>
                             </div>
-                        </div>
-                        <i class="fa-regular fa-copy text-gray-400 group-hover:text-white"></i>
+                        </a>
+                        {% if discord_handle %}
+                        <button type="button" 
+                                data-copy-text="{{ discord_handle }}" 
+                                aria-label="Copy Discord username"
+                                class="text-gray-400 hover:text-white transition-colors p-2 flex-shrink-0">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                        {% endif %}
                     </div>
                     {% endif %}
 
-                    {# Social Platform Grid - Only show provided platforms #}
+                    {# UP.2 FIX PASS #5 PART B+C: Social Platform Grid - Loop through filtered links (exact URLs, no blanks) #}
                     <div class="grid grid-cols-3 gap-2">
-                        {% if social_links_map.twitter %}
-                        <a href="{{ social_links_map.twitter.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-black/40 hover:border-white/30 transition group" title="Twitter/X">
-                            <i class="fa-brands fa-x-twitter text-gray-400 group-hover:text-white text-xl mb-1"></i>
-                        </a>
-                        {% endif %}
-                        {% if social_links_map.twitch %}
-                        <a href="{{ social_links_map.twitch.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#9146FF]/20 hover:border-[#9146FF]/50 transition group" title="Twitch">
-                            <i class="fa-brands fa-twitch text-gray-400 group-hover:text-[#9146FF] text-xl mb-1"></i>
-                        </a>
-                        {% endif %}
-                        {% if social_links_map.youtube %}
-                        <a href="{{ social_links_map.youtube.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#FF0000]/20 hover:border-[#FF0000]/50 transition group" title="YouTube">
-                            <i class="fa-brands fa-youtube text-gray-400 group-hover:text-[#FF0000] text-xl mb-1"></i>
-                        </a>
-                        {% endif %}
-                        {% if social_links_map.facebook %}
-                        <a href="{{ social_links_map.facebook.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#1877F2]/20 hover:border-[#1877F2]/50 transition group" title="Facebook">
-                            <i class="fa-brands fa-facebook text-gray-400 group-hover:text-[#1877F2] text-xl mb-1"></i>
-                        </a>
-                        {% endif %}
-                        {% if social_links_map.instagram %}
-                        <a href="{{ social_links_map.instagram.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#E4405F]/20 hover:border-[#E4405F]/50 transition group" title="Instagram">
-                            <i class="fa-brands fa-instagram text-gray-400 group-hover:text-[#E4405F] text-xl mb-1"></i>
-                        </a>
-                        {% endif %}
-                        {% if social_links_map.tiktok %}
-                        <a href="{{ social_links_map.tiktok.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-black/40 hover:border-white/30 transition group" title="TikTok">
-                            <i class="fa-brands fa-tiktok text-gray-400 group-hover:text-white text-xl mb-1"></i>
-                        </a>
-                        {% endif %}
-                        {% if social_links_map.kick %}
-                        <a href="{{ social_links_map.kick.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#53FC18]/20 hover:border-[#53FC18]/50 transition group" title="Kick">
-                            <i class="fa-solid fa-k text-gray-400 group-hover:text-[#53FC18] text-xl mb-1"></i>
-                        </a>
-                        {% endif %}
-                        {% if social_links_map.steam %}
-                        <a href="{{ social_links_map.steam.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#171A21]/20 hover:border-white/30 transition group" title="Steam">
-                            <i class="fa-brands fa-steam text-gray-400 group-hover:text-white text-xl mb-1"></i>
-                        </a>
-                        {% endif %}
-                        {% if social_links_map.github %}
-                        <a href="{{ social_links_map.github.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-black/40 hover:border-white/30 transition group" title="GitHub">
-                            <i class="fa-brands fa-github text-gray-400 group-hover:text-white text-xl mb-1"></i>
-                        </a>
-                        {% endif %}
+                        {% for link in social_links_renderable %}
+                            {% if link.platform != 'discord' %}
+                                {% if link.platform == 'twitter' %}
+                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-black/40 hover:border-white/30 transition group" title="Twitter/X">
+                                    <span class="text-gray-400 group-hover:text-white text-2xl font-bold mb-1">𝕏</span>
+                                </a>
+                                {% elif link.platform == 'twitch' %}
+                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#9146FF]/20 hover:border-[#9146FF]/50 transition group" title="Twitch">
+                                    <i class="fa-brands fa-twitch text-gray-400 group-hover:text-[#9146FF] text-xl mb-1"></i>
+                                </a>
+                                {% elif link.platform == 'youtube' %}
+                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#FF0000]/20 hover:border-[#FF0000]/50 transition group" title="YouTube">
+                                    <i class="fa-brands fa-youtube text-gray-400 group-hover:text-[#FF0000] text-xl mb-1"></i>
+                                </a>
+                                {% elif link.platform == 'facebook' %}
+                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#1877F2]/20 hover:border-[#1877F2]/50 transition group" title="Facebook">
+                                    <i class="fa-brands fa-facebook text-gray-400 group-hover:text-[#1877F2] text-xl mb-1"></i>
+                                </a>
+                                {% elif link.platform == 'instagram' %}
+                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#E4405F]/20 hover:border-[#E4405F]/50 transition group" title="Instagram">
+                                    <i class="fa-brands fa-instagram text-gray-400 group-hover:text-[#E4405F] text-xl mb-1"></i>
+                                </a>
+                                {% elif link.platform == 'tiktok' %}
+                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-black/40 hover:border-white/30 transition group" title="TikTok">
+                                    <i class="fa-brands fa-tiktok text-gray-400 group-hover:text-white text-xl mb-1"></i>
+                                </a>
+                                {% elif link.platform == 'kick' %}
+                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#53FC18]/20 hover:border-[#53FC18]/50 transition group" title="Kick">
+                                    <i class="fa-solid fa-k text-gray-400 group-hover:text-[#53FC18] text-xl mb-1"></i>
+                                </a>
+                                {% elif link.platform == 'steam' %}
+                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#171A21]/20 hover:border-white/30 transition group" title="Steam">
+                                    <i class="fa-brands fa-steam text-gray-400 group-hover:text-white text-xl mb-1"></i>
+                                </a>
+                                {% elif link.platform == 'github' %}
+                                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-black/40 hover:border-white/30 transition group" title="GitHub">
+                                    <i class="fa-brands fa-github text-gray-400 group-hover:text-white text-xl mb-1"></i>
+                                </a>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
                     </div>
                     
-                    {% if not social_links %}
+                    {% if not social_links and not social_links_map.discord %}
                     <div class="text-center text-gray-500 text-xs py-4 italic">No social links connected</div>
                     {% endif %}
                 {% else %}
@@ -792,5 +797,37 @@
 
 </div>
 <!-- End Zenith Profile Wrapper -->
+
+{# UP.2 FIX PASS #5 PART A: Clipboard copy JS for Discord button #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Attach clipboard copy to all [data-copy-text] buttons
+    const copyButtons = document.querySelectorAll('[data-copy-text]');
+    
+    copyButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const textToCopy = this.getAttribute('data-copy-text');
+            
+            if (navigator.clipboard && textToCopy) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    // Success feedback
+                    const originalHTML = this.innerHTML;
+                    this.innerHTML = '<i class="fa-solid fa-check text-green-400"></i>';
+                    
+                    setTimeout(() => {
+                        this.innerHTML = originalHTML;
+                    }, 1500);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    alert('Copied: ' + textToCopy);
+                });
+            }
+        });
+    });
+});
+</script>
 
 {% endblock %}

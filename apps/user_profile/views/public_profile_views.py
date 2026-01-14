@@ -30,7 +30,7 @@ import os
 from apps.user_profile.services.profile_context import build_public_profile_context
 from apps.user_profile.services.follow_service import FollowService  # Phase 6B: Follow request status
 from apps.user_profile.services.profile_permissions import ProfilePermissionChecker
-from apps.user_profile.models import UserProfile
+from apps.user_profile.models import UserProfile, SocialLink
 
 logger = logging.getLogger(__name__)
 
@@ -128,17 +128,52 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     
     context['wallet_balance'] = wallet_balance  # Safe int for template
     
-    # UP.2 FIX PASS #2: Social Links proper wiring (PART 1)
+    # UP.2 FIX PASS #2 + #5: Social Links proper wiring with URL filtering
     from apps.user_profile.models import SocialLink
+    
+    discord_handle = ''
+    discord_url = ''
+    social_links_renderable = []
+    
     if context['is_owner'] or permissions.get('can_view_social_links'):
         social_links = SocialLink.objects.filter(user=profile_user).order_by('platform')
-        # Build platform map for easy access in template
+        
+        for link in social_links:
+            url = (link.url or '').strip()
+            handle = (link.handle or '').strip()
+            
+            # UP.2 FIX PASS #5 PART B: Normalize URL only if missing scheme
+            if url and not url.startswith(('http://', 'https://')):
+                url = f'https://{url}'
+            
+            # UP.2 FIX PASS #5 PART A: Extract Discord separately for copy button
+            if link.platform == 'discord':
+                discord_handle = handle
+                discord_url = url
+            
+            # UP.2 FIX PASS #5 PART C: Only include if URL exists (no blanks)
+            if url:
+                social_links_renderable.append({
+                    'platform': link.platform,
+                    'url': url,
+                    'handle': handle
+                })
+        
+        # Debug logging for verification (remove after testing)
+        logger.info(f"[UP.2 FIX PASS #5] Social links for {profile_user.username}: {social_links_renderable}")
+        
+        # Build platform map for backward compatibility
         social_links_map = {link.platform: link for link in social_links}
-        context['social_links'] = list(social_links)  # For iteration
-        context['social_links_map'] = social_links_map  # For platform-specific access
+        context['social_links'] = list(social_links)
+        context['social_links_map'] = social_links_map
     else:
         context['social_links'] = []
         context['social_links_map'] = {}
+    
+    # UP.2 FIX PASS #5: Pass filtered data to template
+    context['discord_handle'] = discord_handle
+    context['discord_url'] = discord_url
+    context['social_links_renderable'] = social_links_renderable
     
     # UP.2 FIX PASS #2: Hardware Gear wiring (PART 4)
     from apps.user_profile.models import HardwareGear
@@ -151,6 +186,81 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         context['hardware_gears'] = list(hardware_gears)
     else:
         context['hardware_gears'] = []
+    
+    # UP.2 FIX PASS #3: Connections context (CANONICAL UserProfile fields + SocialLink)
+    # CANONICAL FIELDS (apps/user_profile/models_main.py):
+    #   - phone (CharField, line 122)
+    #   - whatsapp (CharField, line 128)
+    #   - secondary_email (EmailField, line 134) - public/contact email
+    #   - preferred_contact_method (CharField with choices: email/phone/whatsapp/discord/facebook, line 143)
+    #   - discord_id (CharField, DEPRECATED legacy field, line 222 - use SocialLink instead)
+    # SOCIAL LINKS: SocialLink model (platform, url, handle)
+    # PRIVACY: show_preferred_contact (PrivacySettings.show_preferred_contact, line 987)
+    
+    privacy_settings = user_profile.privacy_settings
+    connections = {
+        'public_email': user_profile.secondary_email if user_profile.secondary_email_verified else '',
+        'phone': user_profile.phone if (context['is_owner'] or privacy_settings.show_preferred_contact) else '',
+        'whatsapp': user_profile.whatsapp if (context['is_owner'] or privacy_settings.show_preferred_contact) else '',
+        'preferred_method': user_profile.preferred_contact_method,
+        'social': {}  # Will be populated from SocialLink
+    }
+    
+    # Build social dict from SocialLink (canonical storage for social URLs)
+    if context['is_owner'] or permissions.get('can_view_social_links'):
+        for link in context.get('social_links', []):
+            connections['social'][link.platform] = {
+                'url': link.url,
+                'handle': link.handle
+            }
+    
+    context['connections'] = connections
+    
+    # Compute preferred_contact for Hero button
+    preferred_contact = {'label': '', 'href': '', 'icon': ''}
+    pref_method = user_profile.preferred_contact_method
+    
+    if pref_method == 'email' and connections['public_email']:
+        preferred_contact = {
+            'label': 'Email',
+            'href': f"mailto:{connections['public_email']}",
+            'icon': 'fa-solid fa-envelope'
+        }
+    elif pref_method == 'phone' and connections['phone']:
+        preferred_contact = {
+            'label': 'Call',
+            'href': f"tel:{connections['phone']}",
+            'icon': 'fa-solid fa-phone'
+        }
+    elif pref_method == 'whatsapp' and connections['whatsapp']:
+        # Strip + and spaces for wa.me link
+        wa_number = connections['whatsapp'].replace('+', '').replace(' ', '').replace('-', '')
+        preferred_contact = {
+            'label': 'WhatsApp',
+            'href': f"https://wa.me/{wa_number}",
+            'icon': 'fa-brands fa-whatsapp'
+        }
+    elif pref_method == 'discord' and 'discord' in connections['social']:
+        preferred_contact = {
+            'label': 'Discord',
+            'href': connections['social']['discord']['url'],
+            'icon': 'fa-brands fa-discord'
+        }
+    elif pref_method == 'facebook' and 'facebook' in connections['social']:
+        preferred_contact = {
+            'label': 'Facebook',
+            'href': connections['social']['facebook']['url'],
+            'icon': 'fa-brands fa-facebook'
+        }
+    elif 'discord' in connections['social']:  # Fallback to Discord if available
+        preferred_contact = {
+            'label': 'Discord',
+            'href': connections['social']['discord']['url'],
+            'icon': 'fa-brands fa-discord'
+        }
+    # else: preferred_contact stays empty (button will be hidden)
+    
+    context['preferred_contact'] = preferred_contact
     
     # P0 SAFETY: Wallet data ONLY for owner (never expose to non-owners)
     if context['is_owner']:
@@ -1014,8 +1124,6 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     
     # GET request - render settings page
     username = request.user.username
-    # GET request - render settings page
-    username = request.user.username
     
     # Build safe context (owner view with edit permissions)
     context = build_public_profile_context(
@@ -1023,6 +1131,28 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
         username=username,
         requested_sections=['basic', 'games', 'social', 'owner_only']
     )
+    
+    # UP.2 FIX PASS #6: Add ALL social platform links to context (not just Discord)
+    from apps.user_profile.models import SocialLink
+    
+    # Fetch all social links for the user
+    social_links = SocialLink.objects.filter(user=request.user)
+    social_links_map = {link.platform: link for link in social_links}
+    
+    # Add to context for template access
+    context['social_links_map'] = social_links_map
+    
+    # Individual variables for backward compatibility (template may reference these)
+    context['discord_link'] = social_links_map.get('discord')
+    context['youtube_link'] = social_links_map.get('youtube')
+    context['twitch_link'] = social_links_map.get('twitch')
+    context['twitter_link'] = social_links_map.get('twitter')
+    context['facebook_link'] = social_links_map.get('facebook')
+    context['instagram_link'] = social_links_map.get('instagram')
+    context['tiktok_link'] = social_links_map.get('tiktok')
+    
+    logger.info(f"[UP.2 FIX PASS #6] Settings context for {request.user.username}: {list(social_links_map.keys())}")
+
     
     # Verify owner (should always be true due to @login_required + using request.user.username)
     if not context['is_owner']:
@@ -1448,6 +1578,68 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
             return JsonResponse({'success': False, 'error': 'Invalid contact method'}, status=400)
         profile.preferred_contact_method = preferred_contact
         
+        # UP.2 FIX PASS #6: Save ALL social media platforms to SocialLink
+        # Placeholder URLs to reject
+        PLATFORM_PLACEHOLDERS = [
+            'https://youtube.com/@username',
+            'https://www.youtube.com/@username',
+            'https://tiktok.com/@username',
+            'https://www.tiktok.com/@username',
+            'https://twitter.com/username',
+            'https://x.com/username',
+            'https://twitch.tv/username',
+            'https://www.twitch.tv/username',
+            'https://facebook.com/username',
+            'https://www.facebook.com/username',
+            'https://instagram.com/username',
+            'https://www.instagram.com/username',
+        ]
+        
+        # Define all platforms to process
+        social_platforms = {
+            'discord': {'url_field': 'discord_link', 'handle_field': 'discord_username'},
+            'youtube': {'url_field': 'youtube_link', 'handle_field': None},
+            'twitch': {'url_field': 'twitch_link', 'handle_field': None},
+            'twitter': {'url_field': 'twitter', 'handle_field': None},
+            'facebook': {'url_field': 'facebook', 'handle_field': None},
+            'instagram': {'url_field': 'instagram', 'handle_field': None},
+            'tiktok': {'url_field': 'tiktok', 'handle_field': None},
+        }
+        
+        for platform, fields in social_platforms.items():
+            url = data.get(fields['url_field'], '').strip()
+            handle = data.get(fields['handle_field'], '').strip() if fields['handle_field'] else ''
+            
+            # Normalize URL (add https if missing)
+            if url and not url.startswith(('http://', 'https://')):
+                url = f'https://{url}'
+            
+            # Reject placeholder URLs
+            if url.lower() in [p.lower() for p in PLATFORM_PLACEHOLDERS]:
+                url = ''
+            
+            # Reject URLs containing literal '@username'
+            if '@username' in url.lower():
+                url = ''
+            
+            # Save or delete
+            if url or handle:
+                SocialLink.objects.update_or_create(
+                    user=profile.user,
+                    platform=platform,
+                    defaults={
+                        'url': url,
+                        'handle': handle
+                    }
+                )
+            else:
+                # If both fields are empty, delete the link
+                SocialLink.objects.filter(user=profile.user, platform=platform).delete()
+        
+        logger.info(f"[UP.2 FIX PASS #6] Saved SocialLinks for {profile.user.username}:")
+        for link in SocialLink.objects.filter(user=profile.user):
+            logger.info(f"  {link.platform}: url={link.url}, handle={link.handle}")
+        
         # ===== LEGAL IDENTITY & KYC =====
         # Only allow updating if not KYC verified
         if profile.kyc_status != 'verified':
@@ -1499,83 +1691,12 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
         profile.emergency_contact_relation = emergency_contact_relation
         
         # ===== SOCIAL MEDIA LINKS =====
-        # Validate URLs if provided
-        from django.core.validators import URLValidator
-        from django.core.exceptions import ValidationError
-        url_validator = URLValidator()
+        # UP.2 FIX PASS #6: DEPRECATED - These legacy fields are no longer saved
+        # All social media URLs now saved to SocialLink model (see above)
+        # Legacy fields remain on model for migration compatibility only
+        # DO NOT SAVE TO: profile.youtube_link, profile.twitch_link, etc.
         
-        # YouTube
-        youtube_link = data.get('youtube_link', '').strip()
-        if youtube_link:
-            try:
-                url_validator(youtube_link)
-            except ValidationError:
-                return JsonResponse({'success': False, 'error': 'Invalid YouTube URL'}, status=400)
-        profile.youtube_link = youtube_link
-        
-        # Twitch
-        twitch_link = data.get('twitch_link', '').strip()
-        if twitch_link:
-            try:
-                url_validator(twitch_link)
-            except ValidationError:
-                return JsonResponse({'success': False, 'error': 'Invalid Twitch URL'}, status=400)
-        profile.twitch_link = twitch_link
-        
-        # Twitter
-        twitter = data.get('twitter', '').strip()
-        if twitter:
-            try:
-                url_validator(twitter)
-            except ValidationError:
-                return JsonResponse({'success': False, 'error': 'Invalid Twitter URL'}, status=400)
-        profile.twitter = twitter
-        
-        # Facebook
-        facebook = data.get('facebook', '').strip()
-        if facebook:
-            try:
-                url_validator(facebook)
-            except ValidationError:
-                return JsonResponse({'success': False, 'error': 'Invalid Facebook URL'}, status=400)
-        # DEPRECATION WARNING (2026-01-14 C1): Writing to legacy field
-        # Modern API: Use SocialLink model via /api/social-links/update/
-        if settings.DEBUG:
-            import warnings
-            warnings.warn(
-                "Writing to legacy UserProfile.facebook field. Migrate to SocialLink model API.",
-                DeprecationWarning,
-                stacklevel=2
-            )
-        profile.facebook = facebook
-        
-        # Instagram
-        instagram = data.get('instagram', '').strip()
-        if instagram:
-            try:
-                url_validator(instagram)
-            except ValidationError:
-                return JsonResponse({'success': False, 'error': 'Invalid Instagram URL'}, status=400)
-        # DEPRECATION WARNING (2026-01-14 C1): Writing to legacy field
-        if settings.DEBUG:
-            import warnings
-            warnings.warn(
-                "Writing to legacy UserProfile.instagram field. Migrate to SocialLink model API.",
-                DeprecationWarning,
-                stacklevel=2
-            )
-        profile.instagram = instagram
-        
-        # TikTok
-        tiktok = data.get('tiktok', '').strip()
-        if tiktok:
-            try:
-                url_validator(tiktok)
-            except ValidationError:
-                return JsonResponse({'success': False, 'error': 'Invalid TikTok URL'}, status=400)
-        profile.tiktok = tiktok
-        
-        # Discord (not a URL, just username)
+        # ===== DISCORD ID (legacy field for bot integration) =====
         discord_id = data.get('discord_id', '').strip()
         if len(discord_id) > 64:
             return JsonResponse({'success': False, 'error': 'Discord ID must be 64 characters or less'}, status=400)

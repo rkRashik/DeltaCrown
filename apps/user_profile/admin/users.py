@@ -28,6 +28,7 @@ from django.utils import timezone
 
 from ..models import (
     UserProfile,
+    SocialLink,
     PrivacySettings,
     VerificationRecord,
     Badge,
@@ -119,6 +120,17 @@ class BountyDisputeInline(admin.StackedInline):
     
     def has_add_permission(self, request, obj=None):
         return False
+
+
+# UP.2 FIX PASS #4: SocialLink inline for UserProfile admin
+class SocialLinkInline(admin.TabularInline):
+    """Inline social links editor for Discord Link + other platforms"""
+    model = SocialLink
+    extra = 0
+    fields = ['platform', 'url', 'handle', 'is_verified']
+    readonly_fields = ['is_verified']
+    verbose_name = "Social Link"
+    verbose_name_plural = "Social Links (Discord, Twitter, YouTube, etc.)"
 
 
 # ==============================================================================

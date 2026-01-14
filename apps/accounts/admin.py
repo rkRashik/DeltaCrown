@@ -3,11 +3,23 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils import timezone
 
 from .models import EmailOTP, PendingSignup, User, AccountDeletionRequest
+from apps.user_profile.models import SocialLink
+
+
+class SocialLinkInline(admin.TabularInline):
+    """Inline social links editor for Discord Link + other platforms"""
+    model = SocialLink
+    extra = 0
+    fields = ['platform', 'url', 'handle', 'is_verified']
+    readonly_fields = ['is_verified']
+    verbose_name = "Social Link"
+    verbose_name_plural = "Social Links (Discord, Twitter, YouTube, etc.)"
 
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     list_display = ("username", "email", "is_active", "is_verified", "is_staff")
+    inlines = [SocialLinkInline]
     list_filter = ("is_verified", "is_active", "is_staff")
     search_fields = ("username", "email")
     ordering = ("username",)

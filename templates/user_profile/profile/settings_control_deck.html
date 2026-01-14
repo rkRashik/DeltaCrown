@@ -694,44 +694,51 @@
                                     <label class="z-label">
                                         <i class="fa-brands fa-youtube text-red-500"></i> YouTube Channel
                                     </label>
-                                    <input type="url" name="youtube_link" class="z-input" value="{{ user_profile.youtube_link|default:'' }}" placeholder="https://youtube.com/@username" oninput="markUnsaved()">
+                                    <input type="url" name="youtube_link" class="z-input" value="{{ youtube_link.url|default:'' }}" placeholder="https://youtube.com/@username" oninput="markUnsaved()">
                                 </div>
                                 <div>
                                     <label class="z-label">
                                         <i class="fa-brands fa-twitch text-purple-500"></i> Twitch Channel
                                     </label>
-                                    <input type="url" name="twitch_link" class="z-input" value="{{ user_profile.twitch_link|default:'' }}" placeholder="https://twitch.tv/username" oninput="markUnsaved()">
+                                    <input type="url" name="twitch_link" class="z-input" value="{{ twitch_link.url|default:'' }}" placeholder="https://twitch.tv/username" oninput="markUnsaved()">
                                 </div>
                                 <div>
                                     <label class="z-label">
                                         <i class="fa-brands fa-x-twitter text-sky-400"></i> Twitter/X Profile
                                     </label>
-                                    <input type="url" name="twitter" class="z-input" value="{{ user_profile.twitter|default:'' }}" placeholder="https://twitter.com/username" oninput="markUnsaved()">
+                                    <input type="url" name="twitter" class="z-input" value="{{ twitter_link.url|default:'' }}" placeholder="https://twitter.com/username" oninput="markUnsaved()">
                                 </div>
                                 <div>
                                     <label class="z-label">
                                         <i class="fa-brands fa-facebook text-blue-500"></i> Facebook Profile
                                     </label>
-                                    <input type="url" name="facebook" class="z-input" value="{{ user_profile.facebook|default:'' }}" placeholder="https://facebook.com/username" oninput="markUnsaved()">
+                                    <input type="url" name="facebook" class="z-input" value="{{ facebook_link.url|default:'' }}" placeholder="https://facebook.com/username" oninput="markUnsaved()">
                                 </div>
                                 <div>
                                     <label class="z-label">
                                         <i class="fa-brands fa-instagram text-pink-500"></i> Instagram Profile
                                     </label>
-                                    <input type="url" name="instagram" class="z-input" value="{{ user_profile.instagram|default:'' }}" placeholder="https://instagram.com/username" oninput="markUnsaved()">
+                                    <input type="url" name="instagram" class="z-input" value="{{ instagram_link.url|default:'' }}" placeholder="https://instagram.com/username" oninput="markUnsaved()">
                                 </div>
                                 <div>
                                     <label class="z-label">
                                         <i class="fa-brands fa-tiktok text-cyan-400"></i> TikTok Profile
                                     </label>
-                                    <input type="url" name="tiktok" class="z-input" value="{{ user_profile.tiktok|default:'' }}" placeholder="https://tiktok.com/@username" oninput="markUnsaved()">
+                                    <input type="url" name="tiktok" class="z-input" value="{{ tiktok_link.url|default:'' }}" placeholder="https://tiktok.com/@username" oninput="markUnsaved()">
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="z-label">
                                         <i class="fa-brands fa-discord text-indigo-400"></i> Discord Username
                                     </label>
-                                    <input type="text" name="discord_id" class="z-input" value="{{ user_profile.discord_id|default:'' }}" placeholder="username#1234 or just username" oninput="markUnsaved()">
-                                    <p class="text-xs text-gray-500 mt-1">Others can add you as a friend on Discord</p>
+                                    <input type="text" name="discord_username" class="z-input" value="{{ discord_link.handle|default:'' }}" placeholder="username#1234 or just username" oninput="markUnsaved()">
+                                    <p class="text-xs text-gray-500 mt-1">Your Discord username (others can add you as a friend)</p>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="z-label">
+                                        <i class="fa-solid fa-link text-indigo-400"></i> Discord Link
+                                    </label>
+                                    <input type="url" name="discord_link" class="z-input" value="{{ discord_link.url|default:'' }}" placeholder="https://discord.gg/invite or https://discord.com/users/123456789" oninput="markUnsaved()">
+                                    <p class="text-xs text-gray-500 mt-1">Your Discord profile link, server invite, or friend link (shown on your public profile)</p>
                                 </div>
                             </div>
                         </div>
