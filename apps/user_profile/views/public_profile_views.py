@@ -502,12 +502,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
                 'icon': 'fa-message',
                 'label': 'Preferred Contact'
             },
-            'discord_id': {
-                'value': user_profile.discord_id,
-                'visible': bool(user_profile.discord_id) and user_profile.preferred_contact_method == 'DISCORD' and (is_owner or privacy_settings.show_preferred_contact),
-                'icon': 'fa-brands fa-discord',
-                'label': 'Discord ID'
-            },
+            # HOTFIX (Post-C2): discord_id removed, now in SocialLink model
+            # Discord contact info displayed via social_links_map below
             'whatsapp': {
                 'value': user_profile.whatsapp,
                 'visible': bool(user_profile.whatsapp) and user_profile.preferred_contact_method == 'WHATSAPP' and (is_owner or privacy_settings.show_preferred_contact),
@@ -536,7 +532,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     if user_profile.secondary_role: filled_fields += 1
     if user_profile.communication_languages: filled_fields += 1
     if user_profile.active_hours: filled_fields += 1
-    if user_profile.discord_id: filled_fields += 1
+    # HOTFIX (Post-C2): discord_id removed, check SocialLink instead
+    if social_links_map.get('discord'): filled_fields += 1
     if user_profile.avatar: filled_fields += 1
     if user_profile.banner: filled_fields += 1
     if all_passports: filled_fields += 2  # Game IDs worth 2 points
@@ -1693,14 +1690,8 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
         # ===== SOCIAL MEDIA LINKS =====
         # UP.2 FIX PASS #6: DEPRECATED - These legacy fields are no longer saved
         # All social media URLs now saved to SocialLink model (see above)
-        # Legacy fields remain on model for migration compatibility only
-        # DO NOT SAVE TO: profile.youtube_link, profile.twitch_link, etc.
-        
-        # ===== DISCORD ID (legacy field for bot integration) =====
-        discord_id = data.get('discord_id', '').strip()
-        if len(discord_id) > 64:
-            return JsonResponse({'success': False, 'error': 'Discord ID must be 64 characters or less'}, status=400)
-        profile.discord_id = discord_id
+        # HOTFIX (Post-C2): Legacy fields completely removed from DB
+        # All social data managed via SocialLink model only
         
         profile.save()
         
@@ -1716,89 +1707,6 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
         return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
 
 
-@login_required
-def update_social_links(request: HttpRequest) -> HttpResponse:
-    """
-    Update social media links (POST only).
-    
-    Route: POST /me/settings/social/
-    
-    Fields:
-    - youtube (optional, URL)
-    - twitch (optional, URL)
-    - twitter (optional, URL)
-    - discord (optional, string)
-    - instagram (optional, URL)
-    
-    Security:
-    - CSRF protected (Django's @login_required + POST)
-    - URL validation (server-side)
-    - Audit logging with before/after snapshots
-    
-    Returns:
-        Redirect to settings page with success/error message
-    """
-    if request.method != 'POST':
-        return redirect(reverse('user_profile:profile_settings_v2'))
-    
-    # Get user profile safely
-    from apps.user_profile.utils import get_user_profile_safe
-    profile = get_user_profile_safe(request.user)
-    
-    # Capture before state for audit
-    before_snapshot = {
-        'youtube_link': profile.youtube_link,
-        'twitch_link': profile.twitch_link,
-        'twitter': profile.twitter,
-        'discord_id': profile.discord_id,
-        'instagram': profile.instagram
-    }
-    
-    # Validate and update fields
-    youtube = request.POST.get('youtube', '').strip()
-    twitch = request.POST.get('twitch', '').strip()
-    twitter = request.POST.get('twitter', '').strip()
-    discord = request.POST.get('discord', '').strip()
-    instagram = request.POST.get('instagram', '').strip()
-    
-    # Basic URL validation (must start with http:// or https:// if provided)
-    for field_name, field_value in [('YouTube', youtube), ('Twitch', twitch), 
-                                     ('Twitter', twitter), ('Instagram', instagram)]:
-        if field_value and not (field_value.startswith('http://') or field_value.startswith('https://')):
-            messages.error(request, f'{field_name} must be a valid URL (http:// or https://)')
-            return redirect(reverse('user_profile:profile_settings_v2'))
-    
-    # Update profile
-    profile.youtube_link = youtube
-    profile.twitch_link = twitch
-    profile.twitter = twitter
-    profile.discord_id = discord
-    profile.instagram = instagram
-    profile.save()
-    
-    # Capture after state
-    after_snapshot = {
-        'youtube_link': profile.youtube_link,
-        'twitch_link': profile.twitch_link,
-        'twitter': profile.twitter,
-        'discord_id': profile.discord_id,
-        'instagram': profile.instagram
-    }
-    
-    # Write audit event
-    from apps.user_profile.services.audit_service import AuditService
-    AuditService.log_event(
-        user=request.user,
-        event_type='profile.social_links_updated',
-        before_state=before_snapshot,
-        after_state=after_snapshot,
-        request_meta={
-            'ip_address': request.META.get('REMOTE_ADDR'),
-            'user_agent': request.META.get('HTTP_USER_AGENT', '')[:200],
-            'path': request.path,
-            'method': request.method
-        }
-    )
-    
-    messages.success(request, 'Social links updated successfully')
-    return redirect(reverse('user_profile:profile_settings_v2'))
+# HOTFIX (Post-C2): update_social_links function removed
+# All social media updates now handled via update_basic_info endpoint
+# which saves to SocialLink model (see lines 1577-1640)

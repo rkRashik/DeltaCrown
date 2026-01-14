@@ -212,18 +212,12 @@ class UserProfile(models.Model):
         help_text="Total value of prizes won (bragging rights)"
     )
     
-    # ===== SOCIAL LINKS (DEPRECATED - Use SocialLink model instead) =====
-    # DEPRECATION NOTICE (2026-01-14 C1 Cleanup):
-    # These fields are legacy duplicates. The modern API uses the SocialLink model.
-    # Scheduled for removal after data migration to SocialLink.
-    # New code should use: SocialLink.objects.filter(user=user)
-    youtube_link = models.URLField(blank=True, help_text="DEPRECATED: Use SocialLink model")
-    twitch_link = models.URLField(blank=True, help_text="DEPRECATED: Use SocialLink model")
-    discord_id = models.CharField(max_length=64, blank=True, help_text="DEPRECATED: Use SocialLink model")
-    facebook = models.URLField(blank=True, default="", help_text="DEPRECATED: Use SocialLink model")
-    instagram = models.URLField(blank=True, default="", help_text="DEPRECATED: Use SocialLink model")
-    tiktok = models.URLField(blank=True, default="", help_text="DEPRECATED: Use SocialLink model")
-    twitter = models.URLField(blank=True, default="", help_text="DEPRECATED: Use SocialLink model")
+    # ===== SOCIAL LINKS (REMOVED - Use SocialLink model instead) =====
+    # UP.2 C2 CLEANUP (2026-01-15): Legacy fields removed after backfill migration
+    # All social media links now managed via SocialLink model
+    # Migration: 0XXX_remove_legacy_social_fields.py
+    # Backfill command: python manage.py backfill_social_links (COMPLETED)
+    
     stream_status = models.BooleanField(
         default=False,
         help_text="Indicates if user is currently streaming (grants XP bonuses)"

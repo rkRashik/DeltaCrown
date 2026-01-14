@@ -29,9 +29,8 @@ class UserProfileForm(forms.ModelForm):
             # Emergency Contact
             'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
             
-            # Social Media
-            'facebook', 'instagram', 'tiktok', 'twitter',
-            'youtube_link', 'twitch_link', 'discord_id',
+            # UP.2 C2 CLEANUP: Legacy social media fields removed (2026-01-15)
+            # Social links now managed via SocialLink model and inline forms
             
             # Platform Preferences (Phase 6 Part C)
             'preferred_language', 'timezone_pref', 'time_format', 'theme_preference',
@@ -124,35 +123,8 @@ class UserProfileForm(forms.ModelForm):
                 'placeholder': 'Father, Mother, Spouse, etc.'
             }),
             
-            # Social Media
-            'facebook': forms.URLInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'https://facebook.com/yourprofile'
-            }),
-            'instagram': forms.URLInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'https://instagram.com/yourprofile'
-            }),
-            'tiktok': forms.URLInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'https://tiktok.com/@yourprofile'
-            }),
-            'twitter': forms.URLInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'https://twitter.com/yourhandle'
-            }),
-            'youtube_link': forms.URLInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'https://youtube.com/@yourchannel'
-            }),
-            'twitch_link': forms.URLInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'https://twitch.tv/yourchannel'
-            }),
-            'discord_id': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'Your Discord username'
-            }),
+            # UP.2 C2 CLEANUP: Social Media widgets removed (2026-01-15)
+            # Social links now managed via SocialLink model
             
             # Platform Preferences
             'preferred_language': forms.Select(attrs={
@@ -198,14 +170,8 @@ class UserProfileForm(forms.ModelForm):
             'emergency_contact_phone': 'Emergency contact phone number.',
             'emergency_contact_relation': 'Relationship to emergency contact (e.g., Father, Mother, Spouse).',
             
-            # Social Media
-            'facebook': 'Link to your Facebook profile (optional).',
-            'instagram': 'Link to your Instagram profile (optional).',
-            'tiktok': 'Link to your TikTok profile (optional).',
-            'twitter': 'Link to your Twitter/X profile (optional).',
-            'discord_id': 'Your Discord username for team communication.',
-            'youtube_link': 'Link to your YouTube channel (optional).',
-            'twitch_link': 'Link to your Twitch channel (optional).',
+            # UP.2 C2 CLEANUP: Social Media help_texts removed (2026-01-15)
+            # Social links now managed via SocialLink model
             
             # Platform Preferences
             'preferred_language': 'Your preferred language for the UI (currently only English is fully supported).',
@@ -364,6 +330,7 @@ class UserProfileSettingsForm(forms.ModelForm):
     Comprehensive profile settings form covering all tabs:
     - Identity, Connections, Social, Platform, About
     Phase 4B: Replaces manual POST extraction with proper form validation.
+    UP.2 C2 CLEANUP: Social links now managed via SocialLink model
     """
     
     class Meta:
@@ -376,9 +343,8 @@ class UserProfileSettingsForm(forms.ModelForm):
             'phone', 'whatsapp', 'secondary_email', 'preferred_contact_method',
             'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
             
-            # Social Links Tab
-            'discord_id', 'youtube_link', 'twitch_link', 'twitter', 
-            'facebook', 'instagram', 'tiktok',
+            # UP.2 C2 CLEANUP: Social Links Tab fields removed (2026-01-15)
+            # Social links now managed via SocialLink model and update_basic_info endpoint
             
             # Platform Tab
             'preferred_language', 'timezone_pref', 'time_format',

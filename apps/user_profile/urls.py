@@ -22,7 +22,8 @@ from .views.public_profile_views import (
     public_profile_view, profile_activity_view,
     profile_settings_view, profile_privacy_view,
     # UP-FE-MVP-02: Mutation endpoints
-    update_basic_info, update_social_links
+    update_basic_info
+    # HOTFIX (Post-C2): update_social_links removed - legacy function deleted
 )
 # GP-FE-MVP-01: Game Passport API
 from .views.passport_api import (
@@ -221,7 +222,7 @@ urlpatterns = [
     
     # UP-FE-MVP-02: Settings mutation endpoints
     path("me/settings/basic/", update_basic_info, name="update_basic_info"),
-    path("me/settings/social/", update_social_links, name="update_social_links"),
+    # HOTFIX (Post-C2): update_social_links endpoint removed - handled by update_basic_info now
     path("me/settings/media/", upload_media, name="upload_media"),
     path("me/settings/media/remove/", remove_media_api, name="remove_media"),
     path("me/settings/privacy/", get_privacy_settings, name="get_privacy_settings"),

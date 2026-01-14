@@ -154,6 +154,8 @@ class UserProfileAdmin(admin.ModelAdmin):
         "secondary_email_verified",  # Only system can verify via OTP
         "deltacoin_balance",  # UP-PHASE11: Economy-owned (read-only)
         "lifetime_earnings",  # UP-PHASE11: Economy-owned (read-only)
+        "social_links_summary",  # HOTFIX (Post-C2): Read-only display
+        "edit_social_links_link",  # HOTFIX (Post-C2): Quick link to User admin
     )
     
     fieldsets = (
@@ -186,9 +188,9 @@ class UserProfileAdmin(admin.ModelAdmin):
         ('Emergency Contact', {
             'fields': ('emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation')
         }),
-        ('Social Media (DEPRECATED)', {
-            'fields': ('facebook', 'instagram', 'tiktok', 'twitter', 'youtube_link', 'twitch_link', 'discord_id'),
-            'description': 'DEPRECATED (2026-01-14 C1): These fields are legacy duplicates. Use SocialLink model (inline below). Kept for data migration only.'
+        ('Social Links (from SocialLink model)', {
+            'fields': ('social_links_summary', 'edit_social_links_link'),
+            'description': 'Social media links are stored in SocialLink model. View summary here, edit via User admin link below.'
         }),
         ('Gaming & Streaming', {
             'fields': ('stream_status',),
@@ -245,6 +247,54 @@ class UserProfileAdmin(admin.ModelAdmin):
             color, icon, obj.get_kyc_status_display()
         )
     kyc_status_badge.short_description = 'KYC Status'
+    
+    def social_links_summary(self, obj):
+        """HOTFIX (Post-C2): Display read-only summary of social links from SocialLink model"""
+        from apps.user_profile.models import SocialLink
+        from django.utils.html import format_html
+        from django.utils.safestring import mark_safe
+        
+        links = SocialLink.objects.filter(user=obj.user).order_by('platform')
+        
+        if not links.exists():
+            return mark_safe('<em style="color: gray;">No social links configured</em>')
+        
+        html_parts = ['<table style="border-collapse: collapse; width: 100%;">']
+        html_parts.append('<tr style="background: #f0f0f0; font-weight: bold;">')
+        html_parts.append('<th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Platform</th>')
+        html_parts.append('<th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Handle</th>')
+        html_parts.append('<th style="padding: 8px; text-align: left; border: 1px solid #ddd;">URL</th>')
+        html_parts.append('</tr>')
+        
+        for link in links:
+            html_parts.append('<tr>')
+            html_parts.append(f'<td style="padding: 8px; border: 1px solid #ddd;">{link.get_platform_display()}</td>')
+            html_parts.append(f'<td style="padding: 8px; border: 1px solid #ddd;">{link.handle or "-"}</td>')
+            
+            if link.url:
+                html_parts.append(f'<td style="padding: 8px; border: 1px solid #ddd;"><a href="{link.url}" target="_blank" style="color: #0066cc; text-decoration: none;">{link.url}</a></td>')
+            else:
+                html_parts.append('<td style="padding: 8px; border: 1px solid #ddd;">-</td>')
+            
+            html_parts.append('</tr>')
+        
+        html_parts.append('</table>')
+        return mark_safe(''.join(html_parts))
+    
+    social_links_summary.short_description = 'Social Media Links'
+    
+    def edit_social_links_link(self, obj):
+        """HOTFIX (Post-C2): Quick link to edit social links in User admin"""
+        from django.urls import reverse
+        from django.utils.html import format_html
+        
+        url = reverse('admin:accounts_user_change', args=[obj.user.id])
+        return format_html(
+            '<a href="{}" class="button" target="_blank" style="padding: 8px 12px; background: #417690; color: white; text-decoration: none; border-radius: 4px;">📝 Edit Social Links (User Admin)</a>',
+            url
+        )
+    
+    edit_social_links_link.short_description = 'Quick Actions'
 
 
 @admin.register(PrivacySettings)
