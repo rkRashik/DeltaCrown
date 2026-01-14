@@ -1501,6 +1501,15 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
                 url_validator(facebook)
             except ValidationError:
                 return JsonResponse({'success': False, 'error': 'Invalid Facebook URL'}, status=400)
+        # DEPRECATION WARNING (2026-01-14 C1): Writing to legacy field
+        # Modern API: Use SocialLink model via /api/social-links/update/
+        if settings.DEBUG:
+            import warnings
+            warnings.warn(
+                "Writing to legacy UserProfile.facebook field. Migrate to SocialLink model API.",
+                DeprecationWarning,
+                stacklevel=2
+            )
         profile.facebook = facebook
         
         # Instagram
@@ -1510,6 +1519,14 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
                 url_validator(instagram)
             except ValidationError:
                 return JsonResponse({'success': False, 'error': 'Invalid Instagram URL'}, status=400)
+        # DEPRECATION WARNING (2026-01-14 C1): Writing to legacy field
+        if settings.DEBUG:
+            import warnings
+            warnings.warn(
+                "Writing to legacy UserProfile.instagram field. Migrate to SocialLink model API.",
+                DeprecationWarning,
+                stacklevel=2
+            )
         profile.instagram = instagram
         
         # TikTok

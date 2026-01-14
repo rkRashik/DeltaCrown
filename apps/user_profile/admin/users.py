@@ -174,8 +174,9 @@ class UserProfileAdmin(admin.ModelAdmin):
         ('Emergency Contact', {
             'fields': ('emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation')
         }),
-        ('Social Media', {
-            'fields': ('facebook', 'instagram', 'tiktok', 'twitter', 'youtube_link', 'twitch_link', 'discord_id')
+        ('Social Media (DEPRECATED)', {
+            'fields': ('facebook', 'instagram', 'tiktok', 'twitter', 'youtube_link', 'twitch_link', 'discord_id'),
+            'description': 'DEPRECATED (2026-01-14 C1): These fields are legacy duplicates. Use SocialLink model (inline below). Kept for data migration only.'
         }),
         ('Gaming & Streaming', {
             'fields': ('stream_status',),

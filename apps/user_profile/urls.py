@@ -3,8 +3,9 @@ from django.urls import path
 from django.views.generic import TemplateView
 from .views import (
     MyProfileUpdateView, profile_view, my_tournaments_view,
-    kyc_upload_view, kyc_status_view, privacy_settings_view, settings_view,
+    kyc_upload_view, kyc_status_view,
     save_game_profiles,
+    # REMOVED (2026-01-14 C1): privacy_settings_view, settings_view - deleted as dead code
     # Phase 4: Modal Action Views
     update_bio, add_social_link, add_game_profile, edit_game_profile, delete_game_profile,
     # Phase 4: Follow System

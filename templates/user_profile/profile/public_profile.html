@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}DeltaCrown | Pro Profile - Viper{% endblock %}
+{% block title %}DeltaCrown | Pro Profile - {{ profile_user.username|default:'Player' }}{% endblock %}
 
 {% block extra_css %}
 <!-- Google Fonts for profile design -->
@@ -134,8 +134,13 @@
         
         <div class="absolute inset-0 w-full h-full overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-t from-z-bg via-z-bg/80 to-transparent z-10"></div>
+            {% if profile.banner %}
+            <img src="{{ profile.banner.url }}" 
+                 class="w-full h-full object-cover object-center opacity-60 group-hover:scale-105 transition duration-[3s]" alt="Cover">
+            {% else %}
             <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670&auto=format&fit=crop" 
                  class="w-full h-full object-cover object-center opacity-60 group-hover:scale-105 transition duration-[3s]" alt="Cover">
+            {% endif %}
         </div>
 
         <div class="absolute bottom-0 left-0 w-full z-20 px-4 md:px-8 pb-8">
@@ -143,8 +148,13 @@
                 
                 <div class="relative shrink-0">
                     <div class="w-36 h-36 md:w-44 md:h-44 rounded-3xl p-1 bg-gradient-to-br from-z-cyan via-z-purple to-z-red shadow-neon-cyan relative group">
+                        {% if profile.avatar %}
+                        <img src="{{ profile.avatar.url }}" 
+                             class="w-full h-full object-cover rounded-2xl bg-z-bg" alt="{{ profile_user.username }}">
+                        {% else %}
                         <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1000&auto=format&fit=crop" 
                              class="w-full h-full object-cover rounded-2xl bg-z-bg" alt="Avatar">
+                        {% endif %}
                         
                         <div class="absolute -bottom-3 -right-3 bg-z-bg p-1 rounded-xl">
                             <div class="bg-z-gold text-black font-black font-display text-sm px-3 py-1 rounded-lg border border-white/20 shadow-neon-gold">
@@ -156,9 +166,11 @@
 
                 <div class="flex-1 mb-2">
                     <div class="flex items-center gap-3 mb-2">
+                        {% if user_teams and user_teams.0 %}
                         <span class="bg-white/10 backdrop-blur text-white text-[10px] font-bold px-2 py-0.5 rounded border border-white/10 hover:bg-white/20 cursor-pointer transition">
-                            [TL] TEAM LIQUID
+                            [{{ user_teams.0.tag|upper }}] {{ user_teams.0.name|upper }}
                         </span>
+                        {% endif %}
                         <div class="flex items-center gap-1 bg-z-cyan/10 px-2 py-0.5 rounded border border-z-cyan/20">
                             <i class="fa-solid fa-circle-check text-sm text-z-cyan"></i>
                             <span class="text-[10px] text-z-cyan font-bold uppercase">Verified Pro</span>
@@ -166,32 +178,35 @@
                     </div>
 
                     <h1 class="text-5xl md:text-7xl font-display font-bold text-white tracking-tight flex items-end gap-4 leading-none mb-2">
-                        Viper
-                        <span class="text-xl font-mono font-normal text-gray-500 mb-2 tracking-widest">#NA1</span>
+                        {{ profile.display_name|default:profile_user.username }}
+                        <span class="text-xl font-mono font-normal text-gray-500 mb-2 tracking-widest">#{{ profile_user.username }}</span>
                     </h1>
 
+                    {% if profile.bio %}
                     <p class="text-gray-300 text-base max-w-2xl font-light leading-relaxed border-l-2 border-z-purple pl-4 my-4">
-                        Entry Fragger for Team Liquid. Former Radiant #4. "The game starts when I press W."
+                        {{ profile.bio }}
                     </p>
+                    {% endif %}
 
                     <div class="flex flex-wrap items-center gap-8 mt-6">
                         <div class="text-center group cursor-pointer">
-                            <div class="text-2xl font-bold text-white group-hover:text-z-cyan transition">12.5k</div>
+                            <div class="text-2xl font-bold text-white group-hover:text-z-cyan transition">{{ follower_count|default:0 }}</div>
                             <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Followers</div>
                         </div>
                         <div class="text-center group cursor-pointer">
-                            <div class="text-2xl font-bold text-white group-hover:text-z-purple transition">248</div>
+                            <div class="text-2xl font-bold text-white group-hover:text-z-purple transition">{{ following_count|default:0 }}</div>
                             <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Following</div>
                         </div>
                         <div class="text-center group cursor-pointer">
-                            <div class="text-2xl font-bold text-white group-hover:text-z-gold transition">14</div>
+                            <div class="text-2xl font-bold text-white group-hover:text-z-gold transition">{{ user_stats.total_wins|default:0 }}</div>
                             <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Wins</div>
                         </div>
                         
+                        {% if profile.country %}
                         <div class="ml-auto md:ml-0 flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition cursor-pointer">
-                            <img src="https://flagcdn.com/bd.svg" class="w-6 h-auto rounded shadow-sm" alt="BD">
-                            <span class="text-xs text-white font-bold">Bangladesh</span>
+                            <span class="text-xs text-white font-bold">{{ profile.country }}</span>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -242,6 +257,9 @@
                     </h3>
                 </div>
 
+                {% if social_links %}
+                    {% for link in social_links %}
+                        {% if link.platform == 'discord' %}
                 <div class="mb-4 p-3 rounded-xl bg-gradient-to-r from-z-purple/20 to-transparent border border-z-purple/30 flex items-center justify-between group cursor-pointer hover:border-z-purple/60 transition">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-lg bg-z-purple flex items-center justify-center text-white text-lg shadow-lg">
@@ -249,22 +267,35 @@
                         </div>
                         <div>
                             <div class="text-[9px] text-z-purple font-bold uppercase tracking-wider">Preferred</div>
-                            <div class="text-white font-mono text-sm font-bold">viper#0001</div>
+                            <div class="text-white font-mono text-sm font-bold">{{ link.handle|default:link.url }}</div>
                         </div>
                     </div>
                     <i class="fa-regular fa-copy text-gray-400 group-hover:text-white"></i>
                 </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                <div class="text-center text-gray-500 text-xs py-4">No contact info available</div>
+                {% endif %}
 
                 <div class="grid grid-cols-3 gap-2">
-                    <a href="#" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#1DA1F2]/20 hover:border-[#1DA1F2]/50 transition group">
+                    {% if social_links %}
+                        {% for link in social_links %}
+                            {% if link.platform == 'twitter' %}
+                    <a href="{{ link.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#1DA1F2]/20 hover:border-[#1DA1F2]/50 transition group">
                         <i class="fa-brands fa-twitter text-gray-400 group-hover:text-[#1DA1F2] text-xl mb-1"></i>
                     </a>
-                    <a href="#" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#9146FF]/20 hover:border-[#9146FF]/50 transition group">
+                            {% elif link.platform == 'twitch' %}
+                    <a href="{{ link.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#9146FF]/20 hover:border-[#9146FF]/50 transition group">
                         <i class="fa-brands fa-twitch text-gray-400 group-hover:text-[#9146FF] text-xl mb-1"></i>
                     </a>
-                    <a href="#" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#FF0000]/20 hover:border-[#FF0000]/50 transition group">
+                            {% elif link.platform == 'youtube' %}
+                    <a href="{{ link.url }}" target="_blank" rel="noopener" class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-[#FF0000]/20 hover:border-[#FF0000]/50 transition group">
                         <i class="fa-brands fa-youtube text-gray-400 group-hover:text-[#FF0000] text-xl mb-1"></i>
                     </a>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
                 </div>
             </div>
 
@@ -304,7 +335,12 @@
                     <div class="mt-4">
                         <div class="text-[10px] text-gray-400 uppercase font-bold">Current Balance</div>
                         <div class="text-3xl font-display font-black text-white flex items-end gap-1">
-                            1,250 <span class="text-sm font-sans text-z-gold font-bold mb-1">DC</span>
+                            {% if wallet %}
+                            {{ wallet.balance|floatformat:0 }}
+                            {% else %}
+                            0
+                            {% endif %}
+                            <span class="text-sm font-sans text-z-gold font-bold mb-1">DC</span>
                         </div>
                     </div>
                     
@@ -537,29 +573,25 @@
                     </div>
                     
                     <h3 class="text-white font-bold font-display text-xl mb-1">Game IDs</h3>
-                    <p class="text-xs text-gray-400 mb-6 font-medium">4 Linked Accounts</p>
+                    <p class="text-xs text-gray-400 mb-6 font-medium">{{ pinned_passports|length|add:unpinned_passports|length }} Linked Account{{ pinned_passports|length|add:unpinned_passports|length|pluralize }}</p>
 
                     <div class="space-y-3">
+                        {% for passport in pinned_passports|slice:":2" %}
                         <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition">
                             <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded bg-[#ff4655] flex items-center justify-center text-white"><i class="fa-solid fa-v"></i></div>
+                                <div class="w-8 h-8 rounded bg-z-cyan flex items-center justify-center text-white"><i class="fa-solid fa-gamepad"></i></div>
                                 <div>
-                                    <div class="text-white text-xs font-bold font-mono">Viper#NA1</div>
-                                    <div class="text-[10px] text-z-cyan">Radiant • NA</div>
+                                    <div class="text-white text-xs font-bold font-mono">{{ passport.in_game_name }}{% if passport.discriminator %}#{{ passport.discriminator }}{% endif %}</div>
+                                    <div class="text-[10px] text-z-cyan">{% if passport.rank_name %}{{ passport.rank_name }}{% endif %}{% if passport.platform %} • {{ passport.platform }}{% endif %}</div>
                                 </div>
                             </div>
+                            {% if passport.is_verified %}
                             <i class="fa-solid fa-circle-check text-z-cyan text-sm shadow-neon-cyan"></i>
+                            {% endif %}
                         </div>
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded bg-[#1b2838] flex items-center justify-center text-white"><i class="fa-brands fa-steam"></i></div>
-                                <div>
-                                    <div class="text-white text-xs font-bold font-mono">ViperCS</div>
-                                    <div class="text-[10px] text-z-cyan">Global • EU</div>
-                                </div>
-                            </div>
-                            <i class="fa-solid fa-circle-check text-z-cyan text-sm"></i>
-                        </div>
+                        {% empty %}
+                        <div class="text-center text-gray-500 text-xs py-4">No game IDs linked yet</div>
+                        {% endfor %}
                     </div>
                 </div>
 
@@ -599,13 +631,23 @@
                     <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest">Affiliations</h3>
                 </div>
                 
-                <div class="flex items-center gap-4 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-z-cyan/50 hover:bg-white/10 transition cursor-pointer group">
-                    <div class="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center font-black text-white border border-white/10">TL</div>
+                {% if user_teams %}
+                    {% for team in user_teams %}
+                <div class="flex items-center gap-4 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-z-cyan/50 hover:bg-white/10 transition cursor-pointer group mb-2">
+                    {% if team.logo_url %}
+                    <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-12 h-12 rounded-lg object-cover border border-white/10">
+                    {% else %}
+                    <div class="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center font-black text-white border border-white/10">{{ team.tag|upper }}</div>
+                    {% endif %}
                     <div class="flex-1">
-                        <div class="text-white font-bold text-sm group-hover:text-z-cyan transition">Team Liquid</div>
-                        <div class="text-[10px] text-gray-400">Captain • Valorant</div>
+                        <div class="text-white font-bold text-sm group-hover:text-z-cyan transition">{{ team.name }}</div>
+                        <div class="text-[10px] text-gray-400">{{ team.role|default:'Member' }}{% if team.game %} • {{ team.game }}{% endif %}</div>
                     </div>
                 </div>
+                    {% endfor %}
+                {% else %}
+                <div class="text-center text-gray-500 text-xs py-4">No team affiliations yet</div>
+                {% endif %}
             </div>
 
             <div class="glass-panel p-6 rounded-2xl">
