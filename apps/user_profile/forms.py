@@ -333,11 +333,39 @@ class UserProfileSettingsForm(forms.ModelForm):
     UP.2 C2 CLEANUP: Social links now managed via SocialLink model
     """
     
+    # Popular languages list for communication_languages multi-select
+    LANGUAGE_CHOICES = [
+        ('English', 'English'),
+        ('Bengali', 'Bengali'),
+        ('Hindi', 'Hindi'),
+        ('Urdu', 'Urdu'),
+        ('Arabic', 'Arabic'),
+        ('German', 'German'),
+        ('French', 'French'),
+        ('Spanish', 'Spanish'),
+        ('Portuguese', 'Portuguese'),
+        ('Russian', 'Russian'),
+        ('Turkish', 'Turkish'),
+        ('Malay', 'Malay'),
+        ('Indonesian', 'Indonesian'),
+        ('Japanese', 'Japanese'),
+        ('Korean', 'Korean'),
+        ('Chinese', 'Chinese'),
+        ('Italian', 'Italian'),
+    ]
+    
+    communication_languages = forms.MultipleChoiceField(
+        choices=LANGUAGE_CHOICES,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'language-checkbox'}),
+        required=False,
+        help_text='Select all languages you can communicate in'
+    )
+    
     class Meta:
         model = UserProfile
         fields = [
             # Identity Tab
-            'display_name', 'gender', 'pronouns', 'city', 'country', 'bio',
+            'display_name', 'gender', 'pronouns', 'name_pronunciation', 'city', 'country', 'bio',
             
             # Connections Tab
             'phone', 'whatsapp', 'secondary_email', 'preferred_contact_method',
@@ -352,36 +380,39 @@ class UserProfileSettingsForm(forms.ModelForm):
             # About Section Fields (Phase 4)
             'device_platform', 'play_style', 'lan_availability',
             'main_role', 'secondary_role', 'communication_languages', 'active_hours',
-            
-            # Profile customization
-            'pronouns',
         ]
         
         widgets = {
             'bio': forms.Textarea(attrs={'rows': 4, 'maxlength': 500}),
-            'communication_languages': forms.SelectMultiple(),
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
         }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set initial value for communication_languages from JSON field
+        if self.instance and self.instance.pk:
+            languages = self.instance.communication_languages
+            if isinstance(languages, list):
+                self.initial['communication_languages'] = languages
+            elif isinstance(languages, str) and languages:
+                # Handle legacy string format
+                try:
+                    import json
+                    parsed = json.loads(languages)
+                    self.initial['communication_languages'] = parsed if isinstance(parsed, list) else []
+                except (json.JSONDecodeError, ValueError):
+                    self.initial['communication_languages'] = []
+            else:
+                self.initial['communication_languages'] = []
+    
     def clean_communication_languages(self):
         """
-        Phase 4C.1: Convert comma-separated string to JSON list.
-        Input: "English, Bengali, Hindi"
-        Output: ["English", "Bengali", "Hindi"]
+        Phase 4C.3: MultipleChoiceField returns list of selected languages.
+        Store as JSON list in model.
         """
         data = self.cleaned_data.get('communication_languages')
-        
-        # If already a list (from JSON field), return as-is
-        if isinstance(data, list):
-            return data
-        
-        # If string, split by comma and clean
-        if isinstance(data, str) and data.strip():
-            languages = [lang.strip() for lang in data.split(',') if lang.strip()]
-            return languages
-        
-        # Default to empty list
-        return []
+        # MultipleChoiceField already returns a list, just ensure it's a list
+        return list(data) if data else []
     
     def clean(self):
         """
@@ -482,6 +513,34 @@ class AboutSettingsForm(forms.ModelForm):
     This ensures saving About tab doesn't require unrelated fields.
     """
     
+    # Popular languages list for communication_languages multi-select
+    LANGUAGE_CHOICES = [
+        ('English', 'English'),
+        ('Bengali', 'Bengali'),
+        ('Hindi', 'Hindi'),
+        ('Urdu', 'Urdu'),
+        ('Arabic', 'Arabic'),
+        ('German', 'German'),
+        ('French', 'French'),
+        ('Spanish', 'Spanish'),
+        ('Portuguese', 'Portuguese'),
+        ('Russian', 'Russian'),
+        ('Turkish', 'Turkish'),
+        ('Malay', 'Malay'),
+        ('Indonesian', 'Indonesian'),
+        ('Japanese', 'Japanese'),
+        ('Korean', 'Korean'),
+        ('Chinese', 'Chinese'),
+        ('Italian', 'Italian'),
+    ]
+    
+    communication_languages = forms.MultipleChoiceField(
+        choices=LANGUAGE_CHOICES,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'language-checkbox'}),
+        required=False,
+        help_text='Select all languages you can communicate in'
+    )
+    
     class Meta:
         model = UserProfile
         fields = [
@@ -523,25 +582,32 @@ class AboutSettingsForm(forms.ModelForm):
             }),
         }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set initial value for communication_languages from JSON field
+        if self.instance and self.instance.pk:
+            languages = self.instance.communication_languages
+            if isinstance(languages, list):
+                self.initial['communication_languages'] = languages
+            elif isinstance(languages, str) and languages:
+                # Handle legacy string format
+                try:
+                    import json
+                    parsed = json.loads(languages)
+                    self.initial['communication_languages'] = parsed if isinstance(parsed, list) else []
+                except (json.JSONDecodeError, ValueError):
+                    self.initial['communication_languages'] = []
+            else:
+                self.initial['communication_languages'] = []
+    
     def clean_communication_languages(self):
         """
-        Phase 4C.1: Convert comma-separated string to JSON list.
-        Input: "English, Bengali, Hindi"
-        Output: ["English", "Bengali", "Hindi"]
+        Phase 4C.3: MultipleChoiceField returns list of selected languages.
+        Store as JSON list in model.
         """
         data = self.cleaned_data.get('communication_languages')
-        
-        # If already a list (from JSON field), return as-is
-        if isinstance(data, list):
-            return data
-        
-        # If string, split by comma and clean
-        if isinstance(data, str) and data.strip():
-            languages = [lang.strip() for lang in data.split(',') if lang.strip()]
-            return languages
-        
-        # Default to empty list
-        return []
+        # MultipleChoiceField already returns a list, just ensure it's a list
+        return list(data) if data else []
     
     def clean_profile_story(self):
         """UP.3 EXTENSION: Enforce 320 char limit for Player Summary"""

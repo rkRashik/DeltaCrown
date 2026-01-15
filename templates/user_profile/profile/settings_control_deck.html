@@ -365,15 +365,20 @@
                             </select>
                         </div>
                         <div>
-                            <label class="z-label">Pronouns <span class="text-gray-500 text-xs normal-case">(Optional)</span></label>
+                            <label class="z-label">Preferred Pronouns <span class="text-gray-500 text-xs normal-case">(Optional)</span></label>
                             <select name="pronouns" class="z-input" oninput="markUnsaved()">
                                 <option value="">Prefer not to say</option>
-                                <option value="he/him" {% if user_profile.pronouns == 'he/him' %}selected{% endif %}>He/Him</option>
-                                <option value="she/her" {% if user_profile.pronouns == 'she/her' %}selected{% endif %}>She/Her</option>
-                                <option value="they/them" {% if user_profile.pronouns == 'they/them' %}selected{% endif %}>They/Them</option>
-                                <option value="any" {% if user_profile.pronouns == 'any' %}selected{% endif %}>Any Pronouns</option>
-                                <option value="other" {% if user_profile.pronouns == 'other' %}selected{% endif %}>Other</option>
+                                <option value="he/him" {% if user_profile.pronouns == 'he/him' %}selected{% endif %}>he/him</option>
+                                <option value="she/her" {% if user_profile.pronouns == 'she/her' %}selected{% endif %}>she/her</option>
+                                <option value="they/them" {% if user_profile.pronouns == 'they/them' %}selected{% endif %}>they/them</option>
+                                <option value="any pronouns" {% if user_profile.pronouns == 'any pronouns' %}selected{% endif %}>any pronouns</option>
                             </select>
+                            <p class="text-xs text-gray-500 mt-1">How others refer to you (he/him, she/her, they/them). Not your name pronunciation.</p>
+                        </div>
+                        <div>
+                            <label class="z-label">Name Pronunciation <span class="text-gray-500 text-xs normal-case">(Optional)</span></label>
+                            <input type="text" name="name_pronunciation" class="z-input" value="{{ user_profile.name_pronunciation|default:'' }}" placeholder="e.g., rah-sheek / রাশিক" oninput="markUnsaved()">
+                            <p class="text-xs text-gray-500 mt-1">Optional. Example: rah-sheek / রাশিক</p>
                         </div>
                         <div>
                             <label class="z-label">City</label>
@@ -1106,8 +1111,20 @@
                                 
                                 <div>
                                     <label class="z-label">Communication Languages</label>
-                                    <input type="text" name="communication_languages" class="z-input" value="{{ communication_languages_str|default:'' }}" placeholder="e.g., English, Bengali, Hindi" oninput="markUnsaved()">
-                                    <p class="text-xs text-gray-500 mt-1">Separate with commas (e.g., "English, Bengali")</p>
+                                    <div class="max-h-44 overflow-y-auto grid grid-cols-2 gap-2 p-3 rounded-xl bg-black/30 border border-white/10">
+                                        {% for value, label in form.communication_languages.field.choices %}
+                                        <label class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer">
+                                            <input type="checkbox" 
+                                                   name="communication_languages" 
+                                                   value="{{ value }}"
+                                                   {% if value in user_profile.communication_languages %}checked{% endif %}
+                                                   class="language-checkbox w-4 h-4 rounded border-gray-600 text-z-cyan focus:ring-z-cyan focus:ring-offset-0 bg-z-panel"
+                                                   oninput="markUnsaved()">
+                                            <span class="text-sm text-gray-300">{{ label }}</span>
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">Select all languages you can communicate in</p>
                                 </div>
                                 
                                 <script>

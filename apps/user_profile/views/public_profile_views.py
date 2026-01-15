@@ -1323,7 +1323,11 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     import logging
     
     logger = logging.getLogger(__name__)
-    user_profile = UserProfile.objects.get(user=request.user)
+    
+    # CRITICAL: Use direct DB query to get canonical profile instance
+    user_profile = UserProfile.objects.select_related('user').get(user=request.user)
+    logger.info(f"[SETTINGS-GET] Loading settings for user {request.user.username} (profile_id={user_profile.id})")
+    logger.info(f"[SETTINGS-GET] Current DB values: pronouns='{user_profile.pronouns}', name_pronunciation='{user_profile.name_pronunciation}'")
     
     # PHASE 4C.1.2: Handle POST requests for settings tabs
     if request.method == 'POST':
@@ -1357,6 +1361,7 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
                     
                     return JsonResponse({
                         'success': False,
+                        'message': 'Save failed',
                         'error': '; '.join(error_messages),
                         'errors': form.errors
                     }, status=400)
@@ -1374,6 +1379,7 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
                     if user_profile.is_kyc_verified and 'real_full_name' in form.changed_data:
                         return JsonResponse({
                             'success': False,
+                            'message': 'Save failed',
                             'error': 'Cannot change legal name after KYC verification.'
                         }, status=400)
                     
@@ -1395,6 +1401,7 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
                     
                     return JsonResponse({
                         'success': False,
+                        'message': 'Save failed',
                         'error': '; '.join(error_messages),
                         'errors': form.errors
                     }, status=400)
@@ -1402,6 +1409,7 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
                 # Unknown tab
                 return JsonResponse({
                     'success': False,
+                    'message': 'Save failed',
                     'error': f'Unknown settings tab: {settings_tab}'
                 }, status=400)
                 
@@ -1409,6 +1417,7 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
             logger.error(f"Error saving {settings_tab} settings: {e}", exc_info=True)
             return JsonResponse({
                 'success': False,
+                'message': 'Save failed',
                 'error': f'Server error: {str(e)}'
             }, status=500)
     
@@ -1546,11 +1555,16 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     # UP-PHASE15-SESSION3: Add JSON data for Vanilla JS controller
     # UP.3 HOTFIX #2: Convert Country object to primitives for JSON serialization
     country_code = str(user_profile.country.code) if user_profile.country else ''
+    
+    # Log what we're serializing to JSON
+    logger.info(f"[SETTINGS-GET] Serializing to profile_data JSON: pronouns='{user_profile.pronouns}', name_pronunciation='{user_profile.name_pronunciation}'")
+    
     context['profile_data'] = json.dumps({
         'display_name': user_profile.display_name or request.user.username,
         'bio': user_profile.bio or '',
         'country': country_code,
         'pronouns': user_profile.pronouns or '',
+        'name_pronunciation': user_profile.name_pronunciation or '',
     })
     
     # Notification preferences (dummy data for MVP - actual implementation later)
@@ -1698,6 +1712,11 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
         'monitor': serialize_hardware(loadout_data['hardware'].get('MONITOR')),
     }
     
+    # Phase 4C.3: Initialize form for GET request to provide field choices
+    from apps.user_profile.forms import UserProfileSettingsForm
+    form = UserProfileSettingsForm(instance=user_profile)
+    context['form'] = form
+    
     # Feature flag: Switch to Control Deck template
     from django.conf import settings as django_settings
     if django_settings.SETTINGS_CONTROL_DECK_ENABLED:
@@ -1802,239 +1821,296 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
     
     import json
     from django.http import JsonResponse
-    from apps.user_profile.utils import get_user_profile_safe
+    from django.db import transaction
+    from apps.user_profile.models import UserProfile
     from datetime import datetime
+    import logging
     
-    profile = get_user_profile_safe(request.user)
+    logger = logging.getLogger(__name__)
     
-    try:
-        # Accept both JSON and form data (check content-type before accessing body)
-        if request.content_type == 'application/json':
-            try:
-                data = json.loads(request.body)
-            except (json.JSONDecodeError, UnicodeDecodeError):
-                return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
-        elif request.content_type and 'multipart/form-data' in request.content_type:
-            # FormData from frontend
-            data = request.POST.dict()
-        else:
-            # Regular form POST or empty content-type
-            data = request.POST.dict() if request.POST else {}
+    # CRITICAL: Use direct DB query with select_for_update to ensure we have the canonical instance
+    with transaction.atomic():
+        profile = UserProfile.objects.select_for_update().get(user=request.user)
         
-        # Capture before state for audit
-        before_snapshot = {
-            'display_name': profile.display_name,
-            'bio': profile.bio,
-            'country': profile.country,
-            'pronouns': profile.pronouns,
-        }
-        
-        # ===== BASIC PROFILE =====
-        display_name = data.get('display_name', '').strip()
-        if not display_name:
-            return JsonResponse({'success': False, 'error': 'Display name is required'}, status=400)
-        if len(display_name) > 80:
-            return JsonResponse({'success': False, 'error': 'Display name must be 80 characters or less'}, status=400)
-        profile.display_name = display_name
-        
-        bio = data.get('bio', '').strip()
-        if len(bio) > 500:
-            return JsonResponse({'success': False, 'error': 'Bio must be 500 characters or less'}, status=400)
-        profile.bio = bio
-        
-        pronouns = data.get('pronouns', '').strip()
-        if len(pronouns) > 50:
-            return JsonResponse({'success': False, 'error': 'Pronouns must be 50 characters or less'}, status=400)
-        profile.pronouns = pronouns
-        
-        # ===== LOCATION =====
-        country = data.get('country', '').strip()
-        if len(country) > 100:
-            return JsonResponse({'success': False, 'error': 'Country must be 100 characters or less'}, status=400)
-        profile.country = country
-        
-        city = data.get('city', '').strip()
-        if len(city) > 100:
-            return JsonResponse({'success': False, 'error': 'City must be 100 characters or less'}, status=400)
-        profile.city = city
-        
-        postal_code = data.get('postal_code', '').strip()
-        if len(postal_code) > 20:
-            return JsonResponse({'success': False, 'error': 'Postal code must be 20 characters or less'}, status=400)
-        profile.postal_code = postal_code
-        
-        address = data.get('address', '').strip()
-        if len(address) > 300:
-            return JsonResponse({'success': False, 'error': 'Address must be 300 characters or less'}, status=400)
-        profile.address = address
-        
-        # ===== CONTACT =====
-        phone = data.get('phone', '').strip()
-        if len(phone) > 20:
-            return JsonResponse({'success': False, 'error': 'Phone must be 20 characters or less'}, status=400)
-        profile.phone = phone
-        
-        # WhatsApp (separate from phone)
-        whatsapp = data.get('whatsapp', '').strip()
-        if len(whatsapp) > 20:
-            return JsonResponse({'success': False, 'error': 'WhatsApp must be 20 characters or less'}, status=400)
-        profile.whatsapp = whatsapp
-        
-        # Secondary/Public Email (requires verification for display)
-        secondary_email = data.get('secondary_email', '').strip()
-        if secondary_email:
-            from django.core.validators import validate_email
-            from django.core.exceptions import ValidationError as EmailValidationError
-            try:
-                validate_email(secondary_email)
-                # If email changed, mark as unverified
-                if profile.secondary_email != secondary_email:
-                    profile.secondary_email = secondary_email
-                    profile.secondary_email_verified = False
-                    # TODO: Send OTP verification email
-            except EmailValidationError:
-                return JsonResponse({'success': False, 'error': 'Invalid email address'}, status=400)
-        else:
-            profile.secondary_email = ''
-            profile.secondary_email_verified = False
-        
-        # Preferred Contact Method
-        preferred_contact = data.get('preferred_contact_method', '').strip()
-        valid_methods = ['email', 'phone', 'whatsapp', 'discord', 'facebook']
-        if preferred_contact and preferred_contact not in valid_methods:
-            return JsonResponse({'success': False, 'error': 'Invalid contact method'}, status=400)
-        profile.preferred_contact_method = preferred_contact
-        
-        # UP.2 FIX PASS #6: Save ALL social media platforms to SocialLink
-        # Placeholder URLs to reject
-        PLATFORM_PLACEHOLDERS = [
-            'https://youtube.com/@username',
-            'https://www.youtube.com/@username',
-            'https://tiktok.com/@username',
-            'https://www.tiktok.com/@username',
-            'https://twitter.com/username',
-            'https://x.com/username',
-            'https://twitch.tv/username',
-            'https://www.twitch.tv/username',
-            'https://facebook.com/username',
-            'https://www.facebook.com/username',
-            'https://instagram.com/username',
-            'https://www.instagram.com/username',
-        ]
-        
-        # Define all platforms to process
-        social_platforms = {
-            'discord': {'url_field': 'discord_link', 'handle_field': 'discord_username'},
-            'youtube': {'url_field': 'youtube_link', 'handle_field': None},
-            'twitch': {'url_field': 'twitch_link', 'handle_field': None},
-            'twitter': {'url_field': 'twitter', 'handle_field': None},
-            'facebook': {'url_field': 'facebook', 'handle_field': None},
-            'instagram': {'url_field': 'instagram', 'handle_field': None},
-            'tiktok': {'url_field': 'tiktok', 'handle_field': None},
-        }
-        
-        for platform, fields in social_platforms.items():
-            url = data.get(fields['url_field'], '').strip()
-            handle = data.get(fields['handle_field'], '').strip() if fields['handle_field'] else ''
-            
-            # Normalize URL (add https if missing)
-            if url and not url.startswith(('http://', 'https://')):
-                url = f'https://{url}'
-            
-            # Reject placeholder URLs
-            if url.lower() in [p.lower() for p in PLATFORM_PLACEHOLDERS]:
-                url = ''
-            
-            # Reject URLs containing literal '@username'
-            if '@username' in url.lower():
-                url = ''
-            
-            # Save or delete
-            if url or handle:
-                SocialLink.objects.update_or_create(
-                    user=profile.user,
-                    platform=platform,
-                    defaults={
-                        'url': url,
-                        'handle': handle
-                    }
-                )
-            else:
-                # If both fields are empty, delete the link
-                SocialLink.objects.filter(user=profile.user, platform=platform).delete()
-        
-        logger.info(f"[UP.2 FIX PASS #6] Saved SocialLinks for {profile.user.username}:")
-        for link in SocialLink.objects.filter(user=profile.user):
-            logger.info(f"  {link.platform}: url={link.url}, handle={link.handle}")
-        
-        # ===== LEGAL IDENTITY & KYC =====
-        # Only allow updating if not KYC verified
-        if profile.kyc_status != 'verified':
-            real_full_name = data.get('real_full_name', '').strip()
-            if len(real_full_name) > 200:
-                return JsonResponse({'success': False, 'error': 'Full name must be 200 characters or less'}, status=400)
-            profile.real_full_name = real_full_name
-            
-            nationality = data.get('nationality', '').strip()
-            if len(nationality) > 100:
-                return JsonResponse({'success': False, 'error': 'Nationality must be 100 characters or less'}, status=400)
-            profile.nationality = nationality
-            
-            # Date of birth
-            dob_str = data.get('date_of_birth', '').strip()
-            if dob_str:
+        logger.info(f"[SETTINGS-DB] POST to update_basic_info")
+        logger.info(f"[SETTINGS-DB] User: {request.user.username} (user_id={request.user.id})")
+        logger.info(f"[SETTINGS-DB] Profile ID: {profile.id}")
+        logger.info(f"[SETTINGS-DB] BEFORE values: pronouns='{profile.pronouns}', name_pronunciation='{profile.name_pronunciation}'")
+    
+        try:
+            # Accept both JSON and form data (check content-type before accessing body)
+            if request.content_type == 'application/json':
                 try:
-                    profile.date_of_birth = datetime.strptime(dob_str, '%Y-%m-%d').date()
-                except ValueError:
-                    return JsonResponse({'success': False, 'error': 'Invalid date format. Use YYYY-MM-DD'}, status=400)
+                    data = json.loads(request.body)
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+            elif request.content_type and 'multipart/form-data' in request.content_type:
+                # FormData from frontend
+                data = request.POST.dict()
             else:
-                profile.date_of_birth = None
+                # Regular form POST or empty content-type
+                data = request.POST.dict() if request.POST else {}
         
-        # ===== DEMOGRAPHICS =====
-        gender = data.get('gender', '').strip()
-        if gender:
-            from apps.user_profile.models_main import GENDER_CHOICES
-            valid_genders = [choice[0] for choice in GENDER_CHOICES]
-            if gender not in valid_genders:
-                return JsonResponse({'success': False, 'error': 'Invalid gender selection'}, status=400)
-            profile.gender = gender
-        else:
-            profile.gender = ''
+            # Capture before state for audit
+            before_snapshot = {
+                'display_name': profile.display_name,
+                'bio': profile.bio,
+                'country': profile.country,
+                'pronouns': profile.pronouns,
+            }
         
-        # ===== EMERGENCY CONTACT =====
-        emergency_contact_name = data.get('emergency_contact_name', '').strip()
-        if len(emergency_contact_name) > 200:
-            return JsonResponse({'success': False, 'error': 'Emergency contact name must be 200 characters or less'}, status=400)
-        profile.emergency_contact_name = emergency_contact_name
+            # ===== BASIC PROFILE =====
+            display_name = data.get('display_name', '').strip()
+            if not display_name:
+                return JsonResponse({'success': False, 'error': 'Display name is required'}, status=400)
+            if len(display_name) > 80:
+                return JsonResponse({'success': False, 'error': 'Display name must be 80 characters or less'}, status=400)
+            profile.display_name = display_name
         
-        emergency_contact_phone = data.get('emergency_contact_phone', '').strip()
-        if len(emergency_contact_phone) > 20:
-            return JsonResponse({'success': False, 'error': 'Emergency contact phone must be 20 characters or less'}, status=400)
-        profile.emergency_contact_phone = emergency_contact_phone
-        
-        emergency_contact_relation = data.get('emergency_contact_relation', '').strip()
-        if len(emergency_contact_relation) > 50:
-            return JsonResponse({'success': False, 'error': 'Emergency contact relation must be 50 characters or less'}, status=400)
-        profile.emergency_contact_relation = emergency_contact_relation
-        
-        # ===== SOCIAL MEDIA LINKS =====
-        # UP.2 FIX PASS #6: DEPRECATED - These legacy fields are no longer saved
-        # All social media URLs now saved to SocialLink model (see above)
-        # HOTFIX (Post-C2): Legacy fields completely removed from DB
-        # All social data managed via SocialLink model only
-        
-        profile.save()
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Profile updated successfully'
-        })
-    
-    except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
-    except Exception as e:
-        logger.error(f"Error updating profile: {e}", exc_info=True)
-        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+            bio = data.get('bio', '').strip()
+            if len(bio) > 500:
+                return JsonResponse({'success': False, 'error': 'Bio must be 500 characters or less'}, status=400)
+            profile.bio = bio
+            
+            pronouns = data.get('pronouns', '').strip()
+            if len(pronouns) > 50:
+                return JsonResponse({'success': False, 'error': 'Pronouns must be 50 characters or less'}, status=400)
+            profile.pronouns = pronouns
+            
+            # Name Pronunciation (Optional)
+            name_pronunciation = data.get('name_pronunciation', '').strip()
+            if len(name_pronunciation) > 64:
+                return JsonResponse({'success': False, 'error': 'Name pronunciation must be 64 characters or less'}, status=400)
+            profile.name_pronunciation = name_pronunciation
+            
+            # ===== LOCATION =====
+            country_code = data.get('country', '').strip()
+            if country_code:
+                # Country is a CountryField - accepts ISO codes
+                if len(country_code) > 2:
+                    return JsonResponse({'success': False, 'error': 'Country must be 2-letter ISO code'}, status=400)
+                profile.country = country_code  # CountryField accepts string ISO codes
+            else:
+                profile.country = ''  # Clear country
+            
+            city = data.get('city', '').strip()
+            if len(city) > 100:
+                return JsonResponse({'success': False, 'error': 'City must be 100 characters or less'}, status=400)
+            profile.city = city
+            
+            postal_code = data.get('postal_code', '').strip()
+            if len(postal_code) > 20:
+                return JsonResponse({'success': False, 'error': 'Postal code must be 20 characters or less'}, status=400)
+            profile.postal_code = postal_code
+            
+            address = data.get('address', '').strip()
+            if len(address) > 300:
+                return JsonResponse({'success': False, 'error': 'Address must be 300 characters or less'}, status=400)
+            profile.address = address
+            
+            # ===== CONTACT =====
+            phone = data.get('phone', '').strip()
+            if len(phone) > 20:
+                return JsonResponse({'success': False, 'error': 'Phone must be 20 characters or less'}, status=400)
+            profile.phone = phone
+            
+            # WhatsApp (separate from phone)
+            whatsapp = data.get('whatsapp', '').strip()
+            if len(whatsapp) > 20:
+                return JsonResponse({'success': False, 'error': 'WhatsApp must be 20 characters or less'}, status=400)
+            profile.whatsapp = whatsapp
+            
+            # Secondary/Public Email (requires verification for display)
+            secondary_email = data.get('secondary_email', '').strip()
+            if secondary_email:
+                from django.core.validators import validate_email
+                from django.core.exceptions import ValidationError as EmailValidationError
+                try:
+                    validate_email(secondary_email)
+                    # If email changed, mark as unverified
+                    if profile.secondary_email != secondary_email:
+                        profile.secondary_email = secondary_email
+                        profile.secondary_email_verified = False
+                        # TODO: Send OTP verification email
+                except EmailValidationError:
+                    return JsonResponse({'success': False, 'error': 'Invalid email address'}, status=400)
+            else:
+                profile.secondary_email = ''
+                profile.secondary_email_verified = False
+            
+            # Preferred Contact Method
+            preferred_contact = data.get('preferred_contact_method', '').strip()
+            valid_methods = ['email', 'phone', 'whatsapp', 'discord', 'facebook']
+            if preferred_contact and preferred_contact not in valid_methods:
+                return JsonResponse({'success': False, 'error': 'Invalid contact method'}, status=400)
+            profile.preferred_contact_method = preferred_contact
+            
+            # UP.2 FIX PASS #6: Save ALL social media platforms to SocialLink
+            # Placeholder URLs to reject
+            PLATFORM_PLACEHOLDERS = [
+                'https://youtube.com/@username',
+                'https://www.youtube.com/@username',
+                'https://tiktok.com/@username',
+                'https://www.tiktok.com/@username',
+                'https://twitter.com/username',
+                'https://x.com/username',
+                'https://twitch.tv/username',
+                'https://www.twitch.tv/username',
+                'https://facebook.com/username',
+                'https://www.facebook.com/username',
+                'https://instagram.com/username',
+                'https://www.instagram.com/username',
+            ]
+            
+            # Define all platforms to process
+            social_platforms = {
+                'discord': {'url_field': 'discord_link', 'handle_field': 'discord_username'},
+                'youtube': {'url_field': 'youtube_link', 'handle_field': None},
+                'twitch': {'url_field': 'twitch_link', 'handle_field': None},
+                'twitter': {'url_field': 'twitter', 'handle_field': None},
+                'facebook': {'url_field': 'facebook', 'handle_field': None},
+                'instagram': {'url_field': 'instagram', 'handle_field': None},
+                'tiktok': {'url_field': 'tiktok', 'handle_field': None},
+            }
+            
+            for platform, fields in social_platforms.items():
+                url = data.get(fields['url_field'], '').strip()
+                handle = data.get(fields['handle_field'], '').strip() if fields['handle_field'] else ''
+                
+                # Normalize URL (add https if missing)
+                if url and not url.startswith(('http://', 'https://')):
+                    url = f'https://{url}'
+                
+                # Reject placeholder URLs
+                if url.lower() in [p.lower() for p in PLATFORM_PLACEHOLDERS]:
+                    url = ''
+                
+                # Reject URLs containing literal '@username'
+                if '@username' in url.lower():
+                    url = ''
+                
+                # Save or delete
+                if url or handle:
+                    SocialLink.objects.update_or_create(
+                        user=profile.user,
+                        platform=platform,
+                        defaults={
+                            'url': url,
+                            'handle': handle
+                        }
+                    )
+                else:
+                    # If both fields are empty, delete the link
+                    SocialLink.objects.filter(user=profile.user, platform=platform).delete()
+            
+            logger.info(f"[UP.2 FIX PASS #6] Saved SocialLinks for {profile.user.username}:")
+            for link in SocialLink.objects.filter(user=profile.user):
+                logger.info(f"  {link.platform}: url={link.url}, handle={link.handle}")
+            
+            # ===== LEGAL IDENTITY & KYC =====
+            # Only allow updating if not KYC verified
+            if profile.kyc_status != 'verified':
+                real_full_name = data.get('real_full_name', '').strip()
+                if len(real_full_name) > 200:
+                    return JsonResponse({'success': False, 'error': 'Full name must be 200 characters or less'}, status=400)
+                profile.real_full_name = real_full_name
+                
+                nationality = data.get('nationality', '').strip()
+                if len(nationality) > 100:
+                    return JsonResponse({'success': False, 'error': 'Nationality must be 100 characters or less'}, status=400)
+                profile.nationality = nationality
+                
+                # Date of birth
+                dob_str = data.get('date_of_birth', '').strip()
+                if dob_str:
+                    try:
+                        profile.date_of_birth = datetime.strptime(dob_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        return JsonResponse({'success': False, 'error': 'Invalid date format. Use YYYY-MM-DD'}, status=400)
+                else:
+                    profile.date_of_birth = None
+            
+            # ===== DEMOGRAPHICS =====
+            gender = data.get('gender', '').strip()
+            if gender:
+                from apps.user_profile.models_main import GENDER_CHOICES
+                valid_genders = [choice[0] for choice in GENDER_CHOICES]
+                if gender not in valid_genders:
+                    return JsonResponse({'success': False, 'error': 'Invalid gender selection'}, status=400)
+                profile.gender = gender
+            else:
+                profile.gender = ''
+            
+            # ===== EMERGENCY CONTACT =====
+            emergency_contact_name = data.get('emergency_contact_name', '').strip()
+            if len(emergency_contact_name) > 200:
+                return JsonResponse({'success': False, 'error': 'Emergency contact name must be 200 characters or less'}, status=400)
+            profile.emergency_contact_name = emergency_contact_name
+            
+            emergency_contact_phone = data.get('emergency_contact_phone', '').strip()
+            if len(emergency_contact_phone) > 20:
+                return JsonResponse({'success': False, 'error': 'Emergency contact phone must be 20 characters or less'}, status=400)
+            profile.emergency_contact_phone = emergency_contact_phone
+            
+            emergency_contact_relation = data.get('emergency_contact_relation', '').strip()
+            if len(emergency_contact_relation) > 50:
+                return JsonResponse({'success': False, 'error': 'Emergency contact relation must be 50 characters or less'}, status=400)
+            profile.emergency_contact_relation = emergency_contact_relation
+            
+            # ===== SOCIAL MEDIA LINKS =====
+            # UP.2 FIX PASS #6: DEPRECATED - These legacy fields are no longer saved
+            # All social media URLs now saved to SocialLink model (see above)
+            # HOTFIX (Post-C2): Legacy fields completely removed from DB
+            # All social data managed via SocialLink model only
+            
+            # CRITICAL: Log all values BEFORE save
+            logger.info(f"[SETTINGS-DB] VALUES BEFORE SAVE:")
+            logger.info(f"  display_name: '{profile.display_name}'")
+            logger.info(f"  pronouns: '{profile.pronouns}'")
+            logger.info(f"  name_pronunciation: '{profile.name_pronunciation}'")
+            logger.info(f"  country: '{profile.country}'")
+            logger.info(f"  city: '{profile.city}'")
+            logger.info(f"  gender: '{profile.gender}'")
+            
+            # CRITICAL: Save without update_fields to ensure all changes persist
+            profile.save()
+            logger.info(f"[SETTINGS-DB] profile.save() called")
+            
+            # CRITICAL: Immediate DB roundtrip verification
+            profile.refresh_from_db()
+            logger.info(f"[SETTINGS-DB] VALUES AFTER refresh_from_db():")
+            logger.info(f"  pronouns: '{profile.pronouns}'")
+            logger.info(f"  name_pronunciation: '{profile.name_pronunciation}'")
+            logger.info(f"  country: '{profile.country}'")
+            logger.info(f"  city: '{profile.city}'")
+            logger.info(f"  gender: '{profile.gender}'")
+            
+            # Return saved values for frontend verification
+            return JsonResponse({
+                'success': True,
+                'message': 'Profile updated successfully',
+                'saved': {
+                    'display_name': profile.display_name,
+                    'pronouns': profile.pronouns,
+                    'name_pronunciation': profile.name_pronunciation,
+                    'country': str(profile.country) if profile.country else '',
+                    'city': profile.city,
+                    'gender': profile.gender,
+                    'phone': profile.phone,
+                    'whatsapp': profile.whatsapp,
+                    'bio': profile.bio,
+                }
+            })
+            
+        except json.JSONDecodeError:
+            logger.error(f"[SETTINGS-DB] JSON decode error")
+            return JsonResponse({'success': False, 'message': 'Save failed', 'error': 'Invalid JSON'}, status=400)
+        except UserProfile.DoesNotExist:
+            logger.error(f"[SETTINGS-DB] Profile not found for user {request.user.username}")
+            return JsonResponse({'success': False, 'message': 'Save failed', 'error': 'Profile not found'}, status=404)
+        except Exception as e:
+            logger.error(f"[SETTINGS-DB] Error updating profile: {e}", exc_info=True)
+            return JsonResponse({'success': False, 'message': 'Save failed', 'error': f'Server error: {str(e)}'}, status=500)
 
 
 # HOTFIX (Post-C2): update_social_links function removed

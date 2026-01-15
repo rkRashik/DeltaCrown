@@ -232,6 +232,13 @@ class UserProfile(models.Model):
         help_text="Pronouns (e.g., he/him, she/her, they/them)"
     )
     
+    name_pronunciation = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        help_text="Optional pronunciation guide for your name (e.g., rah-sheek / রাশিক)"
+    )
+    
     # UP.3 Extension: About section story (separate from hero bio)
     profile_story = models.TextField(
         blank=True,
