@@ -109,6 +109,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",  # OpenAPI 3 schema generation (Phase 9, Epic 9.1)
     "django_ckeditor_5",
+    "django_countries",  # UP.3 Extension: Country field with flags
     "corsheaders",  # CORS headers for frontend integration
     # allauth is optional; enabled via ENABLE_ALLAUTH=1. See conditional block below.
 

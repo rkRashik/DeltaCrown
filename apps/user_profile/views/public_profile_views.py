@@ -993,6 +993,32 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     identity_ctx['languages'] = languages if languages else None
     identity_ctx['languages_display'] = ', '.join(languages) if languages else None
     
+    # UP.3 EXTENSION: Add profile_story (Player Summary) to identity
+    identity_ctx['profile_story'] = user_profile.profile_story or None
+    
+    # UP.4 TACTICAL ABOUT v4.0: Add new required fields
+    # Country metadata for flag rendering
+    if user_profile.country:
+        identity_ctx['country_name'] = user_profile.country.name
+        identity_ctx['country_iso'] = str(user_profile.country.code)
+        identity_ctx['country_flag_url'] = f"https://flagcdn.com/{str(user_profile.country.code).lower()}.svg"
+    else:
+        identity_ctx['country_name'] = None
+        identity_ctx['country_iso'] = None
+        identity_ctx['country_flag_url'] = None
+    
+    # Player Snapshot (rename profile_story for UI clarity)
+    identity_ctx['player_snapshot'] = user_profile.profile_story or None
+    
+    # Next Objective (from competitive_goal)
+    identity_ctx['next_objective'] = user_profile.competitive_goal or None
+    
+    # Member since (formatted string)
+    if profile_user.date_joined:
+        identity_ctx['member_since'] = profile_user.date_joined.strftime("%b %Y")
+    else:
+        identity_ctx['member_since'] = None
+    
     context['identity_ctx'] = identity_ctx
     
     # 2) COMPETITIVE DNA CONTEXT
@@ -1018,9 +1044,14 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     if is_owner or privacy_settings.show_roles:
         competitive_ctx['primary_role'] = user_profile.main_role or None
         competitive_ctx['secondary_role'] = user_profile.secondary_role or None
+        # UP.4: Add role display (roles are already human-readable strings)
+        competitive_ctx['main_role_display'] = user_profile.main_role
+        competitive_ctx['secondary_role_display'] = user_profile.secondary_role
     else:
         competitive_ctx['primary_role'] = None
         competitive_ctx['secondary_role'] = None
+        competitive_ctx['main_role_display'] = None
+        competitive_ctx['secondary_role_display'] = None
     
     # Region / Server
     competitive_ctx['region'] = user_profile.region or None
@@ -1039,7 +1070,101 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     competitive_ctx['status'] = None  # Could add status field later
     competitive_ctx['is_signed'] = False  # Could check team membership or org affiliation
     
+    # UP.3 EXTENSION: Add primary_team and primary_game
+    competitive_ctx['primary_team'] = user_profile.primary_team
+    competitive_ctx['primary_game'] = user_profile.primary_game
+    
+    # UP.3 HOTFIX #3: Safe team URL generation (avoid NoReverseMatch)
+    competitive_ctx['primary_team_url'] = None
+    if user_profile.primary_team:
+        try:
+            from django.urls import reverse
+            competitive_ctx['primary_team_url'] = reverse('teams:team_detail', kwargs={'slug': user_profile.primary_team.slug})
+        except Exception:
+            pass  # URL pattern doesn't exist, keep None
+    
+    # UP.4 TACTICAL ABOUT v4.0: Add home team context (aliases for clarity)
+    competitive_ctx['home_team'] = user_profile.primary_team
+    if user_profile.primary_team:
+        competitive_ctx['home_team_name'] = user_profile.primary_team.name
+        competitive_ctx['home_team_tag'] = getattr(user_profile.primary_team, 'tag', None) or getattr(user_profile.primary_team, 'short_name', None)
+    else:
+        competitive_ctx['home_team_name'] = None
+        competitive_ctx['home_team_tag'] = None
+    
+    # UP.4: Playstyle display (alias for clarity)
+    competitive_ctx['playstyle_display'] = competitive_ctx.get('play_style_display')
+    
+    # UP.4: LFT status display (only show if actively looking)
+    if user_profile.lft_status and user_profile.lft_status != 'NOT_LOOKING':
+        try:
+            competitive_ctx['lft_status_display'] = user_profile.get_lft_status_display()
+        except AttributeError:
+            competitive_ctx['lft_status_display'] = None
+    else:
+        competitive_ctx['lft_status_display'] = None
+    
     context['competitive_ctx'] = competitive_ctx
+    
+    # UP.3 ABOUT REDESIGN: Add visual context (flag, team logo, game logo)
+    # 1. Country flag with CDN fallback
+    country_flag_url = None
+    if user_profile.country:
+        iso_code = str(user_profile.country.code).lower()
+        # Try emoji first (django-countries provides .flag property)
+        # Fallback: use flagcdn.com for reliable flag images
+        country_flag_url = f"https://flagcdn.com/24x18/{iso_code}.png"
+    context['country_flag_url'] = country_flag_url
+    
+    # 2. Primary team logo
+    primary_team_logo_url = None
+    if user_profile.primary_team:
+        # Check if team has logo field (could be logo, logo_url, image, etc.)
+        team = user_profile.primary_team
+        if hasattr(team, 'logo') and team.logo:
+            primary_team_logo_url = team.logo.url if hasattr(team.logo, 'url') else str(team.logo)
+        elif hasattr(team, 'logo_url') and team.logo_url:
+            primary_team_logo_url = team.logo_url
+        elif hasattr(team, 'image') and team.image:
+            primary_team_logo_url = team.image.url if hasattr(team.image, 'url') else str(team.image)
+    context['primary_team_logo_url'] = primary_team_logo_url
+    
+    # UP.4: Add home_team_logo_url alias for v4.0 template
+    competitive_ctx['home_team_logo_url'] = primary_team_logo_url
+    
+    # 3. Signature game (with safe lookup - Team.game is CharField, NOT FK)
+    signature_game_name = None
+    signature_game_logo_url = None
+    
+    # Priority 1: Use primary_game if set (FK to Game)
+    if user_profile.primary_game:
+        signature_game_name = user_profile.primary_game.display_name
+        if hasattr(user_profile.primary_game, 'icon') and user_profile.primary_game.icon:
+            signature_game_logo_url = user_profile.primary_game.icon.url
+        elif hasattr(user_profile.primary_game, 'logo') and user_profile.primary_game.logo:
+            signature_game_logo_url = user_profile.primary_game.logo.url
+    # Priority 2: If no primary_game but has primary_team, lookup game by slug
+    elif user_profile.primary_team and hasattr(user_profile.primary_team, 'game'):
+        from apps.games.models import Game
+        game_slug = user_profile.primary_team.game  # CharField value
+        if game_slug:
+            try:
+                game = Game.objects.filter(slug=game_slug).first()
+                if game:
+                    signature_game_name = game.display_name
+                    if hasattr(game, 'icon') and game.icon:
+                        signature_game_logo_url = game.icon.url
+                    elif hasattr(game, 'logo') and game.logo:
+                        signature_game_logo_url = game.logo.url
+            except Exception:
+                pass  # Game lookup failed, keep None
+    
+    context['signature_game_name'] = signature_game_name
+    context['signature_game_logo_url'] = signature_game_logo_url
+    
+    # UP.4: Add signature game to competitive_ctx for v4.0
+    competitive_ctx['signature_game_name'] = signature_game_name
+    competitive_ctx['signature_game_logo_url'] = signature_game_logo_url
     
     # 3) STATS CONTEXT (already exists as user_stats, just ensure it's present)
     # user_stats already added above (lines 650-673), just ensure all keys exist
@@ -1419,10 +1544,12 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     ).select_related('game').order_by('-created_at')
     
     # UP-PHASE15-SESSION3: Add JSON data for Vanilla JS controller
+    # UP.3 HOTFIX #2: Convert Country object to primitives for JSON serialization
+    country_code = str(user_profile.country.code) if user_profile.country else ''
     context['profile_data'] = json.dumps({
         'display_name': user_profile.display_name or request.user.username,
         'bio': user_profile.bio or '',
-        'country': user_profile.country or '',
+        'country': country_code,
         'pronouns': user_profile.pronouns or '',
     })
     
@@ -1501,8 +1628,43 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
         context['communication_languages_str'] = ''
     context['notification_settings'] = notification_settings
     
-    # UP-PHASE2B: Dynamic games list for matchmaking
+    # UP.3 EXTENSION: Add user teams and game profiles for primary_team/game dropdowns
+    from apps.teams.models import Team, TeamMembership
+    from django.apps import apps
+    GameProfile = apps.get_model("user_profile", "GameProfile")
+    
+    # UP.3 HOTFIX #4: Fix Team query - TeamMembership uses 'profile' not 'user'
+    # UP.3 HOTFIX #5: Removed .select_related('game') - Team.game is CharField, not ForeignKey
+    # Get user's teams (active memberships)
+    user_teams = Team.objects.filter(
+        memberships__profile=request.user.profile,
+        memberships__left_at__isnull=True
+    ).distinct().order_by('name')
+    
+    # UP.3 HOTFIX #5: Build safe dropdown - Team.game is CharField (stores game slug)
+    # Template needs dict structure since team.game.id/display_name don't exist
     from apps.games.models import Game
+    teams_dropdown = []
+    for team in user_teams:
+        # Team.game stores game slug string (e.g., "valorant", "csgo")
+        game_obj = Game.objects.filter(slug=team.game).first() if team.game else None
+        teams_dropdown.append({
+            'id': team.id,
+            'name': team.name,
+            'game_id': team.game,  # CharField value (slug string)
+            'game_name': game_obj.display_name if game_obj else team.game,
+        })
+    
+    # Get user's game profiles
+    user_game_profiles = GameProfile.objects.filter(
+        user=request.user
+    ).select_related('game').order_by('game__display_name')
+    
+    context['user_teams'] = user_teams
+    context['teams_dropdown'] = teams_dropdown  # UP.3 HOTFIX #5: Safe structure for template
+    context['user_game_profiles'] = user_game_profiles
+    
+    # UP-PHASE2B: Dynamic games list for matchmaking
     available_games = Game.objects.filter(is_active=True).order_by('name')
     context['available_games_for_matchmaking'] = available_games
     

@@ -1,0 +1,192 @@
+<!-- UP.4 TACTICAL ABOUT SECTION (v4.0) -->
+<style>
+    /* Line Clamps */
+    .clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+</style>
+
+<div class="glass-panel rounded-2xl overflow-hidden border-t-2 border-t-z-cyan shadow-[0_0_30px_-10px_rgba(0,240,255,0.15)] group hover:shadow-[0_0_50px_-10px_rgba(0,240,255,0.2)] transition-all duration-500">
+    
+    <div class="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-[#0F0B1E]">
+        <h2 class="font-display font-bold text-lg text-white flex items-center gap-3 tracking-wide">
+            <i class="fa-solid fa-crosshairs text-z-cyan"></i> COMPETITIVE PROFILE
+        </h2>
+        {% if is_owner %}
+        <a href="{% url 'user_profile:profile_settings' %}" class="text-[10px] uppercase font-bold bg-white/5 hover:bg-z-cyan hover:text-black text-gray-400 px-3 py-1.5 rounded border border-white/10 transition flex items-center gap-2">
+            <i class="fa-solid fa-pen"></i> Edit
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="p-6 space-y-6">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            
+            <!-- Zone A: Home Team + Signature Game + Platform (lg:col-span-5) -->
+            <div class="lg:col-span-5 flex flex-col gap-4">
+                {% if competitive_ctx.home_team %}
+                <div class="relative bg-gradient-to-r from-z-bg to-transparent p-4 rounded-xl border-l-2 border-l-white border-y border-r border-white/5 flex items-center gap-4 group/team">
+                    {% if competitive_ctx.home_team_logo_url %}
+                    <div class="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center border border-white/10 overflow-hidden shrink-0">
+                        <img src="{{ competitive_ctx.home_team_logo_url }}" alt="{{ competitive_ctx.home_team_name }}" class="w-full h-full object-cover">
+                    </div>
+                    {% else %}
+                    <div class="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center border border-white/10 shrink-0">
+                        <span class="font-display font-black text-white text-xs">
+                            {% if competitive_ctx.home_team_tag %}{{ competitive_ctx.home_team_tag }}{% else %}TEAM{% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <div class="text-[9px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Home Team</div>
+                        <div class="text-white font-bold text-lg leading-none group-hover/team:text-z-cyan transition">{{ competitive_ctx.home_team_name }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="flex items-center gap-3">
+                    {% if competitive_ctx.signature_game_name %}
+                    <div class="flex-1 bg-white/5 p-3 rounded-lg border border-white/5 flex items-center gap-3">
+                        {% if competitive_ctx.signature_game_logo_url %}
+                        <div class="text-2xl text-white w-8 h-8 flex items-center justify-center">
+                            <img src="{{ competitive_ctx.signature_game_logo_url }}" alt="{{ competitive_ctx.signature_game_name }}" class="w-full h-full object-contain">
+                        </div>
+                        {% else %}
+                        <div class="text-2xl text-white">
+                            <i class="fa-solid fa-gamepad"></i>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <div class="text-[9px] text-gray-500 uppercase font-bold">Signature Game</div>
+                            <div class="text-white font-bold text-sm">{{ competitive_ctx.signature_game_name }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if competitive_ctx.platform_display %}
+                    <div class="px-4 py-3 bg-white/5 rounded-lg border border-white/5 flex flex-col justify-center items-center">
+                        <i class="fa-solid fa-desktop text-gray-400 text-sm mb-1"></i>
+                        <span class="text-[9px] text-white font-bold uppercase">{{ competitive_ctx.platform_display }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Zone B: Competitive Roles + Playstyle (lg:col-span-4) -->
+            <div class="lg:col-span-4 flex flex-col justify-center gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                {% if competitive_ctx.main_role_display or competitive_ctx.secondary_role_display %}
+                <div>
+                    <div class="text-[9px] text-gray-500 uppercase font-bold mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-chess-pawn"></i> Competitive Roles
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        {% if competitive_ctx.main_role_display %}
+                        <span class="px-3 py-1.5 rounded-md bg-z-purple/10 border border-z-purple/30 text-z-purple text-xs font-bold uppercase tracking-wide shadow-[0_0_10px_rgba(123,44,191,0.2)]">{{ competitive_ctx.main_role_display }}</span>
+                        {% endif %}
+                        {% if competitive_ctx.secondary_role_display %}
+                        <span class="px-3 py-1.5 rounded-md bg-white/5 border border-white/10 text-gray-400 text-xs font-bold uppercase">{{ competitive_ctx.secondary_role_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if competitive_ctx.playstyle_display %}
+                <div class="flex items-center gap-2 pt-3 border-t border-white/5">
+                    <span class="text-[9px] text-gray-500 uppercase font-bold">Playstyle:</span>
+                    <span class="text-xs text-white font-medium">{{ competitive_ctx.playstyle_display }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Zone C: LFT Status + LAN Ready (lg:col-span-3) -->
+            <div class="lg:col-span-3 flex flex-col gap-3">
+                {% if competitive_ctx.lft_status_display %}
+                <div class="flex-1 bg-gradient-to-br from-z-cyan/20 to-transparent p-4 rounded-xl border border-z-cyan/40 flex flex-col justify-center items-center text-center relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-z-cyan/10 animate-pulse-slow"></div>
+                    <div class="relative z-10">
+                        <div class="text-[9px] text-z-cyan font-black uppercase tracking-widest mb-1">Current Status</div>
+                        <div class="text-white font-black text-lg italic tracking-wide uppercase flex items-center gap-2">
+                            {{ competitive_ctx.lft_status_display }} <span class="flex h-2 w-2 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-z-cyan opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-z-cyan"></span></span>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if competitive_ctx.lan_ready %}
+                <div class="px-4 py-2 rounded-lg bg-z-gold/10 border border-z-gold/30 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plane text-z-gold text-xs"></i>
+                    <span class="text-z-gold text-xs font-bold uppercase">LAN Ready</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Player Snapshot + Next Objective -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+            {% if identity_ctx.player_snapshot %}
+            <div class="md:col-span-2 pl-4 border-l-2 border-white/20">
+                <h3 class="text-[10px] text-gray-500 uppercase font-bold mb-2">Player Snapshot</h3>
+                <p class="text-gray-200 text-sm leading-relaxed font-light italic clamp-3">
+                    {{ identity_ctx.player_snapshot }}
+                </p>
+            </div>
+            {% endif %}
+            
+            {% if identity_ctx.next_objective %}
+            <div class="md:col-span-1 bg-gradient-to-br from-z-red/10 to-transparent p-4 rounded-xl border border-z-red/20 relative overflow-hidden">
+                <i class="fa-solid fa-bullseye absolute -right-2 -bottom-2 text-6xl text-z-red/10"></i>
+                <div class="relative z-10">
+                    <h3 class="text-[9px] text-z-red uppercase font-black tracking-widest mb-1">Next Objective</h3>
+                    <div class="text-white font-bold text-sm leading-snug">
+                        {{ identity_ctx.next_objective }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Metadata: Country, Member Since, Pronouns, Languages, Active Hours -->
+        <div class="bg-black/40 rounded-xl p-4 border border-white/5 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-y-4 gap-x-8">
+            {% if identity_ctx.country_name %}
+            <div>
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Country</div>
+                <div class="flex items-center gap-2 text-gray-300 text-xs font-medium">
+                    {% if identity_ctx.country_flag_url %}
+                    <img src="{{ identity_ctx.country_flag_url }}" class="w-4 h-auto rounded shadow" alt="{{ identity_ctx.country_iso }}">
+                    {% endif %}
+                    {{ identity_ctx.country_name }}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if identity_ctx.member_since %}
+            <div>
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Member Since</div>
+                <div class="text-gray-300 text-xs font-medium">{{ identity_ctx.member_since }}</div>
+            </div>
+            {% endif %}
+            
+            {% if identity_ctx.pronouns %}
+            <div>
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Pronouns</div>
+                <div class="text-gray-300 text-xs font-medium">{{ identity_ctx.pronouns }}</div>
+            </div>
+            {% endif %}
+            
+            {% if identity_ctx.languages_display %}
+            <div class="md:col-span-2 lg:col-span-1">
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Languages</div>
+                <div class="text-gray-300 text-xs font-medium truncate">{{ identity_ctx.languages_display }}</div>
+            </div>
+            {% endif %}
+            
+            {% if competitive_ctx.active_hours %}
+            <div class="md:col-span-2 lg:col-span-1">
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Active Hours</div>
+                <div class="text-gray-300 text-xs font-medium">{{ competitive_ctx.active_hours }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>

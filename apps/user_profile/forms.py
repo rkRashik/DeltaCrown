@@ -337,7 +337,7 @@ class UserProfileSettingsForm(forms.ModelForm):
         model = UserProfile
         fields = [
             # Identity Tab
-            'display_name', 'gender', 'city', 'country', 'bio',
+            'display_name', 'gender', 'pronouns', 'city', 'country', 'bio',
             
             # Connections Tab
             'phone', 'whatsapp', 'secondary_email', 'preferred_contact_method',
@@ -485,17 +485,43 @@ class AboutSettingsForm(forms.ModelForm):
     class Meta:
         model = UserProfile
         fields = [
+            # Player Summary (About section bio)
+            'profile_story',
+            'competitive_goal',  # UP.3 HOTFIX #3
+            
+            # Primary Team & Game
+            'primary_team',
+            'primary_game',
+            
             # Competitive DNA
             'device_platform',
             'play_style',
             'main_role',
             'secondary_role',
+            'lft_status',  # UP.3 HOTFIX #4
             
             # Logistics & Availability
             'active_hours',
             'communication_languages',
             'lan_availability',
         ]
+        
+        widgets = {
+            'profile_story': forms.Textarea(attrs={
+                'rows': 4,
+                'maxlength': 320,
+                'placeholder': 'Share your competitive journey, achievements, or what makes you unique as a player...',
+                'class': 'z-input h-24 resize-none',
+                'oninput': 'updateCharCount(this, 320, \'summary\'); markUnsaved();'
+            }),
+            'competitive_goal': forms.Textarea(attrs={
+                'rows': 2,
+                'maxlength': 160,
+                'placeholder': 'e.g., "Reach Diamond rank this season" or "Win a regional tournament"',
+                'class': 'z-input h-16 resize-none',
+                'oninput': 'updateCharCount(this, 160, \'goal\'); markUnsaved();'
+            }),
+        }
     
     def clean_communication_languages(self):
         """
@@ -516,6 +542,34 @@ class AboutSettingsForm(forms.ModelForm):
         
         # Default to empty list
         return []
+    
+    def clean_profile_story(self):
+        """UP.3 EXTENSION: Enforce 320 char limit for Player Summary"""
+        story = self.cleaned_data.get('profile_story', '')
+        if story and len(story) > 320:
+            raise forms.ValidationError(f'Player Summary must be 320 characters or less (currently {len(story)})')
+        return story
+    
+    def clean_competitive_goal(self):
+        """UP.3 HOTFIX #3: Enforce 160 char limit for Competitive Goal"""
+        goal = self.cleaned_data.get('competitive_goal', '')
+        if goal and len(goal) > 160:
+            raise forms.ValidationError(f'Competitive Goal must be 160 characters or less (currently {len(goal)})')
+        return goal
+    
+    def clean(self):
+        """UP.3 EXTENSION: Validate primary_team/game consistency"""
+        cleaned_data = super().clean()
+        primary_team = cleaned_data.get('primary_team')
+        primary_game = cleaned_data.get('primary_game')
+        
+        # If team is set, game must match team's game
+        if primary_team and primary_game:
+            if hasattr(primary_team, 'game') and primary_team.game != primary_game:
+                self.add_error('primary_game', 
+                    f'Primary game must match your primary team\'s game ({primary_team.game.display_name if hasattr(primary_team, "game") else "team game"}). Clear your team selection to choose a different game.')
+        
+        return cleaned_data
 
 
 class PrivacySettingsFormComplete(forms.ModelForm):

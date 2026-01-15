@@ -158,12 +158,16 @@ class UserProfileAdmin(admin.ModelAdmin):
         "edit_social_links_link",  # HOTFIX (Post-C2): Quick link to User admin
     )
     
+    # UP.3 EXTENSION: Added autocomplete for primary_team and primary_game FKs
+    autocomplete_fields = ("user", "primary_team", "primary_game")
+    
     fieldsets = (
         ('User Account', {
             'fields': ('user', 'uuid', 'slug', 'public_id')
         }),
         ('Public Identity', {
-            'fields': ('avatar', 'banner', 'display_name', 'bio', 'region')
+            'fields': ('avatar', 'banner', 'display_name', 'bio', 'profile_story', 'competitive_goal', 'region'),
+            'description': 'Profile story is the extended "About" section bio (separate from hero bio). Competitive goal is a short-term aspiration.'
         }),
         ('Legal Identity & KYC', {
             'fields': ('real_full_name', 'date_of_birth', 'nationality', 'kyc_status', 'kyc_verified_at'),
@@ -182,8 +186,13 @@ class UserProfileAdmin(admin.ModelAdmin):
                 'address'
             )
         }),
-        ('Demographics', {
-            'fields': ('gender',)
+        ('Demographics & Identity', {
+            'fields': ('gender', 'pronouns'),
+            'description': 'Gender and pronouns for profile display.'
+        }),
+        ('Primary Game & Team', {
+            'fields': ('primary_team', 'primary_game'),
+            'description': 'User\'s main team and signature game. When primary_team is set, primary_game auto-syncs to team\'s game on save.'
         }),
         ('Emergency Contact', {
             'fields': ('emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation')
@@ -193,8 +202,8 @@ class UserProfileAdmin(admin.ModelAdmin):
             'description': 'Social media links are stored in SocialLink model. View summary here, edit via User admin link below.'
         }),
         ('Gaming & Streaming', {
-            'fields': ('stream_status',),
-            'description': 'Game Passports and profiles are managed via the dedicated Game Profile admin. Stream status is updated automatically.',
+            'fields': ('stream_status', 'main_role', 'secondary_role', 'lft_status'),
+            'description': 'Game Passports and profiles are managed via the dedicated Game Profile admin. Stream status is updated automatically. LFT status indicates team/scrims availability.',
             'classes': ('collapse',)
         }),
         ('Gamification', {
@@ -315,7 +324,7 @@ class PrivacySettingsAdmin(admin.ModelAdmin):
         }),
         ('Profile Visibility', {
             'fields': ('show_real_name', 'show_phone', 'show_email', 'show_age', 
-                      'show_gender', 'show_country', 'show_address'),
+                      'show_gender', 'show_pronouns', 'show_country', 'show_address'),
             'description': 'Control what personal information is visible on public profile.'
         }),
         ('Gaming & Activity', {

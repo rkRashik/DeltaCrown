@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
+from django_countries.fields import CountryField
 import uuid
 
 REGION_CHOICES = [
@@ -93,11 +94,11 @@ class UserProfile(models.Model):
     bio = models.TextField(blank=True, help_text="Profile bio/headline")
     
     # ===== LOCATION =====
-    country = models.CharField(
-        max_length=100,
+    # UP.3 Extension: Country field with ISO codes and flags
+    country = CountryField(
         blank=True,
-        default="",
-        help_text="Country of residence (for regional tournaments)"
+        blank_label='(Select country)',
+        help_text="Country of residence (for regional tournaments, with flag support)"
     )
     region = models.CharField(max_length=2, choices=REGION_CHOICES, default="BD")
     city = models.CharField(max_length=100, blank=True, default="", help_text="City of residence")
@@ -231,6 +232,40 @@ class UserProfile(models.Model):
         help_text="Pronouns (e.g., he/him, she/her, they/them)"
     )
     
+    # UP.3 Extension: About section story (separate from hero bio)
+    profile_story = models.TextField(
+        blank=True,
+        default="",
+        help_text="Detailed player story/background for About section"
+    )
+    
+    # UP.3 HOTFIX #3: Competitive Goal (short-term objective)
+    competitive_goal = models.CharField(
+        max_length=160,
+        blank=True,
+        default="",
+        help_text="Short-term competitive goal or aspiration (120-160 characters)"
+    )
+    
+    # UP.3 Extension: Primary Team and Game
+    primary_team = models.ForeignKey(
+        'teams.Team',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='primary_members',
+        help_text="User's primary/main team (auto-syncs primary_game to team's game)"
+    )
+    
+    primary_game = models.ForeignKey(
+        'games.Game',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='primary_players',
+        help_text="User's primary/signature game (auto-set from primary_team, or manual if no team)"
+    )
+    
     preferred_games = models.JSONField(default=list, blank=True, null=True)
     
     # ===== GAME PROFILES (Future-Proof Pluggable System) =====
@@ -336,6 +371,19 @@ class UserProfile(models.Model):
         help_text="Secondary competitive role for flexibility"
     )
     
+    # UP.3 HOTFIX #4: Looking For Team/Scrims status
+    class LFTStatus(models.TextChoices):
+        NOT_LOOKING = "NOT_LOOKING", "Not Looking"
+        LFT_TEAM = "LFT_TEAM", "LFT Team"
+        LFT_SCRIMS = "LFT_SCRIMS", "LFT Scrims"
+    
+    lft_status = models.CharField(
+        max_length=20,
+        choices=LFTStatus.choices,
+        default=LFTStatus.NOT_LOOKING,
+        help_text="Looking For Team/Scrims availability status"
+    )
+    
     communication_languages = models.JSONField(
         default=list,
         blank=True,
@@ -389,6 +437,17 @@ class UserProfile(models.Model):
                     f"Invalid public_id format: {self.public_id}. "
                     "Must be DC-YY-NNNNNN (e.g., DC-25-000042)"
                 )
+    
+    def save(self, *args, **kwargs):
+        """
+        Override save to auto-sync primary_game when primary_team is set.
+        UP.3 Extension: Ensure primary_game matches primary_team's game.
+        """
+        # Auto-sync primary_game from primary_team
+        if self.primary_team and hasattr(self.primary_team, 'game'):
+            self.primary_game = self.primary_team.game
+        
+        super().save(*args, **kwargs)
     
     # ===== COMPUTED PROPERTIES =====
     

@@ -365,12 +365,119 @@
                             </select>
                         </div>
                         <div>
+                            <label class="z-label">Pronouns <span class="text-gray-500 text-xs normal-case">(Optional)</span></label>
+                            <select name="pronouns" class="z-input" oninput="markUnsaved()">
+                                <option value="">Prefer not to say</option>
+                                <option value="he/him" {% if user_profile.pronouns == 'he/him' %}selected{% endif %}>He/Him</option>
+                                <option value="she/her" {% if user_profile.pronouns == 'she/her' %}selected{% endif %}>She/Her</option>
+                                <option value="they/them" {% if user_profile.pronouns == 'they/them' %}selected{% endif %}>They/Them</option>
+                                <option value="any" {% if user_profile.pronouns == 'any' %}selected{% endif %}>Any Pronouns</option>
+                                <option value="other" {% if user_profile.pronouns == 'other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div>
                             <label class="z-label">City</label>
                             <input type="text" name="city" class="z-input" value="{{ user_profile.city|default:'' }}" oninput="markUnsaved()">
                         </div>
                         <div>
                             <label class="z-label">Country</label>
-                            <input type="text" name="country" class="z-input" value="{{ user_profile.country|default:'' }}" oninput="markUnsaved()">
+                            <select name="country" id="country-select" class="z-input" oninput="markUnsaved()">
+                                <option value="">Select country</option>
+                                <optgroup label="🌏 South Asia">
+                                    <option value="BD" {% if user_profile.country.code == 'BD' %}selected{% endif %}>🇧🇩 Bangladesh</option>
+                                    <option value="IN" {% if user_profile.country.code == 'IN' %}selected{% endif %}>🇮🇳 India</option>
+                                    <option value="PK" {% if user_profile.country.code == 'PK' %}selected{% endif %}>🇵🇰 Pakistan</option>
+                                    <option value="LK" {% if user_profile.country.code == 'LK' %}selected{% endif %}>🇱🇰 Sri Lanka</option>
+                                    <option value="NP" {% if user_profile.country.code == 'NP' %}selected{% endif %}>🇳🇵 Nepal</option>
+                                    <option value="BT" {% if user_profile.country.code == 'BT' %}selected{% endif %}>🇧🇹 Bhutan</option>
+                                    <option value="MV" {% if user_profile.country.code == 'MV' %}selected{% endif %}>🇲🇻 Maldives</option>
+                                </optgroup>
+                                <optgroup label="🌍 Popular Abroad">
+                                    <option value="AE" {% if user_profile.country.code == 'AE' %}selected{% endif %}>🇦🇪 United Arab Emirates</option>
+                                    <option value="SA" {% if user_profile.country.code == 'SA' %}selected{% endif %}>🇸🇦 Saudi Arabia</option>
+                                    <option value="MY" {% if user_profile.country.code == 'MY' %}selected{% endif %}>🇲🇾 Malaysia</option>
+                                    <option value="SG" {% if user_profile.country.code == 'SG' %}selected{% endif %}>🇸🇬 Singapore</option>
+                                    <option value="US" {% if user_profile.country.code == 'US' %}selected{% endif %}>🇺🇸 United States</option>
+                                    <option value="GB" {% if user_profile.country.code == 'GB' %}selected{% endif %}>🇬🇧 United Kingdom</option>
+                                    <option value="CA" {% if user_profile.country.code == 'CA' %}selected{% endif %}>🇨🇦 Canada</option>
+                                    <option value="AU" {% if user_profile.country.code == 'AU' %}selected{% endif %}>🇦🇺 Australia</option>
+                                </optgroup>
+                                <optgroup label="🌎 All Countries">
+                                    <option value="AF" {% if user_profile.country.code == 'AF' %}selected{% endif %}>Afghanistan</option>
+                                    <option value="AL" {% if user_profile.country.code == 'AL' %}selected{% endif %}>Albania</option>
+                                    <option value="DZ" {% if user_profile.country.code == 'DZ' %}selected{% endif %}>Algeria</option>
+                                    <option value="AR" {% if user_profile.country.code == 'AR' %}selected{% endif %}>Argentina</option>
+                                    <option value="AM" {% if user_profile.country.code == 'AM' %}selected{% endif %}>Armenia</option>
+                                    <option value="AT" {% if user_profile.country.code == 'AT' %}selected{% endif %}>Austria</option>
+                                    <option value="AZ" {% if user_profile.country.code == 'AZ' %}selected{% endif %}>Azerbaijan</option>
+                                    <option value="BH" {% if user_profile.country.code == 'BH' %}selected{% endif %}>Bahrain</option>
+                                    <option value="BY" {% if user_profile.country.code == 'BY' %}selected{% endif %}>Belarus</option>
+                                    <option value="BE" {% if user_profile.country.code == 'BE' %}selected{% endif %}>Belgium</option>
+                                    <option value="BR" {% if user_profile.country.code == 'BR' %}selected{% endif %}>Brazil</option>
+                                    <option value="BG" {% if user_profile.country.code == 'BG' %}selected{% endif %}>Bulgaria</option>
+                                    <option value="KH" {% if user_profile.country.code == 'KH' %}selected{% endif %}>Cambodia</option>
+                                    <option value="CL" {% if user_profile.country.code == 'CL' %}selected{% endif %}>Chile</option>
+                                    <option value="CN" {% if user_profile.country.code == 'CN' %}selected{% endif %}>China</option>
+                                    <option value="CO" {% if user_profile.country.code == 'CO' %}selected{% endif %}>Colombia</option>
+                                    <option value="HR" {% if user_profile.country.code == 'HR' %}selected{% endif %}>Croatia</option>
+                                    <option value="CZ" {% if user_profile.country.code == 'CZ' %}selected{% endif %}>Czech Republic</option>
+                                    <option value="DK" {% if user_profile.country.code == 'DK' %}selected{% endif %}>Denmark</option>
+                                    <option value="EG" {% if user_profile.country.code == 'EG' %}selected{% endif %}>Egypt</option>
+                                    <option value="EE" {% if user_profile.country.code == 'EE' %}selected{% endif %}>Estonia</option>
+                                    <option value="FI" {% if user_profile.country.code == 'FI' %}selected{% endif %}>Finland</option>
+                                    <option value="FR" {% if user_profile.country.code == 'FR' %}selected{% endif %}>France</option>
+                                    <option value="GE" {% if user_profile.country.code == 'GE' %}selected{% endif %}>Georgia</option>
+                                    <option value="DE" {% if user_profile.country.code == 'DE' %}selected{% endif %}>Germany</option>
+                                    <option value="GR" {% if user_profile.country.code == 'GR' %}selected{% endif %}>Greece</option>
+                                    <option value="HK" {% if user_profile.country.code == 'HK' %}selected{% endif %}>Hong Kong</option>
+                                    <option value="HU" {% if user_profile.country.code == 'HU' %}selected{% endif %}>Hungary</option>
+                                    <option value="IS" {% if user_profile.country.code == 'IS' %}selected{% endif %}>Iceland</option>
+                                    <option value="ID" {% if user_profile.country.code == 'ID' %}selected{% endif %}>Indonesia</option>
+                                    <option value="IR" {% if user_profile.country.code == 'IR' %}selected{% endif %}>Iran</option>
+                                    <option value="IQ" {% if user_profile.country.code == 'IQ' %}selected{% endif %}>Iraq</option>
+                                    <option value="IE" {% if user_profile.country.code == 'IE' %}selected{% endif %}>Ireland</option>
+                                    <option value="IL" {% if user_profile.country.code == 'IL' %}selected{% endif %}>Israel</option>
+                                    <option value="IT" {% if user_profile.country.code == 'IT' %}selected{% endif %}>Italy</option>
+                                    <option value="JP" {% if user_profile.country.code == 'JP' %}selected{% endif %}>Japan</option>
+                                    <option value="JO" {% if user_profile.country.code == 'JO' %}selected{% endif %}>Jordan</option>
+                                    <option value="KZ" {% if user_profile.country.code == 'KZ' %}selected{% endif %}>Kazakhstan</option>
+                                    <option value="KE" {% if user_profile.country.code == 'KE' %}selected{% endif %}>Kenya</option>
+                                    <option value="KW" {% if user_profile.country.code == 'KW' %}selected{% endif %}>Kuwait</option>
+                                    <option value="LV" {% if user_profile.country.code == 'LV' %}selected{% endif %}>Latvia</option>
+                                    <option value="LB" {% if user_profile.country.code == 'LB' %}selected{% endif %}>Lebanon</option>
+                                    <option value="LT" {% if user_profile.country.code == 'LT' %}selected{% endif %}>Lithuania</option>
+                                    <option value="LU" {% if user_profile.country.code == 'LU' %}selected{% endif %}>Luxembourg</option>
+                                    <option value="MX" {% if user_profile.country.code == 'MX' %}selected{% endif %}>Mexico</option>
+                                    <option value="MD" {% if user_profile.country.code == 'MD' %}selected{% endif %}>Moldova</option>
+                                    <option value="MN" {% if user_profile.country.code == 'MN' %}selected{% endif %}>Mongolia</option>
+                                    <option value="MA" {% if user_profile.country.code == 'MA' %}selected{% endif %}>Morocco</option>
+                                    <option value="MM" {% if user_profile.country.code == 'MM' %}selected{% endif %}>Myanmar</option>
+                                    <option value="NL" {% if user_profile.country.code == 'NL' %}selected{% endif %}>Netherlands</option>
+                                    <option value="NZ" {% if user_profile.country.code == 'NZ' %}selected{% endif %}>New Zealand</option>
+                                    <option value="NG" {% if user_profile.country.code == 'NG' %}selected{% endif %}>Nigeria</option>
+                                    <option value="NO" {% if user_profile.country.code == 'NO' %}selected{% endif %}>Norway</option>
+                                    <option value="OM" {% if user_profile.country.code == 'OM' %}selected{% endif %}>Oman</option>
+                                    <option value="PH" {% if user_profile.country.code == 'PH' %}selected{% endif %}>Philippines</option>
+                                    <option value="PL" {% if user_profile.country.code == 'PL' %}selected{% endif %}>Poland</option>
+                                    <option value="PT" {% if user_profile.country.code == 'PT' %}selected{% endif %}>Portugal</option>
+                                    <option value="QA" {% if user_profile.country.code == 'QA' %}selected{% endif %}>Qatar</option>
+                                    <option value="RO" {% if user_profile.country.code == 'RO' %}selected{% endif %}>Romania</option>
+                                    <option value="RU" {% if user_profile.country.code == 'RU' %}selected{% endif %}>Russia</option>
+                                    <option value="RS" {% if user_profile.country.code == 'RS' %}selected{% endif %}>Serbia</option>
+                                    <option value="SK" {% if user_profile.country.code == 'SK' %}selected{% endif %}>Slovakia</option>
+                                    <option value="SI" {% if user_profile.country.code == 'SI' %}selected{% endif %}>Slovenia</option>
+                                    <option value="ZA" {% if user_profile.country.code == 'ZA' %}selected{% endif %}>South Africa</option>
+                                    <option value="KR" {% if user_profile.country.code == 'KR' %}selected{% endif %}>South Korea</option>
+                                    <option value="ES" {% if user_profile.country.code == 'ES' %}selected{% endif %}>Spain</option>
+                                    <option value="SE" {% if user_profile.country.code == 'SE' %}selected{% endif %}>Sweden</option>
+                                    <option value="CH" {% if user_profile.country.code == 'CH' %}selected{% endif %}>Switzerland</option>
+                                    <option value="TW" {% if user_profile.country.code == 'TW' %}selected{% endif %}>Taiwan</option>
+                                    <option value="TH" {% if user_profile.country.code == 'TH' %}selected{% endif %}>Thailand</option>
+                                    <option value="TR" {% if user_profile.country.code == 'TR' %}selected{% endif %}>Turkey</option>
+                                    <option value="UA" {% if user_profile.country.code == 'UA' %}selected{% endif %}>Ukraine</option>
+                                    <option value="VN" {% if user_profile.country.code == 'VN' %}selected{% endif %}>Vietnam</option>
+                                </optgroup>
+                            </select>
                         </div>
                         <div class="md:col-span-2">
                             <label class="z-label">Bio (Max 500)</label>
@@ -768,6 +875,105 @@
                         {% csrf_token %}
                         <input type="hidden" name="settings_tab" value="about">
                         
+                        <!-- Player Summary (UP.3 EXTENSION) -->
+                        <div class="glass-panel p-8 space-y-4 mb-6">
+                            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-user-astronaut text-yellow-400"></i> Player Summary
+                            </h3>
+                            <p class="text-sm text-gray-400">A brief competitive bio shown in your About section (separate from hero headline)</p>
+                            
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="z-label mb-0">Your Competitive Journey</label>
+                                    <span id="summary-char-count" class="text-xs text-gray-500">
+                                        <span id="summary-current">{{ user_profile.profile_story|length|default:0 }}</span> / 320
+                                    </span>
+                                </div>
+                                <textarea name="profile_story" id="profile-story-input" class="z-input h-24 resize-none" maxlength="320" placeholder="Share your competitive journey, achievements, or what makes you unique as a player..." oninput="updateCharCount(this, 320, 'summary'); markUnsaved()">{{ user_profile.profile_story|default:'' }}</textarea>
+                                <p class="text-xs text-gray-500 mt-2">
+                                    <i class="fa-solid fa-info-circle text-cyan-400"></i> 
+                                    <strong>Keep it short</strong> — this shows on your public profile.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Competitive Goal (UP.3 HOTFIX #3) -->
+                        <div class="glass-panel p-8 space-y-4 mb-6">
+                            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-bullseye text-orange-400"></i> Competitive Goal
+                            </h3>
+                            <p class="text-sm text-gray-400">Your short-term competitive aspiration or objective</p>
+                            
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="z-label mb-0">Current Goal</label>
+                                    <span id="goal-char-count" class="text-xs text-gray-500">
+                                        <span id="goal-current">{{ user_profile.competitive_goal|length|default:0 }}</span> / 160
+                                    </span>
+                                </div>
+                                <textarea name="competitive_goal" id="competitive-goal-input" class="z-input h-16 resize-none" maxlength="160" placeholder="e.g., \"Reach Diamond rank this season\" or \"Win a regional tournament\"" oninput="updateCharCount(this, 160, 'goal'); markUnsaved()">{{ user_profile.competitive_goal|default:'' }}</textarea>
+                                <p class="text-xs text-gray-500 mt-2">
+                                    <i class="fa-solid fa-target text-orange-400"></i> 
+                                    <strong>Be specific</strong> — what's your next milestone?
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Primary Team & Game (UP.3 EXTENSION) -->
+                        <div class="glass-panel p-8 space-y-6 mb-6">
+                            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-trophy text-amber-400"></i> Primary Team & Signature Game
+                            </h3>
+                            <p class="text-sm text-gray-400">Set your main team and signature game - displayed prominently on your profile</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="z-label">Primary Team</label>
+                                    <select name="primary_team" id="primary-team-select" class="z-input" oninput="handlePrimaryTeamChange(); markUnsaved()">
+                                        <option value="">No primary team</option>
+                                        {% comment %} UP.3 HOTFIX #5: Use teams_dropdown (safe dict) instead of user_teams {% endcomment %}
+                                        {% if teams_dropdown %}
+                                            {% for team in teams_dropdown %}
+                                            <option value="{{ team.id }}" 
+                                                data-game-id="{{ team.game_id }}"
+                                                data-game-name="{{ team.game_name }}"
+                                                {% if user_profile.primary_team.id == team.id %}selected{% endif %}>
+                                                {{ team.name }}{% if team.game_name %} ({{ team.game_name }}){% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1">Your home team / main roster</p>
+                                </div>
+                                
+                                <div>
+                                    <label class="z-label">Primary Game</label>
+                                    <select name="primary_game" id="primary-game-select" class="z-input" oninput="markUnsaved()">
+                                        <option value="">No primary game</option>
+                                        {% comment %} Games will be loaded via view context {% endcomment %}
+                                        {% if user_game_profiles %}
+                                            {% for gp in user_game_profiles %}
+                                            <option value="{{ gp.game.id }}"
+                                                {% if user_profile.primary_game.id == gp.game.id %}selected{% endif %}>
+                                                {{ gp.game.display_name }}
+                                            </option>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1" id="game-hint-text">Your signature competitive game</p>
+                                </div>
+                            </div>
+                            
+                            <div id="auto-sync-alert" class="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 hidden">
+                                <div class="flex gap-3">
+                                    <i class="fa-solid fa-link text-cyan-400 text-xl flex-shrink-0 mt-0.5"></i>
+                                    <div class="text-sm text-cyan-300">
+                                        <strong class="text-white">Auto-Sync Active:</strong> Your primary game is automatically set to <span id="synced-game-name" class="font-bold"></span> (your team's game). Clear your team selection to choose a different game manually.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <!-- Competitive DNA -->
                         <div class="glass-panel p-8 space-y-6 mb-6">
                             <h3 class="text-xl font-bold text-white flex items-center gap-2">
@@ -846,6 +1052,16 @@
                                     </select>
                                     <input type="text" name="secondary_role_custom" id="secondary_role_custom" class="z-input mt-2" placeholder="Specify your custom role" style="display: none;" oninput="markUnsaved()">
                                     <p class="text-xs text-gray-500 mt-1">Backup role for flexibility</p>
+                                </div>
+                                
+                                <div>
+                                    <label class="z-label">LFT Status</label>
+                                    <select name="lft_status" class="z-input" oninput="markUnsaved()">
+                                        <option value="NOT_LOOKING" {% if user_profile.lft_status == 'NOT_LOOKING' %}selected{% endif %}>Not Looking</option>
+                                        <option value="LFT_TEAM" {% if user_profile.lft_status == 'LFT_TEAM' %}selected{% endif %}>LFT Team</option>
+                                        <option value="LFT_SCRIMS" {% if user_profile.lft_status == 'LFT_SCRIMS' %}selected{% endif %}>LFT Scrims</option>
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1">Looking For Team or Scrim partners</p>
                                 </div>
                             </div>
                             
@@ -2143,6 +2359,94 @@
         return cookieValue;
     }
 
+    // UP.3 EXTENSION: Character counter for Player Summary
+    function updateCharCount(textarea, maxChars, prefix = 'summary') {
+        const currentLength = textarea.value.length;
+        const counter = document.getElementById(`${prefix}-current`);
+        if (counter) {
+            counter.textContent = currentLength;
+            const charCountSpan = document.getElementById(`${prefix}-char-count`);
+            if (charCountSpan) {
+                if (currentLength > maxChars * 0.9) {
+                    charCountSpan.classList.add('text-red-400');
+                    charCountSpan.classList.remove('text-gray-500');
+                } else if (currentLength > maxChars * 0.7) {
+                    charCountSpan.classList.add('text-yellow-400');
+                    charCountSpan.classList.remove('text-gray-500', 'text-red-400');
+                } else {
+                    charCountSpan.classList.remove('text-red-400', 'text-yellow-400');
+                    charCountSpan.classList.add('text-gray-500');
+                }
+            }
+        }
+    }
+    
+    // UP.3 EXTENSION: Primary team/game auto-sync
+    function handlePrimaryTeamChange() {
+        const teamSelect = document.getElementById('primary-team-select');
+        const gameSelect = document.getElementById('primary-game-select');
+        const syncAlert = document.getElementById('auto-sync-alert');
+        const syncedGameName = document.getElementById('synced-game-name');
+        const gameHint = document.getElementById('game-hint-text');
+        
+        if (!teamSelect || !gameSelect) return;
+        
+        const selectedOption = teamSelect.options[teamSelect.selectedIndex];
+        
+        if (teamSelect.value && selectedOption.dataset.gameId) {
+            // Team selected - auto-fill game and lock
+            const gameId = selectedOption.dataset.gameId;
+            const gameName = selectedOption.dataset.gameName;
+            
+            gameSelect.value = gameId;
+            gameSelect.disabled = true;
+            gameSelect.classList.add('opacity-60', 'cursor-not-allowed');
+            
+            if (syncAlert && syncedGameName) {
+                syncedGameName.textContent = gameName;
+                syncAlert.classList.remove('hidden');
+            }
+            
+            if (gameHint) {
+                gameHint.innerHTML = '<i class="fa-solid fa-lock mr-1"></i> Locked to team\'s game';
+                gameHint.classList.add('text-cyan-400');
+                gameHint.classList.remove('text-gray-500');
+            }
+        } else {
+            // No team selected - unlock game
+            gameSelect.disabled = false;
+            gameSelect.classList.remove('opacity-60', 'cursor-not-allowed');
+            
+            if (syncAlert) {
+                syncAlert.classList.add('hidden');
+            }
+            
+            if (gameHint) {
+                gameHint.innerHTML = 'Your signature competitive game';
+                gameHint.classList.remove('text-cyan-400');
+                gameHint.classList.add('text-gray-500');
+            }
+        }
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize char counter
+        const summaryInput = document.getElementById('profile-story-input');
+        if (summaryInput) {
+            updateCharCount(summaryInput, 320, 'summary');
+        }
+        
+        // UP.3 HOTFIX #3: Initialize competitive goal counter
+        const goalInput = document.getElementById('competitive-goal-input');
+        if (goalInput) {
+            updateCharCount(goalInput, 160, 'goal');
+        }
+        
+        // Initialize team/game sync
+        handlePrimaryTeamChange();
+    });
+    
     // Unsaved changes tracking (Phase 1 active controls only)
     let hasUnsavedChanges = false;
     
