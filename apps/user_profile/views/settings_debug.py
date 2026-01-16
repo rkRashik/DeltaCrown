@@ -49,7 +49,6 @@ def settings_debug_dump(request):
                 'bio': profile.bio,
                 'city': profile.city,
                 'country': profile.country,
-                'pronouns': profile.pronouns,
                 
                 # Connections
                 'phone': profile.phone,
@@ -123,7 +122,7 @@ def settings_debug_dump(request):
                 'allow_direct_messages': privacy_settings.allow_direct_messages,
                 
                 # Phase 4B: About section privacy
-                'show_pronouns': privacy_settings.show_pronouns,
+                'show_nationality': privacy_settings.show_nationality,
                 'show_nationality': privacy_settings.show_nationality,
                 'show_device_platform': privacy_settings.show_device_platform,
                 'show_play_style': privacy_settings.show_play_style,

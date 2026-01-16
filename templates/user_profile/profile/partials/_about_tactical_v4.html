@@ -173,6 +173,18 @@
             </div>
             {% endif %}
             
+            {% if identity_ctx.age %}
+            <div>
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Age</div>
+                <div class="text-gray-300 text-xs font-medium">
+                    {{ identity_ctx.age }} years
+                    {% if identity_ctx.is_16_plus %}
+                    <span class="ml-1 px-1.5 py-0.5 bg-z-cyan/20 text-z-cyan text-[8px] rounded-md border border-z-cyan/30 font-bold">16+ ✓</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
             {% if identity_ctx.languages_display %}
             <div class="md:col-span-2 lg:col-span-1">
                 <div class="text-[9px] text-gray-500 uppercase font-bold mb-1">Languages</div>

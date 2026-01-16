@@ -452,7 +452,6 @@ def get_profile_data(request):
             'postal_code': profile.postal_code,
             'address': profile.address,
             'phone': profile.phone,
-            'pronouns': profile.pronouns,
             'real_full_name': profile.real_full_name,
             'date_of_birth': profile.date_of_birth.isoformat() if profile.date_of_birth else '',
             'nationality': profile.nationality,

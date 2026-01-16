@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}KYC Verification - DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black py-12 px-4">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 mb-4">
+                <i class="fa-solid fa-id-card text-4xl text-white"></i>
+            </div>
+            <h1 class="text-4xl font-bold text-white mb-3">Identity Verification (KYC)</h1>
+            <p class="text-gray-400 text-lg">Verify your identity to unlock premium features</p>
+        </div>
+
+        <!-- Benefits Section -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl p-6 text-center">
+                <i class="fa-solid fa-trophy text-3xl text-green-400 mb-3"></i>
+                <h3 class="text-white font-bold mb-2">Premium Tournaments</h3>
+                <p class="text-sm text-gray-400">Access high-stakes competitions</p>
+            </div>
+            <div class="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border border-yellow-500/30 rounded-xl p-6 text-center">
+                <i class="fa-solid fa-money-bill-wave text-3xl text-yellow-400 mb-3"></i>
+                <h3 class="text-white font-bold mb-2">Prize Withdrawals</h3>
+                <p class="text-sm text-gray-400">Cash out your winnings</p>
+            </div>
+            <div class="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/30 rounded-xl p-6 text-center">
+                <i class="fa-solid fa-shield-check text-3xl text-blue-400 mb-3"></i>
+                <h3 class="text-white font-bold mb-2">Verified Badge</h3>
+                <p class="text-sm text-gray-400">Show you're legit</p>
+            </div>
+        </div>
+
+        {% if latest_submission and latest_submission.status == 'pending' %}
+        <!-- Pending Review State -->
+        <div class="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-2 border-yellow-500/30 rounded-2xl p-8 text-center">
+            <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <i class="fa-solid fa-clock text-5xl text-yellow-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white mb-3">Under Review</h2>
+            <p class="text-gray-300 mb-4">Your documents are being reviewed by our verification team.</p>
+            <p class="text-sm text-gray-400">Submitted: {{ latest_submission.submitted_at|date:"F d, Y at g:i A" }}</p>
+            <p class="text-sm text-yellow-400 mt-4">⏱️ Typical review time: 24-48 hours</p>
+            <a href="{% url 'user_profile:profile_settings' %}" class="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition">
+                <i class="fa-solid fa-arrow-left"></i> Back to Settings
+            </a>
+        </div>
+
+        {% elif latest_submission and latest_submission.status == 'approved' %}
+        <!-- Verified State -->
+        <div class="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-2 border-green-500/30 rounded-2xl p-8 text-center">
+            <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                <i class="fa-solid fa-shield-check text-5xl text-green-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white mb-3">Identity Verified!</h2>
+            <p class="text-gray-300 mb-4">Your identity has been successfully verified.</p>
+            <p class="text-sm text-gray-400">Verified: {{ latest_submission.reviewed_at|date:"F d, Y at g:i A" }}</p>
+            <a href="{% url 'user_profile:profile_settings' %}" class="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition">
+                <i class="fa-solid fa-arrow-left"></i> Back to Settings
+            </a>
+        </div>
+
+        {% else %}
+        <!-- Upload Form -->
+        <div class="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-white/10 rounded-2xl p-8">
+            <form id="kyc-upload-form" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+                
+                {% if latest_submission and latest_submission.status == 'rejected' %}
+                <!-- Rejection Notice -->
+                <div class="bg-gradient-to-br from-red-500/10 to-pink-500/10 border-2 border-red-500/30 rounded-xl p-6 mb-8">
+                    <div class="flex items-start gap-4">
+                        <i class="fa-solid fa-circle-xmark text-3xl text-red-400 mt-1"></i>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold text-white mb-2">Previous Submission Rejected</h3>
+                            <p class="text-sm text-gray-300 mb-3">{{ latest_submission.rejection_reason|default:"Your documents did not meet our verification requirements." }}</p>
+                            <p class="text-sm text-gray-400">You can resubmit with corrected documents using the form below.</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Document Type -->
+                <div>
+                    <label class="block text-white font-bold mb-3">Document Type</label>
+                    <select name="document_type" id="document-type" class="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20" required>
+                        <option value="">Select document type</option>
+                        <option value="nid">National ID Card</option>
+                        <option value="passport">Passport</option>
+                        <option value="driving_license">Driving License</option>
+                        <option value="birth_certificate">Birth Certificate</option>
+                    </select>
+                </div>
+
+                <!-- Document Front -->
+                <div>
+                    <label class="block text-white font-bold mb-3">
+                        <i class="fa-solid fa-image text-cyan-400 mr-2"></i>Document Front Side
+                    </label>
+                    <div class="relative">
+                        <input type="file" name="document_front" id="document-front" accept="image/*" class="hidden" required>
+                        <label for="document-front" class="block w-full p-8 border-2 border-dashed border-white/20 rounded-xl text-center cursor-pointer hover:border-cyan-500/50 transition group">
+                            <div id="front-preview" class="hidden mb-4">
+                                <img id="front-preview-img" class="max-h-48 mx-auto rounded-lg">
+                            </div>
+                            <div id="front-placeholder">
+                                <i class="fa-solid fa-cloud-arrow-up text-5xl text-gray-500 group-hover:text-cyan-400 mb-3 transition"></i>
+                                <p class="text-gray-300 font-semibold">Click to upload front side</p>
+                                <p class="text-sm text-gray-500 mt-1">Max 5MB (JPG, PNG)</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Document Back -->
+                <div>
+                    <label class="block text-white font-bold mb-3">
+                        <i class="fa-solid fa-image text-blue-400 mr-2"></i>Document Back Side <span class="text-sm text-gray-400 font-normal">(if applicable)</span>
+                    </label>
+                    <div class="relative">
+                        <input type="file" name="document_back" id="document-back" accept="image/*" class="hidden">
+                        <label for="document-back" class="block w-full p-8 border-2 border-dashed border-white/20 rounded-xl text-center cursor-pointer hover:border-blue-500/50 transition group">
+                            <div id="back-preview" class="hidden mb-4">
+                                <img id="back-preview-img" class="max-h-48 mx-auto rounded-lg">
+                            </div>
+                            <div id="back-placeholder">
+                                <i class="fa-solid fa-cloud-arrow-up text-5xl text-gray-500 group-hover:text-blue-400 mb-3 transition"></i>
+                                <p class="text-gray-300 font-semibold">Click to upload back side</p>
+                                <p class="text-sm text-gray-500 mt-1">Max 5MB (JPG, PNG)</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Selfie with Document -->
+                <div>
+                    <label class="block text-white font-bold mb-3">
+                        <i class="fa-solid fa-user-check text-purple-400 mr-2"></i>Selfie Holding Document <span class="text-sm text-gray-400 font-normal">(optional but recommended)</span>
+                    </label>
+                    <div class="relative">
+                        <input type="file" name="selfie_with_document" id="selfie" accept="image/*" class="hidden">
+                        <label for="selfie" class="block w-full p-8 border-2 border-dashed border-white/20 rounded-xl text-center cursor-pointer hover:border-purple-500/50 transition group">
+                            <div id="selfie-preview" class="hidden mb-4">
+                                <img id="selfie-preview-img" class="max-h-48 mx-auto rounded-lg">
+                            </div>
+                            <div id="selfie-placeholder">
+                                <i class="fa-solid fa-camera text-5xl text-gray-500 group-hover:text-purple-400 mb-3 transition"></i>
+                                <p class="text-gray-300 font-semibold">Click to upload selfie</p>
+                                <p class="text-sm text-gray-500 mt-1">Take a selfie holding your document</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                    <div class="flex gap-3">
+                        <i class="fa-solid fa-circle-info text-blue-400 text-xl flex-shrink-0 mt-1"></i>
+                        <div class="text-sm text-gray-300">
+                            <strong class="text-white">Verification Tips:</strong>
+                            <ul class="mt-2 space-y-1 list-disc list-inside">
+                                <li>Ensure all text is clearly visible</li>
+                                <li>Document should be in good lighting</li>
+                                <li>No glare or shadows on the document</li>
+                                <li>All corners of the document should be visible</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex gap-4">
+                    <a href="{% url 'user_profile:profile_settings' %}" class="flex-1 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl text-center transition">
+                        Cancel
+                    </a>
+                    <button type="submit" id="submit-btn" class="flex-1 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold rounded-xl transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-upload"></i>
+                        <span>Submit for Verification</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Image preview functionality
+function setupImagePreview(inputId, previewId, previewImgId, placeholderId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    const previewImg = document.getElementById(previewImgId);
+    const placeholder = document.getElementById(placeholderId);
+    
+    input.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                preview.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+setupImagePreview('document-front', 'front-preview', 'front-preview-img', 'front-placeholder');
+setupImagePreview('document-back', 'back-preview', 'back-preview-img', 'back-placeholder');
+setupImagePreview('selfie', 'selfie-preview', 'selfie-preview-img', 'selfie-placeholder');
+
+// Form submission
+document.getElementById('kyc-upload-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('submit-btn');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
+    
+    try {
+        const formData = new FormData(this);
+        const response = await fetch('{% url "user_profile:kyc_upload" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Success - show message and redirect
+            alert('✅ ' + result.message);
+            window.location.href = '{% url "user_profile:profile_settings" %}';
+        } else {
+            // Error - show message
+            alert('❌ ' + result.error);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('❌ Network error. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+});
+</script>
+{% endblock %}

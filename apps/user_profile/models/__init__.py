@@ -48,7 +48,7 @@ from apps.user_profile.models_main import (
     SocialLink,
     UserBadge,
     Badge,
-    VerificationRecord,
+    KYCSubmission,
     GameProfile,
     GameProfileAlias,
     GameProfileConfig,
@@ -120,7 +120,7 @@ __all__ = [
     'SocialLink',
     'UserBadge',
     'Badge',
-    'VerificationRecord',
+    'KYCSubmission',
     'Follow',  # UP-PHASE10: Follow model
     'FollowRequest',  # UP-PHASE6A: Private account follow requests
     'REGION_CHOICES',

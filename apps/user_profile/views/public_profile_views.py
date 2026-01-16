@@ -35,6 +35,51 @@ from apps.user_profile.models import UserProfile, SocialLink
 logger = logging.getLogger(__name__)
 
 
+def format_time_range(time_str: str, time_format: str = '12h', timezone_str: str = 'BDT') -> str:
+    """
+    Format time range for display based on user preference.
+    
+    Args:
+        time_str: Input time range (e.g., "20:30-01:23", "20:30 - 01:23", or free text)
+        time_format: '12h' or '24h'
+        timezone_str: Timezone abbreviation for display
+    
+    Returns:
+        Formatted time string (e.g., "8:30 PM – 1:23 AM (BDT)" or "20:30 – 01:23 (BDT)")
+    """
+    import re
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    # Try to match HH:MM-HH:MM pattern (with optional spaces and en-dash)
+    pattern = r'^(\d{1,2}):(\d{2})\s*[–\-]\s*(\d{1,2}):(\d{2})$'
+    match = re.match(pattern, time_str.strip())
+    
+    if not match:
+        # Not a recognized pattern, return as-is with timezone
+        logger.info(f"[PROFILE-PERF] Active hours no match: raw='{time_str}' format={time_format}")
+        return f"{time_str.strip()} ({timezone_str})" if timezone_str else time_str.strip()
+    
+    start_h, start_m, end_h, end_m = match.groups()
+    start_h, end_h = int(start_h), int(end_h)
+    
+    if time_format == '12h':
+        # Convert to 12-hour format
+        start_period = 'AM' if start_h < 12 else 'PM'
+        end_period = 'AM' if end_h < 12 else 'PM'
+        start_h_12 = start_h % 12 or 12
+        end_h_12 = end_h % 12 or 12
+        formatted = f"{start_h_12}:{start_m} {start_period} – {end_h_12}:{end_m} {end_period} ({timezone_str})"
+        logger.info(f"[PROFILE-PERF] Active hours: raw='{time_str}' format={time_format} → '{formatted}'")
+        return formatted
+    else:
+        # 24-hour format
+        formatted = f"{start_h:02d}:{start_m} – {end_h:02d}:{end_m} ({timezone_str})"
+        logger.info(f"[PROFILE-PERF] Active hours: raw='{time_str}' format={time_format} → '{formatted}'")
+        return formatted
+
+
 def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     """
     Public profile page - Phase 5B privacy-aware with permission enforcement.
@@ -63,13 +108,19 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     Returns:
         Rendered profile.html template with permission flags
     """
+    import time
+    perf_start = time.perf_counter()
+    perf_log = []
+    
     # Get user and profile
     from django.contrib.auth import get_user_model
     User = get_user_model()
     
+    step_start = time.perf_counter()
     try:
-        profile_user = User.objects.get(username=username)
-        user_profile = UserProfile.objects.get(user=profile_user)
+        profile_user = User.objects.select_related('profile').get(username=username)
+        user_profile = profile_user.profile
+        perf_log.append(f"user_fetch={(time.perf_counter()-step_start)*1000:.2f}ms")
     except (User.DoesNotExist, UserProfile.DoesNotExist):
         raise Http404(f"User @{username} not found")
     
@@ -423,12 +474,6 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
                 'icon': 'fa-location-dot',
                 'label': 'Location'
             },
-            'pronouns': {
-                'value': user_profile.pronouns,
-                'visible': bool(user_profile.pronouns) and (is_owner or privacy_settings.show_pronouns),
-                'icon': 'fa-id-badge',
-                'label': 'Pronouns'
-            },
             'nationality': {
                 'value': user_profile.nationality,
                 'visible': bool(user_profile.nationality) and (is_owner or privacy_settings.show_nationality),
@@ -524,7 +569,6 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     if user_profile.bio: filled_fields += 1
     if user_profile.country: filled_fields += 1
     if user_profile.city: filled_fields += 1
-    if user_profile.pronouns: filled_fields += 1
     if user_profile.nationality: filled_fields += 1
     if user_profile.device_platform: filled_fields += 1
     if user_profile.play_style: filled_fields += 1
@@ -969,11 +1013,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     identity_ctx['gender'] = user_profile.gender or None
     identity_ctx['gender_display'] = user_profile.get_gender_display() if user_profile.gender else None
     
-    # Pronouns (check privacy)
-    if is_owner or privacy_settings.show_pronouns:
-        identity_ctx['pronouns'] = user_profile.pronouns or None
-    else:
-        identity_ctx['pronouns'] = None
+    # Pronouns (display if set, respect privacy in future if needed)
+    identity_ctx['pronouns'] = user_profile.get_pronouns_display() if user_profile.pronouns else None
     
     # Age / Date of Birth (owner only for now - no public DOB privacy setting)
     if is_owner and user_profile.date_of_birth:
@@ -984,9 +1025,16 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         )
         identity_ctx['age'] = age
         identity_ctx['date_of_birth'] = user_profile.date_of_birth
+        identity_ctx['is_16_plus'] = user_profile.is_16_plus
+    elif user_profile.date_of_birth and user_profile.is_16_plus:
+        # Non-owners: Show 16+ badge without exact age
+        identity_ctx['age'] = None
+        identity_ctx['date_of_birth'] = None
+        identity_ctx['is_16_plus'] = True
     else:
         identity_ctx['age'] = None
         identity_ctx['date_of_birth'] = None
+        identity_ctx['is_16_plus'] = False
     
     # Languages
     languages = user_profile.communication_languages or []
@@ -1057,9 +1105,48 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     competitive_ctx['region'] = user_profile.region or None
     competitive_ctx['region_display'] = user_profile.get_region_display() if user_profile.region else None
     
-    # Active hours (check privacy)
+    # Active hours (check privacy and convert to 12-hour format)
     if is_owner or privacy_settings.show_active_hours:
-        competitive_ctx['active_hours'] = user_profile.active_hours or None
+        active_hours_raw = user_profile.active_hours
+        if active_hours_raw:
+            # Format: "14:00-22:00 UTC" → "2:00 PM - 10:00 PM UTC"
+            def format_time_12h(time_str):
+                """Convert 24-hour time to 12-hour format."""
+                try:
+                    import re
+                    # Match time range pattern like "14:00-22:00 UTC" or "14:00-22:00 BDT"
+                    match = re.match(r'(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})\s*(.+)?', time_str)
+                    if match:
+                        start_hour, start_min, end_hour, end_min, suffix = match.groups()
+                        start_hour, end_hour = int(start_hour), int(end_hour)
+                        
+                        # Convert to 12-hour format
+                        start_period = 'AM' if start_hour < 12 else 'PM'
+                        end_period = 'AM' if end_hour < 12 else 'PM'
+                        start_hour_12 = start_hour if start_hour <= 12 else start_hour - 12
+                        end_hour_12 = end_hour if end_hour <= 12 else end_hour - 12
+                        if start_hour == 0:
+                            start_hour_12 = 12
+                        if end_hour == 0:
+                            end_hour_12 = 12
+                        
+                        # Replace timezone abbreviations (BDT, PST, EST, etc.) with UTC, or remove if no timezone
+                        if suffix and suffix.strip():
+                            # Replace any timezone abbreviation with UTC
+                            suffix_cleaned = 'UTC'
+                        else:
+                            suffix_cleaned = ''
+                        
+                        suffix_str = f' {suffix_cleaned}' if suffix_cleaned else ''
+                        return f'{start_hour_12}:{start_min} {start_period} - {end_hour_12}:{end_min} {end_period}{suffix_str}'
+                    else:
+                        return time_str  # Return as-is if format doesn't match
+                except Exception:
+                    return time_str  # Return as-is on any error
+            
+            competitive_ctx['active_hours'] = format_time_12h(active_hours_raw)
+        else:
+            competitive_ctx['active_hours'] = None
     else:
         competitive_ctx['active_hours'] = None
     
@@ -1234,8 +1321,29 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     context['follow_url'] = f'/actions/follow-safe/{profile_user.username}/'
     context['unfollow_url'] = f'/actions/unfollow-safe/{profile_user.username}/'
     
-    # Render new Zenith profile template (Phase 2B.1)
-    return render(request, 'user_profile/profile/public_profile.html', context)
+    # Format active hours based on PROFILE OWNER's time format preference (NOT viewer's)
+    active_hours_raw = getattr(user_profile, 'active_hours', '')
+    if active_hours_raw:
+        # CRITICAL: Use profile owner's preference, not request.user
+        time_format_pref = getattr(user_profile, 'time_format', '12h')
+        timezone_str = getattr(user_profile, 'timezone_pref', 'UTC').split('/')[-1] if hasattr(user_profile, 'timezone_pref') else 'UTC'
+        context['active_hours_formatted'] = format_time_range(active_hours_raw, time_format_pref, timezone_str)
+        logger.info(f"[PROFILE-PERF] Active hours formatted: raw='{active_hours_raw}' → formatted='{context['active_hours_formatted']}' (format={time_format_pref})")
+    else:
+        context['active_hours_formatted'] = ''
+    
+    # PERF: Log total request time
+    step_start = time.perf_counter()
+    response = render(request, 'user_profile/profile/public_profile.html', context)
+    perf_log.append(f"render={(time.perf_counter()-step_start)*1000:.2f}ms")
+    
+    total_time = (time.perf_counter() - perf_start) * 1000
+    logger.info(f"[PROFILE-PERF] @{username} total={total_time:.2f}ms {' '.join(perf_log)}")
+    
+    return response
+    logger.info(f"[PROFILE-PERF] @{username} total={total_time:.2f}ms {' '.join(perf_log)}")
+    
+    return response
 
 
 def profile_activity_view(request: HttpRequest, username: str) -> HttpResponse:
@@ -1317,7 +1425,7 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     Returns:
         Rendered profile_settings.html template (GET) or JSON response (POST)
     """
-    from apps.user_profile.models import UserProfile, PrivacySettings
+    from apps.user_profile.models import UserProfile, PrivacySettings, SocialLink
     from apps.user_profile.forms import UserProfileSettingsForm, AboutSettingsForm
     from django.http import JsonResponse
     import logging
@@ -1327,7 +1435,7 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     # CRITICAL: Use direct DB query to get canonical profile instance
     user_profile = UserProfile.objects.select_related('user').get(user=request.user)
     logger.info(f"[SETTINGS-GET] Loading settings for user {request.user.username} (profile_id={user_profile.id})")
-    logger.info(f"[SETTINGS-GET] Current DB values: pronouns='{user_profile.pronouns}', name_pronunciation='{user_profile.name_pronunciation}'")
+    logger.info(f"[SETTINGS-GET] Connections: phone='{user_profile.phone}', whatsapp='{user_profile.whatsapp}', preferred_contact='{user_profile.preferred_contact_method}', emergency_name='{user_profile.emergency_contact_name}', social_count={SocialLink.objects.filter(user=request.user).count()}")
     
     # PHASE 4C.1.2: Handle POST requests for settings tabs
     if request.method == 'POST':
@@ -1556,15 +1664,10 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     # UP.3 HOTFIX #2: Convert Country object to primitives for JSON serialization
     country_code = str(user_profile.country.code) if user_profile.country else ''
     
-    # Log what we're serializing to JSON
-    logger.info(f"[SETTINGS-GET] Serializing to profile_data JSON: pronouns='{user_profile.pronouns}', name_pronunciation='{user_profile.name_pronunciation}'")
-    
     context['profile_data'] = json.dumps({
         'display_name': user_profile.display_name or request.user.username,
         'bio': user_profile.bio or '',
         'country': country_code,
-        'pronouns': user_profile.pronouns or '',
-        'name_pronunciation': user_profile.name_pronunciation or '',
     })
     
     # Notification preferences (dummy data for MVP - actual implementation later)
@@ -1717,6 +1820,10 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     form = UserProfileSettingsForm(instance=user_profile)
     context['form'] = form
     
+    # Add today's date for date picker max attribute
+    from datetime import date
+    context['today'] = date.today()
+    
     # Feature flag: Switch to Control Deck template
     from django.conf import settings as django_settings
     if django_settings.SETTINGS_CONTROL_DECK_ENABLED:
@@ -1835,7 +1942,7 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
         logger.info(f"[SETTINGS-DB] POST to update_basic_info")
         logger.info(f"[SETTINGS-DB] User: {request.user.username} (user_id={request.user.id})")
         logger.info(f"[SETTINGS-DB] Profile ID: {profile.id}")
-        logger.info(f"[SETTINGS-DB] BEFORE values: pronouns='{profile.pronouns}', name_pronunciation='{profile.name_pronunciation}'")
+        logger.info(f"[SETTINGS-DB] BEFORE values: display_name='{profile.display_name}', bio='{profile.bio[:50]}...'")
     
         try:
             # Accept both JSON and form data (check content-type before accessing body)
@@ -1850,13 +1957,15 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
             else:
                 # Regular form POST or empty content-type
                 data = request.POST.dict() if request.POST else {}
+            
+            # Log payload keys for debugging Connections persistence issue
+            logger.info(f"[SETTINGS-HIT] payload keys={list(data.keys())}")
         
             # Capture before state for audit
             before_snapshot = {
                 'display_name': profile.display_name,
                 'bio': profile.bio,
                 'country': profile.country,
-                'pronouns': profile.pronouns,
             }
         
             # ===== BASIC PROFILE =====
@@ -1868,144 +1977,146 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
             profile.display_name = display_name
         
             bio = data.get('bio', '').strip()
-            if len(bio) > 500:
-                return JsonResponse({'success': False, 'error': 'Bio must be 500 characters or less'}, status=400)
+            if len(bio) > 160:
+                return JsonResponse({'success': False, 'error': 'Bio must be 160 characters or less'}, status=400)
             profile.bio = bio
             
-            pronouns = data.get('pronouns', '').strip()
-            if len(pronouns) > 50:
-                return JsonResponse({'success': False, 'error': 'Pronouns must be 50 characters or less'}, status=400)
-            profile.pronouns = pronouns
-            
-            # Name Pronunciation (Optional)
-            name_pronunciation = data.get('name_pronunciation', '').strip()
-            if len(name_pronunciation) > 64:
-                return JsonResponse({'success': False, 'error': 'Name pronunciation must be 64 characters or less'}, status=400)
-            profile.name_pronunciation = name_pronunciation
-            
             # ===== LOCATION =====
-            country_code = data.get('country', '').strip()
-            if country_code:
-                # Country is a CountryField - accepts ISO codes
-                if len(country_code) > 2:
-                    return JsonResponse({'success': False, 'error': 'Country must be 2-letter ISO code'}, status=400)
-                profile.country = country_code  # CountryField accepts string ISO codes
-            else:
-                profile.country = ''  # Clear country
+            # Only update if field is present in payload (avoid wiping fields from other tabs)
+            if 'country' in data:
+                country_code = data.get('country', '').strip()
+                if country_code:
+                    # Country is a CountryField - accepts ISO codes
+                    if len(country_code) > 2:
+                        return JsonResponse({'success': False, 'error': 'Country must be 2-letter ISO code'}, status=400)
+                    profile.country = country_code  # CountryField accepts string ISO codes
+                else:
+                    profile.country = ''  # Clear country
             
-            city = data.get('city', '').strip()
-            if len(city) > 100:
-                return JsonResponse({'success': False, 'error': 'City must be 100 characters or less'}, status=400)
-            profile.city = city
+            if 'city' in data:
+                city = data.get('city', '').strip()
+                if len(city) > 100:
+                    return JsonResponse({'success': False, 'error': 'City must be 100 characters or less'}, status=400)
+                profile.city = city
             
-            postal_code = data.get('postal_code', '').strip()
-            if len(postal_code) > 20:
-                return JsonResponse({'success': False, 'error': 'Postal code must be 20 characters or less'}, status=400)
-            profile.postal_code = postal_code
+            if 'postal_code' in data:
+                postal_code = data.get('postal_code', '').strip()
+                if len(postal_code) > 20:
+                    return JsonResponse({'success': False, 'error': 'Postal code must be 20 characters or less'}, status=400)
+                profile.postal_code = postal_code
             
-            address = data.get('address', '').strip()
-            if len(address) > 300:
-                return JsonResponse({'success': False, 'error': 'Address must be 300 characters or less'}, status=400)
-            profile.address = address
+            if 'address' in data:
+                address = data.get('address', '').strip()
+                if len(address) > 300:
+                    return JsonResponse({'success': False, 'error': 'Address must be 300 characters or less'}, status=400)
+                profile.address = address
             
             # ===== CONTACT =====
-            phone = data.get('phone', '').strip()
-            if len(phone) > 20:
-                return JsonResponse({'success': False, 'error': 'Phone must be 20 characters or less'}, status=400)
-            profile.phone = phone
+            # Only update if field is present in payload (avoid wiping fields from other tabs)
+            if 'phone' in data:
+                phone = data.get('phone', '').strip()
+                if len(phone) > 20:
+                    return JsonResponse({'success': False, 'error': 'Phone must be 20 characters or less'}, status=400)
+                profile.phone = phone
             
             # WhatsApp (separate from phone)
-            whatsapp = data.get('whatsapp', '').strip()
-            if len(whatsapp) > 20:
-                return JsonResponse({'success': False, 'error': 'WhatsApp must be 20 characters or less'}, status=400)
-            profile.whatsapp = whatsapp
+            if 'whatsapp' in data:
+                whatsapp = data.get('whatsapp', '').strip()
+                if len(whatsapp) > 20:
+                    return JsonResponse({'success': False, 'error': 'WhatsApp must be 20 characters or less'}, status=400)
+                profile.whatsapp = whatsapp
             
             # Secondary/Public Email (requires verification for display)
-            secondary_email = data.get('secondary_email', '').strip()
-            if secondary_email:
-                from django.core.validators import validate_email
-                from django.core.exceptions import ValidationError as EmailValidationError
-                try:
-                    validate_email(secondary_email)
-                    # If email changed, mark as unverified
-                    if profile.secondary_email != secondary_email:
-                        profile.secondary_email = secondary_email
-                        profile.secondary_email_verified = False
-                        # TODO: Send OTP verification email
-                except EmailValidationError:
-                    return JsonResponse({'success': False, 'error': 'Invalid email address'}, status=400)
-            else:
-                profile.secondary_email = ''
-                profile.secondary_email_verified = False
+            if 'secondary_email' in data:
+                secondary_email = data.get('secondary_email', '').strip()
+                if secondary_email:
+                    from django.core.validators import validate_email
+                    from django.core.exceptions import ValidationError as EmailValidationError
+                    try:
+                        validate_email(secondary_email)
+                        # If email changed, mark as unverified
+                        if profile.secondary_email != secondary_email:
+                            profile.secondary_email = secondary_email
+                            profile.secondary_email_verified = False
+                            # TODO: Send OTP verification email
+                    except EmailValidationError:
+                        return JsonResponse({'success': False, 'error': 'Invalid email address'}, status=400)
+                else:
+                    profile.secondary_email = ''
+                    profile.secondary_email_verified = False
             
             # Preferred Contact Method
-            preferred_contact = data.get('preferred_contact_method', '').strip()
-            valid_methods = ['email', 'phone', 'whatsapp', 'discord', 'facebook']
-            if preferred_contact and preferred_contact not in valid_methods:
-                return JsonResponse({'success': False, 'error': 'Invalid contact method'}, status=400)
-            profile.preferred_contact_method = preferred_contact
+            if 'preferred_contact_method' in data:
+                preferred_contact = data.get('preferred_contact_method', '').strip()
+                valid_methods = ['email', 'phone', 'whatsapp', 'discord', 'facebook']
+                if preferred_contact and preferred_contact not in valid_methods:
+                    return JsonResponse({'success': False, 'error': 'Invalid contact method'}, status=400)
+                profile.preferred_contact_method = preferred_contact
             
             # UP.2 FIX PASS #6: Save ALL social media platforms to SocialLink
-            # Placeholder URLs to reject
-            PLATFORM_PLACEHOLDERS = [
-                'https://youtube.com/@username',
-                'https://www.youtube.com/@username',
-                'https://tiktok.com/@username',
-                'https://www.tiktok.com/@username',
-                'https://twitter.com/username',
-                'https://x.com/username',
-                'https://twitch.tv/username',
-                'https://www.twitch.tv/username',
-                'https://facebook.com/username',
-                'https://www.facebook.com/username',
-                'https://instagram.com/username',
-                'https://www.instagram.com/username',
-            ]
-            
-            # Define all platforms to process
-            social_platforms = {
-                'discord': {'url_field': 'discord_link', 'handle_field': 'discord_username'},
-                'youtube': {'url_field': 'youtube_link', 'handle_field': None},
-                'twitch': {'url_field': 'twitch_link', 'handle_field': None},
-                'twitter': {'url_field': 'twitter', 'handle_field': None},
-                'facebook': {'url_field': 'facebook', 'handle_field': None},
-                'instagram': {'url_field': 'instagram', 'handle_field': None},
-                'tiktok': {'url_field': 'tiktok', 'handle_field': None},
-            }
-            
-            for platform, fields in social_platforms.items():
-                url = data.get(fields['url_field'], '').strip()
-                handle = data.get(fields['handle_field'], '').strip() if fields['handle_field'] else ''
+            # Only process if any social field is present in payload (avoid wiping social links from other tabs)
+            social_field_names = ['discord_link', 'discord_username', 'youtube_link', 'twitch_link', 'twitter', 'facebook', 'instagram', 'tiktok']
+            if any(field in data for field in social_field_names):
+                # Placeholder URLs to reject
+                PLATFORM_PLACEHOLDERS = [
+                    'https://youtube.com/@username',
+                    'https://www.youtube.com/@username',
+                    'https://tiktok.com/@username',
+                    'https://www.tiktok.com/@username',
+                    'https://twitter.com/username',
+                    'https://x.com/username',
+                    'https://twitch.tv/username',
+                    'https://www.twitch.tv/username',
+                    'https://facebook.com/username',
+                    'https://www.facebook.com/username',
+                    'https://instagram.com/username',
+                    'https://www.instagram.com/username',
+                ]
                 
-                # Normalize URL (add https if missing)
-                if url and not url.startswith(('http://', 'https://')):
-                    url = f'https://{url}'
+                # Define all platforms to process
+                social_platforms = {
+                    'discord': {'url_field': 'discord_link', 'handle_field': 'discord_username'},
+                    'youtube': {'url_field': 'youtube_link', 'handle_field': None},
+                    'twitch': {'url_field': 'twitch_link', 'handle_field': None},
+                    'twitter': {'url_field': 'twitter', 'handle_field': None},
+                    'facebook': {'url_field': 'facebook', 'handle_field': None},
+                    'instagram': {'url_field': 'instagram', 'handle_field': None},
+                    'tiktok': {'url_field': 'tiktok', 'handle_field': None},
+                }
                 
-                # Reject placeholder URLs
-                if url.lower() in [p.lower() for p in PLATFORM_PLACEHOLDERS]:
-                    url = ''
+                for platform, fields in social_platforms.items():
+                    url = data.get(fields['url_field'], '').strip()
+                    handle = data.get(fields['handle_field'], '').strip() if fields['handle_field'] else ''
+                    
+                    # Normalize URL (add https if missing)
+                    if url and not url.startswith(('http://', 'https://')):
+                        url = f'https://{url}'
+                    
+                    # Reject placeholder URLs
+                    if url.lower() in [p.lower() for p in PLATFORM_PLACEHOLDERS]:
+                        url = ''
+                    
+                    # Reject URLs containing literal '@username'
+                    if '@username' in url.lower():
+                        url = ''
+                    
+                    # Save or delete
+                    if url or handle:
+                        SocialLink.objects.update_or_create(
+                            user=profile.user,
+                            platform=platform,
+                            defaults={
+                                'url': url,
+                                'handle': handle
+                            }
+                        )
+                    else:
+                        # If both fields are empty, delete the link
+                        SocialLink.objects.filter(user=profile.user, platform=platform).delete()
                 
-                # Reject URLs containing literal '@username'
-                if '@username' in url.lower():
-                    url = ''
-                
-                # Save or delete
-                if url or handle:
-                    SocialLink.objects.update_or_create(
-                        user=profile.user,
-                        platform=platform,
-                        defaults={
-                            'url': url,
-                            'handle': handle
-                        }
-                    )
-                else:
-                    # If both fields are empty, delete the link
-                    SocialLink.objects.filter(user=profile.user, platform=platform).delete()
-            
-            logger.info(f"[UP.2 FIX PASS #6] Saved SocialLinks for {profile.user.username}:")
-            for link in SocialLink.objects.filter(user=profile.user):
-                logger.info(f"  {link.platform}: url={link.url}, handle={link.handle}")
+                logger.info(f"[UP.2 FIX PASS #6] Saved SocialLinks for {profile.user.username}:")
+                for link in SocialLink.objects.filter(user=profile.user):
+                    logger.info(f"  {link.platform}: url={link.url}, handle={link.handle}")
             
             # ===== LEGAL IDENTITY & KYC =====
             # Only allow updating if not KYC verified
@@ -2019,12 +2130,18 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
                 if len(nationality) > 100:
                     return JsonResponse({'success': False, 'error': 'Nationality must be 100 characters or less'}, status=400)
                 profile.nationality = nationality
-                
-                # Date of birth
+            
+            # Date of birth (separate from KYC lock - can be updated independently)
+            if 'date_of_birth' in data:
                 dob_str = data.get('date_of_birth', '').strip()
                 if dob_str:
                     try:
-                        profile.date_of_birth = datetime.strptime(dob_str, '%Y-%m-%d').date()
+                        dob = datetime.strptime(dob_str, '%Y-%m-%d').date()
+                        # Validate: DOB cannot be in the future
+                        from datetime import date
+                        if dob > date.today():
+                            return JsonResponse({'success': False, 'error': 'Date of birth cannot be in the future'}, status=400)
+                        profile.date_of_birth = dob
                     except ValueError:
                         return JsonResponse({'success': False, 'error': 'Invalid date format. Use YYYY-MM-DD'}, status=400)
                 else:
@@ -2041,21 +2158,37 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
             else:
                 profile.gender = ''
             
+            # Pronouns
+            if 'pronouns' in data:
+                pronouns = data.get('pronouns', '').strip()
+                if pronouns:
+                    from apps.user_profile.models_main import PRONOUNS_CHOICES
+                    valid_pronouns = [choice[0] for choice in PRONOUNS_CHOICES]
+                    if pronouns not in valid_pronouns:
+                        return JsonResponse({'success': False, 'error': 'Invalid pronouns selection'}, status=400)
+                    profile.pronouns = pronouns
+                else:
+                    profile.pronouns = ''
+            
             # ===== EMERGENCY CONTACT =====
-            emergency_contact_name = data.get('emergency_contact_name', '').strip()
-            if len(emergency_contact_name) > 200:
-                return JsonResponse({'success': False, 'error': 'Emergency contact name must be 200 characters or less'}, status=400)
-            profile.emergency_contact_name = emergency_contact_name
+            # Only update if field is present in payload (avoid wiping fields from other tabs)
+            if 'emergency_contact_name' in data:
+                emergency_contact_name = data.get('emergency_contact_name', '').strip()
+                if len(emergency_contact_name) > 200:
+                    return JsonResponse({'success': False, 'error': 'Emergency contact name must be 200 characters or less'}, status=400)
+                profile.emergency_contact_name = emergency_contact_name
             
-            emergency_contact_phone = data.get('emergency_contact_phone', '').strip()
-            if len(emergency_contact_phone) > 20:
-                return JsonResponse({'success': False, 'error': 'Emergency contact phone must be 20 characters or less'}, status=400)
-            profile.emergency_contact_phone = emergency_contact_phone
+            if 'emergency_contact_phone' in data:
+                emergency_contact_phone = data.get('emergency_contact_phone', '').strip()
+                if len(emergency_contact_phone) > 20:
+                    return JsonResponse({'success': False, 'error': 'Emergency contact phone must be 20 characters or less'}, status=400)
+                profile.emergency_contact_phone = emergency_contact_phone
             
-            emergency_contact_relation = data.get('emergency_contact_relation', '').strip()
-            if len(emergency_contact_relation) > 50:
-                return JsonResponse({'success': False, 'error': 'Emergency contact relation must be 50 characters or less'}, status=400)
-            profile.emergency_contact_relation = emergency_contact_relation
+            if 'emergency_contact_relation' in data:
+                emergency_contact_relation = data.get('emergency_contact_relation', '').strip()
+                if len(emergency_contact_relation) > 50:
+                    return JsonResponse({'success': False, 'error': 'Emergency contact relation must be 50 characters or less'}, status=400)
+                profile.emergency_contact_relation = emergency_contact_relation
             
             # ===== SOCIAL MEDIA LINKS =====
             # UP.2 FIX PASS #6: DEPRECATED - These legacy fields are no longer saved
@@ -2066,8 +2199,6 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
             # CRITICAL: Log all values BEFORE save
             logger.info(f"[SETTINGS-DB] VALUES BEFORE SAVE:")
             logger.info(f"  display_name: '{profile.display_name}'")
-            logger.info(f"  pronouns: '{profile.pronouns}'")
-            logger.info(f"  name_pronunciation: '{profile.name_pronunciation}'")
             logger.info(f"  country: '{profile.country}'")
             logger.info(f"  city: '{profile.city}'")
             logger.info(f"  gender: '{profile.gender}'")
@@ -2079,11 +2210,15 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
             # CRITICAL: Immediate DB roundtrip verification
             profile.refresh_from_db()
             logger.info(f"[SETTINGS-DB] VALUES AFTER refresh_from_db():")
-            logger.info(f"  pronouns: '{profile.pronouns}'")
-            logger.info(f"  name_pronunciation: '{profile.name_pronunciation}'")
             logger.info(f"  country: '{profile.country}'")
             logger.info(f"  city: '{profile.city}'")
             logger.info(f"  gender: '{profile.gender}'")
+            logger.info(f"  phone: '{profile.phone}'")
+            logger.info(f"  whatsapp: '{profile.whatsapp}'")
+            logger.info(f"  preferred_contact: '{profile.preferred_contact_method}'")
+            logger.info(f"  emergency_name: '{profile.emergency_contact_name}'")
+            logger.info(f"  emergency_phone: '{profile.emergency_contact_phone}'")
+            logger.info(f"  emergency_relation: '{profile.emergency_contact_relation}'")
             
             # Return saved values for frontend verification
             return JsonResponse({
@@ -2091,13 +2226,18 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
                 'message': 'Profile updated successfully',
                 'saved': {
                     'display_name': profile.display_name,
-                    'pronouns': profile.pronouns,
-                    'name_pronunciation': profile.name_pronunciation,
                     'country': str(profile.country) if profile.country else '',
                     'city': profile.city,
+                    'postal_code': profile.postal_code,
+                    'address': profile.address,
                     'gender': profile.gender,
                     'phone': profile.phone,
                     'whatsapp': profile.whatsapp,
+                    'secondary_email': profile.secondary_email,
+                    'preferred_contact_method': profile.preferred_contact_method,
+                    'emergency_contact_name': profile.emergency_contact_name,
+                    'emergency_contact_phone': profile.emergency_contact_phone,
+                    'emergency_contact_relation': profile.emergency_contact_relation,
                     'bio': profile.bio,
                 }
             })

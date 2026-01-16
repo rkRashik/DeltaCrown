@@ -365,9 +365,10 @@ class UserProfileSettingsForm(forms.ModelForm):
         model = UserProfile
         fields = [
             # Identity Tab
-            'display_name', 'gender', 'pronouns', 'name_pronunciation', 'city', 'country', 'bio',
+            'display_name', 'gender', 'pronouns', 'bio', 'date_of_birth',
             
             # Connections Tab
+            'city', 'country',
             'phone', 'whatsapp', 'secondary_email', 'preferred_contact_method',
             'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
             
@@ -673,7 +674,7 @@ class PrivacySettingsFormComplete(forms.ModelForm):
             'is_private_account',
             
             # Phase 4 About Section Privacy
-            'show_pronouns', 'show_nationality', 'show_device_platform',
+            'show_nationality', 'show_device_platform',
             'show_play_style', 'show_roles', 'show_active_hours', 'show_preferred_contact',
         ]
         exclude = ['user_profile']
@@ -690,7 +691,7 @@ class PrivacySettingsFormComplete(forms.ModelForm):
                 'show_followers_list', 'show_following_list',
                 'allow_team_invites', 'allow_friend_requests', 'allow_direct_messages',
                 'is_private_account',
-                'show_pronouns', 'show_nationality', 'show_device_platform',
+                'show_nationality', 'show_device_platform',
                 'show_play_style', 'show_roles', 'show_active_hours', 'show_preferred_contact',
             ]},
             'visibility_preset': forms.Select(),

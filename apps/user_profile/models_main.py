@@ -29,6 +29,16 @@ GENDER_CHOICES = [
     ("prefer_not_to_say", "Prefer not to say"),
 ]
 
+PRONOUNS_CHOICES = [
+    ("", "Prefer not to say"),
+    ("he_him", "He/Him"),
+    ("she_her", "She/Her"),
+    ("they_them", "They/Them"),
+    ("she_they", "She/They"),
+    ("he_they", "He/They"),
+    ("other", "Other"),
+]
+
 def user_avatar_path(instance, filename):
     return f"user_avatars/{instance.user_id}/{filename}"
 
@@ -117,6 +127,13 @@ class UserProfile(models.Model):
         blank=True,
         default="",
         help_text="Gender identity (optional, for demographics and gender-specific events)"
+    )
+    pronouns = models.CharField(
+        max_length=20,
+        choices=PRONOUNS_CHOICES,
+        blank=True,
+        default="",
+        help_text="Preferred pronouns (automatically suggested based on gender)"
     )
     
     # ===== CONTACT INFORMATION =====
@@ -222,21 +239,6 @@ class UserProfile(models.Model):
     stream_status = models.BooleanField(
         default=False,
         help_text="Indicates if user is currently streaming (grants XP bonuses)"
-    )
-    
-    # ===== PROFILE CUSTOMIZATION (Phase 3) =====
-    pronouns = models.CharField(
-        max_length=50,
-        blank=True,
-        default="",
-        help_text="Pronouns (e.g., he/him, she/her, they/them)"
-    )
-    
-    name_pronunciation = models.CharField(
-        max_length=64,
-        blank=True,
-        default="",
-        help_text="Optional pronunciation guide for your name (e.g., rah-sheek / রাশিক)"
     )
     
     # UP.3 Extension: About section story (separate from hero bio)
@@ -467,6 +469,13 @@ class UserProfile(models.Model):
         return today.year - self.date_of_birth.year - (
             (today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day)
         )
+    
+    @property
+    def is_16_plus(self):
+        """Check if user is 16+ (esports standard)."""
+        if self.age is None:
+            return False
+        return self.age >= 16
     
     @property
     def is_kyc_verified(self):
@@ -861,6 +870,59 @@ class UserProfile(models.Model):
         super().save(*args, **kwargs)
 
 
+class ProfileLocation(models.Model):
+    """
+    Separate location data to prevent accidental wipes when updating other contact info.
+    
+    Issue #3 Fix: Moving country/city/postal/address into its own model ensures
+    changing phone number doesn't accidentally clear location data.
+    
+    OneToOne relationship with UserProfile.
+    """
+    user_profile = models.OneToOneField(
+        UserProfile,
+        on_delete=models.CASCADE,
+        related_name='location',
+        help_text="Owner of this location data"
+    )
+    
+    # Location fields (moved from UserProfile)
+    country = CountryField(
+        blank=True,
+        blank_label='(Select country)',
+        help_text="Country of residence (for regional tournaments, with flag support)"
+    )
+    city = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="City of residence"
+    )
+    postal_code = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="Postal/ZIP code"
+    )
+    address_line = models.TextField(
+        max_length=300,
+        blank=True,
+        default="",
+        help_text="Street address for correspondence and prize shipping"
+    )
+    
+    # Metadata
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'user_profile_location'
+        verbose_name = 'Profile Location'
+        verbose_name_plural = 'Profile Locations'
+    
+    def __str__(self):
+        return f"Location for {self.user_profile.user.username}"
+
+
 def kyc_document_path(instance, filename):
     """Upload path for KYC documents"""
     return f"kyc_documents/{instance.user_profile.user_id}/{filename}"
@@ -1020,10 +1082,6 @@ class PrivacySettings(models.Model):
     )
     
     # ===== PHASE 4: ABOUT SECTION PRIVACY =====
-    show_pronouns = models.BooleanField(
-        default=True,
-        help_text="Show pronouns on public profile"
-    )
     show_nationality = models.BooleanField(
         default=True,
         help_text="Show nationality on public profile"
@@ -2264,6 +2322,111 @@ class Follow(models.Model):
         if self.follower == self.following:
             raise ValueError("Users cannot follow themselves")
         super().save(*args, **kwargs)
+
+
+def kyc_document_path(instance, filename):
+    """Generate upload path for KYC documents"""
+    return f"kyc_documents/{instance.user_profile.user_id}/{instance.document_type}/{filename}"
+
+
+class KYCSubmission(models.Model):
+    """
+    Model to track KYC (Know Your Customer) verification submissions.
+    Stores uploaded identity documents and verification status.
+    """
+    
+    DOCUMENT_TYPE_CHOICES = [
+        ('nid', 'National ID Card'),
+        ('passport', 'Passport'),
+        ('driving_license', 'Driving License'),
+        ('birth_certificate', 'Birth Certificate'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    user_profile = models.ForeignKey(
+        'UserProfile',
+        on_delete=models.CASCADE,
+        related_name='kyc_submissions',
+        help_text="User profile this KYC submission belongs to"
+    )
+    document_type = models.CharField(
+        max_length=30,
+        choices=DOCUMENT_TYPE_CHOICES,
+        help_text="Type of identity document"
+    )
+    document_front = models.ImageField(
+        upload_to=kyc_document_path,
+        help_text="Front side of the identity document"
+    )
+    document_back = models.ImageField(
+        upload_to=kyc_document_path,
+        blank=True,
+        null=True,
+        help_text="Back side of the identity document (if applicable)"
+    )
+    selfie_with_document = models.ImageField(
+        upload_to=kyc_document_path,
+        blank=True,
+        null=True,
+        help_text="Selfie holding the document for verification"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        db_index=True,
+        help_text="Current verification status"
+    )
+    rejection_reason = models.TextField(
+        blank=True,
+        default="",
+        help_text="Reason for rejection if status is rejected"
+    )
+    submitted_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the KYC submission was created"
+    )
+    reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the submission was reviewed"
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='kyc_reviews',
+        help_text="Admin who reviewed this submission"
+    )
+    notes = models.TextField(
+        blank=True,
+        default="",
+        help_text="Internal admin notes about the submission"
+    )
+    
+    class Meta:
+        db_table = 'user_profile_kyc_submission'
+        verbose_name = 'KYC Submission'
+        verbose_name_plural = 'KYC Submissions'
+        ordering = ['-submitted_at']
+        indexes = [
+            models.Index(fields=['user_profile', '-submitted_at']),
+            models.Index(fields=['status', '-submitted_at']),
+        ]
+    
+    def __str__(self):
+        return f"KYC {self.document_type} - {self.user_profile.display_name} ({self.status})"
+    
+    @property
+    def is_kyc_verified(self):
+        """Check if this is the latest approved submission"""
+        return self.status == 'approved'
 
 
 class FollowRequest(models.Model):

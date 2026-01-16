@@ -187,10 +187,6 @@ def _build_basic_profile_data(
         data['country'] = profile.country
         data['region'] = profile.region if hasattr(profile, 'region') else None
     
-    # Pronouns (if present)
-    if 'pronouns' in visible_fields:
-        data['pronouns'] = profile.pronouns if hasattr(profile, 'pronouns') else None
-    
     # Level/XP (if visible)
     if 'level' in visible_fields:
         data['level'] = profile.level if hasattr(profile, 'level') else 1

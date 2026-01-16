@@ -248,7 +248,7 @@
                         <button onclick="switchTab('identity')" class="nav-btn active" data-target="identity" data-nav="identity"><i class="fa-regular fa-id-card w-5 text-center"></i> Identity</button>
                         <button onclick="switchTab('about')" class="nav-btn" data-target="about" data-nav="about"><i class="fa-solid fa-address-card w-5 text-center"></i> About</button>
                         <button onclick="switchTab('connections')" class="nav-btn" data-target="connections" data-nav="connections"><i class="fa-solid fa-address-book w-5 text-center"></i> Connections</button>
-                        <button onclick="switchTab('security')" class="nav-btn" data-target="security" data-nav="security"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Security & KYC</button>
+                        <button onclick="switchTab('security')" class="nav-btn" data-target="security" data-nav="security"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Security</button>
                         <button onclick="switchTab('privacy')" class="nav-btn" data-target="privacy" data-nav="privacy"><i class="fa-solid fa-user-shield w-5 text-center"></i> Privacy & Vis.</button>
                         <button onclick="switchTab('platform')" class="nav-btn" data-target="platform" data-nav="platform"><i class="fa-solid fa-globe w-5 text-center"></i> Platform</button>
                         <button onclick="switchTab('notifications')" class="nav-btn" data-target="notifications" data-nav="notifications"><i class="fa-regular fa-bell w-5 text-center"></i> Notifications</button>
@@ -356,7 +356,7 @@
                         </div>
                         <div>
                             <label class="z-label">Gender <span class="text-gray-500 text-xs normal-case">(Optional)</span></label>
-                            <select name="gender" class="z-input" oninput="markUnsaved()">
+                            <select name="gender" id="gender-select" class="z-input" oninput="markUnsaved(); autofillPronouns()">
                                 <option value="">Prefer not to say</option>
                                 <option value="male" {% if user_profile.gender == 'male' %}selected{% endif %}>Male</option>
                                 <option value="female" {% if user_profile.gender == 'female' %}selected{% endif %}>Female</option>
@@ -365,128 +365,47 @@
                             </select>
                         </div>
                         <div>
-                            <label class="z-label">Preferred Pronouns <span class="text-gray-500 text-xs normal-case">(Optional)</span></label>
-                            <select name="pronouns" class="z-input" oninput="markUnsaved()">
+                            <label class="z-label">Pronouns <span class="text-gray-500 text-xs normal-case">(Auto-suggested)</span></label>
+                            <select name="pronouns" id="pronouns-select" class="z-input" oninput="markUnsaved()">
                                 <option value="">Prefer not to say</option>
-                                <option value="he/him" {% if user_profile.pronouns == 'he/him' %}selected{% endif %}>he/him</option>
-                                <option value="she/her" {% if user_profile.pronouns == 'she/her' %}selected{% endif %}>she/her</option>
-                                <option value="they/them" {% if user_profile.pronouns == 'they/them' %}selected{% endif %}>they/them</option>
-                                <option value="any pronouns" {% if user_profile.pronouns == 'any pronouns' %}selected{% endif %}>any pronouns</option>
-                            </select>
-                            <p class="text-xs text-gray-500 mt-1">How others refer to you (he/him, she/her, they/them). Not your name pronunciation.</p>
-                        </div>
-                        <div>
-                            <label class="z-label">Name Pronunciation <span class="text-gray-500 text-xs normal-case">(Optional)</span></label>
-                            <input type="text" name="name_pronunciation" class="z-input" value="{{ user_profile.name_pronunciation|default:'' }}" placeholder="e.g., rah-sheek / রাশিক" oninput="markUnsaved()">
-                            <p class="text-xs text-gray-500 mt-1">Optional. Example: rah-sheek / রাশিক</p>
-                        </div>
-                        <div>
-                            <label class="z-label">City</label>
-                            <input type="text" name="city" class="z-input" value="{{ user_profile.city|default:'' }}" oninput="markUnsaved()">
-                        </div>
-                        <div>
-                            <label class="z-label">Country</label>
-                            <select name="country" id="country-select" class="z-input" oninput="markUnsaved()">
-                                <option value="">Select country</option>
-                                <optgroup label="🌏 South Asia">
-                                    <option value="BD" {% if user_profile.country.code == 'BD' %}selected{% endif %}>🇧🇩 Bangladesh</option>
-                                    <option value="IN" {% if user_profile.country.code == 'IN' %}selected{% endif %}>🇮🇳 India</option>
-                                    <option value="PK" {% if user_profile.country.code == 'PK' %}selected{% endif %}>🇵🇰 Pakistan</option>
-                                    <option value="LK" {% if user_profile.country.code == 'LK' %}selected{% endif %}>🇱🇰 Sri Lanka</option>
-                                    <option value="NP" {% if user_profile.country.code == 'NP' %}selected{% endif %}>🇳🇵 Nepal</option>
-                                    <option value="BT" {% if user_profile.country.code == 'BT' %}selected{% endif %}>🇧🇹 Bhutan</option>
-                                    <option value="MV" {% if user_profile.country.code == 'MV' %}selected{% endif %}>🇲🇻 Maldives</option>
-                                </optgroup>
-                                <optgroup label="🌍 Popular Abroad">
-                                    <option value="AE" {% if user_profile.country.code == 'AE' %}selected{% endif %}>🇦🇪 United Arab Emirates</option>
-                                    <option value="SA" {% if user_profile.country.code == 'SA' %}selected{% endif %}>🇸🇦 Saudi Arabia</option>
-                                    <option value="MY" {% if user_profile.country.code == 'MY' %}selected{% endif %}>🇲🇾 Malaysia</option>
-                                    <option value="SG" {% if user_profile.country.code == 'SG' %}selected{% endif %}>🇸🇬 Singapore</option>
-                                    <option value="US" {% if user_profile.country.code == 'US' %}selected{% endif %}>🇺🇸 United States</option>
-                                    <option value="GB" {% if user_profile.country.code == 'GB' %}selected{% endif %}>🇬🇧 United Kingdom</option>
-                                    <option value="CA" {% if user_profile.country.code == 'CA' %}selected{% endif %}>🇨🇦 Canada</option>
-                                    <option value="AU" {% if user_profile.country.code == 'AU' %}selected{% endif %}>🇦🇺 Australia</option>
-                                </optgroup>
-                                <optgroup label="🌎 All Countries">
-                                    <option value="AF" {% if user_profile.country.code == 'AF' %}selected{% endif %}>Afghanistan</option>
-                                    <option value="AL" {% if user_profile.country.code == 'AL' %}selected{% endif %}>Albania</option>
-                                    <option value="DZ" {% if user_profile.country.code == 'DZ' %}selected{% endif %}>Algeria</option>
-                                    <option value="AR" {% if user_profile.country.code == 'AR' %}selected{% endif %}>Argentina</option>
-                                    <option value="AM" {% if user_profile.country.code == 'AM' %}selected{% endif %}>Armenia</option>
-                                    <option value="AT" {% if user_profile.country.code == 'AT' %}selected{% endif %}>Austria</option>
-                                    <option value="AZ" {% if user_profile.country.code == 'AZ' %}selected{% endif %}>Azerbaijan</option>
-                                    <option value="BH" {% if user_profile.country.code == 'BH' %}selected{% endif %}>Bahrain</option>
-                                    <option value="BY" {% if user_profile.country.code == 'BY' %}selected{% endif %}>Belarus</option>
-                                    <option value="BE" {% if user_profile.country.code == 'BE' %}selected{% endif %}>Belgium</option>
-                                    <option value="BR" {% if user_profile.country.code == 'BR' %}selected{% endif %}>Brazil</option>
-                                    <option value="BG" {% if user_profile.country.code == 'BG' %}selected{% endif %}>Bulgaria</option>
-                                    <option value="KH" {% if user_profile.country.code == 'KH' %}selected{% endif %}>Cambodia</option>
-                                    <option value="CL" {% if user_profile.country.code == 'CL' %}selected{% endif %}>Chile</option>
-                                    <option value="CN" {% if user_profile.country.code == 'CN' %}selected{% endif %}>China</option>
-                                    <option value="CO" {% if user_profile.country.code == 'CO' %}selected{% endif %}>Colombia</option>
-                                    <option value="HR" {% if user_profile.country.code == 'HR' %}selected{% endif %}>Croatia</option>
-                                    <option value="CZ" {% if user_profile.country.code == 'CZ' %}selected{% endif %}>Czech Republic</option>
-                                    <option value="DK" {% if user_profile.country.code == 'DK' %}selected{% endif %}>Denmark</option>
-                                    <option value="EG" {% if user_profile.country.code == 'EG' %}selected{% endif %}>Egypt</option>
-                                    <option value="EE" {% if user_profile.country.code == 'EE' %}selected{% endif %}>Estonia</option>
-                                    <option value="FI" {% if user_profile.country.code == 'FI' %}selected{% endif %}>Finland</option>
-                                    <option value="FR" {% if user_profile.country.code == 'FR' %}selected{% endif %}>France</option>
-                                    <option value="GE" {% if user_profile.country.code == 'GE' %}selected{% endif %}>Georgia</option>
-                                    <option value="DE" {% if user_profile.country.code == 'DE' %}selected{% endif %}>Germany</option>
-                                    <option value="GR" {% if user_profile.country.code == 'GR' %}selected{% endif %}>Greece</option>
-                                    <option value="HK" {% if user_profile.country.code == 'HK' %}selected{% endif %}>Hong Kong</option>
-                                    <option value="HU" {% if user_profile.country.code == 'HU' %}selected{% endif %}>Hungary</option>
-                                    <option value="IS" {% if user_profile.country.code == 'IS' %}selected{% endif %}>Iceland</option>
-                                    <option value="ID" {% if user_profile.country.code == 'ID' %}selected{% endif %}>Indonesia</option>
-                                    <option value="IR" {% if user_profile.country.code == 'IR' %}selected{% endif %}>Iran</option>
-                                    <option value="IQ" {% if user_profile.country.code == 'IQ' %}selected{% endif %}>Iraq</option>
-                                    <option value="IE" {% if user_profile.country.code == 'IE' %}selected{% endif %}>Ireland</option>
-                                    <option value="IL" {% if user_profile.country.code == 'IL' %}selected{% endif %}>Israel</option>
-                                    <option value="IT" {% if user_profile.country.code == 'IT' %}selected{% endif %}>Italy</option>
-                                    <option value="JP" {% if user_profile.country.code == 'JP' %}selected{% endif %}>Japan</option>
-                                    <option value="JO" {% if user_profile.country.code == 'JO' %}selected{% endif %}>Jordan</option>
-                                    <option value="KZ" {% if user_profile.country.code == 'KZ' %}selected{% endif %}>Kazakhstan</option>
-                                    <option value="KE" {% if user_profile.country.code == 'KE' %}selected{% endif %}>Kenya</option>
-                                    <option value="KW" {% if user_profile.country.code == 'KW' %}selected{% endif %}>Kuwait</option>
-                                    <option value="LV" {% if user_profile.country.code == 'LV' %}selected{% endif %}>Latvia</option>
-                                    <option value="LB" {% if user_profile.country.code == 'LB' %}selected{% endif %}>Lebanon</option>
-                                    <option value="LT" {% if user_profile.country.code == 'LT' %}selected{% endif %}>Lithuania</option>
-                                    <option value="LU" {% if user_profile.country.code == 'LU' %}selected{% endif %}>Luxembourg</option>
-                                    <option value="MX" {% if user_profile.country.code == 'MX' %}selected{% endif %}>Mexico</option>
-                                    <option value="MD" {% if user_profile.country.code == 'MD' %}selected{% endif %}>Moldova</option>
-                                    <option value="MN" {% if user_profile.country.code == 'MN' %}selected{% endif %}>Mongolia</option>
-                                    <option value="MA" {% if user_profile.country.code == 'MA' %}selected{% endif %}>Morocco</option>
-                                    <option value="MM" {% if user_profile.country.code == 'MM' %}selected{% endif %}>Myanmar</option>
-                                    <option value="NL" {% if user_profile.country.code == 'NL' %}selected{% endif %}>Netherlands</option>
-                                    <option value="NZ" {% if user_profile.country.code == 'NZ' %}selected{% endif %}>New Zealand</option>
-                                    <option value="NG" {% if user_profile.country.code == 'NG' %}selected{% endif %}>Nigeria</option>
-                                    <option value="NO" {% if user_profile.country.code == 'NO' %}selected{% endif %}>Norway</option>
-                                    <option value="OM" {% if user_profile.country.code == 'OM' %}selected{% endif %}>Oman</option>
-                                    <option value="PH" {% if user_profile.country.code == 'PH' %}selected{% endif %}>Philippines</option>
-                                    <option value="PL" {% if user_profile.country.code == 'PL' %}selected{% endif %}>Poland</option>
-                                    <option value="PT" {% if user_profile.country.code == 'PT' %}selected{% endif %}>Portugal</option>
-                                    <option value="QA" {% if user_profile.country.code == 'QA' %}selected{% endif %}>Qatar</option>
-                                    <option value="RO" {% if user_profile.country.code == 'RO' %}selected{% endif %}>Romania</option>
-                                    <option value="RU" {% if user_profile.country.code == 'RU' %}selected{% endif %}>Russia</option>
-                                    <option value="RS" {% if user_profile.country.code == 'RS' %}selected{% endif %}>Serbia</option>
-                                    <option value="SK" {% if user_profile.country.code == 'SK' %}selected{% endif %}>Slovakia</option>
-                                    <option value="SI" {% if user_profile.country.code == 'SI' %}selected{% endif %}>Slovenia</option>
-                                    <option value="ZA" {% if user_profile.country.code == 'ZA' %}selected{% endif %}>South Africa</option>
-                                    <option value="KR" {% if user_profile.country.code == 'KR' %}selected{% endif %}>South Korea</option>
-                                    <option value="ES" {% if user_profile.country.code == 'ES' %}selected{% endif %}>Spain</option>
-                                    <option value="SE" {% if user_profile.country.code == 'SE' %}selected{% endif %}>Sweden</option>
-                                    <option value="CH" {% if user_profile.country.code == 'CH' %}selected{% endif %}>Switzerland</option>
-                                    <option value="TW" {% if user_profile.country.code == 'TW' %}selected{% endif %}>Taiwan</option>
-                                    <option value="TH" {% if user_profile.country.code == 'TH' %}selected{% endif %}>Thailand</option>
-                                    <option value="TR" {% if user_profile.country.code == 'TR' %}selected{% endif %}>Turkey</option>
-                                    <option value="UA" {% if user_profile.country.code == 'UA' %}selected{% endif %}>Ukraine</option>
-                                    <option value="VN" {% if user_profile.country.code == 'VN' %}selected{% endif %}>Vietnam</option>
-                                </optgroup>
+                                <option value="he_him" {% if user_profile.pronouns == 'he_him' %}selected{% endif %}>He/Him</option>
+                                <option value="she_her" {% if user_profile.pronouns == 'she_her' %}selected{% endif %}>She/Her</option>
+                                <option value="they_them" {% if user_profile.pronouns == 'they_them' %}selected{% endif %}>They/Them</option>
+                                <option value="she_they" {% if user_profile.pronouns == 'she_they' %}selected{% endif %}>She/They</option>
+                                <option value="he_they" {% if user_profile.pronouns == 'he_they' %}selected{% endif %}>He/They</option>
+                                <option value="other" {% if user_profile.pronouns == 'other' %}selected{% endif %}>Other</option>
                             </select>
                         </div>
                         <div class="md:col-span-2">
-                            <label class="z-label">Bio (Max 500)</label>
-                            <textarea name="bio" class="z-input h-24 resize-none" oninput="markUnsaved()">{{ user_profile.bio|default:'' }}</textarea>
+                            <label class="z-label">Date of Birth <span class="text-gray-500 text-xs normal-case">(Required for age verification)</span></label>
+                            <input type="date" name="date_of_birth" id="date-of-birth" class="z-input" value="{{ user_profile.date_of_birth|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" oninput="markUnsaved()">
+                            <p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-shield-halved text-z-cyan"></i> Your exact date is hidden. We only display your Age.</p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="z-label">Bio <span id="bio-counter" class="text-xs text-gray-400 font-normal">(0 / 160)</span></label>
+                            <textarea id="bio-input" name="bio" class="z-input h-24 resize-none" maxlength="160" oninput="updateBioCounter(); markUnsaved()">{{ user_profile.bio|default:'' }}</textarea>
+                            <p class="text-xs text-gray-500 mt-1">Short headline for your hero section (160 characters max)</p>
+                        </div>
+
+                        <!-- KYC Verification Section -->
+                        <div class="md:col-span-2">
+                            <div class="glass-panel p-6 border-l-4 border-l-z-cyan bg-gradient-to-br from-cyan-500/5 to-blue-500/5">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 class="font-bold text-white text-lg flex items-center gap-2">
+                                            <i class="fa-solid fa-id-card text-z-cyan"></i> Identity Verification (KYC)
+                                        </h3>
+                                        <p class="text-sm text-gray-400 mt-1">Required for prize withdrawals and premium tournaments</p>
+                                    </div>
+                                    <div id="kyc-status-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-gray-500/20 text-gray-400">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+                                    </div>
+                                </div>
+                                
+                                <div id="kyc-content" class="mt-4">
+                                    <!-- Dynamic content loaded via JS -->
+                                </div>
+                            </div>
                         </div>
 
                         <div class="md:col-span-2 pt-6">
@@ -753,6 +672,131 @@
                                     </label>
                                     <input type="tel" name="whatsapp" class="z-input" value="{{ user_profile.whatsapp|default:'' }}" placeholder="+880 1XXX-XXXXXX" oninput="markUnsaved()">
                                     <p class="text-xs text-gray-500 mt-1">For instant messaging (can be different from phone)</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location Information Section -->
+                        <div class="glass-panel p-8">
+                            <div class="mb-6 flex items-center gap-3">
+                                <i class="fa-solid fa-location-dot text-3xl text-blue-400"></i>
+                                <div>
+                                    <h3 class="text-xl font-bold text-white">Location Information</h3>
+                                    <p class="text-sm text-gray-400">Your regional information for tournament eligibility verification</p>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="z-label">
+                                        <i class="fa-solid fa-city text-cyan-400"></i> City
+                                    </label>
+                                    <input type="text" name="city" class="z-input" value="{{ user_profile.city|default:'' }}" placeholder="Dhaka, Mumbai, Seoul..." oninput="markUnsaved()">
+                                    <p class="text-xs text-gray-500 mt-1">Your current city of residence</p>
+                                </div>
+                                
+                                <div>
+                                    <label class="z-label">
+                                        <i class="fa-solid fa-flag text-yellow-400"></i> Country
+                                    </label>
+                                    <select name="country" id="country-select" class="z-input" oninput="markUnsaved()">
+                                        <option value="">Select country</option>
+                                        <optgroup label="🌏 South Asia">
+                                            <option value="BD" {% if user_profile.country.code == 'BD' %}selected{% endif %}>Bangladesh</option>
+                                            <option value="IN" {% if user_profile.country.code == 'IN' %}selected{% endif %}>India</option>
+                                            <option value="PK" {% if user_profile.country.code == 'PK' %}selected{% endif %}>Pakistan</option>
+                                            <option value="NP" {% if user_profile.country.code == 'NP' %}selected{% endif %}>Nepal</option>
+                                            <option value="LK" {% if user_profile.country.code == 'LK' %}selected{% endif %}>Sri Lanka</option>
+                                            <option value="MV" {% if user_profile.country.code == 'MV' %}selected{% endif %}>Maldives</option>
+                                            <option value="BT" {% if user_profile.country.code == 'BT' %}selected{% endif %}>Bhutan</option>
+                                        </optgroup>
+                                        <optgroup label="🌍 Popular Abroad">
+                                            <option value="US" {% if user_profile.country.code == 'US' %}selected{% endif %}>United States</option>
+                                            <option value="CA" {% if user_profile.country.code == 'CA' %}selected{% endif %}>Canada</option>
+                                            <option value="GB" {% if user_profile.country.code == 'GB' %}selected{% endif %}>United Kingdom</option>
+                                            <option value="AU" {% if user_profile.country.code == 'AU' %}selected{% endif %}>Australia</option>
+                                            <option value="SG" {% if user_profile.country.code == 'SG' %}selected{% endif %}>Singapore</option>
+                                            <option value="AE" {% if user_profile.country.code == 'AE' %}selected{% endif %}>United Arab Emirates</option>
+                                            <option value="SA" {% if user_profile.country.code == 'SA' %}selected{% endif %}>Saudi Arabia</option>
+                                            <option value="MY" {% if user_profile.country.code == 'MY' %}selected{% endif %}>Malaysia</option>
+                                        </optgroup>
+                                        <optgroup label="🌎 All Countries">
+                                            <option value="AF" {% if user_profile.country.code == 'AF' %}selected{% endif %}>Afghanistan</option>
+                                            <option value="AL" {% if user_profile.country.code == 'AL' %}selected{% endif %}>Albania</option>
+                                            <option value="DZ" {% if user_profile.country.code == 'DZ' %}selected{% endif %}>Algeria</option>
+                                            <option value="AR" {% if user_profile.country.code == 'AR' %}selected{% endif %}>Argentina</option>
+                                            <option value="AM" {% if user_profile.country.code == 'AM' %}selected{% endif %}>Armenia</option>
+                                            <option value="AT" {% if user_profile.country.code == 'AT' %}selected{% endif %}>Austria</option>
+                                            <option value="AZ" {% if user_profile.country.code == 'AZ' %}selected{% endif %}>Azerbaijan</option>
+                                            <option value="BH" {% if user_profile.country.code == 'BH' %}selected{% endif %}>Bahrain</option>
+                                            <option value="BY" {% if user_profile.country.code == 'BY' %}selected{% endif %}>Belarus</option>
+                                            <option value="BE" {% if user_profile.country.code == 'BE' %}selected{% endif %}>Belgium</option>
+                                            <option value="BR" {% if user_profile.country.code == 'BR' %}selected{% endif %}>Brazil</option>
+                                            <option value="BG" {% if user_profile.country.code == 'BG' %}selected{% endif %}>Bulgaria</option>
+                                            <option value="KH" {% if user_profile.country.code == 'KH' %}selected{% endif %}>Cambodia</option>
+                                            <option value="CL" {% if user_profile.country.code == 'CL' %}selected{% endif %}>Chile</option>
+                                            <option value="CN" {% if user_profile.country.code == 'CN' %}selected{% endif %}>China</option>
+                                            <option value="CO" {% if user_profile.country.code == 'CO' %}selected{% endif %}>Colombia</option>
+                                            <option value="HR" {% if user_profile.country.code == 'HR' %}selected{% endif %}>Croatia</option>
+                                            <option value="CZ" {% if user_profile.country.code == 'CZ' %}selected{% endif %}>Czech Republic</option>
+                                            <option value="DK" {% if user_profile.country.code == 'DK' %}selected{% endif %}>Denmark</option>
+                                            <option value="EG" {% if user_profile.country.code == 'EG' %}selected{% endif %}>Egypt</option>
+                                            <option value="EE" {% if user_profile.country.code == 'EE' %}selected{% endif %}>Estonia</option>
+                                            <option value="FI" {% if user_profile.country.code == 'FI' %}selected{% endif %}>Finland</option>
+                                            <option value="FR" {% if user_profile.country.code == 'FR' %}selected{% endif %}>France</option>
+                                            <option value="GE" {% if user_profile.country.code == 'GE' %}selected{% endif %}>Georgia</option>
+                                            <option value="DE" {% if user_profile.country.code == 'DE' %}selected{% endif %}>Germany</option>
+                                            <option value="GR" {% if user_profile.country.code == 'GR' %}selected{% endif %}>Greece</option>
+                                            <option value="HK" {% if user_profile.country.code == 'HK' %}selected{% endif %}>Hong Kong</option>
+                                            <option value="HU" {% if user_profile.country.code == 'HU' %}selected{% endif %}>Hungary</option>
+                                            <option value="IS" {% if user_profile.country.code == 'IS' %}selected{% endif %}>Iceland</option>
+                                            <option value="ID" {% if user_profile.country.code == 'ID' %}selected{% endif %}>Indonesia</option>
+                                            <option value="IR" {% if user_profile.country.code == 'IR' %}selected{% endif %}>Iran</option>
+                                            <option value="IQ" {% if user_profile.country.code == 'IQ' %}selected{% endif %}>Iraq</option>
+                                            <option value="IE" {% if user_profile.country.code == 'IE' %}selected{% endif %}>Ireland</option>
+                                            <option value="IL" {% if user_profile.country.code == 'IL' %}selected{% endif %}>Israel</option>
+                                            <option value="IT" {% if user_profile.country.code == 'IT' %}selected{% endif %}>Italy</option>
+                                            <option value="JP" {% if user_profile.country.code == 'JP' %}selected{% endif %}>Japan</option>
+                                            <option value="JO" {% if user_profile.country.code == 'JO' %}selected{% endif %}>Jordan</option>
+                                            <option value="KZ" {% if user_profile.country.code == 'KZ' %}selected{% endif %}>Kazakhstan</option>
+                                            <option value="KE" {% if user_profile.country.code == 'KE' %}selected{% endif %}>Kenya</option>
+                                            <option value="KW" {% if user_profile.country.code == 'KW' %}selected{% endif %}>Kuwait</option>
+                                            <option value="LV" {% if user_profile.country.code == 'LV' %}selected{% endif %}>Latvia</option>
+                                            <option value="LB" {% if user_profile.country.code == 'LB' %}selected{% endif %}>Lebanon</option>
+                                            <option value="LT" {% if user_profile.country.code == 'LT' %}selected{% endif %}>Lithuania</option>
+                                            <option value="LU" {% if user_profile.country.code == 'LU' %}selected{% endif %}>Luxembourg</option>
+                                            <option value="MX" {% if user_profile.country.code == 'MX' %}selected{% endif %}>Mexico</option>
+                                            <option value="MD" {% if user_profile.country.code == 'MD' %}selected{% endif %}>Moldova</option>
+                                            <option value="MN" {% if user_profile.country.code == 'MN' %}selected{% endif %}>Mongolia</option>
+                                            <option value="MA" {% if user_profile.country.code == 'MA' %}selected{% endif %}>Morocco</option>
+                                            <option value="MM" {% if user_profile.country.code == 'MM' %}selected{% endif %}>Myanmar</option>
+                                            <option value="NL" {% if user_profile.country.code == 'NL' %}selected{% endif %}>Netherlands</option>
+                                            <option value="NZ" {% if user_profile.country.code == 'NZ' %}selected{% endif %}>New Zealand</option>
+                                            <option value="NG" {% if user_profile.country.code == 'NG' %}selected{% endif %}>Nigeria</option>
+                                            <option value="NO" {% if user_profile.country.code == 'NO' %}selected{% endif %}>Norway</option>
+                                            <option value="OM" {% if user_profile.country.code == 'OM' %}selected{% endif %}>Oman</option>
+                                            <option value="PH" {% if user_profile.country.code == 'PH' %}selected{% endif %}>Philippines</option>
+                                            <option value="PL" {% if user_profile.country.code == 'PL' %}selected{% endif %}>Poland</option>
+                                            <option value="PT" {% if user_profile.country.code == 'PT' %}selected{% endif %}>Portugal</option>
+                                            <option value="QA" {% if user_profile.country.code == 'QA' %}selected{% endif %}>Qatar</option>
+                                            <option value="RO" {% if user_profile.country.code == 'RO' %}selected{% endif %}>Romania</option>
+                                            <option value="RU" {% if user_profile.country.code == 'RU' %}selected{% endif %}>Russia</option>
+                                            <option value="RS" {% if user_profile.country.code == 'RS' %}selected{% endif %}>Serbia</option>
+                                            <option value="SK" {% if user_profile.country.code == 'SK' %}selected{% endif %}>Slovakia</option>
+                                            <option value="SI" {% if user_profile.country.code == 'SI' %}selected{% endif %}>Slovenia</option>
+                                            <option value="ZA" {% if user_profile.country.code == 'ZA' %}selected{% endif %}>South Africa</option>
+                                            <option value="KR" {% if user_profile.country.code == 'KR' %}selected{% endif %}>South Korea</option>
+                                            <option value="ES" {% if user_profile.country.code == 'ES' %}selected{% endif %}>Spain</option>
+                                            <option value="SE" {% if user_profile.country.code == 'SE' %}selected{% endif %}>Sweden</option>
+                                            <option value="CH" {% if user_profile.country.code == 'CH' %}selected{% endif %}>Switzerland</option>
+                                            <option value="TW" {% if user_profile.country.code == 'TW' %}selected{% endif %}>Taiwan</option>
+                                            <option value="TH" {% if user_profile.country.code == 'TH' %}selected{% endif %}>Thailand</option>
+                                            <option value="TR" {% if user_profile.country.code == 'TR' %}selected{% endif %}>Turkey</option>
+                                            <option value="UA" {% if user_profile.country.code == 'UA' %}selected{% endif %}>Ukraine</option>
+                                            <option value="VN" {% if user_profile.country.code == 'VN' %}selected{% endif %}>Vietnam</option>
+                                        </optgroup>
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1">Essential for regional tournament eligibility</p>
                                 </div>
                             </div>
                         </div>
@@ -1472,13 +1516,6 @@
                             </div>
                             <div class="space-y-3">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-sm text-gray-300">Show Pronouns</span>
-                                    <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_pronouns" class="z-toggle-input" {% if privacy_settings.show_pronouns %}checked{% endif %} onchange="autoSavePrivacy()">
-                                        <span class="z-toggle-slider"></span>
-                                    </label>
-                                </div>
-                                <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-300">Show Nationality</span>
                                     <label class="z-toggle-wrapper">
                                         <input type="checkbox" name="show_nationality" class="z-toggle-input" {% if privacy_settings.show_nationality %}checked{% endif %} onchange="autoSavePrivacy()">
@@ -1934,30 +1971,11 @@
                     </form>
                 </div>
 
-                <!-- SECURITY & KYC TAB (PHASE 4C.3 - PRODUCTION READY) -->
+                <!-- SECURITY TAB (PHASE 4C.3 - PRODUCTION READY) -->
                 <div id="tab-security" class="tab-section space-y-6">
-                    <h2 class="text-3xl font-display font-bold text-white">Security & KYC</h2>
-                    <p class="text-gray-400 mb-6">Manage your account security, password, and identity verification</p>
+                    <h2 class="text-3xl font-display font-bold text-white">Security</h2>
+                    <p class="text-gray-400 mb-6">Manage your account security, password, and active sessions</p>
                     
-                    <!-- KYC Status Card -->
-                    <div id="kyc-status-card" class="glass-panel p-6 border-l-4 border-l-z-cyan mb-6">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="font-bold text-white text-lg flex items-center gap-2">
-                                    <i class="fa-solid fa-id-card text-z-cyan"></i> Identity Verification (KYC)
-                                </h3>
-                                <p class="text-sm text-gray-400 mt-1">Required for prize withdrawals and premium tournaments</p>
-                            </div>
-                            <div id="kyc-status-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-gray-500/20 text-gray-400">
-                                <i class="fa-solid fa-spinner fa-spin"></i> Loading...
-                            </div>
-                        </div>
-                        
-                        <div id="kyc-content" class="mt-4">
-                            <!-- Dynamic content loaded via JS -->
-                        </div>
-                    </div>
-
                     <!-- Change Password -->
                     <div class="glass-panel p-8">
                         <h3 class="font-bold text-white mb-6 flex items-center gap-2">
@@ -2485,6 +2503,28 @@
         const indicator = document.getElementById('unsaved-changes');
         if (indicator) indicator.style.display = 'none';
     }
+    
+    // Bio character counter
+    function updateBioCounter() {
+        const bioInput = document.getElementById('bio-input');
+        const counter = document.getElementById('bio-counter');
+        if (bioInput && counter) {
+            const length = bioInput.value.length;
+            counter.textContent = `(${length} / 160)`;
+            if (length > 160) {
+                counter.classList.add('text-red-500');
+                counter.classList.remove('text-gray-400');
+            } else {
+                counter.classList.remove('text-red-500');
+                counter.classList.add('text-gray-400');
+            }
+        }
+    }
+    
+    // Initialize bio counter on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateBioCounter();
+    });
 
     // Toast notification (XSS-safe)
     function showToast(message, type = 'success') {
@@ -2619,6 +2659,30 @@
             // Graceful degradation if localStorage unavailable
             console.warn('Could not persist tab selection:', e);
         }
+    }
+
+    // Smart auto-fill for pronouns based on gender selection
+    function autofillPronouns() {
+        const genderSelect = document.getElementById('gender-select');
+        const pronounsSelect = document.getElementById('pronouns-select');
+        
+        if (!pronounsSelect || !genderSelect) {
+            return;
+        }
+        
+        const gender = genderSelect.value;
+        
+        // Auto-suggest pronouns based on gender (always suggest, user can override)
+        if (gender === 'male') {
+            pronounsSelect.value = 'he_him';
+        } else if (gender === 'female') {
+            pronounsSelect.value = 'she_her';
+        } else if (gender === 'other' || gender === 'prefer_not_to_say' || gender === '') {
+            pronounsSelect.value = ''; // Reset to "Prefer not to say"
+        }
+        
+        // Mark as unsaved since we changed a field
+        markUnsaved();
     }
 
     // Save Identity (display_name, bio, city, country)

@@ -264,24 +264,25 @@ def kyc_status_api(request):
         }
     """
     try:
-        from apps.user_profile.models import VerificationRecord
+        from apps.user_profile.models import KYCSubmission
         
         profile = request.user.profile
         
-        try:
-            verification = VerificationRecord.objects.get(user_profile=profile)
-            
+        # Get the latest submission
+        latest_submission = profile.kyc_submissions.first()
+        
+        if latest_submission:
             return JsonResponse({
                 'success': True,
-                'status': verification.status,
-                'can_submit': verification.can_submit,
-                'submitted_at': verification.submitted_at.isoformat() if verification.submitted_at else None,
-                'reviewed_at': verification.reviewed_at.isoformat() if verification.reviewed_at else None,
-                'rejection_reason': verification.rejection_reason or None,
-                'has_documents': bool(verification.id_document_front),
+                'status': profile.kyc_status,
+                'can_submit': profile.kyc_status in ['unverified', 'rejected'],
+                'submitted_at': latest_submission.submitted_at.isoformat(),
+                'reviewed_at': latest_submission.reviewed_at.isoformat() if latest_submission.reviewed_at else None,
+                'rejection_reason': latest_submission.rejection_reason or None,
+                'has_documents': bool(latest_submission.document_front),
+                'document_type': latest_submission.get_document_type_display(),
             })
-            
-        except VerificationRecord.DoesNotExist:
+        else:
             return JsonResponse({
                 'success': True,
                 'status': 'unverified',

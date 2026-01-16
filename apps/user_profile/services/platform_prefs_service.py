@@ -183,7 +183,14 @@ def set_user_platform_prefs(profile, updates: Dict[str, str]) -> Dict[str, str]:
         system_settings['currency'] = curr
         profile.system_settings = system_settings
     
+    # CRITICAL: Log BEFORE save
+    logger.info(f"[PLATFORM-PREFS-DB] BEFORE save: time_format='{profile.time_format}', timezone='{profile.timezone_pref}', lang='{profile.preferred_language}'")
+    
     profile.save()
+    
+    # CRITICAL: DB roundtrip verification
+    profile.refresh_from_db()
+    logger.info(f"[PLATFORM-PREFS-DB] AFTER refresh_from_db: time_format='{profile.time_format}', timezone='{profile.timezone_pref}', lang='{profile.preferred_language}'")
     logger.info(f"Updated platform preferences for user {profile.user.username}")
     
     return get_user_platform_prefs(profile)

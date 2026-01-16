@@ -101,19 +101,26 @@ def save_platform_global_settings(request):
         
         data = json.loads(request.body)
         
-        # Update preferences (validates and saves)
+        logger.info(f"[PLATFORM-PREFS-API] User {request.user.username} saving: {data}")
+        
+        # Update preferences (validates and saves with DB roundtrip)
         updated_prefs = set_user_platform_prefs(profile, data)
+        
+        logger.info(f"[PLATFORM-PREFS-API] Saved values returned: {updated_prefs}")
         
         return JsonResponse({
             'success': True,
             'message': 'Platform preferences updated successfully',
             'preferences': updated_prefs,
+            'saved': updated_prefs,  # Explicitly show saved values
         })
     
     except ValueError as e:
         # Validation error
+        logger.error(f"[PLATFORM-PREFS-API] Validation error: {e}")
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
     except json.JSONDecodeError:
+        logger.error(f"[PLATFORM-PREFS-API] Invalid JSON")
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
     except Exception as e:
         logger.error(f"Error saving platform settings: {e}", exc_info=True)

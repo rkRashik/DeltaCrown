@@ -30,7 +30,7 @@ from ..models import (
     UserProfile,
     SocialLink,
     PrivacySettings,
-    VerificationRecord,
+    KYCSubmission,
     Badge,
     UserBadge,
     # UP-M2 models
@@ -324,7 +324,7 @@ class PrivacySettingsAdmin(admin.ModelAdmin):
         }),
         ('Profile Visibility', {
             'fields': ('show_real_name', 'show_phone', 'show_email', 'show_age', 
-                      'show_gender', 'show_pronouns', 'show_country', 'show_address'),
+                      'show_gender', 'show_country', 'show_address'),
             'description': 'Control what personal information is visible on public profile.'
         }),
         ('Gaming & Activity', {
@@ -373,67 +373,74 @@ class PrivacySettingsAdmin(admin.ModelAdmin):
     interaction_summary.short_description = 'Interactions'
 
 
-@admin.register(VerificationRecord)
-class VerificationRecordAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user_profile_link', 'status_badge', 'submitted_at', 'reviewed_at', 'reviewed_by')
-    search_fields = ('user_profile__user__username', 'user_profile__display_name', 
-                    'verified_name', 'id_number')
-    list_filter = ('status', 'submitted_at', 'reviewed_at')
+@admin.register(KYCSubmission)
+class KYCSubmissionAdmin(admin.ModelAdmin):
+    """Admin interface for modern KYC verification submissions"""
+    
+    list_display = ('id', 'user_profile_link', 'document_type', 'status_badge', 'submitted_at', 'reviewed_at', 'reviewed_by')
+    search_fields = ('user_profile__user__username', 'user_profile__display_name')
+    list_filter = ('status', 'document_type', 'submitted_at', 'reviewed_at')
     date_hierarchy = 'submitted_at'
+    ordering = ('-submitted_at',)
     
     list_select_related = ('user_profile', 'user_profile__user', 'reviewed_by')
     autocomplete_fields = ('user_profile', 'reviewed_by')
     
-    readonly_fields = ('submitted_at', 'reviewed_at', 'document_preview')
+    readonly_fields = ('submitted_at', 'reviewed_at', 'document_preview', 'user_profile_info')
     
     fieldsets = (
-        ('User Profile', {
-            'fields': ('user_profile',)
+        ('Submission Info', {
+            'fields': ('user_profile', 'user_profile_info', 'document_type', 'submitted_at')
         }),
         ('Uploaded Documents', {
-            'fields': ('id_document_front', 'id_document_back', 'selfie_with_id', 'document_preview'),
+            'fields': ('document_front', 'document_back', 'selfie_with_document', 'document_preview'),
             'description': 'User-uploaded KYC documents for verification.'
         }),
-        ('Verification Status', {
-            'fields': ('status', 'submitted_at'),
-            'description': 'Current verification status.'
-        }),
-        ('Verified Data', {
-            'fields': ('verified_name', 'verified_dob', 'verified_nationality', 'id_number'),
-            'description': 'Data extracted from ID documents (filled by admin during approval).'
-        }),
-        ('Review Information', {
-            'fields': ('reviewed_by', 'reviewed_at', 'rejection_reason'),
-            'description': 'Admin review details.'
+        ('Review', {
+            'fields': ('status', 'reviewed_by', 'reviewed_at', 'rejection_reason', 'notes'),
+            'description': 'Admin review details and status.'
         }),
     )
     
-    actions = ['approve_kyc', 'reject_kyc']
+    actions = ['approve_submissions', 'reject_submissions']
     
     def user_profile_link(self, obj):
         """Link to user profile admin page"""
         url = reverse('admin:user_profile_userprofile_change', args=[obj.user_profile.id])
-        return format_html('<a href="{}">{}</a>', url, obj.user_profile)
-    user_profile_link.short_description = 'User Profile'
+        return format_html('<a href="{}" target="_blank">{}</a>', url, obj.user_profile.display_name)
+    user_profile_link.short_description = 'User'
+    
+    def user_profile_info(self, obj):
+        """Display user profile information"""
+        profile = obj.user_profile
+        return format_html(
+            '<strong>Username:</strong> {}<br>'
+            '<strong>Email:</strong> {}<br>'
+            '<strong>Full Name:</strong> {}<br>'
+            '<strong>DOB:</strong> {}<br>'
+            '<strong>Current KYC Status:</strong> {}',
+            profile.user.username,
+            profile.user.email,
+            profile.real_full_name or 'Not set',
+            profile.date_of_birth or 'Not set',
+            profile.get_kyc_status_display()
+        )
+    user_profile_info.short_description = 'Profile Info'
     
     def status_badge(self, obj):
         """Display status with color badge"""
         colors = {
-            'unverified': 'gray',
             'pending': 'orange',
-            'verified': 'green',
+            'approved': 'green',
             'rejected': 'red',
         }
+        icons = {
+            'pending': '⏳',
+            'approved': '✓',
+            'rejected': '✗',
+        }
         color = colors.get(obj.status, 'gray')
-        
-        if obj.status == 'verified':
-            icon = '✓'
-        elif obj.status == 'pending':
-            icon = '⏳'
-        elif obj.status == 'rejected':
-            icon = '✗'
-        else:
-            icon = '○'
+        icon = icons.get(obj.status, '○')
         
         return format_html(
             '<span style="color: {}; font-weight: bold;">{} {}</span>',
@@ -445,51 +452,41 @@ class VerificationRecordAdmin(admin.ModelAdmin):
         """Show preview of uploaded documents"""
         html = []
         
-        if obj.id_document_front:
-            html.append(f'<div><strong>ID Front:</strong><br><img src="{obj.id_document_front.url}" style="max-width: 300px; max-height: 200px;"></div>')
+        if obj.document_front:
+            html.append(f'<div><strong>Front:</strong><br><img src="{obj.document_front.url}" style="max-width: 400px; max-height: 300px; border: 1px solid #ccc; padding: 5px;"></div>')
         
-        if obj.id_document_back:
-            html.append(f'<div style="margin-top: 10px;"><strong>ID Back:</strong><br><img src="{obj.id_document_back.url}" style="max-width: 300px; max-height: 200px;"></div>')
+        if obj.document_back:
+            html.append(f'<div style="margin-top: 15px;"><strong>Back:</strong><br><img src="{obj.document_back.url}" style="max-width: 400px; max-height: 300px; border: 1px solid #ccc; padding: 5px;"></div>')
         
-        if obj.selfie_with_id:
-            html.append(f'<div style="margin-top: 10px;"><strong>Selfie with ID:</strong><br><img src="{obj.selfie_with_id.url}" style="max-width: 300px; max-height: 200px;"></div>')
+        if obj.selfie_with_document:
+            html.append(f'<div style="margin-top: 15px;"><strong>Selfie with Document:</strong><br><img src="{obj.selfie_with_document.url}" style="max-width: 400px; max-height: 300px; border: 1px solid #ccc; padding: 5px;"></div>')
         
         return mark_safe('<br>'.join(html)) if html else 'No documents uploaded'
     document_preview.short_description = 'Document Preview'
     
-    def approve_kyc(self, request, queryset):
+    def approve_submissions(self, request, queryset):
         """Admin action to approve KYC submissions"""
+        from django.utils import timezone
         approved_count = 0
         
-        for record in queryset.filter(status='pending'):
-            if not all([record.id_document_front, record.id_document_back, record.selfie_with_id]):
-                self.message_user(
-                    request,
-                    f'Cannot approve {record.user_profile} - missing documents',
-                    level='error'
-                )
-                continue
-            
-            # Note: In production, admin should fill verified_name, verified_dob, etc.
-            # For now, we'll use profile data as fallback
-            verified_name = record.verified_name or record.user_profile.real_full_name or 'Unknown'
-            verified_dob = record.verified_dob or record.user_profile.date_of_birth
-            verified_nationality = record.verified_nationality or record.user_profile.nationality or 'BD'
-            id_number = record.id_number or 'N/A'
-            
+        for submission in queryset.filter(status='pending'):
             try:
-                record.approve(
-                    reviewed_by=request.user,
-                    verified_name=verified_name,
-                    verified_dob=verified_dob,
-                    verified_nationality=verified_nationality,
-                    id_number=id_number
-                )
+                submission.status = 'approved'
+                submission.reviewed_by = request.user
+                submission.reviewed_at = timezone.now()
+                submission.save()
+                
+                # Update user profile KYC status
+                profile = submission.user_profile
+                profile.kyc_status = 'verified'
+                profile.kyc_verified_at = timezone.now()
+                profile.save(update_fields=['kyc_status', 'kyc_verified_at'])
+                
                 approved_count += 1
             except Exception as e:
                 self.message_user(
                     request,
-                    f'Error approving {record.user_profile}: {str(e)}',
+                    f'Error approving {submission.user_profile}: {str(e)}',
                     level='error'
                 )
         
@@ -499,22 +496,32 @@ class VerificationRecordAdmin(admin.ModelAdmin):
                 f'Successfully approved {approved_count} KYC submission(s)',
                 level='success'
             )
-    approve_kyc.short_description = 'Approve selected KYC submissions'
+    approve_submissions.short_description = 'Approve selected submissions'
     
-    def reject_kyc(self, request, queryset):
+    def reject_submissions(self, request, queryset):
         """Admin action to reject KYC submissions"""
+        from django.utils import timezone
         rejected_count = 0
         
-        for record in queryset.filter(status='pending'):
+        for submission in queryset.filter(status='pending'):
             try:
-                # Default rejection reason
-                reason = 'Documents unclear or invalid. Please resubmit with clearer photos.'
-                record.reject(reviewed_by=request.user, reason=reason)
+                submission.status = 'rejected'
+                submission.reviewed_by = request.user
+                submission.reviewed_at = timezone.now()
+                if not submission.rejection_reason:
+                    submission.rejection_reason = 'Documents unclear or invalid. Please resubmit with clearer photos.'
+                submission.save()
+                
+                # Update user profile KYC status
+                profile = submission.user_profile
+                profile.kyc_status = 'rejected'
+                profile.save(update_fields=['kyc_status'])
+                
                 rejected_count += 1
             except Exception as e:
                 self.message_user(
                     request,
-                    f'Error rejecting {record.user_profile}: {str(e)}',
+                    f'Error rejecting {submission.user_profile}: {str(e)}',
                     level='error'
                 )
         
@@ -524,7 +531,7 @@ class VerificationRecordAdmin(admin.ModelAdmin):
                 f'Successfully rejected {rejected_count} KYC submission(s)',
                 level='warning'
             )
-    reject_kyc.short_description = 'Reject selected KYC submissions'
+    reject_submissions.short_description = 'Reject selected submissions'
 
 
 @admin.register(Badge)

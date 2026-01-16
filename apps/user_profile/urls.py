@@ -3,7 +3,6 @@ from django.urls import path
 from django.views.generic import TemplateView
 from .views import (
     MyProfileUpdateView, profile_view, my_tournaments_view,
-    kyc_upload_view, kyc_status_view,
     save_game_profiles,
     # REMOVED (2026-01-14 C1): privacy_settings_view, settings_view - deleted as dead code
     # Phase 4: Modal Action Views
@@ -46,8 +45,12 @@ from .api.settings_career_api import (
 )
 # UP-PHASE4C.3: Security & KYC Settings API
 from .views.security_views import (
-    change_password, save_dob, kyc_status_api, 
+    change_password, save_dob, 
     logout_other_sessions, session_info
+)
+# UP-PHASE4C.4: KYC Verification Views
+from .views.kyc_views import (
+    kyc_upload_view, kyc_status_api, kyc_resubmit
 )
 # UP-PHASE4B: Hardware Loadout Settings API
 from .api.settings_loadout_api import (
@@ -357,7 +360,7 @@ urlpatterns = [
     
     # KYC Verification
     path("me/kyc/upload/", kyc_upload_view, name="kyc_upload"),
-    path("me/kyc/status/", kyc_status_view, name="kyc_status"),
+    path("me/kyc/resubmit/<int:submission_id>/", kyc_resubmit, name="kyc_resubmit"),
     
     # PHASE 4C.3: Security & KYC API Endpoints
     path("me/settings/security/change-password/", change_password, name="change_password"),
