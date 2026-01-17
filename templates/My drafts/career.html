@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeltaCrown | Career Legacy - Viper</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+                    },
+                    colors: {
+                        z: {
+                            bg: '#030014',       /* Deep Void */
+                            panel: '#0F0B1E',    /* Glass Panel */
+                            cyan: '#00F0FF',     /* Cyber Cyan */
+                            purple: '#7B2CBF',   /* Electric Purple */
+                            gold: '#FFD60A',     /* Trophy Gold */
+                            red: '#FF007A',      /* Alert Red */
+                            green: '#10B981',    /* Success Green */
+                        }
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 0 20px rgba(0, 240, 255, 0.25)',
+                        'neon-purple': '0 0 20px rgba(123, 44, 191, 0.25)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #030014;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 10% 20%, rgba(123, 44, 191, 0.15) 0%, transparent 25%),
+                              radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.1) 0%, transparent 25%);
+            background-attachment: fixed;
+        }
+
+        /* Glassmorphism */
+        .glass-panel {
+            background: rgba(15, 11, 30, 0.75);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        /* Layout Transition */
+        #main-container { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        /* Game Active State */
+        .game-btn.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #00F0FF;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+
+        /* Scrollbar Hide */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        
+        /* Sticky Sidebars */
+        @media (min-width: 1024px) {
+            .sticky-sidebar { position: sticky; top: 20px; height: fit-content; }
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans">
+
+    <header class="relative w-full h-[400px] mb-8 group">
+        <div class="absolute inset-0 w-full h-full overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-t from-z-bg via-z-bg/80 to-transparent z-10"></div>
+            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670" class="w-full h-full object-cover opacity-40">
+        </div>
+        <div class="absolute bottom-0 left-0 w-full z-20 px-4 md:px-8 pb-4">
+            <div class="max-w-[1600px] mx-auto flex items-end gap-6">
+                <div class="w-24 h-24 rounded-2xl bg-z-cyan p-1 shadow-neon-cyan">
+                    <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=500" class="w-full h-full object-cover rounded-xl bg-black">
+                </div>
+                <div class="mb-2">
+                    <div class="flex items-center gap-3 mb-1">
+                        <span class="bg-white/10 backdrop-blur text-white text-[10px] font-bold px-2 py-0.5 rounded border border-white/10">[TL] TEAM LIQUID</span>
+                        <div class="flex items-center gap-1 bg-z-cyan/10 px-2 py-0.5 rounded border border-z-cyan/20">
+                            <i class="fa-solid fa-circle-check text-sm text-z-cyan"></i>
+                            <span class="text-[10px] text-z-cyan font-bold uppercase">Verified Pro</span>
+                        </div>
+                    </div>
+                    <h1 class="text-4xl font-display font-bold text-white">Viper <span class="text-xl font-mono font-normal text-gray-500">#NA1</span></h1>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div id="main-grid" class="max-w-[1600px] mx-auto px-4 md:px-8 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start transition-all duration-500">
+
+        <aside class="lg:col-span-3 space-y-6 sticky-sidebar z-20">
+            <div class="glass-panel p-2 rounded-xl">
+                <button onclick="switchView('overview')" class="w-full text-left px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 font-bold text-sm transition flex items-center gap-3">
+                    <i class="fa-solid fa-layer-group w-5"></i> Overview
+                </button>
+                <button onclick="switchView('career')" id="nav-career" class="w-full text-left px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 font-bold text-sm transition flex items-center gap-3">
+                    <i class="fa-solid fa-trophy w-5"></i> Career & Stats
+                </button>
+                <button class="w-full text-left px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 font-bold text-sm transition flex items-center gap-3">
+                    <i class="fa-solid fa-film w-5"></i> Highlights
+                </button>
+                <button class="w-full text-left px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 font-bold text-sm transition flex items-center gap-3">
+                    <i class="fa-solid fa-box-open w-5"></i> Inventory
+                </button>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl">
+                <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest mb-4">Connect</h3>
+                <div class="flex items-center gap-3 p-3 bg-z-purple/10 border border-z-purple/30 rounded-xl mb-3 cursor-pointer hover:bg-z-purple/20 transition">
+                    <i class="fa-brands fa-discord text-z-purple text-xl"></i>
+                    <div>
+                        <div class="text-[10px] text-z-purple font-bold uppercase">Discord</div>
+                        <div class="text-white font-bold text-sm">viper#0001</div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <a href="#" class="flex-1 p-2 bg-white/5 rounded-lg text-center hover:bg-[#1DA1F2]/20 hover:text-[#1DA1F2] transition"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="#" class="flex-1 p-2 bg-white/5 rounded-lg text-center hover:bg-[#9146FF]/20 hover:text-[#9146FF] transition"><i class="fa-brands fa-twitch"></i></a>
+                    <a href="#" class="flex-1 p-2 bg-white/5 rounded-lg text-center hover:bg-[#FF0000]/20 hover:text-[#FF0000] transition"><i class="fa-brands fa-youtube"></i></a>
+                </div>
+            </div>
+        </aside>
+
+        <section id="center-column" class="lg:col-span-6 space-y-6 transition-all duration-500 min-w-0">
+            
+            <div id="view-overview" class="glass-panel p-10 text-center rounded-2xl hidden">
+                <h2 class="text-2xl font-bold text-white">Overview Dashboard</h2>
+                <p class="text-gray-400 mt-2">This is the default view with feeds and widgets.</p>
+                <button onclick="switchView('career')" class="mt-4 px-6 py-2 bg-z-cyan text-black font-bold rounded-lg">Go to Career Tab</button>
+            </div>
+
+            <div id="view-career" class="space-y-6">
+                
+                <div class="glass-panel p-2 rounded-xl flex items-center gap-2 overflow-x-auto scrollbar-hide sticky top-4 z-30 shadow-2xl">
+                    <button onclick="setGame('valorant', 'shooter')" class="game-btn active shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
+                        <i class="fa-solid fa-v text-[#ff4655]"></i> Valorant
+                    </button>
+                    <button onclick="setGame('cs2', 'shooter')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
+                        <i class="fa-solid fa-gun text-yellow-500"></i> CS2
+                    </button>
+                    <button onclick="setGame('cod', 'shooter')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
+                        <i class="fa-solid fa-skull text-green-500"></i> CoD
+                    </button>
+                    <button onclick="setGame('pubg', 'shooter')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
+                        <i class="fa-solid fa-parachute-box text-orange-500"></i> PUBG
+                    </button>
+                    <button onclick="setGame('freefire', 'shooter')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
+                        <i class="fa-solid fa-fire text-red-500"></i> FreeFire
+                    </button>
+                    
+                    <div class="w-px h-6 bg-white/10 mx-1"></div>
+
+                    <button onclick="setGame('efootball', 'athlete')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
+                        <i class="fa-regular fa-futbol text-blue-400"></i> eFootball
+                    </button>
+                    <button onclick="setGame('fc26', 'athlete')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-purple-400"></i> FC 26
+                    </button>
+                    <button onclick="setGame('rocket', 'athlete')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
+                        <i class="fa-solid fa-car text-cyan-400"></i> Rocket
+                    </button>
+
+                    <div class="w-px h-6 bg-white/10 mx-1"></div>
+
+                    <button onclick="setGame('mlbb', 'tactician')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
+                        <i class="fa-solid fa-mobile-screen text-pink-500"></i> MLBB
+                    </button>
+                    <button onclick="setGame('dota2', 'tactician')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
+                        <i class="fa-brands fa-d-and-d text-red-700"></i> Dota 2
+                    </button>
+                </div>
+
+                <div class="relative rounded-2xl overflow-hidden group border border-white/10 shadow-2xl">
+                    <div class="absolute inset-0 bg-gradient-to-r from-z-panel to-black"></div>
+                    <div id="game-bg" class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1624138784181-dc7f5b759b2d?q=80&w=2670')] opacity-20 bg-cover bg-center transition-all duration-500"></div>
+                    
+                    <div class="relative p-8 flex flex-col md:flex-row justify-between items-end gap-6">
+                        <div class="flex items-start gap-6">
+                            <div class="w-24 h-24 bg-black/50 backdrop-blur rounded-2xl flex items-center justify-center border border-white/10 shadow-lg text-5xl">
+                                <i id="game-icon" class="fa-solid fa-v text-[#ff4655]"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span id="game-name" class="text-2xl font-black text-white uppercase tracking-tighter">VALORANT</span>
+                                    <span class="px-2 py-0.5 rounded bg-z-cyan/20 text-z-cyan text-[10px] font-bold border border-z-cyan/30">VERIFIED</span>
+                                </div>
+                                <div class="text-4xl font-mono font-bold text-white mb-2" id="ign-display">Viper#NA1</div>
+                                <div class="flex gap-4 text-xs text-gray-400 font-bold uppercase tracking-wider">
+                                    <span class="flex items-center gap-1"><i class="fa-solid fa-server"></i> Singapore</span>
+                                    <span class="flex items-center gap-1"><i class="fa-solid fa-clock"></i> 2,405 Hrs</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-right">
+                            <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Current Standing</div>
+                            <div class="text-3xl font-display font-black text-white flex items-center justify-end gap-2">
+                                <i class="fa-solid fa-medal text-z-gold"></i> <span id="rank-name">Radiant</span>
+                            </div>
+                            <div class="text-xs text-z-green font-bold mt-1">Top 0.1% Global</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="layout-shooter" class="layout-engine grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-3 grid grid-cols-4 gap-4">
+                        <div class="glass-panel p-4 rounded-xl border-t-2 border-z-red text-center">
+                            <div class="text-[9px] text-gray-400 uppercase font-bold">K/D Ratio</div>
+                            <div class="text-2xl font-display font-bold text-white">1.42</div>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl border-t-2 border-z-cyan text-center">
+                            <div class="text-[9px] text-gray-400 uppercase font-bold">Win Rate</div>
+                            <div class="text-2xl font-display font-bold text-white">68%</div>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl border-t-2 border-z-purple text-center">
+                            <div class="text-[9px] text-gray-400 uppercase font-bold">Tournaments</div>
+                            <div class="text-2xl font-display font-bold text-white">24</div>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl border-t-2 border-z-gold text-center">
+                            <div class="text-[9px] text-gray-400 uppercase font-bold">Winnings</div>
+                            <div class="text-2xl font-display font-bold text-white">$12k</div>
+                        </div>
+                    </div>
+                    <div class="md:col-span-1 glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center relative overflow-hidden">
+                        <div class="absolute inset-0 bg-z-red/5"></div>
+                        <i class="fa-solid fa-crosshairs text-4xl text-z-red mb-3"></i>
+                        <h3 class="text-white font-bold text-lg">Entry Fragger</h3>
+                        <p class="text-xs text-gray-400 mt-2">Specializes in first bloods and space creation.</p>
+                    </div>
+                    <div class="md:col-span-2 glass-panel p-6 rounded-2xl">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Affiliation History</h3>
+                        <a href="#" class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 mb-2 hover:bg-white/10 transition">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded bg-white text-black font-bold flex items-center justify-center">TL</div>
+                                <span class="text-white font-bold text-sm">Team Liquid</span>
+                            </div>
+                            <span class="text-xs text-z-green font-bold">Active</span>
+                        </a>
+                        <a href="#" class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded bg-gray-700 text-white font-bold flex items-center justify-center">G2</div>
+                                <span class="text-gray-300 font-bold text-sm">G2 Esports</span>
+                            </div>
+                            <span class="text-xs text-gray-500">2022-2023</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="layout-athlete" class="layout-engine grid grid-cols-1 md:grid-cols-12 gap-6 hidden">
+                    <div class="md:col-span-8 glass-panel p-6 rounded-2xl relative overflow-hidden">
+                        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/grass.png')] opacity-10 bg-green-900"></div>
+                        <div class="relative z-10 flex justify-between items-center">
+                            <div>
+                                <div class="text-xs text-green-400 font-bold uppercase mb-1">Goals Scored</div>
+                                <div class="text-4xl font-display font-black text-white">842</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs text-blue-400 font-bold uppercase mb-1">Assists</div>
+                                <div class="text-4xl font-display font-black text-white">315</div>
+                            </div>
+                        </div>
+                        <div class="mt-6 grid grid-cols-3 gap-4 text-center">
+                            <div class="p-3 bg-black/20 rounded-lg border border-white/5">
+                                <div class="text-[9px] text-gray-400 uppercase">Win Rate</div>
+                                <div class="text-xl font-bold text-white">72%</div>
+                            </div>
+                            <div class="p-3 bg-black/20 rounded-lg border border-white/5">
+                                <div class="text-[9px] text-gray-400 uppercase">Clean Sheets</div>
+                                <div class="text-xl font-bold text-white">108</div>
+                            </div>
+                            <div class="p-3 bg-black/20 rounded-lg border border-white/5">
+                                <div class="text-[9px] text-gray-400 uppercase">Form</div>
+                                <div class="flex justify-center gap-1 mt-1">
+                                    <span class="w-2 h-2 bg-z-green rounded-full"></span>
+                                    <span class="w-2 h-2 bg-z-green rounded-full"></span>
+                                    <span class="w-2 h-2 bg-z-red rounded-full"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:col-span-4 glass-panel p-1 rounded-2xl border border-z-gold/30 bg-gradient-to-b from-z-gold/10 to-transparent">
+                        <div class="h-full flex flex-col items-center justify-center p-6 text-center">
+                            <i class="fa-solid fa-shirt text-4xl text-z-gold mb-3"></i>
+                            <h3 class="text-white font-bold">Striker (ST)</h3>
+                            <p class="text-xs text-gray-400 mt-2">Clinical Finisher</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="layout-tactician" class="layout-engine grid grid-cols-1 md:grid-cols-4 gap-6 hidden">
+                    <div class="md:col-span-4 glass-panel p-6 rounded-2xl">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Signature Heroes</h3>
+                        <div class="flex gap-4">
+                            <div class="text-center group">
+                                <div class="w-16 h-16 rounded-full bg-z-purple border-2 border-white/20 overflow-hidden shadow-lg group-hover:scale-110 transition">
+                                    <img src="https://via.placeholder.com/150/7B2CBF/FFFFFF?text=H1" class="w-full h-full object-cover">
+                                </div>
+                                <div class="text-[10px] text-white font-bold mt-2 uppercase">Carry</div>
+                            </div>
+                            <div class="text-center group">
+                                <div class="w-16 h-16 rounded-full bg-gray-700 border-2 border-white/10 overflow-hidden group-hover:scale-110 transition">
+                                    <img src="https://via.placeholder.com/150/333333/FFFFFF?text=H2" class="w-full h-full object-cover">
+                                </div>
+                                <div class="text-[10px] text-gray-400 font-bold mt-2 uppercase">Mid</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2 glass-panel p-5 rounded-xl border-l-4 border-z-purple">
+                        <div class="text-[9px] text-gray-400 uppercase font-bold">GPM (Gold/Min)</div>
+                        <div class="text-3xl font-display font-bold text-white">780</div>
+                    </div>
+                    <div class="md:col-span-2 glass-panel p-5 rounded-xl border-l-4 border-z-cyan">
+                        <div class="text-[9px] text-gray-400 uppercase font-bold">KDA Ratio</div>
+                        <div class="text-3xl font-display font-bold text-white">6.4</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-2xl overflow-hidden mt-8">
+                    <div class="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/5">
+                        <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-list text-gray-500"></i> Match History
+                        </h3>
+                        <button class="text-[10px] bg-black/40 hover:bg-white/10 px-3 py-1 rounded text-white border border-white/10 transition">Filter</button>
+                    </div>
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-black/20 text-[10px] uppercase text-gray-500 font-bold">
+                            <tr>
+                                <th class="px-6 py-3">Tournament</th>
+                                <th class="px-6 py-3">Result</th>
+                                <th class="px-6 py-3 text-right">Prize</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5">
+                            <tr class="hover:bg-white/5 transition group cursor-pointer">
+                                <td class="px-6 py-4">
+                                    <div class="text-white font-bold group-hover:text-z-cyan transition">DeltaCrown Winter Major</div>
+                                    <div class="text-[10px] text-gray-500">Jan 12, 2026</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-gold/10 text-z-gold text-xs font-bold border border-z-gold/20">
+                                        <i class="fa-solid fa-trophy"></i> 1st Place
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-right text-white font-mono font-bold">$5,000</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition group cursor-pointer">
+                                <td class="px-6 py-4">
+                                    <div class="text-white font-bold">Weekly Scrim #42</div>
+                                    <div class="text-[10px] text-gray-500">Jan 08, 2026</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-400 text-xs font-bold border border-red-500/20">
+                                        Defeat
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-right text-gray-600 font-mono">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+            </section>
+
+        <aside id="right-sidebar" class="lg:col-span-3 space-y-6 transition-all duration-500 opacity-100 sticky-sidebar">
+            <div class="glass-panel p-0 rounded-2xl overflow-hidden border border-z-red/30 relative group cursor-pointer hover:shadow-neon-red transition">
+                <div class="absolute inset-0 bg-gradient-to-t from-z-red/10 via-z-bg to-z-bg"></div>
+                <div class="p-6 relative z-10">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-2"><i class="fa-solid fa-crosshairs text-z-red animate-pulse"></i><span class="text-xs font-bold text-z-red uppercase tracking-wider">Bounty</span></div>
+                        <div class="text-[10px] text-white bg-z-red px-2 py-0.5 rounded font-bold">HARD</div>
+                    </div>
+                    <h4 class="text-white font-bold text-sm leading-tight mb-2 group-hover:text-z-red transition">Headhunter Challenge</h4>
+                    <p class="text-[10px] text-gray-400 mb-3">Get 50 Headshots.</p>
+                    <div class="w-full h-1.5 bg-gray-800 rounded-full mb-4"><div class="h-full bg-z-red rounded-full" style="width: 64%"></div></div>
+                </div>
+            </div>
+            <div class="glass-panel p-6 rounded-2xl relative overflow-hidden">
+                <div class="flex justify-between items-center mb-4"><h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2"><i class="fa-solid fa-tower-broadcast text-z-red animate-pulse"></i> Live</h3><span class="text-[10px] bg-z-red/20 text-z-red px-2 py-0.5 rounded font-bold">ON AIR</span></div>
+                <div class="bg-black/40 rounded-xl p-4 border border-white/10 text-center relative group cursor-pointer hover:border-z-red/50 transition">
+                    <div class="relative z-10">
+                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-2">Tournament • Finals</div>
+                        <div class="flex items-center justify-center gap-3 mb-3"><div class="font-black text-2xl text-white">TL</div><div class="text-xs text-z-red font-mono font-bold">VS</div><div class="font-black text-2xl text-white">SEN</div></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <script>
+        // CONFIG: Game Data & Layout Types
+        const gameConfig = {
+            'valorant': { name: 'VALORANT', type: 'shooter', icon: 'fa-v', color: 'text-[#ff4655]', ign: 'Viper#NA1', rank: 'Radiant' },
+            'cs2': { name: 'CS2', type: 'shooter', icon: 'fa-gun', color: 'text-yellow-500', ign: 'ViperCS', rank: 'Global Elite' },
+            'cod': { name: 'CALL OF DUTY', type: 'shooter', icon: 'fa-skull', color: 'text-green-500', ign: 'ViperCD', rank: 'Crimson' },
+            'pubg': { name: 'PUBG', type: 'shooter', icon: 'fa-parachute-box', color: 'text-orange-500', ign: 'ViperP', rank: 'Conqueror' },
+            'freefire': { name: 'FREE FIRE', type: 'shooter', icon: 'fa-fire', color: 'text-red-500', ign: 'ViperFF', rank: 'Grandmaster' },
+            
+            'efootball': { name: 'EFOOTBALL', type: 'athlete', icon: 'fa-futbol', color: 'text-blue-400', ign: 'Viper_EF', rank: 'Div 1' },
+            'fc26': { name: 'FC 26', type: 'athlete', icon: 'fa-shield-halved', color: 'text-purple-400', ign: 'ViperFC', rank: 'Elite' },
+            'rocket': { name: 'ROCKET LEAGUE', type: 'athlete', icon: 'fa-car', color: 'text-cyan-400', ign: 'ViperRL', rank: 'SSL' },
+            
+            'mlbb': { name: 'MLBB', type: 'tactician', icon: 'fa-mobile-screen', color: 'text-pink-500', ign: 'ViperML', rank: 'Mythical Glory' },
+            'dota2': { name: 'DOTA 2', type: 'tactician', icon: 'fa-d-and-d', color: 'text-red-700', ign: 'ViperDota', rank: 'Immortal' },
+        };
+
+        // FUNCTION: Switch Main Views (Overview <-> Career)
+        function switchView(viewName) {
+            const centerCol = document.getElementById('center-column');
+            const rightSidebar = document.getElementById('right-sidebar');
+            const careerNav = document.getElementById('nav-career');
+            
+            // Hide all views first
+            document.getElementById('view-overview').classList.add('hidden');
+            document.getElementById('view-career').classList.add('hidden');
+
+            if (viewName === 'career') {
+                // ACTIVATE WIDE MODE
+                rightSidebar.classList.add('hidden'); // Hide sidebar
+                centerCol.classList.remove('lg:col-span-6');
+                centerCol.classList.add('lg:col-span-9'); // Expand center
+                
+                document.getElementById('view-career').classList.remove('hidden');
+                
+                // Highlight Nav Button
+                careerNav.classList.add('bg-white/10', 'text-white');
+                
+                // Default load first game
+                setGame('valorant', 'shooter');
+            } else {
+                // RESET TO NORMAL MODE (Overview)
+                rightSidebar.classList.remove('hidden');
+                centerCol.classList.remove('lg:col-span-9');
+                centerCol.classList.add('lg:col-span-6');
+                
+                document.getElementById('view-overview').classList.remove('hidden');
+                
+                // Reset Nav Button
+                careerNav.classList.remove('bg-white/10', 'text-white');
+            }
+        }
+
+        // FUNCTION: Switch Game Content
+        function setGame(gameKey, layoutType) {
+            const data = gameConfig[gameKey];
+            
+            // 1. Update Game Identity Card
+            document.getElementById('game-name').innerText = data.name;
+            document.getElementById('ign-display').innerText = data.ign;
+            document.getElementById('rank-name').innerText = data.rank;
+            
+            // Update Icon & Color
+            const iconEl = document.getElementById('game-icon');
+            iconEl.className = `fa-solid ${data.icon} ${data.color}`;
+
+            // 2. Switch Layout Engine
+            document.querySelectorAll('.layout-engine').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`layout-${layoutType}`).classList.remove('hidden');
+
+            // 3. Update Buttons State
+            document.querySelectorAll('.game-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-z-cyan', 'text-black', 'shadow-neon-cyan');
+                btn.classList.add('text-gray-400');
+            });
+            // Highlight clicked button (approximate match for demo)
+            event.currentTarget.classList.add('active', 'bg-z-cyan', 'text-black', 'shadow-neon-cyan');
+            event.currentTarget.classList.remove('text-gray-400');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Start on Overview for demo
+            switchView('overview');
+        });
+    </script>
+</body>
+</html>

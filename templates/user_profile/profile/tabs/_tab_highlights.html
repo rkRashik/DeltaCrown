@@ -1,0 +1,25 @@
+<div class="glass-panel p-8 rounded-2xl text-center">
+    <div class="max-w-md mx-auto">
+        <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-z-purple/20 to-z-gold/20 border border-white/10 flex items-center justify-center">
+            <i class="fa-solid fa-film text-3xl text-gray-400"></i>
+        </div>
+        
+        <h3 class="text-white font-bold font-display text-2xl mb-3">Highlights</h3>
+        
+        <p class="text-gray-400 text-sm mb-6">
+            Your best plays and memorable moments will be showcased here.
+        </p>
+        
+        {% if relationship_ctx.is_owner %}
+        <button disabled class="px-8 py-3 rounded-xl bg-z-purple/20 text-z-purple border border-z-purple/30 font-bold text-sm uppercase tracking-wider cursor-not-allowed opacity-50 flex items-center justify-center gap-2 mx-auto">
+            <i class="fa-solid fa-upload"></i> Upload Highlight
+        </button>
+        {% else %}
+        <p class="text-xs text-gray-500 italic">
+            No highlights available yet
+        </p>
+        {% endif %}
+        
+        <p class="text-xs text-gray-500 mt-3 italic">Coming soon</p>
+    </div>
+</div>

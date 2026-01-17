@@ -260,7 +260,7 @@
 
     <main class="max-w-[1600px] mx-auto px-4 md:px-8 pb-20 dashboard-grid">
 
-        <aside class="space-y-6 order-2 lg:order-1">
+        <aside class="space-y-6 order-2 lg:order-1 lg:col-span-1">
             
             <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group">
                 <div class="absolute -right-8 -top-8 bg-gradient-to-br from-z-gold/20 to-transparent w-32 h-32 rounded-full blur-2xl"></div>
@@ -439,155 +439,56 @@
         </aside>
 
 
-        <section class="space-y-6 order-1 lg:order-2 min-w-0">
+        <section id="center-column" class="space-y-6 order-1 lg:order-2 lg:col-span-1 min-w-0 transition-all duration-500">
 
+            <!-- Tab Navigation -->
             <nav class="flex overflow-x-auto pb-2 scrollbar-hide gap-2 border-b border-white/10 mb-4">
-                <button class="shrink-0 px-6 py-3 rounded-t-xl bg-z-cyan/10 border-b-2 border-z-cyan text-z-cyan font-bold text-sm tracking-wide shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]">Overview</button>
-                <button class="shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Posts</button>
-                <button class="shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Career</button>
-                <button class="shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Game IDs</button>
-                <button class="shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Inventory</button>
+                <button onclick="switchTab('overview')" data-tab="overview" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl bg-z-cyan/10 border-b-2 border-z-cyan text-z-cyan font-bold text-sm tracking-wide shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]">Overview</button>
+                <button onclick="switchTab('posts')" data-tab="posts" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Posts</button>
+                <button onclick="switchTab('career')" data-tab="career" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Career</button>
+                <button onclick="switchTab('highlights')" data-tab="highlights" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Highlights</button>
+                <button onclick="switchTab('bounty')" data-tab="bounty" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Bounty</button>
+                <button onclick="switchTab('inventory')" data-tab="inventory" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Inventory</button>
+                {% if relationship_ctx.is_owner %}
+                <button onclick="switchTab('economy')" data-tab="economy" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl text-gray-400 hover:text-white hover:bg-white/5 font-medium text-sm transition">Economy</button>
+                {% endif %}
             </nav>
 
-            <!-- UP.4 TACTICAL ABOUT SECTION (v4.0) -->
-            {% include "user_profile/profile/partials/_about_tactical_v4.html" %}
-
-            <div class="glass-panel p-6 rounded-2xl">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
-                        <i class="fa-solid fa-chart-pie text-z-cyan"></i> Performance Analytics
-                    </h3>
-                    <select class="bg-black/40 text-white text-xs px-3 py-1 rounded border border-white/10 outline-none">
-                        <option>Last 20 Matches</option>
-                        <option>All Time</option>
-                    </select>
-                </div>
-
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
-                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">K/D Ratio</div>
-                        <div class="text-2xl font-black text-white">{{ stats_ctx.kd_ratio|default:"0.00" }}</div>
-                        <div class="text-[10px] text-gray-400 mt-1">{{ stats_ctx.total_kills|default:0 }} K / {{ stats_ctx.total_deaths|default:0 }} D</div>
-                        <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-green to-transparent opacity-50"></div>
-                    </div>
-                    <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
-                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Win Rate</div>
-                        <div class="text-2xl font-black text-white">{{ stats_ctx.win_rate|default:0 }}%</div>
-                        <div class="text-[10px] text-gray-400 mt-1">{{ stats_ctx.total_wins|default:0 }} W / {{ stats_ctx.total_matches|default:0 }} M</div>
-                         <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-cyan to-transparent opacity-50"></div>
-                    </div>
-                    <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
-                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Matches</div>
-                        <div class="text-2xl font-black text-white">{{ stats_ctx.total_matches|default:0 }}</div>
-                        <div class="text-[10px] text-gray-400 mt-1">Played</div>
-                         <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-purple to-transparent opacity-50"></div>
-                    </div>
-                    <div class="bg-black/20 rounded-xl p-4 border border-white/5 text-center relative overflow-hidden">
-                        <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Tournaments</div>
-                        <div class="text-2xl font-black text-white">{{ stats_ctx.tournaments_won|default:0 }}</div>
-                        <div class="text-[10px] text-gray-400 mt-1">Won / {{ stats_ctx.tournaments_played|default:0 }} Played</div>
-                         <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-z-gold to-transparent opacity-50"></div>
-                    </div>
-                </div>
+            <!-- Tab Content Containers -->
+            <div id="tab-overview" class="tab-content">
+                {% include "user_profile/profile/tabs/_tab_overview.html" %}
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                <div class="glass-panel p-6 rounded-2xl hover:border-z-gold/50 transition duration-300 group cursor-pointer relative overflow-hidden">
-                    <div class="absolute right-0 top-0 w-40 h-40 bg-z-gold/5 rounded-full blur-3xl group-hover:bg-z-gold/10 transition"></div>
-                    
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-gold/20 to-transparent border border-z-gold/20 flex items-center justify-center text-z-gold text-xl shadow-lg">
-                            <i class="fa-solid fa-trophy"></i>
-                        </div>
-                        <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-white -rotate-45 transition"></i>
-                    </div>
-                    
-                    <h3 class="text-white font-bold font-display text-xl mb-1">Career</h3>
-                    <p class="text-xs text-gray-400 mb-6 font-medium">Active in 2 Games</p>
-
-                    <div class="space-y-4">
-                        <div class="flex items-center gap-4 relative pl-4 border-l-2 border-z-green">
-                            <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center"><i class="fa-solid fa-v text-[#ff4655] font-bold"></i></div>
-                            <div>
-                                <div class="text-white text-sm font-bold">Team Liquid</div>
-                                <div class="text-[10px] text-z-green font-bold uppercase tracking-wider">Current • 2024</div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4 relative pl-4 border-l-2 border-gray-700 opacity-60 group-hover:opacity-100 transition">
-                            <div class="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-xs font-bold">G2</div>
-                            <div>
-                                <div class="text-white text-sm font-bold">G2 Esports</div>
-                                <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Former • 2023</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="glass-panel p-6 rounded-2xl hover:border-z-purple/50 transition duration-300 group cursor-pointer relative overflow-hidden">
-                    <div class="absolute right-0 top-0 w-40 h-40 bg-z-purple/5 rounded-full blur-3xl group-hover:bg-z-purple/10 transition"></div>
-
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-purple/20 to-transparent border border-z-purple/20 flex items-center justify-center text-z-purple text-xl shadow-lg">
-                            <i class="fa-solid fa-gamepad"></i>
-                        </div>
-                        <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-white -rotate-45 transition"></i>
-                    </div>
-                    
-                    <h3 class="text-white font-bold font-display text-xl mb-1">Game Passports</h3>
-                    <p class="text-xs text-gray-400 mb-6 font-medium">{{ pinned_passports|length|add:unpinned_passports|length }} Linked Account{{ pinned_passports|length|add:unpinned_passports|length|pluralize }}</p>
-
-                    {% if is_owner or permissions.can_view_game_passports %}
-                    <div class="space-y-3">
-                        {# Show pinned passports first #}
-                        {% for passport in pinned_passports %}
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded bg-z-cyan flex items-center justify-center text-white"><i class="fa-solid fa-gamepad"></i></div>
-                                <div>
-                                    <div class="text-white text-xs font-bold font-mono">{{ passport.in_game_name }}{% if passport.discriminator %}#{{ passport.discriminator }}{% endif %}</div>
-                                    <div class="text-[10px] text-z-cyan">{% if passport.rank_name %}{{ passport.rank_name }}{% endif %}{% if passport.platform %} • {{ passport.platform }}{% endif %}</div>
-                                </div>
-                            </div>
-                            {% if passport.is_verified %}
-                            <i class="fa-solid fa-circle-check text-z-cyan text-sm shadow-neon-cyan"></i>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                        {# Show unpinned passports #}
-                        {% for passport in unpinned_passports %}
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded bg-gray-700 flex items-center justify-center text-white"><i class="fa-solid fa-gamepad"></i></div>
-                                <div>
-                                    <div class="text-white text-xs font-bold font-mono">{{ passport.in_game_name }}{% if passport.discriminator %}#{{ passport.discriminator }}{% endif %}</div>
-                                    <div class="text-[10px] text-gray-400">{% if passport.rank_name %}{{ passport.rank_name }}{% endif %}{% if passport.platform %} • {{ passport.platform }}{% endif %}</div>
-                                </div>
-                            </div>
-                            {% if passport.is_verified %}
-                            <i class="fa-solid fa-circle-check text-gray-500 text-sm"></i>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                        {# Empty state #}
-                        {% if not pinned_passports and not unpinned_passports %}
-                        <div class="text-center text-gray-500 text-xs py-4">No game passports linked yet</div>
-                        {% endif %}
-                    </div>
-                    {% else %}
-                    <div class="text-center text-gray-500 text-xs py-8 italic">
-                        <i class="fa-solid fa-lock text-2xl mb-2 block"></i>
-                        Game Passports are private
-                    </div>
-                    {% endif %}
-                </div>
-
+            <div id="tab-posts" class="tab-content hidden">
+                {% include "user_profile/profile/tabs/_tab_posts.html" %}
             </div>
+
+            <div id="tab-career" class="tab-content hidden">
+                {% include "user_profile/profile/tabs/_tab_career.html" %}
+            </div>
+
+            <div id="tab-highlights" class="tab-content hidden">
+                {% include "user_profile/profile/tabs/_tab_highlights.html" %}
+            </div>
+
+            <div id="tab-bounty" class="tab-content hidden">
+                {% include "user_profile/profile/tabs/_tab_bounty.html" %}
+            </div>
+
+            <div id="tab-inventory" class="tab-content hidden">
+                {% include "user_profile/profile/tabs/_tab_inventory.html" %}
+            </div>
+
+            {% if relationship_ctx.is_owner %}
+            <div id="tab-economy" class="tab-content hidden">
+                {% include "user_profile/profile/tabs/_tab_economy.html" %}
+            </div>
+            {% endif %}
 
         </section>
 
 
-        <aside class="space-y-6 order-3">
+        <aside id="right-sidebar" class="space-y-6 order-3 lg:col-span-1 transition-all duration-500">
             
             <div class="glass-panel p-6 rounded-2xl relative overflow-hidden">
                 <div class="flex justify-between items-center mb-4">
@@ -730,6 +631,66 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+});
+</script>
+
+{# Phase 4: Tab System with Wide Mode Support #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get references to key elements
+    const centerColumn = document.getElementById('center-column');
+    const rightSidebar = document.getElementById('right-sidebar');
+    
+    // Global tab switching function
+    window.switchTab = function(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        // Remove active state from all tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('bg-z-cyan/10', 'border-b-2', 'border-z-cyan', 'text-z-cyan', 'shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]');
+            btn.classList.add('text-gray-400');
+        });
+        
+        // Show selected tab content
+        const selectedContent = document.getElementById('tab-' + tabName);
+        if (selectedContent) {
+            selectedContent.classList.remove('hidden');
+        }
+        
+        // Activate selected tab button
+        const selectedBtn = document.querySelector(`[data-tab="${tabName}"]`);
+        if (selectedBtn) {
+            selectedBtn.classList.add('bg-z-cyan/10', 'border-b-2', 'border-z-cyan', 'text-z-cyan', 'shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]');
+            selectedBtn.classList.remove('text-gray-400');
+        }
+        
+        // Handle Wide Mode for Career tab
+        if (tabName === 'career') {
+            // Enable Wide Mode
+            if (rightSidebar) {
+                rightSidebar.classList.add('hidden');
+            }
+            if (centerColumn) {
+                centerColumn.classList.remove('lg:col-span-1');
+                centerColumn.classList.add('lg:col-span-2');
+            }
+        } else {
+            // Restore Normal Mode
+            if (rightSidebar) {
+                rightSidebar.classList.remove('hidden');
+            }
+            if (centerColumn) {
+                centerColumn.classList.remove('lg:col-span-2');
+                centerColumn.classList.add('lg:col-span-1');
+            }
+        }
+    };
+    
+    // Initialize: ensure Overview is active on page load
+    // (already set in HTML, but this ensures consistency)
 });
 </script>
 

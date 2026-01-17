@@ -1,0 +1,28 @@
+<div class="glass-panel p-8 rounded-2xl text-center">
+    <div class="max-w-md mx-auto">
+        <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-z-cyan/20 to-z-purple/20 border border-white/10 flex items-center justify-center">
+            <i class="fa-solid fa-comment text-3xl text-gray-400"></i>
+        </div>
+        
+        <h3 class="text-white font-bold font-display text-2xl mb-3">Posts</h3>
+        
+        {% if relationship_ctx.is_owner %}
+        <p class="text-gray-400 text-sm mb-6">
+            Share your thoughts, achievements, and updates with your followers.
+        </p>
+        
+        <button disabled class="px-8 py-3 rounded-xl bg-z-cyan/20 text-z-cyan border border-z-cyan/30 font-bold text-sm uppercase tracking-wider cursor-not-allowed opacity-50 flex items-center justify-center gap-2 mx-auto">
+            <i class="fa-solid fa-plus"></i> Create Your First Post
+        </button>
+        
+        <p class="text-xs text-gray-500 mt-3 italic">Coming soon</p>
+        {% else %}
+        <p class="text-gray-400 text-sm">
+            No posts yet.
+        </p>
+        <p class="text-xs text-gray-500 mt-3 italic">
+            {{ profile_user.username }} hasn't shared anything yet
+        </p>
+        {% endif %}
+    </div>
+</div>
