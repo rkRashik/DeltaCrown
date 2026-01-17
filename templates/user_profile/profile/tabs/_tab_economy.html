@@ -1,39 +1,140 @@
-<div class="glass-panel p-8 rounded-2xl text-center">
-    <div class="max-w-md mx-auto">
+{% if relationship_ctx.is_owner %}
+<div class="space-y-8 animate-fade-in">
+    
+    <!-- Wallet and Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Digital Wallet Card -->
+        <div class="wallet-mesh rounded-2xl p-8 relative overflow-hidden group h-[240px] flex flex-col justify-between">
+            <div class="absolute -right-6 -top-6 w-40 h-40 opacity-20 animate-spin-slow">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full text-z-gold">
+                    <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4" />
+                    <path d="M50 20L75 35V65L50 80L25 65V35L50 20Z" stroke="currentColor" stroke-width="1" />
+                </svg>
+            </div>
+
+            <div class="flex items-center gap-3 relative z-10">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-z-gold to-yellow-700 p-0.5 shadow-neon-gold">
+                    <div class="w-full h-full rounded-full bg-black flex items-center justify-center">
+                        <span class="text-z-gold font-black font-display text-xl">D</span>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-white font-display font-bold leading-none tracking-wider">DELTACROWN</h3>
+                    <p class="text-[9px] text-z-gold font-bold uppercase tracking-[0.2em]">Official Wallet</p>
+                </div>
+            </div>
+
+            <div class="relative z-10 my-auto">
+                <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Available Balance</div>
+                <div class="text-5xl font-display font-black text-white tracking-tighter drop-shadow-lg flex items-center gap-2">
+                    {{ wallet_balance|floatformat:0|default:"12,500" }} <span class="text-2xl text-z-gold mb-1">DC</span>
+                </div>
+                <div class="inline-flex items-center gap-1 mt-1 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                    <i class="fa-solid fa-arrow-right-arrow-left text-[9px] text-gray-400"></i>
+                    <span class="text-xs font-mono font-bold text-gray-300">≈ 1,250 BDT</span>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-end relative z-10">
+                <div>
+                    <div class="text-[9px] text-gray-500 uppercase font-bold">Account Holder</div>
+                    <div class="text-white font-bold tracking-widest font-mono">{{ profile_user.username|upper }}#{{ profile_user.id }}</div>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-z-green animate-pulse"></span>
+                    <span class="text-[10px] text-z-green font-bold uppercase">Active</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions Panel -->
+        <div class="glass-panel p-6 rounded-2xl flex flex-col justify-center gap-4">
+            <h3 class="text-white font-bold text-lg">Quick Actions</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <button class="p-4 rounded-xl bg-z-green/10 border border-z-green/30 hover:bg-z-green hover:text-black text-z-green font-bold flex flex-col items-center justify-center gap-2 transition group">
+                    <div class="w-10 h-10 rounded-full bg-z-green/20 flex items-center justify-center group-hover:bg-black/20 transition">
+                        <i class="fa-solid fa-plus text-lg"></i>
+                    </div>
+                    <span class="uppercase text-xs tracking-wider">Top Up</span>
+                </button>
+                <button class="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white hover:text-black text-white font-bold flex flex-col items-center justify-center gap-2 transition group">
+                    <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-black/20 transition">
+                        <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
+                    </div>
+                    <span class="uppercase text-xs tracking-wider">Cash Out</span>
+                </button>
+            </div>
+            <button class="w-full py-3 rounded-xl border border-z-gold/30 text-z-gold font-bold hover:bg-z-gold hover:text-black transition flex items-center justify-center gap-2 text-sm uppercase">
+                <i class="fa-solid fa-clock-rotate-left"></i> Transaction History
+            </button>
+        </div>
+    </div>
+
+    <!-- Recent Activity Table -->
+    <div class="glass-panel rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/5">
+            <h3 class="text-sm font-bold text-white uppercase tracking-widest">Recent Activity</h3>
+            <div class="text-xs text-gray-500 font-mono">1 DC = 0.1 BDT</div>
+        </div>
+        <table class="w-full text-left text-sm">
+            <thead class="bg-black/20 text-[10px] uppercase text-gray-500 font-bold">
+                <tr>
+                    <th class="px-6 py-3">Source</th>
+                    <th class="px-6 py-3">Details</th>
+                    <th class="px-6 py-3">Date</th>
+                    <th class="px-6 py-3 text-right">Amount</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                <tr class="hover:bg-white/5 transition">
+                    <td class="px-6 py-4"><span class="text-z-green font-bold text-xs bg-z-green/10 px-2 py-0.5 rounded border border-z-green/20">Tournament</span></td>
+                    <td class="px-6 py-4 text-white font-medium">Prize: DeltaCrown Major S1</td>
+                    <td class="px-6 py-4 text-gray-500 text-xs">Jan 12, 2026</td>
+                    <td class="px-6 py-4 text-right text-z-green font-bold">+50,000 DC</td>
+                </tr>
+                <tr class="hover:bg-white/5 transition">
+                    <td class="px-6 py-4"><span class="text-z-red font-bold text-xs bg-z-red/10 px-2 py-0.5 rounded border border-z-red/20">Shop</span></td>
+                    <td class="px-6 py-4 text-white font-medium">Skin: Elderflame Vandal</td>
+                    <td class="px-6 py-4 text-gray-500 text-xs">Jan 10, 2026</td>
+                    <td class="px-6 py-4 text-right text-white">-2,500 DC</td>
+                </tr>
+                <tr class="hover:bg-white/5 transition">
+                    <td class="px-6 py-4"><span class="text-z-cyan font-bold text-xs bg-z-cyan/10 px-2 py-0.5 rounded border border-z-cyan/20">Top Up</span></td>
+                    <td class="px-6 py-4 text-white font-medium">Bkash Payment (TrxID: 8X9...)</td>
+                    <td class="px-6 py-4 text-gray-500 text-xs">Jan 05, 2026</td>
+                    <td class="px-6 py-4 text-right text-z-green font-bold">+2,000 DC</td>
+                </tr>
+                <tr class="hover:bg-white/5 transition">
+                    <td class="px-6 py-4"><span class="text-z-green font-bold text-xs bg-z-green/10 px-2 py-0.5 rounded border border-z-green/20">Match Win</span></td>
+                    <td class="px-6 py-4 text-white font-medium">Ranked Victory Bonus</td>
+                    <td class="px-6 py-4 text-gray-500 text-xs">Jan 03, 2026</td>
+                    <td class="px-6 py-4 text-right text-z-green font-bold">+150 DC</td>
+                </tr>
+                <tr class="hover:bg-white/5 transition">
+                    <td class="px-6 py-4"><span class="text-z-purple font-bold text-xs bg-z-purple/10 px-2 py-0.5 rounded border border-z-purple/20">Referral</span></td>
+                    <td class="px-6 py-4 text-white font-medium">Friend Sign-up Bonus</td>
+                    <td class="px-6 py-4 text-gray-500 text-xs">Dec 28, 2025</td>
+                    <td class="px-6 py-4 text-right text-z-green font-bold">+500 DC</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% else %}
+<div class="glass-panel p-6 rounded-2xl text-gray-400">
+    <div class="text-center py-12">
         <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-z-gold/20 to-z-green/20 border border-z-gold/30 flex items-center justify-center relative">
             <i class="fa-solid fa-coins text-3xl text-z-gold"></i>
             <div class="absolute -top-1 -right-1 w-6 h-6 bg-z-gold rounded-full border-2 border-z-bg flex items-center justify-center">
                 <i class="fa-solid fa-lock text-xs text-black"></i>
             </div>
         </div>
-        
-        <h3 class="text-white font-bold font-display text-2xl mb-3">Economy Dashboard</h3>
-        
-        <p class="text-gray-400 text-sm mb-6">
-            Track your earnings, expenses, and financial analytics.
-        </p>
-        
-        <div class="bg-gradient-to-r from-z-gold/10 to-transparent rounded-xl p-6 border border-z-gold/30 mb-6">
-            <div class="text-[10px] text-z-gold uppercase font-bold mb-2">Total Lifetime Earnings</div>
-            <div class="text-4xl font-display font-black text-white flex items-center justify-center gap-2">
-                {{ wallet_balance|floatformat:0|default:"0" }}
-                <span class="text-lg font-sans text-z-gold">DC</span>
-            </div>
-        </div>
-        
-        <div class="grid grid-cols-2 gap-3 mb-6">
-            <div class="bg-black/20 rounded-xl p-4 border border-white/5">
-                <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">This Month</div>
-                <div class="text-xl font-display font-bold text-white">$0</div>
-            </div>
-            <div class="bg-black/20 rounded-xl p-4 border border-white/5">
-                <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Pending</div>
-                <div class="text-xl font-display font-bold text-white">$0</div>
-            </div>
-        </div>
-        
-        <p class="text-xs text-gray-500 italic flex items-center justify-center gap-2">
-            <i class="fa-solid fa-shield-halved text-z-gold"></i> Owner-only view
+        <h3 class="text-white font-bold font-display text-xl mb-2">Economy Dashboard</h3>
+        <p class="text-gray-400 text-sm">
+            This tab is only visible to the profile owner.
         </p>
     </div>
 </div>
+{% endif %}

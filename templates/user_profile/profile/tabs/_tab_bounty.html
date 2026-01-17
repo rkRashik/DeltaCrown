@@ -1,26 +1,248 @@
-<div class="glass-panel p-8 rounded-2xl text-center">
-    <div class="max-w-md mx-auto">
-        <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-z-red/20 to-z-gold/20 border border-z-red/30 flex items-center justify-center relative">
-            <i class="fa-solid fa-crosshairs text-3xl text-z-red"></i>
-            <div class="absolute -top-1 -right-1 w-6 h-6 bg-z-red rounded-full border-2 border-z-bg flex items-center justify-center">
-                <i class="fa-solid fa-star text-xs text-white"></i>
+<div class="space-y-8 animate-fade-in">
+    
+    <!-- Top 3 Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group">
+            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition transform group-hover:scale-110">
+                <i class="fa-solid fa-skull-crossbones text-6xl text-z-red"></i>
+            </div>
+            <div class="relative z-10">
+                <div class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-2">Hunter Rank</div>
+                <div class="flex items-end gap-3">
+                    <div class="text-4xl font-display font-black text-white">ELITE</div>
+                    <div class="text-z-red font-bold text-sm mb-1.5">Top 5%</div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex justify-between text-[9px] text-gray-500 uppercase font-bold mb-1">
+                        <span>Level 42</span>
+                        <span>3,450 / 5,000 XP</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-z-red to-z-purple w-[70%]"></div>
+                    </div>
+                </div>
             </div>
         </div>
-        
-        <h3 class="text-white font-bold font-display text-2xl mb-3">Bounty Board</h3>
-        
-        <p class="text-gray-400 text-sm mb-6">
-            Complete challenges and bounties to earn rewards and climb the leaderboards.
-        </p>
-        
-        <div class="bg-black/20 rounded-xl p-4 border border-white/5 mb-4">
-            <div class="flex items-center justify-center gap-2 mb-2">
-                <i class="fa-solid fa-trophy text-z-gold"></i>
-                <span class="text-white font-bold">Active Bounties</span>
+
+        <div class="glass-panel p-6 rounded-2xl border-t-2 border-z-gold flex flex-col justify-center relative overflow-hidden">
+            <div class="absolute inset-0 bg-z-gold/5"></div>
+            <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Bounty Earnings</div>
+            <div class="text-4xl font-display font-black text-white flex items-center gap-2">
+                24,500 <span class="text-lg font-sans text-z-gold font-bold">DC</span>
             </div>
-            <div class="text-3xl font-display font-black text-white">0</div>
+            <div class="text-xs text-gray-500 mt-1">Lifetime Collected</div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-2xl border-t-2 border-z-cyan flex flex-col justify-center relative overflow-hidden">
+            <div class="absolute inset-0 bg-z-cyan/5"></div>
+            <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Completion Rate</div>
+            <div class="text-4xl font-display font-black text-white">92%</div>
+            <div class="text-xs text-z-cyan font-bold mt-1">46 Completed / 4 Failed</div>
+        </div>
+    </div>
+
+    <!-- Filters and Create Bounty -->
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex gap-2 overflow-x-auto scrollbar-hide w-full md:w-auto">
+            <button class="px-5 py-2.5 rounded-lg bg-white/10 text-white font-bold text-xs uppercase border border-white/20 hover:bg-white/20 transition whitespace-nowrap">
+                All Games
+            </button>
+            <button class="px-5 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 font-bold text-xs uppercase transition whitespace-nowrap">
+                Valorant
+            </button>
+            <button class="px-5 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 font-bold text-xs uppercase transition whitespace-nowrap">
+                CS2
+            </button>
         </div>
         
-        <p class="text-xs text-gray-500 italic">Bounty system coming soon</p>
+        {% if relationship_ctx.is_owner %}
+        <button onclick="openBountyModal('New Bounty', 0)" class="w-full md:w-auto bg-z-red hover:bg-white hover:text-z-red text-white font-black uppercase text-xs px-6 py-3 rounded-lg shadow-neon-red transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-plus"></i> Create Bounty
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Sponsored Hero Contract -->
+    <div class="relative rounded-2xl overflow-hidden group border border-z-gold/30">
+        <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1533236897111-3e94666b2edf?q=80&w=2000')] bg-cover bg-center opacity-40 group-hover:scale-105 transition duration-1000"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent"></div>
+        
+        <div class="relative z-10 p-8 md:p-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div class="max-w-xl">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="px-2 py-0.5 rounded bg-z-gold text-black text-[10px] font-black uppercase tracking-wider shadow-neon-gold">Sponsored</span>
+                    <span class="text-z-gold font-bold text-xs flex items-center gap-1"><i class="fa-regular fa-clock"></i> Ends in 12h</span>
+                </div>
+                <h2 class="text-3xl md:text-4xl font-display font-black text-white mb-2 leading-none">THE HEADHUNTER GAUNTLET</h2>
+                <p class="text-gray-300 text-sm leading-relaxed">Secure 100 Headshot kills in Ranked Matches this weekend to unlock the exclusive "Golden Assassin" badge.</p>
+                
+                <div class="flex items-center gap-4 mt-6">
+                    <div class="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+                        <i class="fa-solid fa-coins text-z-gold"></i>
+                        <span class="text-white font-bold text-sm">5,000 DC</span>
+                    </div>
+                </div>
+            </div>
+            <button onclick="openBountyModal('The Headhunter Gauntlet', 5000)" class="bg-z-gold text-black font-black uppercase text-sm px-8 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-gold flex items-center gap-2 whitespace-nowrap">
+                Accept Challenge <i class="fa-solid fa-bolt"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Open Contracts -->
+    <div>
+        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-clipboard-list text-white"></i> Open Contracts
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- Contract Card 1 -->
+            <div class="glass-panel p-0 rounded-2xl overflow-hidden group border border-z-purple/30 hover:shadow-neon-purple transition duration-300 flex flex-col">
+                <div class="p-5 relative flex-1">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded bg-[#ff4655] flex items-center justify-center text-white text-lg"><i class="fa-solid fa-v"></i></div>
+                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Valorant</span>
+                        </div>
+                        <div class="px-2 py-0.5 rounded bg-z-purple/10 text-z-purple text-[10px] font-bold uppercase border border-z-purple/20">1 vs 1</div>
+                    </div>
+                    <h4 class="text-white font-bold text-lg leading-tight mb-2">Mid Lane Duel</h4>
+                    <p class="text-xs text-gray-400 mb-4">"Beat me in a pure aim duel. No abilities. First to 13."</p>
+                    
+                    <div class="flex items-center gap-2">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100" class="w-6 h-6 rounded-full border border-white/20">
+                        <span class="text-xs text-gray-300">Challenger: <span class="text-white font-bold">GrimReaper</span></span>
+                    </div>
+                </div>
+                
+                <div class="bg-black/40 px-5 py-3 flex justify-between items-center border-t border-white/5">
+                    <div class="flex items-center gap-1 text-z-gold font-bold text-sm">
+                        <i class="fa-solid fa-coins"></i> 1,000 DC
+                    </div>
+                    <button onclick="openBountyModal('Mid Lane Duel', 1000)" class="text-[10px] font-bold uppercase text-white bg-white/10 hover:bg-white hover:text-black px-3 py-1.5 rounded transition">
+                        Challenge
+                    </button>
+                </div>
+            </div>
+
+            <!-- Contract Card 2 -->
+            <div class="glass-panel p-0 rounded-2xl overflow-hidden group border border-z-cyan/30 hover:shadow-neon-cyan transition duration-300 flex flex-col">
+                <div class="p-5 relative flex-1">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded bg-yellow-600 flex items-center justify-center text-white text-lg"><i class="fa-solid fa-gun"></i></div>
+                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">CS2</span>
+                        </div>
+                        <div class="px-2 py-0.5 rounded bg-z-cyan/10 text-z-cyan text-[10px] font-bold uppercase border border-z-cyan/20">Stat Race</div>
+                    </div>
+                    <h4 class="text-white font-bold text-lg leading-tight mb-2">Top Fragger Race</h4>
+                    <p class="text-xs text-gray-400 mb-4">"Get more kills than me in our next Ranked match duo."</p>
+                    
+                    <div class="flex items-center gap-2">
+                        <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100" class="w-6 h-6 rounded-full border border-white/20">
+                        <span class="text-xs text-gray-300">Challenger: <span class="text-white font-bold">KennyS</span></span>
+                    </div>
+                </div>
+                
+                <div class="bg-black/40 px-5 py-3 flex justify-between items-center border-t border-white/5">
+                    <div class="flex items-center gap-1 text-z-gold font-bold text-sm">
+                        <i class="fa-solid fa-coins"></i> 500 DC
+                    </div>
+                    <button onclick="openBountyModal('Top Fragger Race', 500)" class="text-[10px] font-bold uppercase text-white bg-white/10 hover:bg-white hover:text-black px-3 py-1.5 rounded transition">
+                        Challenge
+                    </button>
+                </div>
+            </div>
+
+            <!-- Contract Card 3 -->
+            <div class="glass-panel p-0 rounded-2xl overflow-hidden group border border-z-red/30 hover:shadow-neon-red transition duration-300 flex flex-col">
+                <div class="p-5 relative flex-1">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded bg-cyan-600 flex items-center justify-center text-white text-lg"><i class="fa-solid fa-car"></i></div>
+                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Rocket</span>
+                        </div>
+                        <div class="px-2 py-0.5 rounded bg-z-red/10 text-z-red text-[10px] font-bold uppercase border border-z-red/20">Clips</div>
+                    </div>
+                    <h4 class="text-white font-bold text-lg leading-tight mb-2">Best Aerial Goal</h4>
+                    <p class="text-xs text-gray-400 mb-4">"Submit your best aerial goal replay. Community votes winner."</p>
+                    
+                    <div class="flex items-center gap-2">
+                        <img src="https://images.unsplash.com/photo-1527980965255-d3b416303d12?q=80&w=100" class="w-6 h-6 rounded-full border border-white/20">
+                        <span class="text-xs text-gray-300">Challenger: <span class="text-white font-bold">Jstn</span></span>
+                    </div>
+                </div>
+                
+                <div class="bg-black/40 px-5 py-3 flex justify-between items-center border-t border-white/5">
+                    <div class="flex items-center gap-1 text-z-gold font-bold text-sm">
+                        <i class="fa-solid fa-coins"></i> 2,000 DC
+                    </div>
+                    <button onclick="openBountyModal('Best Aerial Goal', 2000)" class="text-[10px] font-bold uppercase text-white bg-white/10 hover:bg-white hover:text-black px-3 py-1.5 rounded transition">
+                        Challenge
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- Bounty Challenge Modal -->
+<div id="modal-bounty-challenge" class="fixed inset-0 z-50 hidden modal-overlay flex items-center justify-center px-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-[#0F0B1E] border border-white/10 rounded-2xl w-full max-w-lg shadow-[0_0_50px_rgba(0,0,0,0.8)] transform scale-95 transition-transform duration-300 relative overflow-hidden" id="modal-bounty-content">
+        
+        <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+            <h3 class="text-white font-bold text-lg flex items-center gap-2">
+                <i class="fa-solid fa-handshake text-z-gold"></i> Accept Challenge
+            </h3>
+            <button onclick="closeBountyModal()" class="text-gray-400 hover:text-white transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+
+        <div class="p-6 space-y-6">
+            <div class="bg-black/30 p-4 rounded-xl border border-white/5 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-lg bg-z-red/10 flex items-center justify-center text-z-red text-2xl border border-z-red/20">
+                    <i class="fa-solid fa-scroll"></i>
+                </div>
+                <div>
+                    <div class="text-[10px] text-gray-500 uppercase font-bold">Contract Name</div>
+                    <div class="text-white font-bold text-lg leading-none" id="modal-bounty-title">...</div>
+                </div>
+                <div class="ml-auto text-right">
+                    <div class="text-[10px] text-gray-500 uppercase font-bold">Reward</div>
+                    <div class="text-z-gold font-bold text-lg" id="modal-bounty-reward">...</div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-400 uppercase mb-2 block">Select Game ID</label>
+                    <select class="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:border-z-cyan outline-none">
+                        <option>{{ profile_user.username }}#{{ profile_user.id }} (Valorant - Radiant)</option>
+                        <option>{{ profile_user.username }}CS (CS2 - Global)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 uppercase mb-2 block">Wager Amount (Optional)</label>
+                    <div class="relative">
+                        <input type="number" placeholder="0" class="w-full bg-black/40 border border-white/10 rounded-lg pl-4 pr-12 py-3 text-sm text-white focus:border-z-cyan outline-none">
+                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-z-gold">DC</span>
+                    </div>
+                    <p class="text-[10px] text-gray-500 mt-1">Increasing the stakes sends a counter-offer.</p>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 uppercase mb-2 block">Message to Challenger</label>
+                    <textarea rows="3" placeholder="I accept. Let's do this..." class="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:border-z-cyan outline-none"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 border-t border-white/5 bg-black/20 flex justify-end gap-3">
+            <button onclick="closeBountyModal()" class="px-6 py-3 rounded-lg text-gray-400 hover:text-white font-bold text-xs uppercase transition">Cancel</button>
+            <button class="px-8 py-3 rounded-lg bg-z-red hover:bg-white hover:text-z-red text-white font-black text-xs uppercase shadow-neon-red transition">
+                Confirm & Send
+            </button>
+        </div>
     </div>
 </div>

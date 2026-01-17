@@ -1,25 +1,91 @@
-<div class="glass-panel p-8 rounded-2xl text-center">
-    <div class="max-w-md mx-auto">
-        <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-z-purple/20 to-z-gold/20 border border-white/10 flex items-center justify-center">
-            <i class="fa-solid fa-film text-3xl text-gray-400"></i>
+<div class="space-y-8 animate-fade-in">
+    
+    <!-- Featured Clip Hero -->
+    <div class="relative rounded-2xl overflow-hidden group border border-z-purple/30 shadow-[0_0_50px_-10px_rgba(123,44,191,0.3)]">
+        <div class="absolute -inset-1 bg-gradient-to-r from-z-purple to-z-cyan opacity-20 blur-xl group-hover:opacity-40 transition duration-1000"></div>
+        <div class="relative aspect-video bg-black z-10 rounded-xl overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670" class="w-full h-full object-cover opacity-60 hover:scale-105 transition duration-700">
+            <div class="absolute inset-0 flex items-center justify-center group/play cursor-pointer">
+                <div class="w-24 h-24 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 group-hover/play:scale-110 group-hover/play:bg-z-purple transition shadow-2xl">
+                    <i class="fa-solid fa-play text-4xl text-white ml-2"></i>
+                </div>
+            </div>
+            <div class="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black via-black/90 to-transparent">
+                <div class="flex items-end justify-between">
+                    <div class="max-w-2xl">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="px-2 py-0.5 rounded bg-z-red text-white text-[10px] font-bold uppercase animate-pulse">Featured Clip</span>
+                            <span class="px-2 py-0.5 rounded bg-white/10 text-white text-[10px] font-bold uppercase border border-white/10 flex items-center gap-2"><i class="fa-solid fa-trophy text-z-gold"></i> DeltaCrown Finals</span>
+                        </div>
+                        <h2 class="text-3xl md:text-5xl font-display font-black text-white mb-2 leading-none">1v5 CLUTCH • ASCENT</h2>
+                    </div>
+                    <div class="text-right hidden md:block">
+                        <div class="text-4xl font-mono font-bold text-white">245K</div>
+                        <div class="text-xs text-gray-500 uppercase font-bold tracking-widest">Views</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        
-        <h3 class="text-white font-bold font-display text-2xl mb-3">Highlights</h3>
-        
-        <p class="text-gray-400 text-sm mb-6">
-            Your best plays and memorable moments will be showcased here.
-        </p>
-        
+    </div>
+
+    <!-- Filters and Upload -->
+    <div class="flex justify-between items-center gap-4">
+        <div class="flex gap-2 bg-white/5 p-1 rounded-lg">
+            <button class="px-4 py-2 rounded bg-white/10 text-white text-xs font-bold uppercase hover:bg-white/20 transition">All Clips</button>
+            <button class="px-4 py-2 rounded text-gray-400 text-xs font-bold uppercase hover:text-white hover:bg-white/5 transition">Valorant</button>
+        </div>
         {% if relationship_ctx.is_owner %}
-        <button disabled class="px-8 py-3 rounded-xl bg-z-purple/20 text-z-purple border border-z-purple/30 font-bold text-sm uppercase tracking-wider cursor-not-allowed opacity-50 flex items-center justify-center gap-2 mx-auto">
-            <i class="fa-solid fa-upload"></i> Upload Highlight
+        <button class="bg-z-cyan text-black px-6 py-2 rounded-lg font-bold text-xs uppercase shadow-neon-cyan hover:bg-white transition flex items-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Upload Clip
         </button>
-        {% else %}
-        <p class="text-xs text-gray-500 italic">
-            No highlights available yet
-        </p>
         {% endif %}
-        
-        <p class="text-xs text-gray-500 mt-3 italic">Coming soon</p>
+    </div>
+
+    <!-- Clips Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="glass-panel p-0 rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-z-cyan/50 transition">
+            <div class="relative aspect-video bg-black">
+                <img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=500" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500">
+                <div class="absolute top-2 left-2 bg-z-cyan text-black px-2 py-0.5 rounded text-[10px] font-bold uppercase">Ace</div>
+                <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white">0:45</div>
+            </div>
+            <div class="p-4">
+                <h4 class="text-white font-bold text-sm truncate group-hover:text-z-cyan transition">Operator 4k Hold Site B</h4>
+                <div class="mt-2 flex items-center gap-2 text-[10px] text-gray-500">
+                    <span class="bg-white/5 px-2 py-0.5 rounded border border-white/5">Scrim</span>
+                    <span>• 2 days ago</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel p-0 rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-z-cyan/50 transition">
+            <div class="relative aspect-video bg-black">
+                <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=500" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500">
+                <div class="absolute top-2 left-2 bg-z-purple text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase">Clutch</div>
+                <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white">1:23</div>
+            </div>
+            <div class="p-4">
+                <h4 class="text-white font-bold text-sm truncate group-hover:text-z-cyan transition">Insane Sheriff 3k</h4>
+                <div class="mt-2 flex items-center gap-2 text-[10px] text-gray-500">
+                    <span class="bg-white/5 px-2 py-0.5 rounded border border-white/5">Ranked</span>
+                    <span>• 5 days ago</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel p-0 rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-z-cyan/50 transition">
+            <div class="relative aspect-video bg-black">
+                <img src="https://images.unsplash.com/photo-1560419450-6e7611c30910?q=80&w=500" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500">
+                <div class="absolute top-2 left-2 bg-z-gold text-black px-2 py-0.5 rounded text-[10px] font-bold uppercase">MVP</div>
+                <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white">2:15</div>
+            </div>
+            <div class="p-4">
+                <h4 class="text-white font-bold text-sm truncate group-hover:text-z-cyan transition">Tournament Final Round</h4>
+                <div class="mt-2 flex items-center gap-2 text-[10px] text-gray-500">
+                    <span class="bg-white/5 px-2 py-0.5 rounded border border-white/5">Tournament</span>
+                    <span>• 1 week ago</span>
+                </div>
+            </div>
+        </div>
     </div>
 </div>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeltaCrown | Pro Ecosystem - Viper</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+                    },
+                    colors: {
+                        z: {
+                            bg: '#030014',       /* Deep Void */
+                            panel: '#0F0B1E',    /* Glass Panel */
+                            card: '#15102A',     /* Solid Card */
+                            cyan: '#00F0FF',     /* Cyber Cyan */
+                            purple: '#7B2CBF',   /* Electric Purple */
+                            gold: '#FFD60A',     /* Trophy Gold */
+                            red: '#FF007A',      /* Alert Red */
+                            green: '#10B981',    /* Success Green */
+                        }
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 0 20px rgba(0, 240, 255, 0.15)',
+                        'neon-gold': '0 0 20px rgba(255, 214, 10, 0.15)',
+                        'neon-purple': '0 0 20px rgba(123, 44, 191, 0.15)',
+                        'neon-green': '0 0 20px rgba(16, 185, 129, 0.15)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #030014;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 10% 20%, rgba(123, 44, 191, 0.15) 0%, transparent 25%),
+                              radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.1) 0%, transparent 25%);
+            background-attachment: fixed;
+        }
+
+        /* Glassmorphism */
+        .glass-panel {
+            background: rgba(15, 11, 30, 0.75);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        /* Rarity Styles */
+        .item-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .item-card:hover { transform: translateY(-4px); }
+        
+        .rarity-legendary { border: 1px solid rgba(255, 214, 10, 0.3); box-shadow: 0 0 15px rgba(255, 214, 10, 0.1); }
+        .rarity-legendary:hover { border-color: rgba(255, 214, 10, 0.8); box-shadow: 0 0 25px rgba(255, 214, 10, 0.3); }
+        
+        .rarity-epic { border: 1px solid rgba(123, 44, 191, 0.3); box-shadow: 0 0 15px rgba(123, 44, 191, 0.1); }
+        .rarity-epic:hover { border-color: rgba(123, 44, 191, 0.8); box-shadow: 0 0 25px rgba(123, 44, 191, 0.3); }
+        
+        .rarity-rare { border: 1px solid rgba(0, 240, 255, 0.3); box-shadow: 0 0 15px rgba(0, 240, 255, 0.1); }
+        .rarity-rare:hover { border-color: rgba(0, 240, 255, 0.8); box-shadow: 0 0 25px rgba(0, 240, 255, 0.3); }
+
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        
+        /* Digital Wallet Mesh */
+        .wallet-mesh {
+            background-color: #000000;
+            background-image: 
+                radial-gradient(at 100% 0%, hsla(43,100%,49%,0.15) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(43,100%,49%,0.1) 0px, transparent 50%),
+                url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1h2v2H1V1zm4 0h2v2H5V1zm4 0h2v2H9V1zm4 0h2v2h-2V1zm4 0h2v2h-2V1z' fill='%23FFD60A' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+            border: 1px solid rgba(255, 214, 10, 0.3);
+            box-shadow: 0 0 30px rgba(255, 214, 10, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans">
+
+    <div class="max-w-[1600px] mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <aside class="lg:col-span-3 space-y-4 sticky top-4">
+            <div class="glass-panel p-2 rounded-xl">
+                <button onclick="switchView('highlights')" id="nav-highlights" class="w-full text-left px-4 py-3 rounded-lg bg-white/10 text-white font-bold text-sm transition flex items-center gap-3">
+                    <i class="fa-solid fa-film w-5"></i> Highlights
+                </button>
+                <button onclick="switchView('posts')" id="nav-posts" class="w-full text-left px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 font-bold text-sm transition flex items-center gap-3">
+                    <i class="fa-solid fa-tower-broadcast w-5"></i> Transmissions
+                </button>
+                <button onclick="switchView('inventory')" id="nav-inventory" class="w-full text-left px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 font-bold text-sm transition flex items-center gap-3">
+                    <i class="fa-solid fa-box-open w-5"></i> Vault (Inventory)
+                </button>
+                <button onclick="switchView('economy')" id="nav-economy" class="w-full text-left px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 font-bold text-sm transition flex items-center gap-3">
+                    <i class="fa-solid fa-wallet w-5"></i> Economy
+                </button>
+            </div>
+        </aside>
+
+        <section id="center-column" class="lg:col-span-9 space-y-6">
+
+            <div id="view-highlights" class="space-y-8 animate-fade-in">
+                
+                <div class="relative rounded-2xl overflow-hidden group border border-z-purple/30 shadow-[0_0_50px_-10px_rgba(123,44,191,0.3)]">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-z-purple to-z-cyan opacity-20 blur-xl group-hover:opacity-40 transition duration-1000"></div>
+                    <div class="relative aspect-video bg-black z-10 rounded-xl overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670" class="w-full h-full object-cover opacity-60 hover:scale-105 transition duration-700">
+                        <div class="absolute inset-0 flex items-center justify-center group/play cursor-pointer">
+                            <div class="w-24 h-24 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 group-hover/play:scale-110 group-hover/play:bg-z-purple transition shadow-2xl">
+                                <i class="fa-solid fa-play text-4xl text-white ml-2"></i>
+                            </div>
+                        </div>
+                        <div class="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black via-black/90 to-transparent">
+                            <div class="flex items-end justify-between">
+                                <div class="max-w-2xl">
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <span class="px-2 py-0.5 rounded bg-z-red text-white text-[10px] font-bold uppercase animate-pulse">Featured Clip</span>
+                                        <span class="px-2 py-0.5 rounded bg-white/10 text-white text-[10px] font-bold uppercase border border-white/10 flex items-center gap-2"><i class="fa-solid fa-trophy text-z-gold"></i> DeltaCrown Finals</span>
+                                    </div>
+                                    <h2 class="text-3xl md:text-5xl font-display font-black text-white mb-2 leading-none">1v5 CLUTCH • ASCENT</h2>
+                                </div>
+                                <div class="text-right hidden md:block">
+                                    <div class="text-4xl font-mono font-bold text-white">245K</div>
+                                    <div class="text-xs text-gray-500 uppercase font-bold tracking-widest">Views</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center gap-4">
+                    <div class="flex gap-2 bg-white/5 p-1 rounded-lg">
+                        <button class="px-4 py-2 rounded bg-white/10 text-white text-xs font-bold uppercase hover:bg-white/20 transition">All Clips</button>
+                        <button class="px-4 py-2 rounded text-gray-400 text-xs font-bold uppercase hover:text-white hover:bg-white/5 transition">Valorant</button>
+                    </div>
+                    <button class="bg-z-cyan text-black px-6 py-2 rounded-lg font-bold text-xs uppercase shadow-neon-cyan hover:bg-white transition flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Upload Clip
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="glass-panel p-0 rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-z-cyan/50 transition">
+                        <div class="relative aspect-video bg-black">
+                            <img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=500" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500">
+                            <div class="absolute top-2 left-2 bg-z-cyan text-black px-2 py-0.5 rounded text-[10px] font-bold uppercase">Ace</div>
+                            <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white">0:45</div>
+                        </div>
+                        <div class="p-4">
+                            <h4 class="text-white font-bold text-sm truncate group-hover:text-z-cyan transition">Operator 4k Hold Site B</h4>
+                            <div class="mt-2 flex items-center gap-2 text-[10px] text-gray-500">
+                                <span class="bg-white/5 px-2 py-0.5 rounded border border-white/5">Scrim</span>
+                                <span>• 2 days ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-posts" class="space-y-8 hidden animate-fade-in">
+                
+                <div class="glass-panel p-6 rounded-2xl border-l-4 border-z-cyan">
+                    <div class="flex gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-cyan to-z-purple p-0.5">
+                            <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=200" class="w-full h-full object-cover rounded-xl bg-black">
+                        </div>
+                        <div class="flex-1">
+                            <textarea rows="2" placeholder="Broadcast a transmission..." class="w-full bg-transparent text-white placeholder-gray-500 text-sm font-medium outline-none resize-none"></textarea>
+                            <div class="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
+                                <div class="flex gap-4 text-gray-400">
+                                    <button class="hover:text-z-cyan transition"><i class="fa-solid fa-image"></i></button>
+                                </div>
+                                <button class="px-6 py-2 rounded-lg bg-white/5 hover:bg-z-cyan hover:text-black text-white text-xs font-bold uppercase transition">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-6 border-b border-white/5 pb-2">
+                    <button class="text-z-cyan font-bold text-sm border-b-2 border-z-cyan pb-2">All Updates</button>
+                    <button class="text-gray-400 font-bold text-sm hover:text-white pb-2 transition">LFT / Team</button>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="glass-panel p-6 rounded-2xl border border-z-green/20 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition"><i class="fa-solid fa-bullhorn text-6xl text-z-green"></i></div>
+                        
+                        <div class="flex items-center gap-3 mb-4">
+                            <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=200" class="w-10 h-10 rounded-lg">
+                            <div>
+                                <div class="text-white font-bold text-sm">Viper <span class="text-gray-500 font-normal text-xs">@ViperNA1</span></div>
+                                <div class="text-[10px] text-gray-500 uppercase font-bold flex items-center gap-2">
+                                    <span>2 hours ago</span>
+                                    <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+                                    <span class="text-z-green">LFT Update</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4 relative z-10">
+                            <h3 class="text-xl font-display font-bold text-white mb-2">Officially Looking for Team (LFT) - Valorant</h3>
+                            <p class="text-gray-300 text-sm leading-relaxed">
+                                After an incredible run with Team Liquid, my contract has ended. I am now a Free Agent exploring options for the 2026 Season.
+                            </p>
+                        </div>
+
+                        <div class="flex items-center gap-6 text-gray-400 text-xs font-bold border-t border-white/5 pt-4">
+                            <button class="hover:text-white transition flex items-center gap-2"><i class="fa-regular fa-heart"></i> 1.2k</button>
+                            <button class="hover:text-white transition flex items-center gap-2"><i class="fa-regular fa-comment"></i> 48</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-inventory" class="space-y-8 hidden animate-fade-in">
+                
+                <div class="flex flex-col md:flex-row justify-between items-end gap-6 bg-white/5 p-6 rounded-2xl border border-white/5">
+                    <div>
+                        <h2 class="text-2xl font-display font-bold text-white mb-1">Digital Vault</h2>
+                        <p class="text-xs text-gray-400 uppercase tracking-widest font-bold">Estimated Value: <span class="text-z-gold">$4,850 USD</span></p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="px-4 py-2 rounded-lg bg-white/10 text-white text-xs font-bold uppercase hover:bg-white/20 transition">All Items</button>
+                        <button class="px-4 py-2 rounded-lg text-z-gold bg-z-gold/10 border border-z-gold/20 text-xs font-bold uppercase hover:bg-z-gold/20 transition">Legendary</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <div class="item-card rarity-legendary glass-panel p-3 rounded-xl relative group cursor-pointer overflow-hidden">
+                        <div class="aspect-square bg-gradient-to-br from-z-gold/20 to-transparent rounded-lg flex items-center justify-center mb-3 relative overflow-hidden">
+                            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+                            <i class="fa-solid fa-dragon text-5xl text-z-gold drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition"></i>
+                            <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] text-z-gold border border-z-gold/30 font-bold uppercase">Legendary</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Valorant • Vandal</div>
+                            <h4 class="text-white font-bold text-xs truncate">Elderflame</h4>
+                            <div class="mt-2 text-[10px] text-gray-400 group-hover:text-white transition font-bold uppercase border-t border-white/10 pt-2">View Details</div>
+                        </div>
+                    </div>
+
+                    <div class="item-card rarity-epic glass-panel p-3 rounded-xl relative group cursor-pointer overflow-hidden">
+                        <div class="aspect-square bg-gradient-to-br from-z-purple/20 to-transparent rounded-lg flex items-center justify-center mb-3 relative overflow-hidden">
+                            <i class="fa-solid fa-medal text-5xl text-z-purple drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition"></i>
+                            <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] text-z-purple border border-z-purple/30 font-bold uppercase">Epic</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Badge</div>
+                            <h4 class="text-white font-bold text-xs truncate">S1 Champion</h4>
+                            <div class="mt-2 text-[10px] text-gray-400 group-hover:text-white transition font-bold uppercase border-t border-white/10 pt-2">Equip</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-economy" class="space-y-8 hidden animate-fade-in">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <div class="wallet-mesh rounded-2xl p-8 relative overflow-hidden group h-[240px] flex flex-col justify-between">
+                        <div class="absolute -right-6 -top-6 w-40 h-40 opacity-20 animate-spin-slow">
+                            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full text-z-gold">
+                                <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4" />
+                                <path d="M50 20L75 35V65L50 80L25 65V35L50 20Z" stroke="currentColor" stroke-width="1" />
+                            </svg>
+                        </div>
+
+                        <div class="flex items-center gap-3 relative z-10">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-z-gold to-yellow-700 p-0.5 shadow-neon-gold">
+                                <div class="w-full h-full rounded-full bg-black flex items-center justify-center">
+                                    <span class="text-z-gold font-black font-display text-xl">D</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-white font-display font-bold leading-none tracking-wider">DELTACROWN</h3>
+                                <p class="text-[9px] text-z-gold font-bold uppercase tracking-[0.2em]">Official Wallet</p>
+                            </div>
+                        </div>
+
+                        <div class="relative z-10 my-auto">
+                            <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Available Balance</div>
+                            <div class="text-5xl font-display font-black text-white tracking-tighter drop-shadow-lg flex items-center gap-2">
+                                12,500 <span class="text-2xl text-z-gold mb-1">DC</span>
+                            </div>
+                            <div class="inline-flex items-center gap-1 mt-1 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                                <i class="fa-solid fa-arrow-right-arrow-left text-[9px] text-gray-400"></i>
+                                <span class="text-xs font-mono font-bold text-gray-300">≈ 1,250 BDT</span>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-end relative z-10">
+                            <div>
+                                <div class="text-[9px] text-gray-500 uppercase font-bold">Account Holder</div>
+                                <div class="text-white font-bold tracking-widest font-mono">VIPER#NA1</div>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-z-green animate-pulse"></span>
+                                <span class="text-[10px] text-z-green font-bold uppercase">Active</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-2xl flex flex-col justify-center gap-4">
+                        <h3 class="text-white font-bold text-lg">Quick Actions</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button class="p-4 rounded-xl bg-z-green/10 border border-z-green/30 hover:bg-z-green hover:text-black text-z-green font-bold flex flex-col items-center justify-center gap-2 transition group">
+                                <div class="w-10 h-10 rounded-full bg-z-green/20 flex items-center justify-center group-hover:bg-black/20 transition">
+                                    <i class="fa-solid fa-plus text-lg"></i>
+                                </div>
+                                <span class="uppercase text-xs tracking-wider">Top Up</span>
+                            </button>
+                            <button class="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white hover:text-black text-white font-bold flex flex-col items-center justify-center gap-2 transition group">
+                                <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-black/20 transition">
+                                    <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
+                                </div>
+                                <span class="uppercase text-xs tracking-wider">Cash Out</span>
+                            </button>
+                        </div>
+                        <button class="w-full py-3 rounded-xl border border-z-gold/30 text-z-gold font-bold hover:bg-z-gold hover:text-black transition flex items-center justify-center gap-2 text-sm uppercase">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Transaction History
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-2xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/5">
+                        <h3 class="text-sm font-bold text-white uppercase tracking-widest">Recent Activity</h3>
+                        <div class="text-xs text-gray-500 font-mono">1 DC = 0.1 BDT</div>
+                    </div>
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-black/20 text-[10px] uppercase text-gray-500 font-bold">
+                            <tr>
+                                <th class="px-6 py-3">Source</th>
+                                <th class="px-6 py-3">Details</th>
+                                <th class="px-6 py-3">Date</th>
+                                <th class="px-6 py-3 text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5">
+                            <tr class="hover:bg-white/5 transition">
+                                <td class="px-6 py-4"><span class="text-z-green font-bold text-xs bg-z-green/10 px-2 py-0.5 rounded border border-z-green/20">Tournament</span></td>
+                                <td class="px-6 py-4 text-white font-medium">Prize: DeltaCrown Major S1</td>
+                                <td class="px-6 py-4 text-gray-500 text-xs">Jan 12, 2026</td>
+                                <td class="px-6 py-4 text-right text-z-green font-bold">+50,000 DC</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition">
+                                <td class="px-6 py-4"><span class="text-z-red font-bold text-xs bg-z-red/10 px-2 py-0.5 rounded border border-z-red/20">Shop</span></td>
+                                <td class="px-6 py-4 text-white font-medium">Skin: Elderflame Vandal</td>
+                                <td class="px-6 py-4 text-gray-500 text-xs">Jan 10, 2026</td>
+                                <td class="px-6 py-4 text-right text-white">-2,500 DC</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition">
+                                <td class="px-6 py-4"><span class="text-z-cyan font-bold text-xs bg-z-cyan/10 px-2 py-0.5 rounded border border-z-cyan/20">Top Up</span></td>
+                                <td class="px-6 py-4 text-white font-medium">Bkash Payment (TrxID: 8X9...)</td>
+                                <td class="px-6 py-4 text-gray-500 text-xs">Jan 05, 2026</td>
+                                <td class="px-6 py-4 text-right text-z-green font-bold">+2,000 DC</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+    <script>
+        function switchView(viewName) {
+            // 1. Hide All
+            ['highlights', 'posts', 'inventory', 'economy'].forEach(id => {
+                document.getElementById(`view-${id}`).classList.add('hidden');
+                const btn = document.getElementById(`nav-${id}`);
+                btn.classList.remove('bg-white/10', 'text-white');
+                btn.classList.add('text-gray-400');
+            });
+
+            // 2. Show Target & Active Nav
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${viewName}`);
+            activeBtn.classList.remove('text-gray-400');
+            activeBtn.classList.add('bg-white/10', 'text-white');
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            switchView('economy'); // Defaulting to Economy for review
+        });
+    </script>
+</body>
+</html>

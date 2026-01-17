@@ -123,6 +123,81 @@
                 grid-template-columns: 320px minmax(0, 1fr) 320px;
             }
         }
+
+        /* Tab UI Styles - Rarity & Item Cards */
+        .item-card { 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        .item-card:hover { 
+            transform: translateY(-4px); 
+        }
+        
+        .rarity-legendary { 
+            border: 1px solid rgba(255, 214, 10, 0.3); 
+            box-shadow: 0 0 15px rgba(255, 214, 10, 0.1); 
+        }
+        .rarity-legendary:hover { 
+            border-color: rgba(255, 214, 10, 0.8); 
+            box-shadow: 0 0 25px rgba(255, 214, 10, 0.3); 
+        }
+        
+        .rarity-epic { 
+            border: 1px solid rgba(123, 44, 191, 0.3); 
+            box-shadow: 0 0 15px rgba(123, 44, 191, 0.1); 
+        }
+        .rarity-epic:hover { 
+            border-color: rgba(123, 44, 191, 0.8); 
+            box-shadow: 0 0 25px rgba(123, 44, 191, 0.3); 
+        }
+        
+        .rarity-rare { 
+            border: 1px solid rgba(0, 240, 255, 0.3); 
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.1); 
+        }
+        .rarity-rare:hover { 
+            border-color: rgba(0, 240, 255, 0.8); 
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.3); 
+        }
+
+        .scrollbar-hide::-webkit-scrollbar { 
+            display: none; 
+        }
+        
+        /* Digital Wallet Mesh */
+        .wallet-mesh {
+            background-color: #000000;
+            background-image: 
+                radial-gradient(at 100% 0%, hsla(43,100%,49%,0.15) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(43,100%,49%,0.1) 0px, transparent 50%),
+                url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1h2v2H1V1zm4 0h2v2H5V1zm4 0h2v2H9V1zm4 0h2v2h-2V1zm4 0h2v2h-2V1z' fill='%23FFD60A' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+            border: 1px solid rgba(255, 214, 10, 0.3);
+            box-shadow: 0 0 30px rgba(255, 214, 10, 0.1);
+        }
+
+        /* Fade-in animation */
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        /* Slow spin animation for wallet decoration */
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 30s linear infinite;
+        }
+
+        /* Modal Overlay for Bounty */
+        .modal-overlay {
+            background: rgba(3, 0, 20, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
     </style>
 {% endblock %}
 
@@ -677,6 +752,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 centerColumn.classList.remove('lg:col-span-1');
                 centerColumn.classList.add('lg:col-span-2');
             }
+        } else if (tabName === 'bounty') {
+            // Enable Wide Mode for Bounty
+            if (rightSidebar) {
+                rightSidebar.classList.add('hidden');
+            }
+            if (centerColumn) {
+                centerColumn.classList.remove('lg:col-span-1');
+                centerColumn.classList.add('lg:col-span-2');
+            }
         } else {
             // Restore Normal Mode
             if (rightSidebar) {
@@ -691,6 +775,39 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize: ensure Overview is active on page load
     // (already set in HTML, but this ensures consistency)
+    
+    // Bounty Modal Functions
+    window.openBountyModal = function(title, reward) {
+        const modal = document.getElementById('modal-bounty-challenge');
+        const modalContent = document.getElementById('modal-bounty-content');
+        
+        if (!modal || !modalContent) return;
+        
+        document.getElementById('modal-bounty-title').innerText = title || 'Contract';
+        document.getElementById('modal-bounty-reward').innerText = (reward || 0) + ' DC';
+        
+        modal.classList.remove('hidden');
+        // Slight delay for animation
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modalContent.classList.remove('scale-95');
+            modalContent.classList.add('scale-100');
+        }, 10);
+    };
+    
+    window.closeBountyModal = function() {
+        const modal = document.getElementById('modal-bounty-challenge');
+        const modalContent = document.getElementById('modal-bounty-content');
+        
+        if (!modal || !modalContent) return;
+        
+        modal.classList.add('opacity-0');
+        modalContent.classList.add('scale-95');
+        modalContent.classList.remove('scale-100');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    };
 });
 </script>
 

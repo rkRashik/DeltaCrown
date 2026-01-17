@@ -1,30 +1,150 @@
-<div class="glass-panel p-8 rounded-2xl text-center">
-    <div class="max-w-md mx-auto">
-        <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-z-cyan/20 to-z-green/20 border border-white/10 flex items-center justify-center">
-            <i class="fa-solid fa-box-open text-3xl text-gray-400"></i>
+<div class="space-y-8 animate-fade-in">
+    
+    <!-- Vault Header -->
+    <div class="flex flex-col md:flex-row justify-between items-end gap-6 bg-white/5 p-6 rounded-2xl border border-white/5">
+        <div>
+            <h2 class="text-2xl font-display font-bold text-white mb-1">Digital Vault</h2>
+            <p class="text-xs text-gray-400 uppercase tracking-widest font-bold">Estimated Value: <span class="text-z-gold">$4,850 USD</span></p>
         </div>
-        
-        <h3 class="text-white font-bold font-display text-2xl mb-3">Inventory</h3>
-        
-        <p class="text-gray-400 text-sm mb-6">
-            View your collected items, badges, achievements, and exclusive rewards.
-        </p>
-        
-        <div class="grid grid-cols-3 gap-3 mb-6">
-            <div class="bg-black/20 rounded-xl p-4 border border-white/5">
-                <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Badges</div>
-                <div class="text-2xl font-display font-bold text-white">0</div>
+        <div class="flex gap-2">
+            <button class="px-4 py-2 rounded-lg bg-white/10 text-white text-xs font-bold uppercase hover:bg-white/20 transition">All Items</button>
+            <button class="px-4 py-2 rounded-lg text-z-gold bg-z-gold/10 border border-z-gold/20 text-xs font-bold uppercase hover:bg-z-gold/20 transition">Legendary</button>
+        </div>
+    </div>
+
+    <!-- Items Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <!-- Legendary Item -->
+        <div class="item-card rarity-legendary glass-panel p-3 rounded-xl relative group cursor-pointer overflow-hidden">
+            <div class="aspect-square bg-gradient-to-br from-z-gold/20 to-transparent rounded-lg flex items-center justify-center mb-3 relative overflow-hidden">
+                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+                <i class="fa-solid fa-dragon text-5xl text-z-gold drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition"></i>
+                <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] text-z-gold border border-z-gold/30 font-bold uppercase">Legendary</div>
             </div>
-            <div class="bg-black/20 rounded-xl p-4 border border-white/5">
-                <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Items</div>
-                <div class="text-2xl font-display font-bold text-white">0</div>
-            </div>
-            <div class="bg-black/20 rounded-xl p-4 border border-white/5">
-                <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">NFTs</div>
-                <div class="text-2xl font-display font-bold text-white">0</div>
+            <div class="text-center">
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Valorant • Vandal</div>
+                <h4 class="text-white font-bold text-xs truncate">Elderflame</h4>
+                <div class="mt-2 text-[10px] text-gray-400 group-hover:text-white transition font-bold uppercase border-t border-white/10 pt-2">View Details</div>
             </div>
         </div>
-        
-        <p class="text-xs text-gray-500 italic">Inventory system coming soon</p>
+
+        <!-- Epic Item -->
+        <div class="item-card rarity-epic glass-panel p-3 rounded-xl relative group cursor-pointer overflow-hidden">
+            <div class="aspect-square bg-gradient-to-br from-z-purple/20 to-transparent rounded-lg flex items-center justify-center mb-3 relative overflow-hidden">
+                <i class="fa-solid fa-medal text-5xl text-z-purple drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition"></i>
+                <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] text-z-purple border border-z-purple/30 font-bold uppercase">Epic</div>
+            </div>
+            <div class="text-center">
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Badge</div>
+                <h4 class="text-white font-bold text-xs truncate">S1 Champion</h4>
+                <div class="mt-2 text-[10px] text-gray-400 group-hover:text-white transition font-bold uppercase border-t border-white/10 pt-2">Equip</div>
+            </div>
+        </div>
+
+        <!-- Rare Item -->
+        <div class="item-card rarity-rare glass-panel p-3 rounded-xl relative group cursor-pointer overflow-hidden">
+            <div class="aspect-square bg-gradient-to-br from-z-cyan/20 to-transparent rounded-lg flex items-center justify-center mb-3 relative overflow-hidden">
+                <i class="fa-solid fa-crown text-5xl text-z-cyan drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition"></i>
+                <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] text-z-cyan border border-z-cyan/30 font-bold uppercase">Rare</div>
+            </div>
+            <div class="text-center">
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Profile Frame</div>
+                <h4 class="text-white font-bold text-xs truncate">Cyber Crown</h4>
+                <div class="mt-2 text-[10px] text-gray-400 group-hover:text-white transition font-bold uppercase border-t border-white/10 pt-2">Equip</div>
+            </div>
+        </div>
+
+        <!-- Legendary Weapon Skin -->
+        <div class="item-card rarity-legendary glass-panel p-3 rounded-xl relative group cursor-pointer overflow-hidden">
+            <div class="aspect-square bg-gradient-to-br from-z-gold/20 to-transparent rounded-lg flex items-center justify-center mb-3 relative overflow-hidden">
+                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+                <i class="fa-solid fa-gun text-5xl text-z-gold drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition rotate-45"></i>
+                <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] text-z-gold border border-z-gold/30 font-bold uppercase">Legendary</div>
+            </div>
+            <div class="text-center">
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Valorant • Phantom</div>
+                <h4 class="text-white font-bold text-xs truncate">Reaver</h4>
+                <div class="mt-2 text-[10px] text-gray-400 group-hover:text-white transition font-bold uppercase border-t border-white/10 pt-2">View Details</div>
+            </div>
+        </div>
+
+        <!-- Epic Badge -->
+        <div class="item-card rarity-epic glass-panel p-3 rounded-xl relative group cursor-pointer overflow-hidden">
+            <div class="aspect-square bg-gradient-to-br from-z-purple/20 to-transparent rounded-lg flex items-center justify-center mb-3 relative overflow-hidden">
+                <i class="fa-solid fa-shield text-5xl text-z-purple drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition"></i>
+                <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] text-z-purple border border-z-purple/30 font-bold uppercase">Epic</div>
+            </div>
+            <div class="text-center">
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Achievement</div>
+                <h4 class="text-white font-bold text-xs truncate">Undefeated</h4>
+                <div class="mt-2 text-[10px] text-gray-400 group-hover:text-white transition font-bold uppercase border-t border-white/10 pt-2">Showcase</div>
+            </div>
+        </div>
+
+        <!-- Rare Item -->
+        <div class="item-card rarity-rare glass-panel p-3 rounded-xl relative group cursor-pointer overflow-hidden">
+            <div class="aspect-square bg-gradient-to-br from-z-cyan/20 to-transparent rounded-lg flex items-center justify-center mb-3 relative overflow-hidden">
+                <i class="fa-solid fa-star text-5xl text-z-cyan drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition"></i>
+                <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] text-z-cyan border border-z-cyan/30 font-bold uppercase">Rare</div>
+            </div>
+            <div class="text-center">
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Emote</div>
+                <h4 class="text-white font-bold text-xs truncate">Victory Dance</h4>
+                <div class="mt-2 text-[10px] text-gray-400 group-hover:text-white transition font-bold uppercase border-t border-white/10 pt-2">Preview</div>
+            </div>
+        </div>
+
+        <!-- Epic Spray -->
+        <div class="item-card rarity-epic glass-panel p-3 rounded-xl relative group cursor-pointer overflow-hidden">
+            <div class="aspect-square bg-gradient-to-br from-z-purple/20 to-transparent rounded-lg flex items-center justify-center mb-3 relative overflow-hidden">
+                <i class="fa-solid fa-spray-can text-5xl text-z-purple drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition"></i>
+                <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] text-z-purple border border-z-purple/30 font-bold uppercase">Epic</div>
+            </div>
+            <div class="text-center">
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Spray</div>
+                <h4 class="text-white font-bold text-xs truncate">DeltaCrown Logo</h4>
+                <div class="mt-2 text-[10px] text-gray-400 group-hover:text-white transition font-bold uppercase border-t border-white/10 pt-2">Use</div>
+            </div>
+        </div>
+
+        <!-- Legendary NFT -->
+        <div class="item-card rarity-legendary glass-panel p-3 rounded-xl relative group cursor-pointer overflow-hidden">
+            <div class="aspect-square bg-gradient-to-br from-z-gold/20 to-transparent rounded-lg flex items-center justify-center mb-3 relative overflow-hidden">
+                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+                <i class="fa-solid fa-gem text-5xl text-z-gold drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition"></i>
+                <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] text-z-gold border border-z-gold/30 font-bold uppercase">Legendary</div>
+            </div>
+            <div class="text-center">
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-0.5">NFT • Limited</div>
+                <h4 class="text-white font-bold text-xs truncate">Genesis #042</h4>
+                <div class="mt-2 text-[10px] text-gray-400 group-hover:text-white transition font-bold uppercase border-t border-white/10 pt-2">View NFT</div>
+            </div>
+        </div>
+
+        <!-- Rare Avatar Border -->
+        <div class="item-card rarity-rare glass-panel p-3 rounded-xl relative group cursor-pointer overflow-hidden">
+            <div class="aspect-square bg-gradient-to-br from-z-cyan/20 to-transparent rounded-lg flex items-center justify-center mb-3 relative overflow-hidden">
+                <i class="fa-solid fa-square-full text-5xl text-z-cyan drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition"></i>
+                <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] text-z-cyan border border-z-cyan/30 font-bold uppercase">Rare</div>
+            </div>
+            <div class="text-center">
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Avatar Border</div>
+                <h4 class="text-white font-bold text-xs truncate">Neon Frame</h4>
+                <div class="mt-2 text-[10px] text-gray-400 group-hover:text-white transition font-bold uppercase border-t border-white/10 pt-2">Equip</div>
+            </div>
+        </div>
+
+        <!-- Epic Title Card -->
+        <div class="item-card rarity-epic glass-panel p-3 rounded-xl relative group cursor-pointer overflow-hidden">
+            <div class="aspect-square bg-gradient-to-br from-z-purple/20 to-transparent rounded-lg flex items-center justify-center mb-3 relative overflow-hidden">
+                <i class="fa-solid fa-id-card text-5xl text-z-purple drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition"></i>
+                <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[8px] text-z-purple border border-z-purple/30 font-bold uppercase">Epic</div>
+            </div>
+            <div class="text-center">
+                <div class="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Title</div>
+                <h4 class="text-white font-bold text-xs truncate">The Sentinel</h4>
+                <div class="mt-2 text-[10px] text-gray-400 group-hover:text-white transition font-bold uppercase border-t border-white/10 pt-2">Equip</div>
+            </div>
+        </div>
     </div>
 </div>

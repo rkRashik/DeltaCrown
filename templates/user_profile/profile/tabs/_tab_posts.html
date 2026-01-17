@@ -1,28 +1,131 @@
-<div class="glass-panel p-8 rounded-2xl text-center">
-    <div class="max-w-md mx-auto">
-        <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-z-cyan/20 to-z-purple/20 border border-white/10 flex items-center justify-center">
-            <i class="fa-solid fa-comment text-3xl text-gray-400"></i>
+<div class="space-y-8 animate-fade-in">
+    
+    {% if relationship_ctx.is_owner %}
+    <!-- Composer -->
+    <div class="glass-panel p-6 rounded-2xl border-l-4 border-z-cyan">
+        <div class="flex gap-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-cyan to-z-purple p-0.5">
+                {% if profile.avatar_url %}
+                <img src="{{ profile.avatar_url }}" class="w-full h-full object-cover rounded-xl bg-black">
+                {% else %}
+                <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=200" class="w-full h-full object-cover rounded-xl bg-black">
+                {% endif %}
+            </div>
+            <div class="flex-1">
+                <textarea rows="2" placeholder="Broadcast a transmission..." class="w-full bg-transparent text-white placeholder-gray-500 text-sm font-medium outline-none resize-none"></textarea>
+                <div class="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
+                    <div class="flex gap-4 text-gray-400">
+                        <button class="hover:text-z-cyan transition"><i class="fa-solid fa-image"></i></button>
+                    </div>
+                    <button class="px-6 py-2 rounded-lg bg-white/5 hover:bg-z-cyan hover:text-black text-white text-xs font-bold uppercase transition">Send</button>
+                </div>
+            </div>
         </div>
-        
-        <h3 class="text-white font-bold font-display text-2xl mb-3">Posts</h3>
-        
-        {% if relationship_ctx.is_owner %}
-        <p class="text-gray-400 text-sm mb-6">
-            Share your thoughts, achievements, and updates with your followers.
-        </p>
-        
-        <button disabled class="px-8 py-3 rounded-xl bg-z-cyan/20 text-z-cyan border border-z-cyan/30 font-bold text-sm uppercase tracking-wider cursor-not-allowed opacity-50 flex items-center justify-center gap-2 mx-auto">
-            <i class="fa-solid fa-plus"></i> Create Your First Post
-        </button>
-        
-        <p class="text-xs text-gray-500 mt-3 italic">Coming soon</p>
-        {% else %}
-        <p class="text-gray-400 text-sm">
-            No posts yet.
-        </p>
-        <p class="text-xs text-gray-500 mt-3 italic">
-            {{ profile_user.username }} hasn't shared anything yet
-        </p>
-        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Filter Tabs -->
+    <div class="flex items-center gap-6 border-b border-white/5 pb-2">
+        <button class="text-z-cyan font-bold text-sm border-b-2 border-z-cyan pb-2">All Updates</button>
+        <button class="text-gray-400 font-bold text-sm hover:text-white pb-2 transition">LFT / Team</button>
+    </div>
+
+    <!-- Posts Feed -->
+    <div class="space-y-6">
+        <!-- LFT Post Example -->
+        <div class="glass-panel p-6 rounded-2xl border border-z-green/20 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition"><i class="fa-solid fa-bullhorn text-6xl text-z-green"></i></div>
+            
+            <div class="flex items-center gap-3 mb-4">
+                {% if profile.avatar_url %}
+                <img src="{{ profile.avatar_url }}" class="w-10 h-10 rounded-lg">
+                {% else %}
+                <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=200" class="w-10 h-10 rounded-lg">
+                {% endif %}
+                <div>
+                    <div class="text-white font-bold text-sm">{{ profile.display_name|default:profile_user.username }} <span class="text-gray-500 font-normal text-xs">@{{ profile_user.username }}</span></div>
+                    <div class="text-[10px] text-gray-500 uppercase font-bold flex items-center gap-2">
+                        <span>2 hours ago</span>
+                        <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+                        <span class="text-z-green">LFT Update</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4 relative z-10">
+                <h3 class="text-xl font-display font-bold text-white mb-2">Officially Looking for Team (LFT) - Valorant</h3>
+                <p class="text-gray-300 text-sm leading-relaxed">
+                    After an incredible run with Team Liquid, my contract has ended. I am now a Free Agent exploring options for the 2026 Season.
+                </p>
+            </div>
+
+            <div class="flex items-center gap-6 text-gray-400 text-xs font-bold border-t border-white/5 pt-4">
+                <button class="hover:text-white transition flex items-center gap-2"><i class="fa-regular fa-heart"></i> 1.2k</button>
+                <button class="hover:text-white transition flex items-center gap-2"><i class="fa-regular fa-comment"></i> 48</button>
+            </div>
+        </div>
+
+        <!-- General Update Post Example -->
+        <div class="glass-panel p-6 rounded-2xl border border-white/5 relative overflow-hidden group">
+            <div class="flex items-center gap-3 mb-4">
+                {% if profile.avatar_url %}
+                <img src="{{ profile.avatar_url }}" class="w-10 h-10 rounded-lg">
+                {% else %}
+                <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=200" class="w-10 h-10 rounded-lg">
+                {% endif %}
+                <div>
+                    <div class="text-white font-bold text-sm">{{ profile.display_name|default:profile_user.username }} <span class="text-gray-500 font-normal text-xs">@{{ profile_user.username }}</span></div>
+                    <div class="text-[10px] text-gray-500 uppercase font-bold flex items-center gap-2">
+                        <span>1 day ago</span>
+                        <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+                        <span class="text-z-cyan">Update</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4 relative z-10">
+                <p class="text-gray-300 text-sm leading-relaxed">
+                    Just finished an amazing practice session! Working hard on my agent pool and preparing for upcoming tournaments. The grind never stops! 💪🎮
+                </p>
+            </div>
+
+            <div class="flex items-center gap-6 text-gray-400 text-xs font-bold border-t border-white/5 pt-4">
+                <button class="hover:text-white transition flex items-center gap-2"><i class="fa-regular fa-heart"></i> 856</button>
+                <button class="hover:text-white transition flex items-center gap-2"><i class="fa-regular fa-comment"></i> 23</button>
+            </div>
+        </div>
+
+        <!-- Achievement Post Example -->
+        <div class="glass-panel p-6 rounded-2xl border border-z-gold/20 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition"><i class="fa-solid fa-trophy text-6xl text-z-gold"></i></div>
+            
+            <div class="flex items-center gap-3 mb-4">
+                {% if profile.avatar_url %}
+                <img src="{{ profile.avatar_url }}" class="w-10 h-10 rounded-lg">
+                {% else %}
+                <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=200" class="w-10 h-10 rounded-lg">
+                {% endif %}
+                <div>
+                    <div class="text-white font-bold text-sm">{{ profile.display_name|default:profile_user.username }} <span class="text-gray-500 font-normal text-xs">@{{ profile_user.username }}</span></div>
+                    <div class="text-[10px] text-gray-500 uppercase font-bold flex items-center gap-2">
+                        <span>3 days ago</span>
+                        <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+                        <span class="text-z-gold">Achievement</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4 relative z-10">
+                <h3 class="text-lg font-display font-bold text-white mb-2">🏆 Tournament Victory!</h3>
+                <p class="text-gray-300 text-sm leading-relaxed">
+                    We did it! First place at the DeltaCrown Regional Championship. Thanks to my amazing teammates and everyone who supported us! 🎉
+                </p>
+            </div>
+
+            <div class="flex items-center gap-6 text-gray-400 text-xs font-bold border-t border-white/5 pt-4">
+                <button class="hover:text-white transition flex items-center gap-2"><i class="fa-regular fa-heart"></i> 2.4k</button>
+                <button class="hover:text-white transition flex items-center gap-2"><i class="fa-regular fa-comment"></i> 89</button>
+            </div>
+        </div>
     </div>
 </div>
