@@ -1,0 +1,451 @@
+{% comment %}
+Career Tab - PHASE UP 5 — DEMO TEMPLATE MATCH
+Structure: Game selector → Hero passport → Stat tiles (game-category specific) → Role card + Affiliation → Match history table
+Sources:
+- Layout: templates/My drafts/career.html (demo template — SINGLE SOURCE OF TRUTH)
+- Backend: apps/user_profile/services/career_tab_service.py
+- AJAX API: apps/user_profile/views/public_profile_views.py::career_tab_data_api()
+Last Updated: 2026-01-19
+{% endcomment %}
+
+<!-- Career Tab Container -->
+<div id="career-tab-content" class="space-y-6">
+    {% if career_payload_initial %}
+    
+    <!-- ================================== -->
+    <!-- 1. GAME SELECTOR BAR (Sticky Top) -->
+    <!-- ================================== -->
+    <div class="sticky top-4 z-30 overflow-x-auto no-scrollbar">
+        <div class="flex gap-3 pb-2 min-w-max">
+            {% for game in career_payload_initial.available_games %}
+            <button
+                onclick="switchCareerGame('{{ game.slug }}', this)"
+                class="game-btn px-6 py-3 rounded-xl border border-white/10 bg-z-panel text-gray-400 hover:bg-white/5 transition-all duration-200 flex items-center gap-3 whitespace-nowrap
+                {% if forloop.first %}active bg-z-cyan text-black shadow-neon-cyan{% endif %}"
+            >
+                {% if game.icon_url %}
+                <img src="{{ game.icon_url }}" alt="{{ game.name }}" class="w-5 h-5">
+                {% endif %}
+                <span class="font-bold text-xs uppercase tracking-wider">{{ game.name }}</span>
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Career Content Area (AJAX-updated) -->
+    <div id="career-content-area">
+        {% if career_payload_initial.passport %}
+        
+        <!-- ================================== -->
+        <!-- 2. HERO PASSPORT CARD -->
+        <!-- ================================== -->
+        <div class="relative overflow-hidden rounded-2xl border border-white/10 glass-panel">
+            <!-- Background Layer -->
+            <div class="absolute inset-0">
+                {% if career_payload_initial.passport.bg_url %}
+                <img src="{{ career_payload_initial.passport.bg_url }}" class="w-full h-full object-cover opacity-20 mix-blend-luminosity">
+                {% endif %}
+                <div class="absolute inset-0 bg-gradient-to-t from-z-bg via-transparent to-transparent"></div>
+            </div>
+            
+            <!-- Content Layer -->
+            <div class="relative z-10 p-8">
+                <div class="flex items-start justify-between">
+                    <!-- Left: Game Identity -->
+                    <div class="flex items-start gap-4">
+                        {% if career_payload_initial.passport.logo_url %}
+                        <img src="{{ career_payload_initial.passport.logo_url }}" alt="Game Logo" class="w-24 h-24 rounded-xl border-2 border-white/20 shadow-2xl object-contain">
+                        {% endif %}
+                        <div>
+                            <!-- Game Name Badge -->
+                            <div class="px-3 py-1 bg-white/5 border border-white/10 rounded text-white text-[10px] font-bold uppercase tracking-wider mb-2 inline-block" id="game-name-badge">
+                                {{ career_payload_initial.passport.game_name }}
+                            </div>
+                            <!-- IGN (4xl, white, bold) -->
+                            <h2 class="text-5xl font-display font-black text-white tracking-tight leading-tight" id="ign-display">
+                                {{ career_payload_initial.passport.in_game_name }}
+                            </h2>
+                            <!-- Identity Meta Line: "SINGAPORE • 2,405 HRS" format -->
+                            <div class="text-xs text-gray-400 font-mono mt-2 uppercase tracking-wider" id="identity-meta-line">
+                                {{ career_payload_initial.identity_meta_line|default:"NOT SET" }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right: Standing Badge -->
+                    <div class="text-right">
+                        <div class="text-[10px] text-gray-500 uppercase mb-1">Current Standing</div>
+                        <div class="flex items-center gap-2">
+                            {% if career_payload_initial.passport.rank_icon_url %}
+                            <img src="{{ career_payload_initial.passport.rank_icon_url }}" alt="Rank" class="w-8 h-8">
+                            {% endif %}
+                            <div>
+                                <div class="text-xl font-bold text-white" id="rank-name">
+                                    {{ career_payload_initial.passport.rank_name|default:"Unranked" }}
+                                </div>
+                                {% if career_payload_initial.passport.percentile %}
+                                <div class="text-[10px] text-gray-400">Top {{ career_payload_initial.passport.percentile }}%</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================== -->
+        <!-- 3. GAME-CATEGORY STAT TILES (4 tiles in row) -->
+        <!-- ================================== -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+            {% if career_payload_initial.stat_tiles %}
+                {% for tile in career_payload_initial.stat_tiles %}
+                <div class="glass-panel p-5 rounded-xl border-t-4 border-{{ tile.color_class }}">
+                    <div class="text-[9px] text-gray-400 uppercase font-bold mb-2">{{ tile.label }}</div>
+                    <div class="text-3xl font-display font-black text-white">{{ tile.value }}</div>
+                    {% if tile.subtitle %}
+                    <div class="text-[10px] text-gray-500 mt-1">{{ tile.subtitle }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <!-- Default fallback tiles -->
+                <div class="glass-panel p-5 rounded-xl border-t-4 border-z-red">
+                    <div class="text-[9px] text-gray-400 uppercase font-bold mb-2">Matches Played</div>
+                    <div class="text-3xl font-display font-black text-white">{{ career_payload_initial.matches_played|default:0 }}</div>
+                </div>
+                <div class="glass-panel p-5 rounded-xl border-t-4 border-z-cyan">
+                    <div class="text-[9px] text-gray-400 uppercase font-bold mb-2">Win Rate</div>
+                    <div class="text-3xl font-display font-black text-white">--</div>
+                </div>
+                <div class="glass-panel p-5 rounded-xl border-t-4 border-z-purple">
+                    <div class="text-[9px] text-gray-400 uppercase font-bold mb-2">Tournaments</div>
+                    <div class="text-3xl font-display font-black text-white">{{ career_payload_initial.achievements|length|default:0 }}</div>
+                </div>
+                <div class="glass-panel p-5 rounded-xl border-t-4 border-z-gold">
+                    <div class="text-[9px] text-gray-400 uppercase font-bold mb-2">Winnings</div>
+                    <div class="text-3xl font-display font-black text-white">$0</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- ================================== -->
+        <!-- 4. MID ROW: Role/Attributes Card (1 col) + Affiliation History (2 cols) -->
+        <!-- ================================== -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <!-- Role/Attributes Card -->
+            <div class="md:col-span-1">
+                {% if career_payload_initial.role_card %}
+                <div class="glass-panel p-6 rounded-2xl border border-{{ career_payload_initial.role_card.border_color|default:'white/10' }} bg-gradient-to-b from-{{ career_payload_initial.role_card.gradient_color|default:'white' }}/10 to-transparent">
+                    <div class="h-full flex flex-col items-center justify-center text-center">
+                        {% if career_payload_initial.role_card.icon_class %}
+                        <i class="{{ career_payload_initial.role_card.icon_class }} text-4xl text-{{ career_payload_initial.role_card.icon_color|default:'white' }} mb-3"></i>
+                        {% endif %}
+                        <h3 class="text-white font-bold text-lg">{{ career_payload_initial.role_card.title }}</h3>
+                        {% if career_payload_initial.role_card.subtitle %}
+                        <p class="text-xs text-gray-400 mt-2">{{ career_payload_initial.role_card.subtitle }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <!-- Fallback: Show generic role info -->
+                <div class="glass-panel p-6 rounded-2xl border border-white/10">
+                    <div class="h-full flex flex-col items-center justify-center text-center">
+                        <i class="fa-solid fa-user text-4xl text-gray-500 mb-3"></i>
+                        <h3 class="text-white font-bold">No Role Set</h3>
+                        <p class="text-xs text-gray-400 mt-2">Link a game passport to display role info</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Affiliation History (compact) -->
+            <div class="md:col-span-2 glass-panel p-6 rounded-2xl">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Affiliation History</h3>
+                {% if career_payload_initial.team_history %}
+                    {% for membership in career_payload_initial.team_history %}
+                    <a href="{% if membership.team_url %}{{ membership.team_url }}{% else %}#{% endif %}" class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 mb-2 hover:bg-white/10 transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded bg-{{ membership.badge_color|default:'white' }} text-black font-bold flex items-center justify-center text-xs">
+                                {{ membership.team_tag|default:membership.team_name|slice:":2"|upper }}
+                            </div>
+                            <span class="text-white font-bold text-sm">{{ membership.team_name }}</span>
+                        </div>
+                        {% if membership.is_active %}
+                        <span class="text-xs text-z-green font-bold">Active</span>
+                        {% else %}
+                        <span class="text-xs text-gray-500">{{ membership.duration_label|default:"Past" }}</span>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-6 text-gray-500">
+                        <i class="fa-solid fa-users-slash text-2xl mb-2"></i>
+                        <p class="text-sm">No team affiliations</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ================================== -->
+        <!-- 5. MATCH HISTORY TABLE -->
+        <!-- ================================== -->
+        <div class="glass-panel rounded-2xl overflow-hidden mt-8">
+            <div class="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/5">
+                <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                    <i class="fa-solid fa-list text-gray-500"></i> Match History
+                </h3>
+                <button class="text-[10px] bg-black/40 hover:bg-white/10 px-3 py-1 rounded text-white border border-white/10 transition">Filter</button>
+            </div>
+            
+            <div class="overflow-hidden" id="match-history-table">
+                {% if career_payload_initial.achievements %}
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-black/20 text-[10px] uppercase text-gray-500 font-bold">
+                        <tr>
+                            <th class="px-6 py-3">Tournament</th>
+                            <th class="px-6 py-3">Result</th>
+                            <th class="px-6 py-3 text-right">Prize</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        {% for achievement in career_payload_initial.achievements %}
+                        <tr class="hover:bg-white/5 transition group cursor-pointer">
+                            <td class="px-6 py-4">
+                                <div class="text-white font-bold group-hover:text-z-cyan transition">{{ achievement.tournament_name }}</div>
+                                <div class="text-[10px] text-gray-500">{{ achievement.date|date:"M d, Y" }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if achievement.placement == 1 %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-gold/10 text-z-gold text-xs font-bold border border-z-gold/20">
+                                    <i class="fa-solid fa-trophy"></i> 1st Place
+                                </span>
+                                {% elif achievement.placement == 2 %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-400/10 text-gray-400 text-xs font-bold border border-gray-400/20">
+                                    <i class="fa-solid fa-medal"></i> 2nd Place
+                                </span>
+                                {% elif achievement.placement == 3 %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-bold border border-orange-500/20">
+                                    <i class="fa-solid fa-award"></i> 3rd Place
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-red/10 text-z-red text-xs font-bold border border-z-red/20">
+                                    {{ achievement.placement_label|default:"Participated" }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-right text-white font-mono font-bold">
+                                {% if achievement.prize_amount %}
+                                    {{ achievement.prize_formatted|default:"$0" }}
+                                {% else %}
+                                    <span class="text-gray-600">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fa-solid fa-trophy text-4xl mb-3 opacity-50"></i>
+                        <p>No tournament history yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% else %}
+            <!-- No Passport Linked -->
+            <div class="glass-panel p-12 rounded-2xl text-center">
+                <i class="fa-solid fa-id-card text-6xl text-gray-600 mb-4"></i>
+                <h3 class="text-xl font-bold text-white mb-2">No Game Passport Linked</h3>
+                <p class="text-gray-400">Link a game to view your career statistics</p>
+            </div>
+        {% endif %}
+    </div>
+
+    {% else %}
+        <!-- No Career Data -->
+        <div class="glass-panel p-12 rounded-2xl text-center">
+            <i class="fa-solid fa-gamepad text-6xl text-gray-600 mb-4"></i>
+            <h3 class="text-xl font-bold text-white mb-2">Career Data Unavailable</h3>
+            <p class="text-gray-400">Unable to load career information</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- ================================== -->
+<!-- STYLES -->
+<!-- ================================== -->
+<style>
+    /* Game Active State */
+    .game-btn.active {
+        background: #00F0FF !important;
+        color: #030014 !important;
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+        border-color: #00F0FF !important;
+    }
+    
+    /* Loading State */
+    .career-loading {
+        opacity: 0.5;
+        pointer-events: none;
+        position: relative;
+    }
+    
+    .career-loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(0, 240, 255, 0.2);
+        border-top-color: #00F0FF;
+        border-radius: 50%;
+        animation: spin-loader 1s linear infinite;
+    }
+    
+    @keyframes spin-loader {
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    
+    /* Scrollbar Hide */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    /* Neon Glow Effect */
+    .shadow-neon-cyan {
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.5), 0 0 40px rgba(0, 240, 255, 0.3);
+    }
+</style>
+
+<!-- ================================== -->
+<!-- SCRIPTS -->
+<!-- ================================== -->
+<script>
+    // AJAX-Based Game Switching
+    function switchCareerGame(gameSlug, buttonElement) {
+        const contentArea = document.getElementById('career-content-area');
+        const username = '{{ profile_user.username }}';
+        
+        if (!contentArea) {
+            console.warn('Career content area not found');
+            return;
+        }
+        
+        // 1. Add loading state
+        contentArea.classList.add('career-loading');
+        
+        // 2. Update button active state immediately
+        document.querySelectorAll('.game-btn').forEach(btn => {
+            btn.classList.remove('active', 'bg-z-cyan', 'text-black', 'shadow-neon-cyan');
+            btn.classList.add('text-gray-400');
+        });
+        buttonElement.classList.add('active', 'bg-z-cyan', 'text-black', 'shadow-neon-cyan');
+        buttonElement.classList.remove('text-gray-400');
+        
+        // 3. Fetch new career data
+        fetch(`/@${username}/career-data/?game=${gameSlug}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Career data received:', data);
+                
+                // 4. Update passport card
+                const gameNameBadgeEl = document.getElementById('game-name-badge');
+                const ignDisplayEl = document.getElementById('ign-display');
+                const identityMetaLineEl = document.getElementById('identity-meta-line');
+                const rankNameEl = document.getElementById('rank-name');
+                
+                if (data.passport) {
+                    if (gameNameBadgeEl) gameNameBadgeEl.innerText = data.passport.game_name || 'Unknown Game';
+                    if (ignDisplayEl) ignDisplayEl.innerText = data.passport.in_game_name || 'N/A';
+                    if (identityMetaLineEl) identityMetaLineEl.innerText = data.identity_meta_line || 'NOT SET';
+                    if (rankNameEl) rankNameEl.innerText = data.passport.rank_name || 'Unranked';
+                } else {
+                    if (rankNameEl) rankNameEl.innerText = 'Unranked';
+                }
+                
+                // 5. Update match history table
+                updateMatchHistoryTable(data.achievements || []);
+                
+                // 6. Remove loading state
+                contentArea.classList.remove('career-loading');
+            })
+            .catch(error => {
+                console.error('Career data fetch failed:', error);
+                contentArea.classList.remove('career-loading');
+                alert('Failed to load career data. Please try again.');
+            });
+    }
+    
+    // Helper: Update match history table DOM
+    function updateMatchHistoryTable(achievements) {
+        const container = document.getElementById('match-history-table');
+        if (!container) {
+            console.warn('Match history table container not found');
+            return;
+        }
+        
+        if (!achievements || achievements.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-12 text-gray-500">
+                    <i class="fa-solid fa-trophy text-4xl mb-3 opacity-50"></i>
+                    <p>No tournament history yet</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const rows = achievements.map(achievement => {
+            let placementBadge;
+            if (achievement.placement === 1) {
+                placementBadge = '<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-gold/10 text-z-gold text-xs font-bold border border-z-gold/20"><i class="fa-solid fa-trophy"></i> 1st Place</span>';
+            } else if (achievement.placement === 2) {
+                placementBadge = '<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-400/10 text-gray-400 text-xs font-bold border border-gray-400/20"><i class="fa-solid fa-medal"></i> 2nd Place</span>';
+            } else if (achievement.placement === 3) {
+                placementBadge = '<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-bold border border-orange-500/20"><i class="fa-solid fa-award"></i> 3rd Place</span>';
+            } else {
+                placementBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-red/10 text-z-red text-xs font-bold border border-z-red/20">${achievement.placement_label || 'Participated'}</span>`;
+            }
+            
+            return `
+                <tr class="hover:bg-white/5 transition group cursor-pointer">
+                    <td class="px-6 py-4">
+                        <div class="text-white font-bold group-hover:text-z-cyan transition">${achievement.tournament_name || 'Unknown Tournament'}</div>
+                        <div class="text-[10px] text-gray-500">${achievement.date || 'N/A'}</div>
+                    </td>
+                    <td class="px-6 py-4">${placementBadge}</td>
+                    <td class="px-6 py-4 text-right text-white font-mono font-bold">
+                        ${achievement.prize_formatted || (achievement.prize_amount ? `$${Math.round(achievement.prize_amount)}` : '<span class="text-gray-600">-</span>')}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+        container.innerHTML = `
+            <table class="w-full text-left text-sm">
+                <thead class="bg-black/20 text-[10px] uppercase text-gray-500 font-bold">
+                    <tr>
+                        <th class="px-6 py-3">Tournament</th>
+                        <th class="px-6 py-3">Result</th>
+                        <th class="px-6 py-3 text-right">Prize</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    ${rows}
+                </tbody>
+            </table>
+        `;
+    }
+</script>

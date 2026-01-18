@@ -21,8 +21,10 @@ from .views.public_profile_views import (
     public_profile_view, profile_activity_view,
     profile_settings_view, profile_privacy_view,
     # UP-FE-MVP-02: Mutation endpoints
-    update_basic_info
+    update_basic_info,
     # HOTFIX (Post-C2): update_social_links removed - legacy function deleted
+    # PHASE UP 5: Career Tab AJAX endpoint
+    career_tab_data_api
 )
 # GP-FE-MVP-01: Game Passport API
 from .views.passport_api import (
@@ -202,6 +204,9 @@ urlpatterns = [
     path("@<str:username>/", public_profile_view, name="public_profile"),
     path("@<str:username>/", public_profile_view, name="profile"),  # Alias for backward compatibility
     path("@<str:username>/activity/", profile_activity_view, name="profile_activity"),
+    
+    # PHASE UP 5: Career Tab AJAX endpoint (isolated, no impact on other tabs)
+    path("@<str:username>/career-data/", career_tab_data_api, name="career_tab_data_api"),
     
     # Owner Pages (/me/ prefix)
     path("me/settings/", profile_settings_view, name="profile_settings"),

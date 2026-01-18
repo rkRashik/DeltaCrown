@@ -1,290 +1,920 @@
-<div class="space-y-6">
+{% comment %}
+Career Tab - PHASE UP 5 — DEMO TEMPLATE MATCH
+Structure: Game selector → Hero passport → Stat tiles (game-category specific) → Role card + Affiliation → Match history table
+Sources:
+- Layout: templates/My drafts/career.html (demo template — SINGLE SOURCE OF TRUTH)
+- Backend: apps/user_profile/services/career_tab_service.py
+- AJAX API: apps/user_profile/views/public_profile_views.py::career_tab_data_api()
+Last Updated: 2026-01-19
+{% endcomment %}
+
+<!-- Career Tab Container -->
+<div id="career-tab-content" class="space-y-6">
+    {% if career_payload_initial %}
     
-    <!-- Sticky Game Selector Bar -->
-    <div class="glass-panel p-2 rounded-xl flex items-center gap-2 overflow-x-auto scrollbar-hide sticky top-4 z-30 shadow-2xl">
-        <button onclick="setGame('valorant', 'shooter')" class="game-btn active shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
-            <i class="fa-solid fa-v text-[#ff4655]"></i> Valorant
-        </button>
-        <button onclick="setGame('cs2', 'shooter')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
-            <i class="fa-solid fa-gun text-yellow-500"></i> CS2
-        </button>
-        <button onclick="setGame('cod', 'shooter')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
-            <i class="fa-solid fa-skull text-green-500"></i> CoD
-        </button>
-        <button onclick="setGame('pubg', 'shooter')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
-            <i class="fa-solid fa-parachute-box text-orange-500"></i> PUBG
-        </button>
-        <button onclick="setGame('freefire', 'shooter')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
-            <i class="fa-solid fa-fire text-red-500"></i> FreeFire
-        </button>
-        
-        <div class="w-px h-6 bg-white/10 mx-1"></div>
-
-        <button onclick="setGame('efootball', 'athlete')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
-            <i class="fa-regular fa-futbol text-blue-400"></i> eFootball
-        </button>
-        <button onclick="setGame('fc26', 'athlete')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
-            <i class="fa-solid fa-shield-halved text-purple-400"></i> FC 26
-        </button>
-        <button onclick="setGame('rocket', 'athlete')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
-            <i class="fa-solid fa-car text-cyan-400"></i> Rocket
-        </button>
-
-        <div class="w-px h-6 bg-white/10 mx-1"></div>
-
-        <button onclick="setGame('mlbb', 'tactician')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
-            <i class="fa-solid fa-mobile-screen text-pink-500"></i> MLBB
-        </button>
-        <button onclick="setGame('dota2', 'tactician')" class="game-btn shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2">
-            <i class="fa-brands fa-d-and-d text-red-700"></i> Dota 2
-        </button>
+    <!-- ================================== -->
+    <!-- 1. GAME SELECTOR BAR (Sticky Top, Horizontal Scroll) -->
+    <!-- ================================== -->
+    <div class="sticky top-4 z-30">
+        <div id="game-selector-scrollarea" class="overflow-x-auto scrollbar-hide scroll-smooth pb-2">
+            <div class="flex gap-2 min-w-max px-1">
+                {% for game in career_payload_initial.available_games %}
+                <button
+                    onclick="switchCareerGame('{{ game.slug }}', this)"
+                    data-game-slug="{{ game.slug }}"
+                    class="game-btn shrink-0 px-4 py-2.5 rounded-lg border border-white/10 bg-z-panel text-gray-400 hover:bg-white/5 transition-all duration-200 flex items-center gap-2 whitespace-nowrap relative group
+                    {% if forloop.first %}active bg-z-cyan text-black shadow-neon-cyan border-z-cyan{% endif %}"
+                    title="{{ game.name }}{% if game.is_primary %} (Primary Game){% endif %}"
+                >
+                    {% if game.icon_url %}
+                    <img src="{{ game.icon_url }}" alt="{{ game.name }}" class="w-4 h-4 shrink-0">
+                    {% endif %}
+                    <span class="font-bold text-[10px] uppercase tracking-wider">{{ game.name }}</span>
+                    {% if game.is_primary %}
+                    <!-- Compact Primary Badge: Dot + Tooltip -->
+                    <div class="w-2 h-2 rounded-full bg-z-gold shadow-sm shrink-0" 
+                         title="Primary Game"></div>
+                    {% endif %}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 
-    <!-- Official Passport Card -->
-    <div class="relative rounded-2xl overflow-hidden group border border-white/10 shadow-2xl">
-        <div class="absolute inset-0 bg-gradient-to-r from-z-panel to-black"></div>
-        <div id="game-bg" class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1624138784181-dc7f5b759b2d?q=80&w=2670')] opacity-20 bg-cover bg-center transition-all duration-500"></div>
+    <!-- Career Content Area (AJAX-updated) -->
+    <div id="career-content-area" 
+         data-career-loaded="0" 
+         data-username="{{ profile_user.username }}" 
+         data-selected-game="{{ career_selected_game_slug }}" 
+         data-game-accent="#00f0ff" 
+         style="--career-accent: #00f0ff;">
+        {% if career_payload_initial.passport %}
         
-        <div class="relative p-8 flex flex-col md:flex-row justify-between items-end gap-6">
-            <div class="flex items-start gap-6">
-                <div class="w-24 h-24 bg-black/50 backdrop-blur rounded-2xl flex items-center justify-center border border-white/10 shadow-lg text-5xl">
-                    <i id="game-icon" class="fa-solid fa-v text-[#ff4655]"></i>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2 mb-2">
-                        <span id="game-name" class="text-2xl font-black text-white uppercase tracking-tighter">VALORANT</span>
-                        <span class="px-2 py-0.5 rounded bg-z-cyan/20 text-z-cyan text-[10px] font-bold border border-z-cyan/30">VERIFIED</span>
-                    </div>
-                    <div class="text-4xl font-mono font-bold text-white mb-2" id="ign-display">{{ profile_user.username }}#NA1</div>
-                    <div class="flex gap-4 text-xs text-gray-400 font-bold uppercase tracking-wider">
-                        <span class="flex items-center gap-1"><i class="fa-solid fa-server"></i> Singapore</span>
-                        <span class="flex items-center gap-1"><i class="fa-solid fa-clock"></i> 2,405 Hrs</span>
-                    </div>
-                </div>
+        <!-- ================================== -->
+        <!-- 2. HERO PASSPORT CARD -->
+        <!-- ================================== -->
+        <div class="relative overflow-hidden rounded-2xl border border-white/10 glass-panel" style="box-shadow: 0 0 20px rgba(var(--career-accent-rgb, 0, 240, 255), 0.2);">
+            <!-- Background Layer -->
+            <div class="absolute inset-0" id="hero-background-container">
+                {% if career_payload_initial.game.banner_url %}
+                <img id="hero-background-img" src="{{ career_payload_initial.game.banner_url }}" class="w-full h-full object-cover opacity-20">
+                {% else %}
+                <img id="hero-background-img" src="" class="w-full h-full object-cover opacity-20 hidden">
+                {% endif %}
+                <div class="absolute inset-0 bg-gradient-to-t from-z-bg via-transparent to-transparent"></div>
             </div>
             
-            <div class="text-right">
-                <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Current Standing</div>
-                <div class="text-3xl font-display font-black text-white flex items-center justify-end gap-2">
-                    <i class="fa-solid fa-medal text-z-gold"></i> <span id="rank-name">Radiant</span>
-                </div>
-                <div class="text-xs text-z-green font-bold mt-1">Top 0.1% Global</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Adaptive Layout Engine: SHOOTER -->
-    <div id="layout-shooter" class="layout-engine grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="md:col-span-3 grid grid-cols-4 gap-4">
-            <div class="glass-panel p-4 rounded-xl border-t-2 border-z-red text-center">
-                <div class="text-[9px] text-gray-400 uppercase font-bold">K/D Ratio</div>
-                <div class="text-2xl font-display font-bold text-white">1.42</div>
-            </div>
-            <div class="glass-panel p-4 rounded-xl border-t-2 border-z-cyan text-center">
-                <div class="text-[9px] text-gray-400 uppercase font-bold">Win Rate</div>
-                <div class="text-2xl font-display font-bold text-white">68%</div>
-            </div>
-            <div class="glass-panel p-4 rounded-xl border-t-2 border-z-purple text-center">
-                <div class="text-[9px] text-gray-400 uppercase font-bold">Tournaments</div>
-                <div class="text-2xl font-display font-bold text-white">24</div>
-            </div>
-            <div class="glass-panel p-4 rounded-xl border-t-2 border-z-gold text-center">
-                <div class="text-[9px] text-gray-400 uppercase font-bold">Winnings</div>
-                <div class="text-2xl font-display font-bold text-white">$12k</div>
-            </div>
-        </div>
-        <div class="md:col-span-1 glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center relative overflow-hidden">
-            <div class="absolute inset-0 bg-z-red/5"></div>
-            <i class="fa-solid fa-crosshairs text-4xl text-z-red mb-3"></i>
-            <h3 class="text-white font-bold text-lg">Entry Fragger</h3>
-            <p class="text-xs text-gray-400 mt-2">Specializes in first bloods and space creation.</p>
-        </div>
-        <div class="md:col-span-2 glass-panel p-6 rounded-2xl">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Affiliation History</h3>
-            <a href="#" class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 mb-2 hover:bg-white/10 transition">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded bg-white text-black font-bold flex items-center justify-center">TL</div>
-                    <span class="text-white font-bold text-sm">Team Liquid</span>
-                </div>
-                <span class="text-xs text-z-green font-bold">Active</span>
-            </a>
-            <a href="#" class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded bg-gray-700 text-white font-bold flex items-center justify-center">G2</div>
-                    <span class="text-gray-300 font-bold text-sm">G2 Esports</span>
-                </div>
-                <span class="text-xs text-gray-500">2022-2023</span>
-            </a>
-        </div>
-    </div>
-
-    <!-- Adaptive Layout Engine: ATHLETE -->
-    <div id="layout-athlete" class="layout-engine grid grid-cols-1 md:grid-cols-12 gap-6 hidden">
-        <div class="md:col-span-8 glass-panel p-6 rounded-2xl relative overflow-hidden">
-            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/grass.png')] opacity-10 bg-green-900"></div>
-            <div class="relative z-10 flex justify-between items-center">
-                <div>
-                    <div class="text-xs text-green-400 font-bold uppercase mb-1">Goals Scored</div>
-                    <div class="text-4xl font-display font-black text-white">842</div>
-                </div>
-                <div class="text-right">
-                    <div class="text-xs text-blue-400 font-bold uppercase mb-1">Assists</div>
-                    <div class="text-4xl font-display font-black text-white">315</div>
-                </div>
-            </div>
-            <div class="mt-6 grid grid-cols-3 gap-4 text-center">
-                <div class="p-3 bg-black/20 rounded-lg border border-white/5">
-                    <div class="text-[9px] text-gray-400 uppercase">Win Rate</div>
-                    <div class="text-xl font-bold text-white">72%</div>
-                </div>
-                <div class="p-3 bg-black/20 rounded-lg border border-white/5">
-                    <div class="text-[9px] text-gray-400 uppercase">Clean Sheets</div>
-                    <div class="text-xl font-bold text-white">108</div>
-                </div>
-                <div class="p-3 bg-black/20 rounded-lg border border-white/5">
-                    <div class="text-[9px] text-gray-400 uppercase">Form</div>
-                    <div class="flex justify-center gap-1 mt-1">
-                        <span class="w-2 h-2 bg-z-green rounded-full"></span>
-                        <span class="w-2 h-2 bg-z-green rounded-full"></span>
-                        <span class="w-2 h-2 bg-z-red rounded-full"></span>
+            <!-- Content Layer -->
+            <div class="relative z-10 p-8">
+                <div class="flex items-start justify-between">
+                    <!-- Left: Game Identity -->
+                    <div class="flex items-start gap-4">
+                        {% if career_payload_initial.game.logo_url %}
+                        <img id="hero-logo-img" src="{{ career_payload_initial.game.logo_url }}" alt="Game Logo" class="w-24 h-24 rounded-xl border-2 border-white/20 shadow-2xl object-contain">
+                        {% else %}
+                        <img id="hero-logo-img" src="" alt="Game Logo" class="w-24 h-24 rounded-xl border-2 border-white/20 shadow-2xl object-contain hidden">
+                        {% endif %}
+                        <div>
+                            <!-- Game Name Badge -->
+                            <div class="px-3 py-1 bg-white/5 border border-white/10 rounded text-white text-[10px] font-bold uppercase tracking-wider mb-2 inline-block" id="game-name-badge">
+                                {{ career_payload_initial.game.name }}
+                            </div>
+                            <!-- Identity Slot A: Primary Identifier (Riot ID, Username, etc.) -->
+                            <h2 class="text-5xl font-display font-black text-white tracking-tight leading-tight" id="identity-slot-a-value">
+                                {{ career_payload_initial.identity_slots.A.value }}
+                            </h2>
+                            <!-- Identity Slots B & C: Context + Matches Played -->
+                            <div class="flex items-center gap-4 text-xs text-gray-400 font-mono mt-2 uppercase tracking-wider">
+                                <span id="identity-slot-b-wrapper">
+                                    <span class="text-gray-500" id="identity-slot-b-label">{{ career_payload_initial.identity_slots.B.label }}</span>
+                                    <span class="text-gray-300 ml-1" id="identity-slot-b-value">{{ career_payload_initial.identity_slots.B.value }}</span>
+                                </span>
+                                <span class="text-gray-600">•</span>
+                                <span id="identity-slot-c-wrapper">
+                                    <span class="text-gray-500" id="identity-slot-c-label">{{ career_payload_initial.identity_slots.C.label }}</span>
+                                    <span class="text-gray-300 ml-1" id="identity-slot-c-value">{{ career_payload_initial.identity_slots.C.value }}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right: Identity Slot D (Standing/Rank) -->
+                    <div class="text-right">
+                        <div class="text-[10px] text-gray-500 uppercase mb-1" id="identity-slot-d-label">{{ career_payload_initial.identity_slots.D.label }}</div>
+                        <div class="flex items-center gap-2 justify-end">
+                            {% if career_payload_initial.identity_slots.D.icon_url %}
+                            <img id="identity-slot-d-icon" src="{{ career_payload_initial.identity_slots.D.icon_url }}" alt="Rank" class="w-8 h-8">
+                            {% else %}
+                            <img id="identity-slot-d-icon" src="" alt="Rank" class="w-8 h-8 hidden">
+                            {% endif %}
+                            <div>
+                                <div class="text-xl font-bold text-white" id="identity-slot-d-value">
+                                    {{ career_payload_initial.identity_slots.D.value }}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="md:col-span-4 glass-panel p-1 rounded-2xl border border-z-gold/30 bg-gradient-to-b from-z-gold/10 to-transparent">
-            <div class="h-full flex flex-col items-center justify-center p-6 text-center">
-                <i class="fa-solid fa-shirt text-4xl text-z-gold mb-3"></i>
-                <h3 class="text-white font-bold">Striker (ST)</h3>
-                <p class="text-xs text-gray-400 mt-2">Clinical Finisher</p>
-            </div>
-        </div>
-    </div>
 
-    <!-- Adaptive Layout Engine: TACTICIAN -->
-    <div id="layout-tactician" class="layout-engine grid grid-cols-1 md:grid-cols-4 gap-6 hidden">
-        <div class="md:col-span-4 glass-panel p-6 rounded-2xl">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Signature Heroes</h3>
-            <div class="flex gap-4">
-                <div class="text-center group">
-                    <div class="w-16 h-16 rounded-full bg-z-purple border-2 border-white/20 overflow-hidden shadow-lg group-hover:scale-110 transition">
-                        <img src="https://via.placeholder.com/150/7B2CBF/FFFFFF?text=H1" class="w-full h-full object-cover">
-                    </div>
-                    <div class="text-[10px] text-white font-bold mt-2 uppercase">Carry</div>
+        <!-- ================================== -->
+        <!-- 3. GAME-CATEGORY STAT TILES (4 tiles in row) -->
+        <!-- ================================== -->
+        <div id="stat-tiles-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+            {% if career_payload_initial.stats_engine.tiles %}
+                {% for tile in career_payload_initial.stats_engine.tiles %}
+                <div class="glass-panel p-5 rounded-xl border-t-4 border-{{ tile.color_class }}">
+                    <div class="text-[9px] text-gray-400 uppercase font-bold mb-2">{{ tile.label }}</div>
+                    <div class="text-3xl font-display font-black text-white">{{ tile.value }}</div>
+                    {% if tile.subtitle %}
+                    <div class="text-[10px] text-gray-500 mt-1">{{ tile.subtitle }}</div>
+                    {% endif %}
                 </div>
-                <div class="text-center group">
-                    <div class="w-16 h-16 rounded-full bg-gray-700 border-2 border-white/10 overflow-hidden group-hover:scale-110 transition">
-                        <img src="https://via.placeholder.com/150/333333/FFFFFF?text=H2" class="w-full h-full object-cover">
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- ================================== -->
+        <!-- 4. MID ROW: Attributes Sidebar (1 col) + Affiliation History (2 cols) -->
+        <!-- ================================== -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <!-- Attributes Sidebar (replaces single role card) -->
+            <div class="md:col-span-1" id="attributes-sidebar-container">
+                <div class="glass-panel p-6 rounded-2xl border border-white/10">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Player Attributes</h3>
+                    <div class="space-y-3">
+                        {% if career_payload_initial.attributes_sidebar %}
+                            {% for attr in career_payload_initial.attributes_sidebar %}
+                            <div class="flex justify-between items-center border-b border-white/5 pb-2">
+                                <span class="text-xs text-gray-400 uppercase">{{ attr.label }}</span>
+                                <span class="text-sm text-white font-bold">{{ attr.value }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-6 text-gray-500">
+                                <i class="fa-solid fa-user text-2xl mb-2"></i>
+                                <p class="text-xs">No attributes available</p>
+                            </div>
+                        {% endif %}
                     </div>
-                    <div class="text-[10px] text-gray-400 font-bold mt-2 uppercase">Mid</div>
                 </div>
             </div>
-        </div>
-        <div class="md:col-span-2 glass-panel p-5 rounded-xl border-l-4 border-z-purple">
-            <div class="text-[9px] text-gray-400 uppercase font-bold">GPM (Gold/Min)</div>
-            <div class="text-3xl font-display font-bold text-white">780</div>
-        </div>
-        <div class="md:col-span-2 glass-panel p-5 rounded-xl border-l-4 border-z-cyan">
-            <div class="text-[9px] text-gray-400 uppercase font-bold">KDA Ratio</div>
-            <div class="text-3xl font-display font-bold text-white">6.4</div>
-        </div>
-    </div>
 
-    <!-- Universal Tournament Log -->
-    <div class="glass-panel rounded-2xl overflow-hidden mt-8">
-        <div class="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/5">
-            <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
-                <i class="fa-solid fa-list text-gray-500"></i> Match History
-            </h3>
-            <button class="text-[10px] bg-black/40 hover:bg-white/10 px-3 py-1 rounded text-white border border-white/10 transition">Filter</button>
-        </div>
-        <table class="w-full text-left text-sm">
-            <thead class="bg-black/20 text-[10px] uppercase text-gray-500 font-bold">
-                <tr>
-                    <th class="px-6 py-3">Tournament</th>
-                    <th class="px-6 py-3">Result</th>
-                    <th class="px-6 py-3 text-right">Prize</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-white/5">
-                <tr class="hover:bg-white/5 transition group cursor-pointer">
-                    <td class="px-6 py-4">
-                        <div class="text-white font-bold group-hover:text-z-cyan transition">DeltaCrown Winter Major</div>
-                        <div class="text-[10px] text-gray-500">Jan 12, 2026</div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-gold/10 text-z-gold text-xs font-bold border border-z-gold/20">
-                            <i class="fa-solid fa-trophy"></i> 1st Place
+            <!-- Affiliation History (compact) -->
+            <div class="md:col-span-2 glass-panel p-6 rounded-2xl">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Affiliation History</h3>
+                <div id="affiliation-list-container">
+                {% if career_payload_initial.affiliation_history %}
+                    {% for membership in career_payload_initial.affiliation_history %}
+                    {% if membership.team_url %}
+                    <a href="{{ membership.team_url }}" class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 mb-2 hover:bg-white/10 cursor-pointer transition">
+                        <div class="flex items-center gap-3">
+                            {% if membership.team_logo_url %}
+                            <img src="{{ membership.team_logo_url }}" alt="{{ membership.team_name }}" class="w-8 h-8 rounded object-cover">
+                            {% else %}
+                            <div class="w-8 h-8 rounded bg-white/20 text-white font-bold flex items-center justify-center text-xs">
+                                {{ membership.team_tag|default:membership.team_name|slice:":2"|upper }}
+                            </div>
+                            {% endif %}
+                            <div>
+                                <span class="text-white font-bold text-sm block">{{ membership.team_name }}</span>
+                                <span class="text-[10px] text-gray-500">{{ membership.team_role_label }}</span>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold {{ membership.is_active|yesno:'text-z-green,text-gray-500' }}">
+                            {{ membership.status_badge }}
                         </span>
-                    </td>
-                    <td class="px-6 py-4 text-right text-white font-mono font-bold">$5,000</td>
-                </tr>
-                <tr class="hover:bg-white/5 transition group cursor-pointer">
-                    <td class="px-6 py-4">
-                        <div class="text-white font-bold">Weekly Scrim #42</div>
-                        <div class="text-[10px] text-gray-500">Jan 08, 2026</div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-400 text-xs font-bold border border-red-500/20">
-                            Defeat
+                    </a>
+                    {% else %}
+                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 mb-2">
+                        <div class="flex items-center gap-3">
+                            {% if membership.team_logo_url %}
+                            <img src="{{ membership.team_logo_url }}" alt="{{ membership.team_name }}" class="w-8 h-8 rounded object-cover">
+                            {% else %}
+                            <div class="w-8 h-8 rounded bg-white/20 text-white font-bold flex items-center justify-center text-xs">
+                                {{ membership.team_tag|default:membership.team_name|slice:":2"|upper }}
+                            </div>
+                            {% endif %}
+                            <div>
+                                <span class="text-white font-bold text-sm block">{{ membership.team_name }}</span>
+                                <span class="text-[10px] text-gray-500">{{ membership.team_role_label }}</span>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold {{ membership.is_active|yesno:'text-z-green,text-gray-500' }}">
+                            {{ membership.status_badge }}
                         </span>
-                    </td>
-                    <td class="px-6 py-4 text-right text-gray-600 font-mono">-</td>
-                </tr>
-            </tbody>
-        </table>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-6 text-gray-500">
+                        <i class="fa-solid fa-users-slash text-2xl mb-2"></i>
+                        <p class="text-sm">No team affiliations</p>
+                    </div>
+                {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================== -->
+        <!-- 5. MATCH HISTORY TABLE -->
+        <!-- ================================== -->
+        <div class="glass-panel rounded-2xl overflow-hidden mt-8">
+            <div class="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/5">
+                <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                    <i class="fa-solid fa-list text-gray-500"></i> Match History
+                </h3>
+                <button class="text-[10px] bg-black/40 hover:bg-white/10 px-3 py-1 rounded text-white border border-white/10 transition">Filter</button>
+            </div>
+            
+            <div class="overflow-hidden" id="match-history-table">
+                {% if career_payload_initial.match_history %}
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-black/20 text-[10px] uppercase text-gray-500 font-bold">
+                        <tr>
+                            <th class="px-6 py-3">Tournament</th>
+                            <th class="px-6 py-3">Result</th>
+                            <th class="px-6 py-3 text-right">Prize</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        {% for achievement in career_payload_initial.match_history %}
+                        <tr class="hover:bg-white/5 transition group cursor-pointer">
+                            <td class="px-6 py-4">
+                                <div class="text-white font-bold group-hover:text-z-cyan transition">{{ achievement.tournament_name }}</div>
+                                <div class="text-[10px] text-gray-500">{{ achievement.date|date:"M d, Y" }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if achievement.placement == 1 %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-gold/10 text-z-gold text-xs font-bold border border-z-gold/20">
+                                    <i class="fa-solid fa-trophy"></i> 1st Place
+                                </span>
+                                {% elif achievement.placement == 2 %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-400/10 text-gray-400 text-xs font-bold border border-gray-400/20">
+                                    <i class="fa-solid fa-medal"></i> 2nd Place
+                                </span>
+                                {% elif achievement.placement == 3 %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-bold border border-orange-500/20">
+                                    <i class="fa-solid fa-award"></i> 3rd Place
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-red/10 text-z-red text-xs font-bold border border-z-red/20">
+                                    {{ achievement.placement_label|default:"Participated" }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-right text-white font-mono font-bold">
+                                {% if achievement.prize_amount %}
+                                    {{ achievement.prize_formatted|default:"$0" }}
+                                {% else %}
+                                    <span class="text-gray-600">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fa-solid fa-trophy text-4xl mb-3 opacity-50"></i>
+                        <p>No tournament history yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% else %}
+            <!-- No Passport Linked -->
+            <div class="glass-panel p-12 rounded-2xl text-center">
+                <i class="fa-solid fa-id-card text-6xl text-gray-600 mb-4"></i>
+                <h3 class="text-xl font-bold text-white mb-2">No Game Passport Linked</h3>
+                <p class="text-gray-400">Link a game to view your career statistics</p>
+            </div>
+        {% endif %}
     </div>
 
+    {% else %}
+        <!-- No Career Data -->
+        <div class="glass-panel p-12 rounded-2xl text-center">
+            <i class="fa-solid fa-gamepad text-6xl text-gray-600 mb-4"></i>
+            <h3 class="text-xl font-bold text-white mb-2">Career Data Unavailable</h3>
+            <p class="text-gray-400">Unable to load career information</p>
+        </div>
+    {% endif %}
 </div>
 
+<!-- ================================== -->
+<!-- STYLES -->
+<!-- ================================== -->
 <style>
     /* Game Active State */
     .game-btn.active {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: #00F0FF;
-        color: #fff;
-        box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        background: #00F0FF !important;
+        color: #030014 !important;
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+        border-color: var(--career-accent, #00F0FF) !important;
+    }
+    
+    /* Hero card accent glow */
+    #career-content-area[data-game-accent] .glass-panel {
+        transition: box-shadow 0.3s ease;
+    }
+    
+    /* Loading State */
+    .career-loading {
+        opacity: 0.5;
+        pointer-events: none;
+        position: relative;
+    }
+    
+    .career-loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(0, 240, 255, 0.2);
+        border-top-color: #00F0FF;
+        border-radius: 50%;
+        animation: spin-loader 1s linear infinite;
+    }
+    
+    @keyframes spin-loader {
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    
+    /* Scrollbar Hide (Updated for game selector) */
+    .no-scrollbar::-webkit-scrollbar,
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar,
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    
+    /* Game Selector Compact Design */
+    .game-btn {
+        min-height: 40px;
+        transition: all 0.2s ease;
+    }
+    
+    .game-btn:hover {
+        transform: translateY(-1px);
+        border-color: rgba(0, 240, 255, 0.3);
+    }
+
+    /* Neon Glow Effect */
+    .shadow-neon-cyan {
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.5), 0 0 40px rgba(0, 240, 255, 0.3);
     }
 </style>
 
+<!-- ================================== -->
+<!-- SCRIPTS -->
+<!-- ================================== -->
 <script>
-    // CONFIG: Game Data & Layout Types
-    const gameConfig = {
-        'valorant': { name: 'VALORANT', type: 'shooter', icon: 'fa-v', color: 'text-[#ff4655]', ign: '{{ profile_user.username }}#NA1', rank: 'Radiant' },
-        'cs2': { name: 'CS2', type: 'shooter', icon: 'fa-gun', color: 'text-yellow-500', ign: '{{ profile_user.username }}CS', rank: 'Global Elite' },
-        'cod': { name: 'CALL OF DUTY', type: 'shooter', icon: 'fa-skull', color: 'text-green-500', ign: '{{ profile_user.username }}CD', rank: 'Crimson' },
-        'pubg': { name: 'PUBG', type: 'shooter', icon: 'fa-parachute-box', color: 'text-orange-500', ign: '{{ profile_user.username }}P', rank: 'Conqueror' },
-        'freefire': { name: 'FREE FIRE', type: 'shooter', icon: 'fa-fire', color: 'text-red-500', ign: '{{ profile_user.username }}FF', rank: 'Grandmaster' },
+    // In-memory cache for career data (TASK 2.3)
+    window.__careerCache = window.__careerCache || {};
+    let careerFetchController = null;  // AbortController for debouncing
+    
+    // Wait-until-visible utility (TASK 1.1.4)
+    function waitUntilVisible(element, callback, maxAttempts = 20) {
+        let attempts = 0;
+        const checkInterval = setInterval(() => {
+            attempts++;
+            const isVisible = element && element.offsetParent !== null;
+            
+            if (isVisible) {
+                clearInterval(checkInterval);
+                callback();
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                console.warn('[Career Tab] Element not visible after max attempts');
+            }
+        }, 50);
+    }
+    
+    // Show non-blocking inline error (TASK 1.1.5)
+    function showCareerError(message) {
+        const contentArea = document.getElementById('career-content-area');
+        if (!contentArea) return;
         
-        'efootball': { name: 'EFOOTBALL', type: 'athlete', icon: 'fa-futbol', color: 'text-blue-400', ign: '{{ profile_user.username }}_EF', rank: 'Div 1' },
-        'fc26': { name: 'FC 26', type: 'athlete', icon: 'fa-shield-halved', color: 'text-purple-400', ign: '{{ profile_user.username }}FC', rank: 'Elite' },
-        'rocket': { name: 'ROCKET LEAGUE', type: 'athlete', icon: 'fa-car', color: 'text-cyan-400', ign: '{{ profile_user.username }}RL', rank: 'SSL' },
+        contentArea.innerHTML = `
+            <div class="text-center py-12">
+                <i class="fa-solid fa-triangle-exclamation text-4xl text-orange-500 mb-4"></i>
+                <p class="text-gray-400 text-lg mb-4">${message}</p>
+                <button onclick="location.reload()" class="px-6 py-2 bg-z-cyan text-black font-bold rounded-lg hover:bg-cyan-400 transition">
+                    <i class="fa-solid fa-rotate-right mr-2"></i>Retry
+                </button>
+            </div>
+        `;
+    }
+    
+    // Initialize Career Tab (TASK 1.1: Fix init logic)
+    function initCareerTab() {
+        console.log('[Career Tab] initCareerTab() called');
         
-        'mlbb': { name: 'MLBB', type: 'tactician', icon: 'fa-mobile-screen', color: 'text-pink-500', ign: '{{ profile_user.username }}ML', rank: 'Mythical Glory' },
-        'dota2': { name: 'DOTA 2', type: 'tactician', icon: 'fa-d-and-d', color: 'text-red-700', ign: '{{ profile_user.username }}Dota', rank: 'Immortal' },
-    };
-
-    // FUNCTION: Switch Game Content
-    function setGame(gameKey, layoutType) {
-        const data = gameConfig[gameKey];
+        const contentArea = document.getElementById('career-content-area');
+        if (!contentArea) {
+            console.warn('[Career Tab] content area not found');
+            return;
+        }
         
-        // 1. Update Game Identity Card
-        document.getElementById('game-name').innerText = data.name;
-        document.getElementById('ign-display').innerText = data.ign;
-        document.getElementById('rank-name').innerText = data.rank;
+        // Check readiness flag (TASK 1.1.1)
+        const isLoaded = contentArea.getAttribute('data-career-loaded') === '1';
+        if (isLoaded) {
+            console.log('[Career Tab] Already loaded, skipping fetch');
+            return;
+        }
         
-        // Update Icon & Color
-        const iconEl = document.getElementById('game-icon');
-        iconEl.className = `fa-solid ${data.icon} ${data.color}`;
-
-        // 2. Switch Layout Engine
-        document.querySelectorAll('.layout-engine').forEach(el => el.classList.add('hidden'));
-        document.getElementById(`layout-${layoutType}`).classList.remove('hidden');
-
-        // 3. Update Buttons State
-        document.querySelectorAll('.game-btn').forEach(btn => {
-            btn.classList.remove('active');
+        console.log('[Career Tab] Not loaded yet, preparing fetch');
+        
+        // Read selected game from data attribute (TASK 2: normalized data flow)
+        const selectedGame = contentArea.dataset.selectedGame;
+        
+        if (!selectedGame) {
+            console.warn('[Career Tab] No selected game from data attribute');
+            showCareerError('No game profile found. Add a game to get started!');
+            return;
+        }
+        
+        // Find button for selected game
+        const gameButton = document.querySelector(`.game-btn[data-game-slug="${selectedGame}"]`);
+        
+        if (!gameButton) {
+            console.error(`[Career Tab] Button not found for game: ${selectedGame}`);
+            showCareerError('Game selector not available.');
+            return;
+        }
+        
+        // Fetch data immediately (MutationObserver already confirmed visibility)
+        console.log('[Career] Fetching data for game:', selectedGame);
+        switchCareerGame(selectedGame, gameButton);
+    }
+    
+    // TASK 1: Use MutationObserver to watch the ACTUAL tab content div that gets 'hidden' class
+    document.addEventListener('DOMContentLoaded', function() {
+        // The real tab system toggles 'hidden' class on #tab-career (not #career-tab-content)
+        const tabCareer = document.getElementById('tab-career');
+        if (!tabCareer) {
+            console.error('[Career] tab-career div not found');
+            return;
+        }
+        
+        console.log('[Career] init: checking data attributes...');
+        const contentArea = document.getElementById('career-content-area');
+        if (!contentArea) {
+            console.error('[Career] career-content-area not found');
+            return;
+        }
+        
+        // TASK 2: Read data attributes with normalized keys
+        const username = contentArea.dataset.username;
+        const selectedGame = contentArea.dataset.selectedGame;
+        const isLoaded = contentArea.getAttribute('data-career-loaded');
+        
+        console.log(`[Career] init: username=${username}, game=${selectedGame}, loaded=${isLoaded}`);
+        
+        if (!username || !selectedGame) {
+            console.error('[Career] Missing required data attributes (username or selectedGame)');
+            return;
+        }
+        
+        // Check if Career tab is visible on page load (no 'hidden' class)
+        const isVisible = !tabCareer.classList.contains('hidden');
+        if (isVisible && isLoaded !== '1') {
+            console.log('[Career] Visible on page load, initializing...');
+            setTimeout(initCareerTab, 100);
+            return;
+        }
+        
+        // Set up MutationObserver to watch #tab-career for 'hidden' class changes
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const nowVisible = !tabCareer.classList.contains('hidden');
+                    const isLoaded = contentArea.getAttribute('data-career-loaded') === '1';
+                    
+                    if (nowVisible && !isLoaded) {
+                        console.log('[Career] Tab became visible (via switchTab), initializing...');
+                        initCareerTab();
+                    }
+                }
+            });
         });
-        // Highlight clicked button
-        event.currentTarget.classList.add('active');
+        
+        // Observe the #tab-career div (the one that switchTab() modifies)
+        observer.observe(tabCareer, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+        
+        console.log('[Career] MutationObserver attached to #tab-career, watching for visibility changes');
+    });
+    
+    // AJAX-Based Game Switching (TASK 2.3: Add caching + debouncing)
+    function switchCareerGame(gameSlug, buttonElement) {
+        const contentArea = document.getElementById('career-content-area');
+        const username = '{{ profile_user.username }}';
+        
+        if (!contentArea) {
+            console.warn('Career content area not found');
+            return;
+        }
+        
+        // Cancel previous fetch if still pending (TASK 2.3: Debounce)
+        if (careerFetchController) {
+            careerFetchController.abort();
+            console.log('[Career] Aborted previous fetch');
+        }
+        
+        // Check in-memory cache (TASK 2.3)
+        if (window.__careerCache[gameSlug]) {
+            console.log('[Career] Using cached data for:', gameSlug);
+            const cachedData = window.__careerCache[gameSlug];
+            
+            // Update UI immediately from cache
+            updateButtonState(buttonElement);
+            renderCareerData(cachedData);
+            
+            // Mark as loaded
+            contentArea.setAttribute('data-career-loaded', '1');
+            return;
+        }
+        
+        // 1. Add loading state
+        contentArea.classList.add('career-loading');
+        
+        // 2. Update button active state immediately
+        updateButtonState(buttonElement);
+        
+        // 3. Auto-scroll active button into center view (SCALABILITY FIX)
+        const scrollArea = document.getElementById('game-selector-scrollarea');
+        if (scrollArea && buttonElement) {
+            setTimeout(() => {
+                buttonElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                    inline: 'center'
+                });
+            }, 50);  // Small delay to ensure DOM is updated
+        }
+        
+        // 4. Create new AbortController for this fetch
+        careerFetchController = new AbortController();
+        
+        // 5. Fetch new career data
+        fetch(`/@${username}/career-data/?game=${gameSlug}`, {
+            signal: careerFetchController.signal
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('[Career] Data received for:', gameSlug);
+                
+                // Cache the result (TASK 2.3)
+                window.__careerCache[gameSlug] = data;
+                
+                // TASK 2: Update selectedGame dataset
+                contentArea.dataset.selectedGame = data.game.slug;
+                
+                // Render career data
+                renderCareerData(data);
+                
+                // TASK 2: Mark as loaded ONLY after successful render
+                contentArea.setAttribute('data-career-loaded', '1');
+                
+                // Remove loading state
+                contentArea.classList.remove('career-loading');
+            })
+            .catch(error => {
+                if (error.name === 'AbortError') {
+                    console.log('[Career] Fetch aborted');
+                    return;
+                }
+                
+                console.error('[Career] Fetch failed:', error);
+                contentArea.classList.remove('career-loading');
+                showCareerError('Failed to load career data.');
+            })
+            .finally(() => {
+                careerFetchController = null;
+            });
+    }
+    
+    // Helper: Update button active state
+    function updateButtonState(buttonElement) {
+        document.querySelectorAll('.game-btn').forEach(btn => {
+            btn.classList.remove('active', 'bg-z-cyan', 'text-black', 'shadow-neon-cyan', 'border-z-cyan');
+            btn.classList.add('text-gray-400');
+        });
+        buttonElement.classList.add('active', 'bg-z-cyan', 'text-black', 'shadow-neon-cyan', 'border-z-cyan');
+        buttonElement.classList.remove('text-gray-400');
+    }
+    
+    // Helper: Render all career data sections
+    function renderCareerData(data) {
+        renderHero(data);
+        renderIdentitySlots(data);
+        renderStats(data);
+        renderAttributesSidebar(data);
+        renderAffiliationHistory(data);
+        renderMatchHistory(data);
+    }
+    
+    // Render hero logo and background (Issue #2: Set accent color)
+    function renderHero(data) {
+        const logoImg = document.getElementById('hero-logo-img');
+        const bgImg = document.getElementById('hero-background-img');
+        const gameNameBadge = document.getElementById('game-name-badge');
+        const contentArea = document.getElementById('career-content-area');
+        
+        if (logoImg && data.game && data.game.logo_url) {
+            logoImg.src = data.game.logo_url;
+            logoImg.classList.remove('hidden');
+        } else if (logoImg) {
+            logoImg.classList.add('hidden');
+        }
+        
+        if (bgImg && data.game && data.game.banner_url) {
+            bgImg.src = data.game.banner_url;
+            bgImg.classList.remove('hidden');
+            // Issue #2: Remove grayscale, restore vivid colors
+            bgImg.classList.remove('mix-blend-luminosity');
+        } else if (bgImg) {
+            bgImg.classList.add('hidden');
+        }
+        
+        if (gameNameBadge && data.game) {
+            gameNameBadge.textContent = data.game.name || 'Unknown Game';
+        }
+        
+        // Issue #2: Set game-specific accent color
+        if (contentArea && data.game && data.game.accent_hex) {
+            contentArea.style.setProperty('--career-accent', data.game.accent_hex);
+            contentArea.setAttribute('data-game-accent', data.game.accent_hex);
+            
+            // Convert hex to RGB for rgba() usage
+            const hex = data.game.accent_hex.replace('#', '');
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+            contentArea.style.setProperty('--career-accent-rgb', `${r}, ${g}, ${b}`);
+        }
+    }
+    
+    // Render identity slots A, B, C, D
+    function renderIdentitySlots(data) {
+        if (!data.identity_slots) return;
+        
+        const slots = data.identity_slots;
+        
+        // Slot A: Primary identifier (large text)
+        const slotA = document.getElementById('identity-slot-a-value');
+        if (slotA) {
+            slotA.textContent = slots.A ? slots.A.value : 'N/A';
+        }
+        
+        // Slot B: Context badge
+        const slotBLabel = document.getElementById('identity-slot-b-label');
+        const slotBValue = document.getElementById('identity-slot-b-value');
+        if (slotBLabel && slots.B) {
+            slotBLabel.textContent = slots.B.label || '';
+        }
+        if (slotBValue && slots.B) {
+            slotBValue.textContent = slots.B.value || 'Not Set';
+        }
+        
+        // Slot C: Matches Played
+        const slotCLabel = document.getElementById('identity-slot-c-label');
+        const slotCValue = document.getElementById('identity-slot-c-value');
+        if (slotCLabel && slots.C) {
+            slotCLabel.textContent = slots.C.label || 'Matches Played';
+        }
+        if (slotCValue && slots.C) {
+            slotCValue.textContent = slots.C.value || '0';
+        }
+        
+        // Slot D: Standing/Rank
+        const slotDLabel = document.getElementById('identity-slot-d-label');
+        const slotDValue = document.getElementById('identity-slot-d-value');
+        const slotDIcon = document.getElementById('identity-slot-d-icon');
+        
+        if (slotDLabel && slots.D) {
+            slotDLabel.textContent = slots.D.label || 'Current Rank';
+        }
+        if (slotDValue && slots.D) {
+            slotDValue.textContent = slots.D.value || 'Unranked';
+        }
+        if (slotDIcon && slots.D) {
+            if (slots.D.icon_url) {
+                slotDIcon.src = slots.D.icon_url;
+                slotDIcon.classList.remove('hidden');
+            } else {
+                slotDIcon.classList.add('hidden');
+            }
+        }
+    }
+    
+    // Render stat tiles based on category (Issue #2: Fix colors)
+    function renderStats(data) {
+        const container = document.getElementById('stat-tiles-container');
+        if (!container) return;
+        
+        const tiles = (data.stats_engine && data.stats_engine.tiles) ? data.stats_engine.tiles : [];
+        
+        if (tiles.length === 0) {
+            container.innerHTML = `
+                <div class="glass-panel p-5 rounded-xl border-t-4 border-z-red">
+                    <div class="text-[9px] text-gray-400 uppercase font-bold mb-2">No Data</div>
+                    <div class="text-3xl font-display font-black text-white">--</div>
+                </div>
+            `;
+            return;
+        }
+        
+        // Map color classes to valid Tailwind (Issue #2)
+        const colorMap = {
+            'z-red': 'z-red',
+            'z-cyan': 'z-cyan',
+            'z-purple': 'z-purple',
+            'z-gold': 'z-gold',
+            'z-green': 'z-green',
+            'z-blue': 'z-cyan',
+            'z-yellow': 'z-gold',
+            'game-red': 'z-red',
+            'game-cyan': 'z-cyan',
+            'game-blue': 'z-cyan',
+            'game-purple': 'z-purple',
+            'game-yellow': 'z-gold',
+            'game-green': 'z-green'
+        };
+        
+        container.innerHTML = tiles.map(tile => {
+            const colorClass = colorMap[tile.color_class] || 'z-cyan';
+            return `
+                <div class="glass-panel p-5 rounded-xl border-t-4 border-${colorClass}">
+                    <div class="text-[9px] text-gray-400 uppercase font-bold mb-2">${tile.label}</div>
+                    <div class="text-3xl font-display font-black text-white">${tile.value}</div>
+                    ${tile.subtitle ? `<div class="text-[10px] text-gray-500 mt-1">${tile.subtitle}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+    
+    // Render attributes sidebar (replaces role card)
+    function renderAttributesSidebar(data) {
+        const container = document.getElementById('attributes-sidebar-container');
+        if (!container) return;
+        
+        const attributes = data.attributes_sidebar || [];
+        
+        if (attributes.length === 0) {
+            container.innerHTML = `
+                <div class="glass-panel p-6 rounded-2xl border border-white/10">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Player Attributes</h3>
+                    <div class="text-center py-6 text-gray-500">
+                        <i class="fa-solid fa-user text-2xl mb-2"></i>
+                        <p class="text-xs">No attributes available</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        const attributeRows = attributes.map(attr => `
+            <div class="flex justify-between items-center border-b border-white/5 pb-2">
+                <span class="text-xs text-gray-400 uppercase">${attr.label}</span>
+                <span class="text-sm text-white font-bold">${attr.value}</span>
+            </div>
+        `).join('');
+        
+        container.innerHTML = `
+            <div class="glass-panel p-6 rounded-2xl border border-white/10">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Player Attributes</h3>
+                <div class="space-y-3">
+                    ${attributeRows}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Render affiliation history with team_role_label
+    function renderAffiliationHistory(data) {
+        const container = document.getElementById('affiliation-list-container');
+        if (!container) return;
+        
+        const history = data.affiliation_history || [];
+        
+        if (history.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-6 text-gray-500">
+                    <i class="fa-solid fa-users-slash text-2xl mb-2"></i>
+                    <p class="text-sm">No team affiliations</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = history.map(membership => {
+            const statusClass = membership.is_active ? 'text-z-green' : 'text-gray-500';
+            const statusText = membership.status_badge || (membership.is_active ? 'Active' : 'Past');
+            const teamTag = (membership.team_tag || membership.team_name || '??').substring(0, 2).toUpperCase();
+            
+            // Logo rendering with fallback
+            const logoHtml = membership.team_logo_url 
+                ? `<img src="${membership.team_logo_url}" alt="${membership.team_name || 'Team'}" class="w-8 h-8 rounded object-cover">`
+                : `<div class="w-8 h-8 rounded bg-white/20 text-white font-bold flex items-center justify-center text-xs">${teamTag}</div>`;
+            
+            // Wrapper tag (clickable if team_url exists)
+            const wrapperTag = membership.team_url ? 'a' : 'div';
+            const hrefAttr = membership.team_url ? `href="${membership.team_url}"` : '';
+            const hoverClass = membership.team_url ? 'hover:bg-white/10 cursor-pointer' : '';
+            
+            return `
+                <${wrapperTag} ${hrefAttr} class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 mb-2 ${hoverClass} transition">
+                    <div class="flex items-center gap-3">
+                        ${logoHtml}
+                        <div>
+                            <span class="text-white font-bold text-sm block">${membership.team_name || 'Unknown Team'}</span>
+                            <span class="text-[10px] text-gray-500">${membership.team_role_label || 'Player'}</span>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold ${statusClass}">
+                        ${statusText}
+                    </span>
+                </${wrapperTag}>
+            `;
+        }).join('');
+    }
+    
+    // Render match history table
+    function renderMatchHistory(data) {
+        const container = document.getElementById('match-history-table');
+        if (!container) return;
+        
+        const achievements = data.match_history || [];
+        
+        if (achievements.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-12 text-gray-500">
+                    <i class="fa-solid fa-trophy text-4xl mb-3 opacity-50"></i>
+                    <p>No tournament history yet</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const rows = achievements.map(achievement => {
+            let placementBadge;
+            if (achievement.placement === 1) {
+                placementBadge = '<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-gold/10 text-z-gold text-xs font-bold border border-z-gold/20"><i class="fa-solid fa-trophy"></i> 1st Place</span>';
+            } else if (achievement.placement === 2) {
+                placementBadge = '<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-400/10 text-gray-400 text-xs font-bold border border-gray-400/20"><i class="fa-solid fa-medal"></i> 2nd Place</span>';
+            } else if (achievement.placement === 3) {
+                placementBadge = '<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-bold border border-orange-500/20"><i class="fa-solid fa-award"></i> 3rd Place</span>';
+            } else {
+                placementBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-red/10 text-z-red text-xs font-bold border border-z-red/20">${achievement.placement_label || 'Participated'}</span>`;
+            }
+            
+            const prizeDisplay = achievement.prize_formatted || (achievement.prize_amount ? `$${Math.round(achievement.prize_amount)}` : '<span class="text-gray-600">-</span>');
+            
+            return `
+                <tr class="hover:bg-white/5 transition group cursor-pointer">
+                    <td class="px-6 py-4">
+                        <div class="text-white font-bold group-hover:text-z-cyan transition">${achievement.tournament_name || 'Unknown Tournament'}</div>
+                        <div class="text-[10px] text-gray-500">${achievement.date || 'N/A'}</div>
+                    </td>
+                    <td class="px-6 py-4">${placementBadge}</td>
+                    <td class="px-6 py-4 text-right text-white font-mono font-bold">
+                        ${prizeDisplay}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+        container.innerHTML = `
+            <table class="w-full text-left text-sm">
+                <thead class="bg-black/20 text-[10px] uppercase text-gray-500 font-bold">
+                    <tr>
+                        <th class="px-6 py-3">Tournament</th>
+                        <th class="px-6 py-3">Result</th>
+                        <th class="px-6 py-3 text-right">Prize</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    ${rows}
+                </tbody>
+            </table>
+        `;
     }
 </script>

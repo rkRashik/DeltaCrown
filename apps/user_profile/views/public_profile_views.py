@@ -20,7 +20,7 @@ Architecture:
 """
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse, Http404
+from django.http import HttpRequest, HttpResponse, Http404, JsonResponse
 from django.contrib import messages
 from django.urls import reverse
 from django.conf import settings
@@ -649,6 +649,173 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             'featured_passport_id': None,
             'highlights': []
         }
+    
+    # PHASE UP 5: Career Tab Enhanced Context (append-only, no impact on other tabs)
+    from apps.user_profile.services.career_tab_service import CareerTabService, GAME_DISPLAY_CONFIG
+    
+    # Get linked games for game selector (OPTIMIZED with select_related)
+    career_linked_games = CareerTabService.get_linked_games(user_profile)
+    context['career_linked_games'] = career_linked_games
+    
+    # Get primary game for initial load (first item is always primary)
+    if career_linked_games:
+        primary_game_item = career_linked_games[0]
+        primary_game = primary_game_item['game']
+        primary_game_slug = primary_game_item['game_slug']
+        
+        # DEBUG log
+        logger.info(f"[Career] Primary game for {username}: {primary_game_slug} (source: {primary_game_item.get('primary_source', 'unknown')})")
+    else:
+        primary_game = None
+        primary_game_slug = None
+    
+    context['career_selected_game'] = primary_game
+    context['career_selected_game_slug'] = primary_game_slug  # For JS init
+    
+    # Load initial career data for primary game (OPTIMIZED with prefetch)
+    if primary_game:
+        try:
+            passport = CareerTabService.get_game_passport(user_profile, primary_game)
+            matches_played = CareerTabService.get_matches_played_count(user_profile, primary_game)
+            team_ranking = CareerTabService.get_team_ranking(user_profile, primary_game)
+            team_history = CareerTabService.get_team_affiliation_history(user_profile, primary_game)
+            achievements = CareerTabService.get_achievements(user_profile, primary_game)
+            
+            # NEW: Generate stat tiles, identity meta line, role card
+            stat_tiles = CareerTabService.get_stat_tiles(passport, primary_game, achievements, team_ranking) if passport else []
+            identity_meta_line = CareerTabService.get_identity_meta_line(passport, primary_game) if passport else "NOT SET"
+            role_card = CareerTabService.get_role_card(passport, primary_game) if passport else None
+            
+            # Format passport dict (needed for template compatibility)
+            passport_dict = None
+            if passport:
+                passport_dict = {
+                    'in_game_name': passport.in_game_name,
+                    'rank_name': passport.rank_name or 'Unranked',
+                    'rank_tier': passport.rank_tier or 0,
+                    'rank_points': passport.rank_points,
+                    'peak_rank': passport.peak_rank,
+                    'game_name': primary_game.display_name,
+                    'logo_url': primary_game.logo.url if primary_game.logo else f"/static/images/games/{primary_game.slug}-logo.png",
+                    'bg_url': primary_game.banner.url if primary_game.banner else f"/static/images/games/{primary_game.slug}-banner.jpg",
+                    'rank_icon_url': passport.rank_image.url if hasattr(passport, 'rank_image') and passport.rank_image else f"/static/images/ranks/{primary_game.slug}/tier-{passport.rank_tier or 1}.png",
+                    'percentile': getattr(passport, 'percentile', None),
+                }
+            
+            # Format achievements with prize_formatted
+            formatted_achievements = []
+            for ach in achievements:
+                formatted_ach = dict(ach)
+                formatted_ach['prize_formatted'] = CareerTabService.format_prize_amount(ach.get('prize_amount', 0))
+                formatted_achievements.append(formatted_ach)
+            
+            # Build available_games list for game selector (include is_primary flag)
+            available_games = []
+            for game_item in career_linked_games:
+                g = game_item['game']
+                available_games.append({
+                    'slug': g.slug,
+                    'name': g.display_name,
+                    'icon_url': game_item.get('game_icon_url') or (g.icon.url if g.icon else f"/static/images/games/{g.slug}-logo.png"),
+                    'is_primary': game_item.get('is_primary', False),  # NEW: for PRIMARY badge
+                })
+            
+            # Get game config for accent color
+            config = GAME_DISPLAY_CONFIG.get(primary_game.slug, {})
+            
+            # Resolve identity slots and attributes using GAME_DISPLAY_CONFIG
+            identity_config = config.get('identity', {})
+            slot_a_value = 'N/A'
+            slot_b_value = 'Not Set'
+            if passport:
+                primary_resolver = identity_config.get('primary_field')
+                context_resolver = identity_config.get('context_field')
+                if primary_resolver and callable(primary_resolver):
+                    try:
+                        slot_a_value = primary_resolver(passport) or 'N/A'
+                    except:
+                        slot_a_value = passport.in_game_name or 'N/A'
+                if context_resolver and callable(context_resolver):
+                    try:
+                        slot_b_value = context_resolver(passport) or 'Not Set'
+                    except:
+                        slot_b_value = getattr(passport, 'region', None) or 'Not Set'
+            
+            # Build identity_slots
+            standing_config = config.get('standing', {})
+            slot_d_label = standing_config.get('standing_label', 'Current Rank')
+            slot_d_value = 'Unranked'
+            slot_d_icon_url = None
+            if passport:
+                standing_resolver = standing_config.get('standing_field')
+                if standing_resolver and callable(standing_resolver):
+                    try:
+                        slot_d_value = standing_resolver(passport) or 'Unranked'
+                    except:
+                        slot_d_value = passport.rank_name or 'Unranked'
+                if hasattr(passport, 'rank_image') and passport.rank_image:
+                    slot_d_icon_url = passport.rank_image.url
+            
+            identity_slots = {
+                'A': {'label': identity_config.get('primary_label', 'In-Game Name'), 'value': slot_a_value},
+                'B': {'label': identity_config.get('context_label', 'Region'), 'value': slot_b_value},
+                'C': {'label': 'Matches Played', 'value': matches_played},
+                'D': {'label': slot_d_label, 'value': slot_d_value, 'icon_url': slot_d_icon_url}
+            }
+            
+            # Build attributes_sidebar
+            attributes_sidebar = []
+            sidebar_config = config.get('attributes_sidebar', [])
+            if passport:
+                for attr in sidebar_config:
+                    label = attr.get('label', '')
+                    resolver = attr.get('resolver')
+                    hide_if_empty = attr.get('hide_if_empty', True)
+                    value = None
+                    if resolver and callable(resolver):
+                        try:
+                            value = resolver(passport)
+                        except:
+                            value = None
+                    if hide_if_empty and (value is None or value == '' or value == '--'):
+                        continue
+                    attributes_sidebar.append({
+                        'label': label,
+                        'value': str(value) if value is not None else '--'
+                    })
+            
+            # Build stats_engine
+            stat_tiles_data = CareerTabService.get_stat_tiles_data(passport, primary_game, profile_user) if passport else []
+            stats_engine = {
+                'category': config.get('category', 'shooter'),
+                'tiles': stat_tiles_data
+            }
+            
+            career_payload = {
+                'game': {
+                    'slug': primary_game.slug,
+                    'name': primary_game.display_name,
+                    'logo_url': passport_dict['logo_url'] if passport_dict else f"/static/images/games/{primary_game.slug}-logo.png",
+                    'banner_url': passport_dict['bg_url'] if passport_dict else f"/static/images/games/{primary_game.slug}-banner.jpg",
+                },
+                'identity_slots': identity_slots,
+                'attributes_sidebar': attributes_sidebar,
+                'stats_engine': stats_engine,
+                'affiliation_history': team_history,
+                'match_history': formatted_achievements,
+                'available_games': available_games,
+                # Legacy fields for backward compatibility
+                'passport': passport_dict,
+                'stat_tiles': stat_tiles,
+                'matches_played': matches_played,
+            }
+        except Exception as e:
+            logger.warning(f"Career tab data loading failed for {username}: {str(e)}")
+            career_payload = None
+    else:
+        career_payload = None
+    
+    context['career_payload_initial'] = career_payload
     
     # UP-PHASE14C: Add real achievements data (if user has permission to view)
     if permissions.get('can_view_achievements'):
@@ -2220,37 +2387,284 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
             logger.info(f"  emergency_phone: '{profile.emergency_contact_phone}'")
             logger.info(f"  emergency_relation: '{profile.emergency_contact_relation}'")
             
-            # Return saved values for frontend verification
-            return JsonResponse({
-                'success': True,
-                'message': 'Profile updated successfully',
-                'saved': {
-                    'display_name': profile.display_name,
-                    'country': str(profile.country) if profile.country else '',
-                    'city': profile.city,
-                    'postal_code': profile.postal_code,
-                    'address': profile.address,
-                    'gender': profile.gender,
-                    'phone': profile.phone,
-                    'whatsapp': profile.whatsapp,
-                    'secondary_email': profile.secondary_email,
-                    'preferred_contact_method': profile.preferred_contact_method,
-                    'emergency_contact_name': profile.emergency_contact_name,
-                    'emergency_contact_phone': profile.emergency_contact_phone,
-                    'emergency_contact_relation': profile.emergency_contact_relation,
-                    'bio': profile.bio,
-                }
-            })
-            
-        except json.JSONDecodeError:
-            logger.error(f"[SETTINGS-DB] JSON decode error")
-            return JsonResponse({'success': False, 'message': 'Save failed', 'error': 'Invalid JSON'}, status=400)
+            return JsonResponse({'success': True})
+        
         except UserProfile.DoesNotExist:
-            logger.error(f"[SETTINGS-DB] Profile not found for user {request.user.username}")
-            return JsonResponse({'success': False, 'message': 'Save failed', 'error': 'Profile not found'}, status=404)
+            logger.error(f"[SETTINGS-DB] UserProfile not found for user: {request.user.username}")
+            return JsonResponse({'success': False, 'error': 'Profile not found'}, status=404)
         except Exception as e:
-            logger.error(f"[SETTINGS-DB] Error updating profile: {e}", exc_info=True)
-            return JsonResponse({'success': False, 'message': 'Save failed', 'error': f'Server error: {str(e)}'}, status=500)
+            logger.exception(f"[SETTINGS-DB] ERROR: {str(e)}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+
+# PHASE UP 5: Career Tab AJAX Endpoint
+def career_tab_data_api(request: HttpRequest, username: str) -> JsonResponse:
+    """
+    AJAX endpoint for loading Career Tab data for a specific game.
+    
+    GET /@username/career-data/?game=valorant
+    
+    Returns JSON payload with:
+    - identity_slots {A, B, C, D}
+    - attributes_sidebar (list of label/value pairs)
+    - stats_engine {category, tiles[]}
+    - affiliation_history with team_role_label
+    - matches_played (Slot C)
+    - accent_hex (game-specific accent color for UI)
+    
+    Used for dynamic game switching without page reload.
+    
+    PERFORMANCE OPTIMIZATIONS:
+    - Django cache (60s TTL) per user+game combination
+    - Detailed profiling with perf_counter() timings
+    - Achievement slicing to [:25] for faster payload
+    """
+    from apps.user_profile.services.career_tab_service import CareerTabService, GAME_DISPLAY_CONFIG
+    from apps.games.models import Game
+    from django.core.serializers.json import DjangoJSONEncoder
+    from django.contrib.auth import get_user_model
+    from django.core.cache import cache
+    import time
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    User = get_user_model()
+    
+    perf_start = time.perf_counter()
+    perf_timings = {}
+    
+    # Get game from query param
+    game_slug = request.GET.get('game')
+    if not game_slug:
+        return JsonResponse({'success': False, 'error': 'game parameter required'}, status=400)
+    
+    # PERFORMANCE: Check cache first (bypass with ?nocache=1 for testing)
+    cache_key = f"career:{username}:{game_slug}"
+    if not request.GET.get('nocache'):
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            total_ms = (time.perf_counter() - perf_start) * 1000
+            logger.info(f"[CAREER] user={username} game={game_slug} total_ms={total_ms:.1f} source=CACHE")
+            return JsonResponse(cached_data, encoder=DjangoJSONEncoder)
+    
+    # Get user (OPTIMIZED: only fetch needed fields)
+    step_start = time.perf_counter()
+    try:
+        profile_user = User.objects.only('id', 'username').get(username=username)
+        user_profile = UserProfile.objects.only('id', 'user_id').select_related('user').get(user=profile_user)
+    except (User.DoesNotExist, UserProfile.DoesNotExist):
+        return JsonResponse({'success': False, 'error': 'User not found'}, status=404)
+    perf_timings['user_ms'] = (time.perf_counter() - step_start) * 1000
+    
+    # Get game
+    step_start = time.perf_counter()
+    try:
+        game = Game.objects.only('id', 'slug', 'display_name', 'logo', 'banner').get(slug=game_slug)
+    except Game.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Game not found'}, status=404)
+    perf_timings['game_ms'] = (time.perf_counter() - step_start) * 1000
+    
+    # Game-specific accent colors (Issue #2)
+    GAME_ACCENT_MAP = {
+        'valorant': '#ff4655',
+        'efootball': '#3b82f6',
+        'ea-fc': '#10b981',
+        'pubgm': '#f97316',
+        'dota2': '#b91c1c',
+        'cs2': '#fbbf24',
+        'codm': '#f59e0b',
+        'mlbb': '#8b5cf6',
+        'freefire': '#ef4444',
+        'rocketleague': '#0ea5e9',
+        'r6siege': '#6366f1',
+    }
+    accent_hex = GAME_ACCENT_MAP.get(game_slug, '#00f0ff')  # Default: cyan
+    
+    # Build career data using GAME_DISPLAY_CONFIG
+    try:
+        # PERFORMANCE: Profile each service call
+        step_start = time.perf_counter()
+        passport = CareerTabService.get_game_passport(user_profile, game)
+        perf_timings['passport_ms'] = (time.perf_counter() - step_start) * 1000
+        
+        step_start = time.perf_counter()
+        matches_played = CareerTabService.get_matches_played(profile_user, game)
+        perf_timings['matches_ms'] = (time.perf_counter() - step_start) * 1000
+        
+        step_start = time.perf_counter()
+        team_history = CareerTabService.get_team_affiliation_history(user_profile, game)
+        perf_timings['teams_ms'] = (time.perf_counter() - step_start) * 1000
+        
+        step_start = time.perf_counter()
+        achievements = CareerTabService.get_achievements(user_profile, game)
+        # PERFORMANCE: Limit achievements to 25 for faster response
+        achievements = achievements[:25] if achievements else []
+        perf_timings['ach_ms'] = (time.perf_counter() - step_start) * 1000
+        
+        # Resolve game assets
+        game_assets = CareerTabService.resolve_game_assets(game)
+        
+        # Get game config
+        config = GAME_DISPLAY_CONFIG.get(game.slug, {})
+        category = config.get('category', 'shooter')
+        
+        # === IDENTITY SLOTS A/B/C/D (Following Career Page Design.md exactly) ===
+        identity_config = config.get('identity', {})
+        
+        # Slot A: Primary identifier (Riot ID, IGN, Username)
+        slot_a_label = identity_config.get('primary_label', 'In-Game Name')
+        slot_a_value = 'N/A'
+        if passport:
+            primary_resolver = identity_config.get('primary_field')
+            if primary_resolver and callable(primary_resolver):
+                try:
+                    slot_a_value = primary_resolver(passport) or 'N/A'
+                except:
+                    slot_a_value = passport.in_game_name or passport.ign or 'N/A'
+            else:
+                slot_a_value = passport.in_game_name or passport.ign or 'N/A'
+        
+        # Slot B: Context badge (Region, Server, Platform)
+        slot_b_label = identity_config.get('context_label', 'Region')
+        slot_b_value = 'Not Set'
+        if passport:
+            context_resolver = identity_config.get('context_field')
+            if context_resolver and callable(context_resolver):
+                try:
+                    slot_b_value = context_resolver(passport) or 'Not Set'
+                except:
+                    slot_b_value = getattr(passport, 'region', None) or 'Not Set'
+            else:
+                slot_b_value = getattr(passport, 'region', None) or 'Not Set'
+        
+        # Slot C: Matches Played (NEW - from Tournament app)
+        slot_c_label = 'Matches Played'
+        slot_c_value = matches_played
+        
+        # Slot D: Standing (Current Rank/Division/Rating)
+        standing_config = config.get('standing', {})
+        slot_d_label = standing_config.get('standing_label', 'Current Rank')
+        slot_d_value = 'Unranked'
+        slot_d_icon_url = None
+        
+        if passport:
+            standing_resolver = standing_config.get('standing_field')
+            if standing_resolver and callable(standing_resolver):
+                try:
+                    slot_d_value = standing_resolver(passport) or 'Unranked'
+                except:
+                    slot_d_value = passport.rank_name or 'Unranked'
+            else:
+                slot_d_value = passport.rank_name or 'Unranked'
+            
+            # Rank icon
+            if hasattr(passport, 'rank_image') and passport.rank_image:
+                slot_d_icon_url = passport.rank_image.url
+            elif passport.rank_tier and passport.rank_tier > 0:
+                slot_d_icon_url = f"/static/images/ranks/{game.slug}/tier-{passport.rank_tier}.png"
+        
+        identity_slots = {
+            'A': {'label': slot_a_label, 'value': slot_a_value},
+            'B': {'label': slot_b_label, 'value': slot_b_value},
+            'C': {'label': slot_c_label, 'value': slot_c_value},
+            'D': {'label': slot_d_label, 'value': slot_d_value, 'icon_url': slot_d_icon_url}
+        }
+        
+        # === ATTRIBUTES SIDEBAR (Replaces single "Player Role" card) ===
+        attributes_sidebar = []
+        sidebar_config = config.get('attributes_sidebar', [])
+        
+        if passport:
+            for attr in sidebar_config:
+                label = attr.get('label', '')
+                resolver = attr.get('resolver')
+                hide_if_empty = attr.get('hide_if_empty', True)
+                
+                value = None
+                if resolver and callable(resolver):
+                    try:
+                        value = resolver(passport)
+                    except:
+                        value = None
+                
+                # Skip if empty and hide_if_empty=True
+                if hide_if_empty and (value is None or value == '' or value == '--'):
+                    continue
+                
+                attributes_sidebar.append({
+                    'label': label,
+                    'value': str(value) if value is not None else '--'
+                })
+        
+        # === STATS ENGINE (Category-aware: shooter/tactician/athlete) ===
+        stat_tiles = CareerTabService.get_stat_tiles_data(passport, game, profile_user) if passport else []
+        
+        stats_engine = {
+            'category': category,
+            'tiles': stat_tiles
+        }
+        
+        # === AFFILIATION HISTORY (with team_role_label) ===
+        # team_history already has team_role_label from updated get_team_affiliation_history
+        
+        # === MATCH HISTORY (achievements) ===
+        formatted_achievements = []
+        for ach in achievements:
+            formatted_ach = dict(ach)
+            formatted_ach['prize_formatted'] = CareerTabService.format_prize_amount(ach.get('prize_amount', 0))
+            formatted_achievements.append(formatted_ach)
+        
+        # === FINAL PAYLOAD ===
+        career_data = {
+            'game': {
+                'slug': game.slug,
+                'name': game.display_name,
+                'logo_url': game_assets['logo_url'],
+                'banner_url': game_assets['banner_url'],
+                'accent_hex': accent_hex  # NEW: for CSS variable --career-accent
+            },
+            'identity_slots': identity_slots,
+            'attributes_sidebar': attributes_sidebar,
+            'stats_engine': stats_engine,
+            'affiliation_history': team_history,
+            'match_history': formatted_achievements,
+            # Legacy fields for backward compatibility (remove after frontend updated)
+            'passport': {
+                'in_game_name': passport.in_game_name if passport else None,
+                'rank_name': passport.rank_name if passport else 'Unranked',
+            } if passport else None,
+            'standing': {
+                'label': slot_d_label,
+                'value': slot_d_value,
+                'icon_url': slot_d_icon_url,
+                'secondary': None
+            },
+            'matches_played': matches_played,
+        }
+        
+        # PERFORMANCE: Cache the response for 60 seconds
+        cache.set(cache_key, career_data, 60)
+        
+        # PERFORMANCE: Log detailed timing breakdown
+        total_ms = (time.perf_counter() - perf_start) * 1000
+        logger.info(
+            f"[CAREER] user={username} game={game_slug} "
+            f"total_ms={total_ms:.1f} "
+            f"user_ms={perf_timings.get('user_ms', 0):.1f} "
+            f"game_ms={perf_timings.get('game_ms', 0):.1f} "
+            f"passport_ms={perf_timings.get('passport_ms', 0):.1f} "
+            f"teams_ms={perf_timings.get('teams_ms', 0):.1f} "
+            f"ach_ms={perf_timings.get('ach_ms', 0):.1f} "
+            f"matches_ms={perf_timings.get('matches_ms', 0):.1f}"
+        )
+        
+        return JsonResponse(career_data, encoder=DjangoJSONEncoder)
+    
+    except Exception as e:
+        logger.exception(f"Career tab API error for {username}/{game_slug}: {str(e)}")
+        return JsonResponse({'error': 'Failed to load career data'}, status=500)
 
 
 # HOTFIX (Post-C2): update_social_links function removed

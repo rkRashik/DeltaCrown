@@ -1,0 +1,522 @@
+<div class="space-y-6">
+    
+    <!-- Sticky Game Selector Bar - Dynamic from backend -->
+    <div class="glass-panel p-2 rounded-xl flex items-center gap-2 overflow-x-auto scrollbar-hide sticky top-4 z-30 shadow-2xl">
+        {% if career_linked_games %}
+            {% for game_item in career_linked_games %}
+            <button onclick="switchCareerGame('{{ game_item.game_slug }}', this)" 
+                    class="game-btn {% if forloop.first %}active{% endif %} shrink-0 px-4 py-2 rounded-lg border border-transparent text-gray-400 hover:text-white font-bold text-xs uppercase transition flex items-center gap-2"
+                    data-game-slug="{{ game_item.game_slug }}">
+                <i class="fa-solid fa-gamepad text-{{ game_item.game_slug }}-color"></i> {{ game_item.game_name }}
+            </button>
+            {% endfor %}
+        {% else %}
+            <div class="text-gray-500 text-sm p-4">No game passports linked yet</div>
+        {% endif %}
+    </div>
+
+    <!-- Dynamic Content Container -->
+    <div id="career-content-area">
+        {% if career_payload_initial %}
+        <!-- Official Passport Card -->
+        <div class="relative rounded-2xl overflow-hidden group border border-white/10 shadow-2xl">
+            <div class="absolute inset-0 bg-gradient-to-r from-z-panel to-black"></div>
+            <div id="game-bg" class="absolute inset-0 opacity-20 bg-cover bg-center transition-all duration-500" style="background-image: none;"></div>
+            
+            <div class="relative p-8 flex flex-col md:flex-row justify-between items-end gap-6">
+                <div class="flex items-start gap-6">
+                    <div class="w-24 h-24 bg-black/50 backdrop-blur rounded-2xl flex items-center justify-center border border-white/10 shadow-lg text-5xl">
+                        <i id="game-icon" class="fa-solid fa-gamepad"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span id="game-name" class="text-2xl font-black text-white uppercase tracking-tighter">{{ career_payload_initial.game_name }}</span>
+                            {% if career_payload_initial.passport %}
+                            <span class="px-2 py-0.5 rounded bg-z-cyan/20 text-z-cyan text-[10px] font-bold border border-z-cyan/30">VERIFIED</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-4xl font-mono font-bold text-white mb-2" id="ign-display">
+                            {% if career_payload_initial.passport %}
+                                {{ career_payload_initial.passport.in_game_name|default:profile_user.username }}
+                            {% else %}
+                                {{ profile_user.username }}
+                            {% endif %}
+                        </div>
+                        <div class="flex gap-4 text-xs text-gray-400 font-bold uppercase tracking-wider" id="passport-meta">
+                            {% for attr in career_payload_initial.display_attributes %}
+                                {% if attr.label != 'IGN' and attr.label != 'Rank' and attr.label != 'Peak Rank' %}
+                                <span class="flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> {{ attr.value }}</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-right">
+                    <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Current Standing</div>
+                    <div class="text-3xl font-display font-black text-white flex items-center justify-end gap-2" id="rank-display">
+                        <i class="fa-solid fa-medal text-z-gold"></i> 
+                        <span id="rank-name">
+                            {% if career_payload_initial.passport and career_payload_initial.passport.rank_name %}
+                                {{ career_payload_initial.passport.rank_name }}
+                            {% else %}
+                                Unranked
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="text-xs text-z-green font-bold mt-1" id="rank-percentile">
+                        {% if career_payload_initial.team_ranking %}
+                            Rank #{{ career_payload_initial.team_ranking.rank|default:"--" }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-4 gap-4" id="stats-grid">
+            <div class="glass-panel p-4 rounded-xl border-t-2 border-z-red text-center">
+                <div class="text-[9px] text-gray-400 uppercase font-bold">Matches Played</div>
+                <div class="text-2xl font-display font-bold text-white" id="stat-matches">{{ career_payload_initial.matches_played|default:0 }}</div>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border-t-2 border-z-cyan text-center">
+                <div class="text-[9px] text-gray-400 uppercase font-bold">Team Rank</div>
+                <div class="text-2xl font-display font-bold text-white" id="stat-team-rank">
+                    {% if career_payload_initial.team_ranking %}
+                        #{{ career_payload_initial.team_ranking.rank|default:"--" }}
+                    {% else %}
+                        --
+                    {% endif %}
+                </div>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border-t-2 border-z-purple text-center">
+                <div class="text-[9px] text-gray-400 uppercase font-bold">Tournaments</div>
+                <div class="text-2xl font-display font-bold text-white" id="stat-tournaments">{{ career_payload_initial.achievements|length|default:0 }}</div>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border-t-2 border-z-gold text-center">
+                <div class="text-[9px] text-gray-400 uppercase font-bold">Team ELO</div>
+                <div class="text-2xl font-display font-bold text-white" id="stat-elo">
+                    {% if career_payload_initial.team_ranking %}
+                        {{ career_payload_initial.team_ranking.elo_rating }}
+                    {% else %}
+                        --
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        </div>
+        <div class="md:col-span-2 glass-panel p-6 rounded-2xl">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Affiliation History</h3>
+            <a href="#" class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 mb-2 hover:bg-white/10 transition">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded bg-white text-black font-bold flex items-center justify-center">TL</div>
+                    <span class="text-white font-bold text-sm">Team Liquid</span>
+                </div>
+                <span class="text-xs text-z-green font-bold">Active</span>
+            </a>
+            <a href="#" class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded bg-gray-700 text-white font-bold flex items-center justify-center">G2</div>
+                    <span class="text-gray-300 font-bold text-sm">G2 Esports</span>
+                </div>
+                <span class="text-xs text-gray-500">2022-2023</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Adaptive Layout Engine: ATHLETE -->
+    <div id="layout-athlete" class="layout-engine grid grid-cols-1 md:grid-cols-12 gap-6 hidden">
+        <div class="md:col-span-8 glass-panel p-6 rounded-2xl relative overflow-hidden">
+            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/grass.png')] opacity-10 bg-green-900"></div>
+            <div class="relative z-10 flex justify-between items-center">
+                <div>
+                    <div class="text-xs text-green-400 font-bold uppercase mb-1">Goals Scored</div>
+                    <div class="text-4xl font-display font-black text-white">842</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs text-blue-400 font-bold uppercase mb-1">Assists</div>
+                    <div class="text-4xl font-display font-black text-white">315</div>
+                </div>
+            </div>
+            <div class="mt-6 grid grid-cols-3 gap-4 text-center">
+                <div class="p-3 bg-black/20 rounded-lg border border-white/5">
+                    <div class="text-[9px] text-gray-400 uppercase">Win Rate</div>
+                    <div class="text-xl font-bold text-white">72%</div>
+                </div>
+                <div class="p-3 bg-black/20 rounded-lg border border-white/5">
+                    <div class="text-[9px] text-gray-400 uppercase">Clean Sheets</div>
+                    <div class="text-xl font-bold text-white">108</div>
+                </div>
+                <div class="p-3 bg-black/20 rounded-lg border border-white/5">
+                    <div class="text-[9px] text-gray-400 uppercase">Form</div>
+                    <div class="flex justify-center gap-1 mt-1">
+                        <span class="w-2 h-2 bg-z-green rounded-full"></span>
+                        <span class="w-2 h-2 bg-z-green rounded-full"></span>
+                        <span class="w-2 h-2 bg-z-red rounded-full"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="md:col-span-4 glass-panel p-1 rounded-2xl border border-z-gold/30 bg-gradient-to-b from-z-gold/10 to-transparent">
+            <div class="h-full flex flex-col items-center justify-center p-6 text-center">
+                <i class="fa-solid fa-shirt text-4xl text-z-gold mb-3"></i>
+                <h3 class="text-white font-bold">Striker (ST)</h3>
+                <p class="text-xs text-gray-400 mt-2">Clinical Finisher</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Adaptive Layout Engine: TACTICIAN -->
+    <div id="layout-tactician" class="layout-engine grid grid-cols-1 md:grid-cols-4 gap-6 hidden">
+        <div class="md:col-span-4 glass-panel p-6 rounded-2xl">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Signature Heroes</h3>
+            <div class="flex gap-4">
+                <div class="text-center group">
+                    <div class="w-16 h-16 rounded-full bg-z-purple border-2 border-white/20 overflow-hidden shadow-lg group-hover:scale-110 transition">
+                        <img src="https://via.placeholder.com/150/7B2CBF/FFFFFF?text=H1" class="w-full h-full object-cover">
+                    </div>
+                    <div class="text-[10px] text-white font-bold mt-2 uppercase">Carry</div>
+                </div>
+                <div class="text-center group">
+                    <div class="w-16 h-16 rounded-full bg-gray-700 border-2 border-white/10 overflow-hidden group-hover:scale-110 transition">
+                        <img src="https://via.placeholder.com/150/333333/FFFFFF?text=H2" class="w-full h-full object-cover">
+                    </div>
+                    <div class="text-[10px] text-gray-400 font-bold mt-2 uppercase">Mid</div>
+                </div>
+            </div>
+        </div>
+        <div class="md:col-span-2 glass-panel p-5 rounded-xl border-l-4 border-z-purple">
+            <div class="text-[9px] text-gray-400 uppercase font-bold">GPM (Gold/Min)</div>
+            <div class="text-3xl font-display font-bold text-white">780</div>
+        </div>
+        <div class="md:col-span-2 glass-panel p-5 rounded-xl border-l-4 border-z-cyan">
+            <div class="text-[9px] text-gray-400 uppercase font-bold">KDA Ratio</div>
+            <div class="text-3xl font-display font-bold text-white">6.4</div>
+        </div>
+    </div>
+
+    <!-- Universal Tournament Log -->
+    <div class="glass-panel rounded-2xl overflow-hidden mt-8">
+        <div class="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/5">
+            <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                <i class="fa-solid fa-list text-gray-500"></i> Match History
+            </h3>
+            <button class="text-[10px] bg-black/40 hover:bg-white/10 px-3 py-1 rounded text-white border border-white/10 transition">Filter</button>
+        </div>
+        <!-- Team Affiliation History -->
+        <div class="glass-panel p-6 rounded-2xl">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-display font-black text-white uppercase flex items-center gap-2">
+                    <i class="fa-solid fa-users text-z-cyan"></i> Team History
+                </h2>
+            </div>
+            <div class="space-y-3" id="team-history-list">
+                {% if career_payload_initial.team_history %}
+                    {% for membership in career_payload_initial.team_history %}
+                    <div class="flex items-center justify-between p-4 rounded-lg border border-white/10 hover:border-z-cyan/50 transition bg-black/20">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-z-panel rounded-lg flex items-center justify-center border border-white/10">
+                                <span class="font-bold text-white">{{ membership.team_tag }}</span>
+                            </div>
+                            <div>
+                                <div class="text-white font-bold">{{ membership.team_name }}</div>
+                                <div class="text-xs text-gray-400">{{ membership.role }} • {{ membership.duration_label }}</div>
+                            </div>
+                        </div>
+                        {% if membership.is_active %}
+                        <span class="px-3 py-1 rounded-full bg-z-green/10 text-z-green text-xs font-bold border border-z-green/20">
+                            Active
+                        </span>
+                        {% else %}
+                        <span class="px-3 py-1 rounded-full bg-gray-500/10 text-gray-500 text-xs font-bold border border-gray-500/20">
+                            Past
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fa-solid fa-user-slash text-3xl mb-2"></i>
+                        <p>No team history available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tournament Achievements -->
+        <div class="glass-panel p-6 rounded-2xl">
+            <h2 class="text-xl font-display font-black text-white uppercase mb-6 flex items-center gap-2">
+                <i class="fa-solid fa-trophy text-z-gold"></i> Tournament History
+            </h2>
+            <div class="overflow-hidden rounded-lg border border-white/10" id="achievements-table">
+                {% if career_payload_initial.achievements %}
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-black/20 text-[10px] uppercase text-gray-500 font-bold">
+                        <tr>
+                            <th class="px-6 py-3">Tournament</th>
+                            <th class="px-6 py-3">Result</th>
+                            <th class="px-6 py-3 text-right">Prize</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        {% for achievement in career_payload_initial.achievements %}
+                        <tr class="hover:bg-white/5 transition group cursor-pointer">
+                            <td class="px-6 py-4">
+                                <div class="text-white font-bold group-hover:text-z-cyan transition">{{ achievement.tournament_name }}</div>
+                                <div class="text-[10px] text-gray-500">{{ achievement.date|date:"M d, Y" }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if achievement.placement == 1 %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-gold/10 text-z-gold text-xs font-bold border border-z-gold/20">
+                                    <i class="fa-solid fa-trophy"></i> 1st Place
+                                </span>
+                                {% elif achievement.placement == 2 %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-400/10 text-gray-400 text-xs font-bold border border-gray-400/20">
+                                    <i class="fa-solid fa-medal"></i> 2nd Place
+                                </span>
+                                {% elif achievement.placement == 3 %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-bold border border-orange-500/20">
+                                    <i class="fa-solid fa-award"></i> 3rd Place
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold border border-blue-500/20">
+                                    {{ achievement.placement_label }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-right text-white font-mono font-bold">
+                                {% if achievement.prize_amount %}
+                                    ${{ achievement.prize_amount|floatformat:0 }}
+                                {% else %}
+                                    <span class="text-gray-600">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fa-solid fa-trophy text-4xl mb-3 opacity-50"></i>
+                        <p>No tournament history yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+            <div class="text-center py-12 text-gray-500">
+                <i class="fa-solid fa-gamepad text-5xl mb-4 opacity-50"></i>
+                <p class="text-lg">No game passport linked yet</p>
+                <p class="text-sm mt-2">Link a game to view career statistics</p>
+            </div>
+        {% endif %}
+    </div>
+
+<style>
+    /* Game Active State */
+    .game-btn.active {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: #00F0FF;
+        color: #fff;
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+    }
+    
+    /* Loading State */
+    .career-loading {
+        opacity: 0.5;
+        pointer-events: none;
+        position: relative;
+    }
+    
+    .career-loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(0, 240, 255, 0.2);
+        border-top-color: #00F0FF;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+</style>
+
+<script>
+    // AJAX-Based Game Switching
+    function switchCareerGame(gameSlug, buttonElement) {
+        const contentArea = document.getElementById('career-content-area');
+        const username = '{{ profile_user.username }}';
+        
+        if (!contentArea) {
+            console.warn('Career content area not found');
+            return;
+        }
+        
+        // 1. Add loading state
+        contentArea.classList.add('career-loading');
+        
+        // 2. Update button active state immediately
+        document.querySelectorAll('.game-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        buttonElement.classList.add('active');
+        
+        // 3. Fetch new career data
+        fetch(`/@${username}/career-data/?game=${gameSlug}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 4. Update passport card - with defensive guards
+                const gameNameEl = document.getElementById('game-name');
+                const ignDisplayEl = document.getElementById('ign-display');
+                const rankNameEl = document.getElementById('rank-name');
+                
+                if (data.passport) {
+                    if (gameNameEl) gameNameEl.innerText = data.passport.game_name || 'Unknown Game';
+                    if (ignDisplayEl) ignDisplayEl.innerText = data.passport.in_game_name || 'N/A';
+                    if (rankNameEl) rankNameEl.innerText = data.passport.rank_name || 'Unranked';
+                } else {
+                    if (rankNameEl) rankNameEl.innerText = 'Unranked';
+                }
+                
+                // 5. Update stats - CORRECTED SELECTORS
+                const statMatchesEl = document.getElementById('stat-matches');
+                const statTeamRankEl = document.getElementById('stat-team-rank');
+                const statEloEl = document.getElementById('stat-elo');
+                const statTournamentsEl = document.getElementById('stat-tournaments');
+                
+                if (statMatchesEl) statMatchesEl.innerText = data.matches_played || 0;
+                
+                if (data.team_ranking) {
+                    if (statTeamRankEl) statTeamRankEl.innerText = '#' + (data.team_ranking.rank || '--');
+                    if (statEloEl) statEloEl.innerText = data.team_ranking.elo_rating || '--';
+                } else {
+                    if (statTeamRankEl) statTeamRankEl.innerText = '--';
+                    if (statEloEl) statEloEl.innerText = '--';
+                }
+                
+                if (statTournamentsEl) statTournamentsEl.innerText = data.achievements ? data.achievements.length : 0;
+                
+                // 6. Update team history
+                updateTeamHistory(data.team_history || []);
+                
+                // 7. Update achievements table
+                updateAchievementsTable(data.achievements || []);
+                
+                // 8. Remove loading state
+                contentArea.classList.remove('career-loading');
+            })
+            .catch(error => {
+                console.error('Career data fetch failed:', error);
+                contentArea.classList.remove('career-loading');
+                alert('Failed to load career data. Please try again.');
+            });
+    }
+    
+    // Helper: Update team history DOM
+    function updateTeamHistory(teamHistory) {
+        const container = document.getElementById('team-history-list');
+        if (!container) {
+            console.warn('Team history container not found');
+            return;
+        }
+        
+        if (!teamHistory || teamHistory.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fa-solid fa-user-slash text-3xl mb-2"></i>
+                    <p>No team history available</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = teamHistory.map(membership => `
+            <div class="flex items-center justify-between p-4 rounded-lg border border-white/10 hover:border-z-cyan/50 transition bg-black/20">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-z-panel rounded-lg flex items-center justify-center border border-white/10">
+                        <span class="font-bold text-white">${membership.team_tag || 'TBD'}</span>
+                    </div>
+                    <div>
+                        <div class="text-white font-bold">${membership.team_name || 'Unknown Team'}</div>
+                        <div class="text-xs text-gray-400">${membership.role || 'Member'} • ${membership.duration_label || 'N/A'}</div>
+                    </div>
+                </div>
+                ${membership.is_active ? 
+                    `<span class="px-3 py-1 rounded-full bg-z-green/10 text-z-green text-xs font-bold border border-z-green/20">Active</span>` :
+                    `<span class="px-3 py-1 rounded-full bg-gray-500/10 text-gray-500 text-xs font-bold border border-gray-500/20">Past</span>`
+                }
+            </div>
+        `).join('');
+    }
+    
+    // Helper: Update achievements table DOM
+    function updateAchievementsTable(achievements) {
+        const container = document.getElementById('achievements-table');
+        if (!container) {
+            console.warn('Achievements table container not found');
+            return;
+        }
+        
+        if (!achievements || achievements.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-12 text-gray-500">
+                    <i class="fa-solid fa-trophy text-4xl mb-3 opacity-50"></i>
+                    <p>No tournament history yet</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const rows = achievements.map(achievement => {
+            let placementBadge;
+            if (achievement.placement === 1) {
+                placementBadge = '<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-z-gold/10 text-z-gold text-xs font-bold border border-z-gold/20"><i class="fa-solid fa-trophy"></i> 1st Place</span>';
+            } else if (achievement.placement === 2) {
+                placementBadge = '<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-400/10 text-gray-400 text-xs font-bold border border-gray-400/20"><i class="fa-solid fa-medal"></i> 2nd Place</span>';
+            } else if (achievement.placement === 3) {
+                placementBadge = '<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-bold border border-orange-500/20"><i class="fa-solid fa-award"></i> 3rd Place</span>';
+            } else {
+                placementBadge = `<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold border border-blue-500/20">${achievement.placement_label || 'Participated'}</span>`;
+            }
+            
+            return `
+                <tr class="hover:bg-white/5 transition group cursor-pointer">
+                    <td class="px-6 py-4">
+                        <div class="text-white font-bold group-hover:text-z-cyan transition">${achievement.tournament_name || 'Unknown Tournament'}</div>
+                        <div class="text-[10px] text-gray-500">${achievement.date || 'N/A'}</div>
+                    </td>
+                    <td class="px-6 py-4">${placementBadge}</td>
+                    <td class="px-6 py-4 text-right text-white font-mono font-bold">
+                        ${achievement.prize_amount ? `$${Math.round(achievement.prize_amount)}` : '<span class="text-gray-600">-</span>'}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+        container.innerHTML = `
+            <table class="w-full text-left text-sm">
+                <thead class="bg-black/20 text-[10px] uppercase text-gray-500 font-bold">
+                    <tr>
+                        <th class="px-6 py-3">Tournament</th>
+                        <th class="px-6 py-3">Result</th>
+                        <th class="px-6 py-3 text-right">Prize</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    ${rows}
+                </tbody>
+            </table>
+        `;
+    }
+</script>
