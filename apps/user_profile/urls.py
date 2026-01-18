@@ -24,7 +24,9 @@ from .views.public_profile_views import (
     update_basic_info,
     # HOTFIX (Post-C2): update_social_links removed - legacy function deleted
     # PHASE UP 5: Career Tab AJAX endpoint
-    career_tab_data_api
+    career_tab_data_api,
+    # UP PHASE 6: Highlights endpoints
+    highlight_upload, highlight_delete, highlight_pin
 )
 # GP-FE-MVP-01: Game Passport API
 from .views.passport_api import (
@@ -311,6 +313,11 @@ urlpatterns = [
     path("api/profile/showcase/featured-passport/", set_featured_passport, name="set_featured_passport"),
     path("api/profile/showcase/highlights/add/", add_showcase_highlight, name="add_showcase_highlight"),
     path("api/profile/showcase/highlights/remove/", remove_showcase_highlight, name="remove_showcase_highlight"),
+    
+    # UP PHASE 6: Highlights APIs
+    path("api/profile/highlights/upload/", highlight_upload, name="highlight_upload"),
+    path("api/profile/highlights/<int:clip_id>/delete/", highlight_delete, name="highlight_delete"),
+    path("api/profile/highlights/<int:clip_id>/pin/", highlight_pin, name="highlight_pin"),
     
     # UP-PHASE15: About APIs (Facebook-style About CRUD)
     path("api/profile/about/", get_about_items, name="get_about_items"),

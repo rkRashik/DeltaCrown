@@ -1,91 +1,719 @@
+{% load static %}
 <div class="space-y-8 animate-fade-in">
     
     <!-- Featured Clip Hero -->
-    <div class="relative rounded-2xl overflow-hidden group border border-z-purple/30 shadow-[0_0_50px_-10px_rgba(123,44,191,0.3)]">
-        <div class="absolute -inset-1 bg-gradient-to-r from-z-purple to-z-cyan opacity-20 blur-xl group-hover:opacity-40 transition duration-1000"></div>
-        <div class="relative aspect-video bg-black z-10 rounded-xl overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670" class="w-full h-full object-cover opacity-60 hover:scale-105 transition duration-700">
-            <div class="absolute inset-0 flex items-center justify-center group/play cursor-pointer">
-                <div class="w-24 h-24 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 group-hover/play:scale-110 group-hover/play:bg-z-purple transition shadow-2xl">
-                    <i class="fa-solid fa-play text-4xl text-white ml-2"></i>
-                </div>
-            </div>
-            <div class="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black via-black/90 to-transparent">
-                <div class="flex items-end justify-between">
-                    <div class="max-w-2xl">
-                        <div class="flex items-center gap-3 mb-3">
-                            <span class="px-2 py-0.5 rounded bg-z-red text-white text-[10px] font-bold uppercase animate-pulse">Featured Clip</span>
-                            <span class="px-2 py-0.5 rounded bg-white/10 text-white text-[10px] font-bold uppercase border border-white/10 flex items-center gap-2"><i class="fa-solid fa-trophy text-z-gold"></i> DeltaCrown Finals</span>
-                        </div>
-                        <h2 class="text-3xl md:text-5xl font-display font-black text-white mb-2 leading-none">1v5 CLUTCH • ASCENT</h2>
+    {% if pinned_highlight or highlight_clips %}
+        {% with hero_clip=pinned_highlight|default:highlight_clips.0 %}
+        <div class="relative rounded-2xl overflow-hidden group border border-z-purple/30 shadow-[0_0_50px_-10px_rgba(123,44,191,0.3)]">
+            <div class="absolute -inset-1 bg-gradient-to-r from-z-purple to-z-cyan opacity-20 blur-xl group-hover:opacity-40 transition duration-1000"></div>
+            <div class="relative aspect-video bg-black z-10 rounded-xl overflow-hidden cursor-pointer" onclick="openHighlightModal('{{ hero_clip.embed_url|escapejs }}', '{{ hero_clip.title|escapejs }}', '{{ hero_clip.clip_url|escapejs }}')">
+                {% if hero_clip.thumbnail_url %}
+                <img src="{{ hero_clip.thumbnail_url }}" class="w-full h-full object-cover opacity-60 hover:scale-105 transition duration-700" alt="{{ hero_clip.title }}" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden'); this.nextElementSibling.classList.add('flex');">
+                <div class="hidden w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black items-center justify-center absolute inset-0">
+                    <div class="text-center">
+                        <i class="fa-brands fa-{{ hero_clip.platform }} text-8xl text-white/20 mb-4"></i>
+                        <p class="text-white/40 text-sm uppercase tracking-wider">{{ hero_clip.platform }} Clip</p>
                     </div>
-                    <div class="text-right hidden md:block">
-                        <div class="text-4xl font-mono font-bold text-white">245K</div>
-                        <div class="text-xs text-gray-500 uppercase font-bold tracking-widest">Views</div>
+                </div>
+                {% else %}
+                <div class="w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+                    <div class="text-center">
+                        <i class="fa-brands fa-{{ hero_clip.platform }} text-8xl text-white/20 mb-4"></i>
+                        <p class="text-white/40 text-sm uppercase tracking-wider">{{ hero_clip.platform }} Clip</p>
+                    </div>
+                </div>
+                {% endif %}
+                {% if relationship_ctx.is_owner %}
+                <div class="absolute top-4 right-4 flex gap-2 z-50" onclick="event.stopPropagation()">
+                    <button onclick="pinClip({{ hero_clip.id }}); event.stopPropagation();" class="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-red hover:scale-110 transition shadow-lg" title="{% if hero_clip.is_pinned %}Already pinned{% else %}Pin as featured{% endif %}">
+                        <i class="fa-solid fa-thumbtack text-white {% if hero_clip.is_pinned %}text-z-red{% endif %}"></i>
+                    </button>
+                    <button onclick="deleteClip({{ hero_clip.id }}); event.stopPropagation();" class="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-red hover:scale-110 transition shadow-lg" title="Delete clip">
+                        <i class="fa-solid fa-trash text-white"></i>
+                    </button>
+                </div>
+                {% endif %}
+                <div class="absolute inset-0 flex items-center justify-center group/play">
+                    <div class="w-24 h-24 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 group-hover/play:scale-110 group-hover/play:bg-z-purple transition shadow-2xl">
+                        <i class="fa-solid fa-play text-4xl text-white ml-2"></i>
+                    </div>
+                </div>
+                <div class="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black via-black/90 to-transparent">
+                    <div class="flex items-end justify-between">
+                        <div class="max-w-2xl">
+                            <div class="flex items-center gap-3 mb-3">
+                                {% if pinned_highlight and hero_clip.id == pinned_highlight.id %}
+                                <span class="px-2 py-0.5 rounded bg-z-red text-white text-[10px] font-bold uppercase animate-pulse">Featured Clip</span>
+                                {% endif %}
+                                {% if hero_clip.game %}
+                                <span class="px-2 py-0.5 rounded bg-white/10 text-white text-[10px] font-bold uppercase border border-white/10 flex items-center gap-2"><i class="fa-solid fa-gamepad"></i> {{ hero_clip.game }}</span>
+                                {% else %}
+                                <span class="px-2 py-0.5 rounded bg-white/10 text-white text-[10px] font-bold uppercase border border-white/10">Highlight</span>
+                                {% endif %}
+                            </div>
+                            <h2 class="text-3xl md:text-5xl font-display font-black text-white mb-2 leading-none">{{ hero_clip.title }}</h2>
+                        </div>
+                        <div class="text-right hidden md:block">
+                            <div class="text-sm font-bold text-gray-400 uppercase tracking-widest">{{ hero_clip.platform|title }}</div>
+                            <div class="text-xs text-gray-500 mt-1">{{ hero_clip.created_at|timesince }} ago</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+        {% endwith %}
+    {% else %}
+        <!-- Empty State Hero -->
+        <div class="relative rounded-2xl overflow-hidden border border-white/10">
+            <div class="relative aspect-video bg-gradient-to-br from-gray-900 to-black z-10 rounded-xl overflow-hidden flex items-center justify-center">
+                <div class="text-center px-8">
+                    <div class="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10">
+                        <i class="fa-solid fa-video text-4xl text-gray-600"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-display font-black text-gray-400 mb-2">No highlights yet</h2>
+                    <p class="text-gray-600 text-sm">{% if relationship_ctx.is_owner %}Upload your first clip to showcase your best moments{% else %}No clips have been shared yet{% endif %}</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 
     <!-- Filters and Upload -->
-    <div class="flex justify-between items-center gap-4">
-        <div class="flex gap-2 bg-white/5 p-1 rounded-lg">
-            <button class="px-4 py-2 rounded bg-white/10 text-white text-xs font-bold uppercase hover:bg-white/20 transition">All Clips</button>
-            <button class="px-4 py-2 rounded text-gray-400 text-xs font-bold uppercase hover:text-white hover:bg-white/5 transition">Valorant</button>
+    <div class="flex justify-between items-center gap-4 flex-wrap">
+        <div class="flex gap-2 bg-white/5 p-1 rounded-lg flex-wrap" id="highlights-filters">
+            <button class="highlight-filter-btn px-4 py-2 rounded bg-white/10 text-white text-xs font-bold uppercase hover:bg-white/20 transition active" data-game="all">All Clips</button>
+            {% for game in highlight_games %}
+            <button class="highlight-filter-btn px-4 py-2 rounded text-gray-400 text-xs font-bold uppercase hover:text-white hover:bg-white/5 transition" data-game="{{ game.slug }}">{{ game.name }}</button>
+            {% endfor %}
         </div>
         {% if relationship_ctx.is_owner %}
-        <button class="bg-z-cyan text-black px-6 py-2 rounded-lg font-bold text-xs uppercase shadow-neon-cyan hover:bg-white transition flex items-center gap-2">
+        <button onclick="showUploadPlaceholder()" class="bg-z-cyan text-black px-6 py-2 rounded-lg font-bold text-xs uppercase shadow-neon-cyan hover:bg-white transition flex items-center gap-2">
             <i class="fa-solid fa-cloud-arrow-up"></i> Upload Clip
         </button>
         {% endif %}
     </div>
 
     <!-- Clips Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="glass-panel p-0 rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-z-cyan/50 transition">
+    {% if highlight_clips %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="highlights-grid">
+        {% for clip in highlight_clips %}
+        <div class="highlight-card glass-panel p-0 rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-z-cyan/50 transition" data-game-slug="{% if clip.game_slug %}{{ clip.game_slug }}{% else %}unknown{% endif %}" data-clip-id="{{ clip.id }}" onclick="openHighlightModal('{{ clip.embed_url|escapejs }}', '{{ clip.title|escapejs }}', '{{ clip.clip_url|escapejs }}')">
             <div class="relative aspect-video bg-black">
-                <img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=500" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500">
-                <div class="absolute top-2 left-2 bg-z-cyan text-black px-2 py-0.5 rounded text-[10px] font-bold uppercase">Ace</div>
-                <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white">0:45</div>
+                {% if clip.thumbnail_url %}
+                <img src="{{ clip.thumbnail_url }}" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500" alt="{{ clip.title }}" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden'); this.nextElementSibling.classList.add('flex');">
+                <div class="hidden w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black items-center justify-center absolute inset-0">
+                    <i class="fa-brands fa-{{ clip.platform }} text-4xl text-white/20"></i>
+                </div>
+                {% else %}
+                <div class="w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+                    <i class="fa-brands fa-{{ clip.platform }} text-4xl text-white/20"></i>
+                </div>
+                {% endif %}
+                <div class="absolute top-2 left-2 flex items-center gap-2">
+                    <span class="bg-{{ clip.platform }}-badge text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase">{{ clip.platform|title }}</span>
+                    {% if clip.is_pinned %}
+                    <span class="bg-z-red text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase animate-pulse flex items-center gap-1"><i class="fa-solid fa-thumbtack"></i> Pinned</span>
+                    {% endif %}
+                </div>
+                {% if relationship_ctx.is_owner %}
+                <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition z-30" onclick="event.stopPropagation()">
+                    <button onclick="pinClip({{ clip.id }}); event.stopPropagation();" class="w-8 h-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-cyan hover:scale-110 transition shadow-lg" title="{% if clip.is_pinned %}Already pinned{% else %}Pin as featured{% endif %}">
+                        <i class="fa-solid fa-thumbtack text-xs text-white"></i>
+                    </button>
+                    <button onclick="deleteClip({{ clip.id }}); event.stopPropagation();" class="w-8 h-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-red hover:scale-110 transition shadow-lg" title="Delete clip">
+                        <i class="fa-solid fa-trash text-xs text-white"></i>
+                    </button>
+                </div>
+                {% endif %}
             </div>
             <div class="p-4">
-                <h4 class="text-white font-bold text-sm truncate group-hover:text-z-cyan transition">Operator 4k Hold Site B</h4>
+                <h4 class="text-white font-bold text-sm truncate group-hover:text-z-cyan transition">{{ clip.title }}</h4>
                 <div class="mt-2 flex items-center gap-2 text-[10px] text-gray-500">
-                    <span class="bg-white/5 px-2 py-0.5 rounded border border-white/5">Scrim</span>
-                    <span>• 2 days ago</span>
+                    {% if clip.game %}
+                    <span class="bg-white/5 px-2 py-0.5 rounded border border-white/5">{{ clip.game }}</span>
+                    <span>•</span>
+                    {% endif %}
+                    <span>{{ clip.created_at|timesince }} ago</span>
                 </div>
             </div>
         </div>
+        {% endfor %}
+    </div>
+    {% elif not pinned_highlight %}
+    <!-- Empty State Grid -->
+    <div class="text-center py-16">
+        <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
+            <i class="fa-solid fa-video text-3xl text-gray-600"></i>
+        </div>
+        <p class="text-gray-500 text-sm">{% if relationship_ctx.is_owner %}Add your first highlight clip to get started{% else %}No clips available{% endif %}</p>
+    </div>
+    {% endif %}
+</div>
 
-        <div class="glass-panel p-0 rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-z-cyan/50 transition">
-            <div class="relative aspect-video bg-black">
-                <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=500" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500">
-                <div class="absolute top-2 left-2 bg-z-purple text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase">Clutch</div>
-                <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white">1:23</div>
-            </div>
-            <div class="p-4">
-                <h4 class="text-white font-bold text-sm truncate group-hover:text-z-cyan transition">Insane Sheriff 3k</h4>
-                <div class="mt-2 flex items-center gap-2 text-[10px] text-gray-500">
-                    <span class="bg-white/5 px-2 py-0.5 rounded border border-white/5">Ranked</span>
-                    <span>• 5 days ago</span>
+<!-- Highlight Modal Player -->
+<div id="highlight-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" onclick="closeHighlightModal(event)">
+    <div class="relative w-full max-w-6xl">
+        <button onclick="closeHighlightModal(event)" class="absolute -top-12 right-0 text-white hover:text-z-cyan transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="relative w-full bg-black rounded-xl overflow-hidden border border-white/20 shadow-2xl" style="padding-bottom: 56.25%;" onclick="event.stopPropagation()">
+            <iframe id="highlight-iframe" class="absolute inset-0 w-full h-full" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>
+        </div>
+        <div id="highlight-fallback" class="hidden relative w-full bg-gradient-to-br from-gray-900 to-black rounded-xl overflow-hidden border border-white/20 shadow-2xl p-12 text-center" style="padding-bottom: 56.25%;" onclick="event.stopPropagation()">
+            <div class="absolute inset-0 flex flex-col items-center justify-center p-8">
+                <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10">
+                    <i class="fa-solid fa-external-link-alt text-3xl text-gray-400"></i>
                 </div>
+                <h3 class="text-xl font-bold text-white mb-3">Cannot embed this video</h3>
+                <p class="text-gray-400 text-sm mb-6 max-w-md">This content cannot be embedded due to platform restrictions. Click below to open it in a new tab.</p>
+                <a id="highlight-fallback-link" href="#" target="_blank" rel="noopener noreferrer" class="bg-z-cyan text-black px-6 py-3 rounded-lg font-bold uppercase shadow-neon-cyan hover:bg-white transition">
+                    <i class="fa-solid fa-external-link-alt mr-2"></i>Open on Platform
+                </a>
             </div>
         </div>
-
-        <div class="glass-panel p-0 rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-z-cyan/50 transition">
-            <div class="relative aspect-video bg-black">
-                <img src="https://images.unsplash.com/photo-1560419450-6e7611c30910?q=80&w=500" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500">
-                <div class="absolute top-2 left-2 bg-z-gold text-black px-2 py-0.5 rounded text-[10px] font-bold uppercase">MVP</div>
-                <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white">2:15</div>
-            </div>
-            <div class="p-4">
-                <h4 class="text-white font-bold text-sm truncate group-hover:text-z-cyan transition">Tournament Final Round</h4>
-                <div class="mt-2 flex items-center gap-2 text-[10px] text-gray-500">
-                    <span class="bg-white/5 px-2 py-0.5 rounded border border-white/5">Tournament</span>
-                    <span>• 1 week ago</span>
-                </div>
-            </div>
+        <div class="mt-4 text-center">
+            <h3 id="highlight-modal-title" class="text-white text-xl font-bold"></h3>
         </div>
     </div>
 </div>
+
+<!-- Upload Modal -->
+<div id="upload-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] items-center justify-center px-4" onclick="closeUploadModal()">
+    <div class="relative w-full max-w-2xl" onclick="event.stopPropagation()">
+        <button onclick="closeUploadModal()" class="absolute -top-12 right-0 text-white hover:text-z-cyan transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="glass-panel p-8 rounded-2xl border border-z-cyan/30 shadow-[0_0_50px_-10px_rgba(0,204,255,0.5)]">
+            <h2 class="text-2xl font-display font-black text-white mb-6 flex items-center gap-3">
+                <i class="fa-solid fa-cloud-arrow-up text-z-cyan"></i>
+                Upload Highlight Clip
+            </h2>
+            
+            <form id="upload-form" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Platform -->
+                <div>
+                    <label class="block text-white font-bold text-sm mb-2">Platform <span class="text-z-red">*</span></label>
+                    <select name="platform" id="upload-platform" required class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-z-cyan focus:ring-1 focus:ring-z-cyan transition">
+                        <option value="">Select platform...</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="twitch">Twitch</option>
+                        <option value="facebook">Facebook</option>
+                    </select>
+                </div>
+                
+                <!-- URL -->
+                <div>
+                    <label class="block text-white font-bold text-sm mb-2">Clip URL <span class="text-z-red">*</span></label>
+                    <input type="url" name="clip_url" id="upload-url" required placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-z-cyan focus:ring-1 focus:ring-z-cyan transition">
+                    <p class="text-gray-400 text-xs mt-1">Paste your video URL (YouTube watch/shorts, Twitch clip, Facebook video)</p>
+                </div>
+                
+                <!-- Title -->
+                <div>
+                    <label class="block text-white font-bold text-sm mb-2">Title <span class="text-z-red">*</span></label>
+                    <input type="text" name="title" id="upload-title" required placeholder="Epic Victory Royale" maxlength="200" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-z-cyan focus:ring-1 focus:ring-z-cyan transition">
+                </div>
+                
+                <!-- Game -->
+                <div>
+                    <label class="block text-white font-bold text-sm mb-2">Game (optional)</label>
+                    <select name="game_id" id="upload-game" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-z-cyan focus:ring-1 focus:ring-z-cyan transition">
+                        <option value="">None</option>
+                        {% for game in all_games %}
+                        <option value="{{ game.id }}">{{ game.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Pin Checkbox -->
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" name="pin" id="upload-pin" value="true" class="w-5 h-5 bg-white/5 border border-white/10 rounded text-z-cyan focus:ring-z-cyan focus:ring-offset-0">
+                    <label for="upload-pin" class="text-white text-sm">
+                        <i class="fa-solid fa-thumbtack text-z-red mr-1"></i>
+                        Pin as featured clip (replaces existing pin)
+                    </label>
+                </div>
+                
+                <!-- Error Display -->
+                <div id="upload-error" class="hidden bg-z-red/20 border border-z-red rounded-lg px-4 py-3 text-z-red text-sm">
+                    <i class="fa-solid fa-circle-exclamation mr-2"></i>
+                    <span id="upload-error-message"></span>
+                </div>
+                
+                <!-- Buttons -->
+                <div class="flex gap-4">
+                    <button type="submit" id="upload-submit-btn" class="flex-1 bg-z-cyan text-black px-6 py-3 rounded-lg font-bold uppercase shadow-neon-cyan hover:bg-white transition">
+                        <span id="upload-btn-text"><i class="fa-solid fa-upload mr-2"></i>Upload Clip</span>
+                        <span id="upload-btn-loading" class="hidden"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Uploading...</span>
+                    </button>
+                    <button type="button" onclick="closeUploadModal()" class="px-6 py-3 rounded-lg font-bold uppercase border border-white/10 text-white hover:bg-white/5 transition">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Pass Django context to JavaScript
+const IS_OWNER = {{ relationship_ctx.is_owner|yesno:"true,false" }};
+
+// Modal controls
+function openHighlightModal(embedUrl, title, clipUrl) {
+    const modal = document.getElementById('highlight-modal');
+    const iframe = document.getElementById('highlight-iframe');
+    const titleEl = document.getElementById('highlight-modal-title');
+    const fallbackDiv = document.getElementById('highlight-fallback');
+    const iframeContainer = iframe.parentElement;
+    
+    // Check if video is embeddable
+    if (!embedUrl || embedUrl === '' || embedUrl === 'None') {
+        // Show fallback UI for non-embeddable content (e.g., Facebook group posts)
+        iframeContainer.classList.add('hidden');
+        fallbackDiv.classList.remove('hidden');
+        document.getElementById('highlight-fallback-link').href = clipUrl;
+    } else {
+        // Show iframe for embeddable content
+        iframeContainer.classList.remove('hidden');
+        fallbackDiv.classList.add('hidden');
+        
+        // Set iframe attributes for maximum compatibility
+        iframe.src = embedUrl;
+        iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+        iframe.referrerPolicy = "origin";
+        iframe.loading = "lazy";
+    }
+    
+    titleEl.textContent = title;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeHighlightModal(event) {
+    if (event) event.stopPropagation();
+    const modal = document.getElementById('highlight-modal');
+    const iframe = document.getElementById('highlight-iframe');
+    
+    iframe.src = '';
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+}
+
+// Upload modal controls
+function showUploadPlaceholder() {
+    const modal = document.getElementById('upload-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeUploadModal() {
+    const modal = document.getElementById('upload-modal');
+    const form = document.getElementById('upload-form');
+    const errorDiv = document.getElementById('upload-error');
+    
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+    
+    // Reset form
+    form.reset();
+    errorDiv.classList.add('hidden');
+}
+
+function showUploadError(message) {
+    const errorDiv = document.getElementById('upload-error');
+    const errorMessage = document.getElementById('upload-error-message');
+    
+    errorMessage.textContent = message;
+    errorDiv.classList.remove('hidden');
+}
+
+// Upload form submission
+document.getElementById('upload-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('upload-submit-btn');
+    const btnText = document.getElementById('upload-btn-text');
+    const btnLoading = document.getElementById('upload-btn-loading');
+    const errorDiv = document.getElementById('upload-error');
+    
+    // Clear previous errors
+    errorDiv.classList.add('hidden');
+    
+    // Show loading state
+    submitBtn.disabled = true;
+    btnText.classList.add('hidden');
+    btnLoading.classList.remove('hidden');
+    
+    try {
+        // Get form data
+        const formData = new FormData(this);
+        
+        // Submit to backend
+        const response = await fetch('/api/profile/highlights/upload/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Upload failed');
+        }
+        
+        // Success! Insert new clip card
+        insertNewClipCard(data);
+        
+        // Update hero if pinned
+        if (data.is_pinned) {
+            updateHeroClip(data);
+        }
+        
+        // Close modal
+        closeUploadModal();
+        
+        // Show success message (optional)
+        console.log('Clip uploaded successfully:', data);
+        
+    } catch (error) {
+        // Show error
+        showUploadError(error.message);
+    } finally {
+        // Reset button state
+        submitBtn.disabled = false;
+        btnText.classList.remove('hidden');
+        btnLoading.classList.add('hidden');
+    }
+});
+
+function insertNewClipCard(clipData) {
+    const grid = document.getElementById('highlights-grid');
+    if (!grid) return;
+    
+    // Build thumbnail HTML (matches template exactly)
+    let thumbnailHTML;
+    if (clipData.thumbnail_url && clipData.thumbnail_url !== 'None' && clipData.thumbnail_url !== '') {
+        // Has thumbnail - show image with fallback to placeholder on error
+        thumbnailHTML = `
+            <img src="${clipData.thumbnail_url}" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-500" alt="${clipData.title}" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden'); this.nextElementSibling.classList.add('flex');">
+            <div class="hidden w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black items-center justify-center absolute inset-0">
+                <i class="fa-brands fa-${clipData.platform} text-4xl text-white/20"></i>
+            </div>
+        `;
+    } else {
+        // No thumbnail - show placeholder only
+        thumbnailHTML = `
+            <div class="w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+                <i class="fa-brands fa-${clipData.platform} text-4xl text-white/20"></i>
+            </div>
+        `;
+    }
+    
+    // Build owner action buttons (only if owner)
+    let ownerActionsHTML = '';
+    if (IS_OWNER) {
+        ownerActionsHTML = `
+            <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition z-30" onclick="event.stopPropagation()">
+                <button onclick="pinClip(${clipData.id}); event.stopPropagation();" class="w-8 h-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-cyan hover:scale-110 transition shadow-lg" title="${clipData.is_pinned ? 'Already pinned' : 'Pin as featured'}">
+                    <i class="fa-solid fa-thumbtack text-xs text-white"></i>
+                </button>
+                <button onclick="deleteClip(${clipData.id}); event.stopPropagation();" class="w-8 h-8 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-z-red hover:scale-110 transition shadow-lg" title="Delete clip">
+                    <i class="fa-solid fa-trash text-xs text-white"></i>
+                </button>
+            </div>
+        `;
+    }
+    
+    // Build pinned badge
+    const pinnedBadgeHTML = clipData.is_pinned ? '<span class="bg-z-red text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase animate-pulse flex items-center gap-1"><i class="fa-solid fa-thumbtack"></i> Pinned</span>' : '';
+    
+    // Build complete card HTML (matches template exactly)
+    const cardHtml = `
+        <div class="highlight-card glass-panel p-0 rounded-2xl overflow-hidden group cursor-pointer border border-white/5 hover:border-z-cyan/50 transition" data-game-slug="${clipData.game_slug || 'unknown'}" data-clip-id="${clipData.id}" onclick="openHighlightModal('${escapeHtml(clipData.embed_url)}', '${escapeHtml(clipData.title)}', '${escapeHtml(clipData.clip_url)}')">
+            <div class="relative aspect-video bg-black">
+                ${thumbnailHTML}
+                <div class="absolute top-2 left-2 flex items-center gap-2">
+                    <span class="bg-${clipData.platform}-badge text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase">${clipData.platform.charAt(0).toUpperCase() + clipData.platform.slice(1)}</span>
+                    ${pinnedBadgeHTML}
+                </div>
+                ${ownerActionsHTML}
+            </div>
+            <div class="p-4">
+                <h4 class="text-white font-bold text-sm truncate group-hover:text-z-cyan transition">${escapeHtml(clipData.title)}</h4>
+                <div class="mt-2 flex items-center gap-2 text-[10px] text-gray-500">
+                    ${clipData.game ? `<span class="bg-white/5 px-2 py-0.5 rounded border border-white/5">${escapeHtml(clipData.game)}</span><span>•</span>` : ''}
+                    <span>Just now</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Insert at start of grid
+    grid.insertAdjacentHTML('afterbegin', cardHtml);
+}
+
+// Helper function to escape HTML for safe insertion
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function updateHeroClip(clipData) {
+    // If new clip is pinned, update hero using same logic as updateHeroWithPinnedClip
+    if (clipData.is_pinned) {
+        updateHeroWithPinnedClip(clipData);
+    }
+}
+
+// Pin clip
+async function pinClip(clipId) {
+    try {
+        const response = await fetch(`/api/profile/highlights/${clipId}/pin/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Pin failed');
+        }
+        
+        // Success: Update UI instantly (no page reload)
+        console.log('Pinned clip:', data.pinned_clip);
+        
+        // 1. Remove "Pinned" badge from all clips
+        document.querySelectorAll('.animate-pulse').forEach(badge => {
+            if (badge.textContent.includes('Pinned') || badge.textContent.includes('Featured')) {
+                badge.remove();
+            }
+        });
+        
+        // 2. Add "Pinned" badge to newly pinned clip in grid
+        const card = document.querySelector(`[data-clip-id="${clipId}"]`);
+        if (card) {
+            const badgeContainer = card.querySelector('.absolute.top-2.left-2');
+            if (badgeContainer && !badgeContainer.querySelector('.animate-pulse')) {
+                const platformBadge = badgeContainer.querySelector('span');
+                if (platformBadge) {
+                    platformBadge.insertAdjacentHTML('afterend', '<span class="bg-z-red text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase animate-pulse flex items-center gap-1"><i class="fa-solid fa-thumbtack"></i> Pinned</span>');
+                }
+            }
+        }
+        
+        // 3. Update hero section with pinned clip data
+        updateHeroWithPinnedClip(data.pinned_clip);
+        
+    } catch (error) {
+        console.error('Pin error:', error);
+        alert('Failed to pin clip: ' + error.message);
+    }
+}
+
+function updateHeroWithPinnedClip(clipData) {
+    // Find hero section
+    const heroSection = document.querySelector('.aspect-video.bg-black');
+    if (!heroSection) return;
+    
+    // Update hero thumbnail/placeholder
+    const heroImg = heroSection.querySelector('img');
+    const heroPlaceholder = heroSection.querySelector('.bg-gradient-to-br');
+    
+    if (clipData.thumbnail_url && clipData.thumbnail_url !== 'None' && clipData.thumbnail_url !== '') {
+        // Has thumbnail - show image
+        if (heroImg) {
+            heroImg.src = clipData.thumbnail_url;
+            heroImg.alt = clipData.title;
+            heroImg.style.display = '';
+        }
+        if (heroPlaceholder) {
+            heroPlaceholder.style.display = 'none';
+        }
+    } else {
+        // No thumbnail - show placeholder
+        if (heroImg) {
+            heroImg.style.display = 'none';
+        }
+        if (heroPlaceholder) {
+            heroPlaceholder.style.display = 'flex';
+            // Update platform icon in placeholder
+            const platformIcon = heroPlaceholder.querySelector('i.fa-brands');
+            if (platformIcon) {
+                platformIcon.className = `fa-brands fa-${clipData.platform} text-8xl text-white/20 mb-4`;
+            }
+        }
+    }
+    
+    // Update hero onclick to use new clip data
+    heroSection.onclick = () => openHighlightModal(clipData.embed_url, clipData.title, clipData.clip_url);
+    
+    // Update hero title
+    const heroTitle = heroSection.querySelector('h2');
+    if (heroTitle) {
+        heroTitle.textContent = clipData.title;
+    }
+    
+    // Update hero badges (game + featured)
+    const badgeContainer = heroSection.querySelector('.flex.items-center.gap-3.mb-3');
+    if (badgeContainer) {
+        badgeContainer.innerHTML = '<span class="px-2 py-0.5 rounded bg-z-red text-white text-[10px] font-bold uppercase animate-pulse">Featured Clip</span>';
+        if (clipData.game) {
+            badgeContainer.innerHTML += `<span class="px-2 py-0.5 rounded bg-white/10 text-white text-[10px] font-bold uppercase border border-white/10 flex items-center gap-2"><i class="fa-solid fa-gamepad"></i> ${clipData.game}</span>`;
+        }
+    }
+    
+    // Update hero platform/date
+    const heroMeta = heroSection.querySelector('.text-right.hidden');
+    if (heroMeta) {
+        const platformDiv = heroMeta.querySelector('.text-sm');
+        if (platformDiv) {
+            platformDiv.textContent = clipData.platform.charAt(0).toUpperCase() + clipData.platform.slice(1);
+        }
+    }
+    
+    // Update hero pin button clip ID
+    const heroPinBtn = heroSection.querySelector('button[onclick*="pinClip"]');
+    if (heroPinBtn) {
+        heroPinBtn.setAttribute('onclick', `pinClip(${clipData.id})`);
+    }
+    
+    // Update hero delete button clip ID
+    const heroDeleteBtn = heroSection.querySelector('button[onclick*="deleteClip"]');
+    if (heroDeleteBtn) {
+        heroDeleteBtn.setAttribute('onclick', `deleteClip(${clipData.id})`);
+    }
+}
+
+// Delete clip
+async function deleteClip(clipId) {
+    if (!confirm('Delete this clip? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/profile/highlights/${clipId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Delete failed');
+        }
+        
+        // Success: Remove card from DOM
+        const card = document.querySelector(`[data-clip-id="${clipId}"]`);
+        if (card) {
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.9)';
+            setTimeout(() => card.remove(), 300);
+        }
+        
+        // If it was pinned, update hero to show first remaining clip
+        if (data.was_pinned) {
+            setTimeout(() => {
+                const firstClip = document.querySelector('.highlight-card[data-clip-id]');
+                if (firstClip) {
+                    // Get clip data from DOM
+                    const clipIdStr = firstClip.getAttribute('data-clip-id');
+                    const clipTitle = firstClip.querySelector('h4').textContent;
+                    const clipEmbed = firstClip.getAttribute('onclick').match(/'([^']+)'/)[1];
+                    const clipUrl = firstClip.getAttribute('onclick').match(/'([^']+)'/g)[2].replace(/'/g, '');
+                    const clipThumb = firstClip.querySelector('img').src;
+                    const clipPlatform = firstClip.querySelector('.bg-.*-badge')?.textContent.trim() || 'Highlight';
+                    
+                    // Update hero
+                    const heroSection = document.querySelector('.aspect-video.bg-black');
+                    if (heroSection) {
+                        const heroImg = heroSection.querySelector('img');
+                        if (heroImg) heroImg.src = clipThumb;
+                        
+                        const heroTitle = heroSection.querySelector('h2');
+                        if (heroTitle) heroTitle.textContent = clipTitle;
+                        
+                        heroSection.onclick = () => openHighlightModal(clipEmbed, clipTitle, clipUrl);
+                        
+                        // Remove "Featured Clip" badge since nothing is pinned now
+                        const featuredBadge = heroSection.querySelector('.animate-pulse');
+                        if (featuredBadge) featuredBadge.remove();
+                    }
+                } else {
+                    // No clips left, reload to show empty state
+                    location.reload();
+                }
+            }, 400);
+        }
+        
+    } catch (error) {
+        console.error('Delete error:', error);
+        alert('Failed to delete clip: ' + error.message);
+    }
+}
+
+// Client-side game filter
+document.addEventListener('DOMContentLoaded', function() {
+    const filterButtons = document.querySelectorAll('.highlight-filter-btn');
+    const clipCards = document.querySelectorAll('.highlight-card');
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const selectedGame = this.dataset.game;
+            
+            // Update active button
+            filterButtons.forEach(btn => {
+                btn.classList.remove('active', 'bg-white/10', 'text-white');
+                btn.classList.add('text-gray-400');
+            });
+            this.classList.add('active', 'bg-white/10', 'text-white');
+            this.classList.remove('text-gray-400');
+            
+            // Filter clips
+            clipCards.forEach(card => {
+                const cardGame = card.dataset.gameSlug;
+                if (selectedGame === 'all' || cardGame === selectedGame) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        // Close playback modal first, then upload modal
+        const playbackModal = document.getElementById('highlight-modal');
+        const uploadModal = document.getElementById('upload-modal');
+        
+        if (!playbackModal.classList.contains('hidden')) {
+            closeHighlightModal(event);
+        } else if (!uploadModal.classList.contains('hidden')) {
+            closeUploadModal();
+        }
+    }
+});
+</script>
+
+<style>
+/* Platform badge colors */
+.bg-youtube-badge { background: #FF0000; }
+.bg-twitch-badge { background: #9146FF; }
+.bg-medal-badge { background: #FFD700; color: #000; }
+</style>

@@ -136,16 +136,10 @@ def validate_highlight_url(url: str) -> Dict[str, any]:
         # - https://www.facebook.com/share/v/VIDEO_ID/
         # - https://fb.watch/VIDEO_ID
         
-        # Validate path contains video-related segments
-        path_lower = parsed.path.lower()
-        if not any(seg in path_lower for seg in ['/watch', '/videos/', '/reel/', '/share/v/']):
-            if 'fb.watch' not in domain:
-                return {'valid': False, 'error': 'Facebook URL must be a video (watch, reel, share, or fb.watch)'}
-        
         # Extract video ID from various formats
         if 'fb.watch' in domain:
-            # fb.watch/ABC123xyz
-            video_id = parsed.path.lstrip('/')
+            # fb.watch/ABC123xyz (short URL format)
+            video_id = parsed.path.lstrip('/').rstrip('/')
         elif '/watch' in parsed.path:
             # /watch/?v=12345 or /watch?v=12345
             query_params = parse_qs(parsed.query)
@@ -161,6 +155,8 @@ def validate_highlight_url(url: str) -> Dict[str, any]:
         elif '/videos/' in parsed.path:
             # /username/videos/12345
             video_id = parsed.path.split('/videos/')[-1].rstrip('/')
+        else:
+            return {'valid': False, 'error': 'Facebook URL must be a video (watch, reel, share, or fb.watch)'}
     
     # Validate video ID
     if not video_id:
@@ -170,8 +166,20 @@ def validate_highlight_url(url: str) -> Dict[str, any]:
     if not VIDEO_ID_PATTERN.match(video_id):
         return {'valid': False, 'error': 'Video ID contains invalid characters'}
     
-    # Construct safe embed URL
-    embed_url = _construct_embed_url(platform, video_id)
+    # Construct safe embed URL (pass original URL for Facebook)
+    embed_url = _construct_embed_url(platform, video_id, original_url=url)
+    
+    # Check if embed is not possible (e.g., Facebook group posts)
+    if embed_url is None:
+        return {
+            'valid': True,
+            'platform': platform,
+            'video_id': video_id,
+            'embed_url': None,
+            'thumbnail_url': None,
+            'fallback_reason': 'This content cannot be embedded. Open in new tab to view.',
+            'original_url': url
+        }
     
     return {
         'valid': True,
@@ -318,45 +326,69 @@ def validate_affiliate_url(url: str) -> Dict[str, any]:
     }
 
 
-def _construct_embed_url(platform: str, video_id: str) -> str:
+def _construct_embed_url(platform: str, video_id: str, original_url: str = None) -> str:
     """
     Construct safe iframe embed URL for highlights.
     
-    YouTube: Use youtube-nocookie.com with safe params to prevent Error 153.
+    YouTube: Use standard youtube.com/embed with safe params to prevent Error 153.
     Params added:
     - rel=0: Don't show related videos from other channels
     - modestbranding=1: Minimal YouTube branding
     - playsinline=1: Play inline on mobile (iOS requirement)
+    - enablejsapi=1: Enable JavaScript API for better control
     
-    Facebook: Use Facebook's official video plugin embed endpoint.
-    This provides iframe-safe embedding with proper permissions handling.
+    Twitch: Use clips.twitch.tv/embed with MULTIPLE parent parameters for localhost dev.
+    Parent params MUST include all possible local hostnames:
+    - localhost
+    - 127.0.0.1
+    - And production domain
+    
+    Facebook: Use Facebook's official video plugin embed endpoint with the ORIGINAL URL.
+    Facebook requires the exact original URL for proper embed permission checking.
     The plugin automatically handles:
     - Private video detection (shows appropriate error)
     - Deleted video detection
     - Permission/age-restricted content
+    - Group posts (may not be embeddable - returns None with fallback reason)
+    
+    Returns:
+        str or None: Embed URL if embeddable, None if not (e.g., private/group content)
     """
     if platform == 'youtube':
-        # Use youtube-nocookie.com for better privacy and reliability
+        # Use standard youtube.com/embed (more reliable than youtube-nocookie for embeds)
         # Add safe params to prevent Error 153 (configuration error)
-        return f"https://www.youtube-nocookie.com/embed/{video_id}?rel=0&modestbranding=1&playsinline=1"
+        return f"https://www.youtube.com/embed/{video_id}?rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
     elif platform == 'twitch':
-        # Twitch requires parent parameter
-        return f"https://clips.twitch.tv/embed?clip={video_id}&parent={TWITCH_PARENT_DOMAIN}"
+        # Twitch requires parent parameter - MUST include ALL possible hosts
+        # For local development, include both localhost and 127.0.0.1
+        # For production, also include the actual domain
+        return f"https://clips.twitch.tv/embed?clip={video_id}&parent=localhost&parent=127.0.0.1&parent={TWITCH_PARENT_DOMAIN}"
     elif platform == 'medal':
         return f"https://medal.tv/clip/{video_id}?embed=true"
     elif platform == 'facebook':
-        # Facebook Video Plugin - requires full original URL
-        # We reconstruct a safe canonical URL from the video_id
+        # Facebook Video Plugin - MUST use the original URL for proper permissions
         # Format: https://www.facebook.com/plugins/video.php?href=<encoded_url>
-        from urllib.parse import quote
+        from urllib.parse import quote_plus
         
-        # Reconstruct canonical Facebook video URL
-        # This works for video IDs from any Facebook video format
-        canonical_url = f"https://www.facebook.com/facebook/videos/{video_id}"
-        encoded_url = quote(canonical_url, safe='')
+        # Check if this is a group post (not embeddable)
+        if original_url and '/groups/' in original_url:
+            # Group posts typically can't be embedded due to privacy
+            return None
+        
+        # Use original URL if available, otherwise reconstruct
+        if original_url:
+            canonical_url = original_url
+        else:
+            # Fallback: reconstruct URL (less reliable)
+            canonical_url = f"https://www.facebook.com/watch/?v={video_id}"
+        
+        # URL encode the full URL (quote_plus for proper encoding)
+        encoded_url = quote_plus(canonical_url)
         
         # Facebook's official embed plugin endpoint
-        return f"https://www.facebook.com/plugins/video.php?href={encoded_url}&show_text=false&width=560"
+        # show_text=0: Hide post text
+        # autoplay=0: Don't autoplay (better UX)
+        return f"https://www.facebook.com/plugins/video.php?href={encoded_url}&show_text=0&autoplay=0"
     return ""
 
 
@@ -393,11 +425,19 @@ def _construct_stream_embed_url(platform: str, channel_id: str) -> str:
 def _construct_thumbnail_url(platform: str, video_id: str) -> Optional[str]:
     """Construct thumbnail URL for video preview."""
     if platform == 'youtube':
-        return f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
+        # Use hqdefault (480x360) for better quality
+        # YouTube guarantees this exists for all videos
+        return f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
     elif platform == 'twitch':
-        # Twitch clip thumbnails require API call (return None for now)
+        # Twitch clip thumbnails require API call
+        # Return None - UI will show platform placeholder
         return None
     elif platform == 'medal':
-        # Medal.tv thumbnails require API call (return None for now)
+        # Medal.tv thumbnails require API call
+        # Return None - UI will show platform placeholder
+        return None
+    elif platform == 'facebook':
+        # Facebook thumbnails require Graph API with access token
+        # Return None - UI will show platform placeholder
         return None
     return None

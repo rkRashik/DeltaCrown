@@ -24,6 +24,7 @@ from django.http import HttpRequest, HttpResponse, Http404, JsonResponse
 from django.contrib import messages
 from django.urls import reverse
 from django.conf import settings
+from django.views.decorators.http import require_http_methods
 import logging
 import os
 
@@ -970,6 +971,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     # 06c: HIGHLIGHTS CONTEXT (Pinned + All Clips)
     # ========================================================================
     from apps.user_profile.models import HighlightClip, PinnedHighlight
+    from apps.games.models import Game
     
     # Get pinned highlight
     try:
@@ -1001,6 +1003,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             'platform': clip.platform,
             'video_id': clip.video_id,
             'game': clip.game.display_name if clip.game else None,
+            'game_slug': clip.game.slug if clip.game else None,
             'display_order': clip.display_order,
             'created_at': clip.created_at,
             'is_pinned': context['pinned_highlight'] and clip.id == context['pinned_highlight']['id'],
@@ -1008,6 +1011,26 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         for clip in highlights
     ]
     context['can_add_more_clips'] = len(context['highlight_clips']) < 20
+    
+    # Extract unique games for filter buttons (client-side filtering)
+    seen_games = set()
+    highlight_games = []
+    for clip in highlights:
+        if clip.game and clip.game.slug not in seen_games:
+            seen_games.add(clip.game.slug)
+            highlight_games.append({
+                'slug': clip.game.slug,
+                'name': clip.game.display_name,
+            })
+    context['highlight_games'] = highlight_games
+    
+    # Get all available games for upload dropdown
+    context['all_games'] = list(
+        Game.objects.filter(is_active=True)
+        .only('id', 'display_name', 'slug')
+        .order_by('display_name')
+        .values('id', 'display_name', 'slug')
+    )
     
     # ========================================================================
     # 06c: LOADOUT CONTEXT (Hardware + Game Configs)
@@ -2665,6 +2688,210 @@ def career_tab_data_api(request: HttpRequest, username: str) -> JsonResponse:
     except Exception as e:
         logger.exception(f"Career tab API error for {username}/{game_slug}: {str(e)}")
         return JsonResponse({'error': 'Failed to load career data'}, status=500)
+
+
+@require_http_methods(["POST"])
+@login_required
+def highlight_upload(request):
+    """
+    Upload a new highlight clip (YouTube/Twitch/Facebook).
+    
+    POST /api/profile/highlights/upload/
+    
+    Body:
+    - platform: "youtube" | "twitch" | "facebook"
+    - clip_url: Full URL to video/clip
+    - title: Clip title (required)
+    - game_id: Game ID (optional, null allowed)
+    - pin: "true" | "false" (optional, default false)
+    
+    Returns:
+    - 201: Clip created (JSON with clip data)
+    - 400: Validation error
+    - 403: Max clips limit (20)
+    - 500: Server error
+    """
+    from apps.user_profile.models.media import HighlightClip, PinnedHighlight
+    from apps.user_profile.services.url_validator import validate_highlight_url
+    from apps.games.models import Game
+    
+    try:
+        # Check max clips limit (20 per user)
+        existing_clips = HighlightClip.objects.filter(user=request.user).count()
+        if existing_clips >= 20:
+            return JsonResponse({'error': 'Maximum 20 clips allowed'}, status=403)
+        
+        # Parse request data
+        clip_url = request.POST.get('clip_url', '').strip()
+        title = request.POST.get('title', '').strip()
+        game_id = request.POST.get('game_id', '').strip()
+        should_pin = request.POST.get('pin', 'false').lower() == 'true'
+        
+        # Validate required fields
+        if not clip_url:
+            return JsonResponse({'error': 'Clip URL is required'}, status=400)
+        if not title:
+            return JsonResponse({'error': 'Title is required'}, status=400)
+        
+        # Validate game_id if provided
+        game = None
+        if game_id and game_id.isdigit():
+            try:
+                game = Game.objects.get(id=int(game_id))
+            except Game.DoesNotExist:
+                return JsonResponse({'error': 'Invalid game'}, status=400)
+        
+        # Validate URL via service
+        result = validate_highlight_url(clip_url)
+        if not result['valid']:
+            return JsonResponse({'error': result.get('error', 'Invalid clip URL')}, status=400)
+        
+        # Create clip
+        clip = HighlightClip(
+            user=request.user,
+            clip_url=clip_url,
+            title=title,
+            game=game
+        )
+        clip.save()  # Triggers clean() which populates platform/video_id/embed_url
+        
+        # Pin clip if requested (replaces existing pin)
+        if should_pin:
+            PinnedHighlight.objects.update_or_create(
+                user=request.user,
+                defaults={'clip': clip}
+            )
+        
+        # Return clip data in same format as template context
+        clip_data = {
+            'id': clip.id,
+            'title': clip.title,
+            'platform': clip.platform,
+            'embed_url': clip.embed_url,
+            'thumbnail_url': clip.thumbnail_url,  # Keep as None if null
+            'game': clip.game.display_name if clip.game else None,
+            'game_slug': clip.game.slug if clip.game else None,
+            'is_pinned': should_pin,
+            'created_at': clip.created_at.isoformat(),
+        }
+        
+        return JsonResponse(clip_data, status=201)
+    
+    except ValidationError as e:
+        # Django ValidationError (from model clean())
+        error_msg = str(e.message_dict) if hasattr(e, 'message_dict') else str(e)
+        return JsonResponse({'error': error_msg}, status=400)
+    
+    except Exception as e:
+        logger.exception(f"Highlight upload error for {request.user.username}: {str(e)}")
+        return JsonResponse({'error': 'Failed to upload clip'}, status=500)
+
+
+@require_http_methods(["POST"])
+@login_required
+def highlight_delete(request, clip_id):
+    """
+    Delete a highlight clip (owner-only).
+    
+    POST /api/profile/highlights/<int:clip_id>/delete/
+    
+    Returns:
+    - 200: Clip deleted (JSON {success: true})
+    - 403: Not owner
+    - 404: Clip not found
+    - 500: Server error
+    """
+    from apps.user_profile.models.media import HighlightClip, PinnedHighlight
+    
+    try:
+        # Get clip
+        try:
+            clip = HighlightClip.objects.get(id=clip_id)
+        except HighlightClip.DoesNotExist:
+            return JsonResponse({'error': 'Clip not found'}, status=404)
+        
+        # Owner-only check
+        if clip.user != request.user:
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        # Check if this clip is pinned
+        was_pinned = PinnedHighlight.objects.filter(user=request.user, clip=clip).exists()
+        
+        # Delete clip (cascades to PinnedHighlight if needed)
+        clip.delete()
+        
+        # Return success
+        return JsonResponse({
+            'success': True,
+            'was_pinned': was_pinned
+        })
+    
+    except Exception as e:
+        logger.exception(f"Highlight delete error for clip {clip_id}: {str(e)}")
+        return JsonResponse({'error': 'Failed to delete clip'}, status=500)
+
+
+@require_http_methods(["POST"])
+@login_required
+def highlight_pin(request, clip_id):
+    """
+    Pin a highlight clip as featured (owner-only, only one pinned per user).
+    
+    POST /api/profile/highlights/<int:clip_id>/pin/
+    
+    Returns:
+    - 200: Clip pinned (JSON {success: true, pinned_clip_id: <id>})
+    - 403: Not owner
+    - 404: Clip not found
+    - 500: Server error
+    
+    Behavior:
+    - Unpins any existing pinned clip for the user
+    - Pins the selected clip
+    - Idempotent: pinning already-pinned clip keeps it pinned
+    """
+    from apps.user_profile.models.media import HighlightClip, PinnedHighlight
+    
+    try:
+        # Get clip
+        try:
+            clip = HighlightClip.objects.get(id=clip_id)
+        except HighlightClip.DoesNotExist:
+            return JsonResponse({'error': 'Clip not found'}, status=404)
+        
+        # Owner-only check
+        if clip.user != request.user:
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        # Unpin any existing pinned clip (only one allowed per user)
+        # update_or_create ensures atomic operation
+        pinned_highlight, created = PinnedHighlight.objects.update_or_create(
+            user=request.user,
+            defaults={'clip': clip}
+        )
+        
+        # Return success with full clip data for instant UI update
+        return JsonResponse({
+            'success': True,
+            'pinned_clip_id': clip.id,
+            'was_already_pinned': not created and pinned_highlight.clip_id == clip.id,
+            'pinned_clip': {
+                'id': clip.id,
+                'title': clip.title,
+                'platform': clip.platform,
+                'embed_url': clip.embed_url,
+                'clip_url': clip.clip_url,
+                'thumbnail_url': clip.thumbnail_url,  # Keep as None if null
+                'video_id': clip.video_id,
+                'game': clip.game.display_name if clip.game else None,
+                'game_slug': clip.game.slug if clip.game else None,
+                'created_at': clip.created_at.isoformat(),
+            }
+        })
+    
+    except Exception as e:
+        logger.exception(f"Highlight pin error for clip {clip_id}: {str(e)}")
+        return JsonResponse({'error': 'Failed to pin clip'}, status=500)
 
 
 # HOTFIX (Post-C2): update_social_links function removed
