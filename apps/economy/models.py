@@ -80,12 +80,25 @@ class DeltaCrownWallet(models.Model):
         help_text="Branch name or code"
     )
     
-    # Withdrawal Security
+    # Withdrawal Security (UP PHASE 7.2)
     pin_hash = models.CharField(
         max_length=255,
         blank=True,
         default='',
-        help_text="Hashed 4-digit PIN for withdrawal verification"
+        help_text="Hashed 6-digit PIN for withdrawal verification"
+    )
+    pin_enabled = models.BooleanField(
+        default=False,
+        help_text="Whether PIN protection is enabled"
+    )
+    pin_failed_attempts = models.IntegerField(
+        default=0,
+        help_text="Number of consecutive failed PIN attempts"
+    )
+    pin_locked_until = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="PIN lockout expiry timestamp (15 min after 5 failed attempts)"
     )
     
     # Balance Tracking
@@ -411,6 +424,140 @@ class CoinPolicy(models.Model):
 
     def __str__(self) -> str:
         return f"CoinPolicy(tournament_id={self.tournament_id})"
+
+
+class TopUpRequest(models.Model):
+    """
+    Bangladesh Payment Top-Up Request.
+    
+    Workflow:
+    1. User submits top-up request (amount + payment method + payment proof)
+    2. Status = 'pending'
+    3. Admin reviews payment proof
+    4. On approval: DeltaCrownTransaction created (credit), status='completed'
+    5. On rejection: status='rejected' with reason
+    
+    Security:
+    - Admin approval required
+    - Audit trail with reviewed_by and timestamps
+    """
+    
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending Review'
+        APPROVED = 'approved', 'Approved'
+        COMPLETED = 'completed', 'Completed'
+        REJECTED = 'rejected', 'Rejected'
+        CANCELLED = 'cancelled', 'Cancelled'
+    
+    class PaymentMethod(models.TextChoices):
+        BKASH = 'bkash', 'bKash'
+        NAGAD = 'nagad', 'Nagad'
+        ROCKET = 'rocket', 'Rocket'
+        BANK = 'bank', 'Bank Transfer'
+    
+    # Core Fields
+    wallet = models.ForeignKey(
+        DeltaCrownWallet,
+        on_delete=models.PROTECT,
+        related_name='topup_requests'
+    )
+    amount = models.PositiveIntegerField(
+        help_text='Amount in DeltaCoins to add'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+    
+    # Payment Details
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PaymentMethod.choices
+    )
+    payment_number = models.CharField(
+        max_length=50,
+        help_text='bKash/Nagad/Rocket transaction ID or bank reference'
+    )
+    payment_details = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Additional payment info (sender name, transaction ID, etc.)'
+    )
+    
+    # Exchange Rate
+    dc_to_bdt_rate = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=1.00,
+        help_text='DeltaCoin to BDT exchange rate (e.g., 1 DC = 1.00 BDT)'
+    )
+    bdt_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text='Amount paid in BDT'
+    )
+    
+    # Review Metadata
+    requested_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_topups'
+    )
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='When credits were actually added'
+    )
+    
+    # Notes
+    user_note = models.TextField(
+        blank=True,
+        default='',
+        help_text='User note/payment proof details'
+    )
+    admin_note = models.TextField(
+        blank=True,
+        default='',
+        help_text='Admin note (approval details, verification notes, etc.)'
+    )
+    rejection_reason = models.TextField(
+        blank=True,
+        default='',
+        help_text='Reason for rejection (shown to user)'
+    )
+    
+    # Transaction Reference
+    transaction = models.ForeignKey(
+        DeltaCrownTransaction,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='topup_request',
+        help_text='Transaction that credited the coins (created on approval)'
+    )
+    
+    class Meta:
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['wallet', '-requested_at']),
+            models.Index(fields=['status', '-requested_at']),
+        ]
+        verbose_name = 'Top-Up Request'
+        verbose_name_plural = 'Top-Up Requests'
+    
+    def __str__(self):
+        return f"TopUp {self.id}: {self.amount} DC via {self.get_payment_method_display()} - {self.get_status_display()}"
+    
+    def save(self, *args, **kwargs):
+        """Calculate BDT amount if not set"""
+        if not self.bdt_amount and self.amount:
+            self.bdt_amount = self.amount * self.dc_to_bdt_rate
+        super().save(*args, **kwargs)
 
 
 class WithdrawalRequest(models.Model):

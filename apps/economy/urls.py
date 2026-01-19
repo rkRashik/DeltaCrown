@@ -4,6 +4,12 @@ from .views.wallet import wallet_view
 from .views import withdrawal
 from . import inventory_api
 
+# UP-PHASE7.1: Economy request API (top-up and withdrawal requests)
+from .views.request_views import topup_request, withdraw_request
+
+# UP-PHASE7.2: Wallet PIN security API
+from .views.pin_views import pin_setup, pin_verify
+
 app_name = "economy"
 
 urlpatterns = [
@@ -41,5 +47,13 @@ urlpatterns = [
     # Trading
     path('me/inventory/trade/request/', inventory_api.trade_request_view, name='trade_request'),
     path('me/inventory/trade/respond/', inventory_api.trade_respond_view, name='trade_respond'),
+    
+    # UP-PHASE7.1: Economy Request APIs (top-up and withdrawal with admin approval)
+    path('api/topup/request/', topup_request, name='topup_request'),
+    path('api/withdraw/request/', withdraw_request, name='withdraw_request'),
+    
+    # UP-PHASE7.2: Wallet PIN Security APIs
+    path('api/wallet/pin/setup/', pin_setup, name='pin_setup'),
+    path('api/wallet/pin/verify/', pin_verify, name='pin_verify'),
 ]
 

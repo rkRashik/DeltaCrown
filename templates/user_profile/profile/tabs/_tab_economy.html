@@ -53,13 +53,13 @@
         <div class="glass-panel p-6 rounded-2xl flex flex-col justify-center gap-4">
             <h3 class="text-white font-bold text-lg">Quick Actions</h3>
             <div class="grid grid-cols-2 gap-4">
-                <button class="p-4 rounded-xl bg-z-green/10 border border-z-green/30 hover:bg-z-green hover:text-black text-z-green font-bold flex flex-col items-center justify-center gap-2 transition group">
+                <button id="topup-btn" class="p-4 rounded-xl bg-z-green/10 border border-z-green/30 hover:bg-z-green hover:text-black text-z-green font-bold flex flex-col items-center justify-center gap-2 transition group">
                     <div class="w-10 h-10 rounded-full bg-z-green/20 flex items-center justify-center group-hover:bg-black/20 transition">
                         <i class="fa-solid fa-plus text-lg"></i>
                     </div>
                     <span class="uppercase text-xs tracking-wider">Top Up</span>
                 </button>
-                <button class="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white hover:text-black text-white font-bold flex flex-col items-center justify-center gap-2 transition group">
+                <button id="withdraw-btn" class="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white hover:text-black text-white font-bold flex flex-col items-center justify-center gap-2 transition group">
                     <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-black/20 transition">
                         <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
                     </div>
@@ -130,4 +130,290 @@
         </p>
     </div>
 </div>
+{% endif %}
+
+{% if relationship_ctx.is_owner %}
+<!-- Top-Up Modal -->
+<div id="topup-modal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-[9999] hidden items-center justify-center p-4">
+    <div class="glass-panel p-8 rounded-3xl max-w-md w-full relative animate-scale-up border-2 border-z-green/30">
+        <button id="topup-modal-close" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-times text-xl"></i></button>
+        
+        <div class="mb-6 flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-green to-z-cyan flex items-center justify-center">
+                <i class="fa-solid fa-plus text-white text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-white font-bold text-xl font-display">Top Up DeltaCrown</h3>
+                <p class="text-gray-400 text-xs">Request pending admin approval</p>
+            </div>
+        </div>
+        
+        <form id="topup-form" class="space-y-4">
+            <div>
+                <label class="text-white text-sm font-bold mb-2 block">Amount (DC)</label>
+                <input type="number" id="topup-amount" min="10" placeholder="Minimum 10 DC" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-z-green" required>
+                <p class="text-gray-500 text-xs mt-1">1 DC = 1 BDT</p>
+            </div>
+            
+            <div>
+                <label class="text-white text-sm font-bold mb-2 block">Payment Method</label>
+                <select id="topup-method" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-z-green" required>
+                    <option value="">Select method</option>
+                    <option value="bkash">bKash</option>
+                    <option value="nagad">Nagad</option>
+                    <option value="rocket">Rocket</option>
+                    <option value="bank">Bank Transfer</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="text-white text-sm font-bold mb-2 block">Payment Number</label>
+                <input type="text" id="topup-number" placeholder="e.g., 01712345678" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-z-green" required>
+            </div>
+            
+            <div>
+                <label class="text-white text-sm font-bold mb-2 block">Note (Optional)</label>
+                <textarea id="topup-note" rows="2" placeholder="Any additional notes..." class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm resize-none focus:outline-none focus:border-z-green"></textarea>
+            </div>
+            
+            <div id="topup-error-message" class="text-xs text-red-400 mt-1 hidden"></div>
+            
+            <button type="submit" class="w-full py-3 rounded-xl bg-z-green text-black font-bold hover:bg-z-cyan transition uppercase text-sm">Submit Request</button>
+        </form>
+    </div>
+</div>
+
+<!-- Withdrawal Modal -->
+<div id="withdraw-modal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-[9999] hidden items-center justify-center p-4">
+    <div class="glass-panel p-8 rounded-3xl max-w-md w-full relative animate-scale-up border-2 border-white/30">
+        <button id="withdraw-modal-close" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-times text-xl"></i></button>
+        
+        <div class="mb-6 flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-white to-gray-300 flex items-center justify-center">
+                <i class="fa-solid fa-arrow-right-from-bracket text-black text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-white font-bold text-xl font-display">Cash Out</h3>
+                <p class="text-gray-400 text-xs">Available: {{ wallet_balance|floatformat:0|default:"0" }} DC</p>
+            </div>
+        </div>
+        
+        <form id="withdraw-form" class="space-y-4">
+            <div>
+                <label class="text-white text-sm font-bold mb-2 block">Amount (DC)</label>
+                <input type="number" id="withdraw-amount" min="50" max="{{ wallet_balance|floatformat:0|default:0 }}" placeholder="Minimum 50 DC" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-white" required>
+                <p class="text-gray-500 text-xs mt-1">Processing fee: 2% | 1 DC = 1 BDT</p>
+            </div>
+            
+            <div>
+                <label class="text-white text-sm font-bold mb-2 block">Payment Method</label>
+                <select id="withdraw-method" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-white" required>
+                    <option value="">Select method</option>
+                    <option value="bkash">bKash</option>
+                    <option value="nagad">Nagad</option>
+                    <option value="rocket">Rocket</option>
+                    <option value="bank">Bank Transfer</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="text-white text-sm font-bold mb-2 block">Account Number</label>
+                <input type="text" id="withdraw-number" placeholder="e.g., 01712345678" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-white" required>
+            </div>
+            
+            <div>
+                <label class="text-white text-sm font-bold mb-2 block">Wallet PIN</label>
+                <input type="password" id="withdraw-pin" maxlength="6" placeholder="6-digit PIN" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:border-white" required>
+                <p class="text-gray-500 text-xs mt-1">Enter your wallet PIN to authorize withdrawal</p>
+            </div>
+            
+            <div>
+                <label class="text-white text-sm font-bold mb-2 block">Note (Optional)</label>
+                <textarea id="withdraw-note" rows="2" placeholder="Any additional notes..." class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm resize-none focus:outline-none focus:border-white"></textarea>
+            </div>
+            
+            <div id="withdraw-error-message" class="text-xs text-red-400 mt-1 hidden"></div>
+            
+            <button type="submit" class="w-full py-3 rounded-xl bg-white text-black font-bold hover:bg-gray-200 transition uppercase text-sm">Submit Request</button>
+        </form>
+    </div>
+</div>
+
+<script>
+(function() {
+    // Modal controls
+    const topupBtn = document.getElementById('topup-btn');
+    const withdrawBtn = document.getElementById('withdraw-btn');
+    const topupModal = document.getElementById('topup-modal');
+    const withdrawModal = document.getElementById('withdraw-modal');
+    const topupModalClose = document.getElementById('topup-modal-close');
+    const withdrawModalClose = document.getElementById('withdraw-modal-close');
+    const topupForm = document.getElementById('topup-form');
+    const withdrawForm = document.getElementById('withdraw-form');
+    
+    // Helper functions for inline errors
+    function showError(elementId, message) {
+        const errorDiv = document.getElementById(elementId);
+        errorDiv.innerHTML = message; // Use innerHTML to support links
+        errorDiv.classList.remove('hidden');
+    }
+    
+    function hideError(elementId) {
+        const errorDiv = document.getElementById(elementId);
+        errorDiv.classList.add('hidden');
+    }
+    
+    if (!topupBtn || !withdrawBtn || !topupModal || !withdrawModal) return;
+    
+    // Open modals
+    topupBtn.addEventListener('click', () => {
+        topupModal.classList.remove('hidden');
+        topupModal.classList.add('flex');
+    });
+    
+    withdrawBtn.addEventListener('click', () => {
+        withdrawModal.classList.remove('hidden');
+        withdrawModal.classList.add('flex');
+    });
+    
+    // Close modals
+    topupModalClose.addEventListener('click', () => {
+        topupModal.classList.add('hidden');
+        topupModal.classList.remove('flex');
+    });
+    
+    withdrawModalClose.addEventListener('click', () => {
+        withdrawModal.classList.add('hidden');
+        withdrawModal.classList.remove('flex');
+    });
+    
+    // Click outside to close
+    topupModal.addEventListener('click', (e) => {
+        if (e.target === topupModal) {
+            topupModal.classList.add('hidden');
+            topupModal.classList.remove('flex');
+        }
+    });
+    
+    withdrawModal.addEventListener('click', (e) => {
+        if (e.target === withdrawModal) {
+            withdrawModal.classList.add('hidden');
+            withdrawModal.classList.remove('flex');
+        }
+    });
+    
+    // Handle Top-Up Form Submission
+    topupForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        hideError('topup-error-message');
+        
+        const amount = document.getElementById('topup-amount').value;
+        const method = document.getElementById('topup-method').value;
+        const number = document.getElementById('topup-number').value;
+        const note = document.getElementById('topup-note').value;
+        
+        const submitBtn = topupForm.querySelector('button[type=submit]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+        
+        try {
+            const formData = new FormData();
+            formData.append('amount', amount);
+            formData.append('payment_method', method);
+            formData.append('payment_number', number);
+            formData.append('user_note', note);
+            
+            const response = await fetch('/api/topup/request/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                },
+                body: formData
+            });
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server returned non-JSON response');
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                topupModal.classList.add('hidden');
+                topupModal.classList.remove('flex');
+                topupForm.reset();
+                window.location.reload();
+            } else {
+                showError('topup-error-message', data.error || 'Failed to submit request');
+            }
+        } catch (error) {
+            console.error('Error submitting top-up:', error);
+            showError('topup-error-message', error.message || 'Failed to submit request. Please try again.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Request';
+        }
+    });
+    
+    // Handle Withdrawal Form Submission
+    withdrawForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        hideError('withdraw-error-message');
+        
+        const amount = document.getElementById('withdraw-amount').value;
+        const method = document.getElementById('withdraw-method').value;
+        const number = document.getElementById('withdraw-number').value;
+        const pin = document.getElementById('withdraw-pin').value;
+        const note = document.getElementById('withdraw-note').value;
+        
+        const submitBtn = withdrawForm.querySelector('button[type=submit]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+        
+        try {
+            const formData = new FormData();
+            formData.append('amount', amount);
+            formData.append('payment_method', method);
+            formData.append('payment_number', number);
+            formData.append('pin', pin);
+            formData.append('user_note', note);
+            
+            const response = await fetch('/api/withdraw/request/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                },
+                body: formData
+            });
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server returned non-JSON response. The route may not exist.');
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                withdrawModal.classList.add('hidden');
+                withdrawModal.classList.remove('flex');
+                withdrawForm.reset();
+                window.location.reload();
+            } else {
+                let errorMsg = data.error || 'Failed to submit request';
+                // Add helpful CTA for PIN setup
+                if (errorMsg.includes('set up') || errorMsg.includes('PIN') && errorMsg.includes('before')) {
+                    errorMsg += ' <a href="/wallet/" class="text-z-gold hover:underline">Set up PIN in Wallet Settings →</a>';
+                }
+                showError('withdraw-error-message', errorMsg);
+            }
+        } catch (error) {
+            console.error('Error submitting withdrawal:', error);
+            showError('withdraw-error-message', error.message || 'Failed to submit request. Please try again.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Request';
+        }
+    });
+})();
+</script>
 {% endif %}

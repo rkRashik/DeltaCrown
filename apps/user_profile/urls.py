@@ -132,6 +132,11 @@ from .views.about_api import (
     delete_about_item, reorder_about_items
 )
 
+# UP-PHASE7.1: Posts API (Community posts create/delete)
+from .views.profile_posts_views import (
+    create_post, delete_post, edit_post
+)
+
 # UP-PHASE2D: Interactive Owner Flows (Bounties, Loadout, Trophy Showcase)
 from .views.bounty_api import (
     create_bounty, accept_bounty,
@@ -325,6 +330,11 @@ urlpatterns = [
     path("api/profile/about/<int:item_id>/update/", update_about_item, name="update_about_item"),
     path("api/profile/about/<int:item_id>/delete/", delete_about_item, name="delete_about_item"),
     path("api/profile/about/reorder/", reorder_about_items, name="reorder_about_items"),
+    
+    # UP-PHASE7.1/7.3: Posts APIs (Community posts create/edit/delete)
+    path("api/profile/posts/create/", create_post, name="create_post"),
+    path("api/profile/posts/<int:post_id>/edit/", edit_post, name="edit_post"),
+    path("api/profile/posts/<int:post_id>/delete/", delete_post, name="delete_post"),
     
     # UP-PHASE2D: Interactive Owner Flows (Bounties, Loadout, Trophy Showcase)
     path("api/bounties/create/", create_bounty, name="create_bounty"),

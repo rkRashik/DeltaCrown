@@ -13,7 +13,7 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from .models import CoinPolicy, DeltaCrownTransaction, DeltaCrownWallet, WithdrawalRequest
+from .models import CoinPolicy, DeltaCrownTransaction, DeltaCrownWallet, TopUpRequest, WithdrawalRequest
 
 
 @admin.register(DeltaCrownWallet)
@@ -91,6 +91,140 @@ class DeltaCrownWalletAdmin(admin.ModelAdmin):
                 f"✅ Successfully reconciled {count} wallet(s) to profile stats.",
                 level=messages.SUCCESS
             )
+
+
+@admin.register(TopUpRequest)
+class TopUpRequestAdmin(admin.ModelAdmin):
+    list_display = ['id', 'wallet_link', 'amount', 'bdt_display', 'payment_method', 'status_badge', 'requested_at', 'reviewed_by_display']
+    list_filter = ['status', 'payment_method', 'requested_at', 'reviewed_at']
+    search_fields = ['wallet__profile__user__username', 'wallet__profile__user__email', 'wallet__profile__real_full_name', 'payment_number', 'admin_note']
+    readonly_fields = ['wallet', 'requested_at', 'reviewed_at', 'reviewed_by', 'completed_at', 'transaction', 'payment_details_display', 'bdt_amount']
+    
+    fieldsets = [
+        ('Top-Up Info', {
+            'fields': ['wallet', 'amount', 'status']
+        }),
+        ('Payment Details', {
+            'fields': ['payment_method', 'payment_number', 'payment_details_display']
+        }),
+        ('Exchange Rate', {
+            'fields': ['dc_to_bdt_rate', 'bdt_amount'],
+            'classes': ['collapse']
+        }),
+        ('Notes', {
+            'fields': ['user_note', 'admin_note', 'rejection_reason']
+        }),
+        ('Review Metadata', {
+            'fields': ['requested_at', 'reviewed_at', 'reviewed_by', 'completed_at'],
+            'classes': ['collapse']
+        }),
+        ('Transaction', {
+            'fields': ['transaction'],
+            'classes': ['collapse']
+        }),
+    ]
+    
+    actions = ['approve_topups', 'reject_topups']
+    
+    def wallet_link(self, obj):
+        url = reverse('admin:economy_deltacrownwallet_change', args=[obj.wallet.id])
+        return format_html('<a href="{}">{}</a>', url, obj.wallet.profile.user.username)
+    wallet_link.short_description = 'Wallet'
+    
+    def bdt_display(self, obj):
+        return f"৳{obj.bdt_amount}"
+    bdt_display.short_description = 'BDT Amount'
+    
+    def status_badge(self, obj):
+        colors = {
+            'pending': '#f59e0b',
+            'approved': '#3b82f6',
+            'completed': '#10b981',
+            'rejected': '#ef4444',
+            'cancelled': '#6b7280',
+        }
+        color = colors.get(obj.status, '#6b7280')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600;">{}</span>',
+            color,
+            obj.get_status_display().upper()
+        )
+    status_badge.short_description = 'Status'
+    
+    def reviewed_by_display(self, obj):
+        if obj.reviewed_by:
+            return obj.reviewed_by.username
+        return '-'
+    reviewed_by_display.short_description = 'Reviewed By'
+    
+    def payment_details_display(self, obj):
+        html = f'<strong>Method:</strong> {obj.get_payment_method_display()}<br>'
+        html += f'<strong>Number:</strong> {obj.payment_number}<br>'
+        
+        if obj.payment_details:
+            for key, value in obj.payment_details.items():
+                html += f'<strong>{key.replace("_", " ").title()}:</strong> {value}<br>'
+        
+        return mark_safe(html)
+    payment_details_display.short_description = 'Payment Details'
+    
+    def approve_topups(self, request, queryset):
+        """Bulk approve top-up requests"""
+        from django.db import transaction as db_transaction
+        from django.utils import timezone
+        
+        approved_count = 0
+        for topup in queryset.filter(status='pending'):
+            try:
+                with db_transaction.atomic():
+                    # Create transaction record
+                    txn = DeltaCrownTransaction.objects.create(
+                        wallet=topup.wallet,
+                        amount=topup.amount,
+                        reason='top_up',
+                        note=f'Top-up request #{topup.id} approved by {request.user.username}'
+                    )
+                    
+                    # Update top-up request
+                    topup.status = 'completed'
+                    topup.reviewed_at = timezone.now()
+                    topup.reviewed_by = request.user
+                    topup.completed_at = timezone.now()
+                    topup.transaction = txn
+                    topup.admin_note = f'Bulk approved by {request.user.username}'
+                    topup.save()
+                    
+                    # Recalculate wallet balance
+                    topup.wallet.recalc_and_save()
+                    
+                    approved_count += 1
+                    
+            except Exception as e:
+                self.message_user(request, f'Error approving #{topup.id}: {str(e)}', level=messages.ERROR)
+        
+        if approved_count > 0:
+            self.message_user(request, f'Successfully approved {approved_count} top-up(s)', level=messages.SUCCESS)
+    approve_topups.short_description = 'Approve selected top-ups'
+    
+    def reject_topups(self, request, queryset):
+        """Bulk reject top-up requests"""
+        from django.utils import timezone
+        
+        rejected_count = 0
+        for topup in queryset.filter(status='pending'):
+            try:
+                topup.status = 'rejected'
+                topup.reviewed_at = timezone.now()
+                topup.reviewed_by = request.user
+                topup.rejection_reason = 'Bulk rejection by admin'
+                topup.save()
+                rejected_count += 1
+            except Exception as e:
+                self.message_user(request, f'Error rejecting #{topup.id}: {str(e)}', level=messages.ERROR)
+        
+        if rejected_count > 0:
+            self.message_user(request, f'Successfully rejected {rejected_count} top-up(s)', level=messages.SUCCESS)
+    reject_topups.short_description = 'Reject selected top-ups'
 
 
 class AdjustForm(forms.Form):
