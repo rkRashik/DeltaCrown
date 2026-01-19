@@ -267,7 +267,7 @@
 
                     <div class="flex flex-wrap items-center gap-8 mt-6">
                         <div class="text-center group cursor-pointer">
-                            <div class="text-2xl font-bold text-white group-hover:text-z-cyan transition">{{ follower_count|default:0 }}</div>
+                            <div class="text-2xl font-bold text-white group-hover:text-z-cyan transition" data-follower-count>{{ follower_count|default:0 }}</div>
                             <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Followers</div>
                         </div>
                         <div class="text-center group cursor-pointer">
@@ -298,21 +298,21 @@
                     {% else %}
                         {% if relationship_ctx.can_follow %}
                             {% if relationship_ctx.follow_requested %}
-                            <button disabled class="bg-gray-500/50 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl cursor-not-allowed flex items-center justify-center gap-2">
+                            <button disabled data-follow-btn data-is-following="false" class="bg-gray-500/50 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl cursor-not-allowed flex items-center justify-center gap-2">
                                 <i class="fa-solid fa-clock"></i> Requested
                             </button>
                             {% else %}
-                            <a href="{{ follow_url }}" class="bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2">
+                            <button data-follow-btn data-is-following="false" class="bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2">
                                 <i class="fa-solid fa-user-plus"></i> {% if relationship_ctx.is_private_account %}Request Follow{% else %}Follow{% endif %}
-                            </a>
+                            </button>
                             {% endif %}
                         {% elif relationship_ctx.is_following %}
-                        <a href="{{ unfollow_url }}" class="bg-white/10 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-2">
+                        <button data-follow-btn data-is-following="true" class="bg-white/10 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-2">
                             <i class="fa-solid fa-user-check"></i> Following
-                        </a>
+                        </button>
                         {% endif %}
                         {% if relationship_ctx.can_recruit %}
-                        <button class="bg-z-purple/20 text-z-purple border border-z-purple/50 font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-z-purple hover:text-white transition flex items-center justify-center gap-2">
+                        <button data-career-deep-link class="bg-z-purple/20 text-z-purple border border-z-purple/50 font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-z-purple hover:text-white transition flex items-center justify-center gap-2">
                             <i class="fa-solid fa-file-signature"></i> Recruit
                         </button>
                         {% endif %}
@@ -337,24 +337,36 @@
 
         <aside class="space-y-6 order-2 lg:order-1 lg:col-span-1">
             
+            {% if is_owner and completion_data %}
+            {# UP PHASE 8: Real Profile Completion Widget (Owner Only) #}
             <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group">
                 <div class="absolute -right-8 -top-8 bg-gradient-to-br from-z-gold/20 to-transparent w-32 h-32 rounded-full blur-2xl"></div>
                 
                 <div class="flex justify-between items-center mb-4 relative z-10">
                     <h3 class="text-white font-bold font-display uppercase text-sm tracking-widest">Profile Status</h3>
-                    <div class="bg-z-gold/20 text-z-gold px-2 py-1 rounded text-xs font-bold border border-z-gold/30">85%</div>
+                    <div class="bg-z-gold/20 text-z-gold px-2 py-1 rounded text-xs font-bold border border-z-gold/30">{{ completion_data.percentage }}%</div>
                 </div>
                 
                 <div class="relative w-full h-3 bg-white/10 rounded-full mb-4 overflow-hidden">
-                    <div class="absolute top-0 left-0 h-full bg-gradient-to-r from-z-gold to-[#FF9F0A] rounded-full" style="width: 85%"></div>
+                    <div class="absolute top-0 left-0 h-full bg-gradient-to-r from-z-gold to-[#FF9F0A] rounded-full" style="width: {{ completion_data.percentage }}%"></div>
                 </div>
                 
-                <p class="text-xs text-gray-400 mb-4">Complete your <span class="text-white font-bold">Hardware Loadout</span> to earn the Verified Badge.</p>
-                <button class="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-bold hover:bg-z-gold hover:text-black hover:border-z-gold transition uppercase">
-                    Complete Now
-                </button>
+                {% if completion_data.next_action %}
+                <p class="text-xs text-gray-400 mb-4">
+                    Complete your <span class="text-white font-bold">{{ completion_data.next_action.label }}</span> to boost your profile.
+                </p>
+                <a href="{{ completion_data.next_action.url }}" class="block w-full py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-bold hover:bg-z-gold hover:text-black hover:border-z-gold transition uppercase text-center">
+                    <i class="{{ completion_data.next_action.icon }} mr-2"></i>Complete Now
+                </a>
+                {% else %}
+                <p class="text-xs text-green-400 mb-4">
+                    <i class="fa-solid fa-check-circle mr-1"></i> Your profile is 100% complete!
+                </p>
+                {% endif %}
             </div>
+            {% endif %}
 
+            {# UP PHASE 8: Connect Widget - Now Public #}
             <div class="glass-panel p-6 rounded-2xl">
                 <div class="flex items-center justify-between mb-5 border-b border-white/5 pb-3">
                     <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
@@ -362,9 +374,8 @@
                     </h3>
                 </div>
 
-                {% if is_owner or permissions.can_view_social_links %}
-                    {# UP.2 FIX PASS #5 PART A: Discord-First Row with proper copy button (not inside <a>) #}
-                    {% if discord_handle or discord_url %}
+                {# Discord-First Row with proper copy button #}
+                {% if discord_handle or discord_url %}
                     <div class="mb-4 p-3 rounded-xl bg-gradient-to-r from-z-purple/20 to-transparent border border-z-purple/30 flex items-center justify-between group">
                         <a href="{{ discord_url|default:'https://discord.com/' }}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition">
                             <div class="w-10 h-10 rounded-lg bg-z-purple flex items-center justify-center text-white text-lg shadow-lg">
@@ -434,14 +445,9 @@
                     {% if not social_links and not social_links_map.discord %}
                     <div class="text-center text-gray-500 text-xs py-4 italic">No social links connected</div>
                     {% endif %}
-                {% else %}
-                <div class="text-center text-gray-500 text-xs py-8 italic">
-                    <i class="fa-solid fa-lock text-2xl mb-2 block"></i>
-                    Contact info is private
-                </div>
-                {% endif %}
             </div>
 
+            {# UP PHASE 8: Gear Widget - Polished UI #}
             <div class="glass-panel p-6 rounded-2xl group cursor-pointer hover:border-z-green/30 transition">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
@@ -565,28 +571,56 @@
 
         <aside id="right-sidebar" class="space-y-6 order-3 lg:col-span-1 transition-all duration-500">
             
+            {# UP PHASE 8: Live Section - Wired to Stream Settings #}
             <div class="glass-panel p-6 rounded-2xl relative overflow-hidden">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-gray-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
-                        <i class="fa-solid fa-tower-broadcast text-z-red animate-pulse"></i> Live
+                        <i class="fa-solid fa-tower-broadcast text-z-red"></i> Live
                     </h3>
-                    <span class="text-[10px] bg-z-red/20 text-z-red px-2 py-0.5 rounded font-bold">ON AIR</span>
                 </div>
                 
-                <div class="bg-black/40 rounded-xl p-4 border border-white/10 text-center relative group cursor-pointer hover:border-z-red/50 transition">
-                    <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670&auto=format&fit=crop" class="absolute inset-0 opacity-20 w-full h-full object-cover">
-                    <div class="relative z-10">
-                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-2">Tournament • Finals</div>
-                        <div class="flex items-center justify-center gap-3 mb-3">
-                            <div class="font-black text-2xl text-white">TL</div>
-                            <div class="text-xs text-z-red font-mono font-bold">VS</div>
-                            <div class="font-black text-2xl text-white">SEN</div>
-                        </div>
-                        <button class="w-full py-2 rounded bg-z-red text-white text-xs font-bold hover:bg-white hover:text-z-red transition shadow-neon-red">
-                            Watch Stream
-                        </button>
+                {% if stream_platforms %}
+                    {% for platform in stream_platforms %}
+                    <div class="mb-3 last:mb-0">
+                        <a href="{{ platform.url }}" target="_blank" rel="noopener" class="block bg-black/40 rounded-xl p-4 border border-white/10 hover:border-z-red/50 transition group">
+                            <div class="flex items-center gap-3">
+                                {% if platform.platform == 'twitch' %}
+                                <div class="w-10 h-10 rounded-lg bg-purple-600 flex items-center justify-center text-white">
+                                    <i class="fa-brands fa-twitch"></i>
+                                </div>
+                                {% elif platform.platform == 'youtube' %}
+                                <div class="w-10 h-10 rounded-lg bg-red-600 flex items-center justify-center text-white">
+                                    <i class="fa-brands fa-youtube"></i>
+                                </div>
+                                {% elif platform.platform == 'kick' %}
+                                <div class="w-10 h-10 rounded-lg bg-green-500 flex items-center justify-center text-white">
+                                    <i class="fa-solid fa-k"></i>
+                                </div>
+                                {% else %}
+                                <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white">
+                                    <i class="fa-brands fa-facebook"></i>
+                                </div>
+                                {% endif %}
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-xs text-gray-400">{{ platform.platform_display }}</div>
+                                    <div class="text-white font-bold text-sm truncate">{{ platform.handle|default:'View Channel' }}</div>
+                                </div>
+                                <div class="text-gray-500 text-xs">
+                                    <i class="fa-solid fa-circle-dot text-gray-600"></i> Offline
+                                </div>
+                            </div>
+                        </a>
                     </div>
-                </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="bg-black/40 rounded-xl p-6 border border-white/10 text-center">
+                        <i class="fa-solid fa-video-slash text-3xl text-gray-600 mb-2 block"></i>
+                        <div class="text-sm text-gray-400 mb-1">No stream configured</div>
+                        {% if is_owner %}
+                        <a href="/me/settings/#stream" class="text-xs text-z-cyan hover:underline">Add Stream Settings</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
             </div>
 
             <div class="glass-panel p-6 rounded-2xl">
@@ -703,6 +737,125 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error('Failed to copy:', err);
                     alert('Copied: ' + textToCopy);
                 });
+            }
+        });
+    });
+});
+</script>
+
+{# UP PHASE 8: Follow/Unfollow AJAX Handler #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const followBtn = document.querySelector('[data-follow-btn]');
+    if (!followBtn) return;
+    
+    const username = '{{ profile_user.username }}';
+    const csrfToken = '{{ csrf_token }}';
+    
+    // Handle follow/unfollow clicks
+    followBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const isFollowing = followBtn.dataset.isFollowing === 'true';
+        const action = isFollowing ? 'unfollow' : 'follow';
+        const url = `/api/profile/${username}/${action}/`;
+        
+        // Disable button during request
+        followBtn.disabled = true;
+        followBtn.style.opacity = '0.6';
+        followBtn.style.cursor = 'wait';
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update button state
+                if (data.is_following) {
+                    // Now following
+                    followBtn.dataset.isFollowing = 'true';
+                    followBtn.innerHTML = '<i class="fa-solid fa-user-check"></i> Following';
+                    followBtn.className = 'bg-white/10 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-2';
+                } else if (data.has_pending_request) {
+                    // Request sent
+                    followBtn.disabled = true;
+                    followBtn.innerHTML = '<i class="fa-solid fa-clock"></i> Requested';
+                    followBtn.className = 'bg-gray-500/50 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl cursor-not-allowed flex items-center justify-center gap-2';
+                } else {
+                    // Not following
+                    followBtn.dataset.isFollowing = 'false';
+                    followBtn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Follow';
+                    followBtn.className = 'bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2';
+                }
+                
+                // Update follower count if visible
+                if (data.show_follower_count) {
+                    const followerCountEl = document.querySelector('[data-follower-count]');
+                    if (followerCountEl) {
+                        followerCountEl.textContent = data.follower_count.toLocaleString();
+                    }
+                }
+                
+                // Show toast notification
+                showToast(data.message, 'success');
+            } else {
+                showToast(data.error || 'An error occurred', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Follow error:', error);
+            showToast('Network error. Please try again.', 'error');
+        })
+        .finally(() => {
+            // Re-enable button
+            followBtn.disabled = false;
+            followBtn.style.opacity = '1';
+            followBtn.style.cursor = 'pointer';
+        });
+    });
+    
+    // Toast notification function
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `fixed bottom-8 right-8 z-[9999] px-6 py-4 rounded-xl shadow-2xl transform translate-y-0 transition-all duration-300 ${
+            type === 'success' ? 'bg-green-500/90 text-white' : 'bg-red-500/90 text-white'
+        }`;
+        toast.innerHTML = `
+            <div class="flex items-center gap-3">
+                <i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} text-xl"></i>
+                <span class="font-medium">${message}</span>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.transform = 'translateY(100px)';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+    
+    // Deep link to Career tab
+    const careerDeepLinkBtns = document.querySelectorAll('[data-career-deep-link]');
+    careerDeepLinkBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Switch to Career tab
+            if (window.switchTab) {
+                window.switchTab('career');
+                // Scroll to top of career section
+                setTimeout(() => {
+                    const careerTab = document.getElementById('tab-career');
+                    if (careerTab) {
+                        careerTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
             }
         });
     });

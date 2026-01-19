@@ -78,6 +78,10 @@ from .api.platform_prefs_api import (
 from .api.follow_request_api import (
     follow_user_api, respond_to_follow_request_api, get_follow_requests_api
 )
+# UP-PHASE8: Hero Follow/Unfollow API
+from .api.follow_api import (
+    follow_user_hero_api, unfollow_user_hero_api
+)
 # UP-PHASE15-SESSION3: Social Links CRUD API
 from .views.social_links_api import (
     social_link_create_api, social_link_update_single_api,
@@ -215,6 +219,10 @@ urlpatterns = [
     
     # PHASE UP 5: Career Tab AJAX endpoint (isolated, no impact on other tabs)
     path("@<str:username>/career-data/", career_tab_data_api, name="career_tab_data_api"),
+    
+    # UP-PHASE8: Hero Follow/Unfollow API
+    path("api/profile/<str:username>/follow/", follow_user_hero_api, name="follow_user_hero"),
+    path("api/profile/<str:username>/unfollow/", unfollow_user_hero_api, name="unfollow_user_hero"),
     
     # Owner Pages (/me/ prefix)
     path("me/settings/", profile_settings_view, name="profile_settings"),

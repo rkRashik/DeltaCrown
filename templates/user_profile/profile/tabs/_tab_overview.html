@@ -42,7 +42,8 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     
-    <div class="glass-panel p-6 rounded-2xl hover:border-z-gold/50 transition duration-300 group cursor-pointer relative overflow-hidden">
+    {# UP PHASE 8: Career Widget - Real Data #}
+    <div class="glass-panel p-6 rounded-2xl hover:border-z-gold/50 transition duration-300 group cursor-pointer relative overflow-hidden" data-career-deep-link>
         <div class="absolute right-0 top-0 w-40 h-40 bg-z-gold/5 rounded-full blur-3xl group-hover:bg-z-gold/10 transition"></div>
         
         <div class="flex justify-between items-start mb-4">
@@ -53,27 +54,50 @@
         </div>
         
         <h3 class="text-white font-bold font-display text-xl mb-1">Career</h3>
-        <p class="text-xs text-gray-400 mb-6 font-medium">Active in 2 Games</p>
+        <p class="text-xs text-gray-400 mb-6 font-medium">
+            {% if user_teams %}
+                {{ user_teams|length }} Team{{ user_teams|length|pluralize }}
+            {% else %}
+                No team affiliations
+            {% endif %}
+        </p>
 
         <div class="space-y-4">
-            <div class="flex items-center gap-4 relative pl-4 border-l-2 border-z-green">
-                <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center"><i class="fa-solid fa-v text-[#ff4655] font-bold"></i></div>
-                <div>
-                    <div class="text-white text-sm font-bold">Team Liquid</div>
-                    <div class="text-[10px] text-z-green font-bold uppercase tracking-wider">Current • 2024</div>
+            {% if user_teams %}
+                {% for team in user_teams|slice:":2" %}
+                <div class="flex items-center gap-4 relative pl-4 border-l-2 border-z-green">
+                    {% if team.logo_url %}
+                    <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-10 h-10 rounded-lg object-cover border border-white/10">
+                    {% else %}
+                    <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-xs font-bold">{{ team.tag|default:'TM'|upper }}</div>
+                    {% endif %}
+                    <div class="flex-1 min-w-0">
+                        <div class="text-white text-sm font-bold truncate">{{ team.name }}</div>
+                        <div class="text-[10px] text-z-green font-bold uppercase tracking-wider">
+                            {{ team.role|default:'Member' }}{% if team.game %} • {{ team.game }}{% endif %}
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="flex items-center gap-4 relative pl-4 border-l-2 border-gray-700 opacity-60 group-hover:opacity-100 transition">
-                <div class="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-xs font-bold">G2</div>
-                <div>
-                    <div class="text-white text-sm font-bold">G2 Esports</div>
-                    <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Former • 2023</div>
+                {% endfor %}
+                
+                {% if user_teams|length > 2 %}
+                <div class="text-center pt-2">
+                    <button data-career-deep-link class="text-xs text-z-cyan hover:text-white transition font-medium">
+                        View all {{ user_teams|length }} teams <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
                 </div>
-            </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fa-solid fa-users-slash text-2xl text-gray-600 mb-2 block"></i>
+                    <div class="text-xs text-gray-400">No team history yet</div>
+                </div>
+            {% endif %}
         </div>
     </div>
 
-    <div class="glass-panel p-6 rounded-2xl hover:border-z-purple/50 transition duration-300 group cursor-pointer relative overflow-hidden">
+    {# UP PHASE 8: Game Passports Widget - Limit to 2 items #}
+    <div class="glass-panel p-6 rounded-2xl hover:border-z-purple/50 transition duration-300 group cursor-pointer relative overflow-hidden" data-career-deep-link>
         <div class="absolute right-0 top-0 w-40 h-40 bg-z-purple/5 rounded-full blur-3xl group-hover:bg-z-purple/10 transition"></div>
 
         <div class="flex justify-between items-start mb-4">
@@ -88,47 +112,50 @@
 
         {% if is_owner or permissions.can_view_game_passports %}
         <div class="space-y-3">
-            {# Show pinned passports first #}
-            {% for passport in pinned_passports %}
-            <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded bg-z-cyan flex items-center justify-center text-white"><i class="fa-solid fa-gamepad"></i></div>
-                    <div>
-                        <div class="text-white text-xs font-bold font-mono">{{ passport.in_game_name }}{% if passport.discriminator %}#{{ passport.discriminator }}{% endif %}</div>
-                        <div class="text-[10px] text-z-cyan">{% if passport.rank_name %}{{ passport.rank_name }}{% endif %}{% if passport.platform %} • {{ passport.platform }}{% endif %}</div>
+            {# UP PHASE 8: Show max 2 passports (pinned first) #}
+            {% with all_passports=pinned_passports|add:unpinned_passports %}
+                {% if all_passports %}
+                    {% for passport in all_passports|slice:":2" %}
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition">
+                        <div class="flex items-center gap-3">
+                            {% if passport.is_pinned %}
+                            <div class="w-8 h-8 rounded bg-z-cyan flex items-center justify-center text-white"><i class="fa-solid fa-gamepad"></i></div>
+                            {% else %}
+                            <div class="w-8 h-8 rounded bg-gray-700 flex items-center justify-center text-white"><i class="fa-solid fa-gamepad"></i></div>
+                            {% endif %}
+                            <div>
+                                <div class="text-white text-xs font-bold font-mono">{{ passport.in_game_name }}{% if passport.discriminator %}#{{ passport.discriminator }}{% endif %}</div>
+                                <div class="text-[10px] {% if passport.is_pinned %}text-z-cyan{% else %}text-gray-400{% endif %}">
+                                    {% if passport.rank_name %}{{ passport.rank_name }}{% endif %}{% if passport.platform %} • {{ passport.platform }}{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% if passport.verification_status == 'VERIFIED' %}
+                        <i class="fa-solid fa-circle-check text-z-cyan text-sm shadow-neon-cyan"></i>
+                        {% endif %}
                     </div>
-                </div>
-                {% if passport.is_verified %}
-                <i class="fa-solid fa-circle-check text-z-cyan text-sm shadow-neon-cyan"></i>
-                {% endif %}
-            </div>
-            {% endfor %}
-            {# Show unpinned passports #}
-            {% for passport in unpinned_passports %}
-            <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded bg-gray-700 flex items-center justify-center text-white"><i class="fa-solid fa-gamepad"></i></div>
-                    <div>
-                        <div class="text-white text-xs font-bold font-mono">{{ passport.in_game_name }}{% if passport.discriminator %}#{{ passport.discriminator }}{% endif %}</div>
-                        <div class="text-[10px] text-gray-400">{% if passport.rank_name %}{{ passport.rank_name }}{% endif %}{% if passport.platform %} • {{ passport.platform }}{% endif %}</div>
+                    {% endfor %}
+                    
+                    {% if all_passports|length > 2 %}
+                    <div class="text-center pt-2">
+                        <button data-career-deep-link class="text-xs text-z-purple hover:text-white transition font-medium">
+                            View all {{ all_passports|length }} passports <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
                     </div>
-                </div>
-                {% if passport.is_verified %}
-                <i class="fa-solid fa-circle-check text-gray-500 text-sm"></i>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fa-solid fa-gamepad text-2xl text-gray-600 mb-2 block"></i>
+                        <div class="text-xs text-gray-400">No game passports linked</div>
+                    </div>
                 {% endif %}
-            </div>
-            {% endfor %}
-            {# Empty state #}
-            {% if not pinned_passports and not unpinned_passports %}
-            <div class="text-center text-gray-500 text-xs py-4">No game passports linked yet</div>
-            {% endif %}
+            {% endwith %}
         </div>
         {% else %}
-        <div class="text-center text-gray-500 text-xs py-8 italic">
-            <i class="fa-solid fa-lock text-2xl mb-2 block"></i>
-            Game Passports are private
+        <div class="text-center py-8">
+            <i class="fa-solid fa-lock text-2xl text-gray-600 mb-2 block"></i>
+            <div class="text-xs text-gray-400">Game passports are private</div>
         </div>
         {% endif %}
     </div>
-
 </div>

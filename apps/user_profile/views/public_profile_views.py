@@ -31,6 +31,8 @@ import os
 from apps.user_profile.services.profile_context import build_public_profile_context
 from apps.user_profile.services.follow_service import FollowService  # Phase 6B: Follow request status
 from apps.user_profile.services.profile_permissions import ProfilePermissionChecker
+from apps.user_profile.services.recruit_service import RecruitEligibilityService  # UP PHASE 8
+from apps.user_profile.services.completion_service import SettingsCompletionService  # UP PHASE 8
 from apps.user_profile.models import UserProfile, SocialLink
 
 logger = logging.getLogger(__name__)
@@ -180,6 +182,13 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     
     context['wallet_balance'] = wallet_balance  # Safe int for template
     
+    # UP PHASE 8: Profile completion data (owner only)
+    if context['is_owner']:
+        completion_data = SettingsCompletionService.calculate(user_profile)
+        context['completion_data'] = completion_data
+    else:
+        context['completion_data'] = None
+    
     # UP.2 FIX PASS #2 + #5: Social Links proper wiring with URL filtering
     from apps.user_profile.models import SocialLink
     
@@ -226,6 +235,20 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     context['discord_handle'] = discord_handle
     context['discord_url'] = discord_url
     context['social_links_renderable'] = social_links_renderable
+    
+    # UP PHASE 8: Stream data for Live section (right sidebar)
+    stream_platforms = []
+    if social_links:
+        for link in social_links:
+            if link.platform in ['twitch', 'youtube', 'kick', 'facebook_gaming']:
+                stream_platforms.append({
+                    'platform': link.platform,
+                    'platform_display': link.get_platform_display(),
+                    'url': link.url,
+                    'handle': link.handle,
+                    'is_verified': link.is_verified
+                })
+    context['stream_platforms'] = stream_platforms
     
     # UP.2 FIX PASS #2: Hardware Gear wiring (PART 4)
     from apps.user_profile.models import HardwareGear
@@ -1533,7 +1556,11 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     elif request.user.is_authenticated:
         relationship_ctx['can_follow'] = not relationship_ctx['is_following']
         relationship_ctx['can_message'] = privacy_settings.allow_direct_messages
-        relationship_ctx['can_recruit'] = True  # Could add more logic
+        # UP PHASE 8: Real recruit eligibility check (Team Owner/Manager)
+        relationship_ctx['can_recruit'] = RecruitEligibilityService.can_recruit(
+            viewer_user=request.user,
+            target_user=profile_user
+        )
         relationship_ctx['can_invite_team'] = privacy_settings.allow_team_invites
         relationship_ctx['show_edit_button'] = False
     else:
