@@ -5,7 +5,7 @@ from .views import withdrawal
 from . import inventory_api
 
 # UP-PHASE7.1: Economy request API (top-up and withdrawal requests)
-from .views.request_views import topup_request, withdraw_request
+from .views.request_views import topup_request, withdraw_request, get_wallet_requests
 
 # UP-PHASE7.2: Wallet PIN security API
 from .views.pin_views import pin_setup, pin_verify
@@ -51,6 +51,7 @@ urlpatterns = [
     # UP-PHASE7.1: Economy Request APIs (top-up and withdrawal with admin approval)
     path('api/topup/request/', topup_request, name='topup_request'),
     path('api/withdraw/request/', withdraw_request, name='withdraw_request'),
+    path('api/wallet/requests/', get_wallet_requests, name='wallet_requests'),  # NEW: Get user's requests
     
     # UP-PHASE7.2: Wallet PIN Security APIs
     path('api/wallet/pin/setup/', pin_setup, name='pin_setup'),

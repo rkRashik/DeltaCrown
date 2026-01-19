@@ -321,3 +321,91 @@ def withdraw_request(request):
             'success': False,
             'error': 'Failed to create withdrawal request'
         }, status=500)
+
+
+@login_required
+def get_wallet_requests(request):
+    """
+    Get user's top-up and withdrawal requests (latest 30 combined).
+    
+    GET /api/wallet/requests/
+    
+    Returns:
+        JSON with topups and withdrawals lists
+    """
+    try:
+        # Get user's profile and wallet
+        try:
+            profile = request.user.profile
+            wallet = DeltaCrownWallet.objects.get(profile=profile)
+        except (UserProfile.DoesNotExist, DeltaCrownWallet.DoesNotExist):
+            return JsonResponse({
+                'success': False,
+                'error': 'Wallet not found'
+            }, status=404)
+        
+        # Get top-up requests (latest 20)
+        topups = TopUpRequest.objects.filter(
+            wallet=wallet
+        ).select_related('wallet').order_by('-requested_at')[:20]
+        
+        topups_data = [
+            {
+                'id': t.id,
+                'type': 'topup',
+                'amount': t.amount,
+                'bdt_amount': float(t.bdt_amount),
+                'status': t.status,
+                'status_display': t.get_status_display(),
+                'payment_method': t.payment_method,
+                'payment_method_display': t.get_payment_method_display(),
+                'payment_number': t.payment_number,
+                'user_note': t.user_note,
+                'rejection_reason': t.rejection_reason if t.status == 'rejected' else None,
+                'requested_at': t.requested_at.isoformat(),
+                'reviewed_at': t.reviewed_at.isoformat() if t.reviewed_at else None,
+                'completed_at': t.completed_at.isoformat() if t.completed_at else None,
+            }
+            for t in topups
+        ]
+        
+        # Get withdrawal requests (latest 20)
+        withdrawals = WithdrawalRequest.objects.filter(
+            wallet=wallet
+        ).select_related('wallet').order_by('-requested_at')[:20]
+        
+        withdrawals_data = [
+            {
+                'id': w.id,
+                'type': 'withdrawal',
+                'amount': w.amount,
+                'processing_fee': w.processing_fee,
+                'net_amount': w.amount - w.processing_fee,
+                'bdt_amount': float(w.bdt_amount),
+                'status': w.status,
+                'status_display': w.get_status_display(),
+                'payment_method': w.payment_method,
+                'payment_method_display': w.get_payment_method_display(),
+                'payment_number': w.payment_number,
+                'user_note': w.user_note,
+                'rejection_reason': w.rejection_reason if w.status == 'rejected' else None,
+                'requested_at': w.requested_at.isoformat(),
+                'reviewed_at': w.reviewed_at.isoformat() if w.reviewed_at else None,
+                'completed_at': w.completed_at.isoformat() if w.completed_at else None,
+            }
+            for w in withdrawals
+        ]
+        
+        return JsonResponse({
+            'success': True,
+            'topups': topups_data,
+            'withdrawals': withdrawals_data,
+            'total': len(topups_data) + len(withdrawals_data)
+        })
+        
+    except Exception as e:
+        logger.error(f"[ECON] get_wallet_requests user={request.user.username} error={str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'Failed to fetch wallet requests'
+        }, status=500)

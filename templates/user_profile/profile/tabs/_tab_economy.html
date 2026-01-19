@@ -66,9 +66,9 @@
                     <span class="uppercase text-xs tracking-wider">Cash Out</span>
                 </button>
             </div>
-            <button class="w-full py-3 rounded-xl border border-z-gold/30 text-z-gold font-bold hover:bg-z-gold hover:text-black transition flex items-center justify-center gap-2 text-sm uppercase">
+            <a href="/transactions/" class="w-full py-3 rounded-xl border border-z-gold/30 text-z-gold font-bold hover:bg-z-gold hover:text-black transition flex items-center justify-center gap-2 text-sm uppercase">
                 <i class="fa-solid fa-clock-rotate-left"></i> Transaction History
-            </button>
+            </a>
         </div>
     </div>
 
@@ -117,6 +117,84 @@
                 {% endif %}
             </tbody>
         </table>
+    </div>
+
+    <!-- UP-PHASE7.6: My Requests Section (Top-ups & Withdrawals) -->
+    <div class="glass-panel p-6 rounded-2xl">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-white font-display font-bold text-xl flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-z-cyan"></i>
+                My Requests
+            </h3>
+            <button id="refresh-requests-btn" class="text-z-cyan hover:text-white text-sm transition flex items-center gap-2">
+                <i class="fa-solid fa-rotate"></i>
+                Refresh
+            </button>
+        </div>
+        
+        <!-- Request Type Tabs -->
+        <div class="flex gap-3 mb-6 border-b border-white/10">
+            <button id="tab-topups" class="request-tab active px-4 py-3 text-sm font-bold transition relative">
+                Top-Ups
+                <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-z-cyan tab-indicator"></span>
+            </button>
+            <button id="tab-withdrawals" class="request-tab px-4 py-3 text-sm font-bold transition">
+                Withdrawals
+            </button>
+        </div>
+        
+        <!-- Top-Ups Table -->
+        <div id="topups-container" class="request-container">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-gray-500 uppercase text-xs tracking-wide border-b border-white/5">
+                            <th class="px-4 py-3 font-bold">ID</th>
+                            <th class="px-4 py-3 font-bold">Amount</th>
+                            <th class="px-4 py-3 font-bold">Method</th>
+                            <th class="px-4 py-3 font-bold">Status</th>
+                            <th class="px-4 py-3 font-bold">Requested</th>
+                            <th class="px-4 py-3 font-bold">Note</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topups-tbody" class="divide-y divide-white/5">
+                        <!-- Populated by JS -->
+                        <tr>
+                            <td colspan="6" class="px-4 py-12 text-center text-gray-500 text-sm">
+                                <i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Withdrawals Table -->
+        <div id="withdrawals-container" class="request-container hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-gray-500 uppercase text-xs tracking-wide border-b border-white/5">
+                            <th class="px-4 py-3 font-bold">ID</th>
+                            <th class="px-4 py-3 font-bold">Amount</th>
+                            <th class="px-4 py-3 font-bold">Fee</th>
+                            <th class="px-4 py-3 font-bold">Net</th>
+                            <th class="px-4 py-3 font-bold">Method</th>
+                            <th class="px-4 py-3 font-bold">Status</th>
+                            <th class="px-4 py-3 font-bold">Requested</th>
+                        </tr>
+                    </thead>
+                    <tbody id="withdrawals-tbody" class="divide-y divide-white/5">
+                        <!-- Populated by JS -->
+                        <tr>
+                            <td colspan="7" class="px-4 py-12 text-center text-gray-500 text-sm">
+                                <i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -246,6 +324,188 @@
 
 <script>
 (function() {
+    // ========================================================================
+    // UP-PHASE7.6: Wallet Requests Management (Top-ups & Withdrawals Tracking)
+    // ========================================================================
+    
+    // Fetch and display wallet requests
+    async function loadWalletRequests() {
+        try {
+            const response = await fetch('/api/wallet/requests/', {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch requests');
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                renderTopups(data.topups);
+                renderWithdrawals(data.withdrawals);
+            }
+        } catch (error) {
+            console.error('Error loading wallet requests:', error);
+            document.getElementById('topups-tbody').innerHTML = `
+                <tr><td colspan="6" class="px-4 py-8 text-center text-red-400 text-sm">
+                    Failed to load requests. <button onclick="loadWalletRequests()" class="text-z-cyan hover:underline ml-2">Retry</button>
+                </td></tr>
+            `;
+            document.getElementById('withdrawals-tbody').innerHTML = `
+                <tr><td colspan="7" class="px-4 py-8 text-center text-red-400 text-sm">
+                    Failed to load requests. <button onclick="loadWalletRequests()" class="text-z-cyan hover:underline ml-2">Retry</button>
+                </td></tr>
+            `;
+        }
+    }
+    
+    // Render top-ups table
+    function renderTopups(topups) {
+        const tbody = document.getElementById('topups-tbody');
+        
+        if (!topups || topups.length === 0) {
+            tbody.innerHTML = `
+                <tr><td colspan="6" class="px-4 py-12 text-center text-gray-500 text-sm">
+                    No top-up requests yet
+                </td></tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = topups.map(t => {
+            const statusColor = getStatusColor(t.status);
+            const date = new Date(t.requested_at);
+            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            
+            let noteHtml = '';
+            if (t.status === 'rejected' && t.rejection_reason) {
+                noteHtml = `<span class="text-red-400">${escapeHtml(t.rejection_reason)}</span>`;
+            } else if (t.user_note) {
+                noteHtml = escapeHtml(t.user_note);
+            } else {
+                noteHtml = '<span class="text-gray-600">—</span>';
+            }
+            
+            return `
+                <tr class="hover:bg-white/5 transition">
+                    <td class="px-4 py-4 text-gray-400 font-mono text-xs">#${t.id}</td>
+                    <td class="px-4 py-4 text-white font-bold">${t.amount} DC</td>
+                    <td class="px-4 py-4 text-gray-300 text-xs uppercase">${t.payment_method_display}</td>
+                    <td class="px-4 py-4">
+                        <span class="text-${statusColor} font-bold text-xs bg-${statusColor}/10 px-2 py-1 rounded border border-${statusColor}/20">
+                            ${t.status_display}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 text-gray-500 text-xs">${dateStr}</td>
+                    <td class="px-4 py-4 text-gray-400 text-xs">${noteHtml}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    // Render withdrawals table
+    function renderWithdrawals(withdrawals) {
+        const tbody = document.getElementById('withdrawals-tbody');
+        
+        if (!withdrawals || withdrawals.length === 0) {
+            tbody.innerHTML = `
+                <tr><td colspan="7" class="px-4 py-12 text-center text-gray-500 text-sm">
+                    No withdrawal requests yet
+                </td></tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = withdrawals.map(w => {
+            const statusColor = getStatusColor(w.status);
+            const date = new Date(w.requested_at);
+            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            
+            return `
+                <tr class="hover:bg-white/5 transition">
+                    <td class="px-4 py-4 text-gray-400 font-mono text-xs">#${w.id}</td>
+                    <td class="px-4 py-4 text-white font-bold">${w.amount} DC</td>
+                    <td class="px-4 py-4 text-red-400 text-xs">${w.processing_fee} DC</td>
+                    <td class="px-4 py-4 text-z-cyan font-bold">${w.net_amount} DC</td>
+                    <td class="px-4 py-4 text-gray-300 text-xs uppercase">${w.payment_method_display}</td>
+                    <td class="px-4 py-4">
+                        <span class="text-${statusColor} font-bold text-xs bg-${statusColor}/10 px-2 py-1 rounded border border-${statusColor}/20">
+                            ${w.status_display}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 text-gray-500 text-xs">${dateStr}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    // Get status badge color
+    function getStatusColor(status) {
+        const colors = {
+            'pending': 'yellow-400',
+            'approved': 'blue-400',
+            'completed': 'z-green',
+            'rejected': 'red-400',
+            'cancelled': 'gray-500'
+        };
+        return colors[status] || 'gray-500';
+    }
+    
+    // HTML escape utility
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Tab switching
+    const tabButtons = document.querySelectorAll('.request-tab');
+    const tabTopups = document.getElementById('tab-topups');
+    const tabWithdrawals = document.getElementById('tab-withdrawals');
+    const topupsContainer = document.getElementById('topups-container');
+    const withdrawalsContainer = document.getElementById('withdrawals-container');
+    
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            tabButtons.forEach(b => b.classList.remove('active', 'text-white'));
+            btn.classList.add('active', 'text-white');
+            
+            if (btn.id === 'tab-topups') {
+                topupsContainer.classList.remove('hidden');
+                withdrawalsContainer.classList.add('hidden');
+            } else {
+                topupsContainer.classList.add('hidden');
+                withdrawalsContainer.classList.remove('hidden');
+            }
+        });
+    });
+    
+    // Refresh button
+    const refreshBtn = document.getElementById('refresh-requests-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            const icon = refreshBtn.querySelector('i');
+            icon.classList.add('fa-spin');
+            loadWalletRequests().finally(() => {
+                icon.classList.remove('fa-spin');
+            });
+        });
+    }
+    
+    // Initial load
+    loadWalletRequests();
+    
+    // Make loadWalletRequests global for retry button
+    window.loadWalletRequests = loadWalletRequests;
+    
+    // ========================================================================
+    // Modal Controls & Form Handlers
+    // ========================================================================
+    
     // Modal controls
     const topupBtn = document.getElementById('topup-btn');
     const withdrawBtn = document.getElementById('withdraw-btn');
@@ -347,7 +607,12 @@
                 topupModal.classList.add('hidden');
                 topupModal.classList.remove('flex');
                 topupForm.reset();
-                window.location.reload();
+                // Refresh requests list instead of full page reload
+                if (window.loadWalletRequests) {
+                    window.loadWalletRequests();
+                }
+                // Show success message (optional)
+                alert('Top-up request submitted successfully!');
             } else {
                 showError('topup-error-message', data.error || 'Failed to submit request');
             }
@@ -402,7 +667,12 @@
                 withdrawModal.classList.add('hidden');
                 withdrawModal.classList.remove('flex');
                 withdrawForm.reset();
-                window.location.reload();
+                // Refresh requests list instead of full page reload
+                if (window.loadWalletRequests) {
+                    window.loadWalletRequests();
+                }
+                // Show success message (optional)
+                alert('Withdrawal request submitted successfully!');
             } else {
                 let errorMsg = data.error || 'Failed to submit request';
                 // Add helpful CTA for PIN setup

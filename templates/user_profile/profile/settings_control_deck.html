@@ -2290,6 +2290,69 @@
                             <a href="{% url 'economy:transaction_history' %}" class="bg-white/10 text-white px-6 py-2 rounded-lg font-bold uppercase text-xs hover:bg-white/20 transition">History</a>
                         </div>
                     </div>
+
+                    <!-- UP-PHASE7.6: Wallet PIN Security -->
+                    <div class="glass-panel p-8">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-cyan to-z-green flex items-center justify-center">
+                                <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-white font-bold text-lg">Wallet PIN</h3>
+                                <p class="text-gray-400 text-xs">Secure your withdrawals with a 6-digit PIN</p>
+                            </div>
+                        </div>
+
+                        <!-- PIN Status -->
+                        <div class="mb-6">
+                            {% if wallet and wallet.pin_enabled %}
+                            <div class="flex items-center gap-2 text-z-green text-sm">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span class="font-bold">PIN Enabled</span>
+                            </div>
+                            {% else %}
+                            <div class="flex items-center gap-2 text-yellow-400 text-sm">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <span class="font-bold">PIN Not Set</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- PIN Form -->
+                        <form id="pin-setup-form" class="space-y-4">
+                            {% if wallet and wallet.pin_enabled %}
+                            <!-- Change PIN Mode -->
+                            <div>
+                                <label class="z-label">
+                                    <i class="fa-solid fa-lock"></i> Current PIN
+                                </label>
+                                <input type="password" id="current-pin" maxlength="6" placeholder="••••••" class="z-input" required>
+                            </div>
+                            {% endif %}
+
+                            <div>
+                                <label class="z-label">
+                                    <i class="fa-solid fa-key"></i> {% if wallet and wallet.pin_enabled %}New PIN{% else %}PIN{% endif %}
+                                </label>
+                                <input type="password" id="pin" maxlength="6" placeholder="••••••" class="z-input" required>
+                                <p class="text-gray-500 text-xs mt-1">Must be exactly 6 digits</p>
+                            </div>
+
+                            <div>
+                                <label class="z-label">
+                                    <i class="fa-solid fa-check-double"></i> Confirm PIN
+                                </label>
+                                <input type="password" id="confirm-pin" maxlength="6" placeholder="••••••" class="z-input" required>
+                            </div>
+
+                            <div id="pin-error-message" class="text-xs text-red-400 mt-1 hidden"></div>
+                            <div id="pin-success-message" class="text-xs text-z-green mt-1 hidden"></div>
+
+                            <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-z-cyan to-z-green text-black font-bold hover:shadow-lg hover:shadow-z-cyan/30 transition uppercase text-sm">
+                                {% if wallet and wallet.pin_enabled %}Change PIN{% else %}Set PIN{% endif %}
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <!-- DANGER ZONE TAB -->
@@ -5296,7 +5359,101 @@
         
         // Load KYC status
         loadKYCStatus();
+
+        // UP-PHASE7.6: Wallet PIN Setup Handler
+        initPINSetup();
     });
+
+    // ========================================================================
+    // UP-PHASE7.6: Wallet PIN Setup/Change
+    // ========================================================================
+    function initPINSetup() {
+        const pinForm = document.getElementById('pin-setup-form');
+        if (!pinForm) return;
+
+        pinForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const errorDiv = document.getElementById('pin-error-message');
+            const successDiv = document.getElementById('pin-success-message');
+            
+            // Hide messages
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+            
+            const pin = document.getElementById('pin').value;
+            const confirmPin = document.getElementById('confirm-pin').value;
+            const currentPinInput = document.getElementById('current-pin');
+            
+            // Validate PIN format
+            if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+                errorDiv.textContent = 'PIN must be exactly 6 digits';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            // Validate match
+            if (pin !== confirmPin) {
+                errorDiv.textContent = 'PIN and confirmation do not match';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            const submitBtn = pinForm.querySelector('button[type=submit]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('pin', pin);
+                formData.append('confirm_pin', confirmPin);
+                
+                if (currentPinInput) {
+                    const currentPin = currentPinInput.value;
+                    if (!currentPin) {
+                        errorDiv.textContent = 'Current PIN is required';
+                        errorDiv.classList.remove('hidden');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                        return;
+                    }
+                    formData.append('current_pin', currentPin);
+                }
+                
+                const response = await fetch('/api/wallet/pin/setup/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    successDiv.textContent = data.message || 'PIN set successfully!';
+                    successDiv.classList.remove('hidden');
+                    pinForm.reset();
+                    
+                    // Reload page after 2 seconds to update UI
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    errorDiv.textContent = data.error || 'Failed to set PIN';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('PIN setup error:', error);
+                errorDiv.textContent = 'Failed to set PIN. Please try again.';
+                errorDiv.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
+    }
 </script>
 
 <!-- PHASE 4B: Item Detail Modal -->
