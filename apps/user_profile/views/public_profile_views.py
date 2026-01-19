@@ -318,14 +318,14 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     if context['is_owner']:
         try:
             from apps.economy.models import DeltaCrownWallet, DeltaCrownTransaction
-            wallet, _ = DeltaCrownWallet.objects.get_or_create(user=profile_user)
+            wallet, _ = DeltaCrownWallet.objects.get_or_create(profile=user_profile)
             
             # Owner-only wallet data
             context['wallet'] = wallet
             context['wallet_visible'] = True
             context['wallet_transactions'] = DeltaCrownTransaction.objects.filter(
                 wallet=wallet
-            ).order_by('-created_at')[:10]  # Last 10 transactions
+            ).order_by('-created_at')[:20]  # Last 20 transactions (was 10)
             
             # BDT conversion rate (example: 1 DeltaCoin = 0.10 BDT)
             context['bdt_conversion_rate'] = 0.10
@@ -339,6 +339,45 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         context['wallet'] = None
         context['wallet_visible'] = False
         context['wallet_transactions'] = []
+    
+    # UP PHASE 7: Posts tab wiring (read-only)
+    # Visibility rules: owner sees all, follower sees public+friends, visitor sees public only
+    from apps.siteui.models import CommunityPost
+    
+    if context['is_owner']:
+        # Owner sees everything (public + friends + private)
+        user_posts = CommunityPost.objects.filter(
+            author=user_profile,
+            is_approved=True
+        ).select_related(
+            'author', 'author__user'
+        ).prefetch_related(
+            'media'
+        ).order_by('-created_at')[:20]
+    elif permissions.get('is_following'):
+        # Follower sees public + friends
+        user_posts = CommunityPost.objects.filter(
+            author=user_profile,
+            is_approved=True,
+            visibility__in=['public', 'friends']
+        ).select_related(
+            'author', 'author__user'
+        ).prefetch_related(
+            'media'
+        ).order_by('-created_at')[:20]
+    else:
+        # Visitor sees public only
+        user_posts = CommunityPost.objects.filter(
+            author=user_profile,
+            is_approved=True,
+            visibility='public'
+        ).select_related(
+            'author', 'author__user'
+        ).prefetch_related(
+            'media'
+        ).order_by('-created_at')[:20]
+    
+    context['user_posts'] = list(user_posts)
     
     # Add page metadata
     context['page_title'] = f"@{username} - DeltaCrown Esports"

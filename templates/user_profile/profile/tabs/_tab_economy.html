@@ -1,3 +1,4 @@
+{% load profile_tags %}
 {% if relationship_ctx.is_owner %}
 <div class="space-y-8 animate-fade-in">
     
@@ -28,11 +29,11 @@
             <div class="relative z-10 my-auto">
                 <div class="text-[10px] text-gray-400 uppercase font-bold mb-1">Available Balance</div>
                 <div class="text-5xl font-display font-black text-white tracking-tighter drop-shadow-lg flex items-center gap-2">
-                    {{ wallet_balance|floatformat:0|default:"12,500" }} <span class="text-2xl text-z-gold mb-1">DC</span>
+                    {{ wallet_balance|floatformat:0|default:"0" }} <span class="text-2xl text-z-gold mb-1">DC</span>
                 </div>
                 <div class="inline-flex items-center gap-1 mt-1 bg-white/5 px-2 py-0.5 rounded border border-white/5">
                     <i class="fa-solid fa-arrow-right-arrow-left text-[9px] text-gray-400"></i>
-                    <span class="text-xs font-mono font-bold text-gray-300">≈ 1,250 BDT</span>
+                    <span class="text-xs font-mono font-bold text-gray-300">≈ {{ wallet_balance|mul:0.1|floatformat:0 }} BDT</span>
                 </div>
             </div>
 
@@ -87,36 +88,28 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-white/5">
-                <tr class="hover:bg-white/5 transition">
-                    <td class="px-6 py-4"><span class="text-z-green font-bold text-xs bg-z-green/10 px-2 py-0.5 rounded border border-z-green/20">Tournament</span></td>
-                    <td class="px-6 py-4 text-white font-medium">Prize: DeltaCrown Major S1</td>
-                    <td class="px-6 py-4 text-gray-500 text-xs">Jan 12, 2026</td>
-                    <td class="px-6 py-4 text-right text-z-green font-bold">+50,000 DC</td>
-                </tr>
-                <tr class="hover:bg-white/5 transition">
-                    <td class="px-6 py-4"><span class="text-z-red font-bold text-xs bg-z-red/10 px-2 py-0.5 rounded border border-z-red/20">Shop</span></td>
-                    <td class="px-6 py-4 text-white font-medium">Skin: Elderflame Vandal</td>
-                    <td class="px-6 py-4 text-gray-500 text-xs">Jan 10, 2026</td>
-                    <td class="px-6 py-4 text-right text-white">-2,500 DC</td>
-                </tr>
-                <tr class="hover:bg-white/5 transition">
-                    <td class="px-6 py-4"><span class="text-z-cyan font-bold text-xs bg-z-cyan/10 px-2 py-0.5 rounded border border-z-cyan/20">Top Up</span></td>
-                    <td class="px-6 py-4 text-white font-medium">Bkash Payment (TrxID: 8X9...)</td>
-                    <td class="px-6 py-4 text-gray-500 text-xs">Jan 05, 2026</td>
-                    <td class="px-6 py-4 text-right text-z-green font-bold">+2,000 DC</td>
-                </tr>
-                <tr class="hover:bg-white/5 transition">
-                    <td class="px-6 py-4"><span class="text-z-green font-bold text-xs bg-z-green/10 px-2 py-0.5 rounded border border-z-green/20">Match Win</span></td>
-                    <td class="px-6 py-4 text-white font-medium">Ranked Victory Bonus</td>
-                    <td class="px-6 py-4 text-gray-500 text-xs">Jan 03, 2026</td>
-                    <td class="px-6 py-4 text-right text-z-green font-bold">+150 DC</td>
-                </tr>
-                <tr class="hover:bg-white/5 transition">
-                    <td class="px-6 py-4"><span class="text-z-purple font-bold text-xs bg-z-purple/10 px-2 py-0.5 rounded border border-z-purple/20">Referral</span></td>
-                    <td class="px-6 py-4 text-white font-medium">Friend Sign-up Bonus</td>
-                    <td class="px-6 py-4 text-gray-500 text-xs">Dec 28, 2025</td>
-                    <td class="px-6 py-4 text-right text-z-green font-bold">+500 DC</td>
-                </tr>
+                {% if wallet_transactions %}
+                    {% for txn in wallet_transactions %}
+                    <tr class="hover:bg-white/5 transition">
+                        <td class="px-6 py-4">
+                            <span class="text-{{ txn.reason|reason_badge_color }} font-bold text-xs bg-{{ txn.reason|reason_badge_color }}/10 px-2 py-0.5 rounded border border-{{ txn.reason|reason_badge_color }}/20">
+                                {{ txn.get_reason_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-white font-medium">{{ txn.note|default:txn.get_reason_display }}</td>
+                        <td class="px-6 py-4 text-gray-500 text-xs">{{ txn.created_at|date:"M d, Y" }}</td>
+                        <td class="px-6 py-4 text-right {% if txn.amount > 0 %}text-z-green{% else %}text-white{% endif %} font-bold">
+                            {% if txn.amount > 0 %}+{% endif %}{{ txn.amount|floatformat:0 }} DC
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center">
+                            <div class="text-gray-500 text-sm">No transactions yet</div>
+                        </td>
+                    </tr>
+                {% endif %}
             </tbody>
         </table>
     </div>

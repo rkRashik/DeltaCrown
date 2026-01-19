@@ -325,3 +325,42 @@ def replace(value, args):
     old = args[0]
     new = args[1:]
     return value.replace(old, new)
+
+
+@register.filter
+def reason_badge_color(reason):
+    """
+    Map transaction reason to badge color class.
+    
+    Usage: {{ txn.reason|reason_badge_color }}
+    
+    Returns Tailwind color class name for transaction type badges.
+    """
+    color_map = {
+        'winner': 'z-gold',
+        'runner_up': 'z-gold',
+        'top4': 'z-green',
+        'participation': 'z-green',
+        'refund': 'z-cyan',
+        'p2p_transfer': 'z-purple',
+        'manual_adjust': 'z-purple',
+        'correction': 'z-purple',
+        'entry_fee_debit': 'z-red',
+    }
+    return color_map.get(reason, 'z-cyan')  # Default: cyan
+
+
+@register.filter
+def mul(value, arg):
+    """
+    Multiply a value by an argument.
+    
+    Usage: {{ wallet_balance|mul:0.1 }}
+    
+    For converting DeltaCoins to BDT.
+    """
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return 0
+
