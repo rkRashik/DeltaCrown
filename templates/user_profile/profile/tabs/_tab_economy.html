@@ -1,5 +1,8 @@
 {% load profile_tags %}
 {% if relationship_ctx.is_owner %}
+<!-- UP-PHASE7.7: Toast Notification Container -->
+<div id="toast-container" class="fixed top-4 right-4 z-[9999] space-y-3" style="max-width: 400px;"></div>
+
 <div class="space-y-8 animate-fade-in">
     
     <!-- Wallet and Quick Actions -->
@@ -134,12 +137,13 @@
         
         <!-- Request Type Tabs -->
         <div class="flex gap-3 mb-6 border-b border-white/10">
-            <button id="tab-topups" class="request-tab active px-4 py-3 text-sm font-bold transition relative">
+            <button id="tab-topups" class="request-tab active px-4 py-3 text-sm font-bold transition relative text-white">
                 Top-Ups
                 <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-z-cyan tab-indicator"></span>
             </button>
-            <button id="tab-withdrawals" class="request-tab px-4 py-3 text-sm font-bold transition">
+            <button id="tab-withdrawals" class="request-tab px-4 py-3 text-sm font-bold transition relative text-gray-400">
                 Withdrawals
+                <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-z-cyan tab-indicator hidden"></span>
             </button>
         </div>
         
@@ -325,6 +329,110 @@
 <script>
 (function() {
     // ========================================================================
+    // UP-PHASE7.7: Modern Toast Notification System
+    // ========================================================================
+    
+    function showToast(message, type = 'success', duration = 5000) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        
+        const toast = document.createElement('div');
+        const iconMap = {
+            success: 'fa-circle-check',
+            error: 'fa-circle-xmark',
+            warning: 'fa-triangle-exclamation',
+            info: 'fa-circle-info'
+        };
+        const colorMap = {
+            success: 'z-green',
+            error: 'red-500',
+            warning: 'yellow-400',
+            info: 'z-cyan'
+        };
+        
+        const icon = iconMap[type] || iconMap.info;
+        const color = colorMap[type] || colorMap.info;
+        
+        toast.className = 'glass-panel px-6 py-4 rounded-xl border border-white/10 shadow-2xl animate-slide-in-right flex items-start gap-3 backdrop-blur-xl';
+        toast.style.cssText = 'background: rgba(15, 11, 30, 0.95); min-width: 300px;';
+        
+        toast.innerHTML = `
+            <i class="fa-solid ${icon} text-${color} text-xl mt-0.5 flex-shrink-0"></i>
+            <div class="flex-1">
+                <p class="text-white text-sm font-medium leading-relaxed">${message}</p>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-white transition ml-2 flex-shrink-0">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        `;
+        
+        container.appendChild(toast);
+        
+        // Auto-dismiss
+        if (duration > 0) {
+            setTimeout(() => {
+                toast.style.animation = 'slide-out-right 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+    }
+    
+    // Export to window for global access
+    window.showToast = showToast;
+    
+    // ========================================================================
+    // UP-PHASE7.7: Modern Toast Notification System
+    // ========================================================================
+    
+    function showToast(message, type = 'success', duration = 5000) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        
+        const toast = document.createElement('div');
+        const iconMap = {
+            success: 'fa-circle-check',
+            error: 'fa-circle-xmark',
+            warning: 'fa-triangle-exclamation',
+            info: 'fa-circle-info'
+        };
+        const colorMap = {
+            success: 'z-green',
+            error: 'red-500',
+            warning: 'yellow-400',
+            info: 'z-cyan'
+        };
+        
+        const icon = iconMap[type] || iconMap.info;
+        const color = colorMap[type] || colorMap.info;
+        
+        toast.className = 'glass-panel px-6 py-4 rounded-xl border border-white/10 shadow-2xl animate-slide-in-right flex items-start gap-3 backdrop-blur-xl';
+        toast.style.cssText = 'background: rgba(15, 11, 30, 0.95); min-width: 300px;';
+        
+        toast.innerHTML = `
+            <i class="fa-solid ${icon} text-${color} text-xl mt-0.5 flex-shrink-0"></i>
+            <div class="flex-1">
+                <p class="text-white text-sm font-medium leading-relaxed">${message}</p>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-white transition ml-2 flex-shrink-0">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        `;
+        
+        container.appendChild(toast);
+        
+        // Auto-dismiss
+        if (duration > 0) {
+            setTimeout(() => {
+                toast.style.animation = 'slide-out-right 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+    }
+    
+    // Export to window for global access
+    window.showToast = showToast;
+    
+    // ========================================================================
     // UP-PHASE7.6: Wallet Requests Management (Top-ups & Withdrawals Tracking)
     // ========================================================================
     
@@ -471,9 +579,23 @@
     
     tabButtons.forEach(btn => {
         btn.addEventListener('click', function() {
-            tabButtons.forEach(b => b.classList.remove('active', 'text-white'));
-            btn.classList.add('active', 'text-white');
+            // Remove active state from all tabs
+            tabButtons.forEach(b => {
+                b.classList.remove('active', 'text-white');
+                b.classList.add('text-gray-400');
+                // Hide all indicators
+                const indicator = b.querySelector('.tab-indicator');
+                if (indicator) indicator.classList.add('hidden');
+            });
             
+            // Add active state to clicked tab
+            btn.classList.add('active', 'text-white');
+            btn.classList.remove('text-gray-400');
+            // Show this tab's indicator
+            const activeIndicator = btn.querySelector('.tab-indicator');
+            if (activeIndicator) activeIndicator.classList.remove('hidden');
+            
+            // Show/hide content containers
             if (btn.id === 'tab-topups') {
                 topupsContainer.classList.remove('hidden');
                 withdrawalsContainer.classList.add('hidden');
@@ -611,8 +733,8 @@
                 if (window.loadWalletRequests) {
                     window.loadWalletRequests();
                 }
-                // Show success message (optional)
-                alert('Top-up request submitted successfully!');
+                // UP-PHASE7.7: Show toast notification
+                showToast('Top-up request submitted successfully! Admin will review shortly.', 'success');
             } else {
                 showError('topup-error-message', data.error || 'Failed to submit request');
             }
@@ -671,13 +793,13 @@
                 if (window.loadWalletRequests) {
                     window.loadWalletRequests();
                 }
-                // Show success message (optional)
-                alert('Withdrawal request submitted successfully!');
+                // UP-PHASE7.7: Show toast notification
+                showToast('Withdrawal request submitted successfully! You will be notified when approved.', 'success');
             } else {
                 let errorMsg = data.error || 'Failed to submit request';
-                // Add helpful CTA for PIN setup
+                // UP-PHASE7.7: Link to Settings → Wallet menu for PIN setup
                 if (errorMsg.includes('set up') || errorMsg.includes('PIN') && errorMsg.includes('before')) {
-                    errorMsg += ' <a href="/wallet/" class="text-z-gold hover:underline">Set up PIN in Wallet Settings →</a>';
+                    errorMsg += ' <a href="/me/settings/#billing" class="text-z-gold hover:underline">Set up PIN in Settings →</a>';
                 }
                 showError('withdraw-error-message', errorMsg);
             }

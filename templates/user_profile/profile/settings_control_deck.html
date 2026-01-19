@@ -2292,41 +2292,44 @@
                     </div>
 
                     <!-- UP-PHASE7.6: Wallet PIN Security -->
-                    <div class="glass-panel p-8">
+                    <div class="glass-panel p-8 border-2 border-white/10 hover:border-z-cyan/30 transition">
                         <div class="flex items-center gap-3 mb-6">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-cyan to-z-green flex items-center justify-center">
-                                <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+                            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-z-cyan to-z-green flex items-center justify-center shadow-lg shadow-z-cyan/20">
+                                <i class="fa-solid fa-shield-halved text-white text-2xl"></i>
                             </div>
                             <div>
-                                <h3 class="text-white font-bold text-lg">Wallet PIN</h3>
-                                <p class="text-gray-400 text-xs">Secure your withdrawals with a 6-digit PIN</p>
+                                <h3 class="text-white font-bold text-xl">Wallet PIN</h3>
+                                <p class="text-gray-400 text-sm">Secure your withdrawals with a 6-digit PIN</p>
                             </div>
                         </div>
 
                         <!-- PIN Status -->
-                        <div class="mb-6">
+                        <div class="mb-6 p-4 rounded-xl {% if wallet and wallet.pin_enabled %}bg-z-green/10 border border-z-green/30{% else %}bg-yellow-500/10 border border-yellow-500/30{% endif %}">
                             {% if wallet and wallet.pin_enabled %}
                             <div class="flex items-center gap-2 text-z-green text-sm">
-                                <i class="fa-solid fa-circle-check"></i>
-                                <span class="font-bold">PIN Enabled</span>
+                                <i class="fa-solid fa-circle-check text-lg"></i>
+                                <span class="font-bold">PIN Enabled & Active</span>
                             </div>
+                            <p class="text-gray-400 text-xs mt-1 ml-6">Your withdrawals are protected</p>
                             {% else %}
                             <div class="flex items-center gap-2 text-yellow-400 text-sm">
-                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <i class="fa-solid fa-triangle-exclamation text-lg"></i>
                                 <span class="font-bold">PIN Not Set</span>
                             </div>
+                            <p class="text-gray-400 text-xs mt-1 ml-6">Set up a PIN to enable withdrawals</p>
                             {% endif %}
                         </div>
 
-                        <!-- PIN Form -->
+                        <!-- UP-PHASE7.7: PIN Form with OTP Verification -->
                         <form id="pin-setup-form" class="space-y-4">
                             {% if wallet and wallet.pin_enabled %}
                             <!-- Change PIN Mode -->
-                            <div>
+                            <div id="current-pin-field">
                                 <label class="z-label">
                                     <i class="fa-solid fa-lock"></i> Current PIN
                                 </label>
                                 <input type="password" id="current-pin" maxlength="6" placeholder="••••••" class="z-input" required>
+                                <p class="text-gray-500 text-xs mt-1">Enter your current PIN to authorize changes</p>
                             </div>
                             {% endif %}
 
@@ -2345,11 +2348,42 @@
                                 <input type="password" id="confirm-pin" maxlength="6" placeholder="••••••" class="z-input" required>
                             </div>
 
-                            <div id="pin-error-message" class="text-xs text-red-400 mt-1 hidden"></div>
-                            <div id="pin-success-message" class="text-xs text-z-green mt-1 hidden"></div>
+                            <!-- UP-PHASE7.7: OTP Field (appears after Send OTP clicked) -->
+                            <div id="otp-field" class="hidden">
+                                <label class="z-label">
+                                    <i class="fa-solid fa-envelope"></i> Email Verification Code
+                                </label>
+                                <input type="text" id="otp-code" maxlength="6" placeholder="000000" class="z-input">
+                                <p class="text-gray-500 text-xs mt-1">
+                                    Enter the 6-digit code sent to your email
+                                    <button type="button" id="resend-otp-btn" class="text-z-cyan hover:underline ml-2" disabled>
+                                        Resend (<span id="resend-countdown">60</span>s)
+                                    </button>
+                                </p>
+                            </div>
 
-                            <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-z-cyan to-z-green text-black font-bold hover:shadow-lg hover:shadow-z-cyan/30 transition uppercase text-sm">
-                                {% if wallet and wallet.pin_enabled %}Change PIN{% else %}Set PIN{% endif %}
+                            <!-- UP-PHASE7.8: Improved message panels -->
+                            <div id="pin-error-message" class="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-medium hidden flex items-start gap-2">
+                                <i class="fa-solid fa-circle-exclamation mt-0.5 flex-shrink-0"></i>
+                                <span></span>
+                            </div>
+                            <div id="pin-success-message" class="p-4 rounded-xl bg-z-green/10 border border-z-green/30 text-z-green text-sm font-medium hidden flex items-start gap-2">
+                                <i class="fa-solid fa-circle-check mt-0.5 flex-shrink-0"></i>
+                                <span></span>
+                            </div>
+                            <div id="pin-info-message" class="p-4 rounded-xl bg-z-cyan/10 border border-z-cyan/30 text-z-cyan text-sm font-medium hidden flex items-start gap-2">
+                                <i class="fa-solid fa-circle-info mt-0.5 flex-shrink-0"></i>
+                                <span></span>
+                            </div>
+
+                            <!-- UP-PHASE7.7: Two-step buttons (Send OTP → Verify & Set PIN) -->
+                            <button type="button" id="send-otp-btn" class="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-cyan-700 via-cyan-600 to-cyan-700 hover:from-cyan-600 hover:via-cyan-500 hover:to-cyan-600 text-white font-bold shadow-lg shadow-cyan-500/20 hover:shadow-cyan-400/40 ring-2 ring-cyan-500/20 hover:ring-cyan-400/40 transition-all duration-300 uppercase text-sm backdrop-blur-sm">
+                                <i class="fa-solid fa-paper-plane mr-2"></i>
+                                Send Verification Code
+                            </button>
+                            <button type="submit" id="verify-pin-btn" class="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-green-700 via-green-600 to-green-700 hover:from-green-600 hover:via-green-500 hover:to-green-600 text-white font-bold shadow-lg shadow-green-500/20 hover:shadow-green-400/40 ring-2 ring-green-500/20 hover:ring-green-400/40 transition-all duration-300 uppercase text-sm backdrop-blur-sm hidden">
+                                <i class="fa-solid fa-check-circle mr-2"></i>
+                                Verify & {% if wallet and wallet.pin_enabled %}Change PIN{% else %}Set PIN{% endif %}
                             </button>
                         </form>
                     </div>
@@ -5360,26 +5394,71 @@
         // Load KYC status
         loadKYCStatus();
 
-        // UP-PHASE7.6: Wallet PIN Setup Handler
-        initPINSetup();
+        // UP-PHASE7.7: Wallet PIN Setup with OTP
+        initPINSetupWithOTP();
     });
 
     // ========================================================================
-    // UP-PHASE7.6: Wallet PIN Setup/Change
+    // UP-PHASE7.7: Wallet PIN Setup/Change with OTP Verification
     // ========================================================================
-    function initPINSetup() {
+    function initPINSetupWithOTP() {
         const pinForm = document.getElementById('pin-setup-form');
         if (!pinForm) return;
 
-        pinForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const errorDiv = document.getElementById('pin-error-message');
-            const successDiv = document.getElementById('pin-success-message');
-            
-            // Hide messages
+        const sendOTPBtn = document.getElementById('send-otp-btn');
+        const verifyPINBtn = document.getElementById('verify-pin-btn');
+        const otpField = document.getElementById('otp-field');
+        const resendBtn = document.getElementById('resend-otp-btn');
+        const countdownSpan = document.getElementById('resend-countdown');
+        
+        const errorDiv = document.getElementById('pin-error-message');
+        const successDiv = document.getElementById('pin-success-message');
+        const infoDiv = document.getElementById('pin-info-message');
+        
+        let resendCountdown = 60;
+        let countdownInterval = null;
+        let otpSent = false;
+
+        // Hide messages helper
+        function hideMessages() {
             errorDiv.classList.add('hidden');
             successDiv.classList.add('hidden');
+            infoDiv.classList.add('hidden');
+        }
+
+        // Show message helper
+        function showMessage(div, message) {
+            hideMessages();
+            const span = div.querySelector('span');
+            if (span) {
+                span.textContent = message;
+            } else {
+                div.textContent = message;
+            }
+            div.classList.remove('hidden');
+        }
+
+        // Start resend countdown
+        function startResendCountdown() {
+            resendCountdown = 60;
+            resendBtn.disabled = true;
+            countdownSpan.textContent = resendCountdown;
+            
+            countdownInterval = setInterval(() => {
+                resendCountdown--;
+                countdownSpan.textContent = resendCountdown;
+                
+                if (resendCountdown <= 0) {
+                    clearInterval(countdownInterval);
+                    resendBtn.disabled = false;
+                    resendBtn.innerHTML = 'Resend';
+                }
+            }, 1000);
+        }
+
+        // Send OTP button handler
+        sendOTPBtn.addEventListener('click', async function() {
+            hideMessages();
             
             const pin = document.getElementById('pin').value;
             const confirmPin = document.getElementById('confirm-pin').value;
@@ -5387,41 +5466,38 @@
             
             // Validate PIN format
             if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
-                errorDiv.textContent = 'PIN must be exactly 6 digits';
-                errorDiv.classList.remove('hidden');
+                showMessage(errorDiv, 'PIN must be exactly 6 digits');
                 return;
             }
             
             // Validate match
             if (pin !== confirmPin) {
-                errorDiv.textContent = 'PIN and confirmation do not match';
-                errorDiv.classList.remove('hidden');
+                showMessage(errorDiv, 'PIN and confirmation do not match');
                 return;
             }
             
-            const submitBtn = pinForm.querySelector('button[type=submit]');
-            const originalText = submitBtn.textContent;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
+            // Determine purpose
+            const purpose = currentPinInput ? 'pin_change' : 'pin_setup';
+            
+            sendOTPBtn.disabled = true;
+            sendOTPBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Sending...';
             
             try {
                 const formData = new FormData();
-                formData.append('pin', pin);
-                formData.append('confirm_pin', confirmPin);
+                formData.append('purpose', purpose);
                 
                 if (currentPinInput) {
                     const currentPin = currentPinInput.value;
                     if (!currentPin) {
-                        errorDiv.textContent = 'Current PIN is required';
-                        errorDiv.classList.remove('hidden');
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = originalText;
+                        showMessage(errorDiv, 'Current PIN is required');
+                        sendOTPBtn.disabled = false;
+                        sendOTPBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i>Send Verification Code';
                         return;
                     }
                     formData.append('current_pin', currentPin);
                 }
                 
-                const response = await fetch('/api/wallet/pin/setup/', {
+                const response = await fetch('/api/wallet/pin/otp/request/', {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': getCookie('csrftoken')
@@ -5432,25 +5508,105 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    successDiv.textContent = data.message || 'PIN set successfully!';
-                    successDiv.classList.remove('hidden');
+                    showMessage(infoDiv, data.message || 'Verification code sent to your email!');
+                    
+                    // Show OTP field and verify button
+                    otpField.classList.remove('hidden');
+                    verifyPINBtn.classList.remove('hidden');
+                    sendOTPBtn.classList.add('hidden');
+                    
+                    // Disable PIN fields
+                    document.getElementById('pin').disabled = true;
+                    document.getElementById('confirm-pin').disabled = true;
+                    if (currentPinInput) currentPinInput.disabled = true;
+                    
+                    // Focus OTP input
+                    document.getElementById('otp-code').focus();
+                    
+                    // Start countdown
+                    startResendCountdown();
+                    otpSent = true;
+                } else {
+                    showMessage(errorDiv, data.error || 'Failed to send verification code');
+                    sendOTPBtn.disabled = false;
+                    sendOTPBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i>Send Verification Code';
+                }
+            } catch (error) {
+                console.error('[PIN][OTP] Send error:', error);
+                showMessage(errorDiv, 'Failed to send verification code. Please try again.');
+                sendOTPBtn.disabled = false;
+                sendOTPBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i>Send Verification Code';
+            }
+        });
+
+        // Resend OTP button handler
+        if (resendBtn) {
+            resendBtn.addEventListener('click', function() {
+                sendOTPBtn.click();
+            });
+        }
+
+        // Verify & Set PIN button handler (form submit)
+        pinForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!otpSent) {
+                showMessage(errorDiv, 'Please send verification code first');
+                return;
+            }
+            
+            hideMessages();
+            
+            const otpCode = document.getElementById('otp-code').value;
+            const pin = document.getElementById('pin').value;
+            const confirmPin = document.getElementById('confirm-pin').value;
+            
+            // Validate OTP
+            if (!otpCode || otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
+                showMessage(errorDiv, 'Please enter the 6-digit verification code from your email');
+                return;
+            }
+            
+            verifyPINBtn.disabled = true;
+            verifyPINBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Verifying...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('otp_code', otpCode);
+                formData.append('pin', pin);
+                formData.append('confirm_pin', confirmPin);
+                
+                const response = await fetch('/api/wallet/pin/otp/verify/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(successDiv, data.message || 'PIN set successfully!');
                     pinForm.reset();
                     
-                    // Reload page after 2 seconds to update UI
+                    // Clear countdown
+                    if (countdownInterval) clearInterval(countdownInterval);
+                    
+                    // Reload page after 2 seconds
                     setTimeout(() => {
                         window.location.reload();
                     }, 2000);
                 } else {
-                    errorDiv.textContent = data.error || 'Failed to set PIN';
-                    errorDiv.classList.remove('hidden');
+                    showMessage(errorDiv, data.error || 'Failed to verify code');
+                    verifyPINBtn.disabled = false;
+                    verifyPINBtn.innerHTML = '<i class="fa-solid fa-check-circle mr-2"></i>Verify & Set PIN';
                 }
             } catch (error) {
-                console.error('PIN setup error:', error);
-                errorDiv.textContent = 'Failed to set PIN. Please try again.';
-                errorDiv.classList.remove('hidden');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
+                console.error('[PIN][OTP] Verify error:', error);
+                showMessage(errorDiv, 'Failed to verify code. Please try again.');
+                verifyPINBtn.disabled = false;
+                verifyPINBtn.innerHTML = '<i class="fa-solid fa-check-circle mr-2"></i>Verify & Set PIN';
             }
         });
     }

@@ -9,7 +9,9 @@ from django.apps import apps
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator, EmptyPage
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from django.contrib import messages
 from django.utils import timezone
 
 from apps.economy.models import DeltaCrownTransaction
@@ -41,7 +43,21 @@ def _parse_date(val: Optional[str]) -> Optional[dt.date]:
 @login_required
 def wallet_view(request: HttpRequest) -> HttpResponse:
     """
-    Wallet overview + history.
+    UP PHASE 7.7: Old wallet page redirects to Settings → Wallet menu.
+    
+    The PIN setup UI has been moved to Settings for better UX.
+    This redirect ensures old links still work.
+    """
+    messages.info(request, 'Wallet PIN settings have moved to Settings → Wallet menu.')
+    # Redirect to user's settings page, Wallet tab
+    return redirect(f'{reverse("user_profile:profile_settings")}#billing')
+
+
+@login_required
+def wallet_transactions_view(request: HttpRequest) -> HttpResponse:
+    """
+    Wallet transaction history (formerly at /wallet/, now at /transactions/).
+    
     GET params:
       - reason: transaction reason (one of model choices)
       - start: YYYY-MM-DD (inclusive)
@@ -113,4 +129,4 @@ def wallet_view(request: HttpRequest) -> HttpResponse:
         "start": start.isoformat() if start else "",
         "end": end.isoformat() if end else "",
     }
-    return render(request, "economy/wallet.html", ctx)
+    return render(request, "economy/transaction_history.html", ctx)

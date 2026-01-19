@@ -13,7 +13,7 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from .models import CoinPolicy, DeltaCrownTransaction, DeltaCrownWallet, TopUpRequest, WithdrawalRequest
+from .models import CoinPolicy, DeltaCrownTransaction, DeltaCrownWallet, TopUpRequest, WalletPINOTP, WithdrawalRequest
 
 
 @admin.register(DeltaCrownWallet)
@@ -34,63 +34,46 @@ class DeltaCrownWalletAdmin(admin.ModelAdmin):
 
     profile_display.short_description = "Profile"
 
-    @admin.action(description="🔄 Recalculate selected wallet balances")
-    def recalculate_balances(self, request: HttpRequest, queryset):
-        count = 0
-        for w in queryset:
-            w.recalc_and_save()
-            count += 1
-        self.message_user(request, f"Recalculated {count} wallet(s).", level=messages.SUCCESS)
-    
-    @admin.action(description="💰 Reconcile selected wallets to user profile stats")
-    def reconcile_to_profile(self, request: HttpRequest, queryset):
-        """Sync wallet balance to UserProfileStats (calls economy_sync service)"""
-        if not request.user.is_superuser:
-            self.message_user(request, "Only superusers can reconcile to profile.", level=messages.ERROR)
-            return
-        
-        try:
-            from apps.user_profile.services.economy_sync import sync_profile_by_user_id
-            from apps.user_profile.services.audit import AuditService
-        except ImportError as e:
-            self.message_user(request, f"Import error: {e}", level=messages.ERROR)
-            return
-        
-        count = 0
-        errors = []
-        
-        for wallet in queryset.select_related('profile__user'):
-            try:
-                user_id = wallet.profile.user.id
-                sync_profile_by_user_id(user_id)
-                
-                # Record audit event
-                AuditService.record_event(
-                    subject_user_id=user_id,
-                    event_type='economy_sync',
-                    source_app='economy',
-                    object_type='wallet',
-                    object_id=wallet.id,
-                    actor_user_id=request.user.id,
-                    metadata={'trigger': 'admin_wallet_reconcile'},
-                )
-                
-                count += 1
-            except Exception as e:
-                errors.append(f"Wallet {wallet.id}: {e}")
-        
-        if errors:
-            self.message_user(
-                request,
-                f"Reconciled {count} wallet(s) with {len(errors)} errors: {'; '.join(errors[:5])}",
-                level=messages.WARNING
-            )
-        else:
-            self.message_user(
-                request,
-                f"✅ Successfully reconciled {count} wallet(s) to profile stats.",
-                level=messages.SUCCESS
-            )
+
+@admin.register(WalletPINOTP)
+class WalletPINOTPAdmin(admin.ModelAdmin):
+    """UP-PHASE7.7: Read-only admin for OTP audit trail"""
+    list_display = ("id", "wallet_user", "purpose", "is_used", "attempt_count", "created_at", "expires_at", "validity_status")
+    list_filter = ("purpose", "is_used", "created_at")
+    search_fields = ("wallet__profile__user__username", "wallet__profile__user__email")
+    readonly_fields = ("wallet", "code_hash", "purpose", "attempt_count", "max_attempts", "is_used", "used_at", "created_at", "expires_at")
+    date_hierarchy = "created_at"
+    ordering = ("-created_at",)
+
+    def has_add_permission(self, request):
+        """Prevent manual OTP creation - must go through API"""
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """Read-only view for security audit"""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deletion for audit trail"""
+        return False
+
+    def wallet_user(self, obj):
+        """Display wallet owner username"""
+        if obj.wallet and obj.wallet.profile and obj.wallet.profile.user:
+            return obj.wallet.profile.user.username
+        return "—"
+    wallet_user.short_description = "User"
+
+    def validity_status(self, obj):
+        """Show if OTP is currently valid"""
+        if obj.is_used:
+            return format_html('<span style="color: gray;">✓ Used</span>')
+        if not obj.is_valid():
+            return format_html('<span style="color: red;">✗ Expired/Invalid</span>')
+        if obj.attempt_count >= obj.max_attempts:
+            return format_html('<span style="color: orange;">⚠ Max Attempts</span>')
+        return format_html('<span style="color: green;">✓ Valid</span>')
+    validity_status.short_description = "Status"
 
 
 @admin.register(TopUpRequest)
