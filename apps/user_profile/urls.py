@@ -134,7 +134,8 @@ from .views.about_api import (
 
 # UP-PHASE7.1: Posts API (Community posts create/delete)
 from .views.profile_posts_views import (
-    create_post, delete_post, edit_post
+    create_post, delete_post, edit_post,
+    like_post, comment_on_post, get_comments, share_post
 )
 
 # UP-PHASE2D: Interactive Owner Flows (Bounties, Loadout, Trophy Showcase)
@@ -335,6 +336,12 @@ urlpatterns = [
     path("api/profile/posts/create/", create_post, name="create_post"),
     path("api/profile/posts/<int:post_id>/edit/", edit_post, name="edit_post"),
     path("api/profile/posts/<int:post_id>/delete/", delete_post, name="delete_post"),
+    
+    # UP-PHASE7.5: Posts Engagement APIs (like/comment/share)
+    path("api/profile/posts/<int:post_id>/like/", like_post, name="like_post"),
+    path("api/profile/posts/<int:post_id>/comment/", comment_on_post, name="comment_on_post"),
+    path("api/profile/posts/<int:post_id>/comments/", get_comments, name="get_comments"),
+    path("api/profile/posts/<int:post_id>/share/", share_post, name="share_post"),
     
     # UP-PHASE2D: Interactive Owner Flows (Bounties, Loadout, Trophy Showcase)
     path("api/bounties/create/", create_bounty, name="create_bounty"),

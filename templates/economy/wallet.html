@@ -11,19 +11,76 @@
 
   <h1 class="text-2xl font-bold">Wallet</h1>
 
+  <!-- Wallet Balance Section -->
   <section class="glass rounded-2xl p-6 mt-4">
     {% if wallet %}
-      <div class="grid gap-2">
-        <div><span class="text-muted">Balance:</span> <strong>{{ wallet.cached_balance|default:0 }}</strong> DCC</div>
+      <div class="grid gap-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <span class="text-muted text-sm">Available Balance</span>
+            <div class="text-3xl font-bold text-white mt-1">
+              {{ wallet.cached_balance|default:0 }} <span class="text-lg text-z-gold">DCC</span>
+            </div>
+          </div>
+          <div class="w-12 h-12 rounded-full bg-z-gold/10 flex items-center justify-center">
+            <i class="fa-solid fa-wallet text-z-gold text-xl"></i>
+          </div>
+        </div>
       </div>
     {% else %}
-      <div class="text-center">
+      <div class="text-center py-6">
         <p class="text-muted">No wallet found yet.</p>
       </div>
     {% endif %}
   </section>
 
+  <!-- PIN Security Section -->
   <section class="glass rounded-2xl p-6 mt-6">
+    <div class="flex justify-between items-center mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-z-cyan/10 flex items-center justify-center">
+          <i class="fa-solid fa-shield-halved text-z-cyan"></i>
+        </div>
+        <div>
+          <h2 class="font-semibold text-white">Wallet PIN Security</h2>
+          <p class="text-xs text-muted">Required for withdrawals</p>
+        </div>
+      </div>
+      {% if wallet.pin_enabled %}
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-z-green/10 border border-z-green/30">
+        <span class="w-2 h-2 rounded-full bg-z-green animate-pulse"></span>
+        <span class="text-xs font-bold text-z-green uppercase tracking-wider">PIN Enabled</span>
+      </div>
+      {% else %}
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+        <i class="fa-solid fa-triangle-exclamation text-yellow-500 text-xs"></i>
+        <span class="text-xs font-bold text-yellow-500 uppercase tracking-wider">PIN Not Set</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="border-t border-line pt-4">
+      {% if wallet.pin_enabled %}
+      <p class="text-sm text-gray-400 mb-4">
+        Your wallet PIN is active. You can change it anytime for security.
+      </p>
+      <button id="change-pin-btn" class="btn-primary inline-flex items-center gap-2">
+        <i class="fa-solid fa-key"></i>
+        Change PIN
+      </button>
+      {% else %}
+      <p class="text-sm text-gray-400 mb-4">
+        Set up a 6-digit PIN to secure your withdrawals. You'll need this PIN every time you request a cash-out.
+      </p>
+      <button id="setup-pin-btn" class="btn-primary inline-flex items-center gap-2">
+        <i class="fa-solid fa-shield-halved"></i>
+        Set Up PIN
+      </button>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- Transactions Section -->
     <h2 class="font-semibold mb-3">Transactions</h2>
 
     <form method="get" class="grid gap-3 md:grid-cols-4 mb-4">
@@ -61,5 +118,237 @@
     {% endif %}
   </section>
 </main>
-{% endblock %}
 
+<!-- PIN Setup Modal -->
+<div id="pin-modal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-[9999] hidden items-center justify-center p-4">
+  <div class="glass rounded-3xl max-w-md w-full relative border-2 border-z-cyan/30 p-8 animate-scale-up">
+    <button id="pin-modal-close" class="absolute top-4 right-4 text-muted hover:text-white transition">
+      <i class="fa-solid fa-times text-xl"></i>
+    </button>
+    
+    <div class="mb-6 flex items-center gap-3">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-cyan to-z-purple flex items-center justify-center">
+        <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+      </div>
+      <div>
+        <h3 id="pin-modal-title" class="text-white font-bold text-xl">Set Up Wallet PIN</h3>
+        <p class="text-muted text-xs">Secure your withdrawals with a 6-digit PIN</p>
+      </div>
+    </div>
+
+    <form id="pin-form" class="space-y-4">
+      <!-- Current PIN (only shown when changing) -->
+      <div id="current-pin-field" class="hidden">
+        <label class="text-white text-sm font-bold mb-2 block">Current PIN</label>
+        <input type="password" id="current-pin" maxlength="6" placeholder="••••••" 
+               class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-lg text-center tracking-widest focus:outline-none focus:border-z-cyan">
+        <p class="text-muted text-xs mt-1">Enter your current PIN</p>
+      </div>
+
+      <!-- New PIN -->
+      <div>
+        <label class="text-white text-sm font-bold mb-2 block">New PIN</label>
+        <input type="password" id="new-pin" maxlength="6" placeholder="••••••" 
+               class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-lg text-center tracking-widest focus:outline-none focus:border-z-cyan" required>
+        <p class="text-muted text-xs mt-1">Enter a 6-digit PIN</p>
+      </div>
+
+      <!-- Confirm PIN -->
+      <div>
+        <label class="text-white text-sm font-bold mb-2 block">Confirm PIN</label>
+        <input type="password" id="confirm-pin" maxlength="6" placeholder="••••••" 
+               class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-lg text-center tracking-widest focus:outline-none focus:border-z-cyan" required>
+        <p class="text-muted text-xs mt-1">Re-enter to confirm</p>
+      </div>
+
+      <!-- Error Message -->
+      <div id="pin-error-message" class="text-xs text-red-400 p-3 rounded-lg bg-red-500/10 border border-red-500/20 hidden"></div>
+
+      <!-- Success Message -->
+      <div id="pin-success-message" class="text-xs text-z-green p-3 rounded-lg bg-z-green/10 border border-z-green/20 hidden"></div>
+
+      <!-- Submit Button -->
+      <button type="submit" class="w-full py-3 rounded-xl bg-z-cyan text-black font-bold hover:bg-cyan-500 transition uppercase text-sm">
+        Confirm PIN
+      </button>
+    </form>
+
+    <!-- PIN Security Tips -->
+    <div class="mt-6 pt-6 border-t border-white/10">
+      <p class="text-xs text-muted mb-2">🔒 Security Tips:</p>
+      <ul class="text-xs text-gray-500 space-y-1">
+        <li>• Don't use obvious PINs (123456, 000000)</li>
+        <li>• Never share your PIN with anyone</li>
+        <li>• Wallet locks after 5 failed attempts</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const setupPinBtn = document.getElementById('setup-pin-btn');
+  const changePinBtn = document.getElementById('change-pin-btn');
+  const pinModal = document.getElementById('pin-modal');
+  const pinModalClose = document.getElementById('pin-modal-close');
+  const pinForm = document.getElementById('pin-form');
+  const pinModalTitle = document.getElementById('pin-modal-title');
+  const currentPinField = document.getElementById('current-pin-field');
+  const currentPinInput = document.getElementById('current-pin');
+  const newPinInput = document.getElementById('new-pin');
+  const confirmPinInput = document.getElementById('confirm-pin');
+  const errorDiv = document.getElementById('pin-error-message');
+  const successDiv = document.getElementById('pin-success-message');
+
+  let isChangingPin = false;
+
+  function showError(message) {
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+    successDiv.classList.add('hidden');
+  }
+
+  function hideError() {
+    errorDiv.classList.add('hidden');
+  }
+
+  function showSuccess(message) {
+    successDiv.textContent = message;
+    successDiv.classList.remove('hidden');
+    errorDiv.classList.add('hidden');
+  }
+
+  function openPinModal(changing = false) {
+    isChangingPin = changing;
+    if (changing) {
+      pinModalTitle.textContent = 'Change Wallet PIN';
+      currentPinField.classList.remove('hidden');
+      currentPinInput.required = true;
+    } else {
+      pinModalTitle.textContent = 'Set Up Wallet PIN';
+      currentPinField.classList.add('hidden');
+      currentPinInput.required = false;
+    }
+    pinModal.classList.remove('hidden');
+    pinModal.classList.add('flex');
+    pinForm.reset();
+    hideError();
+    successDiv.classList.add('hidden');
+  }
+
+  function closePinModal() {
+    pinModal.classList.add('hidden');
+    pinModal.classList.remove('flex');
+    pinForm.reset();
+  }
+
+  if (setupPinBtn) {
+    setupPinBtn.addEventListener('click', () => openPinModal(false));
+  }
+
+  if (changePinBtn) {
+    changePinBtn.addEventListener('click', () => openPinModal(true));
+  }
+
+  if (pinModalClose) {
+    pinModalClose.addEventListener('click', closePinModal);
+  }
+
+  // Close on outside click
+  if (pinModal) {
+    pinModal.addEventListener('click', (e) => {
+      if (e.target === pinModal) closePinModal();
+    });
+  }
+
+  // Handle PIN form submission
+  if (pinForm) {
+    pinForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      hideError();
+
+      const newPin = newPinInput.value.trim();
+      const confirmPin = confirmPinInput.value.trim();
+      const currentPin = isChangingPin ? currentPinInput.value.trim() : '';
+
+      // Validation
+      if (!newPin || !confirmPin) {
+        showError('Please enter both PIN fields');
+        return;
+      }
+
+      if (newPin.length !== 6 || !/^\d{6}$/.test(newPin)) {
+        showError('PIN must be exactly 6 digits');
+        return;
+      }
+
+      if (newPin !== confirmPin) {
+        showError('PINs do not match');
+        return;
+      }
+
+      if (isChangingPin && !currentPin) {
+        showError('Please enter your current PIN');
+        return;
+      }
+
+      const submitBtn = pinForm.querySelector('button[type=submit]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Setting up...';
+
+      try {
+        const formData = new FormData();
+        formData.append('pin', newPin);
+        formData.append('confirm_pin', confirmPin);
+        if (isChangingPin) {
+          formData.append('current_pin', currentPin);
+        }
+
+        const response = await fetch('/api/wallet/pin/setup/', {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+          },
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showSuccess(isChangingPin ? 'PIN changed successfully!' : 'PIN set up successfully!');
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          showError(data.error || 'Failed to set up PIN');
+        }
+      } catch (error) {
+        console.error('Error setting up PIN:', error);
+        showError('Failed to set up PIN. Please try again.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Confirm PIN';
+      }
+    });
+
+    // Auto-advance to next field
+    [newPinInput, confirmPinInput, currentPinInput].forEach(input => {
+      if (!input) return;
+      input.addEventListener('input', function() {
+        // Only allow digits
+        this.value = this.value.replace(/\D/g, '');
+        
+        // Auto-focus next field when 6 digits entered
+        if (this.value.length === 6) {
+          if (this === currentPinInput && isChangingPin) {
+            newPinInput.focus();
+          } else if (this === newPinInput) {
+            confirmPinInput.focus();
+          }
+        }
+      });
+    });
+  }
+})();
+</script>
+{% endblock %}

@@ -1,4 +1,25 @@
 {% load profile_tags %}
+<style>
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.post-card-new {
+    animation: slideInDown 0.4s ease-out;
+}
+.post-card {
+    transition: all 0.2s ease;
+}
+.post-card:hover {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+</style>
 <div class="space-y-8 animate-fade-in">
     
     {% if relationship_ctx.is_owner %}
@@ -15,13 +36,18 @@
                 {% endif %}
             </div>
             <div class="flex-1">
-                <textarea id="post-content-input" rows="2" placeholder="What's on your mind..." class="w-full bg-transparent text-white placeholder-gray-500 text-sm font-medium outline-none resize-none"></textarea>
+                <textarea id="post-content-input" rows="3" placeholder="What's on your mind..." class="w-full bg-transparent text-white placeholder-gray-500 text-sm font-medium outline-none resize-none px-2 py-1.5 leading-relaxed"></textarea>
+                <div id="media-preview-container" class="hidden mt-3 grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+                <input type="file" id="media-input" multiple accept="image/*,video/*" class="hidden">
                 <div id="post-error-message" class="text-xs text-red-400 mt-1 hidden"></div>
                 <div id="post-success-message" class="text-xs text-z-green mt-1 hidden"></div>
                 <div class="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
-                    <div class="flex gap-4 text-gray-400">
-                        <button class="hover:text-z-cyan transition" title="Add media (coming soon)" disabled><i class="fa-solid fa-image"></i></button>
-                        <select id="post-visibility" class="bg-transparent text-xs text-gray-400 border-none outline-none cursor-pointer">
+                    <div class="flex gap-4 items-center text-gray-400">
+                        <button id="media-button" type="button" class="hover:text-z-cyan transition flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-white/5" title="Attach media (images/videos)">
+                            <i class="fa-solid fa-image"></i>
+                            <span class="text-xs">Media</span>
+                        </button>
+                        <select id="post-visibility" class="bg-black/30 text-xs text-gray-300 border border-white/10 rounded-lg px-3 py-1.5 outline-none cursor-pointer hover:border-z-cyan transition">
                             <option value="public">🌍 Public</option>
                             <option value="friends">👥 Friends</option>
                             <option value="private">🔒 Private</option>
@@ -102,9 +128,14 @@
 
                 <div class="mb-4 relative z-10">
                     {% if post.title %}
-                    <h3 class="text-xl font-display font-bold text-white mb-2">{{ post.title }}</h3>
+                    <h3 class="text-xl font-display font-bold text-white mb-3">{{ post.title }}</h3>
                     {% endif %}
                     <p class="post-content text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{{ post.content }}</p>
+                    {% if post.updated_at and post.updated_at != post.created_at %}
+                    <div class="text-[10px] text-gray-600 mt-2 italic">
+                        <i class="fa-solid fa-pencil"></i> Edited
+                    </div>
+                    {% endif %}
                     
                     <!-- Edit form (hidden by default) -->
                     <div class="post-edit-form hidden" data-post-id="{{ post.id }}">
@@ -135,10 +166,43 @@
                 </div>
                 {% endif %}
 
-                <div class="flex items-center gap-6 text-gray-500 text-sm relative z-10 pt-4 border-t border-white/5">
-                    <button class="flex items-center gap-2 hover:text-z-cyan transition"><i class="fa-regular fa-heart"></i> <span>{{ post.likes_count }}</span></button>
-                    <button class="flex items-center gap-2 hover:text-z-cyan transition"><i class="fa-regular fa-comment"></i> <span>{{ post.comments_count }}</span></button>
-                    <button class="flex items-center gap-2 hover:text-z-cyan transition"><i class="fa-regular fa-share-from-square"></i> <span>{{ post.shares_count }}</span></button>
+                <div class="flex items-center gap-6 text-gray-500 text-sm relative z-10 pt-4 mt-2 border-t border-white/5">
+                    <button class="like-btn flex items-center gap-2 hover:text-z-cyan transition-all py-1 px-2 -ml-2 rounded-lg hover:bg-white/5 {% if post.is_liked %}text-red-500{% endif %}" data-post-id="{{ post.id }}" data-liked="{{ post.is_liked|yesno:'true,false' }}">
+                        <i class="fa-{% if post.is_liked %}solid{% else %}regular{% endif %} fa-heart"></i> 
+                        <span class="like-count">{{ post.likes_count }}</span>
+                    </button>
+                    <button class="comment-toggle-btn flex items-center gap-2 hover:text-z-cyan transition-all py-1 px-2 rounded-lg hover:bg-white/5" data-post-id="{{ post.id }}">
+                        <i class="fa-regular fa-comment"></i> 
+                        <span class="comment-count">{{ post.comments_count }}</span>
+                    </button>
+                    <button class="share-btn flex items-center gap-2 hover:text-z-cyan transition-all py-1 px-2 rounded-lg hover:bg-white/5" data-post-id="{{ post.id }}">
+                        <i class="fa-regular fa-share-from-square"></i> 
+                        <span class="share-count">{{ post.shares_count }}</span>
+                    </button>
+                </div>
+                
+                <!-- Comment Section -->
+                <div class="comment-section hidden mt-4 pt-4 border-t border-white/5 relative z-10" data-post-id="{{ post.id }}">
+                    {% if request.user.is_authenticated %}
+                    <div class="flex gap-3 mb-4">
+                        {% if request.user.profile.avatar %}
+                        <img src="{{ request.user.profile.avatar.url }}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0">
+                        {% else %}
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                            {{ request.user.username|slice:":1"|upper }}
+                        </div>
+                        {% endif %}
+                        <div class="flex-1">
+                            <textarea class="comment-input w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs resize-none focus:outline-none focus:border-z-cyan" rows="2" placeholder="Write a comment..." data-post-id="{{ post.id }}"></textarea>
+                            <div class="flex justify-end mt-2">
+                                <button class="post-comment-btn px-4 py-1.5 rounded-lg bg-z-cyan hover:bg-cyan-500 text-black text-xs font-bold transition" data-post-id="{{ post.id }}">
+                                    Comment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="comments-list space-y-3"></div>
                 </div>
             </div>
             {% endfor %}
@@ -166,11 +230,100 @@
     const submitBtn = document.getElementById('post-submit-btn');
     const contentInput = document.getElementById('post-content-input');
     const visibilitySelect = document.getElementById('post-visibility');
+    const mediaButton = document.getElementById('media-button');
+    const mediaInput = document.getElementById('media-input');
+    const mediaPreviewContainer = document.getElementById('media-preview-container');
     const errorMsg = document.getElementById('post-error-message');
     const successMsg = document.getElementById('post-success-message');
     const postsFeed = document.getElementById('posts-feed');
     
     if (!submitBtn || !contentInput) return;
+    
+    // Media handling
+    let selectedFiles = [];
+    const MAX_FILES = 4;
+    const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+    
+    // Media button click handler
+    if (mediaButton && mediaInput) {
+        mediaButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            mediaInput.click();
+        });
+        
+        mediaInput.addEventListener('change', function(e) {
+            const files = Array.from(this.files);
+            
+            // Check total count
+            if (selectedFiles.length + files.length > MAX_FILES) {
+                showError(`Maximum ${MAX_FILES} media files allowed`);
+                this.value = '';
+                return;
+            }
+            
+            // Validate each file
+            for (const file of files) {
+                // Check size
+                if (file.size > MAX_SIZE) {
+                    showError(`${file.name} exceeds 20MB limit`);
+                    continue;
+                }
+                
+                // Check type
+                const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
+                if (!validTypes.includes(file.type)) {
+                    showError(`${file.name} is not a supported format`);
+                    continue;
+                }
+                
+                selectedFiles.push(file);
+            }
+            
+            updateMediaPreviews();
+            this.value = '';
+        });
+    }
+    
+    function updateMediaPreviews() {
+        if (selectedFiles.length === 0) {
+            mediaPreviewContainer.classList.add('hidden');
+            return;
+        }
+        
+        mediaPreviewContainer.classList.remove('hidden');
+        mediaPreviewContainer.innerHTML = '';
+        
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.createElement('div');
+                preview.className = 'relative rounded-lg overflow-hidden bg-black/20 aspect-square';
+                preview.innerHTML = `
+                    ${file.type.startsWith('image/') ? 
+                        `<img src=\"${e.target.result}\" class=\"w-full h-full object-cover\">` :
+                        `<div class=\"w-full h-full flex items-center justify-center bg-black/40\">
+                            <div class=\"text-center\">
+                                <i class=\"fa-solid fa-video text-3xl text-z-cyan mb-2\"></i>
+                                <p class=\"text-xs text-gray-300 px-2\">${file.name}</p>
+                            </div>
+                        </div>`
+                    }
+                    <button type=\"button\" class=\"absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition\" data-index=\"${index}\">
+                        <i class=\"fa-solid fa-times\"></i>
+                    </button>
+                `;
+                
+                // Remove button handler
+                preview.querySelector('button').addEventListener('click', function() {
+                    selectedFiles.splice(parseInt(this.dataset.index), 1);
+                    updateMediaPreviews();
+                });
+                
+                mediaPreviewContainer.appendChild(preview);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
     
     function showError(message) {
         if (errorMsg) {
@@ -221,6 +374,11 @@
             formData.append('content', content);
             formData.append('visibility', visibilitySelect.value);
             
+            // Append media files
+            selectedFiles.forEach(file => {
+                formData.append('media[]', file);
+            });
+            
             const response = await fetch('/api/profile/posts/create/', {
                 method: 'POST',
                 headers: {
@@ -233,9 +391,11 @@
             
             if (data.success) {
                 contentInput.value = '';
+                selectedFiles = [];
+                updateMediaPreviews();
                 showSuccess('Posted successfully!');
                 
-                // Insert new post at top of feed
+                // Insert new post at top of feed with animation
                 const post = data.post;
                 const postHTML = createPostCard(post);
                 if (postsFeed.children.length > 0 && !postsFeed.children[0].classList.contains('post-card')) {
@@ -244,9 +404,15 @@
                 } else {
                     postsFeed.insertAdjacentHTML('afterbegin', postHTML);
                 }
+                // Add animation class to new post
+                const newPost = postsFeed.querySelector('.post-card');
+                if (newPost) {
+                    newPost.classList.add('post-card-new');
+                }
                 
                 // Re-attach event listeners to new post
                 attachPostEventListeners();
+                attachEngagementListeners();
                 
                 setTimeout(() => hideError(), 3000);
             } else {
@@ -267,6 +433,24 @@
             <span class="text-yellow-500">
                 ${post.visibility === 'friends' ? '👥 Friends' : '🔒 Private'}
             </span>` : '';
+        
+        // Build media grid
+        let mediaHTML = '';
+        if (post.media && post.media.length > 0) {
+            const gridClass = post.media.length === 1 ? 'grid-cols-1' : 
+                             post.media.length === 2 ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3';
+            mediaHTML = `<div class="mb-4 grid ${gridClass} gap-2 relative z-10">`;
+            post.media.forEach(media => {
+                mediaHTML += `<div class="rounded-lg overflow-hidden bg-black/20">`;
+                if (media.type === 'image' || media.type === 'gif') {
+                    mediaHTML += `<img src="${media.url}" class="w-full h-full object-cover">`;
+                } else if (media.type === 'video') {
+                    mediaHTML += `<video src="${media.url}" class="w-full h-full object-cover" controls></video>`;
+                }
+                mediaHTML += `</div>`;
+            });
+            mediaHTML += `</div>`;
+        }
             
         return `
             <div class="post-card glass-panel p-6 rounded-2xl border border-white/5 relative overflow-hidden group" data-post-id="${post.id}">
@@ -320,10 +504,23 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-6 text-gray-500 text-sm relative z-10 pt-4 border-t border-white/5">
-                    <button class="flex items-center gap-2 hover:text-z-cyan transition"><i class="fa-regular fa-heart"></i> <span>0</span></button>
-                    <button class="flex items-center gap-2 hover:text-z-cyan transition"><i class="fa-regular fa-comment"></i> <span>0</span></button>
-                    <button class="flex items-center gap-2 hover:text-z-cyan transition"><i class="fa-regular fa-share-from-square"></i> <span>0</span></button>
+                ${mediaHTML}
+                <div class="flex items-center gap-6 text-gray-500 text-sm relative z-10 pt-4 mt-2 border-t border-white/5">
+                    <button class="like-btn flex items-center gap-2 hover:text-z-cyan transition-all py-1 px-2 -ml-2 rounded-lg hover:bg-white/5 ${post.is_liked ? 'text-red-500' : ''}" data-post-id="${post.id}" data-liked="${post.is_liked || false}">
+                        <i class="fa-${post.is_liked ? 'solid' : 'regular'} fa-heart"></i>
+                        <span class="like-count">${post.likes_count || 0}</span>
+                    </button>
+                    <button class="comment-toggle-btn flex items-center gap-2 hover:text-z-cyan transition-all py-1 px-2 rounded-lg hover:bg-white/5" data-post-id="${post.id}">
+                        <i class="fa-regular fa-comment"></i>
+                        <span class="comment-count">${post.comments_count || 0}</span>
+                    </button>
+                    <button class="share-btn flex items-center gap-2 hover:text-z-cyan transition-all py-1 px-2 rounded-lg hover:bg-white/5" data-post-id="${post.id}">
+                        <i class="fa-regular fa-share-from-square"></i>
+                        <span class="share-count">${post.shares_count || 0}</span>
+                    </button>
+                </div>
+                <div class="comment-section hidden mt-4 pt-4 border-t border-white/5 relative z-10" data-post-id="${post.id}">
+                    <div class="comments-list space-y-3"></div>
                 </div>
             </div>
         `;
@@ -414,6 +611,16 @@
                         const card = document.querySelector(`.post-card[data-post-id="${postId}"]`);
                         const content = card.querySelector('.post-content');
                         content.textContent = newContent;
+                        
+                        // Add edited indicator if not already present
+                        let editedIndicator = content.nextElementSibling;
+                        if (!editedIndicator || !editedIndicator.classList.contains('text-gray-600')) {
+                            const indicator = document.createElement('div');
+                            indicator.className = 'text-[10px] text-gray-600 mt-2 italic';
+                            indicator.innerHTML = '<i class="fa-solid fa-pencil"></i> Edited';
+                            content.parentNode.insertBefore(indicator, content.nextSibling);
+                        }
+                        
                         content.classList.remove('hidden');
                         editForm.classList.add('hidden');
                         errorDiv.classList.add('hidden');
@@ -478,8 +685,191 @@
         });
     }
     
+    // Engagement listeners (likes, comments, shares)
+    function attachEngagementListeners() {
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        
+        // Like buttons
+        document.querySelectorAll('.like-btn').forEach(btn => {
+            if (!btn.dataset.listenerAttached) {
+                btn.dataset.listenerAttached = 'true';
+                btn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    const postId = this.dataset.postId;
+                    
+                    try {
+                        const response = await fetch(`/api/profile/posts/${postId}/like/`, {
+                            method: 'POST',
+                            headers: {'X-CSRFToken': csrf}
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.dataset.liked = data.liked;
+                            const icon = this.querySelector('i');
+                            icon.className = `fa-${data.liked ? 'solid' : 'regular'} fa-heart`;
+                            this.querySelector('.like-count').textContent = data.likes_count;
+                            
+                            if (data.liked) {
+                                this.classList.add('text-red-500');
+                            } else {
+                                this.classList.remove('text-red-500');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error toggling like:', error);
+                    }
+                });
+            }
+        });
+        
+        // Comment toggle buttons
+        document.querySelectorAll('.comment-toggle-btn').forEach(btn => {
+            if (!btn.dataset.listenerAttached) {
+                btn.dataset.listenerAttached = 'true';
+                btn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    const postId = this.dataset.postId;
+                    const section = document.querySelector(`.comment-section[data-post-id="${postId}"]`);
+                    
+                    if (section.classList.contains('hidden')) {
+                        // Load comments when opening
+                        try {
+                            const response = await fetch(`/api/profile/posts/${postId}/comments/`);
+                            const data = await response.json();
+                            
+                            if (data.success && data.comments.length > 0) {
+                                const commentsList = section.querySelector('.comments-list');
+                                commentsList.innerHTML = '';
+                                data.comments.forEach(comment => {
+                                    const commentHTML = createCommentHTML(comment);
+                                    commentsList.insertAdjacentHTML('beforeend', commentHTML);
+                                });
+                            }
+                        } catch (error) {
+                            console.error('Error loading comments:', error);
+                        }
+                    }
+                    
+                    section.classList.toggle('hidden');
+                });
+            }
+        });
+        
+        // Post comment buttons
+        document.querySelectorAll('.post-comment-btn').forEach(btn => {
+            if (!btn.dataset.listenerAttached) {
+                btn.dataset.listenerAttached = 'true';
+                btn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    const postId = this.dataset.postId;
+                    const textarea = document.querySelector(`.comment-input[data-post-id="${postId}"]`);
+                    const text = textarea.value.trim();
+                    
+                    if (!text) return;
+                    if (text.length > 1000) {
+                        alert('Comment too long (max 1000 characters)');
+                        return;
+                    }
+                    
+                    try {
+                        const formData = new FormData();
+                        formData.append('text', text);
+                        
+                        const response = await fetch(`/api/profile/posts/${postId}/comment/`, {
+                            method: 'POST',
+                            headers: {'X-CSRFToken': csrf},
+                            body: formData
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            textarea.value = '';
+                            
+                            // Add comment to list
+                            const commentsList = document.querySelector(`.comment-section[data-post-id="${postId}"] .comments-list`);
+                            const commentHTML = createCommentHTML(data.comment);
+                            commentsList.insertAdjacentHTML('beforeend', commentHTML);
+                            
+                            // Update count
+                            const countBtn = document.querySelector(`.comment-toggle-btn[data-post-id="${postId}"] .comment-count`);
+                            countBtn.textContent = data.comments_count;
+                        }
+                    } catch (error) {
+                        console.error('Error posting comment:', error);
+                    }
+                });
+            }
+        });
+        
+        // Share buttons
+        document.querySelectorAll('.share-btn').forEach(btn => {
+            if (!btn.dataset.listenerAttached) {
+                btn.dataset.listenerAttached = 'true';
+                btn.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    const postId = this.dataset.postId;
+                    
+                    try {
+                        const response = await fetch(`/api/profile/posts/${postId}/share/`, {
+                            method: 'POST',
+                            headers: {'X-CSRFToken': csrf}
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.querySelector('.share-count').textContent = data.shares_count;
+                            
+                            // Copy link to clipboard
+                            const url = window.location.origin + window.location.pathname + '#post-' + postId;
+                            if (navigator.clipboard) {
+                                await navigator.clipboard.writeText(url);
+                                
+                                // Show feedback
+                                const originalHTML = this.innerHTML;
+                                this.innerHTML = '<i class="fa-solid fa-check"></i> <span>Copied!</span>';
+                                setTimeout(() => {
+                                    this.innerHTML = originalHTML;
+                                    this.querySelector('.share-count').textContent = data.shares_count;
+                                }, 2000);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error sharing post:', error);
+                    }
+                });
+            }
+        });
+    }
+    
+    function createCommentHTML(comment) {
+        return `
+            <div class="flex gap-3">
+                ${comment.author.avatar_url ? 
+                    `<img src="${comment.author.avatar_url}" class="w-7 h-7 rounded-lg object-cover flex-shrink-0">` :
+                    `<div class="w-7 h-7 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                        ${comment.author.username.charAt(0).toUpperCase()}
+                    </div>`
+                }
+                <div class="flex-1">
+                    <div class="bg-white/5 rounded-lg px-3 py-2">
+                        <a href="/@${comment.author.username}/" class="text-white font-bold text-xs hover:text-z-cyan">
+                            ${comment.author.display_name}
+                        </a>
+                        <p class="text-gray-300 text-xs mt-1">${comment.content}</p>
+                    </div>
+                    <div class="text-[10px] text-gray-600 mt-1 ml-3">${comment.time_ago}</div>
+                </div>
+            </div>
+        `;
+    }
+    
     // Attach listeners on page load
     attachPostEventListeners();
+    attachEngagementListeners();
 })();
 </script>
 {% endif %}
