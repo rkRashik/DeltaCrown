@@ -60,6 +60,24 @@ class User(AbstractUser):
             self.is_active = True
             self.save(update_fields=["is_verified", "email_verified_at", "is_active"])
 
+    @property
+    def avatar(self):
+        """Convenience accessor that proxies to the related UserProfile avatar field, if present."""
+        try:
+            prof = getattr(self, 'profile', None)
+            return getattr(prof, 'avatar', None)
+        except Exception:
+            return None
+
+    @property
+    def banner(self):
+        """Convenience accessor that proxies to the related UserProfile banner field, if present."""
+        try:
+            prof = getattr(self, 'profile', None)
+            return getattr(prof, 'banner', None)
+        except Exception:
+            return None
+
 
 class PendingSignup(models.Model):
     """Temporary record that stores credentials until email verification succeeds."""

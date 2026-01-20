@@ -133,7 +133,7 @@
       </div>
 
       {% if request.user.is_authenticated %}
-        {% user_avatar_url request.user '/static/img/user_avatar/default-avatar.png' as avatar_url %}
+        {% user_avatar_url request.user as avatar_url %}
         {% with request.user.get_full_name|default:request.user.first_name|default:request.user.username as nav_display_name %}
         <div class="nav-profile">
           <button class="profile-trigger" type="button" data-avatar-toggle aria-haspopup="true" aria-expanded="false" aria-controls="menu-account">

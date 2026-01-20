@@ -193,7 +193,7 @@
 
     <!-- User Profile Section (Authenticated) -->
     {% if request.user.is_authenticated %}
-      {% user_avatar_url request.user '/static/img/user_avatar/default-avatar.png' as mobile_avatar %}
+      {% user_avatar_url request.user as mobile_avatar %}
       <section class="mobile-nav-v2__section mobile-nav-v2__user-section" aria-labelledby="user-profile-heading">
         <h2 class="mobile-nav-v2__section-title" id="user-profile-heading">Account</h2>
         

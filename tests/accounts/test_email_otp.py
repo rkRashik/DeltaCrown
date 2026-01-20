@@ -37,5 +37,5 @@ def test_email_signup_and_verify_flow(client):
     assert user.is_verified
     assert not PendingSignup.objects.filter(pk=pending.pk).exists()
 
-    # Landed on profile
-    assert "Profile" in resp2.content.decode()
+    # Landed on homepage after signup verification
+    assert "DeltaCrown - Bangladesh" in resp2.content.decode()

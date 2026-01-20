@@ -101,12 +101,19 @@ def upload_media(request):
         # Get URL
         url = profile.avatar.url if media_type == 'avatar' else profile.banner.url
         
-        return JsonResponse({
+        # Return both generic 'url' and explicit keys expected by frontend/tests
+        resp = {
             'success': True,
             'url': url,
             'preview_url': url,
             'message': f'{media_type.capitalize()} uploaded successfully'
-        })
+        }
+        if media_type == 'avatar':
+            resp['avatar_url'] = url
+        else:
+            resp['banner_url'] = url
+
+        return JsonResponse(resp)
     
     except Exception as e:
         logger.error(f"Error saving {media_type}: {e}", exc_info=True)

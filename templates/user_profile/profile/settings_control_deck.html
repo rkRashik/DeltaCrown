@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static dc_avatar %}
 
 {% block title %}Control Deck | DeltaCrown{% endblock %}
 
@@ -316,8 +316,6 @@
                         <div class="relative h-40 md:h-56 bg-gray-800 rounded-t-[18px] overflow-hidden">
                             {% if user_profile.banner %}
                             <img src="{{ user_profile.banner.url }}" class="w-full h-full object-cover opacity-60" data-preview="banner">
-                            {% else %}
-                            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="w-full h-full object-cover opacity-60" data-preview="banner">
                             {% endif %}
                             <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition cursor-pointer" onclick="document.getElementById('banner-upload').click()">
                                 <span class="bg-black/60 text-white px-5 py-2 rounded-full text-xs font-bold border border-white/20 hover:bg-white hover:text-black transition flex items-center gap-2">
@@ -329,11 +327,8 @@
                         <div class="px-8 pb-8 relative">
                             <div class="w-24 h-24 md:w-32 md:h-32 -mt-12 md:-mt-16 relative group/avatar">
                                 <div class="holo-ring"></div>
-                                {% if user_profile.avatar %}
-                                <img src="{{ user_profile.avatar.url }}" class="relative z-10 w-full h-full object-cover rounded-full border-4 border-z-panel" data-preview="avatar">
-                                {% else %}
-                                <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1000" class="relative z-10 w-full h-full object-cover rounded-full border-4 border-z-panel" data-preview="avatar">
-                                {% endif %}
+                                {% user_avatar_url request.user as avatar_url %}
+                                <img src="{{ avatar_url }}" class="relative z-10 w-full h-full object-cover rounded-full border-4 border-z-panel" data-preview="avatar">
                                 <div class="absolute inset-0 z-20 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover/avatar:opacity-100 transition cursor-pointer" onclick="document.getElementById('avatar-upload').click()">
                                     <i class="fa-solid fa-camera text-white text-xl"></i>
                                 </div>
@@ -3308,6 +3303,12 @@
                     if (img) {
                         img.src = result.url + '?t=' + Date.now(); // Cache bust
                     }
+
+                    // Update global nav/profile avatars when avatar changes
+                    if (type === 'avatar') {
+                        const navAvatars = document.querySelectorAll('.unified-nav-desktop__avatar, .profile-menu-avatar img, .profile-avatar-img, .unified-nav-mobile__profile img');
+                        navAvatars.forEach(el => { el.src = (result.avatar_url || result.url) + '?t=' + Date.now(); });
+                    }
                 }
             } else {
                 showToast(result.error || 'Upload failed', 'error');
@@ -4781,7 +4782,7 @@
             html += `
                 <div class="bg-black/30 rounded-xl p-4 border border-white/10">
                     <div class="flex items-start gap-4">
-                        <img src="${gift.sender_avatar || '/static/img/default-avatar.png'}" alt="${gift.sender_username}" class="w-12 h-12 rounded-lg">
+                        <img src="${gift.sender_avatar || ''}" alt="${gift.sender_username}" class="w-12 h-12 rounded-lg" onerror="this.style.display='none'">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="text-sm font-bold text-white">${gift.sender_username}</span>
@@ -4828,7 +4829,7 @@
             html += `
                 <div class="bg-black/30 rounded-xl p-4 border border-white/10">
                     <div class="flex items-start gap-4">
-                        <img src="${trade.initiator_avatar || '/static/img/default-avatar.png'}" alt="${trade.initiator_username}" class="w-12 h-12 rounded-lg">
+                        <img src="${trade.initiator_avatar || ''}" alt="${trade.initiator_username}" class="w-12 h-12 rounded-lg" onerror="this.style.display='none'">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="text-sm font-bold text-white">${trade.initiator_username}</span>
@@ -4903,7 +4904,7 @@
             html += `
                 <div class="bg-black/30 rounded-xl p-4 border border-white/10">
                     <div class="flex items-start gap-4">
-                        <img src="${gift.receiver_avatar || '/static/img/default-avatar.png'}" alt="${gift.receiver_username}" class="w-12 h-12 rounded-lg">
+                        <img src="${gift.receiver_avatar || ''}" alt="${gift.receiver_username}" class="w-12 h-12 rounded-lg" onerror="this.style.display='none'">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="text-sm font-bold text-white">${gift.receiver_username}</span>
@@ -4940,7 +4941,7 @@
             html += `
                 <div class="bg-black/30 rounded-xl p-4 border border-white/10">
                     <div class="flex items-start gap-4">
-                        <img src="${trade.target_avatar || '/static/img/default-avatar.png'}" alt="${trade.target_username}" class="w-12 h-12 rounded-lg">
+                        <img src="${trade.target_avatar || ''}" alt="${trade.target_username}" class="w-12 h-12 rounded-lg" onerror="this.style.display='none'">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="text-sm font-bold text-white">${trade.target_username}</span>

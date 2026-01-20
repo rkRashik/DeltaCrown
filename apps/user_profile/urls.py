@@ -82,6 +82,10 @@ from .api.follow_request_api import (
 from .api.follow_api import (
     follow_user_hero_api, unfollow_user_hero_api
 )
+# UP-PHASE8: Instagram-like Followers/Following Lists API
+from .api.follow_lists_api import (
+    get_followers_list, get_following_list
+)
 # UP-PHASE15-SESSION3: Social Links CRUD API
 from .views.social_links_api import (
     social_link_create_api, social_link_update_single_api,
@@ -223,6 +227,10 @@ urlpatterns = [
     # UP-PHASE8: Hero Follow/Unfollow API
     path("api/profile/<str:username>/follow/", follow_user_hero_api, name="follow_user_hero"),
     path("api/profile/<str:username>/unfollow/", unfollow_user_hero_api, name="unfollow_user_hero"),
+    
+    # UP-PHASE8: Instagram-like Followers/Following Lists API
+    path("api/profile/<str:username>/followers/", get_followers_list, name="get_followers_list"),
+    path("api/profile/<str:username>/following/", get_following_list, name="get_following_list"),
     
     # Owner Pages (/me/ prefix)
     path("me/settings/", profile_settings_view, name="profile_settings"),

@@ -118,7 +118,7 @@
                             <!-- User -->
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <img src="{{ passport.user.profile.avatar.url|default:'/static/img/default-avatar.png' }}" 
+                                    <img src="{% if passport.user.profile.avatar %}{{ passport.user.profile.avatar.url }}{% endif %}" 
                                          alt="{{ passport.user.username }}" 
                                          class="w-10 h-10 rounded-full"
                                     />

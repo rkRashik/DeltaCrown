@@ -195,6 +195,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     discord_handle = ''
     discord_url = ''
     social_links_renderable = []
+    social_links = []  # UP PHASE 8: Initialize to prevent UnboundLocalError
+    social_links_map = {}  # UP PHASE 8 CRASHFIX: Initialize before conditional to prevent UnboundLocalError at line 644
     
     if context['is_owner'] or permissions.get('can_view_social_links'):
         social_links = SocialLink.objects.filter(user=profile_user).order_by('platform')

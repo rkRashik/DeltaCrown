@@ -38,7 +38,7 @@
                         <!-- User Info -->
                         <div>
                             <div class="flex items-center gap-3 mb-4">
-                                <img src="{{ passport.user.profile.avatar.url|default:'/static/img/default-avatar.png' }}" 
+                                <img src="{% if passport.user.profile.avatar %}{{ passport.user.profile.avatar.url }}{% endif %}" 
                                      alt="{{ passport.user.username }}" 
                                      class="w-16 h-16 rounded-full border-2 border-[#00F0FF]"
                                 />

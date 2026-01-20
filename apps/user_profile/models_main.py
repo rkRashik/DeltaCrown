@@ -101,7 +101,18 @@ class UserProfile(models.Model):
     )
     avatar = models.ImageField(upload_to=user_avatar_path, blank=True, null=True)
     banner = models.ImageField(upload_to=user_banner_path, blank=True, null=True, help_text="Profile banner image")
-    bio = models.TextField(blank=True, help_text="Profile bio/headline")
+    bio = models.TextField(
+        blank=True,
+        default="",
+        db_default="",
+        help_text="Profile bio/headline",
+    )
+    about_bio = models.TextField(
+        blank=True,
+        default="",
+        db_default="",
+        help_text="Short about/bio copy used during account verification safety nets",
+    )
     
     # ===== LOCATION =====
     # UP.3 Extension: Country field with ISO codes and flags
@@ -1059,6 +1070,25 @@ class PrivacySettings(models.Model):
     show_following_list = models.BooleanField(
         default=True,
         help_text="Allow viewing list of users being followed"
+    )
+    
+    # UP-PHASE8: Instagram-like Granular Privacy Controls
+    VISIBILITY_CHOICES = [
+        ('everyone', 'Everyone'),
+        ('followers', 'Followers Only'),
+        ('only_me', 'Only Me'),
+    ]
+    followers_list_visibility = models.CharField(
+        max_length=20,
+        choices=VISIBILITY_CHOICES,
+        default='everyone',
+        help_text='Who can view your followers list'
+    )
+    following_list_visibility = models.CharField(
+        max_length=20,
+        choices=VISIBILITY_CHOICES,
+        default='everyone',
+        help_text='Who can view your following list'
     )
     
     # ===== INTERACTION PERMISSIONS =====

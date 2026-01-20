@@ -26,7 +26,77 @@ def ensure_user_profile(event):
         UserProfile = apps.get_model("user_profile", "UserProfile")
         
         user = User.objects.get(id=user_id)
-        defaults = {"display_name": user.username or user.email}
+        
+        # Comprehensive defaults for ALL NOT NULL fields without database defaults
+        import uuid
+        defaults = {
+            # === IDENTITY ===
+            "display_name": user.username or user.email,
+            "slug": "",
+            "bio": "",
+            "nationality": "",
+            "kyc_status": "unverified",
+            "real_full_name": "",
+            "uuid": uuid.uuid4(),
+            
+            # === LOCATION ===
+            "country": "",
+            "region": "BD",  # default region as per model
+            "city": "",
+            "postal_code": "",
+            "address": "",
+            
+            # === DEMOGRAPHICS ===
+            "gender": "",
+            "pronouns": "",
+            
+            # === CONTACT ===
+            "phone": "",
+            "whatsapp": "",
+            "secondary_email": "",
+            "secondary_email_verified": False,
+            "preferred_contact_method": "",
+            
+            # === EMERGENCY CONTACT ===
+            "emergency_contact_name": "",
+            "emergency_contact_phone": "",
+            "emergency_contact_relation": "",
+            
+            # === COMPETITIVE ===
+            "reputation_score": 100,
+            "skill_rating": 1000,
+            
+            # === GAMIFICATION ===
+            "level": 1,
+            "xp": 0,
+            "pinned_badges": [],
+            "inventory_items": [],
+            
+            # === ECONOMY ===
+            "deltacoin_balance": 0.00,
+            "lifetime_earnings": 0.00,
+            
+            # === PREFERENCES ===
+            "preferred_language": "en",
+            "theme_preference": "dark",
+            "time_format": "12h",
+            "timezone_pref": "Asia/Dhaka",
+            
+            # === ABOUT SECTION ===
+            "device_platform": "",
+            "active_hours": "",
+            "communication_languages": [],
+            "lan_availability": False,
+            "main_role": "",
+            "play_style": "",
+            "secondary_role": "",
+            
+            # === METADATA ===
+            "attributes": {},
+            "system_settings": {},
+            "stream_status": False,
+            "game_profiles": [],
+        }
         
         UserProfile.objects.get_or_create(user=user, defaults=defaults)
         

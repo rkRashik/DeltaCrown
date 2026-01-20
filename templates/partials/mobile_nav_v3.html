@@ -169,7 +169,7 @@
     
     <!-- User Profile Section (Authenticated) -->
     {% if request.user.is_authenticated %}
-      {% user_avatar_url request.user '/static/img/user_avatar/default-avatar.png' as drawer_avatar %}
+      {% user_avatar_url request.user as drawer_avatar %}
       <div class="mobile-menu-drawer__profile">
         <div class="drawer-profile">
           <div class="drawer-profile__avatar">

@@ -19,7 +19,83 @@ def ensure_profile(sender, instance, created, **_):
     Note: Uses get_or_create to handle race conditions.
     See UP-M0 for safety utilities (get_or_create_user_profile).
     """
-    defaults = {"display_name": instance.username or instance.email}
+    import uuid
+    
+    # Comprehensive defaults for ALL NOT NULL fields without database defaults
+    defaults = {
+        # === IDENTITY ===
+        "display_name": instance.username or instance.email,
+        "slug": "",
+        "bio": "",
+        "about_bio": "",
+        "nationality": "",
+        "kyc_status": "unverified",
+        "real_full_name": "",
+        "uuid": uuid.uuid4(),
+        
+        # === LOCATION ===
+        "country": "",
+        "region": "BD",  # default region as per model
+        "city": "",
+        "postal_code": "",
+        "address": "",
+        
+        # === DEMOGRAPHICS ===
+        "gender": "",
+        "pronouns": "",
+        
+        # === CONTACT ===
+        "phone": "",
+        "whatsapp": "",
+        "secondary_email": "",
+        "secondary_email_verified": False,
+        "preferred_contact_method": "",
+        
+        # === EMERGENCY CONTACT ===
+        "emergency_contact_name": "",
+        "emergency_contact_phone": "",
+        "emergency_contact_relation": "",
+        
+        # === COMPETITIVE ===
+        "reputation_score": 100,
+        "skill_rating": 1000,
+        
+        # === GAMIFICATION ===
+        "level": 1,
+        "xp": 0,
+        "pinned_badges": [],
+        "inventory_items": [],
+        
+        # === ECONOMY ===
+        "deltacoin_balance": 0.00,
+        "lifetime_earnings": 0.00,
+        
+        # === STREAMING ===
+        "stream_status": False,
+        
+        # === GAME PROFILES ===
+        "game_profiles": [],
+        
+        # === PREFERENCES ===
+        "preferred_language": "en",
+        "timezone_pref": "Asia/Dhaka",
+        "time_format": "12h",
+        "theme_preference": "dark",
+        
+        # === ABOUT SECTION (Phase 4) ===
+        "device_platform": "",
+        "play_style": "",
+        "lan_availability": False,
+        "main_role": "",
+        "secondary_role": "",
+        "lft_status": "NOT_LOOKING",
+        "communication_languages": [],
+        "active_hours": "",
+        
+        # === METADATA ===
+        "attributes": {},
+        "system_settings": {},
+    }
     
     if created:
         profile, profile_created = UserProfile.objects.get_or_create(user=instance, defaults=defaults)
@@ -56,12 +132,19 @@ def ensure_privacy_and_verification(sender, instance, created, **_):
     """
     Auto-create PrivacySettings and VerificationRecord for each UserProfile.
     This ensures every profile has privacy controls and KYC tracking.
+    
+    UP PHASE 8 CRASHFIX: All NOT NULL privacy fields must have default values
+    to prevent IntegrityError during user signup.
     """
     # Create PrivacySettings with default values (all permissions enabled)
     if not hasattr(instance, 'privacy_settings'):
         PrivacySettings.objects.get_or_create(
             user_profile=instance,
             defaults={
+                # Visibility Preset
+                'visibility_preset': 'PUBLIC',
+                'is_private_account': False,
+                
                 # Profile Visibility (default: all public except sensitive data)
                 'show_real_name': False,  # Hidden by default for privacy
                 'show_phone': False,      # Hidden by default for privacy
@@ -70,16 +153,33 @@ def ensure_privacy_and_verification(sender, instance, created, **_):
                 'show_gender': True,
                 'show_country': True,
                 'show_address': False,    # Hidden by default for privacy
+                'show_nationality': True,
+                'show_preferred_contact': False,
+                
                 # Gaming & Activity
                 'show_game_ids': True,
                 'show_match_history': True,
                 'show_teams': True,
                 'show_achievements': True,
+                'show_tournaments': True,
+                'show_activity_feed': True,
+                'show_roles': True,
+                'show_play_style': True,
+                'show_active_hours': True,
+                'show_device_platform': True,
+                
                 # Economy & Inventory
                 'show_inventory_value': False,  # Hidden by default
                 'show_level_xp': True,
+                'inventory_visibility': 'PUBLIC',
+                
                 # Social
                 'show_social_links': True,
+                'show_followers_count': True,
+                'show_followers_list': True,
+                'show_following_count': True,
+                'show_following_list': True,
+                
                 # Interaction Permissions
                 'allow_team_invites': True,
                 'allow_friend_requests': True,

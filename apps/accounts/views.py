@@ -170,7 +170,10 @@ class VerifyEmailView(FormView):
                 login(self.request, auth_user)
             _clear_pending(self.request.session)
             messages.success(self.request, "Email verified - welcome!")
-            # Redirect to user's profile with username
+            # If this was a signup flow (PendingSignup), send the user to the homepage.
+            if isinstance(subject, PendingSignup):
+                return redirect('siteui:homepage')
+            # Otherwise send to profile (existing user flows)
             if auth_user:
                 return redirect('user_profile:profile', username=auth_user.username)
             return redirect('account:login')

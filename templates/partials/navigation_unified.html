@@ -91,7 +91,7 @@
         {% endwith %}
 
         <!-- Profile Dropdown -->
-        {% user_avatar_url request.user '/static/img/user_avatar/default-avatar.png' as avatar_url %}
+        {% user_avatar_url request.user as avatar_url %}
         <div class="unified-nav-desktop__profile">
           <button class="unified-nav-desktop__profile-btn" type="button" aria-label="Account menu" data-profile-toggle>
             <img src="{{ avatar_url }}" alt="{{ request.user.username }}" class="unified-nav-desktop__avatar" />
@@ -258,7 +258,7 @@
 
     <div class="unified-nav-mobile__drawer-content">
       {% if request.user.is_authenticated %}
-        {% user_avatar_url request.user '/static/img/user_avatar/default-avatar.png' as drawer_avatar %}
+        {% user_avatar_url request.user as drawer_avatar %}
         <div class="unified-nav-mobile__profile">
           <img src="{{ drawer_avatar }}" alt="{{ request.user.username }}" width="48" height="48" />
           <div>

@@ -79,7 +79,7 @@ def get_followers(request, username):
                 'user_id': follower.id,
                 'username': follower.username,
                 'display_name': profile.display_name,
-                'avatar_url': profile.avatar_url or '/static/images/default-avatar.png',
+                'avatar_url': profile.get_avatar_url() or '',
                 'is_verified': profile.is_verified,
                 'is_following': request.user.is_authenticated and Follow.objects.filter(
                     follower=request.user,
@@ -126,7 +126,7 @@ def get_following(request, username):
                 'user_id': followed_user.id,
                 'username': followed_user.username,
                 'display_name': profile.display_name,
-                'avatar_url': profile.avatar_url or '/static/images/default-avatar.png',
+                'avatar_url': profile.get_avatar_url() or '',
                 'is_verified': profile.is_verified,
                 'is_following': request.user.is_authenticated and Follow.objects.filter(
                     follower=request.user,

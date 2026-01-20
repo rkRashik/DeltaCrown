@@ -1797,7 +1797,7 @@ async function loadFollowersList() {
         container.innerHTML = data.followers.map(user => `
             <div class="flex items-center justify-between p-4 hover:bg-white/5 transition">
                 <div class="flex items-center gap-3">
-                    <img src="${user.avatar_url || '/static/images/default-avatar.png'}" 
+                    <img src="${user.avatar_url || ''}" 
                          alt="${user.display_name}" 
                          class="w-12 h-12 rounded-full border border-white/10">
                     <div>
@@ -1832,7 +1832,7 @@ async function loadFollowingList() {
         container.innerHTML = data.following.map(user => `
             <div class="flex items-center justify-between p-4 hover:bg-white/5 transition">
                 <div class="flex items-center gap-3">
-                    <img src="${user.avatar_url || '/static/images/default-avatar.png'}" 
+                    <img src="${user.avatar_url || ''}" 
                          alt="${user.display_name}" 
                          class="w-12 h-12 rounded-full border border-white/10">
                     <div>

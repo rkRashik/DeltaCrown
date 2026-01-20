@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static dc_avatar %}
 
 {% block title %}DeltaCrown | Pro Profile - {{ profile_user.username|default:'Player' }}{% endblock %}
 
@@ -212,9 +212,6 @@
             {% if profile.banner_url %}
             <img src="{{ profile.banner_url }}" 
                  class="w-full h-full object-cover object-center opacity-60 group-hover:scale-105 transition duration-[3s]" alt="Cover">
-            {% else %}
-            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670&auto=format&fit=crop" 
-                 class="w-full h-full object-cover object-center opacity-60 group-hover:scale-105 transition duration-[3s]" alt="Cover">
             {% endif %}
         </div>
 
@@ -223,13 +220,9 @@
                 
                 <div class="relative shrink-0">
                     <div class="w-36 h-36 md:w-44 md:h-44 rounded-3xl p-1 bg-gradient-to-br from-z-cyan via-z-purple to-z-red shadow-neon-cyan relative group">
-                        {% if profile.avatar_url %}
-                        <img src="{{ profile.avatar_url }}" 
+                        {% user_avatar_url profile_user as avatar_url %}
+                        <img src="{{ avatar_url }}" 
                              class="w-full h-full object-cover rounded-2xl bg-z-bg" alt="{{ profile_user.username }}">
-                        {% else %}
-                        <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1000&auto=format&fit=crop" 
-                             class="w-full h-full object-cover rounded-2xl bg-z-bg" alt="Avatar">
-                        {% endif %}
                         
                         <div class="absolute -bottom-3 -right-3 bg-z-bg p-1 rounded-xl">
                             <div class="bg-z-gold text-black font-black font-display text-sm px-3 py-1 rounded-lg border border-white/20 shadow-neon-gold">
@@ -266,11 +259,11 @@
                     {% endif %}
 
                     <div class="flex flex-wrap items-center gap-8 mt-6">
-                        <div class="text-center group cursor-pointer">
+                        <div class="text-center group cursor-pointer" onclick="openFollowersModal()">
                             <div class="text-2xl font-bold text-white group-hover:text-z-cyan transition" data-follower-count>{{ follower_count|default:0 }}</div>
                             <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Followers</div>
                         </div>
-                        <div class="text-center group cursor-pointer">
+                        <div class="text-center group cursor-pointer" onclick="openFollowingModal()">
                             <div class="text-2xl font-bold text-white group-hover:text-z-purple transition">{{ following_count|default:0 }}</div>
                             <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Following</div>
                         </div>
@@ -711,6 +704,62 @@
 </div>
 <!-- End Zenith Profile Wrapper -->
 
+<!-- UP-PHASE8: Instagram-like Followers/Following Modals -->
+<!-- Followers Modal -->
+<div id="followersModal" class="hidden fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+    <div class="glass-panel w-full max-w-lg m-4 rounded-2xl border border-white/20 overflow-hidden">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 border-b border-white/10">
+            <h3 class="text-xl font-display font-bold text-white">Followers</h3>
+            <button onclick="closeFollowersModal()" class="text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        
+        <!-- Search Bar -->
+        <div class="p-4 border-b border-white/10">
+            <input type="text" id="followersSearch" placeholder="Search followers..." 
+                   class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-z-cyan transition">
+        </div>
+        
+        <!-- Followers List -->
+        <div id="followersList" class="max-h-96 overflow-y-auto">
+            <!-- JavaScript will populate this -->
+            <div class="flex items-center justify-center py-12">
+                <i class="fa-solid fa-spinner fa-spin text-2xl text-gray-500"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Following Modal -->
+<div id="followingModal" class="hidden fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+    <div class="glass-panel w-full max-w-lg m-4 rounded-2xl border border-white/20 overflow-hidden">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 border-b border-white/10">
+            <h3 class="text-xl font-display font-bold text-white">Following</h3>
+            <button onclick="closeFollowingModal()" class="text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        
+        <!-- Search Bar -->
+        <div class="p-4 border-b border-white/10">
+            <input type="text" id="followingSearch" placeholder="Search following..." 
+                   class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-z-purple transition">
+        </div>
+        
+        <!-- Following List -->
+        <div id="followingList" class="max-h-96 overflow-y-auto">
+            <!-- JavaScript will populate this -->
+            <div class="flex items-center justify-center py-12">
+                <i class="fa-solid fa-spinner fa-spin text-2xl text-gray-500"></i>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Modals -->
+
 {# UP.2 FIX PASS #5 PART A: Clipboard copy JS for Discord button #}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -859,6 +908,203 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+});
+</script>
+
+{# UP-PHASE8: Followers/Following Modal Functions #}
+<script>
+const currentUsername = '{{ profile_user.username }}';
+const csrfToken = '{{ csrf_token }}';
+
+// Open Followers Modal
+window.openFollowersModal = function() {
+    const modal = document.getElementById('followersModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadFollowersList();
+    }
+};
+
+// Open Following Modal
+window.openFollowingModal = function() {
+    const modal = document.getElementById('followingModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadFollowingList();
+    }
+};
+
+// Close Followers Modal
+window.closeFollowersModal = function() {
+    const modal = document.getElementById('followersModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+};
+
+// Close Following Modal
+window.closeFollowingModal = function() {
+    const modal = document.getElementById('followingModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+};
+
+// Load Followers List
+async function loadFollowersList() {
+    const container = document.getElementById('followersList');
+    container.innerHTML = '<div class="flex items-center justify-center py-12"><i class="fa-solid fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
+    
+    try {
+        const response = await fetch(`/api/profile/${currentUsername}/followers/`);
+        const data = await response.json();
+        
+        if (data.success && data.followers) {
+            if (data.followers.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-400">No followers yet</div>';
+                return;
+            }
+            
+            container.innerHTML = data.followers.map(user => createUserCard(user)).join('');
+            setupSearch('followersSearch', 'followersList');
+        } else if (data.error) {
+            container.innerHTML = `<div class="text-center py-12 text-gray-400">${data.error}</div>`;
+        }
+    } catch (error) {
+        console.error('Error loading followers:', error);
+        container.innerHTML = '<div class="text-center py-12 text-gray-400">Error loading followers</div>';
+    }
+}
+
+// Load Following List
+async function loadFollowingList() {
+    const container = document.getElementById('followingList');
+    container.innerHTML = '<div class="flex items-center justify-center py-12"><i class="fa-solid fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
+    
+    try {
+        const response = await fetch(`/api/profile/${currentUsername}/following/`);
+        const data = await response.json();
+        
+        if (data.success && data.following) {
+            if (data.following.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-400">Not following anyone yet</div>';
+                return;
+            }
+            
+            container.innerHTML = data.following.map(user => createUserCard(user)).join('');
+            setupSearch('followingSearch', 'followingList');
+        } else if (data.error) {
+            container.innerHTML = `<div class="text-center py-12 text-gray-400">${data.error}</div>`;
+        }
+    } catch (error) {
+        console.error('Error loading following:', error);
+        container.innerHTML = '<div class="text-center py-12 text-gray-400">Error loading following list</div>';
+    }
+}
+
+// Create User Card HTML
+function createUserCard(user) {
+    const isViewer = user.is_viewer;
+    const isFollowing = user.is_followed_by_viewer;
+    
+    let buttonHTML = '';
+    if (!isViewer) {
+        if (isFollowing) {
+            buttonHTML = `<button onclick="handleModalFollow('${user.username}', false, this)" class="px-4 py-1.5 text-xs font-bold bg-white/10 text-white rounded-lg hover:bg-red-500/20 hover:text-red-400 transition">Following</button>`;
+        } else {
+            buttonHTML = `<button onclick="handleModalFollow('${user.username}', true, this)" class="px-4 py-1.5 text-xs font-bold bg-z-cyan text-black rounded-lg hover:bg-white transition">Follow</button>`;
+        }
+    }
+    
+    return `
+        <div class="flex items-center justify-between p-4 hover:bg-white/5 transition border-b border-white/5">
+            <a href="${user.profile_url}" class="flex items-center gap-3 flex-1">
+                <img src="${user.avatar_url || ''}" 
+                     alt="${user.display_name}" 
+                     class="w-12 h-12 rounded-full border border-white/10">
+                <div>
+                    <div class="font-bold text-white hover:text-z-cyan transition">${user.display_name}</div>
+                    <div class="text-sm text-gray-400">@${user.username}</div>
+                </div>
+            </a>
+            ${buttonHTML}
+        </div>
+    `;
+}
+
+// Handle Follow/Unfollow in Modal
+async function handleModalFollow(username, isFollowAction, button) {
+    const action = isFollowAction ? 'follow' : 'unfollow';
+    button.disabled = true;
+    button.style.opacity = '0.5';
+    
+    try {
+        const response = await fetch(`/api/profile/${username}/${action}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (isFollowAction) {
+                button.textContent = 'Following';
+                button.className = 'px-4 py-1.5 text-xs font-bold bg-white/10 text-white rounded-lg hover:bg-red-500/20 hover:text-red-400 transition';
+                button.onclick = function() { handleModalFollow(username, false, this); };
+            } else {
+                button.textContent = 'Follow';
+                button.className = 'px-4 py-1.5 text-xs font-bold bg-z-cyan text-black rounded-lg hover:bg-white transition';
+                button.onclick = function() { handleModalFollow(username, true, this); };
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    } finally {
+        button.disabled = false;
+        button.style.opacity = '1';
+    }
+}
+
+// Setup Search Filter
+function setupSearch(inputId, containerId) {
+    const input = document.getElementById(inputId);
+    const container = document.getElementById(containerId);
+    
+    if (!input || !container) return;
+    
+    input.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const cards = container.querySelectorAll('.flex.items-center');
+        
+        cards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+}
+
+// Close modals on ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeFollowersModal();
+        closeFollowingModal();
+    }
+});
+
+// Close modals on backdrop click
+document.getElementById('followersModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeFollowersModal();
+});
+document.getElementById('followingModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeFollowingModal();
 });
 </script>
 
