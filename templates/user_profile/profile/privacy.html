@@ -280,6 +280,27 @@ input:checked + .toggle-slider:before {
                 <p class="text-slate-400 text-sm mb-6">Manage social interactions and team visibility</p>
                 
                 <div class="space-y-4">
+                    <!-- UP PHASE 8: Instagram-like Followers/Following Privacy Controls -->
+                    <div class="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                        <div class="font-semibold text-white mb-2">Who can see your followers list?</div>
+                        <div class="text-sm text-slate-400 mb-3">Control who can view the list of people following you</div>
+                        <select name="followers_list_visibility" class="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 transition-all">
+                            <option value="everyone" {% if privacy_settings.followers_list_visibility == 'everyone' %}selected{% endif %}>🌐 Everyone - Anyone can see your followers</option>
+                            <option value="followers" {% if privacy_settings.followers_list_visibility == 'followers' %}selected{% endif %}>👥 Followers Only - Only people who follow you</option>
+                            <option value="only_me" {% if privacy_settings.followers_list_visibility == 'only_me' %}selected{% endif %}>🔒 Only Me - Private</option>
+                        </select>
+                    </div>
+                    
+                    <div class="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                        <div class="font-semibold text-white mb-2">Who can see who you're following?</div>
+                        <div class="text-sm text-slate-400 mb-3">Control who can view the list of people you follow</div>
+                        <select name="following_list_visibility" class="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 transition-all">
+                            <option value="everyone" {% if privacy_settings.following_list_visibility == 'everyone' %}selected{% endif %}>🌐 Everyone - Anyone can see who you follow</option>
+                            <option value="followers" {% if privacy_settings.following_list_visibility == 'followers' %}selected{% endif %}>👥 Followers Only - Only people who follow you</option>
+                            <option value="only_me" {% if privacy_settings.following_list_visibility == 'only_me' %}selected{% endif %}>🔒 Only Me - Private</option>
+                        </select>
+                    </div>
+                    
                     <div class="flex items-center justify-between p-4 rounded-lg bg-slate-800/50 border border-slate-700/50">
                         <div>
                             <div class="font-semibold text-white">Show Social Links</div>

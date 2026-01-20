@@ -251,7 +251,11 @@
                         <button onclick="switchTab('security')" class="nav-btn" data-target="security" data-nav="security"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Security</button>
                         <button onclick="switchTab('privacy')" class="nav-btn" data-target="privacy" data-nav="privacy"><i class="fa-solid fa-user-shield w-5 text-center"></i> Privacy & Vis.</button>
                         <button onclick="switchTab('platform')" class="nav-btn" data-target="platform" data-nav="platform"><i class="fa-solid fa-globe w-5 text-center"></i> Platform</button>
-                        <button onclick="switchTab('notifications')" class="nav-btn" data-target="notifications" data-nav="notifications"><i class="fa-regular fa-bell w-5 text-center"></i> Notifications</button>
+                        <button onclick="switchTab('notifications')" class="nav-btn relative" data-target="notifications" data-nav="notifications">
+                            <i class="fa-regular fa-bell w-5 text-center"></i> Notifications
+                            <!-- UP PHASE 8: Follow Requests Badge -->
+                            <span id="follow-requests-badge" class="hidden absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">0</span>
+                        </button>
                     </div>
                 </div>
 
@@ -1668,21 +1672,6 @@
                             </div>
                         </div>
                     </form>
-
-                    <!-- PHASE 7C-P0: Follow Requests Management -->
-                    <div class="glass-panel p-6 space-y-4">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-bold text-white text-lg">Follow Requests</h3>
-                            <div class="flex gap-2">
-                                <button onclick="loadFollowRequests('PENDING')" class="text-xs px-3 py-1 rounded-lg bg-white/10 text-white hover:bg-white/20 transition" id="filter-pending">Pending</button>
-                                <button onclick="loadFollowRequests('APPROVED')" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-approved">Approved</button>
-                                <button onclick="loadFollowRequests('REJECTED')" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-rejected">Rejected</button>
-                            </div>
-                        </div>
-                        <div id="follow-requests-list">
-                            <!-- Loaded dynamically -->
-                        </div>
-                    </div>
                 </div>
 
                 <!-- PLATFORM TAB (PHASE 5A - GLOBAL WIRING) -->
@@ -2140,6 +2129,33 @@
                 <!-- NOTIFICATIONS TAB (UP-PHASE2B - ENABLED) -->
                 <div id="tab-notifications" class="tab-section space-y-6">
                     <h2 class="text-3xl font-display font-bold text-white">Notifications</h2>
+                    
+                    <!-- UP PHASE 8: Follow Requests Management (Relocated from Privacy) -->
+                    <div class="glass-panel p-6 space-y-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-user-plus text-2xl text-indigo-400"></i>
+                                <div>
+                                    <h3 class="font-bold text-white text-lg">Follow Requests</h3>
+                                    <p class="text-xs text-gray-400">Manage who wants to follow your private account</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="loadFollowRequests('PENDING')" class="text-xs px-3 py-1 rounded-lg bg-white/10 text-white hover:bg-white/20 transition" id="filter-pending">
+                                    <i class="fa-solid fa-clock mr-1"></i>Pending
+                                </button>
+                                <button onclick="loadFollowRequests('APPROVED')" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-approved">
+                                    <i class="fa-solid fa-check mr-1"></i>Approved
+                                </button>
+                                <button onclick="loadFollowRequests('REJECTED')" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-rejected">
+                                    <i class="fa-solid fa-times mr-1"></i>Rejected
+                                </button>
+                            </div>
+                        </div>
+                        <div id="follow-requests-list">
+                            <!-- Loaded dynamically -->
+                        </div>
+                    </div>
                     
                     <form id="notifications-form" class="space-y-6" onsubmit="saveNotificationsSettings(event)">
                         {% csrf_token %}
@@ -2616,6 +2632,8 @@
     // Initialize bio counter on page load
     document.addEventListener('DOMContentLoaded', function() {
         updateBioCounter();
+        // UP PHASE 8: Update follow requests badge on load
+        updateFollowRequestsBadge();
     });
 
     // Toast notification (XSS-safe)
@@ -4038,6 +4056,30 @@
     
     let currentFollowRequestFilter = 'PENDING';
     
+    // UP PHASE 8: Update badge count for pending follow requests
+    async function updateFollowRequestsBadge() {
+        try {
+            const response = await fetch('{% url "user_profile:get_follow_requests_api" %}?status=PENDING');
+            const result = await response.json();
+            
+            if (result.success) {
+                const badge = document.getElementById('follow-requests-badge');
+                const count = result.requests ? result.requests.length : 0;
+                
+                if (badge) {
+                    if (count > 0) {
+                        badge.textContent = count > 99 ? '99+' : count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error updating follow requests badge:', error);
+        }
+    }
+    
     async function loadFollowRequests(status = 'PENDING') {
         currentFollowRequestFilter = status;
         
@@ -4123,6 +4165,8 @@
             if (result.success) {
                 showToast(`✅ ${result.message}`, 'success');
                 loadFollowRequests(currentFollowRequestFilter);
+                // UP PHASE 8: Update badge count after action
+                updateFollowRequestsBadge();
             } else {
                 showToast(`❌ ${result.error || 'Failed to respond'}`, 'error');
             }

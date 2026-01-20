@@ -292,26 +292,37 @@ def update_privacy_settings(request):
     
     Route: POST /me/settings/privacy/save/
     
-    Body (JSON):
+    Accepts both JSON and form POST data.
+    
+    Body (JSON or form data):
     {
         "visibility_preset": "PUBLIC",
         "show_real_name": false,
         "show_email": false,
+        "followers_list_visibility": "everyone",
+        "following_list_visibility": "everyone",
         ...
     }
     
     Returns:
-        JSON: {success: true, message: '...'}
+        JSON or Redirect: {success: true, message: '...'} or redirect with ?success=true
     """
     import json
     from apps.user_profile.utils import get_user_profile_safe
     from apps.user_profile.models import PrivacySettings
+    from django.shortcuts import redirect
     
     profile = get_user_profile_safe(request.user)
     
     try:
-        # Parse JSON body
-        data = json.loads(request.body)
+        # Parse data from JSON or form POST
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            is_json_request = True
+        else:
+            # Form POST data
+            data = request.POST
+            is_json_request = False
         
         # Get or create privacy settings (linked to UserProfile, not User)
         privacy, created = PrivacySettings.objects.get_or_create(user_profile=profile)
@@ -321,6 +332,25 @@ def update_privacy_settings(request):
             preset = data['visibility_preset']
             if preset in ['PUBLIC', 'PROTECTED', 'PRIVATE']:
                 privacy.visibility_preset = preset
+        
+        # UP PHASE 8: Instagram-like followers/following list visibility
+        choice_fields = {
+            'followers_list_visibility': ['everyone', 'followers', 'only_me'],
+            'following_list_visibility': ['everyone', 'followers', 'only_me'],
+            'inventory_visibility': ['PUBLIC', 'FRIENDS', 'PRIVATE'],
+        }
+        
+        for field, valid_choices in choice_fields.items():
+            if field in data:
+                value = data[field]
+                if value in valid_choices:
+                    setattr(privacy, field, value)
+                else:
+                    error_msg = f"Invalid {field} value: '{value}'. Must be one of: {', '.join(valid_choices)}"
+                    if is_json_request:
+                        return JsonResponse({'success': False, 'error': error_msg}, status=400)
+                    else:
+                        return redirect(f"{request.path.replace('/save/', '/')}?error={error_msg}")
         
         # Update all toggles (including Phase 6A private account)
         boolean_fields = [
@@ -335,33 +365,34 @@ def update_privacy_settings(request):
         
         for field in boolean_fields:
             if field in data:
-                setattr(privacy, field, bool(data[field]))
-        
-        # UP-PHASE2B: Update inventory_visibility choice field
-        if 'inventory_visibility' in data:
-            value = data['inventory_visibility']
-            if value in ['PUBLIC', 'FRIENDS', 'PRIVATE']:
-                privacy.inventory_visibility = value
-            else:
-                return JsonResponse({
-                    'success': False,
-                    'error': f"Invalid inventory_visibility value: '{value}'. Must be one of: PUBLIC, FRIENDS, PRIVATE"
-                }, status=400)
+                # Handle both JSON boolean and form checkbox (present = true, absent = false)
+                if is_json_request:
+                    setattr(privacy, field, bool(data[field]))
+                else:
+                    # Form checkboxes: present in POST = checked = True
+                    setattr(privacy, field, field in data)
         
         privacy.save()
         
         logger.info(f"Privacy settings updated for user {request.user.username}")
         
-        return JsonResponse({
-            'success': True,
-            'message': 'Privacy settings saved successfully'
-        })
+        if is_json_request:
+            return JsonResponse({
+                'success': True,
+                'message': 'Privacy settings saved successfully'
+            })
+        else:
+            # Redirect back to privacy page with success message
+            return redirect('/me/privacy/?success=true')
     
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
     except Exception as e:
         logger.error(f"Error updating privacy settings: {e}", exc_info=True)
-        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+        if is_json_request:
+            return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+        else:
+            return redirect(f"/me/privacy/?error=Server error")
 
 
 @login_required

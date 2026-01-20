@@ -343,6 +343,20 @@ class FollowService:
             f"(request_id={follow_request.id})"
         )
         
+        # Create notification for target user
+        try:
+            from apps.notifications.models import Notification
+            Notification.objects.create(
+                recipient=followee_user,
+                type=Notification.Type.FOLLOW_REQUEST,
+                title=f"@{follower_user.username} wants to follow you",
+                body=f"{follower_profile.display_name or follower_user.username} sent you a follow request.",
+                url=f"/me/settings/notifications/?tab=follow_requests"
+            )
+            logger.info(f"Notification created for follow request {follow_request.id}")
+        except Exception as e:
+            logger.error(f"Failed to create notification for follow request: {e}", exc_info=True)
+        
         return follow_request, True
     
     @staticmethod
@@ -430,6 +444,21 @@ class FollowService:
             f"{follow_request.target.user.username} (request_id={follow_request.id}, "
             f"follow_id={follow.id})"
         )
+        
+        # Create notification for requester
+        try:
+            from apps.notifications.models import Notification
+            target_profile = get_user_profile_safe(target_user)
+            Notification.objects.create(
+                recipient=follow_request.requester.user,
+                type=Notification.Type.FOLLOW_REQUEST_APPROVED,
+                title=f"@{target_user.username} accepted your follow request",
+                body=f"You are now following {target_profile.display_name or target_user.username}.",
+                url=f"/@{target_user.username}/"
+            )
+            logger.info(f"Notification created for approved follow request {request_id}")
+        except Exception as e:
+            logger.error(f"Failed to create notification for approved follow request: {e}", exc_info=True)
         
         return follow
     

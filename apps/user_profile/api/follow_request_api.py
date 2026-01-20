@@ -281,3 +281,109 @@ def get_follow_requests_api(request):
             'success': False,
             'error': 'An error occurred while fetching follow requests'
         }, status=500)
+
+
+@login_required
+@csrf_protect
+@require_http_methods(["POST"])
+def approve_follow_request_api(request, request_id):
+    """
+    Approve a follow request.
+    
+    POST /api/follow-requests/<id>/approve/
+    
+    Response:
+        {
+            "success": true,
+            "action": "approved",
+            "is_following": true,
+            "message": "Follow request approved. @username is now following you."
+        }
+    """
+    try:
+        follow = FollowService.approve_follow_request(
+            target_user=request.user,
+            request_id=request_id,
+            request_id_audit=request.META.get('HTTP_X_REQUEST_ID'),
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT')
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'action': 'approved',
+            'is_following': True,
+            'message': f'Follow request approved. @{follow.follower.username} is now following you.'
+        })
+    
+    except FollowRequest.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Follow request not found'
+        }, status=404)
+    
+    except PermissionDenied as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=403)
+    
+    except Exception as e:
+        logger.error(f"Error approving follow request: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while approving the request'
+        }, status=500)
+
+
+@login_required
+@csrf_protect
+@require_http_methods(["POST"])
+def reject_follow_request_api(request, request_id):
+    """
+    Reject a follow request.
+    
+    POST /api/follow-requests/<id>/reject/
+    
+    Response:
+        {
+            "success": true,
+            "action": "rejected",
+            "is_following": false,
+            "message": "Follow request from @username rejected."
+        }
+    """
+    try:
+        follow_request = FollowService.reject_follow_request(
+            target_user=request.user,
+            request_id=request_id,
+            request_id_audit=request.META.get('HTTP_X_REQUEST_ID'),
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT')
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'action': 'rejected',
+            'is_following': False,
+            'message': f'Follow request from @{follow_request.requester.user.username} rejected.'
+        })
+    
+    except FollowRequest.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Follow request not found'
+        }, status=404)
+    
+    except PermissionDenied as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=403)
+    
+    except Exception as e:
+        logger.error(f"Error rejecting follow request: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while rejecting the request'
+        }, status=500)

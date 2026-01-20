@@ -24,6 +24,10 @@ class Notification(models.Model):
         PROMOTION_STARTED = "promotion_started", "Promotion started"
         PAYOUT_RECEIVED = "payout_received", "Payout received"
         ACHIEVEMENT_EARNED = "achievement_earned", "Achievement earned"
+        # UP PHASE 8: Follow Requests
+        FOLLOW_REQUEST = "follow_request", "Follow request received"
+        FOLLOW_REQUEST_APPROVED = "follow_request_approved", "Follow request approved"
+        FOLLOW_REQUEST_REJECTED = "follow_request_rejected", "Follow request rejected"
 
     event = models.CharField(max_length=64, db_index=True, default="generic")
     type = models.CharField(max_length=40, choices=Type.choices, db_index=True, default=Type.GENERIC)

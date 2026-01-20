@@ -1,36 +1,437 @@
 {% extends "base.html" %}
+{% load static %}
 {% block og_title %}Notifications — DeltaCrown{% endblock %}
+
 {% block content %}
-<section class="container my-8">
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="text-2xl font-semibold">Notifications</h1>
-    <form action="{% url 'notifications:mark_all_read' %}" method="post">{% csrf_token %}
-      <button class="btn-secondary">Mark all read</button>
+<section class="container my-8 max-w-5xl">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-3xl font-bold text-white">Notifications</h1>
+    <form action="{% url 'notifications:mark_all_read' %}" method="post">
+      {% csrf_token %}
+      <button type="submit" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition">
+        Mark all read
+      </button>
     </form>
   </div>
-  <div class="glass rounded-2xl divide-y divide-border">
-    {% if page and page.object_list %}
-      {% for n in page.object_list %}
-        <div class="p-4 flex items-start justify-between gap-4">
-          <div>
-            <div class="font-medium">{{ n.title|default:"Notification" }}</div>
-            <div class="text-sm text-muted">{{ n.body|default:n.message }}</div>
-            <div class="text-xs text-muted mt-1">{{ n.created_at }}</div>
+
+  <!-- Tab Navigation -->
+  <div class="glass-panel rounded-xl p-1 mb-6 flex gap-2">
+    <button onclick="switchTab('notifications')" 
+            id="tab-notifications"
+            class="notification-tab flex-1 px-6 py-3 rounded-lg bg-cyan-500/20 text-cyan-400 font-bold transition">
+      <i class="fa-solid fa-bell mr-2"></i> Notifications
+    </button>
+    <button onclick="switchTab('follow-requests')" 
+            id="tab-follow-requests"
+            class="notification-tab flex-1 px-6 py-3 rounded-lg text-gray-400 hover:bg-white/5 font-bold transition">
+      <i class="fa-solid fa-user-plus mr-2"></i> Follow Requests
+      <span id="pending-badge" class="ml-2 px-2 py-0.5 bg-cyan-500 text-white rounded-full text-xs hidden">0</span>
+    </button>
+  </div>
+
+  <!-- Notifications Tab Content -->
+  <div id="content-notifications" class="tab-content">
+    <div class="glass-panel rounded-2xl divide-y divide-white/10">
+      {% if page and page.object_list %}
+        {% for n in page.object_list %}
+          <div class="p-4 flex items-start justify-between gap-4 hover:bg-white/5 transition">
+            <div class="flex-1">
+              <div class="font-medium text-white">{{ n.title|default:"Notification" }}</div>
+              <div class="text-sm text-gray-400">{{ n.body|default:n.message }}</div>
+              <div class="text-xs text-gray-500 mt-1">{{ n.created_at|timesince }} ago</div>
+            </div>
+            <div class="flex items-center gap-2">
+              {% if n.url %}
+                <a href="{{ n.url }}" class="px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-sm transition">
+                  View
+                </a>
+              {% endif %}
+              {% if not n.is_read %}
+                <form action="{% url 'notifications:mark_read' n.id %}" method="post" class="inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}"/>
+                  <button type="submit" class="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition">
+                    Mark read
+                  </button>
+                </form>
+              {% endif %}
+            </div>
           </div>
-          <form action="{% url 'notifications:mark_read' n.id %}" method="post">{% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.get_full_path }}"/>
-            {% if not n.is_read %}<button class="btn-primary">Mark read</button>{% endif %}
-          </form>
+        {% endfor %}
+        <!-- Pagination -->
+        <div class="p-4 flex items-center justify-between">
+          {% if page.has_previous %}
+            <a class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition" 
+               href="?page={{ page.previous_page_number }}">
+              <i class="fa-solid fa-chevron-left mr-1"></i> Prev
+            </a>
+          {% else %}
+            <div></div>
+          {% endif %}
+          
+          <span class="text-gray-400 text-sm">
+            Page {{ page.number }} / {{ page.paginator.num_pages }}
+          </span>
+          
+          {% if page.has_next %}
+            <a class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition" 
+               href="?page={{ page.next_page_number }}">
+              Next <i class="fa-solid fa-chevron-right ml-1"></i>
+            </a>
+          {% else %}
+            <div></div>
+          {% endif %}
         </div>
-      {% endfor %}
-      <div class="p-4 flex items-center justify-between">
-        {% if page.has_previous %}<a class="link-nav" href="?page={{ page.previous_page_number }}">← Prev</a>{% endif %}
-        <span class="text-muted text-sm">Page {{ page.number }} / {{ page.paginator.num_pages }}</span>
-        {% if page.has_next %}<a class="link-nav" href="?page={{ page.next_page_number }}">Next →</a>{% endif %}
+      {% else %}
+        <div class="p-12 text-center text-gray-400">
+          <i class="fa-solid fa-bell text-5xl mb-4 opacity-50"></i>
+          <p>No notifications yet.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Follow Requests Tab Content -->
+  <div id="content-follow-requests" class="tab-content hidden">
+    <!-- Sub-tabs for Follow Requests -->
+    <div class="glass-panel rounded-xl p-1 mb-4 flex gap-2">
+      <button onclick="switchRequestTab('pending')" 
+              id="request-tab-pending"
+              class="request-tab flex-1 px-4 py-2 rounded-lg bg-cyan-500/20 text-cyan-400 font-bold text-sm transition">
+        Pending <span id="count-pending" class="ml-1 px-2 py-0.5 bg-cyan-500 text-white rounded-full text-xs">0</span>
+      </button>
+      <button onclick="switchRequestTab('approved')" 
+              id="request-tab-approved"
+              class="request-tab flex-1 px-4 py-2 rounded-lg text-gray-400 hover:bg-white/5 font-bold text-sm transition">
+        Approved <span id="count-approved" class="ml-1 px-2 py-0.5 bg-white/20 text-white rounded-full text-xs hidden">0</span>
+      </button>
+      <button onclick="switchRequestTab('rejected')" 
+              id="request-tab-rejected"
+              class="request-tab flex-1 px-4 py-2 rounded-lg text-gray-400 hover:bg-white/5 font-bold text-sm transition">
+        Rejected <span id="count-rejected" class="ml-1 px-2 py-0.5 bg-white/20 text-white rounded-full text-xs hidden">0</span>
+      </button>
+    </div>
+
+    <!-- Follow Requests List -->
+    <div id="follow-requests-container" class="glass-panel rounded-2xl divide-y divide-white/10">
+      <!-- Loading state -->
+      <div id="loading-state" class="p-12 text-center text-gray-400">
+        <i class="fa-solid fa-spinner fa-spin text-3xl mb-3"></i>
+        <p>Loading requests...</p>
       </div>
-    {% else %}
-      <div class="p-8 text-center text-muted">No notifications yet.</div>
-    {% endif %}
+    </div>
   </div>
 </section>
+
+<!-- Toast Notifications -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+
+<script>
+// ===== TAB MANAGEMENT =====
+let currentTab = 'notifications';
+let currentRequestTab = 'pending';
+
+function switchTab(tab) {
+  currentTab = tab;
+  
+  // Update tab buttons
+  document.querySelectorAll('.notification-tab').forEach(btn => {
+    btn.classList.remove('bg-cyan-500/20', 'text-cyan-400');
+    btn.classList.add('text-gray-400', 'hover:bg-white/5');
+  });
+  document.getElementById(`tab-${tab}`).classList.add('bg-cyan-500/20', 'text-cyan-400');
+  document.getElementById(`tab-${tab}`).classList.remove('text-gray-400', 'hover:bg-white/5');
+  
+  // Update content
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.add('hidden');
+  });
+  document.getElementById(`content-${tab}`).classList.remove('hidden');
+  
+  // Load follow requests if switching to that tab
+  if (tab === 'follow-requests') {
+    loadFollowRequests();
+  }
+}
+
+function switchRequestTab(tab) {
+  currentRequestTab = tab;
+  
+  // Update tab buttons
+  document.querySelectorAll('.request-tab').forEach(btn => {
+    btn.classList.remove('bg-cyan-500/20', 'text-cyan-400');
+    btn.classList.add('text-gray-400', 'hover:bg-white/5');
+  });
+  document.getElementById(`request-tab-${tab}`).classList.add('bg-cyan-500/20', 'text-cyan-400');
+  document.getElementById(`request-tab-${tab}`).classList.remove('text-gray-400', 'hover:bg-white/5');
+  
+  // Load requests for this tab
+  loadFollowRequests();
+}
+
+// ===== FOLLOW REQUESTS API =====
+async function loadFollowRequests() {
+  const container = document.getElementById('follow-requests-container');
+  const loading = document.getElementById('loading-state');
+  
+  loading.style.display = 'block';
+  
+  try {
+    const response = await fetch(`/me/follow-requests/?status=${currentRequestTab.toUpperCase()}`);
+    const data = await response.json();
+    
+    loading.style.display = 'none';
+    
+    if (data.success) {
+      renderFollowRequests(data.requests);
+      updateCounts(currentRequestTab, data.count);
+    } else {
+      container.innerHTML = `<div class="p-8 text-center text-red-400">${data.error || 'Error loading requests'}</div>`;
+    }
+  } catch (error) {
+    loading.style.display = 'none';
+    container.innerHTML = '<div class="p-8 text-center text-red-400">Error loading follow requests</div>';
+    console.error('Error:', error);
+  }
+}
+
+function renderFollowRequests(requests) {
+  const container = document.getElementById('follow-requests-container');
+  
+  if (requests.length === 0) {
+    const emptyMessages = {
+      'pending': 'No pending follow requests',
+      'approved': 'No approved requests',
+      'rejected': 'No rejected requests'
+    };
+    container.innerHTML = `
+      <div class="p-12 text-center text-gray-400">
+        <i class="fa-solid fa-user-plus text-5xl mb-4 opacity-50"></i>
+        <p>${emptyMessages[currentRequestTab]}</p>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = requests.map(req => createRequestCard(req)).join('');
+}
+
+function createRequestCard(request) {
+  const isPending = request.status === 'PENDING';
+  const timeAgo = formatTimeAgo(request.created_at);
+  
+  let actionButtons = '';
+  if (isPending) {
+    actionButtons = `
+      <div class="flex gap-2">
+        <button onclick="approveRequest(${request.id})" 
+                class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg transition">
+          <i class="fa-solid fa-check mr-1"></i> Approve
+        </button>
+        <button onclick="rejectRequest(${request.id})" 
+                class="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold rounded-lg transition">
+          <i class="fa-solid fa-xmark mr-1"></i> Reject
+        </button>
+      </div>
+    `;
+  } else {
+    const statusBadge = request.status === 'APPROVED' 
+      ? '<span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm"><i class="fa-solid fa-check mr-1"></i> Approved</span>'
+      : '<span class="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-sm"><i class="fa-solid fa-xmark mr-1"></i> Rejected</span>';
+    actionButtons = statusBadge;
+  }
+  
+  return `
+    <div class="p-4 hover:bg-white/5 transition" data-request-id="${request.id}">
+      <div class="flex items-center justify-between gap-4">
+        <a href="/@${request.requester.username}/" class="flex items-center gap-3 flex-1">
+          <img src="${request.requester.avatar_url || '/static/images/default-avatar.png'}" 
+               class="w-12 h-12 rounded-full border-2 border-white/10">
+          <div>
+            <div class="font-bold text-white">${request.requester.display_name || request.requester.username}</div>
+            <div class="text-sm text-gray-400">@${request.requester.username}</div>
+            <div class="text-xs text-gray-500 mt-1">${timeAgo}</div>
+          </div>
+        </a>
+        ${actionButtons}
+      </div>
+    </div>
+  `;
+}
+
+async function approveRequest(requestId) {
+  const card = document.querySelector(`[data-request-id="${requestId}"]`);
+  const buttons = card.querySelectorAll('button');
+  buttons.forEach(btn => btn.disabled = true);
+  
+  try {
+    const response = await fetch(`/api/follow-requests/${requestId}/approve/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showToast('✓ Follow request approved!', 'success');
+      card.style.animation = 'slideOut 0.3s ease-out';
+      setTimeout(() => {
+        loadFollowRequests();
+        updatePendingBadge();
+      }, 300);
+    } else {
+      showToast(data.error || 'Error approving request', 'error');
+      buttons.forEach(btn => btn.disabled = false);
+    }
+  } catch (error) {
+    showToast('Error approving request', 'error');
+    buttons.forEach(btn => btn.disabled = false);
+    console.error('Error:', error);
+  }
+}
+
+async function rejectRequest(requestId) {
+  const card = document.querySelector(`[data-request-id="${requestId}"]`);
+  const buttons = card.querySelectorAll('button');
+  buttons.forEach(btn => btn.disabled = true);
+  
+  try {
+    const response = await fetch(`/api/follow-requests/${requestId}/reject/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showToast('Follow request rejected', 'info');
+      card.style.animation = 'slideOut 0.3s ease-out';
+      setTimeout(() => {
+        loadFollowRequests();
+        updatePendingBadge();
+      }, 300);
+    } else {
+      showToast(data.error || 'Error rejecting request', 'error');
+      buttons.forEach(btn => btn.disabled = false);
+    }
+  } catch (error) {
+    showToast('Error rejecting request', 'error');
+    buttons.forEach(btn => btn.disabled = false);
+    console.error('Error:', error);
+  }
+}
+
+// ===== UTILITY FUNCTIONS =====
+function formatTimeAgo(isoString) {
+  const date = new Date(isoString);
+  const now = new Date();
+  const seconds = Math.floor((now - date) / 1000);
+  
+  if (seconds < 60) return 'just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 2592000) return `${Math.floor(seconds / 86400)}d ago`;
+  return `${Math.floor(seconds / 2592000)}mo ago`;
+}
+
+function updateCounts(tab, count) {
+  const badge = document.getElementById(`count-${tab}`);
+  if (badge) {
+    badge.textContent = count;
+    if (count > 0) {
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+}
+
+async function updatePendingBadge() {
+  try {
+    const response = await fetch('/me/follow-requests/?status=PENDING');
+    const data = await response.json();
+    
+    if (data.success) {
+      const badge = document.getElementById('pending-badge');
+      const countBadge = document.getElementById('count-pending');
+      
+      if (data.count > 0) {
+        badge.textContent = data.count;
+        badge.classList.remove('hidden');
+        countBadge.textContent = data.count;
+        countBadge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+        countBadge.classList.add('hidden');
+      }
+    }
+  } catch (error) {
+    console.error('Error updating pending badge:', error);
+  }
+}
+
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  
+  const bgColors = {
+    success: 'bg-green-500',
+    error: 'bg-red-500',
+    info: 'bg-cyan-500'
+  };
+  
+  const icons = {
+    success: 'fa-check-circle',
+    error: 'fa-exclamation-circle',
+    info: 'fa-info-circle'
+  };
+  
+  toast.className = `${bgColors[type]} text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slideIn`;
+  toast.innerHTML = `
+    <i class="fa-solid ${icons[type]}"></i>
+    <span>${message}</span>
+  `;
+  
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease-out';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function getCsrfToken() {
+  return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+}
+
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', () => {
+  updatePendingBadge();
+  
+  // Check if URL has anchor for follow-requests
+  if (window.location.hash === '#follow-requests') {
+    switchTab('follow-requests');
+  }
+});
+
+// ===== ANIMATIONS =====
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideOut {
+    to { transform: translateX(100%); opacity: 0; }
+  }
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+`;
+document.head.appendChild(style);
+</script>
 {% endblock %}

@@ -76,7 +76,8 @@ from .api.platform_prefs_api import (
 )
 # PHASE-6A: Private Account & Follow Request API
 from .api.follow_request_api import (
-    follow_user_api, respond_to_follow_request_api, get_follow_requests_api
+    follow_user_api, respond_to_follow_request_api, get_follow_requests_api,
+    approve_follow_request_api, reject_follow_request_api
 )
 # UP-PHASE8: Hero Follow/Unfollow API
 from .api.follow_api import (
@@ -382,6 +383,9 @@ urlpatterns = [
     path("profiles/<str:username>/follow/", follow_user_api, name="follow_user_api"),
     path("profiles/<str:username>/follow/respond/", respond_to_follow_request_api, name="respond_to_follow_request_api"),
     path("me/follow-requests/", get_follow_requests_api, name="get_follow_requests_api"),
+    # UP PHASE 8: Simplified approve/reject endpoints
+    path("api/follow-requests/<int:request_id>/approve/", approve_follow_request_api, name="approve_follow_request"),
+    path("api/follow-requests/<int:request_id>/reject/", reject_follow_request_api, name="reject_follow_request"),
     
     path("api/profile/loadout/hardware/", save_hardware, name="save_hardware"),
     path("api/profile/loadout/game-config/", save_game_config, name="save_game_config"),
