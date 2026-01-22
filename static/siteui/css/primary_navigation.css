@@ -1,0 +1,218 @@
+/* ============================================
+   DELTACROWN PRIMARY NAVIGATION SYSTEM
+   Modern 2026 Esports-Grade Design
+   STICKY LIQUID GLASS | Cybernetic Neon | Premium UI
+   ============================================ */
+
+/* === DESKTOP NAVBAR - STICKY LIQUID GLASS === */
+#dc-navbar {
+  will-change: transform, background, backdrop-filter;
+  position: fixed !important; /* Always sticky on desktop */
+  z-index: 500 !important; /* Above all page content including team hero */
+}
+
+/* Enhanced Liquid Glass Effect on Scroll - Blends with page background */
+#dc-navbar.scrolled {
+  height: 64px !important;
+  background: rgba(11, 15, 22, 0.40) !important; /* Transparent to show page bg through blur */
+  backdrop-filter: blur(32px) saturate(180%) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(180%) brightness(1.1) !important;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.15) !important;
+  box-shadow: 0 10px 40px -10px rgba(0,0,0,0.9), 
+              inset 0 1px 0 rgba(0, 229, 255, 0.1);
+}
+
+/* NO auto-hide on desktop - Only hide on mobile */
+@media (min-width: 768px) {
+  #dc-navbar.nav-hidden {
+    transform: translateY(0) !important;
+  }
+}
+
+/* === NAVIGATION ITEMS === */
+.dc-nav-item {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.dc-nav-link {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: color 0.3s ease;
+  padding: 0 8px;
+  text-decoration: none;
+}
+
+.dc-nav-item:hover .dc-nav-link,
+.dc-nav-item.active .dc-nav-link {
+  color: white;
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+/* Cybernetic Neon Underline */
+.dc-nav-item::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00E5FF, #6C00FF, transparent);
+  transform: translateX(-50%);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 -2px 10px rgba(0, 229, 255, 0.8);
+  opacity: 0;
+}
+
+.dc-nav-item:hover::after,
+.dc-nav-item.active::after {
+  width: 100%;
+  opacity: 1;
+}
+
+/* === DROPDOWNS (Premium Glassmorphism) === */
+.dc-dropdown {
+  background: rgba(10, 10, 15, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255,255,255,0.03) inset;
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  z-index: 600 !important;
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  overflow: hidden;
+}
+
+.dc-dropdown.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* Dropdown Items */
+.dc-dd-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin: 2px 6px;
+  text-decoration: none;
+}
+
+.dc-dd-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  transform: translateX(4px);
+}
+
+.dc-dd-item i {
+  width: 20px;
+  text-align: center;
+  transition: color 0.2s;
+}
+
+.dc-dd-item:hover i {
+  color: #00E5FF;
+}
+
+/* === MOBILE HEADER === */
+#dc-mobile-header {
+  will-change: transform;
+}
+
+#dc-mobile-header.nav-hidden {
+  transform: translateY(-100%);
+}
+
+/* === MOBILE DRAWER === */
+#dc-mobile-drawer {
+  scrollbar-width: none;
+}
+
+#dc-mobile-drawer::-webkit-scrollbar {
+  display: none;
+}
+
+#dc-mobile-drawer.open {
+  transform: translateX(0);
+}
+
+#dc-mobile-backdrop.visible {
+  display: block !important;
+}
+
+/* === SEARCH MODAL === */
+#dc-search-overlay {
+  transition: opacity 0.3s ease;
+}
+
+#dc-search-overlay.open {
+  display: flex !important;
+}
+
+#dc-search-overlay.open #dc-search-modal {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* === RESPONSIVE === */
+@media (min-width: 768px) {
+  #dc-navbar {
+    display: flex !important;
+  }
+}
+
+/* Add spacing for fixed navigation */
+body {
+  padding-top: 80px;
+  padding-bottom: 70px;
+}
+
+@media (min-width: 768px) {
+  body {
+    padding-bottom: 0;
+  }
+}
+
+/* === ANIMATIONS === */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* === PERFORMANCE OPTIMIZATIONS === */
+.dc-nav-item,
+.dc-nav-link,
+.dc-dropdown,
+#dc-navbar,
+#dc-mobile-header {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

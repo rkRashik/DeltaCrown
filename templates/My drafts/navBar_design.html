@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DeltaCrown Titan | V4 Liquid Glass</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        dc: {
+                            gold: '#FFD700',
+                            purple: '#6C00FF',
+                            cyan: '#00E5FF',
+                            dark: '#020005',
+                            glass: 'rgba(10, 10, 20, 0.7)',
+                            glassHover: 'rgba(255, 255, 255, 0.05)',
+                        }
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 0 10px rgba(0, 229, 255, 0.6), 0 0 20px rgba(0, 229, 255, 0.3)',
+                    },
+                    transitionProperty: {
+                        'height': 'height',
+                        'spacing': 'margin, padding',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* --- CORE STYLES --- */
+        body {
+            background-color: #020005;
+            background-image:
+                radial-gradient(circle at 50% -20%, rgba(108, 0, 255, 0.12) 0%, transparent 70%),
+                radial-gradient(circle at 90% 40%, rgba(0, 229, 255, 0.06) 0%, transparent 50%);
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* 1. LIQUID GLASS NAVBAR (Desktop) */
+        .titan-nav {
+            height: 80px; /* Taller default height for breathing room */
+            background: rgba(2, 0, 5, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .titan-nav.scrolled {
+            height: 64px; /* Compacts smoothly */
+            background: rgba(2, 0, 5, 0.95);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.8);
+        }
+
+        /* Smart Hide Class */
+        .nav-hidden {
+            transform: translateY(-100%);
+        }
+
+        /* 2. MENU INDICATORS & LINKS */
+        .nav-item {
+            position: relative;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-link {
+            font-size: 1rem; /* Increased font size */
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            transition: color 0.3s ease;
+            padding: 0 8px; /* More horizontal padding */
+        }
+
+        .nav-item:hover .nav-link, .nav-item.active .nav-link {
+            color: white;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+
+        /* Cybernetic Underline */
+        .nav-item::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00E5FF, #6C00FF, transparent);
+            transform: translateX(-50%);
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 -2px 10px rgba(0, 229, 255, 0.8);
+            opacity: 0;
+        }
+
+        .nav-item:hover::after, .nav-item.active::after {
+            width: 100%;
+            opacity: 1;
+        }
+
+        /* 3. PREMIUM DROPDOWNS */
+        .titan-dropdown {
+            background: rgba(10, 10, 15, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255,255,255,0.03) inset;
+            backdrop-filter: blur(40px);
+            opacity: 0;
+            transform: translateY(10px) scale(0.98);
+            pointer-events: none;
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+            overflow: hidden;
+        }
+
+        .titan-dropdown.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        /* Dropdown Items */
+        .dd-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            margin: 2px 6px;
+        }
+
+        .dd-item:hover {
+            background: var(--dc-glassHover);
+            color: #fff;
+            transform: translateX(4px);
+        }
+
+        .dd-item i { width: 20px; text-align: center; transition: color 0.2s; }
+        .dd-item:hover i { color: #00E5FF; }
+
+        /* Notification Specifics (Clean & Modern) */
+        .notif-item {
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            transition: background 0.2s;
+            cursor: pointer;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+        .notif-item:hover { background: rgba(255,255,255,0.03); }
+        .notif-item:last-child { border-bottom: none; }
+
+        .notif-icon-box {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.9rem;
+        }
+
+        /* 4. MOBILE BOTTOM BAR (Instagram Style) */
+        .mobile-bottom-nav {
+            background: rgba(8, 8, 12, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: env(safe-area-inset-bottom);
+            z-index: 90;
+        }
+
+        /* 5. SEARCH MODAL (Command Palette) */
+        .search-overlay {
+            background: rgba(2, 0, 5, 0.85);
+            backdrop-filter: blur(12px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .search-overlay.open { opacity: 1; pointer-events: auto; }
+
+        .search-modal {
+            transform: scale(0.95) translateY(10px);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            background: rgba(15, 15, 20, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 20px 60px rgba(0,0,0,0.8);
+        }
+        .search-overlay.open .search-modal { transform: scale(1) translateY(0); }
+
+        /* Utilities */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .pulse-dot {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body class="pt-[80px] pb-[70px] md:pb-0"> <div id="search-overlay" class="search-overlay fixed inset-0 z-[200] flex items-start justify-center pt-[12vh] px-4">
+        <div class="search-modal w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col">
+            <div class="flex items-center px-5 py-5 border-b border-white/5 relative">
+                <i class="fa-solid fa-magnifying-glass text-dc-cyan text-xl"></i>
+                <input type="text" id="cmd-input" placeholder="Search for teams, players, tournaments..." class="w-full bg-transparent border-none outline-none text-white text-xl px-4 font-sans placeholder-gray-500 font-medium" autocomplete="off">
+                <button onclick="toggleSearch()" class="text-gray-400 hover:text-white transition p-2 rounded-lg hover:bg-white/5">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-3 max-h-[450px] overflow-y-auto no-scrollbar">
+                <div class="text-[11px] font-bold text-gray-500 uppercase px-4 py-2 tracking-widest">Recent & Quick Links</div>
+
+                <a href="/tournaments" class="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 group transition-all duration-200 border border-transparent hover:border-white/5">
+                    <div class="w-10 h-10 rounded-lg bg-dc-purple/10 text-dc-purple flex items-center justify-center border border-dc-purple/20 shadow-[0_0_10px_rgba(108,0,255,0.1)] group-hover:shadow-[0_0_15px_rgba(108,0,255,0.3)] transition-shadow">
+                        <i class="fa-solid fa-trophy text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="text-gray-200 font-medium group-hover:text-white block text-lg">Browse Tournaments</span>
+                        <span class="text-xs text-gray-500">Find active competitions</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right ml-auto text-gray-600 group-hover:text-white transition-transform group-hover:translate-x-1"></i>
+                </a>
+
+                <a href="/teams" class="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 group transition-all duration-200 border border-transparent hover:border-white/5 mt-2">
+                    <div class="w-10 h-10 rounded-lg bg-dc-cyan/10 text-dc-cyan flex items-center justify-center border border-dc-cyan/20 shadow-[0_0_10px_rgba(0,229,255,0.1)] group-hover:shadow-[0_0_15px_rgba(0,229,255,0.3)] transition-shadow">
+                        <i class="fa-solid fa-users text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="text-gray-200 font-medium group-hover:text-white block text-lg">Find a Team</span>
+                        <span class="text-xs text-gray-500">Join a roster or create one</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right ml-auto text-gray-600 group-hover:text-white transition-transform group-hover:translate-x-1"></i>
+                </a>
+            </div>
+
+            <div class="px-5 py-3 bg-black/40 border-t border-white/5 flex justify-between text-xs text-gray-500 font-medium">
+                <div class="flex gap-4">
+                    <span><span class="bg-white/10 px-1.5 py-0.5 rounded text-gray-300">↑↓</span> to navigate</span>
+                    <span><span class="bg-white/10 px-1.5 py-0.5 rounded text-gray-300">↵</span> to select</span>
+                </div>
+                <span><span class="bg-white/10 px-1.5 py-0.5 rounded text-gray-300">ESC</span> to close</span>
+            </div>
+        </div>
+    </div>
+
+    <header id="mobile-header" class="md:hidden fixed top-0 left-0 right-0 z-[100] h-16 bg-[#020005]/95 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-5 transition-transform duration-300">
+        <a href="/" class="flex items-center gap-2">
+            <div class="w-8 h-8">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-full h-full drop-shadow-[0_0_8px_rgba(108,0,255,0.6)]">
+                    <defs>
+                        <linearGradient id="mGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#FFD700"/><stop offset="100%" stop-color="#6C00FF"/>
+                        </linearGradient>
+                    </defs>
+                    <path fill="url(#mGrad)" d="M32 200 L64 96 L128 152 L192 96 L224 200 Z" />
+                </svg>
+            </div>
+            <span class="font-display font-bold text-lg tracking-widest text-white">DELTA</span>
+        </a>
+
+        <div class="flex items-center gap-4">
+            <button onclick="toggleSearch()" class="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white active:bg-white/10">
+                <i class="fa-solid fa-magnifying-glass text-lg"></i>
+            </button>
+            <a href="/notifications" class="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white active:bg-white/10 relative">
+                <i class="fa-regular fa-bell text-xl"></i>
+                <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full pulse-dot border border-[#020005]"></span>
+            </a>
+            <button class="w-9 h-9 rounded-full flex items-center justify-center text-white active:bg-white/10">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+    </header>
+
+    <nav id="navbar" class="hidden md:flex titan-nav fixed top-0 left-0 right-0 z-[100] items-center justify-center">
+        <div class="w-full max-w-[1920px] px-8 lg:px-12 flex items-center justify-between h-full">
+
+            <a href="/" class="flex items-center gap-3 group relative z-50 focus:outline-none">
+                <div class="w-10 h-10">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-full h-full drop-shadow-[0_0_12px_rgba(108,0,255,0.4)]">
+                        <defs>
+                            <linearGradient id="dGrad" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" stop-color="#FFD700"/><stop offset="50%" stop-color="#6C00FF"/><stop offset="100%" stop-color="#00E5FF"/>
+                            </linearGradient>
+                        </defs>
+                        <path fill="url(#dGrad)" d="M32 200 L64 96 L128 152 L192 96 L224 200 Z" />
+                        <rect x="48" y="200" width="160" height="20" rx="4" fill="url(#dGrad)" opacity="0.8" />
+                    </svg>
+                </div>
+                <div class="hidden xl:block h-6 w-auto mt-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 180" class="h-full w-auto">
+                        <defs>
+                            <linearGradient id="txtGrad" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#94a3b8"/>
+                            </linearGradient>
+                            <style>.dcf{font-family:"Outfit",sans-serif;font-weight:800;letter-spacing:4px}</style>
+                        </defs>
+                        <text x="0" y="120" font-size="100" class="dcf" fill="url(#txtGrad)">DELTACROWN</text>
+                    </svg>
+                </div>
+            </a>
+
+            <div class="flex items-center gap-8 h-full">
+                <div class="nav-item active group cursor-pointer"><a href="/tournaments" class="nav-link">Tournaments</a></div>
+                <div class="nav-item group cursor-pointer"><a href="/teams" class="nav-link">Teams</a></div>
+                <div class="nav-item group cursor-pointer"><a href="/dashboard" class="nav-link">Dashboard</a></div>
+                <div class="nav-item group cursor-pointer"><a href="/community" class="nav-link">Community</a></div>
+                <div class="nav-item group cursor-pointer">
+                    <a href="/arena" class="nav-link flex items-center gap-2">
+                        Arena <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
+                    </a>
+                </div>
+                <div class="nav-item group cursor-pointer">
+                    <a href="/store" class="nav-link text-dc-gold/90 hover:text-white transition-colors">Store</a>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-5">
+
+                <button onclick="toggleSearch()" class="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all group" title="Search (Cmd+K)">
+                    <i class="fa-solid fa-magnifying-glass text-[1.1rem] group-hover:scale-110 transition-transform"></i>
+                </button>
+
+                <div class="relative">
+                    <button id="notif-btn" class="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all relative group">
+                        <i class="fa-regular fa-bell text-[1.25rem] group-hover:rotate-12 transition-transform"></i>
+                        <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full pulse-dot border-2 border-[#020005]"></span>
+                    </button>
+
+                    <div id="notif-menu" class="titan-dropdown absolute top-full right-[-60px] md:right-0 mt-4 w-[400px] z-50">
+                        <div class="px-5 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+                            <h4 class="font-display font-bold text-white text-sm tracking-widest uppercase">Notifications</h4>
+                            <button class="text-[11px] text-dc-cyan hover:text-white transition font-bold uppercase tracking-wider flex items-center gap-1">
+                                <i class="fa-solid fa-check-double"></i> Mark Read
+                            </button>
+                        </div>
+                        <div class="max-h-[380px] overflow-y-auto no-scrollbar py-2">
+                            <div class="notif-item group relative bg-dc-purple/5 hover:bg-dc-purple/10">
+                                <div class="notif-icon-box bg-dc-purple/20 text-dc-purple border border-dc-purple/30 shadow-[0_0_10px_rgba(108,0,255,0.2)]">
+                                    <i class="fa-solid fa-trophy"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <span class="text-sm text-white font-bold tracking-tight">Tournament Victory</span>
+                                        <span class="text-[10px] text-dc-purple font-mono bg-dc-purple/10 px-1.5 py-0.5 rounded">NEW</span>
+                                    </div>
+                                    <p class="text-xs text-gray-300 leading-relaxed font-medium">You secured 1st Place in the Winter Major. Your prize has been deposited.</p>
+                                    <span class="text-[10px] text-gray-500 font-mono mt-1.5 block">2m ago</span>
+                                </div>
+                                <div class="w-1.5 h-1.5 bg-dc-cyan rounded-full absolute top-5 right-4 shadow-[0_0_5px_#00E5FF]"></div>
+                            </div>
+
+                            <div class="notif-item hover:bg-white/5">
+                                <div class="notif-icon-box bg-white/5 text-gray-400 border border-white/10">
+                                    <i class="fa-solid fa-user-plus"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-white font-semibold mb-1">Team Invite</p>
+                                    <p class="text-xs text-gray-400 leading-relaxed">Team Liquid wants you on their roster for the upcoming season.</p>
+                                    <span class="text-[10px] text-gray-600 font-mono mt-1.5 block">1h ago</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-3 border-t border-white/5 bg-white/[0.01] text-center">
+                            <a href="#" class="text-[11px] font-bold text-gray-500 hover:text-white transition uppercase tracking-widest flex items-center justify-center gap-2 py-1">
+                                View Full History <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-px h-6 bg-white/10 mx-2"></div>
+
+                <div class="relative">
+                    <button id="profile-btn" class="flex items-center gap-3 pl-1 pr-4 py-1.5 rounded-full bg-white/[0.03] border border-white/10 hover:border-white/20 hover:bg-white/[0.08] transition-all group">
+                        <img src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=100&q=80"
+                             class="w-8 h-8 rounded-full object-cover ring-2 ring-transparent group-hover:ring-dc-cyan transition-all" alt="Profile">
+                        <div class="flex flex-col items-start leading-none">
+                            <span class="text-xs font-bold text-gray-200 group-hover:text-white transition-colors">Viper</span>
+                            <span class="text-[10px] text-dc-cyan font-semibold mt-0.5">LVL 42</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-gray-500 group-hover:text-white transition-transform duration-300 ml-1" id="profile-chevron"></i>
+                    </button>
+
+                    <div id="profile-menu" class="titan-dropdown absolute top-full right-0 mt-4 w-64 z-50">
+                        <div class="p-5 border-b border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent">
+                            <div class="flex items-center gap-4">
+                                <div class="relative">
+                                    <img src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=100&q=80" class="w-11 h-11 rounded-full object-cover border border-white/10 shadow-lg">
+                                    <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-black rounded-full" title="Online"></div>
+                                </div>
+                                <div>
+                                    <p class="text-white font-bold text-base">Viper#NA1</p>
+                                    <p class="text-[11px] text-gray-500 font-mono mt-0.5 uppercase tracking-wide">Pro Member</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="py-2 px-1">
+                            <a href="/profile" class="dd-item">
+                                <i class="fa-regular fa-user"></i> <span>My Profile</span>
+                            </a>
+                            <a href="/dashboard" class="dd-item">
+                                <i class="fa-solid fa-chart-pie"></i> <span>Dashboard</span>
+                            </a>
+                            <a href="/teams" class="dd-item">
+                                <i class="fa-solid fa-users"></i> <span>My Teams</span>
+                            </a>
+                            <div class="h-px bg-white/5 mx-4 my-1.5"></div>
+                            <a href="/settings" class="dd-item">
+                                <i class="fa-solid fa-sliders"></i> <span>Settings</span>
+                            </a>
+                        </div>
+
+                        <div class="p-2 border-t border-white/5 bg-white/[0.01] px-1">
+                            <a href="/logout" class="dd-item text-red-400 hover:text-red-300 hover:bg-red-500/10">
+                                <i class="fa-solid fa-arrow-right-from-bracket"></i> <span>Sign Out</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 h-[75px] bg-[#020005]/95 backdrop-blur-2xl border-t border-white/10 z-[90] flex items-center justify-around px-2 pb-2 transition-transform duration-300">
+        <a href="/" class="flex flex-col items-center gap-1 p-2 w-16 group">
+            <i class="fa-solid fa-house text-xl text-white group-active:scale-90 transition"></i>
+            <span class="text-[10px] text-white font-medium tracking-wide">Home</span>
+        </a>
+        <a href="/tournaments" class="flex flex-col items-center gap-1 p-2 w-16 group">
+            <i class="fa-solid fa-trophy text-xl text-gray-500 group-hover:text-white transition"></i>
+            <span class="text-[10px] text-gray-500 group-hover:text-white tracking-wide">Events</span>
+        </a>
+        <a href="/teams" class="flex flex-col items-center gap-1 p-2 w-16 group">
+            <i class="fa-solid fa-users text-xl text-gray-500 group-hover:text-white transition"></i>
+            <span class="text-[10px] text-gray-500 group-hover:text-white tracking-wide">Teams</span>
+        </a>
+        <a href="/dashboard" class="flex flex-col items-center gap-1 p-2 w-16 group">
+            <i class="fa-solid fa-chart-pie text-xl text-gray-500 group-hover:text-white transition"></i>
+            <span class="text-[10px] text-gray-500 group-hover:text-white tracking-wide">Dash</span>
+        </a>
+        <a href="/profile" class="flex flex-col items-center gap-1 p-2 w-16 group">
+            <div class="w-6 h-6 rounded-full overflow-hidden border border-white/30 group-hover:border-white transition">
+                <img src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=100&q=80" class="w-full h-full object-cover">
+            </div>
+            <span class="text-[10px] text-gray-500 group-hover:text-white tracking-wide">Profile</span>
+        </a>
+    </nav>
+
+    <main class="w-full relative z-0 flex flex-col items-center justify-center min-h-[150vh]">
+        <div class="text-center pt-40 px-4">
+            <h1 class="text-5xl md:text-9xl font-display font-black tracking-tight text-white mb-6">
+                TITAN <span class="text-transparent bg-clip-text bg-gradient-to-r from-dc-cyan to-dc-purple">V4</span>
+            </h1>
+            <p class="text-gray-400 text-lg md:text-2xl font-light">
+                Liquid Glass Engine + Dynamic Search + Smart Mobile
+            </p>
+            <div class="mt-8 flex justify-center gap-4">
+                <button onclick="toggleSearch()" class="px-6 py-3 rounded-xl border border-white/20 hover:bg-white/10 text-white font-bold transition">Open Search</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // 1. DYNAMIC SEARCH ENGINE
+            const searchOverlay = document.getElementById('search-overlay');
+            const searchInput = document.getElementById('cmd-input');
+
+            // Expose function globally for onClick events
+            window.toggleSearch = function() {
+                const isOpen = searchOverlay.classList.contains('open');
+                if(isOpen) {
+                    searchOverlay.classList.remove('open');
+                    document.body.style.overflow = '';
+                } else {
+                    searchOverlay.classList.add('open');
+                    document.body.style.overflow = 'hidden'; // Lock scroll
+                    setTimeout(() => searchInput.focus(), 50);
+                }
+            }
+
+            // Keyboard Shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Cmd+K or Ctrl+K
+                if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                    e.preventDefault();
+                    window.toggleSearch();
+                }
+                // Escape to close
+                if (e.key === 'Escape' && searchOverlay.classList.contains('open')) {
+                    window.toggleSearch();
+                }
+            });
+
+            // Close when clicking background
+            searchOverlay.addEventListener('click', (e) => {
+                if(e.target === searchOverlay) window.toggleSearch();
+            });
+
+            // 2. SCROLL & LIQUID GLASS EFFECT
+            const desktopNav = document.getElementById('navbar');
+            const mobileHeader = document.getElementById('mobile-header');
+            let lastScroll = 0;
+
+            window.addEventListener('scroll', () => {
+                const currentScroll = window.pageYOffset;
+
+                // Effect 1: Glass Darkening & Compacting
+                if (currentScroll > 20) {
+                    desktopNav.classList.add('scrolled');
+                    mobileHeader.classList.add('shadow-lg', 'bg-opacity-95');
+                } else {
+                    desktopNav.classList.remove('scrolled');
+                    mobileHeader.classList.remove('shadow-lg', 'bg-opacity-95');
+                }
+
+                // Effect 2: Smart Hide (Mobile Header & Desktop Nav)
+                if (currentScroll > lastScroll && currentScroll > 100) {
+                    // Scroll Down -> Hide
+                    desktopNav.classList.add('nav-hidden');
+                    mobileHeader.classList.add('-translate-y-full');
+                } else {
+                    // Scroll Up -> Show
+                    desktopNav.classList.remove('nav-hidden');
+                    mobileHeader.classList.remove('-translate-y-full');
+                }
+                lastScroll = currentScroll;
+            });
+
+            // 3. DROPDOWN MANAGER
+            function setupDropdown(btnId, menuId, chevronId = null) {
+                const btn = document.getElementById(btnId);
+                const menu = document.getElementById(menuId);
+                const chevron = chevronId ? document.getElementById(chevronId) : null;
+
+                if (!btn || !menu) return;
+
+                const toggle = (e) => {
+                    e.stopPropagation();
+                    const isOpen = menu.classList.contains('show');
+                    // Close others
+                    document.querySelectorAll('.titan-dropdown').forEach(el => el.classList.remove('show'));
+                    document.querySelectorAll('.fa-chevron-down').forEach(el => el.style.transform = 'rotate(0deg)');
+
+                    if (!isOpen) {
+                        menu.classList.add('show');
+                        if (chevron) chevron.style.transform = 'rotate(180deg)';
+                    }
+                };
+                btn.addEventListener('click', toggle);
+            }
+
+            setupDropdown('notif-btn', 'notif-menu');
+            setupDropdown('profile-btn', 'profile-menu', 'profile-chevron');
+
+            // Close dropdowns on outside click
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.titan-dropdown') && !e.target.closest('button')) {
+                    document.querySelectorAll('.titan-dropdown').forEach(el => el.classList.remove('show'));
+                    document.querySelectorAll('.fa-chevron-down').forEach(el => el.style.transform = 'rotate(0deg)');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
