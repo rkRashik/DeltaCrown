@@ -124,6 +124,12 @@ class LiveNotifications {
             }
         }
         
+        // Phase 4 Step 1.1: Refresh dropdown if open
+        const openDropdown = document.querySelector('.dc-notif-dropdown.is-open');
+        if (openDropdown && window.DCNotifications && typeof window.DCNotifications.fetchPreview === 'function') {
+            window.DCNotifications.fetchPreview(openDropdown);
+        }
+        
         // Update follow requests badge (on notifications page)
         const requestBadge = document.getElementById('pending-badge');
         if (requestBadge) {

@@ -1,3 +1,4 @@
+<!-- ACTIVE_TEMPLATE: user_profile/profile/public_profile.html v=PHASE4_STEP4_2 -->
 {% extends "base.html" %}
 {% load static dc_avatar %}
 
@@ -8,6 +9,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Follow System V2 Styles -->
+<link rel="stylesheet" href="{% static 'siteui/css/follow-system-v2.css' %}">
 
 <!-- Tailwind config for profile page -->
 <script>
@@ -202,6 +206,17 @@
 {% endblock %}
 
 {% block content %}
+<!-- PHASE2: Follow State Server Truth Injection -->
+<script id="profile-follow-state" type="application/json">
+{
+    "viewer_is_authenticated": {% if request.user.is_authenticated %}true{% else %}false{% endif %},
+    "profile_username": "{{ profile_user.username }}",
+    "relationship_state": "{% if relationship_ctx.is_owner %}self{% elif relationship_ctx.is_following %}following{% elif relationship_ctx.follow_requested %}requested{% else %}none{% endif %}",
+    "is_private_account": {% if relationship_ctx.is_private_account %}true{% else %}false{% endif %},
+    "can_follow": {% if relationship_ctx.can_follow %}true{% else %}false{% endif %}
+}
+</script>
+
 <!-- Zenith Profile Wrapper for custom background -->
 <div class="profile-zenith-wrapper">
 
@@ -259,14 +274,16 @@
                     {% endif %}
 
                     <div class="flex flex-wrap items-center gap-8 mt-6">
-                        <div class="text-center group cursor-pointer" onclick="openFollowersModal()">
-                            <div class="text-2xl font-bold text-white group-hover:text-z-cyan transition" data-follower-count>{{ follower_count|default:0 }}</div>
+                        <div onclick="openFollowersModal('{{ profile_user.username }}')" class="text-center group cursor-pointer">
+                            <div class="text-2xl font-bold text-white group-hover:text-z-cyan transition">{{ user_stats.followers_count|default:0 }}</div>
                             <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Followers</div>
                         </div>
-                        <div class="text-center group cursor-pointer" onclick="openFollowingModal()">
-                            <div class="text-2xl font-bold text-white group-hover:text-z-purple transition">{{ following_count|default:0 }}</div>
+                        
+                        <div onclick="openFollowingModal('{{ profile_user.username }}')" class="text-center group cursor-pointer">
+                            <div class="text-2xl font-bold text-white group-hover:text-z-purple transition">{{ user_stats.following_count|default:0 }}</div>
                             <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Following</div>
                         </div>
+                        
                         <div class="text-center group cursor-pointer">
                             <div class="text-2xl font-bold text-white group-hover:text-z-gold transition">{{ user_stats.total_wins|default:0 }}</div>
                             <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Wins</div>
@@ -704,61 +721,7 @@
 </div>
 <!-- End Zenith Profile Wrapper -->
 
-<!-- UP-PHASE8: Instagram-like Followers/Following Modals -->
-<!-- Followers Modal -->
-<div id="followersModal" class="hidden fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-    <div class="glass-panel w-full max-w-lg m-4 rounded-2xl border border-white/20 overflow-hidden">
-        <!-- Modal Header -->
-        <div class="flex items-center justify-between p-4 border-b border-white/10">
-            <h3 class="text-xl font-display font-bold text-white">Followers</h3>
-            <button onclick="closeFollowersModal()" class="text-gray-400 hover:text-white transition">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-        </div>
-        
-        <!-- Search Bar -->
-        <div class="p-4 border-b border-white/10">
-            <input type="text" id="followersSearch" placeholder="Search followers..." 
-                   class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-z-cyan transition">
-        </div>
-        
-        <!-- Followers List -->
-        <div id="followersList" class="max-h-96 overflow-y-auto">
-            <!-- JavaScript will populate this -->
-            <div class="flex items-center justify-center py-12">
-                <i class="fa-solid fa-spinner fa-spin text-2xl text-gray-500"></i>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Following Modal -->
-<div id="followingModal" class="hidden fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-    <div class="glass-panel w-full max-w-lg m-4 rounded-2xl border border-white/20 overflow-hidden">
-        <!-- Modal Header -->
-        <div class="flex items-center justify-between p-4 border-b border-white/10">
-            <h3 class="text-xl font-display font-bold text-white">Following</h3>
-            <button onclick="closeFollowingModal()" class="text-gray-400 hover:text-white transition">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-        </div>
-        
-        <!-- Search Bar -->
-        <div class="p-4 border-b border-white/10">
-            <input type="text" id="followingSearch" placeholder="Search following..." 
-                   class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-z-purple transition">
-        </div>
-        
-        <!-- Following List -->
-        <div id="followingList" class="max-h-96 overflow-y-auto">
-            <!-- JavaScript will populate this -->
-            <div class="flex items-center justify-center py-12">
-                <i class="fa-solid fa-spinner fa-spin text-2xl text-gray-500"></i>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- End Modals -->
+<!-- REMOVED 2026-01-22: Followers/Following modals removed due to persistent 410 Gone caching issues -->
 
 {# UP.2 FIX PASS #5 PART A: Clipboard copy JS for Discord button #}
 <script>
@@ -916,6 +879,8 @@ document.addEventListener('DOMContentLoaded', function() {
 const currentUsername = '{{ profile_user.username }}';
 const csrfToken = '{{ csrf_token }}';
 
+console.log('[ACTIVE_JS] followers-following v=PHASE4_STEP4_2', location.pathname);
+
 // Open Followers Modal
 window.openFollowersModal = function() {
     const modal = document.getElementById('followersModal');
@@ -956,211 +921,14 @@ async function loadFollowersList() {
     container.innerHTML = '<div class="flex items-center justify-center py-12"><i class="fa-solid fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
     
     try {
-        const response = await fetch(`/api/profile/${currentUsername}/followers/`);
-        const data = await response.json();
+        // Force cache bypass with timestamp + headers
+        const url = `/api/profile/${currentUsername}/followers/?_t=${Date.now()}`;
+        console.log('[FOLLOWERS] Fetching:', url);
         
-        if (data.success && data.followers) {
-            if (data.followers.length === 0) {
-                container.innerHTML = '<div class="text-center py-12 text-gray-400">No followers yet</div>';
-                return;
-            }
-            
-            container.innerHTML = data.followers.map(user => createUserCard(user)).join('');
-            setupSearch('followersSearch', 'followersList');
-        } else if (data.error) {
-            container.innerHTML = `<div class="text-center py-12 text-gray-400">${data.error}</div>`;
-        }
-    } catch (error) {
-        console.error('Error loading followers:', error);
-        container.innerHTML = '<div class="text-center py-12 text-gray-400">Error loading followers</div>';
-    }
-}
-
-// Load Following List
-async function loadFollowingList() {
-    const container = document.getElementById('followingList');
-    container.innerHTML = '<div class="flex items-center justify-center py-12"><i class="fa-solid fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
-    
-    try {
-        const response = await fetch(`/api/profile/${currentUsername}/following/`);
-        const data = await response.json();
-        
-        if (data.success && data.following) {
-            if (data.following.length === 0) {
-                container.innerHTML = '<div class="text-center py-12 text-gray-400">Not following anyone yet</div>';
-                return;
-            }
-            
-            container.innerHTML = data.following.map(user => createUserCard(user)).join('');
-            setupSearch('followingSearch', 'followingList');
-        } else if (data.error) {
-            container.innerHTML = `<div class="text-center py-12 text-gray-400">${data.error}</div>`;
-        }
-    } catch (error) {
-        console.error('Error loading following:', error);
-        container.innerHTML = '<div class="text-center py-12 text-gray-400">Error loading following list</div>';
-    }
-}
-
-// Create User Card HTML
-function createUserCard(user) {
-    const isViewer = user.is_viewer;
-    const isFollowing = user.is_followed_by_viewer;
-    
-    let buttonHTML = '';
-    if (!isViewer) {
-        if (isFollowing) {
-            buttonHTML = `<button onclick="handleModalFollow('${user.username}', false, this)" class="px-4 py-1.5 text-xs font-bold bg-white/10 text-white rounded-lg hover:bg-red-500/20 hover:text-red-400 transition">Following</button>`;
-        } else {
-            buttonHTML = `<button onclick="handleModalFollow('${user.username}', true, this)" class="px-4 py-1.5 text-xs font-bold bg-z-cyan text-black rounded-lg hover:bg-white transition">Follow</button>`;
-        }
-    }
-    
-    return `
-        <div class="flex items-center justify-between p-4 hover:bg-white/5 transition border-b border-white/5">
-            <a href="${user.profile_url}" class="flex items-center gap-3 flex-1">
-                <img src="${user.avatar_url || ''}" 
-                     alt="${user.display_name}" 
-                     class="w-12 h-12 rounded-full border border-white/10">
-                <div>
-                    <div class="font-bold text-white hover:text-z-cyan transition">${user.display_name}</div>
-                    <div class="text-sm text-gray-400">@${user.username}</div>
-                </div>
-            </a>
-            ${buttonHTML}
-        </div>
-    `;
-}
-
-// Handle Follow/Unfollow in Modal
-async function handleModalFollow(username, isFollowAction, button) {
-    const action = isFollowAction ? 'follow' : 'unfollow';
-    button.disabled = true;
-    button.style.opacity = '0.5';
-    
-    try {
-        const response = await fetch(`/api/profile/${username}/${action}/`, {
-            method: 'POST',
+        const response = await fetch(url, {
+            method: 'GET',
             headers: {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json'
-            },
-            credentials: 'same-origin'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            if (isFollowAction) {
-                button.textContent = 'Following';
-                button.className = 'px-4 py-1.5 text-xs font-bold bg-white/10 text-white rounded-lg hover:bg-red-500/20 hover:text-red-400 transition';
-                button.onclick = function() { handleModalFollow(username, false, this); };
-            } else {
-                button.textContent = 'Follow';
-                button.className = 'px-4 py-1.5 text-xs font-bold bg-z-cyan text-black rounded-lg hover:bg-white transition';
-                button.onclick = function() { handleModalFollow(username, true, this); };
-            }
-        }
-    } catch (error) {
-        console.error('Error:', error);
-    } finally {
-        button.disabled = false;
-        button.style.opacity = '1';
-    }
-}
-
-// Setup Search Filter
-function setupSearch(inputId, containerId) {
-    const input = document.getElementById(inputId);
-    const container = document.getElementById(containerId);
-    
-    if (!input || !container) return;
-    
-    input.addEventListener('input', function(e) {
-        const searchTerm = e.target.value.toLowerCase();
-        const cards = container.querySelectorAll('.flex.items-center');
-        
-        cards.forEach(card => {
-            const text = card.textContent.toLowerCase();
-            if (text.includes(searchTerm)) {
-                card.style.display = 'flex';
-            } else {
-                card.style.display = 'none';
-            }
-        });
-    });
-}
-
-// Close modals on ESC key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeFollowersModal();
-        closeFollowingModal();
-    }
-});
-
-// Close modals on backdrop click
-document.getElementById('followersModal')?.addEventListener('click', function(e) {
-    if (e.target === this) closeFollowersModal();
-});
-document.getElementById('followingModal')?.addEventListener('click', function(e) {
-    if (e.target === this) closeFollowingModal();
-});
-</script>
-
-{# Phase 4: Tab System with Wide Mode Support #}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Get references to key elements
-    const centerColumn = document.getElementById('center-column');
-    const rightSidebar = document.getElementById('right-sidebar');
-    
-    // Global tab switching function
-    window.switchTab = function(tabName) {
-        // Hide all tab contents
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.add('hidden');
-        });
-        
-        // Remove active state from all tab buttons
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('bg-z-cyan/10', 'border-b-2', 'border-z-cyan', 'text-z-cyan', 'shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]');
-            btn.classList.add('text-gray-400');
-        });
-        
-        // Show selected tab content
-        const selectedContent = document.getElementById('tab-' + tabName);
-        if (selectedContent) {
-            selectedContent.classList.remove('hidden');
-        }
-        
-        // Activate selected tab button
-        const selectedBtn = document.querySelector(`[data-tab="${tabName}"]`);
-        if (selectedBtn) {
-            selectedBtn.classList.add('bg-z-cyan/10', 'border-b-2', 'border-z-cyan', 'text-z-cyan', 'shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]');
-            selectedBtn.classList.remove('text-gray-400');
-        }
-        
-        // Handle Wide Mode for Career tab
-        if (tabName === 'career') {
-            // Enable Wide Mode
-            if (rightSidebar) {
-                rightSidebar.classList.add('hidden');
-            }
-            if (centerColumn) {
-                centerColumn.classList.remove('lg:col-span-1');
-                centerColumn.classList.add('lg:col-span-2');
-            }
-        } else if (tabName === 'bounty') {
-            // Enable Wide Mode for Bounty
-            if (rightSidebar) {
-                rightSidebar.classList.add('hidden');
-            }
-            if (centerColumn) {
-                centerColumn.classList.remove('lg:col-span-1');
-                centerColumn.classList.add('lg:col-span-2');
-            }
-        } else {
+   REMOVED 2026-01-22: Followers/Following modal JavaScript removed due to persistent 410 Gone caching issues #} else {
             // Restore Normal Mode
             if (rightSidebar) {
                 rightSidebar.classList.remove('hidden');
@@ -1209,6 +977,46 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 });
 </script>
+
+<!-- Follow System V2 Modal HTML -->
+<!-- Followers Modal -->
+<div id="followersModal" class="follow-modal-overlay hidden">
+    <div class="follow-modal-container">
+        <div class="follow-modal-header">
+            <h3 class="follow-modal-title">Followers</h3>
+            <button class="follow-modal-close" onclick="window.closeFollowModal()">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        <div class="follow-modal-search">
+            <input type="text" id="followersSearch" placeholder="Search followers...">
+        </div>
+        <div id="followersList" class="follow-modal-body">
+            <!-- User cards loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<!-- Following Modal -->
+<div id="followingModal" class="follow-modal-overlay hidden">
+    <div class="follow-modal-container">
+        <div class="follow-modal-header">
+            <h3 class="follow-modal-title">Following</h3>
+            <button class="follow-modal-close" onclick="window.closeFollowModal()">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        <div class="follow-modal-search">
+            <input type="text" id="followingSearch" placeholder="Search following...">
+        </div>
+        <div id="followingList" class="follow-modal-body">
+            <!-- User cards loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<!-- Follow System V2 JavaScript -->
+<script src="{% static 'siteui/js/follow-modal-system.js' %}"></script>
 
 {% endblock %}
 T h u r s d a y ,   J a n u a r y   1 5 ,   2 0 2 6   1 : 0 0 : 2 5   P M 

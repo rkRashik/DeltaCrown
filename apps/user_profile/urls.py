@@ -5,14 +5,14 @@ from .views import (
     MyProfileUpdateView, profile_view, my_tournaments_view,
     save_game_profiles,
     # REMOVED (2026-01-14 C1): privacy_settings_view, settings_view - deleted as dead code
+    # PHASE1 CLEANUP (2026-01-21): Removed duplicate follow imports - follow_user, unfollow_user, follow_user_safe, unfollow_user_safe, followers_list, following_list
+    # Canonical follow endpoints: /api/profile/<username>/follow|unfollow/ in api/follow_api.py
     # Phase 4: Modal Action Views
     update_bio, add_social_link, add_game_profile, edit_game_profile, delete_game_profile,
-    # Phase 4: Follow System
-    follow_user, unfollow_user, followers_list, following_list,
     # Phase 4: Full Page Views
     achievements_view, match_history_view, certificates_view,
     # UP-CLEANUP-04 Phase C Part 1: Safe mutation endpoints
-    privacy_settings_save_safe, follow_user_safe, unfollow_user_safe,
+    privacy_settings_save_safe,
     # UP-CLEANUP-04 Phase C Part 2: Safe game profile endpoints
     save_game_profiles_safe, update_game_id_safe
 )
@@ -27,6 +27,14 @@ from .views.public_profile_views import (
     career_tab_data_api,
     # UP PHASE 6: Highlights endpoints
     highlight_upload, highlight_delete, highlight_pin
+)
+# UP-FOLLOW-REQUESTS: Follow Requests Page
+from .views.follow_requests_views import (
+    follow_requests_page
+)
+# UP-FOLLOW-LISTS: Followers and Following Pages
+from .views.followers_following_views import (
+    followers_page, following_page
 )
 # GP-FE-MVP-01: Game Passport API
 from .views.passport_api import (
@@ -76,16 +84,22 @@ from .api.platform_prefs_api import (
 )
 # PHASE-6A: Private Account & Follow Request API
 from .api.follow_request_api import (
-    follow_user_api, respond_to_follow_request_api, get_follow_requests_api,
-    approve_follow_request_api, reject_follow_request_api
+    respond_to_follow_request_api, get_follow_requests_api,
+    approve_follow_request_api, reject_follow_request_api,
+    resolve_follow_request_api
 )
+# PHASE1 CLEANUP: Removed follow_user_api (duplicate of follow_user_hero_api)
 # UP-PHASE8: Hero Follow/Unfollow API
 from .api.follow_api import (
     follow_user_hero_api, unfollow_user_hero_api
 )
-# UP-PHASE8: Instagram-like Followers/Following Lists API
-from .api.follow_lists_api import (
-    get_followers_list, get_following_list
+# PHASE2: Follow Status API for button state persistence
+from .api.follow_status_api import (
+    get_follow_status_api
+)
+# Modern API for followers/following lists
+from .api.followers_list_api import (
+    get_followers_list, get_following_list, get_mutual_followers
 )
 # UP-PHASE15-SESSION3: Social Links CRUD API
 from .views.social_links_api import (
@@ -111,10 +125,9 @@ from .views.game_passport_admin import (
 # UP-PASSPORT-CREATE-01: Passport creation endpoint
 from .views.passport_create import create_passport
 
-# UP-PHASE2F: Follower/Following API with privacy controls
-from .views.follower_api import (
-    get_followers, get_following, follow_user as follow_user_v2, unfollow_user as unfollow_user_v2
-)
+# PHASE1 CLEANUP: Removed duplicate follow imports (follow_user_v2, unfollow_user_v2, get_followers, get_following from follower_api)
+# Canonical: follow_user_hero_api, unfollow_user_hero_api from api/follow_api.py
+# Canonical: get_followers_list, get_following_list from api/follow_lists_api.py
 
 # PHASE-6A: Private Account & Follow Request API
 from .api.follow_request_api import (
@@ -221,6 +234,9 @@ urlpatterns = [
     path("@<str:username>/", public_profile_view, name="public_profile"),
     path("@<str:username>/", public_profile_view, name="profile"),  # Alias for backward compatibility
     path("@<str:username>/activity/", profile_activity_view, name="profile_activity"),
+    path("@<str:username>/followers/", followers_page, name="followers_page"),
+    path("@<str:username>/following/", following_page, name="following_page"),
+    path("@<str:username>/follow-requests/", follow_requests_page, name="follow_requests_page"),
     
     # PHASE UP 5: Career Tab AJAX endpoint (isolated, no impact on other tabs)
     path("@<str:username>/career-data/", career_tab_data_api, name="career_tab_data_api"),
@@ -229,9 +245,13 @@ urlpatterns = [
     path("api/profile/<str:username>/follow/", follow_user_hero_api, name="follow_user_hero"),
     path("api/profile/<str:username>/unfollow/", unfollow_user_hero_api, name="unfollow_user_hero"),
     
-    # UP-PHASE8: Instagram-like Followers/Following Lists API
-    path("api/profile/<str:username>/followers/", get_followers_list, name="get_followers_list"),
-    path("api/profile/<str:username>/following/", get_following_list, name="get_following_list"),
+    # PHASE2: Follow Status API for button state persistence
+    path("api/profile/<str:username>/follow/status/", get_follow_status_api, name="get_follow_status"),
+    
+    # API - Followers/following lists
+    path("api/profile/<str:username>/followers/", get_followers_list, name="followers_list"),
+    path("api/profile/<str:username>/following/", get_following_list, name="following_list"),
+    path("api/profile/<str:username>/mutual/", get_mutual_followers, name="mutual_followers"),
     
     # Owner Pages (/me/ prefix)
     path("me/settings/", profile_settings_view, name="profile_settings"),
@@ -373,19 +393,21 @@ urlpatterns = [
     # UP-PHASE2E PART 2: Skill Endorsements
     path("api/bounties/<int:bounty_id>/endorse/", award_bounty_endorsement, name="award_bounty_endorsement"),
     
-    # UP-PHASE2F: Follower/Following API with privacy controls
-    path("api/profile/<str:username>/followers/", get_followers, name="get_followers"),
-    path("api/profile/<str:username>/following/", get_following, name="get_following"),
-    path("api/profile/<str:username>/follow/", follow_user_v2, name="follow_user_v2"),
-    path("api/profile/<str:username>/unfollow/", unfollow_user_v2, name="unfollow_user_v2"),
+    # PHASE1 CLEANUP: Removed duplicate follower/following/follow/unfollow routes
+    # Canonical endpoints defined at lines 229-235:
+    #   /api/profile/<username>/follow/ → follow_user_hero_api
+    #   /api/profile/<username>/unfollow/ → unfollow_user_hero_api
+    #   /api/profile/<username>/followers/ → get_followers_list
+    #   /api/profile/<username>/following/ → get_following_list
     
-    # PHASE-6A: Private Account & Follow Request API
-    path("profiles/<str:username>/follow/", follow_user_api, name="follow_user_api"),
+    # PHASE-6A: Private Account & Follow Request API (kept unique endpoints)
     path("profiles/<str:username>/follow/respond/", respond_to_follow_request_api, name="respond_to_follow_request_api"),
     path("me/follow-requests/", get_follow_requests_api, name="get_follow_requests_api"),
     # UP PHASE 8: Simplified approve/reject endpoints
     path("api/follow-requests/<int:request_id>/approve/", approve_follow_request_api, name="approve_follow_request"),
     path("api/follow-requests/<int:request_id>/reject/", reject_follow_request_api, name="reject_follow_request"),
+    # PHASE 4 STEP 2: Resolve follow request ID from requester username (for notifications UI)
+    path("api/follow-requests/resolve/", resolve_follow_request_api, name="resolve_follow_request"),
     
     path("api/profile/loadout/hardware/", save_hardware, name="save_hardware"),
     path("api/profile/loadout/game-config/", save_game_config, name="save_game_config"),
@@ -436,11 +458,9 @@ urlpatterns = [
     path("actions/edit-game-profile/<int:profile_id>/", edit_game_profile, name="edit_game_profile"),
     path("actions/delete-game-profile/<int:profile_id>/", delete_game_profile, name="delete_game_profile"),
     
-    # Follow System
-    path("actions/follow/<str:username>/", follow_user, name="follow_user"),
-    path("actions/unfollow/<str:username>/", unfollow_user, name="unfollow_user"),
-    path("@<str:username>/followers/", followers_list, name="followers_list"),
-    path("@<str:username>/following/", following_list, name="following_list"),
+    # PHASE1 CLEANUP: Removed legacy /actions/follow/ and /actions/unfollow/ routes
+    # PHASE1 CLEANUP: Removed broken /@<username>/followers/ and /@<username>/following/ routes (handlers don't exist)
+    # Canonical follow endpoints at lines 229-235
 
     # ============================================
     # API ENDPOINTS (api/...)
@@ -484,8 +504,7 @@ urlpatterns = [
     
     # Safe endpoints with audit trail + privacy enforcement
     path("actions/privacy-settings/save/", privacy_settings_save_safe, name="privacy_settings_save_safe"),
-    path("actions/follow-safe/<str:username>/", follow_user_safe, name="follow_user_safe"),
-    path("actions/unfollow-safe/<str:username>/", unfollow_user_safe, name="unfollow_user_safe"),
+    # PHASE1 CLEANUP: Removed follow_user_safe/unfollow_user_safe (canonical already has audit trail in FollowService)
     
     # ============================================
     # UP-CLEANUP-04 PHASE C PART 2: SAFE GAME PROFILE ENDPOINTS

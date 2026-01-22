@@ -920,7 +920,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         context['social_links'] = None  # Blocked by privacy
     
     # UP-PHASE14C: Add real stats data
-    from apps.user_profile.models import UserProfileStats
+    from apps.user_profile.models import UserProfileStats, Follow
     try:
         stats = UserProfileStats.objects.get(user_profile=user_profile)
         context['user_stats'] = {
@@ -931,7 +931,9 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             'tournaments_won': stats.tournaments_won,
             'total_kills': getattr(stats, 'total_kills', 0),
             'total_deaths': getattr(stats, 'total_deaths', 0),
-            'kd_ratio': round((getattr(stats, 'total_kills', 0) / getattr(stats, 'total_deaths', 1)) if getattr(stats, 'total_deaths', 0) > 0 else 0, 2)
+            'kd_ratio': round((getattr(stats, 'total_kills', 0) / getattr(stats, 'total_deaths', 1)) if getattr(stats, 'total_deaths', 0) > 0 else 0, 2),
+            'followers_count': Follow.objects.filter(following=profile_user).count(),
+            'following_count': Follow.objects.filter(follower=profile_user).count()
         }
     except UserProfileStats.DoesNotExist:
         # No stats yet
@@ -943,7 +945,9 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             'tournaments_won': 0,
             'total_kills': 0,
             'total_deaths': 0,
-            'kd_ratio': 0
+            'kd_ratio': 0,
+            'followers_count': Follow.objects.filter(following=profile_user).count(),
+            'following_count': Follow.objects.filter(follower=profile_user).count()
         }
     
     # UP-PHASE14C: Add match history data (respect privacy)
@@ -2082,12 +2086,8 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     from datetime import date
     context['today'] = date.today()
     
-    # Feature flag: Switch to Control Deck template
-    from django.conf import settings as django_settings
-    if django_settings.SETTINGS_CONTROL_DECK_ENABLED:
-        template = 'user_profile/profile/settings_control_deck.html'
-    else:
-        template = 'user_profile/profile/settings_v4.html'
+    # PHASE1 CLEANUP: Consolidated to single settings template
+    template = 'user_profile/profile/settings_control_deck.html'
     
     return render(request, template, context)
 

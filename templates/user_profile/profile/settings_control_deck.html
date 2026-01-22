@@ -833,6 +833,35 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- UP PHASE 8: Follow Requests Management (Moved from Notifications) -->
+                        <div class="glass-panel p-6 space-y-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                                        <i class="fa-solid fa-user-plus text-2xl text-indigo-400"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-white text-lg">Follow Requests</h3>
+                                        <p class="text-xs text-gray-400">Manage who wants to follow your private account</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="loadFollowRequests('PENDING')" class="text-xs px-3 py-1 rounded-lg bg-white/10 text-white hover:bg-white/20 transition" id="filter-pending">
+                                        <i class="fa-solid fa-clock mr-1"></i>Pending
+                                    </button>
+                                    <button type="button" onclick="loadFollowRequests('APPROVED')" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-approved">
+                                        <i class="fa-solid fa-check mr-1"></i>Approved
+                                    </button>
+                                    <button type="button" onclick="loadFollowRequests('REJECTED')" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-rejected">
+                                        <i class="fa-solid fa-times mr-1"></i>Rejected
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="follow-requests-list">
+                                <!-- Loaded dynamically -->
+                            </div>
+                        </div>
 
                         <!-- Social Media Section -->
                         <div class="glass-panel p-8">
@@ -1447,7 +1476,7 @@
                             <div class="flex items-center justify-between">
                                 <div>
                                     <h4 class="font-bold text-white text-sm">Private Account</h4>
-                                    <p class="text-xs text-gray-400">Require approval for new followers</p>
+                                    <!-- REMOVED 2026-01-22: Follower approval setting removed -->
                                 </div>
                                 <label class="z-toggle-wrapper">
                                     <input type="checkbox" name="is_private_account" class="z-toggle-input" {% if privacy_settings.is_private_account %}checked{% endif %} onchange="autoSavePrivacy()">
@@ -1634,13 +1663,7 @@
                                         <span class="z-toggle-slider"></span>
                                     </label>
                                 </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-sm text-gray-300">Show Following List</span>
-                                    <label class="z-toggle-wrapper">
-                                        <input type="checkbox" name="show_following_list" class="z-toggle-input" {% if privacy_settings.show_following_list %}checked{% endif %} onchange="autoSavePrivacy()">
-                                        <span class="z-toggle-slider"></span>
-                                    </label>
-                                </div>
+                                <!-- REMOVED 2026-01-22: Show Following List toggle removed -->
                             </div>
                         </div>
 
@@ -2125,37 +2148,9 @@
                     </div>
                 </div>
 
-                <!-- NOTIFICATIONS TAB (NOT_IMPLEMENTED - DISABLED) -->
-                <!-- NOTIFICATIONS TAB (UP-PHASE2B - ENABLED) -->
                 <div id="tab-notifications" class="tab-section space-y-6">
                     <h2 class="text-3xl font-display font-bold text-white">Notifications</h2>
-                    
-                    <!-- UP PHASE 8: Follow Requests Management (Relocated from Privacy) -->
-                    <div class="glass-panel p-6 space-y-4">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center gap-3">
-                                <i class="fa-solid fa-user-plus text-2xl text-indigo-400"></i>
-                                <div>
-                                    <h3 class="font-bold text-white text-lg">Follow Requests</h3>
-                                    <p class="text-xs text-gray-400">Manage who wants to follow your private account</p>
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="loadFollowRequests('PENDING')" class="text-xs px-3 py-1 rounded-lg bg-white/10 text-white hover:bg-white/20 transition" id="filter-pending">
-                                    <i class="fa-solid fa-clock mr-1"></i>Pending
-                                </button>
-                                <button onclick="loadFollowRequests('APPROVED')" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-approved">
-                                    <i class="fa-solid fa-check mr-1"></i>Approved
-                                </button>
-                                <button onclick="loadFollowRequests('REJECTED')" class="text-xs px-3 py-1 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 transition" id="filter-rejected">
-                                    <i class="fa-solid fa-times mr-1"></i>Rejected
-                                </button>
-                            </div>
-                        </div>
-                        <div id="follow-requests-list">
-                            <!-- Loaded dynamically -->
-                        </div>
-                    </div>
+                    <p class="text-gray-400 mb-4">Control how and when you receive notifications</p>
                     
                     <form id="notifications-form" class="space-y-6" onsubmit="saveNotificationsSettings(event)">
                         {% csrf_token %}
@@ -3356,7 +3351,7 @@
         const inventoryForm = document.getElementById('inventory-visibility-form');
         
         const data = {
-            show_following_list: privacyForm ? privacyForm.querySelector('[name="show_following_list"]')?.checked !== true : true,
+            // REMOVED 2026-01-22: show_following_list removed
             inventory_visibility: inventoryForm ? inventoryForm.querySelector('[name="inventory_visibility"]')?.value : 'PUBLIC',
         };
         
@@ -4007,7 +4002,7 @@
             const fields = [
                 'is_private_account', 'show_real_name', 'show_email', 'show_phone', 'show_age', 'show_gender', 'show_country',
                 'show_game_ids', 'show_match_history', 'show_teams', 'show_achievements',
-                'show_inventory_value', 'show_level_xp', 'show_social_links', 'show_following_list',
+                'show_inventory_value', 'show_level_xp', 'show_social_links',  /* REMOVED: show_following_list */
                 'allow_team_invites', 'allow_friend_requests', 'allow_direct_messages'
             ];
             
@@ -4151,13 +4146,17 @@
     
     async function respondToFollowRequest(requestId, action) {
         try {
-            const response = await fetch(`/profiles/dummy/follow/respond/`, {
+            // UP PHASE 2B: Use correct approve/reject endpoints
+            const endpoint = action === 'approve' 
+                ? `/api/follow-requests/${requestId}/approve/`
+                : `/api/follow-requests/${requestId}/reject/`;
+            
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({ request_id: requestId, action: action })
+                }
             });
             
             const result = await response.json();

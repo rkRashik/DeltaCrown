@@ -36,6 +36,7 @@ class Notification(models.Model):
     body = models.TextField(blank=True)
     url = models.CharField(max_length=300, blank=True)
     is_read = models.BooleanField(default=False)
+    is_delivered = models.BooleanField(default=False, help_text="Whether notification was successfully delivered via SSE/WebSocket")
     created_at = models.DateTimeField(auto_now_add=True)
 
     recipient = models.ForeignKey(
@@ -43,6 +44,16 @@ class Notification(models.Model):
         on_delete=models.CASCADE,
         related_name="notifications",
     )
+    
+    # Phase 4: Additional fields for actionable notifications
+    action_label = models.CharField(max_length=255, blank=True, help_text="CTA button text (e.g., 'View Request', 'Approve')")
+    action_url = models.CharField(max_length=500, blank=True, help_text="URL for primary action button")
+    category = models.CharField(max_length=100, blank=True, db_index=True, help_text="Notification category (e.g., 'social', 'system')")
+    message = models.TextField(blank=True, help_text="Alternative message text for display")
+    
+    # Phase 4 Step 2.1: Stable linkage to action objects (e.g., FollowRequest ID for follow_request notifications)
+    action_object_id = models.IntegerField(null=True, blank=True, db_index=True, help_text="ID of related object (e.g., FollowRequest.id for follow_request type)")
+    action_type = models.CharField(max_length=50, blank=True, db_index=True, help_text="Type of action object (e.g., 'follow_request')")
 
     # NOTE: Changed to IntegerField - tournament app moved to legacy (Nov 2, 2025)
     # Stores legacy tournament/match IDs for historical reference

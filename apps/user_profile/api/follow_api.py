@@ -65,55 +65,34 @@ def follow_user_hero_api(request, username):
         
         # Get target user for counts
         target_user = User.objects.get(username=username)
+        target_profile = UserProfile.objects.get(user=target_user)
         
-        # Get privacy settings for count visibility
-        try:
-            target_profile = UserProfile.objects.get(user=target_user)
-            privacy_settings = PrivacySettings.objects.get(user_profile=target_profile)
-        except (UserProfile.DoesNotExist, PrivacySettings.DoesNotExist):
-            # Default to public if no settings
-            privacy_settings = None
-        
-        # Calculate counts
-        follower_count = target_user.followers.count()
-        following_count = target_user.following.count()
-        
-        # Determine if counts should be shown based on privacy
-        # Owner always sees, visitors see based on settings
-        is_owner = request.user == target_user
-        show_follower_count = is_owner or (
-            privacy_settings is None or privacy_settings.show_followers_count
-        )
-        show_following_count = is_owner or (
-            privacy_settings is None or privacy_settings.show_following_count
-        )
-        
-        # Determine action type
-        if isinstance(obj, Follow):
-            # Public account: immediate follow
-            return JsonResponse({
-                'success': True,
-                'action': 'followed',
-                'is_following': True,
-                'has_pending_request': False,
-                'follower_count': follower_count if show_follower_count else 0,
-                'following_count': following_count if show_following_count else 0,
-                'show_follower_count': show_follower_count,
-                'show_following_count': show_following_count,
-                'message': f'You are now following @{username}'
-            })
-        else:
-            # Private account: follow request created
+        # Check if it's a FollowRequest (private account) or Follow (public account)
+        if isinstance(obj, FollowRequest):
+            # Private account - follow request sent
             return JsonResponse({
                 'success': True,
                 'action': 'request_sent',
                 'is_following': False,
                 'has_pending_request': True,
-                'follower_count': follower_count if show_follower_count else 0,
-                'following_count': following_count if show_following_count else 0,
-                'show_follower_count': show_follower_count,
-                'show_following_count': show_following_count,
                 'message': f'Follow request sent to @{username}'
+            })
+        elif isinstance(obj, Follow):
+            # Public account - followed immediately
+            return JsonResponse({
+                'success': True,
+                'action': 'followed',
+                'is_following': True,
+                'has_pending_request': False,
+                'message': f'You are now following @{username}'
+            })
+        else:
+            # Shouldn't happen, but handle gracefully
+            return JsonResponse({
+                'success': True,
+                'action': 'followed',
+                'is_following': True,
+                'message': f'You are now following @{username}'
             })
     
     except User.DoesNotExist:

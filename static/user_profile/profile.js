@@ -1752,31 +1752,52 @@ async function deleteSocialLink(linkId, platform) {
 }
 
 // UP-PHASE2F: Follower/Following Modal System (continued)
-function openFollowersModal() {
+function openFollowersModal(username) {
+    // Prefer the new FollowSystemV2 if available
+    if (window.followSystemV2 && typeof window.followSystemV2.openFollowersModal === 'function') {
+        window.followSystemV2.openFollowersModal(username);
+        return;
+    }
+
+    // Fallback to legacy behavior
     const modal = safeGetById('followersModal');
     if (modal) {
         modal.classList.remove('hidden');
-        loadFollowersList();
+        if (typeof loadFollowersList === 'function') loadFollowersList();
     }
 }
 
-function openFollowingModal() {
-        alert('This following list is private');
+function openFollowingModal(username) {
+    // Prefer the new FollowSystemV2 if available
+    if (window.followSystemV2 && typeof window.followSystemV2.openFollowingModal === 'function') {
+        window.followSystemV2.openFollowingModal(username);
         return;
-    
+    }
+
+    // Fallback to legacy behavior
     const modal = safeGetById('followingModal');
     if (modal) {
         modal.classList.remove('hidden');
-        loadFollowingList();
+        if (typeof loadFollowingList === 'function') loadFollowingList();
     }
 }
 
 function closeFollowersModal() {
+    if (window.followSystemV2 && typeof window.followSystemV2.closeModal === 'function') {
+        window.followSystemV2.closeModal();
+        return;
+    }
+
     const modal = safeGetById('followersModal');
     if (modal) modal.classList.add('hidden');
 }
 
 function closeFollowingModal() {
+    if (window.followSystemV2 && typeof window.followSystemV2.closeModal === 'function') {
+        window.followSystemV2.closeModal();
+        return;
+    }
+
     const modal = safeGetById('followingModal');
     if (modal) modal.classList.add('hidden');
 }
@@ -1786,13 +1807,14 @@ async function loadFollowersList() {
     
     container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
     
-    const data = await safeFetch(followersUrl);
-    
-    if (data && data.success) {
-        if (data.followers.length === 0) {
-            container.innerHTML = '<div class="text-center py-12 text-gray-500">No followers yet</div>';
-            return;
-        }
+    try {
+        const data = await safeFetch(followersUrl);
+        
+        if (data && data.success) {
+            if (data.followers.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-500">No followers yet</div>';
+                return;
+            }
         
         container.innerHTML = data.followers.map(user => `
             <div class="flex items-center justify-between p-4 hover:bg-white/5 transition">

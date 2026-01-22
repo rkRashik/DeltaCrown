@@ -584,13 +584,34 @@ body {
   transform: rotate(45deg);
 }
 
-/* Notification Dropdown */
+/* Notification Dropdown - Modern 2026 Design */
 .dc-notif-dropdown__header {
   padding: 20px 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.05), rgba(123, 44, 191, 0.05));
+}
+
+.dc-notif-dropdown__header-content {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.dc-notif-dropdown__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(6, 182, 212, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #06b6d4;
+}
+
+.dc-notif-dropdown__icon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .dc-notif-dropdown__title {
@@ -598,77 +619,148 @@ body {
   font-weight: 700;
   color: #f8fafc;
   margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.dc-notif-dropdown__subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
 }
 
 .dc-notif-dropdown__mark-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
   color: #06b6d4;
-  background: transparent;
-  border: none;
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.2);
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: all 0.2s;
-  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 600;
+}
+
+.dc-notif-dropdown__mark-all svg {
+  width: 14px;
+  height: 14px;
 }
 
 .dc-notif-dropdown__mark-all:hover {
-  background: rgba(6, 182, 212, 0.1);
-  color: #22d3ee;
+  background: rgba(6, 182, 212, 0.15);
+  border-color: rgba(6, 182, 212, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
 }
 
 .dc-notif-dropdown__list {
-  max-height: 400px;
+  max-height: 460px;
   overflow-y: auto;
 }
 
 .dc-notif-dropdown__empty {
-  padding: 48px 24px;
+  padding: 64px 24px;
   text-align: center;
   color: #94a3b8;
 }
 
 .dc-notif-dropdown__empty-icon {
-  font-size: 48px;
-  color: #334155;
-  margin-bottom: 12px;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.1);
+  display: flex;
+  align-items: center;
+  justify-center;
+  color: #475569;
+}
+
+.dc-notif-dropdown__empty-icon svg {
+  width: 32px;
+  height: 32px;
 }
 
 .dc-notif-dropdown__empty-text {
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 4px;
+}
+
+.dc-notif-dropdown__empty-subtext {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.dc-notif-dropdown__loading {
+  padding: 48px 24px;
+  text-align: center;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.dc-notif-dropdown__spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(6, 182, 212, 0.2);
+  border-top-color: #06b6d4;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .dc-notif-item {
-  padding: 16px 24px;
+  padding: 16px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
-  gap: 12px;
+  gap: 14px;
+  align-items: flex-start;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
   color: inherit;
+  position: relative;
 }
 
 .dc-notif-item:hover {
   background: rgba(255, 255, 255, 0.05);
+  transform: translateX(4px);
 }
 
-.dc-notif-item.unread {
+.dc-notif-item.is-unread {
   background: rgba(6, 182, 212, 0.05);
+  border-left: 3px solid #06b6d4;
+  padding-left: 17px;
+}
+
+.dc-notif-item.is-unread:hover {
+  background: rgba(6, 182, 212, 0.08);
 }
 
 .dc-notif-item__icon {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(6, 182, 212, 0.15);
+  background: rgba(6, 182, 212, 0.12);
   color: #06b6d4;
-  font-size: 18px;
+}
+
+.dc-notif-item__icon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .dc-notif-item__content {
@@ -682,18 +774,64 @@ body {
   color: #f1f5f9;
   margin-bottom: 4px;
   line-height: 1.4;
+  letter-spacing: -0.01em;
 }
 
 .dc-notif-item__message {
   font-size: 13px;
   color: #cbd5e1;
   line-height: 1.5;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dc-notif-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .dc-notif-item__time {
   font-size: 12px;
   color: #64748b;
+  font-weight: 500;
+}
+
+.dc-notif-item__unread-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #06b6d4;
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.6);
+}
+
+.dc-notif-item__action-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #06b6d4;
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.dc-notif-item__action-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.dc-notif-item__action-btn:hover {
+  background: rgba(6, 182, 212, 0.15);
+  border-color: rgba(6, 182, 212, 0.3);
 }
 
 .dc-notif-item__badge {
@@ -706,25 +844,47 @@ body {
 }
 
 .dc-notif-dropdown__footer {
-  padding: 12px 24px;
+  padding: 16px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  text-align: center;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .dc-notif-dropdown__view-all {
-  display: inline-block;
-  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
   color: #06b6d4;
   text-decoration: none;
   font-size: 14px;
   font-weight: 600;
   border-radius: 8px;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(6, 182, 212, 0.05);
+}
+
+.dc-notif-dropdown__view-all svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s;
 }
 
 .dc-notif-dropdown__view-all:hover {
   background: rgba(6, 182, 212, 0.1);
-  color: #22d3ee;
+  transform: translateY(-1px);
+}
+
+.dc-notif-dropdown__view-all:hover svg {
+  transform: translateX(4px);
+}
+
+/* Phase 4 Step 4: Minimal CSS for line-clamp (Tailwind doesn't support multi-line clamp natively) */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Profile Dropdown */
@@ -1140,6 +1300,39 @@ body {
     .profile-menu-item {
         padding: 10px 14px;
         font-size: 13px;
+    }
+    
+    /* Phase 4 Step 3: Mobile-friendly inline buttons */
+    .dc-notif-dropdown__item {
+        padding: 12px 16px;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .dc-notif-dropdown__item-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+    
+    .dc-notif-dropdown__item-title {
+        font-size: 13px;
+    }
+    
+    .dc-notif-dropdown__item-message {
+        font-size: 12px;
+    }
+    
+    .dc-notif-dropdown__item-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+    
+    .dc-notif-dropdown__btn {
+        flex: 1;
+        justify-content: center;
+        font-size: 12px;
+        padding: 8px 10px;
     }
 }
 

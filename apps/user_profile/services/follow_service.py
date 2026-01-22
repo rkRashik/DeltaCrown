@@ -294,18 +294,32 @@ class FollowService:
             # This shouldn't happen in normal flow but handles edge cases
             raise ValueError("Already following this user")
         
-        # Check if pending request already exists
+        # Check if any follow request already exists (pending, approved, or rejected)
         existing_request = FollowRequest.objects.filter(
             requester=follower_profile,
-            target=followee_profile,
-            status=FollowRequest.STATUS_PENDING
+            target=followee_profile
         ).first()
         
         if existing_request:
-            logger.debug(
-                f"Follow request already pending: {follower_user.username} → {followee_user.username}"
-            )
-            return existing_request, False
+            if existing_request.status == FollowRequest.STATUS_PENDING:
+                logger.debug(
+                    f"Follow request already pending: {follower_user.username} → {followee_user.username}"
+                )
+                return existing_request, False
+            elif existing_request.status == FollowRequest.STATUS_REJECTED:
+                # Update rejected request to pending (allow re-requesting)
+                existing_request.status = FollowRequest.STATUS_PENDING
+                existing_request.save()
+                logger.info(
+                    f"Reactivated rejected follow request: {follower_user.username} → {followee_user.username}"
+                )
+                return existing_request, False
+            else:
+                # Already approved - shouldn't happen but handle gracefully
+                logger.warning(
+                    f"Follow request already approved: {follower_user.username} → {followee_user.username}"
+                )
+                return existing_request, False
         
         # Create new follow request
         follow_request = FollowRequest.objects.create(
@@ -351,7 +365,13 @@ class FollowService:
                 type=Notification.Type.FOLLOW_REQUEST,
                 title=f"@{follower_user.username} wants to follow you",
                 body=f"{follower_profile.display_name or follower_user.username} sent you a follow request.",
-                url=f"/me/settings/notifications/?tab=follow_requests"
+                url=f"/@{followee_user.username}/follow-requests/",
+                action_label="Review",
+                action_url=f"/@{followee_user.username}/follow-requests/",
+                category="social",
+                message=f"{follower_profile.display_name or follower_user.username} sent you a follow request.",
+                action_object_id=follow_request.id,
+                action_type="follow_request"
             )
             logger.info(f"Notification created for follow request {follow_request.id}")
         except Exception as e:
@@ -454,7 +474,11 @@ class FollowService:
                 type=Notification.Type.FOLLOW_REQUEST_APPROVED,
                 title=f"@{target_user.username} accepted your follow request",
                 body=f"You are now following {target_profile.display_name or target_user.username}.",
-                url=f"/@{target_user.username}/"
+                url=f"/@{target_user.username}/",
+                action_label="View Profile",
+                action_url=f"/@{target_user.username}/",
+                category="social",
+                message=f"You are now following {target_profile.display_name or target_user.username}."
             )
             logger.info(f"Notification created for approved follow request {request_id}")
         except Exception as e:

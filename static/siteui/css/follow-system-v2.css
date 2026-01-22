@@ -1,0 +1,6 @@
+/* Backwards-compatibility shim for legacy import name
+   This file intentionally imports the new file to avoid 404s
+*/
+@import url('follow-modal-system.css');
+
+/* No-op shim */

@@ -29,11 +29,26 @@ def nav_context(request) -> Dict[str, Any]:
         pass
 
     # Notifications unread count (if app installed and user authenticated)
+    # UP PHASE 3: Include pending follow requests in count
     try:
         if getattr(request, "user", None) and request.user.is_authenticated:
             Notification = apps.get_model("notifications", "Notification")
             if Notification:
                 nav_unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+            
+            # Add pending follow requests count
+            try:
+                UserProfile = apps.get_model("user_profile", "UserProfile")
+                FollowRequest = apps.get_model("user_profile", "FollowRequest")
+                user_profile = UserProfile.objects.filter(user=request.user).first()
+                if user_profile:
+                    pending_requests_count = FollowRequest.objects.filter(
+                        target=user_profile,
+                        status='PENDING'
+                    ).count()
+                    nav_unread_count += pending_requests_count
+            except Exception:
+                pass  # Follow requests not critical, don't break nav
     except Exception:
         nav_unread_count = 0
 

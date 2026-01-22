@@ -18,7 +18,8 @@ import json
 import logging
 
 from apps.user_profile.services.follow_service import FollowService
-from apps.user_profile.models_main import Follow, FollowRequest
+from apps.user_profile.models_main import Follow, FollowRequest, UserProfile
+from apps.notifications.decorators import require_auth_json
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -387,3 +388,90 @@ def reject_follow_request_api(request, request_id):
             'success': False,
             'error': 'An error occurred while rejecting the request'
         }, status=500)
+
+
+@require_auth_json
+@require_http_methods(["GET"])
+def resolve_follow_request_api(request):
+    """
+    Resolve a follow request ID from requester username.
+    Used by notifications UI to map notification -> follow_request_id.
+    
+    GET /api/follow-requests/resolve/?requester=<username>
+    
+    Query params:
+        - requester: Username of the person who sent the follow request
+    
+    Response:
+        {
+            "success": true,
+            "follow_request_id": 123,
+            "requester_username": "alice",
+            "status": "PENDING"
+        }
+    
+    Errors:
+        - 400: Missing requester parameter
+        - 404: No pending follow request found from that user
+    """
+    try:
+        requester_username = request.GET.get('requester')
+        
+        if not requester_username:
+            return JsonResponse({
+                'success': False,
+                'error': 'Missing requester parameter'
+            }, status=400)
+        
+        # Get requester user
+        try:
+            requester_user = User.objects.get(username=requester_username)
+        except User.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Requester user not found'
+            }, status=404)
+        
+        # Get current user's profile
+        target_profile = UserProfile.objects.filter(user=request.user).first()
+        if not target_profile:
+            return JsonResponse({
+                'success': False,
+                'error': 'User profile not found'
+            }, status=404)
+        
+        # Get requester's profile
+        requester_profile = UserProfile.objects.filter(user=requester_user).first()
+        if not requester_profile:
+            return JsonResponse({
+                'success': False,
+                'error': 'Requester profile not found'
+            }, status=404)
+        
+        # Find pending follow request where current user is target
+        follow_request = FollowRequest.objects.filter(
+            requester=requester_profile,
+            target=target_profile,
+            status=FollowRequest.STATUS_PENDING
+        ).first()
+        
+        if not follow_request:
+            return JsonResponse({
+                'success': False,
+                'error': 'No pending follow request found from this user'
+            }, status=404)
+        
+        return JsonResponse({
+            'success': True,
+            'follow_request_id': follow_request.id,
+            'requester_username': requester_username,
+            'status': follow_request.status
+        })
+    
+    except Exception as e:
+        logger.error(f"Error resolving follow request: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while resolving the request'
+        }, status=500)
+

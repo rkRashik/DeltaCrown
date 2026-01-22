@@ -12,6 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.cache import never_cache
 from django.contrib.auth import get_user_model
 
 from apps.user_profile.models import Follow, PrivacySettings, UserProfile
@@ -90,6 +91,7 @@ def can_view_follow_list(viewer_user, target_user, target_profile, privacy_setti
 
 
 @require_http_methods(["GET"])
+@never_cache  # PHASE4_STEP5: Prevent caching of followers list
 def get_followers_list(request, username):
     """
     GET /api/profile/<username>/followers/
@@ -97,6 +99,8 @@ def get_followers_list(request, username):
     
     Privacy: Two-layer enforcement (account privacy + list visibility)
     Always returns JSON with proper status codes.
+    
+    PHASE4_STEP5: Added @never_cache to prevent 410 Gone from cached responses
     """
     try:
         target_user = get_object_or_404(User, username=username)
@@ -152,7 +156,7 @@ def get_followers_list(request, username):
                 ).exists()
             
             # Get avatar URL
-            avatar_url = '/static/images/default-avatar.png'
+            avatar_url = '/static/img/user_avatar/default-avatar.png'
             if follower_profile and follower_profile.avatar:
                 try:
                     avatar_url = follower_profile.avatar.url
@@ -184,6 +188,7 @@ def get_followers_list(request, username):
 
 
 @require_http_methods(["GET"])
+@never_cache  # PHASE4_STEP5: Prevent caching of following list
 def get_following_list(request, username):
     """
     GET /api/profile/<username>/following/
@@ -191,6 +196,8 @@ def get_following_list(request, username):
     
     Privacy: Two-layer enforcement (account privacy + list visibility)
     Always returns JSON with proper status codes.
+    
+    PHASE4_STEP5: Added @never_cache to prevent 410 Gone from cached responses
     """
     try:
         target_user = get_object_or_404(User, username=username)
@@ -246,7 +253,7 @@ def get_following_list(request, username):
                 ).exists()
             
             # Get avatar URL
-            avatar_url = '/static/images/default-avatar.png'
+            avatar_url = '/static/img/user_avatar/default-avatar.png'
             if followed_profile and followed_profile.avatar:
                 try:
                     avatar_url = followed_profile.avatar.url

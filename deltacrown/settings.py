@@ -160,6 +160,10 @@ MIDDLEWARE = [
     "django_prometheus.middleware.PrometheusAfterMiddleware",  # Prometheus timing (LAST)
 ]
 
+# TEMP: PHASE4_STEP4_2 - Add deprecated endpoint tracer in DEBUG mode - REMOVE AFTER FIX
+if DEBUG:
+    MIDDLEWARE.insert(4, "deltacrown.middleware.debug_deprecated.DeprecatedEndpointTracerMiddleware")
+
 ROOT_URLCONF = "deltacrown.urls"
 
 TEMPLATES = [
