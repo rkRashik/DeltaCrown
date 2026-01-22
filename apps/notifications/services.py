@@ -741,6 +741,64 @@ class NotificationService:
             url=url,
             tournament=tournament
         )
+    
+    @staticmethod
+    def notify_user_followed(follower_user, followee_user):
+        """
+        Notify user when someone follows them (public account).
+        
+        Args:
+            follower_user: User who followed (follower)
+            followee_user: User being followed (followee)
+            
+        Returns:
+            List of created notifications
+            
+        Example:
+            >>> NotificationService.notify_user_followed(
+            ...     follower_user=request.user,
+            ...     followee_user=target_user
+            ... )
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            from apps.user_profile.utils import get_user_profile_safe
+            
+            # Get follower profile for display name
+            follower_profile = get_user_profile_safe(follower_user)
+            display_name = follower_profile.display_name or follower_user.username
+            
+            # Create notification
+            notification = Notification.objects.create(
+                recipient=followee_user,
+                type=Notification.Type.USER_FOLLOWED,
+                event='user_followed',
+                title=f"@{follower_user.username} followed you",
+                body=f"{display_name} started following you.",
+                url=f"/@{follower_user.username}/",
+                action_label="View Profile",
+                action_url=f"/@{follower_user.username}/",
+                category="social",
+                message=f"{display_name} started following you."
+            )
+            
+            logger.info(
+                f"Follow notification created: follower={follower_user.username} → "
+                f"followee={followee_user.username} (notif_id={notification.id})"
+            )
+            
+            return [notification]
+            
+        except Exception as e:
+            logger.error(
+                f"Failed to create follow notification: follower={follower_user.username} → "
+                f"followee={followee_user.username}, error: {e}",
+                exc_info=True
+            )
+            return []
+
 
 
 

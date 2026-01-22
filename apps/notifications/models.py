@@ -26,6 +26,12 @@ class Notification(models.Model):
         ACHIEVEMENT_EARNED = "achievement_earned", "Achievement earned"
         # UP PHASE 8: Follow Requests
         FOLLOW_REQUEST = "follow_request", "Follow request received"
+        # Social Notifications (PHASE 9: Follow System Completion)
+        USER_FOLLOWED = "user_followed", "User followed you"
+        POST_LIKED = "post_liked", "Post liked"
+        COMMENT_ADDED = "comment_added", "Comment added"
+        POST_SHARED = "post_shared", "Post shared"
+        MENTION = "mention", "Mentioned in post"
         FOLLOW_REQUEST_APPROVED = "follow_request_approved", "Follow request approved"
         FOLLOW_REQUEST_REJECTED = "follow_request_rejected", "Follow request rejected"
 

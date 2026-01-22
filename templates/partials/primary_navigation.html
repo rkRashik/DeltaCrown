@@ -1,4 +1,4 @@
-{% load static nav_extras dc_avatar %}
+{% load static nav_extras dc_avatar notifications_nav %}
 
 <!-- ============================================
      DELTACROWN PRIMARY NAVIGATION SYSTEM
@@ -165,16 +165,11 @@
           <div id="dc-notif-menu" class="dc-dropdown absolute top-full right-0 mt-4 w-[400px] z-[600]">
             <div class="px-5 py-4 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
               <h4 class="font-bold text-white text-sm tracking-widest uppercase">Notifications</h4>
-              <button class="text-[11px] text-cyan-400 hover:text-white transition font-bold uppercase tracking-wider">
+              <button onclick="markAllNotificationsRead()" class="text-[11px] text-cyan-400 hover:text-white transition font-bold uppercase tracking-wider">
                 <i class="fa-solid fa-check-double"></i> Mark Read
               </button>
             </div>
-            <div class="max-h-[380px] overflow-y-auto py-2" style="scrollbar-width: none;">
-              <div class="p-4 text-center text-gray-500 text-sm">
-                <i class="fa-regular fa-bell text-3xl mb-2 block"></i>
-                No new notifications
-              </div>
-            </div>
+            {% notifications_bell %}
           </div>
         </div>
 
@@ -329,3 +324,53 @@
 
 <!-- Mobile Drawer Backdrop -->
 <div id="dc-mobile-backdrop" class="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[105] hidden"></div>
+
+<script>
+// Notification functions for dropdown
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+async function markAllNotificationsRead() {
+  try {
+    const csrftoken = getCookie('csrftoken');
+    const response = await fetch('/notifications/mark-all-read/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrftoken,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      // Remove unread indicators
+      document.querySelectorAll('.notification-dropdown-item').forEach(item => {
+        item.classList.remove('bg-cyan-500/5');
+        const indicator = item.querySelector('.bg-cyan-400');
+        if (indicator) indicator.remove();
+      });
+      
+      // Update badge
+      const badge = document.querySelector('#dc-notif-btn .animate-pulse');
+      if (badge) badge.remove();
+      
+      // Optionally reload to refresh count
+      setTimeout(() => window.location.reload(), 1000);
+    }
+  } catch (error) {
+    console.error('Failed to mark notifications as read:', error);
+  }
+}
+</script>

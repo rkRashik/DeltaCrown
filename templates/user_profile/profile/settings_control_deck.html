@@ -2633,6 +2633,18 @@
 
     // Toast notification (XSS-safe)
     function showToast(message, type = 'success') {
+        // Validate message
+        if (!message || message.trim() === '') {
+            console.warn('[Settings Toast] Empty message provided');
+            return;
+        }
+        
+        // Use global toast system if available (Phase 9A-24)
+        if (typeof window.showToast === 'function' && window.showToast !== showToast) {
+            return window.showToast(message, type);
+        }
+        
+        // Fallback to local toast
         const toast = document.createElement('div');
         toast.className = `fixed top-4 right-4 z-[100] px-6 py-3 rounded-xl shadow-2xl ${
             type === 'success' ? 'bg-green-500 text-white' :
@@ -2795,6 +2807,11 @@
         event.preventDefault();
         const form = event.target;
         const button = form.querySelector('button[type="submit"]');
+        if (!button) {
+            console.error('Submit button not found');
+            return;
+        }
+        
         const originalHTML = button.innerHTML;
         
         // Loading state
@@ -2812,6 +2829,10 @@
                 body: formData,
             });
             
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const result = await response.json();
             
             if (result.success) {
@@ -2825,7 +2846,7 @@
             }
         } catch (error) {
             console.error('Identity save error:', error);
-            showToast('Network error', 'error');
+            showToast('Network error: Unable to save changes', 'error');
             showInlineFeedback('identity-form', 'Network error', 'error');
         } finally {
             // Restore button
@@ -3290,11 +3311,31 @@
 
     // Upload media (avatar/banner)
     async function uploadMedia(input, type) {
-        if (!input.files || !input.files[0]) return;
+        if (!input.files || !input.files[0]) {
+            console.warn('No file selected');
+            return;
+        }
+        
+        // Validate file
+        const file = input.files[0];
+        const maxSize = type === 'banner' ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+        if (file.size > maxSize) {
+            const maxMB = type === 'banner' ? 10 : 5;
+            showToast(`File must be less than ${maxMB}MB`, 'error');
+            input.value = ''; // Clear input
+            return;
+        }
+        
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            showToast('Please select an image file', 'error');
+            input.value = '';
+            return;
+        }
         
         const formData = new FormData();
         formData.append('media_type', type);
-        formData.append('file', input.files[0]);
+        formData.append('file', file);
         
         try {
             const response = await fetch('{% url "user_profile:upload_media" %}', {
@@ -3304,6 +3345,11 @@
                 },
                 body: formData,
             });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Upload failed with status ${response.status}`);
+            }
             
             const result = await response.json();
             
@@ -3328,7 +3374,10 @@
             }
         } catch (error) {
             console.error('Media upload error:', error);
-            showToast('Network error', 'error');
+            showToast(error.message || 'Failed to upload image', 'error');
+        } finally {
+            // Clear input to allow re-upload of same file
+            input.value = '';
         }
     }
 

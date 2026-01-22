@@ -156,6 +156,33 @@ class FollowService:
                 f"Follow created: follower_id={follower_user.id} → "
                 f"followee_id={followee_user.id} (follow_id={follow.id})"
             )
+            
+            # Create notification for followee (public account follow)
+            try:
+                # Import from services.py file, not services/ package
+                import importlib.util
+                import os
+                services_path = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    'notifications', 'services.py'
+                )
+                spec = importlib.util.spec_from_file_location("notif_services", services_path)
+                notif_services = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(notif_services)
+                
+                notif_services.NotificationService.notify_user_followed(
+                    follower_user=follower_user,
+                    followee_user=followee_user
+                )
+                logger.info(
+                    f"Follow notification sent: {follower_user.username} → {followee_user.username}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"Failed to send follow notification: {follower_user.username} → "
+                    f"{followee_user.username}, error: {e}",
+                    exc_info=True
+                )
         else:
             logger.debug(
                 f"Follow already exists: follower_id={follower_user.id} → "

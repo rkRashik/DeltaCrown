@@ -12,12 +12,7 @@ def notifications_bell(context, limit=6):
         return {"items": [], "unread_count": 0}
 
     Notification = apps.get_model("notifications", "Notification")
-    UserProfile = apps.get_model("user_profile", "UserProfile")
 
-    p = getattr(user, "profile", None) or getattr(user, "userprofile", None)
-    if not p:
-        p = UserProfile.objects.create(user=user, display_name=getattr(user, "username", "Player"))
-
-    items = Notification.objects.filter(recipient=p).order_by("-created_at")[: int(limit)]
-    unread_count = Notification.objects.filter(recipient=p, is_read=False).count()
+    items = Notification.objects.filter(recipient=user).order_by("-created_at")[: int(limit)]
+    unread_count = Notification.objects.filter(recipient=user, is_read=False).count()
     return {"items": items, "unread_count": unread_count}
