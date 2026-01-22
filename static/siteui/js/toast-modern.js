@@ -179,7 +179,7 @@ toastStyles.textContent = `
         height: 24px;
         display: flex;
         align-items: center;
-        justify-center;
+        justify-content: center;
         font-size: 20px;
     }
 

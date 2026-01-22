@@ -674,7 +674,7 @@ body {
   background: rgba(148, 163, 184, 0.1);
   display: flex;
   align-items: center;
-  justify-center;
+  justify-content: center;
   color: #475569;
 }
 

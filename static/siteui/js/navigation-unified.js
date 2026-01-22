@@ -246,49 +246,40 @@
       return;
     }
     
+    // Keep rendering consistent with DCNotifications.fetchPreview (support follow_request inline buttons)
     listEl.innerHTML = items.map(item => {
       const unreadClass = !item.is_read ? 'is-unread' : '';
-      
-      // Check if this is a follow request notification
-      const isFollowRequest = item.notification_type === 'follow_request';
-      const linkUrl = isFollowRequest ? '/me/settings/#connections' : (item.url || '#');
-      
-      // Icon based on notification type
-      let iconSvg = '';
-      if (item.notification_type === 'follow_request') {
-        iconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>';
-      } else if (item.notification_type === 'tournament_invite') {
-        iconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line></svg>';
-      } else if (item.notification_type === 'team_invite') {
-        iconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path></svg>';
-      } else {
-        iconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+      const type = item.notification_type || item.type || item.event || '';
+      const linkUrl = type === 'follow_request' ? (item.action_url || '/me/settings/#connections') : (item.url || '#');
+
+      const iconSvg = type === 'follow_request'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+
+      let actionBtn = '';
+      if (type === 'follow_request' && item.follow_request_id) {
+        actionBtn = `
+          <div class="dc-notif-item__actions">
+            <button class="dc-btn dc-btn-approve" data-action="approve" data-follow-request-id="${item.follow_request_id}" data-notif-id="${item.id}">Approve</button>
+            <button class="dc-btn dc-btn-reject" data-action="reject" data-follow-request-id="${item.follow_request_id}" data-notif-id="${item.id}">Reject</button>
+          </div>
+        `;
+      } else if (item.action_label && item.action_url) {
+        actionBtn = `<a href="${escapeHtml(item.action_url)}" class="dc-notif-item__action-btn">${escapeHtml(item.action_label)}</a>`;
       }
-      
-      const actionBtn = item.action_label && item.action_url ? `
-        <a href="${item.action_url}" class="dc-notif-item__action-btn">
-          ${escapeHtml(item.action_label)}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </a>
-      ` : '';
-      
+
       return `
-        <a href="${linkUrl}" class="dc-notif-item ${unreadClass}" data-notif-id="${item.id}">
-          <div class="dc-notif-item__icon">
-            ${iconSvg}
-          </div>
-          <div class="dc-notif-item__content">
-            <div class="dc-notif-item__title">${escapeHtml(item.title)}</div>
-            <div class="dc-notif-item__message">${escapeHtml(item.message)}</div>
-            <div class="dc-notif-item__meta">
-              <span class="dc-notif-item__time">${timeAgo(item.created_at)}</span>
-              ${!item.is_read ? '<span class="dc-notif-item__unread-dot"></span>' : ''}
+        <div class="dc-notif-item ${unreadClass}" data-notif-id="${item.id}">
+          <a href="${linkUrl}" class="dc-notif-item__link">
+            <div class="dc-notif-item__icon">${iconSvg}</div>
+            <div class="dc-notif-item__content">
+              <div class="dc-notif-item__title">${escapeHtml(item.title)}</div>
+              <div class="dc-notif-item__message">${escapeHtml(item.message || item.body || '')}</div>
+              <div class="dc-notif-item__meta"><span class="dc-notif-item__time">${timeAgo(item.created_at)}</span>${!item.is_read ? '<span class="dc-notif-item__unread-dot"></span>' : ''}</div>
             </div>
-          </div>
+          </a>
           ${actionBtn}
-        </a>
+        </div>
       `;
     }).join('');
   }
@@ -598,7 +589,22 @@
         window.showToast({type: 'success', message: message});
       }
       
-      // Refresh dropdown to update UI and counts
+      // Remove deleted notification elements immediately if server returned ids
+      try {
+        if (data.deleted_notification_ids && Array.isArray(data.deleted_notification_ids)) {
+          data.deleted_notification_ids.forEach(id => {
+            const el = dropdown.querySelector(`[data-notif-id="${id}"]`);
+            if (el) el.remove();
+          });
+        } else if (notifId) {
+          const el = dropdown.querySelector(`[data-notif-id="${notifId}"]`);
+          if (el) el.remove();
+        }
+      } catch (e) {
+        // ignore DOM removal errors
+      }
+
+      // Refresh dropdown counts/UI as a fallback
       if (window.DCNotifications && typeof window.DCNotifications.fetchPreview === 'function') {
         window.DCNotifications.fetchPreview(dropdown);
       }

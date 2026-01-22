@@ -20,6 +20,10 @@ import logging
 from apps.user_profile.services.follow_service import FollowService
 from apps.user_profile.models_main import Follow, FollowRequest, UserProfile
 from apps.notifications.decorators import require_auth_json
+from django.apps import apps
+
+# Notification model helper
+Notification = apps.get_model('notifications', 'Notification')
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -310,11 +314,28 @@ def approve_follow_request_api(request, request_id):
             user_agent=request.META.get('HTTP_USER_AGENT')
         )
         
+        # Remove any related notification(s) for this follow request so the UI can clear them
+        try:
+            notif_qs = Notification.objects.filter(
+                recipient=request.user,
+                type='follow_request',
+                action_object_id=request_id
+            )
+            deleted_notif_ids = list(notif_qs.values_list('id', flat=True))
+            if deleted_notif_ids:
+                notif_qs.delete()
+            else:
+                deleted_notif_ids = []
+        except Exception:
+            deleted_notif_ids = []
+
         return JsonResponse({
             'success': True,
             'action': 'approved',
             'is_following': True,
-            'message': f'Follow request approved. @{follow.follower.username} is now following you.'
+            'message': f'Follow request approved. @{follow.follower.username} is now following you.',
+            'deleted_notification_ids': deleted_notif_ids,
+            'follow_request_id': request_id
         })
     
     except FollowRequest.DoesNotExist:
@@ -363,11 +384,28 @@ def reject_follow_request_api(request, request_id):
             user_agent=request.META.get('HTTP_USER_AGENT')
         )
         
+        # Remove related notification(s) so the UI can clear them
+        try:
+            notif_qs = Notification.objects.filter(
+                recipient=request.user,
+                type='follow_request',
+                action_object_id=request_id
+            )
+            deleted_notif_ids = list(notif_qs.values_list('id', flat=True))
+            if deleted_notif_ids:
+                notif_qs.delete()
+            else:
+                deleted_notif_ids = []
+        except Exception:
+            deleted_notif_ids = []
+
         return JsonResponse({
             'success': True,
             'action': 'rejected',
             'is_following': False,
-            'message': f'Follow request from @{follow_request.requester.user.username} rejected.'
+            'message': f'Follow request from @{follow_request.requester.user.username} rejected.',
+            'deleted_notification_ids': deleted_notif_ids,
+            'follow_request_id': request_id
         })
     
     except FollowRequest.DoesNotExist:
