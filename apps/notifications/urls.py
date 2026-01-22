@@ -11,7 +11,8 @@ urlpatterns = [
     path("<int:pk>/delete/", views.delete_notification, name="delete"),
     path("clear-all/", views.clear_all_notifications, name="clear_all"),
     path("unread_count/", views.unread_count, name="unread_count"),
-    # Phase 4: Nav preview API for bell dropdown
+    # API endpoints
+    path("api/unread-count/", views.unread_count, name="api_unread_count"),  # Real-time polling
     path("api/nav-preview/", views.nav_preview, name="nav_preview"),
     # Follow request inline actions
     path("api/follow-request/<int:request_id>/accept/", views.accept_follow_request_inline, name="accept_follow_request_inline"),

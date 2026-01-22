@@ -373,4 +373,114 @@ async function markAllNotificationsRead() {
     console.error('Failed to mark notifications as read:', error);
   }
 }
+
+// ========== REAL-TIME NOTIFICATION UPDATES (Navigation) ==========
+let lastNavNotifCount = 0;
+let navNotifSound = null;
+
+// Create notification sound
+function initNavNotificationSound() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+    
+    navNotifSound = function() {
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      
+      const now = audioCtx.currentTime;
+      const duration = 0.3;
+      
+      // Soft pleasant chord (C-E-G)
+      [523.25, 659.25, 783.99].forEach((freq, i) => {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.frequency.value = freq;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.08, now + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
+        
+        oscillator.start(now + i * 0.02);
+        oscillator.stop(now + duration + i * 0.02);
+      });
+    };
+  } catch (e) {
+    console.warn('Web Audio API not supported:', e);
+  }
+}
+
+// Initialize sound on user interaction
+document.addEventListener('click', () => {
+  if (!navNotifSound) {
+    initNavNotificationSound();
+  }
+}, { once: true });
+
+// Check for new notifications
+async function checkNavNotifications() {
+  try {
+    const response = await fetch('/notifications/api/unread-count/', {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    
+    if (!response.ok) return;
+    
+    const data = await response.json();
+    const currentCount = data.count || 0;
+    
+    // Update badge
+    const badge = document.querySelector('#dc-notif-btn .animate-pulse');
+    if (currentCount > 0) {
+      if (!badge) {
+        const notifBtn = document.getElementById('dc-notif-btn');
+        if (notifBtn) {
+          const newBadge = document.createElement('span');
+          newBadge.className = 'absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-[#020005] animate-pulse';
+          notifBtn.appendChild(newBadge);
+        }
+      }
+      
+      // Play sound for new notifications
+      if (currentCount > lastNavNotifCount && lastNavNotifCount > 0) {
+        if (navNotifSound && document.visibilityState === 'visible') {
+          navNotifSound();
+        }
+      }
+    } else {
+      if (badge) badge.remove();
+    }
+    
+    lastNavNotifCount = currentCount;
+  } catch (error) {
+    console.error('Failed to check nav notifications:', error);
+  }
+}
+
+// Poll for notifications every 15 seconds
+let navNotifInterval;
+function startNavNotificationPolling() {
+  checkNavNotifications();
+  navNotifInterval = setInterval(checkNavNotifications, 15000);
+}
+
+// Pause polling when page is hidden
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (navNotifInterval) clearInterval(navNotifInterval);
+  } else {
+    startNavNotificationPolling();
+  }
+});
+
+// Start polling if user is authenticated
+{% if request.user.is_authenticated %}
+  startNavNotificationPolling();
+{% endif %}
 </script>

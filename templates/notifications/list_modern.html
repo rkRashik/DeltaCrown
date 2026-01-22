@@ -297,8 +297,6 @@ async function markRead(notificationId) {
 
 // Delete notification
 async function deleteNotification(notificationId) {
-  if (!confirm('Delete this notification?')) return;
-  
   try {
     const response = await fetch(`/notifications/${notificationId}/delete/`, {
       method: 'POST',
@@ -312,9 +310,31 @@ async function deleteNotification(notificationId) {
     const data = await response.json();
     if (data.success) {
       const item = document.querySelector(`[data-notification-id="${notificationId}"]`);
-      item.style.animation = 'slideOut 0.3s ease-out';
-      setTimeout(() => item.remove(), 300);
-      showToast('Notification deleted');
+      if (item) {
+        item.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => {
+          item.remove();
+          
+          // Check if no notifications left
+          const container = document.querySelector('.glass-panel');
+          const remainingItems = container.querySelectorAll('.notification-item');
+          if (remainingItems.length === 0) {
+            // Show empty state
+            container.innerHTML = `
+              <div class="p-16 text-center">
+                <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-600/20 flex items-center justify-center">
+                  <svg class="w-12 h-12 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                  </svg>
+                </div>
+                <p class="text-xl text-gray-400 mb-2">No notifications yet</p>
+                <p class="text-sm text-gray-500">We'll notify you when something happens</p>
+              </div>
+            `;
+          }
+        }, 300);
+        showToast('Notification deleted');
+      }
     }
   } catch (error) {
     showToast('Failed to delete notification', 'error');
@@ -401,7 +421,203 @@ style.textContent = `
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
   }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 `;
 document.head.appendChild(style);
+
+// ========== REAL-TIME NOTIFICATION SYSTEM ==========
+
+// Notification sound (soft modern)
+let notificationSound = null;
+let lastNotificationCount = 0;
+
+// Create notification sound
+function initNotificationSound() {
+  try {
+    // Create AudioContext
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+    
+    // Create a soft, pleasant notification sound (C-E-G chord)
+    notificationSound = function() {
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      
+      const now = audioCtx.currentTime;
+      const duration = 0.3;
+      
+      // Create three oscillators for a pleasant chord
+      [523.25, 659.25, 783.99].forEach((freq, i) => {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.frequency.value = freq;
+        oscillator.type = 'sine';
+        
+        // Soft envelope
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.08, now + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
+        
+        oscillator.start(now + i * 0.02);
+        oscillator.stop(now + duration + i * 0.02);
+      });
+    };
+  } catch (e) {
+    console.warn('Web Audio API not supported:', e);
+    notificationSound = null;
+  }
+}
+
+// Initialize sound on user interaction (required by browsers)
+document.addEventListener('click', () => {
+  if (!notificationSound) {
+    initNotificationSound();
+  }
+}, { once: true });
+
+// Fetch new notifications
+async function checkNewNotifications() {
+  try {
+    const response = await fetch('/notifications/api/unread-count/', {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
+    
+    if (!response.ok) return;
+    
+    const data = await response.json();
+    const currentCount = data.count || 0;
+    
+    // Update badge in navigation
+    updateNotificationBadge(currentCount);
+    
+    // Check if new notifications arrived
+    if (currentCount > lastNotificationCount && lastNotificationCount > 0) {
+      // Play sound
+      if (notificationSound && document.visibilityState === 'visible') {
+        notificationSound();
+      }
+      
+      // Show toast
+      const newCount = currentCount - lastNotificationCount;
+      showToast(`${newCount} new notification${newCount > 1 ? 's' : ''}`, 'info');
+      
+      // Reload notifications list if we're on the notifications page
+      if (window.location.pathname === '/notifications/') {
+        await loadNewNotifications();
+      }
+    }
+    
+    lastNotificationCount = currentCount;
+  } catch (error) {
+    console.error('Failed to check notifications:', error);
+  }
+}
+
+// Load new notifications into the list
+async function loadNewNotifications() {
+  try {
+    const response = await fetch('/notifications/?ajax=1', {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
+    
+    if (!response.ok) return;
+    
+    const html = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const newItems = doc.querySelectorAll('.notification-item');
+    
+    if (newItems.length > 0) {
+      const container = document.querySelector('.glass-panel');
+      const currentItems = container.querySelectorAll('.notification-item');
+      
+      // Add new notifications that don't exist
+      newItems.forEach(newItem => {
+        const notifId = newItem.getAttribute('data-notification-id');
+        const exists = Array.from(currentItems).some(item => 
+          item.getAttribute('data-notification-id') === notifId
+        );
+        
+        if (!exists) {
+          // Add animation
+          newItem.style.animation = 'fadeIn 0.5s ease-out';
+          
+          // Insert at the top
+          const firstItem = container.querySelector('.notification-item');
+          if (firstItem) {
+            firstItem.parentNode.insertBefore(newItem, firstItem);
+          } else {
+            // No items, replace empty state
+            container.innerHTML = '';
+            const wrapper = document.createElement('div');
+            wrapper.className = 'divide-y divide-white/10';
+            wrapper.appendChild(newItem);
+            container.appendChild(wrapper);
+          }
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Failed to load new notifications:', error);
+  }
+}
+
+// Update notification badge count
+function updateNotificationBadge(count) {
+  const badge = document.querySelector('#dc-notif-btn .animate-pulse');
+  
+  if (count > 0) {
+    if (!badge) {
+      // Create badge
+      const notifBtn = document.getElementById('dc-notif-btn');
+      if (notifBtn) {
+        const newBadge = document.createElement('span');
+        newBadge.className = 'absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-[#020005] animate-pulse';
+        notifBtn.appendChild(newBadge);
+      }
+    }
+  } else {
+    if (badge) {
+      badge.remove();
+    }
+  }
+}
+
+// Initialize real-time updates
+let notificationInterval;
+function startNotificationPolling() {
+  // Initial count
+  checkNewNotifications();
+  
+  // Poll every 15 seconds
+  notificationInterval = setInterval(checkNewNotifications, 15000);
+}
+
+// Stop polling when page is hidden
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (notificationInterval) {
+      clearInterval(notificationInterval);
+    }
+  } else {
+    startNotificationPolling();
+  }
+});
+
+// Start polling on page load
+startNotificationPolling();
+
 </script>
 {% endblock %}
