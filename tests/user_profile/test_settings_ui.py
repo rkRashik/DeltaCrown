@@ -45,8 +45,8 @@ def test_image_avatar():
 
 @pytest.fixture
 def test_image_banner():
-    """Create a valid test banner image (1200x300px)"""
-    image = Image.new('RGB', (1200, 300), color='blue')
+    """Create a valid test banner image (1920x480px)"""
+    image = Image.new('RGB', (1920, 480), color='blue')
     file = BytesIO()
     image.save(file, 'PNG')
     file.name = 'test_banner.png'
@@ -213,7 +213,7 @@ def test_banner_upload_success(auth_client, test_image_banner):
 
 @pytest.mark.django_db
 def test_banner_upload_dimension_validation(auth_client):
-    """Banner must meet minimum dimensions (1200x300)"""
+    """Banner must meet minimum dimensions (1920x480)"""
     client, user = auth_client
     url = reverse('user_profile:upload_media')
     

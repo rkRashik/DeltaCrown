@@ -187,6 +187,48 @@
             animation: fadeIn 0.4s ease-out forwards;
         }
 
+        /* Cinematic Gaming Profile Cover - Layered Chipped Effect */
+        .profile-cover-container {
+            position: relative;
+            isolation: isolate;
+        }
+        
+        /* Modern Minimal Dimming - Sharp image with subtle overlay */
+        .profile-cover-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                to right,
+                rgba(11, 16, 32, 0.15) 0%,
+                rgba(11, 16, 32, 0.08) 40%,
+                transparent 70%
+            );
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        /* Content Safe Zone - Bottom-left area for user info */
+        .profile-text-safe-zone {
+            position: relative;
+            z-index: 20;
+        }
+        
+        /* Identity area backdrop - subtle gradient for text readability */
+        .profile-info-backdrop {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to top, 
+                rgba(3, 0, 20, 0.90) 0%, 
+                rgba(3, 0, 20, 0.50) 25%, 
+                transparent 60%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
         /* Slow spin animation for wallet decoration */
         @keyframes spin-slow {
             from { transform: rotate(0deg); }
@@ -198,9 +240,7 @@
 
         /* Modal Overlay for Bounty */
         .modal-overlay {
-            background: rgba(3, 0, 20, 0.85);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            background: rgba(3, 0, 20, 0.90);
         }
     </style>
 {% endblock %}
@@ -222,15 +262,15 @@
 
     <header class="relative w-full h-[550px] lg:h-[650px] mb-8 group">
         
-        <div class="absolute inset-0 w-full h-full overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-t from-z-bg via-z-bg/80 to-transparent z-10"></div>
+        <div class="absolute inset-0 w-full h-full overflow-hidden profile-cover-container">
             {% if profile.banner_url %}
             <img src="{{ profile.banner_url }}" 
-                 class="w-full h-full object-cover object-center opacity-60 group-hover:scale-105 transition duration-[3s]" alt="Cover">
+                 class="w-full h-full object-cover object-center" alt="Cover">
             {% endif %}
+            <div class="profile-info-backdrop"></div>
         </div>
 
-        <div class="absolute bottom-0 left-0 w-full z-20 px-4 md:px-8 pb-8">
+        <div class="absolute bottom-0 left-0 w-full z-20 px-4 md:px-8 pb-8 profile-text-safe-zone">
             <div class="max-w-[1600px] mx-auto flex flex-col md:flex-row items-end gap-8">
                 
                 <div class="relative shrink-0">
@@ -262,31 +302,31 @@
                         {% endif %}
                     </div>
 
-                    <h1 class="text-5xl md:text-7xl font-display font-bold text-white tracking-tight flex items-end gap-4 leading-none mb-2">
+                    <h1 class="text-5xl md:text-7xl font-display font-extrabold tracking-tight flex items-end gap-4 leading-none mb-2" style="color: #FFFFFF; text-shadow: 0 0 20px rgba(0, 240, 255, 0.3), 0 2px 8px rgba(0, 0, 0, 0.4);">
                         {{ profile.display_name|default:profile_user.username }}
-                        <span class="text-xl font-mono font-normal text-gray-500 mb-2 tracking-widest">#{{ profile_user.username }}</span>
+                        <span class="text-xl font-mono font-medium mb-2 tracking-wider" style="color: #00D9F5; text-shadow: 0 0 10px rgba(0, 217, 245, 0.4);">#{{ profile_user.username }}</span>
                     </h1>
 
                     {% if profile.bio %}
-                    <p class="text-gray-300 text-base max-w-2xl font-light leading-relaxed border-l-2 border-z-purple pl-4 my-4">
+                    <p class="text-base max-w-2xl font-normal leading-relaxed border-l-2 border-z-cyan/50 pl-4 my-4" style="color: #C9CED6; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); letter-spacing: 0.015em;">
                         {{ profile.bio }}
                     </p>
                     {% endif %}
 
                     <div class="flex flex-wrap items-center gap-8 mt-6">
                         <div onclick="openFollowersModal('{{ profile_user.username }}')" class="text-center group cursor-pointer">
-                            <div class="text-2xl font-bold text-white group-hover:text-z-cyan transition">{{ user_stats.followers_count|default:0 }}</div>
-                            <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Followers</div>
+                            <div class="text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #00F0FF; text-shadow: 0 0 12px rgba(0, 240, 255, 0.4);">{{ user_stats.followers_count|default:0 }}</div>
+                            <div class="text-[10px] uppercase tracking-widest font-semibold" style="color: #94A3B8;">Followers</div>
                         </div>
                         
                         <div onclick="openFollowingModal('{{ profile_user.username }}')" class="text-center group cursor-pointer">
-                            <div class="text-2xl font-bold text-white group-hover:text-z-purple transition">{{ user_stats.following_count|default:0 }}</div>
-                            <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Following</div>
+                            <div class="text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #A78BFA; text-shadow: 0 0 12px rgba(167, 139, 250, 0.4);">{{ user_stats.following_count|default:0 }}</div>
+                            <div class="text-[10px] uppercase tracking-widest font-semibold" style="color: #94A3B8;">Following</div>
                         </div>
                         
                         <div class="text-center group cursor-pointer">
-                            <div class="text-2xl font-bold text-white group-hover:text-z-gold transition">{{ user_stats.total_wins|default:0 }}</div>
-                            <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Wins</div>
+                            <div class="text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #FFD60A; text-shadow: 0 0 12px rgba(255, 214, 10, 0.4);">{{ user_stats.total_wins|default:0 }}</div>
+                            <div class="text-[10px] uppercase tracking-widest font-semibold" style="color: #94A3B8;">Wins</div>
                         </div>
                         
                         {% if identity_ctx.country_name %}

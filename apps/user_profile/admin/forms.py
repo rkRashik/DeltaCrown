@@ -178,7 +178,13 @@ class GameProfileAdminForm(forms.ModelForm):
         try:
             from apps.games.models import GamePlayerIdentityConfig
             
-            # Get all identity configs for this game
+            # Get schema for dropdown choices
+            try:
+                schema = GamePassportSchema.objects.get(game=self.instance.game)
+            except GamePassportSchema.DoesNotExist:
+                return  # No schema, keep default empty dropdowns
+            
+            # Get all identity configs for this game to know field types
             configs = GamePlayerIdentityConfig.objects.filter(
                 game=self.instance.game
             ).select_related('game')
@@ -187,35 +193,35 @@ class GameProfileAdminForm(forms.ModelForm):
                 field_name = config.field_name
                 
                 # Region dropdown
-                if field_name == 'region' and config.field_type == 'select':
+                if field_name in ['region', 'server'] and config.field_type.upper() == 'SELECT':
                     choices = [('', '---------')]
-                    if config.choices_json:
+                    options = schema.region_choices if field_name == 'region' else schema.server_choices
+                    if options:
                         choices.extend([
                             (choice['value'], choice['label'])
-                            for choice in config.choices_json
+                            for choice in options
                         ])
                     self.fields['region'].choices = choices
                     self.fields['region'].required = config.is_required
                 
                 # Rank dropdown
-                elif field_name == 'rank' and config.field_type == 'select':
+                elif field_name == 'rank' and config.field_type.upper() == 'SELECT':
                     choices = [('', '---------')]
-                    if config.choices_json:
+                    if schema.rank_choices:
                         choices.extend([
                             (choice['value'], choice['label'])
-                            for choice in config.choices_json
+                            for choice in schema.rank_choices
                         ])
                     self.fields['rank_name'].choices = choices
                     self.fields['rank_name'].required = config.is_required
                 
                 # Platform dropdown
-                elif field_name == 'platform' and config.field_type == 'select':
-                    # Convert platform to ChoiceField
+                elif field_name == 'platform' and config.field_type.upper() == 'SELECT':
                     choices = [('', '---------')]
-                    if config.choices_json:
+                    if schema.platform_choices:
                         choices.extend([
                             (choice['value'], choice['label'])
-                            for choice in config.choices_json
+                            for choice in schema.platform_choices
                         ])
                     self.fields['platform'] = forms.ChoiceField(
                         required=config.is_required,
@@ -243,40 +249,48 @@ class GameProfileAdminForm(forms.ModelForm):
                 return
             
             game = Game.objects.get(pk=game_id)
+            
+            # Get schema for dropdown choices
+            try:
+                schema = GamePassportSchema.objects.get(game=game)
+            except GamePassportSchema.DoesNotExist:
+                return  # No schema, keep default empty dropdowns
+            
             configs = GamePlayerIdentityConfig.objects.filter(game=game)
             
             for config in configs:
                 field_name = config.field_name
                 
                 # Region dropdown
-                if field_name == 'region' and config.field_type == 'select':
+                if field_name in ['region', 'server'] and config.field_type.upper() == 'SELECT':
                     choices = [('', '---------')]
-                    if config.choices_json:
+                    options = schema.region_choices if field_name == 'region' else schema.server_choices
+                    if options:
                         choices.extend([
                             (choice['value'], choice['label'])
-                            for choice in config.choices_json
+                            for choice in options
                         ])
                     self.fields['region'].choices = choices
                     self.fields['region'].required = config.is_required
                 
                 # Rank dropdown
-                elif field_name == 'rank' and config.field_type == 'select':
+                elif field_name == 'rank' and config.field_type.upper() == 'SELECT':
                     choices = [('', '---------')]
-                    if config.choices_json:
+                    if schema.rank_choices:
                         choices.extend([
                             (choice['value'], choice['label'])
-                            for choice in config.choices_json
+                            for choice in schema.rank_choices
                         ])
                     self.fields['rank_name'].choices = choices
                     self.fields['rank_name'].required = config.is_required
                 
                 # Platform dropdown
-                elif field_name == 'platform' and config.field_type == 'select':
+                elif field_name == 'platform' and config.field_type.upper() == 'SELECT':
                     choices = [('', '---------')]
-                    if config.choices_json:
+                    if schema.platform_choices:
                         choices.extend([
                             (choice['value'], choice['label'])
-                            for choice in config.choices_json
+                            for choice in schema.platform_choices
                         ])
                     self.fields['platform'] = forms.ChoiceField(
                         required=config.is_required,

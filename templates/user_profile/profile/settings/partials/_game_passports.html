@@ -1598,10 +1598,16 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
         // PHASE 9A-4: Enhanced schema validation and debug UI
         const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
+        console.log('[GP DEBUG] renderDynamicFields called');
+        console.log('[GP DEBUG] state.currentGame:', state.currentGame);
+        
         if (!state.currentGame) {
             els.fieldsIdentity.innerHTML = '<p class="text-red-400">No game selected</p>';
             return;
         }
+        
+        console.log('[GP DEBUG] passport_schema:', state.currentGame.passport_schema);
+        console.log('[GP DEBUG] schema length:', state.currentGame.passport_schema?.length);
         
         if (!state.currentGame.passport_schema || state.currentGame.passport_schema.length === 0) {
             const debugMsg = isDev 
@@ -1620,6 +1626,9 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
         
         const schema = state.currentGame.passport_schema;
         
+        console.log(`[GP DEBUG] Rendering ${schema.length} fields for ${state.currentGame.display_name}`);
+        console.log('[GP DEBUG] Field details:', schema);
+        
         if (isDev) {
             console.log(`[GP] Rendering ${schema.length} fields for ${state.currentGame.display_name}:`, schema.map(f => f.key));
         }
@@ -1630,8 +1639,14 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
         const optionalFields = [];
         
         schema.forEach(field => {
+            // Competitive keywords FIRST (takes priority over generic rules)
+            const competitiveKeywords = ['region', 'rank', 'role', 'server', 'tier', 'division', 'mode', 'platform'];
+            const isCompetitiveField = competitiveKeywords.some(k => field.key.toLowerCase().includes(k));
+            
             // Identity: immutable OR contains 'id' OR is primary identity field
-            const isIdentity = field.immutable || 
+            // BUT NOT if it's a competitive field (region, rank, etc.)
+            const isIdentity = !isCompetitiveField && (
+                               field.immutable || 
                                field.key.includes('id') || 
                                field.key === 'ign' || 
                                field.key === 'uid' ||
@@ -1639,16 +1654,12 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
                                field.key === 'riot' ||
                                field.key === 'pubg' ||
                                field.key === 'epic' ||
-                               field.required;  // Required fields usually identity
-            
-            // Competitive: rank/region/role/server/tier fields (but not peak_rank)
-            const isCompetitive = ['region', 'rank', 'role', 'server', 'tier', 'division'].some(k => 
-                field.key.includes(k) && !field.key.includes('peak')
+                               (field.required && !field.key.includes('region'))  // Required fields except region
             );
             
             if (isIdentity) {
                 identityFields.push(field);
-            } else if (isCompetitive) {
+            } else if (isCompetitiveField) {
                 competitiveFields.push(field);
             } else {
                 optionalFields.push(field);

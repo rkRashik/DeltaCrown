@@ -175,28 +175,28 @@ class Command(BaseCommand):
                     {
                         'field_name': 'region',
                         'display_name': 'Region',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': True,
                         'help_text': 'Your primary server region'
                     },
                     {
                         'field_name': 'rank',
                         'display_name': 'Current Rank',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Current competitive rank (Episode 10 Act 1)'
                     },
                     {
                         'field_name': 'peak_rank',
                         'display_name': 'Peak Rank',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Highest competitive rank achieved'
                     },
                     {
                         'field_name': 'role',
                         'display_name': 'Main Role',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Primary agent role'
                     }
@@ -279,21 +279,21 @@ class Command(BaseCommand):
                     {
                         'field_name': 'region',
                         'display_name': 'Primary Region',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': True,
                         'help_text': 'Main server region'
                     },
                     {
                         'field_name': 'premier_rating',
                         'display_name': 'Premier Rating',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'CS2 Premier competitive rating range'
                     },
                     {
                         'field_name': 'role',
                         'display_name': 'Main Role',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Primary team role'
                     }
@@ -356,21 +356,21 @@ class Command(BaseCommand):
                     {
                         'field_name': 'server',
                         'display_name': 'Primary Server',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': True,
                         'help_text': 'Main server for ranked games'
                     },
                     {
                         'field_name': 'rank',
                         'display_name': 'Current Rank',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Current MMR rank'
                     },
                     {
                         'field_name': 'role',
                         'display_name': 'Main Role',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Primary position (1-5)'
                     }
@@ -480,21 +480,21 @@ class Command(BaseCommand):
                     {
                         'field_name': 'server',
                         'display_name': 'Server Region',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': True,
                         'help_text': 'Your server region'
                     },
                     {
                         'field_name': 'rank',
                         'display_name': 'Current Rank',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Current ranked season rank'
                     },
                     {
                         'field_name': 'role',
                         'display_name': 'Main Role',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Primary hero role'
                     }
@@ -589,21 +589,21 @@ class Command(BaseCommand):
                     {
                         'field_name': 'server',
                         'display_name': 'Server',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': True,
                         'help_text': 'Your server region'
                     },
                     {
                         'field_name': 'rank',
                         'display_name': 'Current Rank',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Highest rank across all modes'
                     },
                     {
                         'field_name': 'mode',
                         'display_name': 'Main Mode',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Primary game mode'
                     }
@@ -666,14 +666,14 @@ class Command(BaseCommand):
                     {
                         'field_name': 'server',
                         'display_name': 'Server',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': True,
                         'help_text': 'Your server region'
                     },
                     {
                         'field_name': 'rank',
                         'display_name': 'Current Rank',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Current ranked season rank'
                     }
@@ -727,28 +727,28 @@ class Command(BaseCommand):
                     {
                         'field_name': 'region',
                         'display_name': 'Region',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': True,
                         'help_text': 'Your server region'
                     },
                     {
                         'field_name': 'rank_mp',
                         'display_name': 'MP Rank',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Multiplayer ranked mode rank'
                     },
                     {
                         'field_name': 'rank_br',
                         'display_name': 'BR Rank',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Battle Royale ranked mode rank'
                     },
                     {
                         'field_name': 'mode',
                         'display_name': 'Main Mode',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Primary competitive mode'
                     }
@@ -802,7 +802,7 @@ class Command(BaseCommand):
                     {
                         'field_name': 'platform',
                         'display_name': 'Platform',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': True,
                         'is_immutable': True,
                         'help_text': 'Your gaming platform (cannot change)'
@@ -810,14 +810,14 @@ class Command(BaseCommand):
                     {
                         'field_name': 'division',
                         'display_name': 'Division',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'FUT Rivals division'
                     },
                     {
                         'field_name': 'mode',
                         'display_name': 'Main Mode',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Primary competitive mode'
                     }
@@ -892,7 +892,7 @@ class Command(BaseCommand):
                     {
                         'field_name': 'division',
                         'display_name': 'Division',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Your current competitive division (optional)'
                     },
@@ -908,7 +908,7 @@ class Command(BaseCommand):
                     {
                         'field_name': 'platform',
                         'display_name': 'Platform',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': True,
                         'help_text': 'Your gaming platform (required)'
                     }
@@ -958,7 +958,7 @@ class Command(BaseCommand):
                     {
                         'field_name': 'platform',
                         'display_name': 'Platform',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': True,
                         'is_immutable': True,
                         'help_text': 'Your gaming platform'
@@ -966,21 +966,21 @@ class Command(BaseCommand):
                     {
                         'field_name': 'region',
                         'display_name': 'Region',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': True,
                         'help_text': 'Your server region'
                     },
                     {
                         'field_name': 'rank',
                         'display_name': 'Current Rank',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Current ranked season rank (Year 9)'
                     },
                     {
                         'field_name': 'role',
                         'display_name': 'Main Role',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Primary team role'
                     }
@@ -1061,7 +1061,7 @@ class Command(BaseCommand):
                     {
                         'field_name': 'platform',
                         'display_name': 'Platform',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': True,
                         'is_immutable': True,
                         'help_text': 'Your primary gaming platform'
@@ -1069,14 +1069,14 @@ class Command(BaseCommand):
                     {
                         'field_name': 'rank',
                         'display_name': 'Highest Rank',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Highest rank across all competitive modes'
                     },
                     {
                         'field_name': 'mode',
                         'display_name': 'Main Mode',
-                        'field_type': 'select',
+                        'field_type': 'SELECT',
                         'is_required': False,
                         'help_text': 'Primary competitive mode'
                     }

@@ -193,15 +193,30 @@
       if (toastEl) {
         const closeBtn = toastEl.querySelector('.toast-close-btn');
         if (closeBtn) {
+          // Store reference to toast instance for close button
+          closeBtn._toastInstance = toast;
+          
           // Remove any existing listeners
           const newCloseBtn = closeBtn.cloneNode(true);
+          newCloseBtn._toastInstance = toast;
           closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
           
-          // Add new listener
+          // Add new listener with proper toast reference
           newCloseBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             e.preventDefault();
-            toast.hideToast();
+            if (this._toastInstance && typeof this._toastInstance.hideToast === 'function') {
+              this._toastInstance.hideToast();
+            } else {
+              // Fallback: remove toast element directly
+              const toastContainer = this.closest('.toastify');
+              if (toastContainer) {
+                toastContainer.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                toastContainer.style.opacity = '0';
+                toastContainer.style.transform = 'translateY(20px)';
+                setTimeout(() => toastContainer.remove(), 300);
+              }
+            }
           }, {once: true});
         }
       }

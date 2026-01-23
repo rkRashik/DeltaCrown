@@ -30,7 +30,7 @@ def upload_media(request):
     
     Validation:
     - Avatar: max 5MB, min 100x100px, square recommended
-    - Banner: max 10MB, min 1200x300px, 4:1 ratio recommended
+    - Banner: max 10MB, min 1920x480px, 4:1 ratio recommended
     
     Returns:
         JSON: {success: true, url: '/media/...', preview_url: '/media/...'}
@@ -59,17 +59,18 @@ def upload_media(request):
     if file.content_type not in allowed_types:
         return JsonResponse({'success': False, 'error': 'File must be JPEG, PNG, or WebP'}, status=400)
     
-    # Validate dimensions
+    # Validate dimensions (relaxed - frontend handles resizing with Cropper.js)
     try:
         image = Image.open(file)
         width, height = image.size
         
+        # Just ensure it's not too tiny to be useful
         if media_type == 'avatar':
-            if width < 100 or height < 100:
-                return JsonResponse({'success': False, 'error': 'Avatar must be at least 100x100 pixels'}, status=400)
+            if width < 50 or height < 50:
+                return JsonResponse({'success': False, 'error': 'Avatar must be at least 50x50 pixels'}, status=400)
         else:  # banner
-            if width < 1200 or height < 300:
-                return JsonResponse({'success': False, 'error': 'Banner must be at least 1200x300 pixels'}, status=400)
+            if width < 200 or height < 50:
+                return JsonResponse({'success': False, 'error': 'Banner must be at least 200x50 pixels'}, status=400)
         
         # Reset file pointer after PIL read
         file.seek(0)

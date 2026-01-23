@@ -34,7 +34,7 @@
         }
 
         try {
-            const response = await fetch(`/profile/api/games/${gameId}/metadata/`);
+            const response = await fetch(`/api/games/${gameId}/metadata/`);
             if (!response.ok) {
                 console.error('[GP Admin] Failed to fetch game metadata:', response.status);
                 return null;

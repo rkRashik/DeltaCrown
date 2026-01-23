@@ -41,6 +41,9 @@ from apps.user_profile.models.career import (  # Phase 2A Career & Matchmaking
     RECRUITER_VISIBILITY_CHOICES,
 )
 
+# Public ID Counter (for unique user ID generation)
+from apps.user_profile.services.public_id import PublicIDCounter
+
 # Re-export existing models from models_main.py to maintain backward compatibility
 from apps.user_profile.models_main import (
     UserProfile,
@@ -130,6 +133,9 @@ __all__ = [
     'user_avatar_path',
     'user_banner_path',
     'kyc_document_path',
+    
+    # Public ID Counter
+    'PublicIDCounter',
 ]
 
 

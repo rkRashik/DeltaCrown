@@ -5,6 +5,8 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Cropper.js for image cropping -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
 <style>
     /* --- CORE PHYSICS --- */
     body { 
@@ -150,6 +152,21 @@
         animation: spin 4s linear infinite; filter: blur(4px); z-index: 0;
     }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* Modal Scale-in Animation */
+    @keyframes scale-in {
+        from {
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+    .animate-scale-in {
+        animation: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
     /* Coming Soon Badge */
     .coming-soon-badge {
@@ -318,15 +335,13 @@
 
                     <div class="glass-panel p-1 mb-8 group overflow-hidden">
                         <div class="relative h-40 md:h-56 bg-gray-800 rounded-t-[18px] overflow-hidden">
-                            {% if user_profile.banner %}
-                            <img src="{{ user_profile.banner.url }}" class="w-full h-full object-cover opacity-60" data-preview="banner">
-                            {% endif %}
+                            <img id="banner-preview-img" src="{% if user_profile.banner %}{{ user_profile.banner.url }}{% else %}data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='480'%3E%3Crect fill='%231f2937' width='1920' height='480'/%3E%3C/svg%3E{% endif %}" class="w-full h-full object-cover {% if user_profile.banner %}opacity-60{% else %}opacity-20{% endif %}" data-preview="banner">
                             <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition cursor-pointer" onclick="document.getElementById('banner-upload').click()">
                                 <span class="bg-black/60 text-white px-5 py-2 rounded-full text-xs font-bold border border-white/20 hover:bg-white hover:text-black transition flex items-center gap-2">
                                     <i class="fa-solid fa-image"></i> Change Cover
                                 </span>
                             </div>
-                            <input type="file" id="banner-upload" class="hidden" accept="image/*" onchange="uploadMedia(this, 'banner')">
+                            <input type="file" id="banner-upload" class="hidden" accept="image/*" onchange="openImageCropper(this, 'banner')">
                         </div>
                         <div class="px-8 pb-8 relative">
                             <div class="w-24 h-24 md:w-32 md:h-32 -mt-12 md:-mt-16 relative group/avatar">
@@ -336,7 +351,7 @@
                                 <div class="absolute inset-0 z-20 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover/avatar:opacity-100 transition cursor-pointer" onclick="document.getElementById('avatar-upload').click()">
                                     <i class="fa-solid fa-camera text-white text-xl"></i>
                                 </div>
-                                <input type="file" id="avatar-upload" class="hidden" accept="image/*" onchange="uploadMedia(this, 'avatar')">
+                                <input type="file" id="avatar-upload" class="hidden" accept="image/*" onchange="openImageCropper(this, 'avatar')">
                             </div>
                         </div>
                     </div>
@@ -3309,76 +3324,299 @@
         markUnsaved();
     }
 
-    // Upload media (avatar/banner)
-    async function uploadMedia(input, type) {
+    // Image Cropper Modal State
+    let currentCropper = null;
+    let currentCropType = null;
+
+    // Open Image Cropper Modal
+    function openImageCropper(input, type) {
         if (!input.files || !input.files[0]) {
             console.warn('No file selected');
             return;
         }
         
-        // Validate file
         const file = input.files[0];
         const maxSize = type === 'banner' ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+        
+        // Validate file size
         if (file.size > maxSize) {
             const maxMB = type === 'banner' ? 10 : 5;
-            showToast(`File must be less than ${maxMB}MB`, 'error');
-            input.value = ''; // Clear input
+            showToast({
+                type: 'error',
+                message: `File must be less than ${maxMB}MB`
+            });
+            input.value = '';
             return;
         }
         
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            showToast('Please select an image file', 'error');
+            showToast({
+                type: 'error',
+                message: 'Please select an image file'
+            });
             input.value = '';
             return;
         }
         
-        const formData = new FormData();
-        formData.append('media_type', type);
-        formData.append('file', file);
+        currentCropType = type;
         
-        try {
-            const response = await fetch('{% url "user_profile:upload_media" %}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: formData,
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `Upload failed with status ${response.status}`);
-            }
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' uploaded successfully', 'success');
+        // Create modal
+        const modal = document.createElement('div');
+        modal.id = 'crop-modal';
+        modal.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4';
+        modal.innerHTML = `
+            <div class="bg-gray-900 rounded-2xl shadow-2xl ${type === 'banner' ? 'max-w-3xl' : 'max-w-xl'} w-full overflow-hidden border border-gray-700 animate-scale-in">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-gray-800 to-gray-900 px-5 py-3.5 border-b border-gray-700 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2.5">
+                        <i class="fa-solid fa-crop-simple text-cyan-400"></i>
+                        ${type === 'banner' ? 'Crop Cover Photo' : 'Crop Avatar'}
+                    </h3>
+                    <button onclick="closeCropModal()" class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-700/50 hover:bg-gray-600 text-gray-400 hover:text-white transition">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
                 
-                // Update preview in DOM instead of page reload
-                if (result.url) {
-                    const img = document.querySelector(`[data-preview="${type}"]`);
-                    if (img) {
-                        img.src = result.url + '?t=' + Date.now(); // Cache bust
-                    }
-
-                    // Update global nav/profile avatars when avatar changes
-                    if (type === 'avatar') {
-                        const navAvatars = document.querySelectorAll('.unified-nav-desktop__avatar, .profile-menu-avatar img, .profile-avatar-img, .unified-nav-mobile__profile img');
-                        navAvatars.forEach(el => { el.src = (result.avatar_url || result.url) + '?t=' + Date.now(); });
-                    }
-                }
+                <!-- Cropper Area -->
+                <div class="p-4 bg-gray-950">
+                    <div class="bg-black rounded-lg overflow-hidden ${type === 'banner' ? 'max-h-[400px]' : 'max-h-[450px]'}">
+                        <img id="crop-image" src="" class="max-w-full block" style="max-height: ${type === 'banner' ? '400px' : '450px'};" />
+                    </div>
+                </div>
+                
+                <!-- Controls -->
+                <div class="px-4 py-3 bg-gray-900/50 border-t border-gray-800">
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <div class="text-xs text-gray-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-lightbulb text-cyan-400"></i>
+                            <span>${type === 'banner' ? '4:1 ratio • 1920×480' : 'Square • 400×400'}</span>
+                        </div>
+                        <div class="flex gap-1.5">
+                            <button onclick="rotateCropper(-90)" class="w-9 h-9 flex items-center justify-center bg-gray-700/60 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition text-sm" title="Rotate Left">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </button>
+                            <button onclick="rotateCropper(90)" class="w-9 h-9 flex items-center justify-center bg-gray-700/60 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition text-sm" title="Rotate Right">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+                            <button onclick="flipCropper('horizontal')" class="w-9 h-9 flex items-center justify-center bg-gray-700/60 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition text-sm" title="Flip Horizontal">
+                                <i class="fa-solid fa-arrows-left-right"></i>
+                            </button>
+                            <button onclick="resetCropper()" class="px-3 h-9 flex items-center justify-center gap-1.5 bg-gray-700/60 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition text-xs font-medium" title="Reset">
+                                <i class="fa-solid fa-arrow-rotate-left"></i>
+                                <span class="hidden sm:inline">Reset</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="bg-gray-800 px-4 py-3 border-t border-gray-700 flex gap-2.5 justify-end">
+                    <button onclick="closeCropModal()" class="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition font-medium text-sm">
+                        Cancel
+                    </button>
+                    <button onclick="applyCropAndUpload()" class="px-5 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white rounded-lg transition font-medium text-sm flex items-center gap-2 shadow-lg shadow-cyan-500/20">
+                        <i class="fa-solid fa-check"></i> 
+                        <span>Crop & Upload</span>
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Load image into cropper
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = document.getElementById('crop-image');
+            img.src = e.target.result;
+            
+            // Initialize Cropper.js
+            if (typeof Cropper !== 'undefined') {
+                currentCropper = new Cropper(img, {
+                    aspectRatio: type === 'banner' ? 4 / 1 : 1 / 1,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 0.9,
+                    restore: false,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: false,
+                    background: true,
+                    responsive: true,
+                    checkOrientation: true,
+                    modal: true,
+                    scalable: true,
+                    zoomable: true,
+                    zoomOnWheel: true,
+                    wheelZoomRatio: 0.1,
+                    minContainerWidth: type === 'banner' ? 600 : 300,
+                    minContainerHeight: type === 'banner' ? 240 : 300
+                });
             } else {
-                showToast(result.error || 'Upload failed', 'error');
+                console.error('Cropper.js not loaded!');
+                showToast({
+                    type: 'error',
+                    message: 'Image cropper library not loaded. Please refresh the page.'
+                });
             }
-        } catch (error) {
-            console.error('Media upload error:', error);
-            showToast(error.message || 'Failed to upload image', 'error');
-        } finally {
-            // Clear input to allow re-upload of same file
-            input.value = '';
+        };
+        reader.readAsDataURL(file);
+        
+        // Clear file input
+        input.value = '';
+    }
+
+    // Close Crop Modal
+    function closeCropModal() {
+        if (currentCropper) {
+            currentCropper.destroy();
+            currentCropper = null;
         }
+        const modal = document.getElementById('crop-modal');
+        if (modal) {
+            modal.remove();
+        }
+        currentCropType = null;
+    }
+
+    // Cropper Controls
+    function rotateCropper(degree) {
+        if (currentCropper) {
+            currentCropper.rotate(degree);
+        }
+    }
+
+    function flipCropper(direction) {
+        if (currentCropper) {
+            if (direction === 'horizontal') {
+                currentCropper.scaleX(-currentCropper.getData().scaleX || -1);
+            } else {
+                currentCropper.scaleY(-currentCropper.getData().scaleY || -1);
+            }
+        }
+    }
+
+    function resetCropper() {
+        if (currentCropper) {
+            currentCropper.reset();
+        }
+    }
+
+    // Apply Crop and Upload
+    async function applyCropAndUpload() {
+        if (!currentCropper || !currentCropType) {
+            console.error('No cropper instance or type');
+            return;
+        }
+        
+        const type = currentCropType;
+        
+        // Get cropped canvas with proper dimensions
+        const targetWidth = type === 'banner' ? 1920 : 400;
+        const targetHeight = type === 'banner' ? 480 : 400;
+        
+        const canvas = currentCropper.getCroppedCanvas({
+            width: targetWidth,
+            height: targetHeight,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high'
+        });
+        
+        if (!canvas) {
+            showToast({
+                type: 'error',
+                message: 'Failed to process image'
+            });
+            return;
+        }
+        
+        // Show loading state
+        const uploadBtn = document.querySelector('#crop-modal button[onclick="applyCropAndUpload()"]');
+        if (uploadBtn) {
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
+        }
+        
+        // Convert canvas to blob
+        canvas.toBlob(async (blob) => {
+            if (!blob) {
+                showToast({
+                    type: 'error',
+                    message: 'Failed to process image'
+                });
+                closeCropModal();
+                return;
+            }
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('media_type', type);
+            formData.append('file', blob, `${type}.jpg`);
+            
+            try {
+                const response = await fetch('{% url "user_profile:upload_media" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: formData,
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showToast({
+                        type: 'success',
+                        message: `${type.charAt(0).toUpperCase() + type.slice(1)} uploaded successfully!`
+                    });
+                    
+                    // Update preview in DOM
+                    if (result.url) {
+                        const img = document.querySelector(`[data-preview="${type}"]`);
+                        if (img) {
+                            img.src = result.url + '?t=' + Date.now();
+                            // For banner, ensure it's visible and has proper opacity
+                            if (type === 'banner') {
+                                img.style.opacity = '0.6';
+                                img.classList.remove('opacity-20');
+                                img.classList.add('opacity-60');
+                            }
+                        }
+
+                        // Update global nav/profile avatars when avatar changes
+                        if (type === 'avatar') {
+                            const navAvatars = document.querySelectorAll('.unified-nav-desktop__avatar, .profile-menu-avatar img, .profile-avatar-img, .unified-nav-mobile__profile img');
+                            navAvatars.forEach(el => { 
+                                el.src = (result.avatar_url || result.url) + '?t=' + Date.now(); 
+                            });
+                        }
+                    }
+                    
+                    closeCropModal();
+                } else {
+                    showToast({
+                        type: 'error',
+                        message: result.error || 'Upload failed'
+                    });
+                    closeCropModal();
+                }
+            } catch (error) {
+                console.error('Media upload error:', error);
+                showToast({
+                    type: 'error',
+                    message: error.message || 'Failed to upload image'
+                });
+                closeCropModal();
+            }
+        }, 'image/jpeg', 0.92);
+    }
+
+    // Legacy function for backward compatibility (if called elsewhere)
+    async function uploadMedia(input, type) {
+        openImageCropper(input, type);
     }
 
     // Save Privacy Settings
@@ -5743,5 +5981,8 @@
         </div>
     </div>
 </div>
+
+<!-- Cropper.js Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
 
 {% endblock %}

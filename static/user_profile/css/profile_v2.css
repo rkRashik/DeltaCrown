@@ -138,8 +138,8 @@
     inset: 0;
     background: linear-gradient(to bottom, 
         transparent 0%, 
-        rgba(15, 23, 42, 0.6) 50%, 
-        rgba(15, 23, 42, 0.95) 100%);
+        transparent 60%, 
+        rgba(15, 23, 42, 0.85) 100%);
 }
 
 .profile-hero-content {
