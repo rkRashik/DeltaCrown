@@ -1,0 +1,27 @@
+{# Error State Component #}
+{# UP-PHASE-2: Reusable error state for failed loads #}
+{# 
+  Usage: {% include 'user_profile/profile/components/state_error.html' with message="Failed to load highlights" %}
+  Params:
+    - message: Error message
+    - retry_action: Optional retry button onclick handler
+#}
+
+<div class="z-card p-12 text-center border border-[var(--z-red)]/30 bg-[var(--z-red)]/5">
+    <div class="flex flex-col items-center justify-center space-y-4">
+        <div class="w-16 h-16 rounded-full bg-[var(--z-red)]/10 flex items-center justify-center">
+            <i class="fa-solid fa-exclamation-triangle text-3xl text-[var(--z-red)]"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-display font-bold text-white mb-1">Something went wrong</h3>
+            <p class="text-sm text-gray-400">{{ message|default:"Failed to load content" }}</p>
+        </div>
+        
+        {% if retry_action %}
+        <button onclick="{{ retry_action }}" class="mt-2 bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-2 rounded-lg transition flex items-center gap-2 text-sm uppercase tracking-wider border border-white/20">
+            <i class="fa-solid fa-rotate-right"></i>
+            Try Again
+        </button>
+        {% endif %}
+    </div>
+</div>

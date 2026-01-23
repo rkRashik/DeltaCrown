@@ -1,0 +1,32 @@
+<!-- Video Modal for Inline Playback -->
+<div id="videoModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-5xl">
+        <button onclick="closeVideoModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="bg-[var(--z-panel)] rounded-xl overflow-hidden border border-white/10">
+            <div class="p-4 border-b border-white/10">
+                <h3 id="videoModalTitle" class="text-white font-bold text-lg"></h3>
+            </div>
+            <div class="aspect-video bg-black">
+                <iframe 
+                    id="videoModalIframe" 
+                    src="" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                    allowfullscreen
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    class="w-full h-full">
+                </iframe>
+                <div id="videoModalFallback" class="hidden w-full h-full flex flex-col items-center justify-center text-gray-400 p-8 text-center">
+                    <i class="fa-solid fa-lock text-4xl mb-4 text-gray-600"></i>
+                    <p class="font-bold text-white mb-2">This video can't be embedded</p>
+                    <p class="text-sm text-gray-500 mb-4">It may be private, deleted, or restricted.</p>
+                    <a id="videoModalExternalLink" href="#" target="_blank" rel="noopener" class="px-6 py-2 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-black font-bold text-xs uppercase tracking-wider transition rounded-lg flex items-center gap-2">
+                        <i class="fa-solid fa-external-link-alt"></i> Open Externally
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,179 @@
+{% load static %}
+
+<!-- CAREER TAB - Phase 4G: Game-Grouped Career Timeline -->
+<div id="tab-career" class="tab-content space-y-6" data-tab-panel="career">
+
+    <!-- Game Passports Preview -->
+    {% if career_passports %}
+    <div class="z-card p-8">
+        <div class="flex justify-between items-center mb-8 border-b border-white/5 pb-4">
+            <h2 class="text-2xl font-display font-bold text-white flex items-center gap-3">
+                <i class="fa-solid fa-gamepad text-[var(--z-cyan)]"></i> Game Passports
+            </h2>
+            <button onclick="window.tabSystem.switchTab('passports')" class="text-xs text-[var(--z-cyan)] hover:text-[var(--z-cyan)]/80 transition font-semibold uppercase tracking-wider">
+                View All <i class="fa-solid fa-arrow-right ml-1"></i>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for passport in career_passports %}
+            <div class="z-card p-6 hover:border-[var(--z-cyan)]/30 transition-all">
+                <div class="flex items-center gap-4 mb-4">
+                    <img src="{{ passport.game_icon }}" alt="{{ passport.game }}" class="w-12 h-12 rounded-lg object-cover border border-white/10">
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-sm font-semibold text-white/80 truncate">{{ passport.game }}</h4>
+                        <p class="text-xs text-white/40">{{ passport.rank }}</p>
+                    </div>
+                    {% if passport.is_verified %}
+                    <i class="fa-solid fa-circle-check text-green-400" title="Verified"></i>
+                    {% endif %}
+                </div>
+                <div class="text-lg font-display font-bold text-white truncate">
+                    {{ passport.ign }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Team Career by Game -->
+    {% if career_by_game %}
+    <div class="space-y-8">
+        {% for game_section in career_by_game %}
+        <div class="z-card p-8">
+            <!-- Game Header -->
+            <div class="flex items-center gap-4 mb-8 border-b border-white/5 pb-4">
+                <img src="{{ game_section.game_icon }}" alt="{{ game_section.game_name }}" class="w-12 h-12 rounded-lg object-cover border border-white/10">
+                <h2 class="text-2xl font-display font-bold text-white">{{ game_section.game_name }}</h2>
+                {% if game_section.current_team %}
+                <span class="ml-auto bg-[var(--z-gold)] text-black text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">Active Team</span>
+                {% endif %}
+            </div>
+
+            <!-- Current Team (if any) -->
+            {% if game_section.current_team %}
+            {% with team=game_section.current_team %}
+            <div class="mb-8">
+                <h3 class="text-sm font-bold text-[var(--z-gold)] uppercase tracking-wider mb-4">Current Team</h3>
+                <a href="{% url 'teams:detail' slug=team.slug %}" class="block group">
+                    <div class="z-card p-6 hover:border-[var(--z-gold)]/50 transition-all border-l-4 border-l-[var(--z-gold)] bg-[var(--z-gold)]/5">
+                        <div class="flex items-start gap-4">
+                            <!-- Team Logo -->
+                            <div class="relative flex-shrink-0">
+                                {% if team.logo_url %}
+                                <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-16 h-16 rounded-lg object-cover border border-white/10">
+                                {% else %}
+                                <div class="w-16 h-16 rounded-lg bg-gradient-to-br from-[var(--z-gold)]/20 to-[var(--z-cyan)]/20 border border-white/10 flex items-center justify-center">
+                                    <i class="fa-solid fa-shield-halved text-2xl text-[var(--z-gold)]"></i>
+                                </div>
+                                {% endif %}
+                                <span class="absolute -top-2 -right-2 bg-green-500 w-4 h-4 rounded-full border-2 border-[var(--z-bg)] shadow-[0_0_10px_rgba(34,197,94,0.6)]"></span>
+                            </div>
+                            
+                            <!-- Team Info -->
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-xl font-display font-bold text-white group-hover:text-[var(--z-gold)] transition truncate">
+                                    {{ team.name }}
+                                    {% if team.tag %}<span class="text-[var(--z-cyan)] text-sm">[{{ team.tag }}]</span>{% endif %}
+                                </h3>
+                                <div class="flex flex-wrap items-center gap-2 mt-2">
+                                    <span class="text-[9px] bg-[var(--z-gold)]/20 text-[var(--z-gold)] px-2 py-0.5 rounded border border-[var(--z-gold)]/30 font-bold uppercase tracking-wider">
+                                        {{ team.role }}
+                                    </span>
+                                    {% if team.role_code == 'OWNER' %}
+                                    <span class="text-[9px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded border border-purple-500/30 font-bold">
+                                        <i class="fa-solid fa-crown"></i> OWNER
+                                    </span>
+                                    {% elif team.role_code == 'CAPTAIN' %}
+                                    <span class="text-[9px] bg-[var(--z-cyan)]/20 text-[var(--z-cyan)] px-2 py-0.5 rounded border border-[var(--z-cyan)]/30 font-bold">
+                                        <i class="fa-solid fa-star"></i> CAPTAIN
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-xs text-white/40 mt-2">
+                                    <i class="fa-solid fa-calendar-check mr-1"></i> Joined {{ team.joined_formatted }} • <span class="text-[var(--z-gold)]">{{ team.duration }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            <!-- Team History Timeline -->
+            {% if game_section.history|length > 1 or not game_section.current_team %}
+            <div>
+                <h3 class="text-sm font-bold text-white/60 uppercase tracking-wider mb-4">
+                    {% if game_section.current_team %}Team History{% else %}All Teams{% endif %}
+                </h3>
+                <div class="space-y-4">
+                    {% for team in game_section.history %}
+                    {% if not team.is_current or not game_section.current_team %}
+                    <a href="{% url 'teams:detail' slug=team.slug %}" class="block group">
+                        <div class="z-card p-6 hover:bg-white/5 transition-all border-l-2 {% if team.is_former %}border-l-white/20 bg-white/[0.02]{% else %}border-l-[var(--z-cyan)]{% endif %}">
+                            <div class="flex items-start gap-4">
+                                {% if team.logo_url %}
+                                <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-14 h-14 rounded-lg object-cover border border-white/10">
+                                {% else %}
+                                <div class="w-14 h-14 rounded-lg bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center">
+                                    <i class="fa-solid fa-shield text-xl text-white/40"></i>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="text-lg font-display font-bold text-white mb-1 group-hover:text-[var(--z-cyan)] transition truncate">
+                                        {{ team.name }}
+                                        {% if team.tag %}<span class="text-[var(--z-cyan)] text-sm">[{{ team.tag }}]</span>{% endif %}
+                                    </h4>
+                                    
+                                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                                        <span class="text-[9px] bg-white/10 text-white px-2 py-0.5 rounded border border-white/10 font-mono uppercase">{{ team.role }}</span>
+                                        {% if team.is_former %}
+                                        <span class="text-[9px] bg-white/5 text-white/40 px-2 py-0.5 rounded border border-white/10 font-mono uppercase">Former</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="flex items-center gap-4 text-xs text-white/50">
+                                        <span><i class="fa-solid fa-calendar mr-1"></i> {{ team.joined_formatted }} - {{ team.left_formatted }}</span>
+                                        {% if team.left_formatted != "End date unavailable" %}
+                                        <span><i class="fa-solid fa-clock mr-1"></i> {{ team.duration }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="z-card p-8">
+        <div class="text-center text-gray-500 py-16">
+            <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                <i class="fa-solid fa-users text-4xl opacity-20"></i>
+            </div>
+            {% if is_owner %}
+            <p class="text-lg font-semibold text-white/60 mb-2">No Team History</p>
+            <p class="text-sm text-white/40 mb-6">Join or create a team to start your competitive journey</p>
+            <div class="flex items-center justify-center gap-3">
+                <a href="{% url 'teams:list' %}" class="inline-block px-6 py-3 bg-white/10 text-white font-bold rounded-lg hover:bg-white/20 transition border border-white/20">
+                    <i class="fa-solid fa-search mr-2"></i> Find Teams
+                </a>
+                <a href="{% url 'teams:create' %}" class="inline-block px-6 py-3 bg-[var(--z-gold)] text-black font-bold rounded-lg hover:bg-[var(--z-gold)]/90 transition">
+                    <i class="fa-solid fa-plus mr-2"></i> Create Team
+                </a>
+            </div>
+            {% else %}
+            <p class="text-sm text-white/40">{{ profile_user.username }}'s competitive journey will appear here</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>

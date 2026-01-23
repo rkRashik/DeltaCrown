@@ -1,0 +1,252 @@
+{% load static %}
+
+<!-- 
+⚠️ OVERVIEW TAB — CONTENT CHANGE POLICY ⚠️
+Phase 3.5 Modularized Component | Last Updated: 2026-01-09
+
+RULES:
+- Do NOT change Overview metrics, cards, or sections without explicit user approval
+- You MAY fix bugs, improve layout stability, or enhance performance
+- You MAY NOT add/remove/redesign content cards without asking first
+
+REASON: Overview is user-facing and changes impact UX expectations.
+-->
+
+<!-- OVERVIEW TAB (Dashboard Summary) -->
+<div id="tab-overview" class="tab-content active space-y-8" data-tab-panel="overview">
+    <!-- About Section -->
+    {% if profile.bio or profile.pronouns or profile.country %}
+    <div class="z-card p-8">
+        <div class="flex items-center gap-3 mb-6">
+            <i class="fa-solid fa-user text-[var(--z-cyan)] text-xl"></i>
+            <h2 class="text-2xl font-display font-bold text-white">About</h2>
+        </div>
+        <div class="space-y-4">
+            {% if profile.bio %}
+            <p class="text-gray-300 text-base leading-relaxed">{{ profile.bio }}</p>
+            {% endif %}
+            <div class="flex flex-wrap gap-4 text-sm">
+                {% if profile.pronouns %}
+                <div class="flex items-center gap-2 text-gray-400">
+                    <i class="fa-solid fa-id-badge text-[var(--z-purple)]"></i>
+                    <span>{{ profile.pronouns }}</span>
+                </div>
+                {% endif %}
+                {% if profile.country %}
+                <div class="flex items-center gap-2 text-gray-400">
+                    <i class="fa-solid fa-location-dot text-[var(--z-gold)]"></i>
+                    <span>{{ profile.country }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Dashboard Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <!-- Career Card -->
+        <div role="button" tabindex="0" data-tab-button="career" class="z-card p-6 cursor-pointer hover:border-[var(--z-cyan)]/50 transition-all transform hover:-translate-y-1 group">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 rounded-xl bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)] text-2xl group-hover:scale-110 transition">
+                    <i class="fa-solid fa-timeline"></i>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-cyan)] transition"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-cyan)] transition">Career</h3>
+            {% if user_teams %}
+            <p class="text-sm text-gray-400 mb-3">Currently on <span class="text-white font-bold">{{ user_teams|length }} team{{ user_teams|length|pluralize }}</span></p>
+            <div class="flex items-center gap-2">
+                <span class="text-xs px-2 py-1 bg-[var(--z-cyan)]/10 text-[var(--z-cyan)] rounded font-mono">{{ user_teams.0.name|truncatechars:15 }}</span>
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-500">No team history yet</p>
+            {% endif %}
+        </div>
+        
+        <!-- Stats Card -->
+        <div role="button" tabindex="0" data-tab-button="stats" class="z-card p-6 cursor-pointer hover:border-[var(--z-gold)]/50 transition-all transform hover:-translate-y-1 group">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 rounded-xl bg-[var(--z-gold)]/10 flex items-center justify-center text-[var(--z-gold)] text-2xl group-hover:scale-110 transition">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-gold)] transition"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-gold)] transition">Stats</h3>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                    <div class="text-2xl font-bold text-[var(--z-green)]">{{ user_stats.total_wins|default:0 }}</div>
+                    <div class="text-xs text-gray-500">Wins</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-white">{{ user_stats.win_rate|default:0 }}%</div>
+                    <div class="text-xs text-gray-500">Win Rate</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Inventory Card -->
+        <div role="button" tabindex="0" data-tab-button="inventory" class="z-card p-6 cursor-pointer hover:border-[var(--z-purple)]/50 transition-all transform hover:-translate-y-1 group">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 rounded-xl bg-[var(--z-purple)]/10 flex items-center justify-center text-[var(--z-purple)] text-2xl group-hover:scale-110 transition">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-purple)] transition"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-purple)] transition">Inventory</h3>
+            {% if showcase.equipped.border or showcase.equipped.frame or showcase.equipped.badges %}
+            <p class="text-sm text-gray-400">
+                <span class="text-white font-bold">{{ showcase.equipped|length|default:0 }}</span> equipped items
+            </p>
+            {% else %}
+            <p class="text-sm text-gray-500">No cosmetics equipped</p>
+            {% endif %}
+        </div>
+        
+        <!-- Media Card -->
+        <div role="button" tabindex="0" data-tab-button="media" class="z-card p-6 cursor-pointer hover:border-[var(--z-pink)]/50 transition-all transform hover:-translate-y-1 group">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 rounded-xl bg-[var(--z-pink)]/10 flex items-center justify-center text-[var(--z-pink)] text-2xl group-hover:scale-110 transition">
+                    <i class="fa-solid fa-image"></i>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-pink)] transition"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-pink)] transition">Media</h3>
+            <p class="text-sm text-gray-500">Gallery coming soon</p>
+        </div>
+        
+        <!-- Loadouts Card -->
+        <div role="button" tabindex="0" data-tab-button="loadout" class="z-card p-6 cursor-pointer hover:border-[var(--z-green)]/50 transition-all transform hover:-translate-y-1 group">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 rounded-xl bg-[var(--z-green)]/10 flex items-center justify-center text-[var(--z-green)] text-2xl group-hover:scale-110 transition">
+                    <i class="fa-solid fa-computer-mouse"></i>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-green)] transition"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-green)] transition">Loadouts</h3>
+            {% if hardware_gear.mouse or hardware_gear.keyboard %}
+            <p class="text-sm text-gray-400">
+                {% if hardware_gear.mouse %}<span class="text-white">{{ hardware_gear.mouse.brand }}</span>{% endif %}
+                {% if hardware_gear.keyboard %}<span class="text-gray-600 mx-2">•</span><span class="text-white">{{ hardware_gear.keyboard.brand }}</span>{% endif %}
+            </p>
+            {% else %}
+            <p class="text-sm text-gray-500">No hardware configured</p>
+            {% endif %}
+        </div>
+        
+        <!-- Bounties Card -->
+        <div role="button" tabindex="0" data-tab-button="bounties" class="z-card p-6 cursor-pointer hover:border-[var(--z-red)]/50 transition-all transform hover:-translate-y-1 group">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 rounded-xl bg-[var(--z-red)]/10 flex items-center justify-center text-[var(--z-red)] text-2xl group-hover:scale-110 transition">
+                    <i class="fa-solid fa-crosshairs"></i>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-red)] transition"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-red)] transition">Bounties</h3>
+            {% if bounties.stats.open_count or bounties.stats.in_progress_count %}
+            <div class="flex gap-4 text-sm">
+                <div>
+                    <div class="text-xl font-bold text-[var(--z-gold)]">{{ bounties.stats.open_count|default:0 }}</div>
+                    <div class="text-xs text-gray-500">Open</div>
+                </div>
+                <div>
+                    <div class="text-xl font-bold text-[var(--z-cyan)]">{{ bounties.stats.in_progress_count|default:0 }}</div>
+                    <div class="text-xs text-gray-500">Active</div>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-500">No active bounties</p>
+            {% endif %}
+        </div>
+        
+        <!-- Game IDs Card (NEW) -->
+        <div role="button" tabindex="0" data-tab-button="game-ids" class="z-card p-6 cursor-pointer hover:border-[var(--z-cyan)]/50 transition-all transform hover:-translate-y-1 group">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 rounded-xl bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)] text-2xl group-hover:scale-110 transition">
+                    <i class="fa-solid fa-id-card"></i>
+                </div>
+                <i class="fa-solid fa-arrow-right text-gray-600 group-hover:text-[var(--z-cyan)] transition"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-[var(--z-cyan)] transition">Game IDs</h3>
+            {% if game_ids %}
+            <p class="text-sm text-gray-400">
+                <span class="text-white font-bold">{{ game_ids|length }}</span> game{{ game_ids|length|pluralize }} linked
+            </p>
+            {% else %}
+            <p class="text-sm text-gray-500">No game IDs added yet</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Highlights Section (if any) -->
+    {% if highlight_clips %}
+    <div class="z-card p-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-display font-bold text-white flex items-center gap-3">
+                <i class="fa-solid fa-video text-[var(--z-red)]"></i> Featured Highlights
+            </h2>
+            <button type="button" data-tab-button="highlights" class="text-xs text-[var(--z-cyan)] hover:text-white transition">
+                View All <i class="fa-solid fa-arrow-right ml-1"></i>
+            </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for clip in highlight_clips|slice:":2" %}
+            <div class="z-card p-0 overflow-hidden group cursor-pointer relative aspect-video border-[var(--z-red)]/20 hover:border-[var(--z-red)] transition" onclick="openVideoModal('{{ clip.embed_url|escapejs }}', '{{ clip.title|escapejs }}', '{{ clip.url|escapejs }}')">
+                {% if clip.thumbnail_url %}
+                <img src="{{ clip.thumbnail_url }}" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition" alt="{{ clip.title }}">
+                {% else %}
+                <div class="w-full h-full bg-gradient-to-br from-[var(--z-red)]/20 to-[var(--z-red)]/5 flex items-center justify-center">
+                    <i class="fa-solid fa-video text-6xl text-[var(--z-red)]/30"></i>
+                </div>
+                {% endif %}
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition">
+                        <i class="fa-solid fa-play text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black to-transparent">
+                    <div class="text-sm font-bold text-white">{{ clip.title }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Skill Matrix (if endorsements exist) -->
+    {% if endorsements.total_count > 0 %}
+    <div class="z-card p-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-display font-bold text-white flex items-center gap-3">
+                <i class="fa-solid fa-certificate text-[var(--z-gold)]"></i> Skill Matrix
+            </h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for skill, count in endorsements.by_skill.items|slice:":3" %}
+            <div class="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                <div class="w-12 h-12 rounded-xl bg-[var(--z-purple)]/20 flex items-center justify-center text-[var(--z-purple)] font-bold text-xl">{{ count }}</div>
+                <div class="text-sm font-bold text-white uppercase tracking-wider">{{ skill|title }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Empty State (if new profile) -->
+    {% if not user_teams and not highlight_clips and not endorsements.total_count %}
+    <div class="z-card p-12 border-dashed border-white/10 bg-black/30 text-center space-y-6">
+        <div class="text-6xl">✨</div>
+        <div class="space-y-2">
+            <h3 class="text-2xl font-display font-bold text-white">Welcome to Your Profile!</h3>
+            <p class="text-gray-400 max-w-xl mx-auto">
+                {% if is_owner %}
+                Start by exploring the tabs above. Add your game IDs, create bounties, upload highlights, or join a team to build your esports profile.
+                {% else %}
+                This profile is just getting started. Check back soon!
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    {% endif %}
+</div>

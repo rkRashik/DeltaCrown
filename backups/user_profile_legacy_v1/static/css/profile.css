@@ -1,0 +1,321 @@
+/* ============================================
+   MODULE 1: GLASSMORPHIC CYBERPUNK 2025
+   Global Design System & Custom Animations
+   ============================================ */
+
+/* Custom Animation: Slow Spin for DeltaCoin */
+@keyframes spin-slow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+}
+
+/* Custom Animation: Pulsing Glow for Live Status */
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        opacity: 1;
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        opacity: 0.8;
+    }
+}
+
+.pulse-glow {
+    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom Animation: Pulsing Border for Avatar */
+@keyframes pulse-border {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 35px rgba(16, 185, 129, 0.9);
+    }
+}
+
+.animate-pulse-border {
+    animation: pulse-border 2s ease-in-out infinite;
+}
+
+/* Custom Animation: Hover Lift Effect */
+.hover-lift {
+    transform: translateY(0);
+    transition: all 300ms ease-in-out;
+}
+
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+    border-color: rgba(99, 102, 241, 0.5);
+}
+
+/* Glassmorphic Card Base */
+.glass-card {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Glass Card Shine Effect */
+.glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+    transition: left 0.5s ease;
+}
+
+.glass-card:hover::before {
+    left: 100%;
+}
+
+/* Sparkline Chart Styling */
+.sparkline {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.5);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Hide Scrollbar (Webkit) */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(16, 185, 129, 0.5);
+    padding: 1rem 1.5rem;
+    border-radius: 0.75rem;
+    color: #10b981;
+    font-weight: 700;
+    font-size: 0.875rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 300ms ease-in-out;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Brand Color Variables (Social Icons) */
+.social-discord:hover { background-color: #5865F2 !important; }
+.social-twitch:hover { background-color: #9146FF !important; }
+.social-youtube:hover { background-color: #FF0000 !important; }
+.social-facebook:hover { background-color: #1877F2 !important; }
+.social-twitter:hover { background-color: #1DA1F2 !important; }
+.social-instagram:hover { 
+    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%) !important; 
+}
+
+/* Cinematic Hero Gradient Overlay */
+.hero-fade {
+    background: linear-gradient(to top, 
+        rgb(2, 6, 23) 0%, 
+        rgba(2, 6, 23, 0.95) 20%,
+        rgba(2, 6, 23, 0.8) 40%, 
+        transparent 100%
+    );
+    pointer-events: none;
+}
+
+/* Trophy Shelf Glow */
+.trophy-glow {
+    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.5));
+}
+
+/* Match Row Pulse on Hover */
+.match-row {
+    transition: all 200ms ease-in-out;
+}
+
+.match-row:hover {
+    transform: translateX(4px);
+}
+
+/* Reputation Progress Bar Animation */
+.reputation-fill {
+    transition: width 1s ease-in-out;
+}
+
+/* Live Badge Animation */
+@keyframes live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.live-badge {
+    animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* Certificate Download Button */
+.cert-download {
+    opacity: 0;
+    transition: opacity 200ms ease-in-out;
+}
+
+.cert-item:hover .cert-download {
+    opacity: 1;
+}
+
+/* Wallet Blur Effect */
+.wallet-blur {
+    filter: blur(8px);
+    transition: filter 300ms ease-in-out;
+}
+
+.wallet-blur:hover {
+    filter: blur(0px);
+}
+
+/* Tab Active Indicator */
+.tab-active {
+    border-bottom: 3px solid #6366f1;
+    color: #ffffff;
+}
+
+/* Mobile Fixed Action Bar */
+.mobile-action-bar {
+    background: rgba(2, 6, 23, 0.9);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.5);
+}
+
+/* Facepile Avatar Overlap */
+.facepile img {
+    margin-left: -0.75rem;
+    border: 2px solid rgb(2, 6, 23);
+}
+
+.facepile img:first-child {
+    margin-left: 0;
+}
+
+/* Verification Badge */
+.verified-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: #3b82f6;
+    border-radius: 50%;
+    margin-left: 0.5rem;
+}
+
+/* Game Tab Indicator */
+.game-tab {
+    border-bottom: 2px solid transparent;
+    transition: all 200ms ease-in-out;
+}
+
+.game-tab.active {
+    border-bottom-color: #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+}
+
+/* Rank Badge Styling */
+.rank-badge {
+    background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+    border: 2px solid rgba(168, 85, 247, 0.5);
+}
+
+/* Win/Loss Indicator Strip */
+.win-strip {
+    border-left: 4px solid #10b981;
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.loss-strip {
+    border-left: 4px solid #e11d48;
+    background: rgba(225, 29, 72, 0.05);
+}
+
+/* Skeleton Loader (for async data) */
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, 
+        rgba(51, 65, 85, 0.4) 25%, 
+        rgba(71, 85, 105, 0.4) 50%, 
+        rgba(51, 65, 85, 0.4) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: 0.5rem;
+}
+
+/* Tooltip */
+.tooltip {
+    position: relative;
+}
+
+.tooltip::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%) scale(0);
+    background: rgba(15, 23, 42, 0.95);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    transition: all 200ms ease-in-out;
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tooltip:hover::before {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+}
+
+/* Team Card Hover Effect */
+.team-card {
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.team-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.3);
+}

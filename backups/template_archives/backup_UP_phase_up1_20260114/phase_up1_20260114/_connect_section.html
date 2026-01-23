@@ -1,0 +1,194 @@
+{% load static %}
+
+<!-- CONNECT SECTION - Phase 4D: Social & Contact Hub -->
+<div class="z-card p-8">
+    <div class="flex justify-between items-center mb-8 border-b border-white/5 pb-4">
+        <h2 class="text-2xl font-display font-bold text-white flex items-center gap-3">
+            <i class="fa-solid fa-link text-[var(--z-cyan)]"></i> Connect
+        </h2>
+        {% if is_owner %}
+        <a href="/me/settings/#connections" class="text-xs text-[var(--z-cyan)] hover:text-[var(--z-cyan)]/80 transition font-semibold uppercase tracking-wider">
+            <i class="fa-solid fa-pen-to-square mr-1"></i> Edit Links
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Preferred Contact Method -->
+    {% if about_fields.contact.preferred_contact.visible %}
+    <div class="mb-8 p-6 bg-gradient-to-br from-[var(--z-gold)]/10 to-[var(--z-cyan)]/10 rounded-xl border border-[var(--z-gold)]/20">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg bg-[var(--z-gold)]/20 border border-[var(--z-gold)]/30 flex items-center justify-center">
+                <i class="fa-solid fa-star text-[var(--z-gold)]"></i>
+            </div>
+            <div>
+                <div class="text-xs text-white/60 uppercase tracking-wider font-semibold">Preferred Contact</div>
+                <div class="text-lg font-bold text-white">{{ about_fields.contact.preferred_contact.value }}</div>
+            </div>
+        </div>
+        {% if about_fields.contact.discord_id.visible %}
+        <p class="text-sm text-white/70 flex items-center gap-2">
+            <i class="fa-brands fa-discord text-[var(--z-cyan)]"></i> {{ about_fields.contact.discord_id.value }}
+        </p>
+        {% elif about_fields.contact.whatsapp.visible %}
+        <p class="text-sm text-white/70 flex items-center gap-2">
+            <i class="fa-brands fa-whatsapp text-green-400"></i> {{ about_fields.contact.whatsapp.value }}
+        </p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Social Links Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {% if user_profile.youtube_link %}
+        <a href="{{ user_profile.youtube_link }}" target="_blank" rel="noopener noreferrer" class="social-link-card group">
+            <div class="w-12 h-12 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-center group-hover:bg-red-500/30 group-hover:scale-110 transition-all">
+                <i class="fa-brands fa-youtube text-2xl text-red-500"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-semibold text-white group-hover:text-red-400 transition">YouTube</div>
+                <div class="text-xs text-white/40">Creator</div>
+            </div>
+            <i class="fa-solid fa-arrow-up-right-from-square text-white/20 group-hover:text-white/60 transition"></i>
+        </a>
+        {% endif %}
+
+        {% if user_profile.twitch_link %}
+        <a href="{{ user_profile.twitch_link }}" target="_blank" rel="noopener noreferrer" class="social-link-card group">
+            <div class="w-12 h-12 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center group-hover:bg-purple-500/30 group-hover:scale-110 transition-all">
+                <i class="fa-brands fa-twitch text-2xl text-purple-400"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-semibold text-white group-hover:text-purple-400 transition">Twitch</div>
+                <div class="text-xs text-white/40">Streaming</div>
+            </div>
+            <i class="fa-solid fa-arrow-up-right-from-square text-white/20 group-hover:text-white/60 transition"></i>
+        </a>
+        {% endif %}
+
+        {% if user_profile.twitter %}
+        <a href="{{ user_profile.twitter }}" target="_blank" rel="noopener noreferrer" class="social-link-card group">
+            <div class="w-12 h-12 rounded-lg bg-sky-500/20 border border-sky-500/30 flex items-center justify-center group-hover:bg-sky-500/30 group-hover:scale-110 transition-all">
+                <i class="fa-brands fa-x-twitter text-2xl text-sky-400"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-semibold text-white group-hover:text-sky-400 transition">Twitter/X</div>
+                <div class="text-xs text-white/40">Social</div>
+            </div>
+            <i class="fa-solid fa-arrow-up-right-from-square text-white/20 group-hover:text-white/60 transition"></i>
+        </a>
+        {% endif %}
+
+        {% if user_profile.discord_id %}
+        <div class="social-link-card group cursor-default relative">
+            <div class="w-12 h-12 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
+                <i class="fa-brands fa-discord text-2xl text-indigo-400"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-semibold text-white">Discord</div>
+                <div class="text-xs text-white/60 truncate">{{ user_profile.discord_id }}</div>
+            </div>
+            <button 
+                onclick="copyToClipboard('{{ user_profile.discord_id }}', 'Discord ID copied!')" 
+                class="w-8 h-8 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all focus:outline-none focus:ring-2 focus:ring-[var(--z-cyan)]/50"
+                title="Copy Discord ID"
+                aria-label="Copy Discord ID to clipboard"
+            >
+                <i class="fa-solid fa-copy text-xs text-white/60"></i>
+            </button>
+        </div>
+        {% endif %}
+
+        {% if user_profile.instagram %}
+        <a href="{{ user_profile.instagram }}" target="_blank" rel="noopener noreferrer" class="social-link-card group">
+            <div class="w-12 h-12 rounded-lg bg-pink-500/20 border border-pink-500/30 flex items-center justify-center group-hover:bg-pink-500/30 group-hover:scale-110 transition-all">
+                <i class="fa-brands fa-instagram text-2xl text-pink-400"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-semibold text-white group-hover:text-pink-400 transition">Instagram</div>
+                <div class="text-xs text-white/40">Social</div>
+            </div>
+            <i class="fa-solid fa-arrow-up-right-from-square text-white/20 group-hover:text-white/60 transition"></i>
+        </a>
+        {% endif %}
+
+        {% if user_profile.tiktok %}
+        <a href="{{ user_profile.tiktok }}" target="_blank" rel="noopener noreferrer" class="social-link-card group">
+            <div class="w-12 h-12 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center group-hover:bg-cyan-500/30 group-hover:scale-110 transition-all">
+                <i class="fa-brands fa-tiktok text-2xl text-cyan-400"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-semibold text-white group-hover:text-cyan-400 transition">TikTok</div>
+                <div class="text-xs text-white/40">Short-form</div>
+            </div>
+            <i class="fa-solid fa-arrow-up-right-from-square text-white/20 group-hover:text-white/60 transition"></i>
+        </a>
+        {% endif %}
+
+        {% if user_profile.facebook %}
+        <a href="{{ user_profile.facebook }}" target="_blank" rel="noopener noreferrer" class="social-link-card group">
+            <div class="w-12 h-12 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center group-hover:bg-blue-500/30 group-hover:scale-110 transition-all">
+                <i class="fa-brands fa-facebook text-2xl text-blue-400"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-semibold text-white group-hover:text-blue-400 transition">Facebook</div>
+                <div class="text-xs text-white/40">Social</div>
+            </div>
+            <i class="fa-solid fa-arrow-up-right-from-square text-white/20 group-hover:text-white/60 transition"></i>
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Empty State -->
+    {% if not user_profile.youtube_link and not user_profile.twitch_link and not user_profile.twitter and not user_profile.discord_id and not user_profile.instagram and not user_profile.tiktok and not user_profile.facebook %}
+    <div class="text-center text-gray-500 py-16">
+        <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+            <i class="fa-solid fa-link text-4xl opacity-20"></i>
+        </div>
+        {% if is_owner %}
+        <p class="text-lg font-semibold text-white/60 mb-2">No Social Links Yet</p>
+        <p class="text-sm text-white/40 mb-6">Connect your social media to grow your network</p>
+        <a href="/me/settings/#connections" class="inline-block px-6 py-3 bg-[var(--z-cyan)] text-black font-bold rounded-lg hover:bg-[var(--z-cyan)]/90 transition">
+            <i class="fa-solid fa-plus mr-2"></i> Add Links
+        </a>
+        {% else %}
+        <p class="text-sm">No social links shared yet</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.social-link-card {
+    @apply flex items-center gap-4 p-4 z-card hover:border-white/20 transition-all cursor-pointer;
+}
+</style>
+
+<script>
+function copyToClipboard(text, message) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast(message || 'Copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        showToast('Failed to copy', 'error');
+    });
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-8 right-8 px-6 py-4 rounded-lg shadow-2xl z-50 transform transition-all duration-300 ${
+        type === 'success' 
+            ? 'bg-green-500 text-white' 
+            : 'bg-red-500 text-white'
+    }`;
+    toast.innerHTML = `
+        <div class="flex items-center gap-3">
+            <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark'} text-lg"></i>
+            <span class="font-semibold">${message}</span>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('opacity-0'), 2000);
+    setTimeout(() => toast.remove(), 2500);
+}
+</script>

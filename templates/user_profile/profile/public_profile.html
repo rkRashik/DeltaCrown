@@ -532,6 +532,45 @@
 
         <section id="center-column" class="space-y-6 order-1 lg:order-2 lg:col-span-1 min-w-0 transition-all duration-500">
 
+            <!-- Tab Switching JavaScript - Must be defined BEFORE buttons with onclick handlers -->
+            <script>
+            // Define switchTab function globally for inline onclick handlers
+            window.switchTab = function(tabName) {
+                console.log('[SWITCH_TAB] Switching to:', tabName);
+                
+                // Hide all tab contents
+                const tabContents = document.querySelectorAll('.tab-content');
+                tabContents.forEach(content => {
+                    content.classList.add('hidden');
+                });
+                
+                // Remove active class from all tab buttons
+                const tabButtons = document.querySelectorAll('.tab-btn');
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('bg-z-cyan/10', 'border-b-2', 'border-z-cyan', 'text-z-cyan', 'shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]');
+                    btn.classList.add('text-gray-400', 'hover:text-white', 'hover:bg-white/5');
+                });
+                
+                // Show selected tab content
+                const selectedContent = document.getElementById('tab-' + tabName);
+                if (selectedContent) {
+                    selectedContent.classList.remove('hidden');
+                } else {
+                    console.warn('[SWITCH_TAB] Tab content not found:', 'tab-' + tabName);
+                }
+                
+                // Add active class to selected button
+                const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
+                if (selectedButton) {
+                    selectedButton.classList.remove('text-gray-400', 'hover:text-white', 'hover:bg-white/5');
+                    selectedButton.classList.add('bg-z-cyan/10', 'border-b-2', 'border-z-cyan', 'text-z-cyan', 'shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]');
+                } else {
+                    console.warn('[SWITCH_TAB] Tab button not found:', tabName);
+                }
+            };
+            console.log('[PROFILE] switchTab function defined');
+            </script>
+
             <!-- Tab Navigation -->
             <nav class="flex overflow-x-auto pb-2 scrollbar-hide gap-2 border-b border-white/10 mb-4">
                 <button onclick="switchTab('overview')" data-tab="overview" class="tab-btn shrink-0 px-6 py-3 rounded-t-xl bg-z-cyan/10 border-b-2 border-z-cyan text-z-cyan font-bold text-sm tracking-wide shadow-[0_4px_20px_-10px_rgba(0,240,255,0.3)]">Overview</button>
@@ -915,33 +954,7 @@ window.closeFollowingModal = function() {
     }
 };
 
-// Load Followers List
-async function loadFollowersList() {
-    const container = document.getElementById('followersList');
-    container.innerHTML = '<div class="flex items-center justify-center py-12"><i class="fa-solid fa-spinner fa-spin text-2xl text-gray-500"></i></div>';
-    
-    try {
-        // Force cache bypass with timestamp + headers
-        const url = `/api/profile/${currentUsername}/followers/?_t=${Date.now()}`;
-        console.log('[FOLLOWERS] Fetching:', url);
-        
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-   REMOVED 2026-01-22: Followers/Following modal JavaScript removed due to persistent 410 Gone caching issues #} else {
-            // Restore Normal Mode
-            if (rightSidebar) {
-                rightSidebar.classList.remove('hidden');
-            }
-            if (centerColumn) {
-                centerColumn.classList.remove('lg:col-span-2');
-                centerColumn.classList.add('lg:col-span-1');
-            }
-        }
-    };
-    
-    // Initialize: ensure Overview is active on page load
-    // (already set in HTML, but this ensures consistency)
+// Followers/Following functions removed (2026-01-22) - using external follow-modal-system.js instead
     
     // Bounty Modal Functions
     window.openBountyModal = function(title, reward) {

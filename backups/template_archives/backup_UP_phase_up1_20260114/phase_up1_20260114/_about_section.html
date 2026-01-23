@@ -1,0 +1,333 @@
+{% load static %}
+
+<!-- PHASE 4C: About / Data Command Center -->
+<!-- CV-Grade Professional About Section with Privacy Controls -->
+
+<div class="z-card p-8">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-[var(--z-cyan)]/10 flex items-center justify-center">
+                <i class="fa-solid fa-address-card text-[var(--z-cyan)] text-2xl"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-display font-bold text-white">About</h2>
+                <p class="text-xs text-gray-500">Professional profile data</p>
+            </div>
+        </div>
+        
+        {% if is_owner %}
+        <a href="/me/settings/#about" class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[var(--z-cyan)]/50 rounded-lg text-xs font-bold text-gray-400 hover:text-[var(--z-cyan)] transition flex items-center gap-2">
+            <i class="fa-solid fa-pen-to-square"></i> Edit in Settings
+        </a>
+        {% endif %}
+    </div>
+    
+    <!-- Bio (if exists) -->
+    {% if profile.bio %}
+    <div class="mb-8 pb-8 border-b border-white/5">
+        <p class="text-gray-300 leading-relaxed">{{ profile.bio }}</p>
+    </div>
+    {% endif %}
+    
+    <!-- I. Personal Data -->
+    {% with fields=about_fields.personal %}
+    {% if fields.country.visible or fields.pronouns.visible or fields.nationality.visible or fields.age.visible %}
+    <div class="mb-8">
+        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-user-circle text-[var(--z-purple)]"></i> Personal Data
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% if fields.country.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[var(--z-gold)]/10 flex items-center justify-center text-[var(--z-gold)] group-hover:scale-110 transition">
+                    <i class="fa-solid {{ fields.country.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.country.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate">{{ fields.country.value }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if fields.pronouns.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[var(--z-purple)]/10 flex items-center justify-center text-[var(--z-purple)] group-hover:scale-110 transition">
+                    <i class="fa-solid {{ fields.pronouns.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.pronouns.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate">{{ fields.pronouns.value }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if fields.nationality.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[var(--z-pink)]/10 flex items-center justify-center text-[var(--z-pink)] group-hover:scale-110 transition">
+                    <i class="fa-solid {{ fields.nationality.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.nationality.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate">{{ fields.nationality.value }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if fields.age.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)] group-hover:scale-110 transition">
+                    <i class="fa-solid {{ fields.age.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.age.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate">{{ fields.age.value }}</div>
+                </div>
+            </div>
+            {% elif is_owner and not profile.date_of_birth %}
+            {# Phase 4C.1.2: CTA for owner when DOB is missing #}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-500/50 transition group">
+                <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
+                    <i class="fa-solid fa-info-circle"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-400 uppercase tracking-wider">Age</div>
+                    <a href="/me/settings/#security" class="text-sm font-semibold text-blue-400 hover:text-blue-300 transition flex items-center gap-2">
+                        Add your date of birth
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </a>
+                    <div class="text-xs text-gray-500 mt-1">Complete your profile in Security & KYC</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% elif is_owner and not profile.date_of_birth %}
+    {# Show CTA section even when Personal Data is empty #}
+    <div class="mb-8">
+        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-user-circle text-[var(--z-purple)]"></i> Personal Data
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-500/50 transition group">
+                <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
+                    <i class="fa-solid fa-info-circle"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-400 uppercase tracking-wider">Age</div>
+                    <a href="/me/settings/#security" class="text-sm font-semibold text-blue-400 hover:text-blue-300 transition flex items-center gap-2">
+                        Add your date of birth
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </a>
+                    <div class="text-xs text-gray-500 mt-1">Complete your profile in Security & KYC</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+    
+    <!-- II. Competitive DNA -->
+    {% with fields=about_fields.competitive %}
+    {% if fields.device_platform.visible or fields.play_style.visible or fields.lan_availability.visible or fields.main_role.visible or fields.secondary_role.visible or fields.career_status.visible %}
+    <div class="mb-8">
+        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-trophy text-[var(--z-gold)]"></i> Competitive DNA
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% if fields.device_platform.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)] group-hover:scale-110 transition">
+                    <i class="fa-solid {{ fields.device_platform.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.device_platform.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate">{{ fields.device_platform.value }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if fields.play_style.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[var(--z-purple)]/10 flex items-center justify-center text-[var(--z-purple)] group-hover:scale-110 transition">
+                    <i class="fa-solid {{ fields.play_style.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.play_style.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate">{{ fields.play_style.value }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if fields.lan_availability.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-[var(--z-green)]/20 to-transparent border border-[var(--z-green)]/30 group">
+                <div class="w-10 h-10 rounded-lg bg-[var(--z-green)]/20 flex items-center justify-center text-[var(--z-green)] group-hover:scale-110 transition">
+                    <i class="fa-solid {{ fields.lan_availability.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.lan_availability.label }}</div>
+                    <div class="text-sm font-bold text-[var(--z-green)] flex items-center gap-2">
+                        {{ fields.lan_availability.value }}
+                        <span class="w-2 h-2 bg-[var(--z-green)] rounded-full animate-pulse"></span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if fields.main_role.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[var(--z-gold)]/10 flex items-center justify-center text-[var(--z-gold)] group-hover:scale-110 transition">
+                    <i class="fa-solid {{ fields.main_role.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.main_role.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate">{{ fields.main_role.value }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if fields.secondary_role.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)] group-hover:scale-110 transition">
+                    <i class="fa-solid {{ fields.secondary_role.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.secondary_role.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate">{{ fields.secondary_role.value }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if fields.career_status.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[var(--z-purple)]/10 flex items-center justify-center text-[var(--z-purple)] group-hover:scale-110 transition">
+                    <i class="fa-solid {{ fields.career_status.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.career_status.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate">{{ fields.career_status.value }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {# TODO: Primary Team field (Phase 4C.2) #}
+            {# Requires migration: UserProfile.primary_team = ForeignKey('teams.Team', null=True, on_delete=SET_NULL) #}
+            {# See docs/PHASE4C1_GAPS_DOB_PRIMARY_TEAM.md for implementation plan #}
+            {# {% if fields.primary_team.visible %} #}
+            {# <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition group"> #}
+            {#     <div class="w-10 h-10 rounded-lg bg-[var(--z-team)]/10 flex items-center justify-center text-[var(--z-team)] group-hover:scale-110 transition"> #}
+            {#         <i class="fa-solid fa-users"></i> #}
+            {#     </div> #}
+            {#     <div class="flex-1 min-w-0"> #}
+            {#         <div class="text-xs text-gray-500 uppercase tracking-wider">Primary Team</div> #}
+            {#         <div class="text-sm font-semibold text-white truncate">{{ fields.primary_team.value }}</div> #}
+            {#     </div> #}
+            {# </div> #}
+            {# {% endif %} #}
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+    
+    <!-- III. Logistics -->
+    {% with fields=about_fields.logistics %}
+    {% if fields.communication_languages.visible or fields.active_hours.visible %}
+    <div class="mb-8">
+        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-globe text-[var(--z-cyan)]"></i> Logistics
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% if fields.communication_languages.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[var(--z-purple)]/10 flex items-center justify-center text-[var(--z-purple)] group-hover:scale-110 transition">
+                    <i class="fa-solid {{ fields.communication_languages.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.communication_languages.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate">{{ fields.communication_languages.value }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if fields.active_hours.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[var(--z-gold)]/10 flex items-center justify-center text-[var(--z-gold)] group-hover:scale-110 transition">
+                    <i class="fa-solid {{ fields.active_hours.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.active_hours.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate">{{ fields.active_hours.value }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+    
+    <!-- IV. Contact Center -->
+    {% with fields=about_fields.contact %}
+    {% if fields.preferred_contact.visible or fields.discord_id.visible or fields.whatsapp.visible %}
+    <div>
+        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-address-book text-[var(--z-pink)]"></i> Contact Center
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% if fields.preferred_contact.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[var(--z-cyan)]/10 flex items-center justify-center text-[var(--z-cyan)] group-hover:scale-110 transition">
+                    <i class="fa-solid {{ fields.preferred_contact.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.preferred_contact.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate">{{ fields.preferred_contact.value }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if fields.discord_id.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-[#5865F2]/10 border border-[#5865F2]/30 hover:border-[#5865F2]/50 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[#5865F2]/20 flex items-center justify-center text-[#5865F2] group-hover:scale-110 transition">
+                    <i class="fa-brands {{ fields.discord_id.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.discord_id.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate font-mono">{{ fields.discord_id.value }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if fields.whatsapp.visible %}
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 hover:border-[#25D366]/50 transition group">
+                <div class="w-10 h-10 rounded-lg bg-[#25D366]/20 flex items-center justify-center text-[#25D366] group-hover:scale-110 transition">
+                    <i class="fa-brands {{ fields.whatsapp.icon }}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">{{ fields.whatsapp.label }}</div>
+                    <div class="text-sm font-semibold text-white truncate font-mono">{{ fields.whatsapp.value }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+    
+    <!-- Empty State (Owner Only) -->
+    {% if is_owner %}
+    {% if not profile.bio and not about_fields.personal.country.visible and not about_fields.competitive.device_platform.visible and not about_fields.logistics.communication_languages.visible %}
+    <div class="text-center py-12 border-2 border-dashed border-white/10 rounded-xl bg-white/[0.01]">
+        <div class="w-16 h-16 rounded-full bg-[var(--z-cyan)]/10 flex items-center justify-center mx-auto mb-4">
+            <i class="fa-solid fa-user-plus text-[var(--z-cyan)] text-2xl"></i>
+        </div>
+        <h3 class="text-lg font-bold text-white mb-2">Complete Your About Section</h3>
+        <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+            Add professional details to help teams and recruiters discover you. Fill in your platform, play style, roles, and contact preferences.
+        </p>
+        <a href="/me/settings/#about" class="inline-flex items-center gap-2 px-6 py-3 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-black font-bold text-sm rounded-xl transition">
+            <i class="fa-solid fa-pen-to-square"></i> Complete Profile
+        </a>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>

@@ -16,14 +16,24 @@ class Migration(migrations.Migration):
         # Solution: Drop the orphaned column entirely since Django model doesn't define it
         migrations.RunSQL(
             sql="""
-                -- First set NULL values to prevent constraint violation during column drop
-                UPDATE user_profile_userprofile
-                SET is_private = FALSE
-                WHERE is_private IS NULL;
-                
-                -- Drop the orphaned column
-                ALTER TABLE user_profile_userprofile
-                DROP COLUMN IF EXISTS is_private;
+                -- Check if column exists, then update NULL values and drop
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name = 'user_profile_userprofile' 
+                        AND column_name = 'is_private'
+                    ) THEN
+                        -- Set NULL values to FALSE
+                        UPDATE user_profile_userprofile
+                        SET is_private = FALSE
+                        WHERE is_private IS NULL;
+                        
+                        -- Drop the orphaned column
+                        ALTER TABLE user_profile_userprofile
+                        DROP COLUMN is_private;
+                    END IF;
+                END $$;
             """,
             reverse_sql="""
                 -- Reverse: Re-add the column (though this shouldn't be needed)

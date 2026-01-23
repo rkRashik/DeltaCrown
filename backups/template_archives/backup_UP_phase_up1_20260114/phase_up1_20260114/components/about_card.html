@@ -1,0 +1,38 @@
+{% comment %}
+About Card Component - Privacy-Aware
+Shows location and join date based on permission flags
+{% endcomment %}
+<div class="z-card p-6 relative group">
+    <div class="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">About</h3>
+        {% if is_owner %}
+        <button onclick="openAboutModal()" class="text-gray-500 hover:text-white transition edit-trigger" title="Edit About">
+            <i class="fa-solid fa-pen"></i>
+        </button>
+        {% endif %}
+    </div>
+    <div class="space-y-5">
+        {% if can_view_location and profile.country %}
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 border border-white/5">
+                <i class="fa-solid fa-flag"></i>
+            </div>
+            <div>
+                <div class="text-[10px] text-gray-500 uppercase font-bold mb-0.5">Location</div>
+                <div class="text-white text-sm font-medium">{{ profile.country }}</div>
+            </div>
+        </div>
+        {% endif %}
+        {% if can_view_join_date %}
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400 border border-white/5">
+                <i class="fa-solid fa-calendar"></i>
+            </div>
+            <div>
+                <div class="text-[10px] text-gray-500 uppercase font-bold mb-0.5">Joined</div>
+                <div class="text-white text-sm font-medium">{{ profile.created_at|date:"F Y" }}</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>

@@ -2047,6 +2047,19 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     available_games = Game.objects.filter(is_active=True).order_by('name')
     context['available_games_for_matchmaking'] = available_games
     
+    # ORGANIZATIONS: Add organization membership information (Phase 7)
+    # TODO: Enable when OrganizationMembership model is implemented
+    # from apps.teams.models import OrganizationMembership
+    # org_memberships = OrganizationMembership.objects.filter(
+    #     profile=request.user.profile,
+    #     status='ACTIVE'
+    # ).select_related('organization').order_by('organization__name')
+    # ... (organization processing code)
+    
+    # Placeholder until organizations feature is implemented
+    context['organization_memberships'] = []
+    context['has_organization_memberships'] = False
+    
     # PHASE 1C FIX: Add hardware_gear context for loadout display
     from apps.user_profile.services import loadout_service
     

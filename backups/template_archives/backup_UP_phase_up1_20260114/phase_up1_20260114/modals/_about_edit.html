@@ -1,0 +1,78 @@
+<!-- Edit About Modal -->
+<div id="aboutModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative max-w-2xl w-full">
+        <button onclick="closeAboutModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-times"></i>
+        </button>
+        <div class="bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl border border-white/10 p-8 max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 bg-[var(--z-cyan)]/20 rounded-xl flex items-center justify-center">
+                    <i class="fa-solid fa-user text-[var(--z-cyan)] text-xl"></i>
+                </div>
+                <h2 class="text-2xl font-display font-bold text-white">Edit About</h2>
+            </div>
+            
+            <form id="aboutForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">
+                        Bio
+                        <span class="text-gray-500 font-normal ml-2">(max 500 characters)</span>
+                    </label>
+                    <textarea 
+                        id="bioInput" 
+                        name="bio"
+                        rows="4" 
+                        maxlength="500"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                        placeholder="Tell us about yourself...">{{ profile.bio }}</textarea>
+                    <div class="text-xs text-gray-500 mt-1" id="bioCharCount">0 / 500</div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Pronouns</label>
+                    <input 
+                        type="text" 
+                        id="pronounsInput"
+                        name="pronouns"
+                        maxlength="50"
+                        value="{{ profile.pronouns|default:'' }}"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                        placeholder="e.g., he/him, she/her, they/them">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Country</label>
+                    <input 
+                        type="text" 
+                        id="countryInput"
+                        name="country"
+                        maxlength="100"
+                        value="{{ profile.country|default:'' }}"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                        placeholder="e.g., Bangladesh, India, Pakistan">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">City</label>
+                    <input 
+                        type="text" 
+                        id="cityInput"
+                        name="city"
+                        maxlength="100"
+                        value="{{ profile.city|default:'' }}"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[var(--z-cyan)] focus:ring-1 focus:ring-[var(--z-cyan)] transition"
+                        placeholder="e.g., Dhaka, Mumbai, Lahore">
+                </div>
+                
+                <div class="flex justify-end gap-3 pt-4 border-t border-white/10">
+                    <button type="button" onclick="closeAboutModal()" class="px-6 py-2 bg-white/10 hover:bg-white/20 text-white font-bold rounded-lg transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-[var(--z-cyan)] hover:bg-[var(--z-cyan)]/80 text-black font-bold rounded-lg transition flex items-center gap-2">
+                        <i class="fa-solid fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

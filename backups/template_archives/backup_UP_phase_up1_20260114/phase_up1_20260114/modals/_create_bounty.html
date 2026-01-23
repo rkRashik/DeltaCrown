@@ -1,0 +1,79 @@
+<!-- UP-PHASE2D: Create Bounty Modal -->
+{% if is_owner %}
+<div id="createBountyModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="relative w-full max-w-2xl">
+        <button onclick="closeCreateBountyModal()" class="absolute -top-12 right-0 text-white hover:text-[var(--z-cyan)] transition text-2xl">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="bg-[var(--z-panel)] rounded-xl p-8 border border-white/10">
+            <h2 class="text-2xl font-display font-bold text-white mb-4 flex items-center gap-3">
+                <i class="fa-solid fa-crosshairs text-[var(--z-gold)]"></i> Create Bounty
+            </h2>
+            
+            <div id="createBountyError" class="hidden bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4 text-red-400 text-sm"></div>
+            
+            <form id="createBountyForm" class="space-y-4">
+                <div>
+                    <label class="block text-white font-bold mb-2 text-sm">Challenge Title</label>
+                    <input type="text" name="title" required 
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none"
+                        placeholder="e.g., 1v1 Aim Duel - First to 100k Gridshot">
+                </div>
+                
+                <div>
+                    <label class="block text-white font-bold mb-2 text-sm">Game</label>
+                    <select name="game" required 
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none">
+                        <option value="">Select Game...</option>
+                        {% for game in games %}
+                        <option value="{{ game.id }}">{{ game.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-white font-bold mb-2 text-sm">Description (Optional)</label>
+                    <textarea name="description" rows="3"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none resize-none"
+                        placeholder="Challenge rules, map, specific conditions..."></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-white font-bold mb-2 text-sm">Stake Amount (DC)</label>
+                        <input type="number" name="stake_amount" required min="100" max="50000" value="500"
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none">
+                        <p class="text-xs text-gray-400 mt-1">Min: 100 DC | Max: 50,000 DC</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-white font-bold mb-2 text-sm">Expires In (Hours)</label>
+                        <select name="expires_in_hours" required
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[var(--z-gold)] focus:outline-none">
+                            <option value="24">24 hours (1 day)</option>
+                            <option value="48">48 hours (2 days)</option>
+                            <option value="72" selected>72 hours (3 days)</option>
+                            <option value="168">168 hours (1 week)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 text-yellow-400 text-xs">
+                    <i class="fa-solid fa-info-circle mr-2"></i>
+                    <strong>Escrow Lock:</strong> Your stake will be locked in escrow when you create the bounty. 
+                    If no one accepts before expiry, you'll get a full refund.
+                </div>
+            </form>
+            
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="closeCreateBountyModal()" class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-lg transition">
+                    Cancel
+                </button>
+                <button id="submitBountyBtn" onclick="submitBounty()" class="bg-[var(--z-gold)] hover:bg-white text-black font-bold px-6 py-3 rounded-lg transition">
+                    <i class="fa-solid fa-plus mr-2"></i> Create Bounty
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}

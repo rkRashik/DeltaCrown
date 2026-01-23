@@ -1,0 +1,33 @@
+<!-- TAB NAVIGATION (Phase 3.8.2 - Event Driven) -->
+<div class="sticky top-20 z-40 bg-[var(--z-bg)]/95 backdrop-blur-xl border-b border-white/5 shadow-2xl">
+    <div class="max-w-[1800px] mx-auto px-6 flex items-center justify-between h-16">
+        <div class="flex gap-2 h-full overflow-x-auto no-scrollbar w-full">
+            <button type="button" data-tab-button="overview" class="z-tab-btn active text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Overview</button>
+            <button type="button" data-tab-button="posts" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">
+                Posts <span class="bg-white/10 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">{{ posts.items|length|default:0 }}</span>
+            </button>
+            <button type="button" data-tab-button="media" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">
+                Media <i class="fa-solid fa-image text-xs opacity-50"></i>
+            </button>
+            <button type="button" data-tab-button="loadout" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-gamepad text-xs opacity-50"></i> Loadout
+            </button>
+            <button type="button" data-tab-button="career" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Career</button>
+            <button type="button" data-tab-button="game-ids" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-id-card text-xs opacity-50"></i> Game IDs
+            </button>
+            <button type="button" data-tab-button="stats" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Stats</button>
+            <button type="button" data-tab-button="highlights" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Highlights</button>
+            <button type="button" data-tab-button="bounties" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-crosshairs text-xs opacity-50"></i> Bounties
+            </button>
+            <button type="button" data-tab-button="inventory" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] flex items-center gap-2 whitespace-nowrap">Inventory</button>
+
+            {% if is_owner %}
+            <button type="button" data-tab-button="wallet" class="z-tab-btn text-xs font-bold uppercase tracking-[0.1em] text-[var(--z-gold)] flex items-center gap-2 whitespace-nowrap ml-auto xl:ml-0 border-l border-white/5 pl-6">
+                <i class="fa-solid fa-wallet"></i> Economy
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>

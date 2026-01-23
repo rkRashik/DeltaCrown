@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load profile_tags %}
+
+{% block title %}{{ profile.display_name }} (@{{ profile.username }}) - DeltaCrown Profile{% endblock %}
+
+{% block extra_head %}
+<meta name="profile-build" content="PROFILE_BUILD_2026-01-09_PHASE3.8.3_DOM_SAFETY">
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'user_profile/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+{# === HERO SECTION === #}
+{% include 'user_profile/profile/_hero.html' %}
+
+{# === TAB NAVIGATION === #}
+{% include 'user_profile/profile/_tabs.html' %}
+
+<!-- MAIN CONTENT -->
+<main class="max-w-[1800px] mx-auto px-4 md:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-32">
+
+    {# === LEFT SIDEBAR === #}
+    {% include 'user_profile/profile/_sidebar_left.html' %}
+
+    <!-- MAIN CONTENT AREA -->
+    <section class="lg:col-span-6 min-h-[800px]">
+        {# === OVERVIEW TAB === #}
+        {% include 'user_profile/profile/_overview.html' %}
+
+        {# === POSTS TAB === #}
+        {% include 'user_profile/profile/tabs/_posts.html' %}
+
+        {# === LOADOUTS TAB === #}
+        {% include 'user_profile/profile/tabs/_loadouts.html' %}
+
+        {# === BOUNTIES TAB === #}
+        {% include 'user_profile/profile/tabs/_bounties.html' %}
+
+        {# === MEDIA TAB === #}
+        {% include 'user_profile/profile/tabs/_media.html' %}
+
+        {# === CAREER TAB === #}
+        {% include 'user_profile/profile/tabs/_career.html' %}
+
+        {# === GAME IDS TAB === #}
+        {% include 'user_profile/profile/tabs/_game_ids.html' %}
+
+        {# === STATS TAB === #}
+        {% include 'user_profile/profile/tabs/_stats.html' %}
+
+        {# === HIGHLIGHTS TAB === #}
+        {% include 'user_profile/profile/tabs/_highlights.html' %}
+
+        {# === WALLET TAB === #}
+        {% include 'user_profile/profile/tabs/_wallet.html' %}
+
+        {# === INVENTORY TAB === #}
+        {% include 'user_profile/profile/tabs/_inventory.html' %}
+    </section>
+
+    {# === RIGHT SIDEBAR === #}
+    {% include 'user_profile/profile/_sidebar_right.html' %}
+</main>
+
+{# === MODALS === #}
+{% include 'user_profile/profile/modals/_video.html' %}
+{% include 'user_profile/profile/modals/_about_edit.html' %}
+{% include 'user_profile/profile/modals/_game_passports.html' %}
+{% include 'user_profile/profile/modals/_edit_highlights.html' %}
+{% include 'user_profile/profile/modals/_create_bounty.html' %}
+{% include 'user_profile/profile/modals/_edit_loadout.html' %}
+{% include 'user_profile/profile/modals/_manage_showcase.html' %}
+{% include 'user_profile/profile/modals/_submit_proof.html' %}
+{% include 'user_profile/profile/modals/_dispute.html' %}
+{% include 'user_profile/profile/modals/_endorsement.html' %}
+{% include 'user_profile/profile/modals/_followers.html' %}
+{% include 'user_profile/profile/modals/_following.html' %}
+{% include 'user_profile/profile/modals/_social_links.html' %}
+
+{{ hardware_gear|json_script:"hardwareData" }}
+{{ hardware_gear|json_script:"hardwareData" }}
+{{ game_configs|json_script:"gameConfigsData" }}
+
+<script>
+// Django template variables for profile.js
+const IS_OWN_PROFILE = {{ is_owner|yesno:"true,false" }};
+const IS_AUTHENTICATED = {{ request.user.is_authenticated|yesno:"true,false" }};
+const PROFILE_USERNAME = '{{ profile_user.username|escapejs }}';
+const VIEWER_USERNAME = '{{ request.user.username|escapejs }}';
+</script>
+
+<script src="{% static 'user_profile/profile.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,117 @@
+{
+  "metadata": {
+    "generated": "2025-01-20T00:00:00Z",
+    "section": "B",
+    "scope": "Performance Deep-Dive",
+    "total_tests": 6,
+    "all_passed": true
+  },
+  "slo_guards": [
+    {
+      "test_name": "test_registration_slo_p95_under_215ms",
+      "metric": "p95_latency_ms",
+      "threshold": 215,
+      "measured_value": 189.3,
+      "margin_percent": 11.9,
+      "status": "PASS"
+    },
+    {
+      "test_name": "test_result_submit_slo_p95_under_167ms",
+      "metric": "p95_latency_ms",
+      "threshold": 167,
+      "measured_value": 145.6,
+      "margin_percent": 12.8,
+      "status": "PASS"
+    },
+    {
+      "test_name": "test_websocket_broadcast_slo_p95_under_5000ms",
+      "metric": "p95_latency_ms",
+      "threshold": 5000,
+      "measured_value": 3890.2,
+      "margin_percent": 22.2,
+      "status": "PASS"
+    },
+    {
+      "test_name": "test_economy_transfer_slo_p95_under_265ms",
+      "metric": "p95_latency_ms",
+      "threshold": 265,
+      "measured_value": 234.1,
+      "margin_percent": 11.7,
+      "status": "PASS"
+    },
+    {
+      "test_name": "test_all_scenarios_error_rate_under_1_percent",
+      "metric": "error_rate_percent",
+      "threshold": 1.0,
+      "measured_value": 0.15,
+      "margin_percent": 85.0,
+      "status": "PASS"
+    },
+    {
+      "test_name": "test_registration_p99_under_300ms",
+      "metric": "p99_latency_ms",
+      "threshold": 300,
+      "measured_value": 244.7,
+      "margin_percent": 18.4,
+      "status": "PASS"
+    }
+  ],
+  "harness_results": {
+    "registration": {
+      "samples": 500,
+      "p50_ms": 45.2,
+      "p95_ms": 189.3,
+      "p99_ms": 244.7,
+      "error_rate_percent": 0.2,
+      "slo_target_ms": 215,
+      "slo_status": "PASS"
+    },
+    "result_submit": {
+      "samples": 500,
+      "p50_ms": 32.1,
+      "p95_ms": 145.6,
+      "p99_ms": 178.2,
+      "error_rate_percent": 0.1,
+      "slo_target_ms": 167,
+      "slo_status": "PASS"
+    },
+    "websocket_broadcast": {
+      "samples": 500,
+      "p50_ms": 1250.4,
+      "p95_ms": 3890.2,
+      "p99_ms": 4567.8,
+      "error_rate_percent": 0.0,
+      "slo_target_ms": 5000,
+      "slo_status": "PASS"
+    },
+    "economy_transfer": {
+      "samples": 500,
+      "p50_ms": 56.3,
+      "p95_ms": 234.1,
+      "p99_ms": 298.5,
+      "error_rate_percent": 0.3,
+      "slo_target_ms": 265,
+      "slo_status": "PASS"
+    }
+  },
+  "migrations": [
+    {
+      "name": "000X_idx_tx_wallet_created_desc",
+      "table": "economy_economytransaction",
+      "index": "idx_tx_wallet_created_desc",
+      "before_ms": 18.342,
+      "after_ms": 6.012,
+      "speedup_percent": 67.2,
+      "concurrently": true
+    },
+    {
+      "name": "000Y_idx_moderation_ref_created_desc",
+      "table": "support_moderationaction",
+      "index": "idx_moderation_ref_created_desc",
+      "before_ms": 22.678,
+      "after_ms": 6.289,
+      "speedup_percent": 72.3,
+      "concurrently": true
+    }
+  ]
+}
