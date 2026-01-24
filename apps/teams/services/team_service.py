@@ -293,18 +293,6 @@ class TeamService:
             invite.save(update_fields=["status"])
             raise ValidationError("Invite has expired")
         
-        # PHASE 9A-12: Validate passport requirement
-        from apps.user_profile.services.game_passport_service import GamePassportService
-        validation_result = GamePassportService.validate_passport_for_team_action(
-            user=accepting_profile.user,
-            game_slug=invite.team.game,
-            action='join'
-        )
-        
-        if not validation_result.is_valid:
-            error_message = ' '.join(validation_result.errors) if validation_result.errors else "Valid Game Passport required to join this team"
-            raise ValidationError(f"{error_message}. Please complete your Game Passport at /settings/#game-passports")
-        
         # Check roster capacity (final check before adding)
         active_members = TeamMembership.objects.filter(team=invite.team, status="ACTIVE").count()
         max_roster = invite.team.max_roster_size

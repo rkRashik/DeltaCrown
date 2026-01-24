@@ -34,7 +34,6 @@ from apps.teams.services.team_service import TeamService
 from apps.games.services.game_service import GameService
 from apps.common.region_config import get_regions_for_game
 from apps.user_profile.models import UserProfile
-from apps.user_profile.services.game_passport_service import GamePassportService
 
 logger = logging.getLogger(__name__)
 
@@ -189,30 +188,6 @@ def _handle_team_creation_post(request, profile):
     if form.is_valid():
         try:
             with transaction.atomic():
-                # PHASE 9A-12: Validate passport requirement
-                game_slug = form.cleaned_data['game']
-                validation_result = GamePassportService.validate_passport_for_team_action(
-                    user=request.user,
-                    game_slug=game_slug,
-                    action='create'
-                )
-                
-                if not validation_result.is_valid:
-                    error_message = validation_result.errors[0] if validation_result.errors else "Game Passport required"
-                    
-                    if is_ajax:
-                        return JsonResponse({
-                            'success': False,
-                            'error': error_message,
-                            'passport_required': True,
-                            'game_slug': game_slug,
-                            'missing_fields': validation_result.missing_fields,
-                            'help_url': validation_result.help_url,
-                        }, status=400)
-                    
-                    messages.error(request, f"{error_message}. Please create a Game Passport first.")
-                    return redirect('user_profile:settings')
-                
                 # Create team via service layer (SINGLE SOURCE OF TRUTH)
                 team = TeamService.create_team(
                     name=form.cleaned_data['name'],
