@@ -4,6 +4,10 @@
 {% block title %}Invite Member to {{ team.name }} — Professional Recruitment{% endblock %}
 
 {% block extra_head %}
+<!-- Template Version: 2.0.0 - {{ request.META.SERVER_SOFTWARE|default:"1" }} -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <style>
 /* 🏆 VLR.gg INSPIRED PROFESSIONAL TEAM INVITE SYSTEM 🏆 */
 .professional-invite-system {
@@ -644,8 +648,32 @@
         Player Search & Invitation
       </h3>
 
-      <form method="post">
+      <form method="post" id="invite-form">
         {% csrf_token %}
+        
+        <!-- Display general form errors -->
+        {% if form.errors %}
+          <div style="background: rgba(248, 81, 73, 0.1); border: 1px solid #f85149; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <div style="color: #f85149; font-weight: 600; margin-bottom: 8px;">
+              <i class="fas fa-exclamation-triangle"></i> Please correct the following errors:
+            </div>
+            {% if form.non_field_errors %}
+              {% for error in form.non_field_errors %}
+                <div style="color: #f85149; font-size: 14px; margin-top: 4px;">• {{ error }}</div>
+              {% endfor %}
+            {% endif %}
+            {% for field in form %}
+              {% if field.errors %}
+                {% for error in field.errors %}
+                  <div style="color: #f85149; font-size: 14px; margin-top: 4px;">• {{ field.label }}: {{ error }}</div>
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+        
+        <!-- Hidden input for selected player -->
+        <input type="hidden" name="username_or_email" id="selected-player-input">
         
         <!-- Player Search -->
         <div class="search-section">
@@ -663,6 +691,12 @@
             <!-- Results will be populated here -->
           </div>
           <div class="form-help">Start typing to search for players to invite</div>
+          {% if form.username_or_email.errors %}
+            <div class="form-error">
+              <i class="fas fa-exclamation-circle"></i>
+              {{ form.username_or_email.errors.0 }}
+            </div>
+          {% endif %}
         </div>
 
         <!-- Selected Players -->
@@ -686,20 +720,28 @@
         <div class="form-group">
           <label for="role" class="form-label">Assign Role</label>
           <select name="role" id="role" class="form-input">
-            <option value="member">Member</option>
-            <option value="player">Player</option>
-            <option value="substitute">Substitute</option>
-            <option value="coach">Coach</option>
-            <option value="analyst">Analyst</option>
+            <option value="PLAYER">Player</option>
+            <option value="SUBSTITUTE">Substitute</option>
+            <option value="COACH">Coach</option>
+            <option value="ASSISTANT_COACH">Assistant Coach</option>
+            <option value="ANALYST">Analyst</option>
+            <option value="MANAGER">Manager</option>
+            <option value="CONTENT_CREATOR">Content Creator</option>
           </select>
           <div class="form-help">Choose the role this member will have in your team</div>
+          {% if form.role.errors %}
+            <div class="form-error">
+              <i class="fas fa-exclamation-circle"></i>
+              {{ form.role.errors.0 }}
+            </div>
+          {% endif %}
         </div>
 
         <!-- Invitation Preview -->
         <div class="invite-preview">
           <div class="preview-title">Invitation Preview</div>
           <div class="preview-content">
-            <strong>{{ user.username }}</strong> has invited you to join <strong>{{ team.name }}</strong> as a <span id="role-preview">Member</span>.<br><br>
+            <strong>{{ user.username }}</strong> has invited you to join <strong>{{ team.name }}</strong> as a <span id="role-preview">Player</span>.<br><br>
             <span id="message-preview">Join our professional esports team and compete at the highest level!</span>
           </div>
         </div>
@@ -781,17 +823,38 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('player-search');
     const searchResults = document.getElementById('search-results');
     let selectedPlayers = [];
+    let searchTimeout;
     
     searchInput.addEventListener('input', function() {
         const query = this.value.trim();
+        
+        // Clear previous timeout
+        clearTimeout(searchTimeout);
+        
         if (query.length >= 2) {
-            // Simulate search results
-            setTimeout(() => {
-                showSearchResults([
-                    {id: 1, username: 'ProPlayer1', email: 'pro1@example.com', avatar: null},
-                    {id: 2, username: 'EliteGamer', email: 'elite@example.com', avatar: null},
-                    {id: 3, username: 'ChampionX', email: 'champ@example.com', avatar: null}
-                ]);
+            // Show loading state
+            searchResults.innerHTML = '<div class="result-item" style="cursor: default;"><div class="result-info"><div class="result-name">Searching...</div></div></div>';
+            searchResults.style.display = 'block';
+            
+            // Delay search to avoid too many requests
+            searchTimeout = setTimeout(() => {
+                fetch(`?search=${encodeURIComponent(query)}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.results && data.results.length > 0) {
+                        showSearchResults(data.results);
+                    } else {
+                        searchResults.innerHTML = '<div class="result-item" style="cursor: default;"><div class="result-info"><div class="result-name" style="color: #7d8590;">No players found</div></div></div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    searchResults.innerHTML = '<div class="result-item" style="cursor: default;"><div class="result-info"><div class="result-name" style="color: #f85149;">Search failed. Please try again.</div></div></div>';
+                });
             }, 300);
         } else {
             searchResults.style.display = 'none';
@@ -803,13 +866,21 @@ document.addEventListener('DOMContentLoaded', function() {
         players.forEach(player => {
             const item = document.createElement('div');
             item.className = 'result-item';
-            item.innerHTML = `
-                <div class="result-avatar" style="background: #1f6feb; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px;">
+            
+            let avatarHtml;
+            if (player.avatar) {
+                avatarHtml = `<img src="${player.avatar}" class="result-avatar" alt="${player.username}">`;
+            } else {
+                avatarHtml = `<div class="result-avatar" style="background: #1f6feb; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px;">
                     ${player.username.charAt(0).toUpperCase()}
-                </div>
+                </div>`;
+            }
+            
+            item.innerHTML = `
+                ${avatarHtml}
                 <div class="result-info">
-                    <div class="result-name">${player.username}</div>
-                    <div class="result-details">${player.email}</div>
+                    <div class="result-name">${player.display_name || player.username}</div>
+                    <div class="result-details">@${player.username}</div>
                 </div>
             `;
             item.addEventListener('click', () => selectPlayer(player));
@@ -819,10 +890,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function selectPlayer(player) {
-        if (selectedPlayers.find(p => p.id === player.id)) return;
-        
-        selectedPlayers.push(player);
+        // Only allow one player selection (since form processes one at a time)
+        selectedPlayers = [player];
         updateSelectedPlayers();
+        
+        // Set hidden input value
+        document.getElementById('selected-player-input').value = player.username;
+        
         searchInput.value = '';
         searchResults.style.display = 'none';
     }
@@ -831,16 +905,28 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('selected-players');
         container.innerHTML = '';
         
+        if (selectedPlayers.length === 0) {
+            return;
+        }
+        
         selectedPlayers.forEach(player => {
             const item = document.createElement('div');
-            item.className = 'selected-player';
-            item.innerHTML = `
-                <div class="selected-avatar" style="background: #1f6feb; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px;">
+            item.style.cssText = 'background: rgba(31, 111, 235, 0.1); border: 1px solid #1f6feb; border-radius: 8px; padding: 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;';
+            
+            let avatarHtml;
+            if (player.avatar) {
+                avatarHtml = `<img src="${player.avatar}" style="width: 40px; height: 40px; border-radius: 6px; border: 1px solid #30363d;" alt="${player.username}">`;
+            } else {
+                avatarHtml = `<div style="width: 40px; height: 40px; border-radius: 6px; background: #1f6feb; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px;">
                     ${player.username.charAt(0).toUpperCase()}
-                </div>
-                <div class="selected-info">
-                    <div class="selected-name">${player.username}</div>
-                    <div class="selected-details">${player.email}</div>
+                </div>`;
+            }
+            
+            item.innerHTML = `
+                ${avatarHtml}
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; color: #e6edf3; margin-bottom: 2px;">${player.display_name || player.username}</div>
+                    <div style="color: #7d8590; font-size: 12px;">@${player.username}</div>
                 </div>
                 <button type="button" class="remove-btn" onclick="removePlayer(${player.id})">
                     <i class="fas fa-times"></i>
@@ -851,7 +937,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     window.removePlayer = function(playerId) {
-        selectedPlayers = selectedPlayers.filter(p => p.id !== playerId);
+        selectedPlayers = [];
+        document.getElementById('selected-player-input').value = '';
         updateSelectedPlayers();
     };
     
@@ -868,6 +955,43 @@ document.addEventListener('DOMContentLoaded', function() {
     messageInput.addEventListener('input', function() {
         const text = this.value.trim();
         messagePreview.textContent = text || 'Join our professional esports team and compete at the highest level!';
+    });
+    
+    // Form validation before submit
+    const inviteForm = document.getElementById('invite-form');
+    const sendButton = document.getElementById('send-invites');
+    
+    inviteForm.addEventListener('submit', function(e) {
+        const selectedPlayer = document.getElementById('selected-player-input').value;
+        if (!selectedPlayer) {
+            e.preventDefault();
+            
+            // Show error message
+            const searchSection = document.querySelector('.search-section');
+            let errorDiv = searchSection.querySelector('.form-error');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.className = 'form-error';
+                errorDiv.style.marginTop = '8px';
+                searchSection.appendChild(errorDiv);
+            }
+            errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please select a player to invite';
+            
+            // Scroll to error
+            searchSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+        
+        // Debug: Log form values before submission
+        const formData = new FormData(inviteForm);
+        console.log('Form submission values:');
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}: ${value}`);
+        }
+        
+        // Show loading state
+        sendButton.disabled = true;
+        sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
     });
     
     // Copy link function

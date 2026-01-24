@@ -39,6 +39,16 @@ def decline_invite_view(request, token: str):
         if inv.invited_user_id is None:
             inv.invited_user = me  # bind who declined, if not bound yet
         inv.save(update_fields=["status", "invited_user"])
+        
+        # Send notification to inviter
+        try:
+            from apps.notifications.services import NotificationService
+            if inv.inviter:
+                # You could add a notify_invite_declined method if needed
+                pass
+        except Exception:
+            pass
+        
         messages.info(request, f"Invite to join {inv.team.name} declined.")
 
     return redirect("teams:my_invites")

@@ -114,10 +114,14 @@
                 {% else %}
                   <span class="font-medium opacity-60" title="Team pending setup">{{ invite.team.name }}</span>
                 {% endif %}
-                <span class="text-xs text-muted">{{ invite.role|default:"Player" }}</span>
+                <span class="text-xs text-muted">{{ invite.get_role_display|default:"Player" }}</span>
               </div>
               <p class="text-xs text-muted mb-2">
-                Invited by {{ invite.inviter.user.username }} • {{ invite.created_at|timesince }} ago
+                {% if invite.inviter %}
+                  Invited by {{ invite.inviter.display_name|default:invite.inviter.user.username }} • {{ invite.created_at|timesince }} ago
+                {% else %}
+                  Invited {{ invite.created_at|timesince }} ago
+                {% endif %}
               </p>
               <div class="flex gap-2">
                 <form method="post" action="{% url 'teams:accept_invite' invite.token %}" class="flex-1">

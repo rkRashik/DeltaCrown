@@ -386,13 +386,16 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
             pending_invites = (
                 TeamInvite.objects.filter(
                     invited_user=prof,
-                    status='pending',
+                    status='PENDING',  # Fixed: uppercase to match model
                     expires_at__gt=now
                 )
                 .select_related("team", "inviter")
                 .order_by("-created_at")[:5]
             )
-    except Exception:
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error loading team invites: {e}")
         pending_invites = []
 
     context = {

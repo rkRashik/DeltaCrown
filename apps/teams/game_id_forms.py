@@ -127,8 +127,18 @@ class RosterGameIDForm(forms.Form):
         super().__init__(*args, **kwargs)
         
         if profile and game_code:
-            game_id = profile.get_game_id(game_code)
-            label = profile.get_game_id_label(game_code)
+            # Get game passport info
+            from apps.user_profile.services.game_passport_service import GamePassportService
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            
+            try:
+                user = User.objects.get(id=profile.user_id)
+                passport = GamePassportService.get_passport(user, game_code)
+                game_id = passport.in_game_name if passport else ''
+            except Exception:
+                game_id = ''
+            label = 'IGN'
             
             self.fields['game_id_display'] = forms.CharField(
                 label=label,

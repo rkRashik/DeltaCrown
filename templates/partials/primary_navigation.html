@@ -298,6 +298,12 @@
         <a href="{% url 'user_profile:public_profile' request.user.username %}" class="block px-4 py-3 text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition">
           <i class="fa-solid fa-user w-5"></i> Profile
         </a>
+        <a href="{% url 'teams:my_invites' %}" class="block px-4 py-3 text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition relative">
+          <i class="fa-solid fa-user-plus w-5"></i> Team Invites
+          {% if pending_invites_count > 0 %}
+            <span class="absolute top-2 right-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">{{ pending_invites_count }}</span>
+          {% endif %}
+        </a>
         <a href="/notifications/" class="block px-4 py-3 text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition">
           <i class="fa-solid fa-bell w-5"></i> Notifications
         </a>

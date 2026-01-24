@@ -398,12 +398,18 @@ class NotificationService:
         """
         from django.urls import reverse
         
+        if not invite.invited_user:
+            # Can't notify if no user profile (email-only invite)
+            return None
+        
         title = f"Team Invite from {invite.team.name}"
-        body = f"{invite.inviter.username} invited you to join {invite.team.name}"
-        url = reverse('teams:team_detail', kwargs={'slug': invite.team.slug})
+        body = f"{invite.inviter.user.username if invite.inviter else 'A team captain'} invited you to join {invite.team.name} as {invite.get_role_display()}"
+        
+        # Link to my_invites page where user can accept/decline
+        url = reverse('teams:my_invites')
         
         return NotificationService._send_notification_multi_channel(
-            users=[invite.invitee],
+            users=[invite.invited_user.user],
             notification_type='invite_sent',
             title=title,
             body=body,
@@ -420,16 +426,35 @@ class NotificationService:
         """
         from django.urls import reverse
         
-        title = f"{invite.invitee.username} joined your team!"
-        body = f"{invite.invitee.username} has accepted the invite to join {invite.team.name}"
+        if not invite.invited_user:
+            return None
+        
+        title = f"{invite.invited_user.user.username} joined your team!"
+        body = f"{invite.invited_user.user.username} has accepted the invite to join {invite.team.name}"
         url = reverse('teams:team_detail', kwargs={'slug': invite.team.slug})
         
-        # Notify captain and co-captains
-        captains = [invite.team.captain.user] if invite.team.captain else []
-        # Add co-captains if your model supports it
+        # Notify team owner and managers
+        recipients = []
+        if invite.team.owner:
+            recipients.append(invite.team.owner.user)
+        
+        # Add team managers
+        from apps.teams.models import TeamMembership
+        managers = TeamMembership.objects.filter(
+            team=invite.team,
+            status='ACTIVE',
+            role__in=[TeamMembership.Role.OWNER, TeamMembership.Role.GENERAL_MANAGER, TeamMembership.Role.TEAM_MANAGER]
+        ).select_related('profile__user')
+        
+        for membership in managers:
+            if membership.profile.user not in recipients:
+                recipients.append(membership.profile.user)
+        
+        if not recipients:
+            return None
         
         return NotificationService._send_notification_multi_channel(
-            users=captains,
+            users=recipients,
             notification_type='invite_accepted',
             title=title,
             body=body,

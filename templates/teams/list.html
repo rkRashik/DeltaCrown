@@ -225,6 +225,23 @@
                     <i class="fas fa-book-open"></i>
                     <span>Learn About Teams</span>
                 </a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'teams:my_invites' %}" class="hero-cta-btn invites" 
+                   style="padding: 12px 30px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+                          color: white; text-decoration: none; border-radius: 50px; font-weight: 600; 
+                          box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4); transition: all 0.3s ease;
+                          display: inline-flex; align-items: center; gap: 8px; position: relative;">
+                    <i class="fas fa-envelope"></i>
+                    <span>My Invites</span>
+                    {% if pending_invites_count > 0 %}
+                    <span style="position: absolute; top: -8px; right: -8px; background: #ff3b3b; color: white; 
+                                 border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; 
+                                 justify-content: center; font-size: 12px; font-weight: bold; border: 2px solid #1a1a24;">
+                        {{ pending_invites_count }}
+                    </span>
+                    {% endif %}
+                </a>
+                {% endif %}
                 <a href="{% url 'teams:create' %}" class="hero-cta-btn create-team" 
                    style="padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                           color: white; text-decoration: none; border-radius: 50px; font-weight: 600; 

@@ -424,8 +424,11 @@ def team_profile_view(request, slug: str):
     roster_data = []
     for membership in roster:
         profile = membership.profile
-        game_id = profile.get_game_id(team.game) if hasattr(profile, 'get_game_id') else ''
-        game_id_label = profile.get_game_id_label(team.game) if hasattr(profile, 'get_game_id_label') else 'IGN'
+        # Get game passport info
+        from apps.user_profile.services.game_passport_service import GamePassportService
+        passport = GamePassportService.get_passport(request.user, team.game)
+        game_id = passport.in_game_name if passport else ''
+        game_id_label = 'IGN'
         mlbb_server_id = getattr(profile, 'mlbb_server_id', '') if team.game == 'mlbb' else ''
         
         roster_data.append({

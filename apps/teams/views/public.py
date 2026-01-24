@@ -688,6 +688,15 @@ def team_list(request):
         games_with_counts.append(game)
     
     games_list_with_urls = games_with_counts
+    
+    # Get pending invites count for current user
+    pending_invites_count = 0
+    if request.user.is_authenticated:
+        profile = _ensure_profile(request.user)
+        pending_invites_count = TeamInvite.objects.filter(
+            invited_user=profile,
+            status='PENDING'
+        ).count()
 
     context = {
         "teams": teams_on_page,
@@ -707,6 +716,7 @@ def team_list(request):
         "sort_links": sort_links,
         "pagination_links": pagination_links,
         "game_urls": game_urls,
+        "pending_invites_count": pending_invites_count,
     }
     
     # Handle AJAX requests for infinite scroll/load more functionality
@@ -1120,19 +1130,85 @@ def invite_member_view(request, slug: str):
     except TeamMembership.DoesNotExist:
         messages.error(request, "You must be a team member to invite others.")
         return redirect("teams:detail", slug=team.slug)
+    
+    # Handle AJAX player search
+    if request.method == "GET" and request.GET.get('search'):
+        query = request.GET.get('search', '').strip()
+        if len(query) >= 2:
+            # Search for users by username or email
+            User = get_user_model()
+            users = User.objects.filter(
+                Q(username__icontains=query) | Q(email__icontains=query)
+            ).exclude(id=request.user.id)[:10]
+            
+            # Get profiles and filter out team members
+            results = []
+            team_member_ids = team.memberships.filter(
+                status='ACTIVE'
+            ).values_list('profile__user_id', flat=True)
+            
+            for user in users:
+                if user.id not in team_member_ids:
+                    profile = _get_profile(user)
+                    if profile:
+                        results.append({
+                            'id': profile.id,
+                            'username': user.username,
+                            'email': user.email,
+                            'display_name': profile.display_name or user.username,
+                            'avatar': profile.avatar.url if profile.avatar else None
+                        })
+            
+            return JsonResponse({'results': results})
+        return JsonResponse({'results': []})
 
     if request.method == "POST":
         form = TeamInviteForm(request.POST, team=team, sender=request.user)
         if form.is_valid():
-            invite = form.save()
-            messages.success(request, f"Invitation sent to {invite.invited_user.user.username}!")
-            return redirect("teams:detail", slug=team.slug)
+            try:
+                invite = form.save()
+                
+                # Send notification to invited user
+                try:
+                    from apps.notifications.services import NotificationService
+                    NotificationService.notify_invite_sent(invite)
+                except Exception as e:
+                    import logging
+                    logging.error(f"Failed to send invite notification: {e}")
+                
+                messages.success(request, f"Invitation sent to {invite.invited_user.user.username}!")
+                return redirect("teams:detail", slug=team.slug)
+            except Exception as e:
+                import traceback
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to save invite: {e}")
+                traceback.print_exc()
+                messages.error(request, f"Failed to send invitation: {str(e)}")
         else:
-            messages.error(request, "Please correct the errors below.")
+            # Log form errors for debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Team invite form validation failed")
+            logger.error(f"POST data: {dict(request.POST)}")
+            logger.error(f"Form errors: {form.errors}")
+            logger.error(f"Form cleaned_data: {getattr(form, 'cleaned_data', 'Not available')}")
+            
+            # Create a more helpful error message
+            error_messages = []
+            for field, errors in form.errors.items():
+                field_label = form.fields.get(field).label if field in form.fields else field
+                for error in errors:
+                    error_messages.append(f"{field_label}: {error}")
+            
+            if error_messages:
+                messages.error(request, "Invitation failed: " + "; ".join(error_messages))
+            else:
+                messages.error(request, "Please correct the errors below.")
     else:
         form = TeamInviteForm(team=team, sender=request.user)
 
-    return render(request, "teams/invite_member.html", {"team": team, "form": form})
+    return render(request, "teams/invite_member.html", {"team": team, "form": form, "user": request.user})
 
 
 @login_required
@@ -1153,25 +1229,31 @@ def accept_invite_view(request, token: str):
         messages.error(request, "This invite cannot be accepted.")
         return redirect(reverse("teams:my_invites"))
 
-    # If GET request, show the accept page with game ID check
+    # If GET request, show the accept page with game passport check
     if request.method == "GET":
-        # Check if user has game ID for this team's game
+        # Check if user has game passport for this team's game
         game_code = getattr(invite.team, "game", None)
         has_game_id = True
         game_name = ""
         
         if game_code:
-            game_choices = dict(Team._meta.get_field('game').choices)
-            game_name = game_choices.get(game_code, game_code.upper())
-            game_id = profile.get_game_id(game_code)
-            has_game_id = bool(game_id)
+            # Get game name
+            from apps.games.models import Game
+            try:
+                game_obj = Game.objects.get(slug=game_code)
+                game_name = game_obj.display_name
+            except Game.DoesNotExist:
+                game_name = game_code.replace('_', ' ').title()
+            
+            # Check if user has game passport
+            from apps.user_profile.services.game_passport_service import GamePassportService
+            passport = GamePassportService.get_passport(request.user, game_code)
+            has_game_id = passport is not None and bool(passport.in_game_name)
         
         # Get inviter name
         inviter_name = "Team Captain"
         if invite.inviter:
-            inviter_profile = _ensure_profile(invite.inviter)
-            if inviter_profile:
-                inviter_name = inviter_profile.display_name or invite.inviter.username
+            inviter_name = invite.inviter.display_name or invite.inviter.user.username
         
         context = {
             'invite': invite,
@@ -1193,10 +1275,19 @@ def accept_invite_view(request, token: str):
     TeamMembership.objects.get_or_create(
         team=invite.team,
         profile=profile,
-        defaults={"role": getattr(TeamMembership.Role, "PLAYER", "PLAYER")},
+        defaults={"role": invite.role if hasattr(invite, 'role') else TeamMembership.Role.PLAYER},
     )
     invite.status = "ACCEPTED"
     invite.save(update_fields=["status"])
+    
+    # Send notification to team captain
+    try:
+        from apps.notifications.services import NotificationService
+        NotificationService.notify_invite_accepted(invite)
+    except Exception as e:
+        import logging
+        logging.error(f"Failed to send invite accepted notification: {e}")
+    
     messages.success(request, f"You joined {getattr(invite.team, 'tag', invite.team.name)}.")
     return redirect(reverse("teams:detail", kwargs={"slug": invite.team.slug}))
 
@@ -1264,9 +1355,11 @@ def join_team_view(request, slug: str):
             messages.error(request, error_msg)
             return redirect("teams:detail", slug=team.slug)
 
-    # Check if user has game ID for this team's game
+    # Check if user has game passport for this team's game
     if game_code:
-        game_id = profile.get_game_id(game_code)
+        # Get game passport\n        from apps.user_profile.services.game_passport_service import GamePassportService
+        passport = GamePassportService.get_passport(request.user, game_code)
+        game_id = passport.in_game_name if passport else None
         if not game_id:
             error_msg = f"Please set up your {game_code.upper()} game ID to join this team."
             if is_ajax:
@@ -1897,7 +1990,10 @@ def collect_game_id_view(request, game_code: str):
     else:
         # Pre-fill with existing data if any
         initial = {}
-        existing_id = profile.get_game_id(game_code)
+        # Check if user has game passport
+        from apps.user_profile.services.game_passport_service import GamePassportService
+        passport = GamePassportService.get_passport(request.user, game_code)
+        existing_id = passport.in_game_name if passport else None
         if existing_id:
             if game_code == 'valorant':
                 # Split Riot ID into name and tagline

@@ -812,8 +812,11 @@ def get_roster_with_game_ids(request, team_slug):
         profile = membership.profile
         
         # Get game ID for this team's game
-        game_id = profile.get_game_id(team.game)
-        game_id_label = profile.get_game_id_label(team.game)
+        # Get game passport info
+        from apps.user_profile.services.game_passport_service import GamePassportService
+        passport = GamePassportService.get_passport(request.user, team.game)
+        game_id = passport.in_game_name if passport else ''
+        game_id_label = 'IGN'
         
         # Get MLBB server ID if applicable
         mlbb_server_id = None

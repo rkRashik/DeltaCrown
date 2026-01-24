@@ -1,5 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from apps.user_profile.models import UserProfile
 from apps.games.services import game_service
 from .models import Team, TeamMembership, TeamInvite
@@ -309,6 +310,37 @@ class TeamInviteForm(forms.Form):
         self.team = kwargs.pop('team', None)
         self.sender = kwargs.pop('sender', None)
         super().__init__(*args, **kwargs)
+        
+        # Ensure role field has correct choices
+        if 'role' in self.fields:
+            self.fields['role'].choices = TeamMembership.Role.choices
+            self.fields['role'].initial = TeamMembership.Role.PLAYER
+    
+    def clean_role(self):
+        """Normalize role to uppercase and validate"""
+        role = self.cleaned_data.get('role', '')
+        
+        if not role:
+            raise ValidationError("Role is required.")
+        
+        # Convert to uppercase to match TeamMembership.Role choices (handles browser cache issues)
+        role_upper = role.upper()
+        
+        # Validate it's a valid choice
+        valid_roles = [choice[0] for choice in TeamMembership.Role.choices]
+        
+        # Check if uppercase version is valid
+        if role_upper in valid_roles:
+            role = role_upper
+        # If original role is already valid (uppercase), use it
+        elif role not in valid_roles:
+            raise ValidationError(f"Invalid role: {role}. Please refresh the page and try again.")
+        
+        # Check for captain role restriction
+        if role == TeamMembership.Role.CAPTAIN:
+            raise ValidationError("Cannot invite someone as captain. Transfer captaincy after they join.")
+        
+        return role
 
     def clean_username_or_email(self):
         value = self.cleaned_data['username_or_email'].strip()
@@ -336,12 +368,37 @@ class TeamInviteForm(forms.Form):
             raise ValidationError("This user already has a pending invitation to join the team.")
         
         return profile
-
-    def clean_role(self):
-        role = self.cleaned_data.get('role')
-        if role == TeamMembership.Role.CAPTAIN:
-            raise ValidationError("Cannot invite someone as captain. Transfer captaincy after they join.")
-        return role
+    
+    def save(self):
+        """Create and save the team invitation."""
+        invited_user = self.cleaned_data['username_or_email']
+        role = self.cleaned_data['role']
+        # Note: message field is optional and not stored in model (can be added later if needed)
+        
+        # Create invitation with 7-day expiration
+        from datetime import timedelta
+        expires_at = timezone.now() + timedelta(days=7)
+        
+        # Get inviter profile
+        inviter_profile = None
+        if self.sender:
+            from apps.user_profile.models import UserProfile
+            try:
+                inviter_profile = UserProfile.objects.get(user=self.sender)
+            except UserProfile.DoesNotExist:
+                pass
+        
+        # Create invitation
+        invite = TeamInvite.objects.create(
+            team=self.team,
+            inviter=inviter_profile,
+            invited_user=invited_user,
+            role=role,
+            status='PENDING',
+            expires_at=expires_at
+        )
+        
+        return invite
 
 
 class TeamMemberManagementForm(forms.Form):

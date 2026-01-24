@@ -235,8 +235,18 @@ class TeamCompletionCalculator:
         if not self.captain_profile:
             return 0, ['Captain profile not found']
         
-        if hasattr(self.captain_profile, 'get_game_id'):
-            game_id = self.captain_profile.get_game_id(self.team.game)
+        from apps.user_profile.services.game_passport_service import GamePassportService
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        try:
+            user = User.objects.get(id=self.captain_profile.user_id)
+            passport = GamePassportService.get_passport(user, self.team.game)
+            game_id = passport.in_game_name if passport else None
+        except Exception:
+            game_id = None
+        
+        if game_id:
             if game_id:
                 return 100, []
         
