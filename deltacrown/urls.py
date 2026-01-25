@@ -71,6 +71,9 @@ urlpatterns = [
 
 
     # Core apps (explicit)
+    # vNext Organizations & Teams (MUST come before legacy teams to override /teams/create/)
+    path("", include("apps.organizations.urls")),
+    
     # Tournament system - Admin only (frontend moved to legacy November 2, 2025)
     # URL namespace kept active for admin panel functionality
     path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),
@@ -104,6 +107,9 @@ urlpatterns = [
     
     # Phase 8, Epic 8.5: Advanced Analytics & Leaderboards API
     path("api/", include("apps.api.urls.analytics_urls")),
+    
+    # Phase B: System API (hub widgets, cross-app utilities)
+    path("api/system/", include("apps.api.urls.system_api_urls")),
     
     # Module 3.3: Team Management API
     path("api/teams/", include("apps.teams.api.urls")),

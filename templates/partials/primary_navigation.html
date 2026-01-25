@@ -5,6 +5,12 @@
      Modern 2026 Esports-Grade Design
      Liquid Glass | Cybernetic Neon | Command Search
      ============================================ -->
+<!-- ============= DEBUG START ============= -->
+<!-- TEMPLATE: templates/partials/primary_navigation.html -->
+<!-- TEAM_VNEXT_ADAPTER_ENABLED: {{ TEAM_VNEXT_ADAPTER_ENABLED }} -->
+<!-- TEAM_VNEXT_FORCE_LEGACY: {{ TEAM_VNEXT_FORCE_LEGACY }} -->
+<!-- TEAM_VNEXT_ROUTING_MODE: {{ TEAM_VNEXT_ROUTING_MODE }} -->
+<!-- ============= DEBUG END ============= -->
 
 <!-- Command Search Modal (Cmd+K) - PREMIUM DESIGN -->
 <div id="dc-search-overlay" class="fixed inset-0 z-[200] hidden items-start justify-center pt-[12vh] px-4 transition-opacity duration-300" style="background: linear-gradient(135deg, rgba(2,0,5,0.90) 0%, rgba(20,10,40,0.85) 50%, rgba(2,0,5,0.90) 100%); backdrop-filter: blur(8px);">
@@ -118,6 +124,14 @@
         {% nav_active '/dashboard/' '/dashboard' as dashboard_active %}
         <div class="dc-nav-item{% if dashboard_active %} active{% endif %} group cursor-pointer">
           <a href="/dashboard/" class="dc-nav-link">Dashboard</a>
+        </div>
+        
+        <!-- vNext Team & Org Beta -->
+        {% nav_active '/teams/vnext/' '/teams' as vnext_active %}
+        <div class="dc-nav-item{% if vnext_active %} active{% endif %} group cursor-pointer">
+          <a href="/teams/vnext/" class="dc-nav-link flex items-center gap-2">
+            Team & Org <span class="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full font-bold">BETA</span>
+          </a>
         </div>
       {% endif %}
 
@@ -304,6 +318,15 @@
             <span class="absolute top-2 right-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">{{ pending_invites_count }}</span>
           {% endif %}
         </a>
+        
+        <!-- vNext Team & Org Beta (Mobile Drawer) -->
+        {% if TEAM_VNEXT_ADAPTER_ENABLED and not TEAM_VNEXT_FORCE_LEGACY and TEAM_VNEXT_ROUTING_MODE != 'legacy_only' %}
+          <a href="/teams/vnext/" class="block px-4 py-3 text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition">
+            <i class="fa-solid fa-sitemap w-5"></i> Team & Org 
+            <span class="ml-2 text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full font-bold">BETA</span>
+          </a>
+        {% endif %}
+        
         <a href="/notifications/" class="block px-4 py-3 text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition">
           <i class="fa-solid fa-bell w-5"></i> Notifications
         </a>

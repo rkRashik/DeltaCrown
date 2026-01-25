@@ -93,6 +93,13 @@ from .exceptions import (
     ConflictError,
     ContractViolationError,
     ServiceUnavailableError,
+    
+    # Organization-specific exceptions
+    OrganizationAlreadyExistsError,
+    OrganizationNotFoundError,
+    
+    # Team-specific exceptions
+    TeamValidationError,
 )
 
 __all__ = [
@@ -127,4 +134,11 @@ __all__ = [
     'ConflictError',
     'ContractViolationError',
     'ServiceUnavailableError',
+    
+    # Organization-specific exceptions
+    'OrganizationAlreadyExistsError',
+    'OrganizationNotFoundError',
+    
+    # Team-specific exceptions
+    'TeamValidationError',
 ]

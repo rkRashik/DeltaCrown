@@ -48,6 +48,40 @@ app.conf.beat_schedule = {
         'task': 'apps.tournaments.tasks.check_tournament_wrapup',
         'schedule': crontab(minute=15),  # Every hour at :15
     },
+    
+    # ========================================================================
+    # vNext Team & Organization Ranking Tasks (Phase 4 - P4-T2)
+    # ========================================================================
+    
+    # Recalculate vNext team rankings nightly at 3:00 AM
+    'vnext-recalculate-team-rankings': {
+        'task': 'apps.organizations.tasks.recalculate_team_rankings',
+        'schedule': crontab(hour=3, minute=0),
+        'options': {
+            'expires': 3600,  # Task expires after 1 hour
+        }
+    },
+    
+    # Apply inactivity decay nightly at 3:30 AM
+    'vnext-apply-inactivity-decay': {
+        'task': 'apps.organizations.tasks.apply_inactivity_decay',
+        'schedule': crontab(hour=3, minute=30),
+        'kwargs': {
+            'cutoff_days': 7  # Default: 7 days inactivity
+        },
+        'options': {
+            'expires': 3600,
+        }
+    },
+    
+    # Recalculate organization rankings nightly at 4:00 AM
+    'vnext-recalculate-org-rankings': {
+        'task': 'apps.organizations.tasks.recalculate_organization_rankings',
+        'schedule': crontab(hour=4, minute=0),
+        'options': {
+            'expires': 3600,
+        }
+    },
 }
 
 # Celery configuration

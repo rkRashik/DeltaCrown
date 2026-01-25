@@ -270,20 +270,49 @@ class RegistrationEligibilityService:
                 }
             
             # Check team roster size
-            team_members = TeamMembership.objects.filter(
-                team=team_with_permission,
-                status=TeamMembership.Status.ACTIVE
-            )
+            # ============================================================================
+            # ADAPTER MIGRATION POINT (P3-T3): Roster validation now uses TeamAdapter
+            # This routes to either legacy teams or vNext organizations based on flags
+            # ============================================================================
+            from apps.organizations.adapters.team_adapter import TeamAdapter
             
-            min_team_size = getattr(tournament.game, 'min_team_size', 5)
-            if team_members.count() < min_team_size:
-                return {
-                    'eligible': False,
-                    'reason': f'Your team needs at least {min_team_size} members.',
-                    'status': 'roster_too_small',
-                    'action_url': f'/teams/{team_with_permission.slug}/',
-                    'action_label': 'Manage Team',
-                }
+            try:
+                adapter = TeamAdapter()
+                validation_result = adapter.validate_roster(
+                    team_id=team_with_permission.id,
+                    tournament_id=tournament.id,
+                    game_id=tournament.game.id if hasattr(tournament, 'game') else None,
+                )
+                
+                # Adapter returns: {'is_valid': bool, 'errors': [], 'warnings': [], 'roster_data': {}}
+                if not validation_result['is_valid']:
+                    # Extract first error message
+                    error_msg = validation_result['errors'][0] if validation_result['errors'] else 'Team roster does not meet requirements.'
+                    return {
+                        'eligible': False,
+                        'reason': error_msg,
+                        'status': 'roster_invalid',
+                        'action_url': f'/teams/{team_with_permission.slug}/',
+                        'action_label': 'Manage Team',
+                    }
+                
+            except Exception as e:
+                # Fallback to legacy validation if adapter fails (fail-safe)
+                # This preserves existing behavior even if adapter has issues
+                team_members = TeamMembership.objects.filter(
+                    team=team_with_permission,
+                    status=TeamMembership.Status.ACTIVE
+                )
+                
+                min_team_size = getattr(tournament.game, 'min_team_size', 5)
+                if team_members.count() < min_team_size:
+                    return {
+                        'eligible': False,
+                        'reason': f'Your team needs at least {min_team_size} members.',
+                        'status': 'roster_too_small',
+                        'action_url': f'/teams/{team_with_permission.slug}/',
+                        'action_label': 'Manage Team',
+                    }
             
             return {'eligible': True, 'reason': '', 'status': 'eligible'}
             

@@ -201,6 +201,7 @@ TEMPLATES = [
 ]
 TEMPLATES[0]["OPTIONS"]["context_processors"] += [
     "apps.notifications.context_processors.unread_notifications",
+    "apps.organizations.context_processors.vnext_feature_flags",  # vNext feature flags for UI gating
 ]
 
 # ensure cache exists (in dev the locmem cache is fine)
@@ -232,9 +233,16 @@ db_config = dj_database_url.config(default=os.getenv("DATABASE_URL", LOCAL_DB_UR
 db_config['CONN_MAX_AGE'] = 600
 db_config['CONN_HEALTH_CHECKS'] = True
 
-# 4. Force SSL if we are connecting to Neon (Cloud)
+# 4. SSL Configuration
 if "neon.tech" in os.getenv("DATABASE_URL", ""):
+    # Force SSL for cloud database (Neon)
     db_config['OPTIONS'] = {'sslmode': 'require'}
+elif DB_HOST == "localhost" or DB_HOST == "127.0.0.1":
+    # Disable SSL for local development to avoid connection issues
+    db_config['OPTIONS'] = {'sslmode': 'disable'}
+else:
+    # Prefer SSL but allow without for other hosts
+    db_config['OPTIONS'] = {'sslmode': 'prefer'}
 
 DATABASES = {
     'default': db_config
@@ -880,6 +888,131 @@ MODERATION_OBSERVABILITY_SAMPLE_RATE = float(os.getenv('MODERATION_OBSERVABILITY
 # Reference: CLEANUP_AND_TESTING_PART_6.md §4.5 (Safe Rollback)
 # TODO (Epic 3.4): Enable by default after bracket editor integration complete
 BRACKETS_USE_UNIVERSAL_ENGINE = os.getenv('BRACKETS_USE_UNIVERSAL_ENGINE', 'False').lower() == 'true'
+
+# -----------------------------------------------------------------------------
+# Team & Organization vNext Feature Flags (Phase 3)
+# -----------------------------------------------------------------------------
+# Emergency killswitch: Forces ALL adapter traffic to legacy system
+# Default: False (normal operation)
+# Set to True for immediate rollback (no code changes required)
+# Reference: Documents/Team & Organization/Execution/TEAM_ORG_VNEXT_TRACKER.md (P3-T2)
+#
+# Environment Variables (optional overrides):
+#   TEAM_VNEXT_FORCE_LEGACY=true/false       - Emergency killswitch
+#   TEAM_VNEXT_ADAPTER_ENABLED=true/false    - Enable adapter routing
+#   TEAM_VNEXT_ROUTING_MODE=legacy_only|vnext_only|auto  - Routing strategy
+#
+# Dev Mode Defaults (DEBUG=True, no env override):
+#   - ADAPTER_ENABLED = True (allows vNext access)
+#   - FORCE_LEGACY = False (no emergency blocking)
+#   - ROUTING_MODE = "auto" (gradual rollout mode)
+#
+# Production Defaults (DEBUG=False, no env override):
+#   - ADAPTER_ENABLED = False (vNext disabled)
+#   - FORCE_LEGACY = False (normal operation)
+#   - ROUTING_MODE = "legacy_only" (100% legacy traffic)
+#
+TEAM_VNEXT_FORCE_LEGACY = os.getenv('TEAM_VNEXT_FORCE_LEGACY', 'False').lower() == 'true'
+
+# Enable adapter in dev mode by default, disabled in production
+_dev_default_adapter = 'True' if DEBUG else 'False'
+TEAM_VNEXT_ADAPTER_ENABLED = os.getenv('TEAM_VNEXT_ADAPTER_ENABLED', _dev_default_adapter).lower() == 'true'
+
+# Routing mode: Controls which backend to use
+# Options: "legacy_only" (default), "vnext_only", "auto"
+# - legacy_only: All traffic to legacy (safe default)
+# - vnext_only: All traffic to vNext (aggressive rollout)
+# - auto: Use allowlist for gradual rollout (recommended for dev)
+_dev_default_routing = 'auto' if DEBUG else 'legacy_only'
+TEAM_VNEXT_ROUTING_MODE = os.getenv('TEAM_VNEXT_ROUTING_MODE', _dev_default_routing)
+
+# Allowlist: Team IDs that can use vNext in auto mode
+# Default: [] (empty, no teams use vNext)
+# Example: [123, 456, 789] for gradual rollout
+# Only applies when ROUTING_MODE="auto"
+TEAM_VNEXT_TEAM_ALLOWLIST = []
+
+# -----------------------------------------------------------------------------
+# Team & Organization vNext: Phase 5 Migration Settings
+# -----------------------------------------------------------------------------
+# Legacy Write Enforcement (P5-T2)
+# 
+# Purpose: Block writes to legacy apps.teams models during Phase 5 migration
+# while keeping legacy reads fully functional.
+#
+# Settings:
+#   TEAM_LEGACY_WRITE_BLOCKED (bool): If True, blocks all writes to legacy tables.
+#     Default: True (enabled during Phase 5)
+#   
+#   TEAM_LEGACY_WRITE_BYPASS_ENABLED (bool): Emergency killswitch to re-enable writes.
+#     Default: False (bypass disabled)
+#     Use case: Critical production issue requires legacy write
+#     WARNING: Should only be enabled temporarily under supervision
+#   
+#   TEAM_LEGACY_WRITE_BYPASS_TOKEN (str): Optional token for controlled bypass.
+#     Default: None (no token required)
+#     Future use: Could require token validation for bypass
+#
+# Behavior:
+#   - BLOCKED=True, BYPASS=False: All legacy writes raise LegacyWriteBlockedException
+#   - BLOCKED=True, BYPASS=True: Writes allowed but logged (emergency mode)
+#   - BLOCKED=False: No enforcement (normal operation)
+#
+# Phase Timeline:
+#   - Phase 5 start: BLOCKED=True, BYPASS=False (writes blocked)
+#   - Emergency: BYPASS=True (temporary re-enable)
+#   - Phase 8 completion: Remove enforcement (legacy system archived)
+#
+# Affected Models:
+#   - Team (teams_team)
+#   - TeamMembership (teams_membership)
+#   - TeamRankingBreakdown (teams_teamrankingbreakdown)
+#   - All other apps.teams models
+#
+# Environment Variables (optional overrides):
+#   TEAM_LEGACY_WRITE_BLOCKED=true/false
+#   TEAM_LEGACY_WRITE_BYPASS_ENABLED=true/false
+#   TEAM_LEGACY_WRITE_BYPASS_TOKEN=<secret_token>
+#
+TEAM_LEGACY_WRITE_BLOCKED = os.getenv('TEAM_LEGACY_WRITE_BLOCKED', 'True').lower() == 'true'
+TEAM_LEGACY_WRITE_BYPASS_ENABLED = os.getenv('TEAM_LEGACY_WRITE_BYPASS_ENABLED', 'False').lower() == 'true'
+TEAM_LEGACY_WRITE_BYPASS_TOKEN = os.getenv('TEAM_LEGACY_WRITE_BYPASS_TOKEN', None)
+
+# Dual-Write Sync Service (P5-T3)
+#
+# Purpose: During Phase 5-7 transition, sync vNext writes to legacy tables
+# for backward compatibility with old pages/features.
+#
+# Settings:
+#   TEAM_VNEXT_DUAL_WRITE_ENABLED (bool): Enable automatic legacy sync on vNext writes.
+#     Default: False (disabled in production, enable in staging/dev for testing)
+#   
+#   TEAM_VNEXT_DUAL_WRITE_STRICT_MODE (bool): If True, vNext write fails if legacy sync fails.
+#     Default: False (best-effort sync, log failures but don't block vNext writes)
+#
+# Behavior:
+#   - When ENABLED=True: vNext writes trigger legacy table updates via dual_write_service
+#   - When ENABLED=False: No legacy sync (vNext only)
+#   - When STRICT_MODE=True: Legacy sync errors propagate to caller (transaction rollback)
+#   - When STRICT_MODE=False: Legacy sync errors logged but vNext write succeeds
+#
+# Phase Timeline:
+#   - Phase 5 start: ENABLED=False (migration scripts only)
+#   - Phase 5 mid: ENABLED=True in staging (test dual-write)
+#   - Phase 6-7: ENABLED=True in production (parallel operation)
+#   - Phase 8: ENABLED=False (vNext only, legacy archived)
+#
+# Implementation:
+#   - Uses legacy_write_bypass() context manager (P5-T2) to write to legacy
+#   - Syncs via apps.organizations.services.dual_write_service
+#   - Called with transaction.on_commit() to avoid sync on rollback
+#
+# Environment Variables:
+#   TEAM_VNEXT_DUAL_WRITE_ENABLED=true/false
+#   TEAM_VNEXT_DUAL_WRITE_STRICT_MODE=true/false
+#
+TEAM_VNEXT_DUAL_WRITE_ENABLED = os.getenv('TEAM_VNEXT_DUAL_WRITE_ENABLED', 'False').lower() == 'true'
+TEAM_VNEXT_DUAL_WRITE_STRICT_MODE = os.getenv('TEAM_VNEXT_DUAL_WRITE_STRICT_MODE', 'False').lower() == 'true'
 
 # -----------------------------------------------------------------------------
 # Leaderboards Feature Flags (Phase E)

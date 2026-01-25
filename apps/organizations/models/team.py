@@ -190,22 +190,19 @@ class Team(models.Model):
     
     def get_absolute_url(self):
         """
-        Return canonical URL (organization-prefixed or independent).
+        Return canonical URL for team detail page.
+        
+        Phase C+: All teams use simple /teams/<slug>/ route.
+        Organization-specific routing will be implemented in Phase D.
         
         Examples:
-        - Organization team: /orgs/syntax/teams/protocol-v/
+        - Organization team: /teams/protocol-v/
         - Independent team: /teams/my-team-slug/
         
         Returns:
             str: Absolute URL path
         """
-        if self.organization:
-            return reverse('organizations:org_team_detail', kwargs={
-                'org_slug': self.organization.slug,
-                'team_slug': self.slug
-            })
-        else:
-            return reverse('organizations:team_detail', kwargs={'slug': self.slug})
+        return reverse('organizations:team_detail', kwargs={'team_slug': self.slug})
     
     def is_organization_team(self):
         """

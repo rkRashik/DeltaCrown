@@ -6,6 +6,9 @@ This module provides:
 1. RankingCriteria - Configurable point values for different achievements
 2. TeamRankingHistory - Audit trail of point changes
 3. TeamRankingCalculator - Service class for computing points
+
+Phase 5 Changes:
+- Added LegacyWriteEnforcementMixin to TeamRankingBreakdown (P5-T2)
 """
 from __future__ import annotations
 
@@ -15,8 +18,10 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from typing import Dict, Any, Optional, List
 
-User = get_user_model()
+# Phase 5: Legacy write enforcement
+from apps.teams.mixins import LegacyWriteEnforcementMixin, LegacyQuerySetMixin
 
+User = get_user_model()
 
 class RankingCriteria(models.Model):
     """
@@ -187,10 +192,18 @@ class TeamRankingHistory(models.Model):
             raise ValidationError("Points calculation doesn't match: before + change ≠ after")
 
 
-class TeamRankingBreakdown(models.Model):
+class TeamRankingBreakdownQuerySet(LegacyQuerySetMixin, models.QuerySet):
+    """Custom QuerySet with legacy write enforcement for bulk operations."""
+    pass
+
+
+class TeamRankingBreakdown(LegacyWriteEnforcementMixin, models.Model):
     """
     Current point breakdown for each team.
     Shows where each team's points come from for transparency.
+    
+    Phase 5: Write operations blocked during migration.
+    Use apps.organizations.TeamRanking for vNext system.
     """
     
     team = models.OneToOneField(
@@ -231,6 +244,9 @@ class TeamRankingBreakdown(models.Model):
         db_table = "teams_ranking_breakdown"
         verbose_name = "Team Ranking Breakdown"
         verbose_name_plural = "Team Ranking Breakdowns"
+    
+    # Custom manager with Phase 5 write enforcement
+    objects = TeamRankingBreakdownQuerySet.as_manager()
 
     def __str__(self):
         return f"{self.team.name} - {self.final_total} points breakdown"

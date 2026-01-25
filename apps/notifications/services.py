@@ -424,14 +424,23 @@ class NotificationService:
         Args:
             invite: TeamInvite object
         """
-        from django.urls import reverse
+        # P3-T1: Use TeamAdapter for cross-system URL generation
+        from apps.organizations.adapters import TeamAdapter
         
         if not invite.invited_user:
             return None
         
         title = f"{invite.invited_user.user.username} joined your team!"
         body = f"{invite.invited_user.user.username} has accepted the invite to join {invite.team.name}"
-        url = reverse('teams:team_detail', kwargs={'slug': invite.team.slug})
+        
+        # Adapter routes to correct system (legacy or vNext)
+        try:
+            adapter = TeamAdapter()
+            url = adapter.get_team_url(invite.team.id)
+        except Exception:
+            # Fallback to legacy URL if adapter fails
+            from django.urls import reverse
+            url = reverse('teams:team_detail', kwargs={'slug': invite.team.slug})
         
         # Notify team owner and managers
         recipients = []
@@ -471,7 +480,8 @@ class NotificationService:
             change_type: 'added', 'removed', 'role_changed'
             affected_user: User who was affected
         """
-        from django.urls import reverse
+        # P3-T1: Use TeamAdapter for cross-system URL generation
+        from apps.organizations.adapters import TeamAdapter
         
         change_messages = {
             'added': f"{affected_user.username} joined the team",
@@ -481,7 +491,15 @@ class NotificationService:
         
         title = f"Roster Change: {team.name}"
         body = change_messages.get(change_type, "Team roster has been updated")
-        url = reverse('teams:team_detail', kwargs={'slug': team.slug})
+        
+        # Adapter routes to correct system (legacy or vNext)
+        try:
+            adapter = TeamAdapter()
+            url = adapter.get_team_url(team.id)
+        except Exception:
+            # Fallback to legacy URL if adapter fails
+            from django.urls import reverse
+            url = reverse('teams:team_detail', kwargs={'slug': team.slug})
         
         # Get all team members
         team_members = [member.user for member in team.members.all() if member.user]
@@ -610,7 +628,15 @@ class NotificationService:
         
         title = f"{emoji} Ranking Update: {team.name}"
         body = f"Your team moved {direction} from #{old_rank} to #{new_rank} ({points_change:+} points)"
-        url = reverse('teams:team_detail', kwargs={'slug': team.slug})
+        
+        # P3-T1: Use TeamAdapter for cross-system URL generation
+        from apps.organizations.adapters import TeamAdapter
+        try:
+            adapter = TeamAdapter()
+            url = adapter.get_team_url(team.id)
+        except Exception:
+            # Fallback to legacy URL if adapter fails
+            url = reverse('teams:team_detail', kwargs={'slug': team.slug})
         
         # Get all team members
         team_members = [member.user for member in team.members.all() if member.user]
@@ -635,6 +661,9 @@ class NotificationService:
         
         title = f"Sponsor Approved: {sponsor.sponsor_name}"
         body = f"Your sponsorship with {sponsor.sponsor_name} has been approved!"
+        
+        # P3-T1: Use TeamAdapter for team URL (sponsor dashboard keeps legacy route)
+        # Note: sponsor_dashboard is team-app specific, so we construct it manually
         url = reverse('teams:sponsor_dashboard', kwargs={'team_slug': sponsor.team.slug})
         
         # Notify captain and co-captains
@@ -660,7 +689,15 @@ class NotificationService:
         
         title = f"Promotion Started: {promotion.promotion_type}"
         body = f"Your team promotion ({promotion.get_promotion_type_display()}) is now active!"
-        url = reverse('teams:team_detail', kwargs={'slug': promotion.team.slug})
+        
+        # P3-T1: Use TeamAdapter for cross-system URL generation
+        from apps.organizations.adapters import TeamAdapter
+        try:
+            adapter = TeamAdapter()
+            url = adapter.get_team_url(promotion.team.id)
+        except Exception:
+            # Fallback to legacy URL if adapter fails
+            url = reverse('teams:team_detail', kwargs={'slug': promotion.team.slug})
         
         # Notify captain
         captains = [promotion.team.captain.user] if promotion.team.captain else []

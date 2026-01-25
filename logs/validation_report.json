@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "generated_at": "2026-01-25T14:06:48.715523+00:00",
+    "sample_size": 5,
+    "filters": {
+      "game_id": null,
+      "region": null
+    },
+    "dual_write_enabled": false,
+    "dual_write_strict_mode": false,
+    "legacy_write_blocked": true,
+    "execution_time_seconds": 0.5
+  },
+  "coverage": {
+    "legacy_team_count": 1,
+    "vnext_team_count": 0,
+    "mapped_team_count": 0,
+    "legacy_teams_with_mapping": 0,
+    "unmapped_legacy_count": 1,
+    "mapping_percentage": 0.0
+  },
+  "mapping_health": {
+    "total_mappings": 0,
+    "duplicate_legacy_ids": [],
+    "duplicate_legacy_count": 0,
+    "duplicate_vnext_ids": [],
+    "duplicate_vnext_count": 0,
+    "orphan_mappings": [],
+    "orphan_count": 0
+  },
+  "consistency": {
+    "sampled_teams": 0,
+    "name_mismatch_count": 0,
+    "slug_mismatch_count": 0,
+    "membership_count_mismatch_count": 0,
+    "ranking_mismatch_count": 0,
+    "samples": {
+      "name_mismatches": [],
+      "slug_mismatches": [],
+      "membership_count_mismatches": [],
+      "ranking_mismatches": []
+    }
+  },
+  "dual_write_health": null,
+  "recommendations": [
+    "\ud83d\udd34 CRITICAL: 1 legacy teams unmapped (100.0% missing). Run migration scripts to achieve 100% coverage before Phase 6."
+  ]
+}

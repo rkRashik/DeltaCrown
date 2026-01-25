@@ -271,7 +271,35 @@ class TeamAdmin(admin.ModelAdmin):
     banner_preview.short_description = 'Banner Preview'
     
     def save_model(self, request, obj, form, change):
-        """Save team and initialize ranking if newly created."""
+        """
+        Save team and initialize ranking if newly created.
+        
+        Phase 5: Checks legacy write enforcement before saving.
+        """
+        from django.conf import settings
+        from apps.organizations.services.exceptions import LegacyWriteBlockedException
+        
+        # Check if legacy writes are blocked (Phase 5)
+        blocked = getattr(settings, 'TEAM_LEGACY_WRITE_BLOCKED', True)
+        bypass_enabled = getattr(settings, 'TEAM_LEGACY_WRITE_BYPASS_ENABLED', False)
+        
+        if blocked and not bypass_enabled:
+            # Show user-friendly error message in admin
+            messages.error(
+                request,
+                "Legacy team writes are blocked during Phase 5 migration. "
+                "Use the new Organization system (apps.organizations) or enable bypass in settings."
+            )
+            return  # Prevent save
+        
+        if blocked and bypass_enabled:
+            # Bypass enabled - log warning
+            messages.warning(
+                request,
+                "⚠️ Legacy write bypass is ENABLED - changes will be saved but logged. "
+                "This should only be used temporarily."
+            )
+        
         is_new = obj.pk is None
         super().save_model(request, obj, form, change)
         

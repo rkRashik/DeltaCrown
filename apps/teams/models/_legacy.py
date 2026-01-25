@@ -13,6 +13,10 @@ Notes:
 - TEAM_MAX_ROSTER cap enforced in TeamInvite.clean(): you cannot create a *new* PENDING
   invite when there's only ONE slot left, and capacity reserved by existing pending invites
   is also respected to avoid overbooking.
+
+Phase 5 Changes:
+- Added LegacyWriteEnforcementMixin to block writes during migration (P5-T2)
+- All write operations (save/delete/bulk) raise LegacyWriteBlockedException when blocked
 """
 from __future__ import annotations
 
@@ -28,6 +32,9 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.text import slugify
 
+# Phase 5: Legacy write enforcement
+from apps.teams.mixins import LegacyWriteEnforcementMixin, LegacyQuerySetMixin
+
 # Global roster ceiling (captain + players + subs)
 TEAM_MAX_ROSTER = 8
 
@@ -38,7 +45,18 @@ def team_logo_path(instance, filename):
     return f"team_logos/{pk}/{filename}"
 
 
-class Team(models.Model):
+class TeamQuerySet(LegacyQuerySetMixin, models.QuerySet):
+    """Custom QuerySet with legacy write enforcement for bulk operations."""
+    pass
+
+
+class Team(LegacyWriteEnforcementMixin, models.Model):
+    """
+    Legacy Team model with Phase 5 write enforcement.
+    
+    During Phase 5 migration, writes to this model are blocked by default.
+    Use apps.organizations.Team for new teams.
+    """
     # Basics
     name = models.CharField(max_length=100, unique=True, help_text="Team name must be unique")
     tag = models.CharField(max_length=10, unique=True, help_text="Team tag/abbreviation (2-10 characters)")
@@ -233,6 +251,9 @@ class Team(models.Model):
                 condition=~Q(slug=""),
             ),
         ]
+    
+    # Custom manager with Phase 5 write enforcement
+    objects = TeamQuerySet.as_manager()
 
     def __str__(self) -> str:
         try:
@@ -566,7 +587,18 @@ class Team(models.Model):
             pass
 
 
-class TeamMembership(models.Model):
+class TeamMembershipQuerySet(LegacyQuerySetMixin, models.QuerySet):
+    """Custom QuerySet with legacy write enforcement for bulk operations."""
+    pass
+
+
+class TeamMembership(LegacyWriteEnforcementMixin, models.Model):
+    """
+    Legacy TeamMembership model with Phase 5 write enforcement.
+    
+    During Phase 5 migration, writes to this model are blocked by default.
+    Use apps.organizations.TeamMembership for new memberships.
+    """
     class Role(models.TextChoices):
         # === OWNERSHIP & MANAGEMENT ===
         OWNER = "OWNER", "Team Owner"
@@ -847,6 +879,9 @@ class TeamMembership(models.Model):
                 name="uq_one_active_captain_per_team",
             ),
         ]
+    
+    # Custom manager with Phase 5 write enforcement
+    objects = TeamMembershipQuerySet.as_manager()
 
     def __str__(self) -> str:
         captain_badge = "⭐" if self.is_captain else ""

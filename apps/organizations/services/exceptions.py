@@ -249,6 +249,91 @@ class OrganizationServiceError(Exception):
         self.details = details or {}
 
 
+class OrganizationAlreadyExistsError(OrganizationServiceError):
+    """
+    Raised when attempting to create an organization with a name/slug that already exists.
+    
+    Usage:
+        if Organization.objects.filter(slug=slug).exists():
+            raise OrganizationAlreadyExistsError(
+                f"Organization with slug '{slug}' already exists",
+                details={'slug': slug, 'name': name}
+            )
+    """
+    
+    def __init__(
+        self,
+        message: str,
+        details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            message=message,
+            error_code="organization_already_exists",
+            safe_message="An organization with this name or identifier already exists.",
+            details=details
+        )
+
+
+class OrganizationNotFoundError(OrganizationServiceError):
+    """
+    Raised when a requested organization does not exist.
+    
+    Usage:
+        if not Organization.objects.filter(id=org_id).exists():
+            raise OrganizationNotFoundError(
+                f"Organization {org_id} not found",
+                organization_id=org_id
+            )
+    """
+    
+    def __init__(
+        self,
+        message: str,
+        organization_id: Optional[int] = None,
+        details: Optional[Dict[str, Any]] = None
+    ):
+        details = details or {}
+        if organization_id is not None:
+            details['organization_id'] = organization_id
+        
+        super().__init__(
+            message=message,
+            error_code="organization_not_found",
+            safe_message=f"Organization not found.",
+            details=details
+        )
+
+
+class TeamValidationError(TeamServiceError):
+    """
+    Raised when team data fails validation during creation or update.
+    
+    Usage:
+        if not game_exists:
+            raise TeamValidationError(
+                f"Game {game_id} does not exist",
+                field_errors={'game_id': 'Invalid game ID'}
+            )
+    """
+    
+    def __init__(
+        self,
+        message: str,
+        field_errors: Optional[Dict[str, str]] = None,
+        details: Optional[Dict[str, Any]] = None
+    ):
+        details = details or {}
+        if field_errors:
+            details['field_errors'] = field_errors
+        
+        super().__init__(
+            message=message,
+            error_code="team_validation_error",
+            safe_message="Team data validation failed.",
+            details=details
+        )
+
+
 class RankingServiceError(Exception):
     """
     Base exception for Ranking Service errors.
@@ -267,3 +352,65 @@ class RankingServiceError(Exception):
         self.error_code = error_code
         self.safe_message = safe_message or "An error occurred while processing ranking request."
         self.details = details or {}
+
+
+class LegacyWriteBlockedException(TeamServiceError):
+    """
+    Raised when a write operation is attempted on legacy team models during Phase 5 migration.
+    
+    This exception is thrown by the LegacyWriteEnforcementMixin when:
+    - TEAM_LEGACY_WRITE_BLOCKED=True (default during Phase 5)
+    - TEAM_LEGACY_WRITE_BYPASS_ENABLED=False (default)
+    
+    The exception provides structured information about the blocked write:
+    - model: Legacy model class name (e.g., 'Team', 'TeamMembership')
+    - operation: Write operation type (e.g., 'save', 'delete', 'bulk_update')
+    - table: Database table name (e.g., 'teams_team')
+    
+    Usage:
+        # During Phase 5 migration, any write to legacy models will raise:
+        team = Team.objects.get(id=123)
+        team.name = "New Name"
+        team.save()  # Raises LegacyWriteBlockedException
+        
+        # Emergency bypass (controlled re-enable):
+        settings.TEAM_LEGACY_WRITE_BYPASS_ENABLED = True
+        team.save()  # Now allowed, but logged
+    
+    Error Code: LEGACY_WRITE_BLOCKED (stable, API-safe)
+    HTTP Status: 403 Forbidden (operation not permitted during migration)
+    """
+    
+    def __init__(
+        self,
+        model: str,
+        operation: str,
+        table: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None
+    ):
+        details = details or {}
+        details.update({
+            'model': model,
+            'operation': operation,
+            'table': table,
+            'phase': 'Phase 5 (Data Migration)',
+            'bypass_setting': 'TEAM_LEGACY_WRITE_BYPASS_ENABLED',
+        })
+        
+        message = (
+            f"Write operation '{operation}' blocked on legacy model '{model}' "
+            f"during Phase 5 migration. Legacy tables are read-only. "
+            f"Use vNext system (apps.organizations) for new writes."
+        )
+        
+        safe_message = (
+            f"This operation is not available during system migration. "
+            f"Please use the new team management system or contact support."
+        )
+        
+        super().__init__(
+            message=message,
+            error_code="LEGACY_WRITE_BLOCKED",
+            safe_message=safe_message,
+            details=details
+        )

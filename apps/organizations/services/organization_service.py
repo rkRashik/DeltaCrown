@@ -558,4 +558,578 @@ class OrganizationService:
             for member in members:
                 print(f"{member.username} ({member.role})")
         """
-        raise NotImplementedError("Business logic will be implemented in P2-T2+")
+        from apps.organizations.models import Organization, OrganizationMembership
+        
+        # Verify organization exists
+        if not Organization.objects.filter(id=organization_id).exists():
+            raise NotFoundError(
+                message=f"Organization with ID {organization_id} not found",
+                error_code="ORG_NOT_FOUND",
+                details={"organization_id": organization_id}
+            )
+        
+        # Validate role filter if provided
+        valid_roles = ['CEO', 'MANAGER', 'SCOUT', 'ANALYST']
+        if role and role not in valid_roles:
+            raise ValidationError(
+                message=f"Invalid role filter: {role}",
+                error_code="INVALID_ROLE",
+                details={"role": role, "valid_roles": valid_roles}
+            )
+        
+        # Build query (1-2 queries with select_related)
+        queryset = (
+            OrganizationMembership.objects
+            .filter(organization_id=organization_id)
+            .select_related('user')  # Prevent N+1
+            .order_by('joined_at')
+        )
+        
+        if role:
+            queryset = queryset.filter(role=role)
+        
+        # Role hierarchy for sorting (CEO first, then managers, etc.)
+        role_order = {'CEO': 1, 'MANAGER': 2, 'SCOUT': 3, 'ANALYST': 4}
+        
+        # Build DTOs
+        members = []
+        for membership in queryset:
+            member = OrganizationMember(
+                user_id=membership.user.id,
+                username=membership.user.username,
+                display_name=getattr(membership.user, 'display_name', membership.user.username),
+                role=membership.role,
+                permissions=list(membership.permissions.keys()) if membership.permissions else [],
+                joined_date=membership.joined_at.isoformat()
+            )
+            members.append(member)
+        
+        # Sort by role hierarchy, then by join date
+        members.sort(key=lambda m: (role_order.get(m.role, 99), m.joined_date))
+        
+        return members
+    
+    # ========================================================================
+    # ORGANIZATION MANAGEMENT (P3-T5)
+    # ========================================================================
+    
+    @staticmethod
+    def get_organization_detail(
+        *,
+        org_id: Optional[int] = None,
+        org_slug: Optional[str] = None,
+        include_members: bool = True,
+        include_teams: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Get complete organization details with members and teams.
+        
+        Args:
+            org_id: Organization primary key (optional)
+            org_slug: Organization URL slug (optional)
+            include_members: Include member list (default: True)
+            include_teams: Include team list (default: True)
+        
+        Returns:
+            Dict with org info, members, and teams
+        
+        Raises:
+            ValidationError: If both or neither identifiers provided
+            NotFoundError: If organization does not exist
+        
+        Performance Notes:
+            - Target: <100ms (p95), ≤5 queries
+            - Uses select_related/prefetch_related to prevent N+1
+        
+        Example:
+            data = OrganizationService.get_organization_detail(org_slug='syntax')
+            # Returns: {'org': {...}, 'members': [...], 'teams': [...]}
+        """
+        from django.db.models import Count, Q, Prefetch
+        from apps.organizations.models import Organization, OrganizationMembership, Team
+        
+        # Validation: Exactly one identifier required
+        if (org_id is None and org_slug is None) or (org_id is not None and org_slug is not None):
+            raise ValidationError(
+                message="Exactly one of org_id or org_slug must be provided",
+                error_code="INVALID_LOOKUP_PARAMS",
+                details={"org_id_provided": org_id is not None, "org_slug_provided": org_slug is not None}
+            )
+        
+        # Build base query
+        lookup = Q(id=org_id) if org_id is not None else Q(slug=org_slug)
+        queryset = Organization.objects.select_related('ceo')
+        
+        # Optimize member/team loading with prefetch
+        if include_members:
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    'staff_memberships',
+                    queryset=OrganizationMembership.objects.select_related('user').order_by('joined_at')
+                )
+            )
+        
+        if include_teams:
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    'teams',
+                    queryset=Team.objects.filter(status='ACTIVE', is_temporary=False).select_related('game')
+                )
+            )
+        
+        # Execute query
+        try:
+            org = queryset.get(lookup)
+        except Organization.DoesNotExist:
+            identifier = f"id={org_id}" if org_id is not None else f"slug={org_slug}"
+            raise NotFoundError(
+                message=f"Organization not found: {identifier}",
+                error_code="ORG_NOT_FOUND",
+                details={"lookup": identifier}
+            )
+        
+        # Build response data
+        result = {
+            'org': {
+                'id': org.id,
+                'name': org.name,
+                'slug': org.slug,
+                'logo_url': org.logo.url if org.logo else None,
+                'banner_url': org.banner.url if org.banner else None,
+                'is_verified': org.is_verified,
+                'ceo_id': org.ceo.id,
+                'ceo_username': org.ceo.username,
+                'description': org.description or '',
+                'website': org.website or '',
+                'twitter': org.twitter or '',
+                'primary_color': getattr(org, 'primary_color', '#667eea'),
+                'tagline': getattr(org, 'tagline', ''),
+                'created_at': org.created_at.isoformat(),
+            },
+            'members': [],
+            'teams': []
+        }
+        
+        # Add members if requested
+        if include_members:
+            role_order = {'CEO': 1, 'MANAGER': 2, 'SCOUT': 3, 'ANALYST': 4}
+            members_list = list(org.staff_memberships.all())
+            members_list.sort(key=lambda m: (role_order.get(m.role, 99), m.joined_at))
+            
+            result['members'] = [{
+                'id': m.id,
+                'user_id': m.user.id,
+                'username': m.user.username,
+                'display_name': getattr(m.user, 'display_name', m.user.username),
+                'role': m.role,
+                'permissions': list(m.permissions.keys()) if m.permissions else [],
+                'joined_at': m.joined_at.isoformat(),
+                'status': 'active'
+            } for m in members_list]
+        
+        # Add teams if requested
+        if include_teams:
+            result['teams'] = [{
+                'id': t.id,
+                'name': t.name,
+                'slug': t.slug,
+                'tag': t.tag,
+                'game_name': t.game.name if t.game else 'Unknown',
+                'game_slug': t.game.slug if t.game else '',
+                'region': t.region,
+                'status': t.status,
+                'member_count': t.members.filter(status='ACTIVE').count(),
+                'created_at': t.created_at.isoformat()
+            } for t in org.teams.all()]
+        
+        return result
+    
+    @staticmethod
+    def add_organization_member(
+        *,
+        organization_id: int,
+        user_id: int,
+        role: str,
+        added_by_user_id: int
+    ) -> int:
+        """
+        Add a new member to an organization.
+        
+        Args:
+            organization_id: Organization primary key
+            user_id: User to add as member
+            role: Organization role (MANAGER, SCOUT, ANALYST)
+            added_by_user_id: User performing the action (permission check)
+        
+        Returns:
+            New membership ID
+        
+        Raises:
+            NotFoundError: If organization or user not found
+            PermissionDeniedError: If added_by_user lacks permission
+            ValidationError: If role invalid or user already member
+            ConflictError: If user already a member
+        
+        Performance Notes:
+            - Target: <100ms (p95), ≤5 queries
+            - Uses transaction.atomic for safety
+        
+        Example:
+            membership_id = OrganizationService.add_organization_member(
+                organization_id=42,
+                user_id=123,
+                role='MANAGER',
+                added_by_user_id=1  # CEO
+            )
+        """
+        from django.db import transaction
+        from django.contrib.auth import get_user_model
+        from apps.organizations.models import Organization, OrganizationMembership
+        
+        User = get_user_model()
+        
+        # Validate role
+        valid_roles = ['MANAGER', 'SCOUT', 'ANALYST']
+        if role not in valid_roles:
+            raise ValidationError(
+                message=f"Invalid role: {role}. Must be one of: {valid_roles}",
+                error_code="INVALID_ROLE",
+                details={"role": role, "valid_roles": valid_roles}
+            )
+        
+        with transaction.atomic():
+            # Verify organization exists
+            try:
+                org = Organization.objects.select_for_update().get(id=organization_id)
+            except Organization.DoesNotExist:
+                raise NotFoundError(
+                    message=f"Organization with ID {organization_id} not found",
+                    error_code="ORG_NOT_FOUND",
+                    details={"organization_id": organization_id}
+                )
+            
+            # Permission check: CEO or MANAGER can add members
+            added_by_membership = OrganizationMembership.objects.filter(
+                organization_id=organization_id,
+                user_id=added_by_user_id
+            ).first()
+            
+            if not added_by_membership or added_by_membership.role not in ['CEO', 'MANAGER']:
+                raise PermissionDeniedError(
+                    message="Only CEO or Managers can add organization members",
+                    error_code="INSUFFICIENT_PERMISSIONS",
+                    details={"required_role": "CEO or MANAGER"}
+                )
+            
+            # Verify user exists
+            try:
+                user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                raise NotFoundError(
+                    message=f"User with ID {user_id} not found",
+                    error_code="USER_NOT_FOUND",
+                    details={"user_id": user_id}
+                )
+            
+            # Check if user already member
+            if OrganizationMembership.objects.filter(organization_id=organization_id, user_id=user_id).exists():
+                raise ConflictError(
+                    message=f"User {user.username} is already a member of this organization",
+                    error_code="ALREADY_MEMBER",
+                    details={"user_id": user_id, "username": user.username}
+                )
+            
+            # Create membership
+            membership = OrganizationMembership.objects.create(
+                organization=org,
+                user=user,
+                role=role,
+                permissions={}
+            )
+            
+            return membership.id
+    
+    @staticmethod
+    def update_member_role(
+        *,
+        membership_id: int,
+        new_role: str,
+        updated_by_user_id: int
+    ) -> None:
+        """
+        Update an organization member's role.
+        
+        Args:
+            membership_id: OrganizationMembership primary key
+            new_role: New role (MANAGER, SCOUT, ANALYST)
+            updated_by_user_id: User performing the action (permission check)
+        
+        Raises:
+            NotFoundError: If membership not found
+            PermissionDeniedError: If updater lacks permission or trying to demote CEO
+            ValidationError: If new_role invalid
+        
+        Performance Notes:
+            - Target: <100ms (p95), ≤3 queries
+            - Uses transaction.atomic for safety
+        
+        Business Rules:
+            - CEO cannot be demoted (only platform admins can change CEO)
+            - Only CEO or Managers can change roles
+            - Managers cannot demote other Managers (only CEO can)
+        
+        Example:
+            OrganizationService.update_member_role(
+                membership_id=123,
+                new_role='SCOUT',
+                updated_by_user_id=1  # CEO
+            )
+        """
+        from django.db import transaction
+        from apps.organizations.models import OrganizationMembership
+        
+        # Validate new role
+        valid_roles = ['MANAGER', 'SCOUT', 'ANALYST']
+        if new_role not in valid_roles:
+            raise ValidationError(
+                message=f"Invalid role: {new_role}. Must be one of: {valid_roles}",
+                error_code="INVALID_ROLE",
+                details={"new_role": new_role, "valid_roles": valid_roles}
+            )
+        
+        with transaction.atomic():
+            # Get membership being modified
+            try:
+                membership = OrganizationMembership.objects.select_for_update().select_related('organization').get(id=membership_id)
+            except OrganizationMembership.DoesNotExist:
+                raise NotFoundError(
+                    message=f"Membership with ID {membership_id} not found",
+                    error_code="MEMBERSHIP_NOT_FOUND",
+                    details={"membership_id": membership_id}
+                )
+            
+            # HARD RULE: Cannot change CEO role
+            if membership.role == 'CEO':
+                raise PermissionDeniedError(
+                    message="Cannot change CEO role. Contact platform administrators.",
+                    error_code="CANNOT_CHANGE_CEO",
+                    details={"membership_id": membership_id}
+                )
+            
+            # Get updater's membership
+            updater_membership = OrganizationMembership.objects.filter(
+                organization=membership.organization,
+                user_id=updated_by_user_id
+            ).first()
+            
+            if not updater_membership:
+                raise PermissionDeniedError(
+                    message="You are not a member of this organization",
+                    error_code="NOT_ORGANIZATION_MEMBER",
+                    details={"user_id": updated_by_user_id}
+                )
+            
+            # Permission check: Only CEO or Managers can change roles
+            if updater_membership.role not in ['CEO', 'MANAGER']:
+                raise PermissionDeniedError(
+                    message="Only CEO or Managers can change member roles",
+                    error_code="INSUFFICIENT_PERMISSIONS",
+                    details={"required_role": "CEO or MANAGER"}
+                )
+            
+            # BUSINESS RULE: Managers can't change other Manager roles (only CEO can)
+            if membership.role == 'MANAGER' and updater_membership.role != 'CEO':
+                raise PermissionDeniedError(
+                    message="Only the CEO can change Manager roles",
+                    error_code="CANNOT_CHANGE_MANAGER_ROLE",
+                    details={"required_role": "CEO"}
+                )
+            
+            # Update role
+            membership.role = new_role
+            membership.save(update_fields=['role'])
+    
+    @staticmethod
+    def remove_organization_member(
+        *,
+        membership_id: int,
+        removed_by_user_id: int
+    ) -> None:
+        """
+        Remove a member from an organization.
+        
+        Args:
+            membership_id: OrganizationMembership primary key
+            removed_by_user_id: User performing the action (permission check)
+        
+        Raises:
+            NotFoundError: If membership not found
+            PermissionDeniedError: If remover lacks permission or trying to remove CEO
+        
+        Performance Notes:
+            - Target: <100ms (p95), ≤3 queries
+            - Uses transaction.atomic for safety
+        
+        Business Rules:
+            - CEO cannot be removed (only platform admins)
+            - Only CEO or Managers can remove members
+            - Managers cannot remove other Managers (only CEO can)
+        
+        Example:
+            OrganizationService.remove_organization_member(
+                membership_id=123,
+                removed_by_user_id=1  # CEO
+            )
+        """
+        from django.db import transaction
+        from apps.organizations.models import OrganizationMembership
+        
+        with transaction.atomic():
+            # Get membership being removed
+            try:
+                membership = OrganizationMembership.objects.select_for_update().select_related('organization').get(id=membership_id)
+            except OrganizationMembership.DoesNotExist:
+                raise NotFoundError(
+                    message=f"Membership with ID {membership_id} not found",
+                    error_code="MEMBERSHIP_NOT_FOUND",
+                    details={"membership_id": membership_id}
+                )
+            
+            # HARD RULE: Cannot remove CEO
+            if membership.role == 'CEO':
+                raise PermissionDeniedError(
+                    message="Cannot remove CEO. Contact platform administrators.",
+                    error_code="CANNOT_REMOVE_CEO",
+                    details={"membership_id": membership_id}
+                )
+            
+            # Get remover's membership
+            remover_membership = OrganizationMembership.objects.filter(
+                organization=membership.organization,
+                user_id=removed_by_user_id
+            ).first()
+            
+            if not remover_membership:
+                raise PermissionDeniedError(
+                    message="You are not a member of this organization",
+                    error_code="NOT_ORGANIZATION_MEMBER",
+                    details={"user_id": removed_by_user_id}
+                )
+            
+            # Permission check: Only CEO or Managers can remove members
+            if remover_membership.role not in ['CEO', 'MANAGER']:
+                raise PermissionDeniedError(
+                    message="Only CEO or Managers can remove members",
+                    error_code="INSUFFICIENT_PERMISSIONS",
+                    details={"required_role": "CEO or MANAGER"}
+                )
+            
+            # BUSINESS RULE: Managers can't remove other Managers (only CEO can)
+            if membership.role == 'MANAGER' and remover_membership.role != 'CEO':
+                raise PermissionDeniedError(
+                    message="Only the CEO can remove Managers",
+                    error_code="CANNOT_REMOVE_MANAGER",
+                    details={"required_role": "CEO"}
+                )
+            
+            # Delete membership
+            membership.delete()
+    
+    @staticmethod
+    def update_organization_settings(
+        *,
+        organization_id: int,
+        updated_by_user_id: int,
+        logo_url: Optional[str] = None,
+        banner_url: Optional[str] = None,
+        primary_color: Optional[str] = None,
+        tagline: Optional[str] = None
+    ) -> None:
+        """
+        Update organization branding settings.
+        
+        Args:
+            organization_id: Organization primary key
+            updated_by_user_id: User performing the action (permission check)
+            logo_url: New logo URL (optional)
+            banner_url: New banner URL (optional)
+            primary_color: New primary color (hex format, optional)
+            tagline: New tagline (optional)
+        
+        Raises:
+            NotFoundError: If organization not found
+            PermissionDeniedError: If updater lacks permission
+            ValidationError: If color format invalid
+        
+        Performance Notes:
+            - Target: <100ms (p95), ≤3 queries
+            - Uses transaction.atomic for safety
+        
+        Business Rules:
+            - Only CEO or Managers can update settings
+        
+        Example:
+            OrganizationService.update_organization_settings(
+                organization_id=42,
+                updated_by_user_id=1,
+                primary_color='#ff5733',
+                tagline='Victory Awaits'
+            )
+        """
+        from django.db import transaction
+        from apps.organizations.models import Organization, OrganizationMembership
+        import re
+        
+        # Validate color format if provided
+        if primary_color and not re.match(r'^#[0-9a-fA-F]{6}$', primary_color):
+            raise ValidationError(
+                message="Invalid color format. Must be hex format like #ff5733",
+                error_code="INVALID_COLOR_FORMAT",
+                details={"primary_color": primary_color}
+            )
+        
+        with transaction.atomic():
+            # Verify organization exists
+            try:
+                org = Organization.objects.select_for_update().get(id=organization_id)
+            except Organization.DoesNotExist:
+                raise NotFoundError(
+                    message=f"Organization with ID {organization_id} not found",
+                    error_code="ORG_NOT_FOUND",
+                    details={"organization_id": organization_id}
+                )
+            
+            # Permission check: CEO or MANAGER can update settings
+            updater_membership = OrganizationMembership.objects.filter(
+                organization_id=organization_id,
+                user_id=updated_by_user_id
+            ).first()
+            
+            if not updater_membership or updater_membership.role not in ['CEO', 'MANAGER']:
+                raise PermissionDeniedError(
+                    message="Only CEO or Managers can update organization settings",
+                    error_code="INSUFFICIENT_PERMISSIONS",
+                    details={"required_role": "CEO or MANAGER"}
+                )
+            
+            # Update fields (only if provided)
+            updated_fields = []
+            
+            if logo_url is not None:
+                org.logo_url = logo_url
+                updated_fields.append('logo_url')
+            
+            if banner_url is not None:
+                org.banner_url = banner_url
+                updated_fields.append('banner_url')
+            
+            if primary_color is not None:
+                org.primary_color = primary_color
+                updated_fields.append('primary_color')
+            
+            if tagline is not None:
+                org.tagline = tagline
+                updated_fields.append('tagline')
+            
+            if updated_fields:
+                org.save(update_fields=updated_fields)

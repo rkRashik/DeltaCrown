@@ -152,6 +152,13 @@
 {% endblock %}
 
 {% block content %}
+<!-- ============= DEBUG START ============= -->
+<!-- TEMPLATE: templates/teams/list.html -->
+<!-- TEAM_VNEXT_ADAPTER_ENABLED: {{ TEAM_VNEXT_ADAPTER_ENABLED }} -->
+<!-- TEAM_VNEXT_FORCE_LEGACY: {{ TEAM_VNEXT_FORCE_LEGACY }} -->
+<!-- TEAM_VNEXT_ROUTING_MODE: {{ TEAM_VNEXT_ROUTING_MODE }} -->
+<!-- CONDITION RESULT: {{ TEAM_VNEXT_ADAPTER_ENABLED|yesno:"TRUE,FALSE" }} and not {{ TEAM_VNEXT_FORCE_LEGACY|yesno:"TRUE,FALSE" }} and mode != legacy_only -->
+<!-- ============= DEBUG END ============= -->
 <div class="teams-hub-premium">
     <!-- Advanced Background -->
     <div class="hub-background-advanced">
@@ -187,6 +194,14 @@
                     <i class="fas fa-plus-circle"></i>
                     <span>Create Team</span>
                 </a>
+                
+                {% if TEAM_VNEXT_ADAPTER_ENABLED and not TEAM_VNEXT_FORCE_LEGACY and TEAM_VNEXT_ROUTING_MODE != 'legacy_only' %}
+                <a href="/teams/vnext/" class="navbar-btn secondary" title="vNext Team & Organization Hub (Beta)" style="border: 1px solid #00f0ff; background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(138, 43, 226, 0.1));">
+                    <i class="fas fa-sitemap"></i>
+                    <span>Team & Org</span>
+                    <span style="display: inline-block; padding: 2px 6px; background: #00f0ff; color: #0a0a0f; font-size: 10px; font-weight: 700; border-radius: 4px; margin-left: 6px;">BETA</span>
+                </a>
+                {% endif %}
             </div>
         </div>
     </nav>
