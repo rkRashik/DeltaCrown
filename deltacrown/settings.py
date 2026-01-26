@@ -121,7 +121,7 @@ INSTALLED_APPS = [
     "apps.corelib",
     "apps.games",  # Phase 3: Centralized game configuration
     "apps.teams",
-    "apps.organizations",  # Phase 1: Team & Organization vNext (replaces apps.teams)
+    "apps.organizations.apps.OrganizationsConfig",  # Phase 1: Team & Organization vNext (replaces apps.teams)
     # Legacy tournament system moved to legacy_backup/ (November 2, 2025)
     # New Tournament Engine being built (Phase 1, Module 1.2 - November 2025)
     "apps.tournaments",

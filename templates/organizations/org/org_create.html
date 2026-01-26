@@ -1,0 +1,729 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Organization | DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+<style>
+    /* Extend Tailwind with custom theme */
+    :root {
+        --delta-void: #000000;
+        --delta-obsidian: #050505;
+        --delta-panel: #0A0A0F;
+        --delta-surface: #12121A;
+        --delta-gold: #FFD700;
+        --delta-gold-dim: #BFA200;
+        --delta-platinum: #E2E8F0;
+        --delta-subtle: #64748B;
+    }
+
+    /* SCROLLBAR - Gold Themed */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #050505; }
+    ::-webkit-scrollbar-thumb { background: #BFA200; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #FFD700; }
+
+    /* GLASS & PANELS */
+    .corp-panel {
+        background: rgba(10, 10, 15, 0.6);
+        backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 4px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    .corp-input {
+        width: 100%;
+        background: #08080C;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        padding: 1rem 1rem;
+        font-size: 0.95rem;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+        font-family: 'Space Mono', monospace;
+    }
+
+    .corp-input:focus {
+        outline: none;
+        border-color: #FFD700;
+        background: #0F0F14;
+        box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.2);
+    }
+
+    .corp-label {
+        position: absolute;
+        left: 1rem;
+        top: -0.6rem;
+        background: #000000;
+        padding: 0 0.5rem;
+        color: #64748B;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        transition: color 0.3s ease;
+    }
+
+    .corp-input:focus + .corp-label {
+        color: #FFD700;
+    }
+
+    /* WIZARD ANIMATIONS */
+    .step-section {
+        display: none;
+        opacity: 0;
+        transform: translateX(20px);
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .step-section.active {
+        display: block;
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    /* GOLD BUTTON */
+    .btn-gold {
+        background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+        color: black;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: none;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .btn-gold:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+    }
+    .btn-gold::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        transition: 0.5s;
+    }
+    .btn-gold:hover::after {
+        left: 100%;
+    }
+
+    /* CERTIFICATE PREVIEW */
+    .certificate-bg {
+        background-image:
+            radial-gradient(circle at top right, rgba(255, 215, 0, 0.05), transparent 40%),
+            linear-gradient(to bottom, #0A0A0F, #050508);
+        border: 1px solid rgba(255, 215, 0, 0.2);
+    }
+
+    .watermark {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-45deg);
+        font-size: 8rem;
+        font-weight: 900;
+        color: rgba(255, 255, 255, 0.02);
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* CUSTOM CHECKBOX CARD */
+    .wallet-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .wallet-card:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.02);
+    }
+    .wallet-radio:checked + .wallet-card {
+        border-color: #FFD700;
+        background: rgba(255, 215, 0, 0.05);
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+    }
+    .wallet-radio:checked + .wallet-card .check-icon {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    /* DYNAMIC FIELDS ANIMATION */
+    .dynamic-field {
+        display: none;
+        animation: fadeIn 0.4s ease-in-out;
+    }
+    .dynamic-field.active {
+        display: block;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Grid background pattern */
+    .bg-grid-pattern {
+        background-image:
+            linear-gradient(rgba(255, 215, 0, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 215, 0, 0.03) 1px, transparent 1px);
+        background-size: 40px 40px;
+    }
+
+    /* Body override for black background */
+    body {
+        background-color: #000000 !important;
+    }
+
+    /* Font families */
+    .font-corp { font-family: 'Outfit', sans-serif; }
+    .font-tech { font-family: 'Rajdhani', sans-serif; }
+    .font-mono { font-family: 'Space Mono', monospace; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fixed inset-0 z-0 pointer-events-none">
+    <div class="absolute inset-0 bg-grid-pattern opacity-20"></div>
+    <div class="absolute top-0 right-0 w-[600px] h-[600px] blur-[150px]" style="background: rgba(255, 215, 0, 0.05);"></div>
+    <div class="absolute bottom-0 left-0 w-[800px] h-[800px] blur-[150px]" style="background: rgba(67, 56, 202, 0.05);"></div>
+</div>
+
+<div class="relative z-10">
+    <main class="flex flex-col lg:flex-row max-w-[1600px] mx-auto w-full pt-12 pb-24 px-6 gap-12">
+        
+        <!-- LEFT COLUMN: Form Steps -->
+        <div class="w-full lg:w-7/12">
+            
+            <!-- Header -->
+            <div class="mb-12">
+                <h1 class="text-4xl md:text-5xl font-tech font-bold text-white mb-2 uppercase">Create Organization</h1>
+                <p class="text-slate-400 font-corp text-lg">Build your brand. Manage teams. Compete professionally.</p>
+
+                <!-- Progress Bar -->
+                <div class="flex items-center gap-2 mt-8">
+                    <div class="h-1 flex-1 bg-yellow-500 rounded-full transition-all duration-500" id="progress1"></div>
+                    <div class="h-1 flex-1 bg-white/10 rounded-full transition-all duration-500" id="progress2"></div>
+                    <div class="h-1 flex-1 bg-white/10 rounded-full transition-all duration-500" id="progress3"></div>
+                    <div class="h-1 flex-1 bg-white/10 rounded-full transition-all duration-500" id="progress4"></div>
+                    <div class="h-1 flex-1 bg-white/10 rounded-full transition-all duration-500" id="progress5"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-slate-500 uppercase tracking-widest mt-2 font-mono" id="stepLabel">
+                    <span class="text-yellow-500">01. Identity</span>
+                    <span>05. Ratification</span>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <form id="orgForm" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- STEP 1: Identity -->
+                <div id="step1" class="step-section active">
+                    <h3 class="text-xl font-tech font-bold text-white uppercase mb-6 flex items-center gap-2">
+                        <span class="w-1 h-6 bg-yellow-500"></span> Organization Essentials
+                    </h3>
+
+                    <div class="space-y-6">
+                        <div class="input-group">
+                            <input type="text" id="orgName" name="name" class="corp-input" placeholder="e.g. Syntax Esports" required>
+                            <label class="corp-label">Organization Name *</label>
+                            <p class="text-[10px] text-slate-500 mt-1 ml-1">Your official team brand name.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="input-group">
+                                <input type="text" id="orgTicker" name="badge" class="corp-input uppercase" placeholder="e.g. SYN" maxlength="5" required>
+                                <label class="corp-label">Team Tag (Ticker) *</label>
+                                <p class="text-[10px] text-slate-500 mt-1 ml-1">Short acronym shown in match scoreboards.</p>
+                            </div>
+                            <div class="input-group">
+                                <input type="number" id="orgEst" name="founded_year" class="corp-input" placeholder="2026" min="2000" max="2030">
+                                <label class="corp-label">Founded Year</label>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <div class="flex items-center">
+                                <span class="bg-[#08080C] border border-r-0 border-white/10 text-slate-500 px-4 py-4 rounded-l-lg text-sm font-mono">deltacrown.gg/org/</span>
+                                <input type="text" id="orgSlug" name="slug" class="corp-input rounded-l-none border-l-0" placeholder="syntax-esports">
+                            </div>
+                            <label class="corp-label" style="left: 0;">Public Profile Link</label>
+                        </div>
+
+                        <div class="input-group">
+                            <textarea id="orgManifesto" name="description" class="corp-input h-32 resize-none" placeholder="Briefly describe your organization's goals or story..." maxlength="500"></textarea>
+                            <label class="corp-label">Organization Manifesto / Mission</label>
+                            <div class="text-right text-[10px] text-slate-600 mt-1">0/500</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-10 flex justify-end">
+                        <button type="button" data-next="2" class="btn-next btn-gold px-8 py-3 rounded text-sm">
+                            Next: Structure <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Operations -->
+                <div id="step2" class="step-section">
+                    <h3 class="text-xl font-tech font-bold text-white uppercase mb-6 flex items-center gap-2">
+                        <span class="w-1 h-6 bg-yellow-500"></span> Operations
+                    </h3>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Organization Type</label>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="organization_type" value="club" class="wallet-radio hidden" checked>
+                                    <div class="wallet-card p-4 rounded-xl bg-[#12121A] border border-white/10 h-full">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <i class="fas fa-gamepad text-yellow-500 text-xl"></i>
+                                            <i class="fas fa-check-circle text-yellow-500 opacity-0 check-icon transition-all"></i>
+                                        </div>
+                                        <span class="block text-sm font-bold text-white">Esports Club (Casual)</span>
+                                        <span class="text-[10px] text-slate-500">For friends, local squads, and amateur play.</span>
+                                    </div>
+                                </label>
+
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="organization_type" value="pro" class="wallet-radio hidden">
+                                    <div class="wallet-card p-4 rounded-xl bg-[#12121A] border border-white/10 h-full">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <i class="fas fa-briefcase text-yellow-500 text-xl"></i>
+                                            <i class="fas fa-check-circle text-yellow-500 opacity-0 check-icon transition-all"></i>
+                                        </div>
+                                        <span class="block text-sm font-bold text-white">Pro Organization</span>
+                                        <span class="text-[10px] text-slate-500">For businesses managing payroll & contracts.</span>
+                                    </div>
+                                </label>
+
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="organization_type" value="guild" class="wallet-radio hidden">
+                                    <div class="wallet-card p-4 rounded-xl bg-[#12121A] border border-white/10 h-full">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <i class="fas fa-users text-yellow-500 text-xl"></i>
+                                            <i class="fas fa-check-circle text-yellow-500 opacity-0 check-icon transition-all"></i>
+                                        </div>
+                                        <span class="block text-sm font-bold text-white">Community Guild</span>
+                                        <span class="text-[10px] text-slate-500">Large communities with many members.</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Fields Container -->
+                        <div class="bg-white/5 border border-white/10 rounded-xl p-6 transition-all">
+
+                            <div id="fields-club" class="dynamic-field active">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="input-group mb-0">
+                                        <input type="email" name="email_club" class="corp-input" value="{{ user.email }}" readonly>
+                                        <label class="corp-label">Owner Email</label>
+                                        <p class="text-[10px] text-slate-500 mt-1">Using your account email.</p>
+                                    </div>
+                                    <div class="input-group mb-0">
+                                        <input type="text" name="hq_city" class="corp-input" placeholder="e.g. Dhaka">
+                                        <label class="corp-label">City Base</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="fields-pro" class="dynamic-field">
+                                <div class="grid grid-cols-1 gap-6">
+                                    <div class="input-group">
+                                        <input type="email" name="business_email" class="corp-input" placeholder="business@org.com">
+                                        <label class="corp-label">Official Business Email</label>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div class="input-group mb-0">
+                                            <input type="text" name="hq_address" class="corp-input" placeholder="e.g. Gulshan-1, Dhaka">
+                                            <label class="corp-label">HQ Operating Address</label>
+                                        </div>
+                                        <div class="input-group mb-0">
+                                            <input type="text" name="trade_license" class="corp-input" placeholder="Optional">
+                                            <label class="corp-label">Trade License / BIN No.</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="fields-guild" class="dynamic-field">
+                                <div class="grid grid-cols-1 gap-6">
+                                    <div class="input-group">
+                                        <div class="flex items-center">
+                                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 z-10"><i class="fab fa-discord"></i></span>
+                                            <input type="text" name="discord_link" class="corp-input pl-10" placeholder="https://discord.gg/...">
+                                        </div>
+                                        <label class="corp-label">Community Discord Link</label>
+                                    </div>
+                                    <div class="input-group mb-0">
+                                        <select name="region_code_guild" class="corp-input appearance-none">
+                                            <option>Global (International)</option>
+                                            <option>South Asia</option>
+                                            <option>Europe</option>
+                                        </select>
+                                        <label class="corp-label">Primary Region</label>
+                                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Region Detector -->
+                        <div class="bg-white/5 border border-white/10 rounded-lg p-4 mb-4">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Home Base / Region</label>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-6 overflow-hidden rounded shadow-sm">
+                                        <img src="https://flagcdn.com/w160/bd.png" alt="BD" class="w-full h-full object-cover">
+                                    </div>
+                                    <div>
+                                        <div class="text-white font-bold font-tech text-lg">Bangladesh</div>
+                                        <div class="text-xs text-green-500 flex items-center gap-1"><i class="fas fa-wifi"></i> IP Detected</div>
+                                    </div>
+                                </div>
+                                <button type="button" class="text-xs text-yellow-500 underline hover:text-white" onclick="document.getElementById('manualRegionBox').classList.toggle('hidden')">Change</button>
+                            </div>
+
+                            <div id="manualRegionBox" class="hidden mt-4 pt-4 border-t border-white/5">
+                                <select id="orgRegion" name="region_code" class="corp-input appearance-none">
+                                    <option value="BD" selected>Bangladesh</option>
+                                    <option value="US">United States</option>
+                                    <option value="SG">Singapore</option>
+                                    <option value="IN">India</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Social Links -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Social Presence</label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="input-group mb-0">
+                                    <div class="flex items-center">
+                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 z-10"><i class="fab fa-facebook"></i></span>
+                                        <input type="text" name="facebook" class="corp-input pl-10" placeholder="Facebook URL">
+                                    </div>
+                                </div>
+                                <div class="input-group mb-0">
+                                    <div class="flex items-center">
+                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 z-10"><i class="fab fa-instagram"></i></span>
+                                        <input type="text" name="instagram" class="corp-input pl-10" placeholder="Instagram Handle">
+                                    </div>
+                                </div>
+                                <div class="input-group mb-0">
+                                    <div class="flex items-center">
+                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 z-10"><i class="fab fa-discord"></i></span>
+                                        <input type="text" name="discord_social" class="corp-input pl-10" placeholder="Discord Invite">
+                                    </div>
+                                </div>
+                                <div class="input-group mb-0">
+                                    <div class="flex items-center">
+                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 z-10"><i class="fab fa-youtube"></i></span>
+                                        <input type="text" name="youtube" class="corp-input pl-10" placeholder="YouTube Channel">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-10 flex justify-between">
+                        <button type="button" data-prev="1" class="btn-prev text-slate-500 hover:text-white font-mono text-xs uppercase tracking-wider"><i class="fas fa-chevron-left"></i> Back</button>
+                        <button type="button" data-next="3" class="btn-next btn-gold px-8 py-3 rounded text-sm">
+                            Next: Treasury <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Treasury -->
+                <div id="step3" class="step-section">
+                    <h3 class="text-xl font-tech font-bold text-white uppercase mb-6 flex items-center gap-2">
+                        <span class="w-1 h-6 bg-yellow-500"></span> Treasury Setup
+                    </h3>
+
+                    <!-- DeltaCrown Vault Banner -->
+                    <div class="bg-gradient-to-r from-[#1E1E24] to-[#12121A] rounded-xl p-5 border border-yellow-500/20 mb-8 flex items-center gap-5 relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 text-yellow-500/5 text-9xl rotate-12"><i class="fas fa-coins"></i></div>
+                        <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center text-black text-xl font-bold shrink-0">
+                            DC
+                        </div>
+                        <div class="relative z-10">
+                            <h4 class="text-white font-bold font-tech text-lg uppercase">DeltaCrown Vault</h4>
+                            <p class="text-xs text-slate-400 max-w-md">Your default digital wallet for platform rewards, micro-transactions, and coin earnings. Always active.</p>
+                        </div>
+                        <div class="ml-auto relative z-10">
+                            <span class="bg-yellow-500/20 text-yellow-500 text-[10px] font-bold px-2 py-1 rounded border border-yellow-500/30 uppercase">Active</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Primary Payout Method (Real Money)</label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <label class="cursor-pointer group">
+                                    <input type="radio" name="payout_method" value="mobile" class="wallet-radio hidden" checked>
+                                    <div class="wallet-card p-5 rounded-xl bg-[#12121A] border border-white/10 h-full flex items-start gap-4">
+                                        <div class="w-10 h-10 rounded-lg bg-pink-600/10 flex items-center justify-center text-pink-500 text-xl border border-pink-600/20 shrink-0">
+                                            <i class="fas fa-mobile-alt"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex justify-between">
+                                                <span class="block text-sm font-bold text-white">Mobile Banking</span>
+                                                <i class="fas fa-check-circle text-yellow-500 opacity-0 check-icon transition-all"></i>
+                                            </div>
+                                            <p class="text-[10px] text-slate-500 mt-1">Bkash, Nagad, Rocket, Upay.</p>
+                                            <p class="text-[10px] text-slate-500">Fastest for amounts < 25k BDT.</p>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label class="cursor-pointer group">
+                                    <input type="radio" name="payout_method" value="bank" class="wallet-radio hidden">
+                                    <div class="wallet-card p-5 rounded-xl bg-[#12121A] border border-white/10 h-full flex items-start gap-4">
+                                        <div class="w-10 h-10 rounded-lg bg-blue-600/10 flex items-center justify-center text-blue-500 text-xl border border-blue-600/20 shrink-0">
+                                            <i class="fas fa-university"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex justify-between">
+                                                <span class="block text-sm font-bold text-white">Bank Transfer</span>
+                                                <i class="fas fa-check-circle text-yellow-500 opacity-0 check-icon transition-all"></i>
+                                            </div>
+                                            <p class="text-[10px] text-slate-500 mt-1">EFT / RTGS / Wire Transfer.</p>
+                                            <p class="text-[10px] text-slate-500">Required for amounts > 500k BDT.</p>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="p-4 border border-white/10 rounded-lg bg-black/20">
+                            <p class="text-xs text-slate-400 mb-3"><i class="fas fa-info-circle text-yellow-500 mr-1"></i> You can configure specific account numbers securely in your Organization Settings after creation.</p>
+                        </div>
+
+                        <div class="input-group">
+                            <select id="walletCurrency" name="currency" class="corp-input appearance-none cursor-pointer">
+                                <option value="BDT" selected>BDT (Bangladeshi Taka)</option>
+                                <option value="USD">USD (US Dollar)</option>
+                            </select>
+                            <label class="corp-label">Primary Ledger Currency *</label>
+                            <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"></i>
+                        </div>
+
+                        <div class="input-group">
+                            <input type="text" name="tax_id" class="corp-input" placeholder="Optional for now">
+                            <label class="corp-label">BIN / TIN / Registration No.</label>
+                            <p class="text-[10px] text-slate-500 mt-1 ml-1">Required if you select 'Pro Organization' and expect payouts > 500k BDT.</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-10 flex justify-between">
+                        <button type="button" data-prev="2" class="btn-prev text-slate-500 hover:text-white font-mono text-xs uppercase tracking-wider"><i class="fas fa-chevron-left"></i> Back</button>
+                        <button type="button" data-next="4" class="btn-next btn-gold px-8 py-3 rounded text-sm">
+                            Next: Branding <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 4: Branding -->
+                <div id="step4" class="step-section">
+                    <h3 class="text-xl font-tech font-bold text-white uppercase mb-6 flex items-center gap-2">
+                        <span class="w-1 h-6 bg-yellow-500"></span> Corporate Branding
+                    </h3>
+
+                    <div class="space-y-8">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                            <div class="md:col-span-4">
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Corporate Emblem (Logo)</label>
+                                <div class="w-full aspect-square rounded-xl bg-[#12121A] border-2 border-dashed border-white/10 hover:border-yellow-500 transition-colors flex flex-col items-center justify-center cursor-pointer group relative overflow-hidden" onclick="document.getElementById('orgLogoUpload').click()">
+                                    <input type="file" id="orgLogoUpload" name="logo" class="hidden" accept="image/*">
+                                    <i class="fas fa-shield-alt text-4xl text-slate-600 group-hover:text-yellow-500 transition-colors mb-2 z-10"></i>
+                                    <span class="text-xs text-slate-500 font-mono z-10">500x500 PNG</span>
+                                    <img id="logoPreview" class="absolute inset-0 w-full h-full object-cover opacity-50 hidden">
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-8">
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">HQ Cover Banner</label>
+                                <div class="w-full h-full min-h-[150px] rounded-xl bg-[#12121A] border-2 border-dashed border-white/10 hover:border-yellow-500 transition-colors flex flex-col items-center justify-center cursor-pointer group relative overflow-hidden" onclick="document.getElementById('orgBannerUpload').click()">
+                                    <input type="file" id="orgBannerUpload" name="banner" class="hidden" accept="image/*">
+                                    <i class="fas fa-image text-4xl text-slate-600 group-hover:text-yellow-500 transition-colors mb-2 z-10"></i>
+                                    <span class="text-xs text-slate-500 font-mono z-10">1920x400 JPG/PNG</span>
+                                    <img id="bannerPreview" class="absolute inset-0 w-full h-full object-cover opacity-50 hidden">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Primary Brand Color</label>
+                            <div class="flex items-center gap-3">
+                                <div class="flex gap-2 bg-white/5 p-2 rounded-lg border border-white/10">
+                                    <div onclick="setBrandColor('#DC2626')" class="w-8 h-8 rounded-full bg-red-600 cursor-pointer border-2 border-transparent hover:border-white transition-all"></div>
+                                    <div onclick="setBrandColor('#2563EB')" class="w-8 h-8 rounded-full bg-blue-600 cursor-pointer border-2 border-transparent hover:border-white transition-all"></div>
+                                    <div onclick="setBrandColor('#10B981')" class="w-8 h-8 rounded-full bg-green-500 cursor-pointer border-2 border-transparent hover:border-white transition-all"></div>
+                                    <div onclick="setBrandColor('#FBBF24')" class="w-8 h-8 rounded-full bg-yellow-400 cursor-pointer border-2 border-transparent hover:border-white transition-all"></div>
+                                    <div onclick="setBrandColor('#7C3AED')" class="w-8 h-8 rounded-full bg-purple-600 cursor-pointer border-2 border-transparent hover:border-white transition-all"></div>
+                                </div>
+                                <div class="relative">
+                                    <input type="color" id="customColor" name="brand_color" class="w-10 h-10 p-0 border-0 rounded-lg cursor-pointer bg-transparent">
+                                    <i class="fas fa-eye-dropper absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white pointer-events-none"></i>
+                                </div>
+                                <div id="colorPreview" class="text-xs font-mono text-slate-400">#------</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-10 flex justify-between">
+                        <button type="button" data-prev="3" class="btn-prev text-slate-500 hover:text-white font-mono text-xs uppercase tracking-wider"><i class="fas fa-chevron-left"></i> Back</button>
+                        <button type="button" data-next="5" class="btn-next btn-gold px-8 py-3 rounded text-sm">
+                            Review & Ratify <i class="fas fa-file-contract ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 5: Ratification -->
+                <div id="step5" class="step-section">
+                    <h3 class="text-xl font-tech font-bold text-white uppercase mb-6 flex items-center gap-2">
+                        <span class="w-1 h-6 bg-yellow-500"></span> Ratification
+                    </h3>
+
+                    <div class="bg-[#12121A] border border-white/10 rounded-xl p-6 mb-6">
+                        <h4 class="font-bold text-white uppercase tracking-wider mb-4 border-b border-white/5 pb-2 text-sm">Organization Commercial Terms</h4>
+                        <div class="h-48 overflow-y-auto pr-2 custom-scrollbar text-xs text-slate-400 font-mono leading-relaxed space-y-3">
+                            <p><strong class="text-white">1. ENTITY RESPONSIBILITY:</strong> The Organization Owner ("CEO") assumes full liability for the conduct, financial disputes, and contractual obligations of all sub-teams and rostered players under this entity.</p>
+                            <p><strong class="text-white">2. FINANCIAL CUSTODY:</strong> DeltaCrown acts as a payment processor. Prize pools are disbursed to the designated Master Wallet. Internal distribution to players is the sole responsibility of the Organization.</p>
+                            <p><strong class="text-white">3. ASSET OWNERSHIP:</strong> You certify that you hold the trademark/copyright for all uploaded logos and names. DeltaCrown reserves the right to suspend Organizations for trademark infringement.</p>
+                            <p><strong class="text-white">4. ACQUISITIONS & TRANSFERS:</strong> Acquiring an Independent Team transfers their historical data to your Organization. This action is irreversible without Admin intervention.</p>
+                            <p><strong class="text-white">5. VERIFICATION:</strong> Verified Status (Checkmark) is granted only after manual review of business documents (Trade License/NID) submitted via the Settings panel post-creation.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3 p-4 bg-white/5 rounded-lg border border-white/5 mb-8">
+                        <input type="checkbox" id="termsCheck" name="terms_accepted" class="mt-1 w-5 h-5 rounded bg-black border-white/30 text-yellow-500 focus:ring-0 cursor-pointer">
+                        <label for="termsCheck" class="text-xs text-slate-300 cursor-pointer select-none">
+                            I, the undersigned, hereby ratify the establishment of this Organization and agree to the DeltaCrown Commercial Terms & Conditions. I confirm I am the authorized representative.
+                        </label>
+                    </div>
+
+                    <div class="mt-10 flex justify-between items-center">
+                        <button type="button" data-prev="4" class="btn-prev text-slate-500 hover:text-white font-mono text-xs uppercase tracking-wider"><i class="fas fa-chevron-left"></i> Back</button>
+                        <button type="button" id="submitBtn" class="btn-gold px-12 py-4 rounded text-sm text-lg tracking-widest font-bold flex items-center gap-3">
+                            <i class="fas fa-pen-nib"></i> Sign & Incorporate
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- RIGHT COLUMN: Certificate Preview -->
+        <div class="hidden lg:block w-5/12">
+            <div class="sticky top-28">
+                <div class="mb-4 flex justify-between items-end">
+                    <span class="text-xs font-mono text-yellow-500 uppercase tracking-widest">&gt;&gt; ENCRYPTED_DOSSIER_PREVIEW</span>
+                    <span class="text-[10px] text-slate-500">SECURE://774.92.11</span>
+                </div>
+
+                <div class="certificate-bg rounded-xl p-8 relative overflow-hidden shadow-2xl min-h-[500px] flex flex-col transition-all duration-500" id="certificateCard">
+                    <div class="watermark">DRAFT</div>
+
+                    <div class="flex justify-between items-start mb-8 relative z-10">
+                        <div class="border border-white/20 p-2 rounded bg-black/50">
+                            <div class="w-16 h-16 bg-[#12121A] flex items-center justify-center border border-white/10 overflow-hidden" id="dossierLogo">
+                                <i class="fas fa-shield-alt text-3xl text-slate-600"></i>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <h2 class="text-2xl font-tech font-bold text-white uppercase tracking-widest">Certificate</h2>
+                            <h3 class="text-sm font-mono text-yellow-500">OF INCORPORATION</h3>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6 relative z-10 flex-grow font-mono text-xs">
+                        <div class="border-b border-white/10 pb-2">
+                            <span class="block text-slate-500 text-[10px] mb-1">REGISTERED NAME</span>
+                            <span class="text-white text-lg font-bold" id="dossierName">PENDING...</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="border-b border-white/10 pb-2">
+                                <span class="block text-slate-500 text-[10px] mb-1">TICKER SYMBOL</span>
+                                <span class="text-yellow-500 text-lg font-bold" id="dossierTicker">---</span>
+                            </div>
+                            <div class="border-b border-white/10 pb-2">
+                                <span class="block text-slate-500 text-[10px] mb-1">EST. YEAR</span>
+                                <span class="text-white text-lg" id="dossierEst">2026</span>
+                            </div>
+                        </div>
+
+                        <div class="border-b border-white/10 pb-2">
+                            <span class="block text-slate-500 text-[10px] mb-1">LEGAL STRUCTURE</span>
+                            <span class="text-white text-lg" id="dossierStructure">Esports Club</span>
+                        </div>
+
+                        <div class="border-b border-white/10 pb-2">
+                            <span class="block text-slate-500 text-[10px] mb-1">OPERATIONAL HQ</span>
+                            <span class="text-white text-lg" id="dossierRegion">Bangladesh</span>
+                        </div>
+
+                        <div class="border-b border-white/10 pb-2">
+                            <span class="block text-slate-500 text-[10px] mb-1">PUBLIC HANDLE</span>
+                            <span class="text-green-500" id="dossierUrl">deltacrown.gg/org/---</span>
+                        </div>
+
+                        <div class="border-b border-white/10 pb-2">
+                            <span class="block text-slate-500 text-[10px] mb-1">PRIMARY CURRENCY</span>
+                            <span class="text-white font-bold" id="dossierCurrency">BDT</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 pt-4 border-t-2 border-white/10 flex justify-between items-end relative z-10">
+                        <div>
+                            <img src="https://api.dicebear.com/7.x/initials/svg?seed=Admin" class="w-12 h-8 opacity-50 mb-1">
+                            <span class="block text-[8px] text-slate-500 uppercase">Authorized Signature</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-[8px] text-slate-500 uppercase">DeltaCrown Authority</span>
+                            <span class="text-xs text-yellow-500 font-bold">VERIFIED ISSUER</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-4 bg-[#12121A] border border-yellow-500/20 rounded-lg flex gap-3">
+                    <i class="fas fa-lightbulb text-yellow-500 mt-1"></i>
+                    <p class="text-xs text-slate-400">
+                        <strong>CEO Tip:</strong> Organizations with verified documents and logos get 40% more applications from Pro Players.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Bootstrap config for JavaScript -->
+<script>
+window.ORG_CREATE_CONFIG = {
+    // Phase B: Real backend integration
+    demoMode: false,
+    validateNameUrl: "{% url 'organizations_api:validate_organization_name' %}",
+    validateBadgeUrl: "{% url 'organizations_api:validate_organization_badge' %}",
+    validateSlugUrl: "{% url 'organizations_api:validate_organization_slug' %}",
+    createUrl: "{% url 'organizations_api:create_organization' %}"
+};
+</script>
+<script src="{% static 'organizations/org/org_create.js' %}"></script>
+{% endblock %}

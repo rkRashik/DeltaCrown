@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="DeltaCrown Organization Hub - The central command for esports empires.">
+    <title>Organization Command Hub | DeltaCrown</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'corp': ['"Outfit"', 'sans-serif'],
+                        'tech': ['"Rajdhani"', 'sans-serif'],
+                        'mono': ['"Space Mono"', 'monospace'],
+                    },
+                    colors: {
+                        delta: {
+                            base: '#020204',
+                            surface: '#0A0A0F',
+                            highlight: '#12121A',
+                            gold: '#FFD700',
+                            gold_dim: '#BFA200',
+                            violet: '#6C00FF',
+                            electric: '#00E5FF',
+                            success: '#10B981',
+                            danger: '#EF4444',
+                            text: '#E2E8F0',
+                        }
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(rgba(255, 215, 0, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 215, 0, 0.03) 1px, transparent 1px)",
+                        'gold-gradient': 'linear-gradient(135deg, #FFD700 0%, #F59E0B 100%)',
+                        'glass-gradient': 'linear-gradient(180deg, rgba(18, 18, 26, 0.8) 0%, rgba(10, 10, 15, 0.9) 100%)',
+                    },
+                    boxShadow: {
+                        'glow-gold': '0 0 35px rgba(255, 215, 0, 0.15)',
+                        'glow-electric': '0 0 35px rgba(0, 229, 255, 0.15)',
+                    },
+                    animation: {
+                        'shimmer': 'shimmer 2s infinite linear',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        shimmer: {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* 1. CORE RESET */
+        body { background-color: #020204; color: #E2E8F0; font-family: 'Outfit', sans-serif; overflow-x: hidden; }
+
+        /* 2. SCROLLBARS */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #FFD700; }
+
+        /* 3. GLASSMORPHISM */
+        .glass-panel {
+            background: rgba(18, 18, 26, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* 4. SKELETON LOADER */
+        .skeleton {
+            background: linear-gradient(90deg, #12121A 25%, #1a1a24 50%, #12121A 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 0.5rem;
+        }
+
+        /* 5. LOGIC UTILITIES (Controlled by JS) */
+        /* These classes will be toggled by the UIStateManager */
+        .role-owner-only, .role-public-only,
+        .type-pro-only, .type-guild-only, .type-club-only {
+            display: none !important;
+        }
+
+        /* Active states (appended by JS) */
+        body[data-role="OWNER"] .role-owner-only { display: flex !important; }
+        body[data-role="PUBLIC"] .role-public-only { display: flex !important; }
+
+        body[data-type="PRO"] .type-pro-only { display: flex !important; }
+        body[data-type="GUILD"] .type-guild-only { display: flex !important; }
+        body[data-type="CLUB"] .type-club-only { display: flex !important; }
+
+        /* 6. VERIFIED BADGE ANIMATION */
+        @keyframes pulse-gold {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
+        }
+        .verified-badge { animation: pulse-gold 2s infinite; }
+    </style>
+</head>
+<body class="antialiased selection:bg-delta-gold selection:text-black" data-role="OWNER" data-type="PRO">
+
+    <div class="fixed inset-0 z-0 pointer-events-none">
+        <div class="absolute inset-0 bg-grid-pattern bg-[length:40px_40px] opacity-20"></div>
+        <div class="absolute top-0 right-0 w-[800px] h-[600px] bg-delta-gold/5 rounded-full blur-[150px]"></div>
+    </div>
+
+    <nav class="sticky top-0 z-50 w-full glass-panel border-x-0 border-t-0 border-b border-white/5 transition-all duration-300">
+        <div class="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+
+                <div class="flex items-center gap-4 group cursor-pointer">
+                    <div class="relative w-11 h-11 flex items-center justify-center">
+                        <div class="absolute inset-0 bg-gradient-to-br from-delta-gold via-delta-violet to-delta-electric opacity-20 blur-md rounded-lg group-hover:opacity-40 transition-opacity"></div>
+                        <div class="relative w-10 h-10 bg-delta-surface rounded-lg border border-white/10 flex items-center justify-center overflow-hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6 h-6">
+                                <defs>
+                                    <linearGradient id="navGrad" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stop-color="#FFD700"/>
+                                        <stop offset="50%" stop-color="#6C00FF"/>
+                                        <stop offset="100%" stop-color="#00E5FF"/>
+                                    </linearGradient>
+                                </defs>
+                                <path fill="url(#navGrad)" d="M32 200 L64 96 L128 152 L192 96 L224 200 Z" style="filter: drop-shadow(0 0 5px rgba(108,0,255,0.5));" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-tech font-bold text-xl tracking-wide text-white leading-none">DELTA<span class="text-transparent bg-clip-text bg-gradient-to-r from-delta-electric to-delta-violet">CROWN</span></span>
+                        <span class="font-corp text-[9px] uppercase tracking-[0.3em] text-slate-500 group-hover:text-delta-electric transition-colors mt-0.5">Hub</span>
+                    </div>
+                </div>
+
+                <div class="hidden 2xl:flex items-center gap-8">
+                    <a href="#headquarters" class="text-sm font-tech font-bold uppercase tracking-widest text-white hover:text-delta-gold border-b-2 border-delta-gold py-7 transition-all">Headquarters</a>
+                    <a href="#squads" class="text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white border-b-2 border-transparent hover:border-white/20 py-7 transition-all">Squads</a>
+                    <a href="#operations" class="text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white border-b-2 border-transparent hover:border-white/20 py-7 transition-all">Operations</a>
+                    <a href="#finance" class="text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white border-b-2 border-transparent hover:border-white/20 py-7 transition-all role-owner-only">
+                        Finance <span class="text-[10px] ml-1 opacity-50">🔒</span>
+                    </a>
+                    <a href="#streams" class="text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white border-b-2 border-transparent hover:border-white/20 py-7 transition-all flex items-center gap-2">
+                        Streams <span class="w-1.5 h-1.5 rounded-full bg-delta-danger animate-pulse"></span>
+                    </a>
+                </div>
+
+                <div class="flex items-center gap-6">
+                    <button class="relative w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                        <span class="absolute top-2.5 right-3 w-2 h-2 bg-delta-danger rounded-full animate-pulse border border-black"></span>
+                    </button>
+                    <div class="flex items-center gap-4 pl-6 border-l border-white/10 cursor-pointer group">
+                        <div class="text-right hidden sm:block">
+                            <div class="font-tech font-bold text-sm text-white group-hover:text-delta-electric transition-colors">SIUU_Admin</div>
+                            <div class="font-mono text-[10px] text-delta-gold tracking-wide">OWNER</div>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-delta-gold to-delta-electric p-[1px]">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="w-full h-full rounded-[7px] bg-black">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="relative w-full h-[550px] group overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="w-full h-full object-cover opacity-60 scale-105 group-hover:scale-110 transition-transform duration-[20s] ease-linear">
+        </div>
+        <div class="absolute inset-0 z-10 bg-gradient-to-t from-delta-base via-delta-base/80 to-transparent"></div>
+        <div class="absolute inset-0 z-10 bg-gradient-to-b from-delta-base/40 to-transparent"></div>
+
+        <div class="absolute bottom-0 left-0 right-0 z-20 pb-0">
+            <div class="max-w-[1600px] mx-auto px-6 flex flex-col md:flex-row items-end gap-10">
+
+                <div class="relative mb-8 md:mb-12 shrink-0">
+                    <div class="w-40 h-40 md:w-56 md:h-56 rounded-3xl bg-delta-surface border-4 border-delta-highlight shadow-2xl p-1 relative z-30 overflow-hidden group-logo">
+                        <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer type-pro-only"></div>
+
+                        <div class="w-full h-full rounded-2xl bg-gradient-to-br from-delta-highlight to-black flex items-center justify-center relative overflow-hidden">
+                            <span class="font-tech font-bold text-7xl text-white z-10 drop-shadow-lg tracking-tighter">SYN</span>
+                        </div>
+                    </div>
+
+                    <div class="absolute -bottom-3 -right-3 bg-delta-gold text-black w-12 h-12 rounded-full flex items-center justify-center border-4 border-delta-base z-40 shadow-glow-gold verified-badge type-pro-only" title="Verified Organization">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                    </div>
+
+                    <div class="absolute -bottom-3 -right-3 bg-delta-electric text-black w-12 h-12 rounded-full flex items-center justify-center border-4 border-delta-base z-40 shadow-glow-electric type-guild-only" title="Level 5 Guild">
+                        <span class="font-bold font-mono text-xs">LVL5</span>
+                    </div>
+                </div>
+
+                <div class="flex-1 pb-12">
+                    <div class="flex flex-wrap items-center gap-4 mb-2">
+                        <h1 class="text-5xl md:text-7xl font-tech font-black text-white uppercase tracking-tight leading-none drop-shadow-2xl">
+                            SYNTAX <span class="text-transparent bg-clip-text bg-gradient-crown">ESPORTS</span>
+                        </h1>
+
+                        <div class="flex gap-2 mt-2 md:mt-0">
+                            <span class="px-3 py-1 rounded bg-white/5 border border-white/10 text-xs font-mono text-slate-300 uppercase tracking-widest backdrop-blur-sm">Est. 2024</span>
+
+                            <span class="px-3 py-1 rounded bg-delta-gold/10 border border-delta-gold/20 text-xs font-mono text-delta-gold uppercase tracking-widest flex items-center gap-2 backdrop-blur-sm type-pro-only">
+                                <span class="w-1.5 h-1.5 bg-delta-gold rounded-full animate-pulse"></span> Pro Organization
+                            </span>
+
+                            <span class="px-3 py-1 rounded bg-delta-electric/10 border border-delta-electric/20 text-xs font-mono text-delta-electric uppercase tracking-widest flex items-center gap-2 backdrop-blur-sm type-guild-only">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+                                25k Members
+                            </span>
+
+                            <span class="px-3 py-1 rounded bg-delta-success/10 border border-delta-success/30 text-xs font-mono text-delta-success uppercase tracking-widest flex items-center gap-2 backdrop-blur-sm">
+                                Recruitment: OPEN
+                            </span>
+                        </div>
+                    </div>
+
+                    <p class="text-slate-400 max-w-2xl font-corp text-lg leading-relaxed mb-8 drop-shadow-md">
+                        Dominating the South Asian competitive scene. Home to champions in Valorant, CS2, and Mobile Legends. We build legacies, not just teams. #RunTheCode
+                    </p>
+
+                    <div class="flex flex-wrap items-center gap-8 text-sm font-mono text-slate-300">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            <span>Dhaka, Bangladesh</span>
+                        </div>
+
+                        <div class="flex items-center gap-2 type-pro-only">
+                            <svg class="w-4 h-4 text-delta-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            <span class="text-white font-bold">85,420</span> <span class="text-slate-500">Empire Score</span>
+                        </div>
+
+                        <div class="flex items-center gap-2 type-guild-only type-club-only">
+                            <svg class="w-4 h-4 text-delta-electric" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                            <span class="text-white font-bold">1,240</span> <span class="text-slate-500">Members</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pb-12 flex flex-col items-end gap-3 min-w-[220px]">
+
+                    <div class="w-full flex flex-col gap-3 role-owner-only">
+                        <button class="w-full px-6 py-4 bg-delta-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest text-sm rounded-xl shadow-glow-gold transition-all flex items-center justify-center gap-2 group transform hover:-translate-y-1">
+                            <svg class="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            Manage Org
+                        </button>
+                        <div class="flex gap-2 w-full">
+                            <button class="flex-1 px-4 py-3 bg-delta-highlight/80 border border-white/10 hover:border-delta-electric text-white font-mono text-xs uppercase rounded-xl transition-all hover:bg-white/5 flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4 text-delta-electric" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                New Team
+                            </button>
+                            <button class="flex-1 px-4 py-3 bg-delta-highlight/80 border border-white/10 hover:border-delta-gold text-white font-mono text-xs uppercase rounded-xl transition-all hover:bg-white/5 flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4 text-delta-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                                Wallet
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="w-full flex flex-col gap-3 role-public-only">
+                        <button class="w-full px-6 py-4 bg-delta-electric hover:bg-white text-black font-tech font-bold uppercase tracking-widest text-sm rounded-xl shadow-glow-electric transition-all flex items-center justify-center gap-2 group transform hover:-translate-y-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                            Apply to Team
+                        </button>
+                        <div class="flex gap-2 w-full">
+                            <button class="flex-1 px-4 py-3 bg-delta-highlight/80 border border-white/10 hover:border-delta-gold text-white font-mono text-xs uppercase rounded-xl transition-all hover:bg-white/5 flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4 text-delta-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                                Follow
+                            </button>
+                            <button class="flex-1 px-4 py-3 bg-[#5865F2]/20 border border-[#5865F2]/50 text-[#5865F2] font-mono text-xs uppercase rounded-xl transition-all hover:bg-[#5865F2] hover:text-white flex items-center justify-center gap-2 type-guild-only">
+                                <i class="fab fa-discord"></i> Join
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </header>
+
+<div class="sticky top-20 z-40 bg-delta-base/80 backdrop-blur-xl border-b border-white/5 shadow-2xl transition-all duration-300" id="subnav">
+        <div class="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center gap-8 overflow-x-auto no-scrollbar">
+                <a href="#headquarters" class="nav-link active py-4 text-sm font-tech font-bold uppercase tracking-widest text-white hover:text-delta-gold transition-colors relative border-b-2 border-delta-gold whitespace-nowrap">
+                    Headquarters
+                </a>
+                <a href="#squads" class="nav-link py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors relative border-b-2 border-transparent hover:border-white/20 whitespace-nowrap">
+                    Active Squads <span class="bg-white/10 px-1.5 py-0.5 rounded text-[10px] ml-1 text-white border border-white/5">4</span>
+                </a>
+                <a href="#operations" class="nav-link py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors relative border-b-2 border-transparent hover:border-white/20 whitespace-nowrap">
+                    Operations Log
+                </a>
+                <a href="#streams" class="nav-link py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors relative border-b-2 border-transparent hover:border-white/20 whitespace-nowrap flex items-center gap-2">
+                    Media / Streams <span class="w-1.5 h-1.5 rounded-full bg-delta-danger animate-pulse"></span>
+                </a>
+                <a href="#finance" class="nav-link role-owner-only py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors relative border-b-2 border-transparent hover:border-white/20 whitespace-nowrap flex items-center gap-2">
+                    Finance <svg class="w-3 h-3 text-delta-gold" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <div class="lg:col-span-9 space-y-12">
+
+                <section id="streams" class="animate-enter delay-100">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-2 h-2 rounded-full bg-delta-danger animate-pulse"></span>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Live Now</h3>
+                    </div>
+
+                    <div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+                        <div class="min-w-[280px] h-40 rounded-xl relative overflow-hidden group cursor-pointer border border-white/5 hover:border-delta-electric/50 transition-all">
+                            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+                            <div class="absolute top-3 left-3 bg-delta-danger text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider animate-pulse">LIVE</div>
+                            <div class="absolute top-3 right-3 bg-black/60 backdrop-blur text-white text-[10px] font-mono px-2 py-0.5 rounded flex items-center gap-1">
+                                <svg class="w-3 h-3 text-delta-electric" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                                12.4k
+                            </div>
+                            <div class="absolute bottom-3 left-3 flex items-center gap-3">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=P1" class="w-8 h-8 rounded-full border-2 border-delta-electric bg-black">
+                                <div>
+                                    <div class="text-sm font-bold text-white leading-none">TenZ</div>
+                                    <div class="text-[10px] text-slate-400 font-mono mt-0.5">Ranked Grind</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="min-w-[280px] h-40 rounded-xl relative overflow-hidden group cursor-pointer border border-white/5 hover:border-delta-gold/50 transition-all">
+                            <img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2071" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+                            <div class="absolute top-3 left-3 bg-delta-danger text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider animate-pulse">LIVE</div>
+                            <div class="absolute top-3 right-3 bg-black/60 backdrop-blur text-white text-[10px] font-mono px-2 py-0.5 rounded flex items-center gap-1">
+                                <svg class="w-3 h-3 text-delta-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                                8.1k
+                            </div>
+                            <div class="absolute bottom-3 left-3 flex items-center gap-3">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=P2" class="w-8 h-8 rounded-full border-2 border-delta-gold bg-black">
+                                <div>
+                                    <div class="text-sm font-bold text-white leading-none">m0NESY</div>
+                                    <div class="text-[10px] text-slate-400 font-mono mt-0.5">FaceIT FPL</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="min-w-[280px] h-40 rounded-xl relative overflow-hidden group cursor-pointer border border-white/5 hover:border-delta-violet/50 transition-all">
+                            <img src="https://images.unsplash.com/photo-1542751110-97427bbecf20?q=80&w=2071" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+                            <div class="absolute top-3 left-3 bg-delta-danger text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider animate-pulse">LIVE</div>
+                            <div class="absolute top-3 right-3 bg-black/60 backdrop-blur text-white text-[10px] font-mono px-2 py-0.5 rounded flex items-center gap-1">
+                                <svg class="w-3 h-3 text-delta-violet" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                                2.3k
+                            </div>
+                            <div class="absolute bottom-3 left-3 flex items-center gap-3">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=P3" class="w-8 h-8 rounded-full border-2 border-delta-violet bg-black">
+                                <div>
+                                    <div class="text-sm font-bold text-white leading-none">Kyedae</div>
+                                    <div class="text-[10px] text-slate-400 font-mono mt-0.5">Watch Party</div>
+                                </div>
+                            </div>
+                        </div>
+
+                         <div class="min-w-[280px] h-40 rounded-xl relative overflow-hidden group cursor-pointer border border-white/5 hover:border-white/30 transition-all">
+                            <div class="absolute inset-0 bg-delta-highlight flex items-center justify-center">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest group-hover:text-white transition-colors">View All Streams</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="squads" class="animate-enter delay-200">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <h2 class="text-2xl font-tech font-bold text-white uppercase tracking-wide flex items-center gap-2">
+                                <span class="w-1.5 h-6 bg-delta-electric"></span> Active Squads
+                            </h2>
+                            <div class="hidden md:flex bg-white/5 p-1 rounded-lg border border-white/5">
+                                <button class="px-4 py-1 rounded-md bg-delta-highlight text-white text-[10px] font-bold uppercase tracking-wider shadow-lg transition-all">PC</button>
+                                <button class="px-4 py-1 rounded-md text-slate-400 hover:text-white text-[10px] font-bold uppercase tracking-wider transition-all">Mobile</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="squads-populated" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        <div class="glass-panel rounded-2xl overflow-hidden group border border-white/5 hover:border-delta-electric/50 transition-all duration-300 hover:-translate-y-1 relative">
+                            <div class="h-32 bg-slate-900 relative overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="w-full h-full object-cover opacity-50 group-hover:opacity-70 group-hover:scale-105 transition-all duration-700">
+                                <div class="absolute inset-0 bg-gradient-to-t from-delta-highlight to-transparent"></div>
+                                <div class="absolute top-3 left-4 flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-delta-surface rounded-lg flex items-center justify-center border border-white/10 shadow-lg">
+                                        <img src="https://img.icons8.com/color/48/valorant.png" class="w-5 h-5 grayscale group-hover:grayscale-0 transition-all">
+                                    </div>
+                                    <span class="text-xs font-bold text-white uppercase tracking-wider shadow-black drop-shadow-md">Valorant</span>
+                                </div>
+                            </div>
+
+                            <div class="p-6 relative">
+                                <div class="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h3 class="text-2xl font-tech font-bold text-white uppercase tracking-wide group-hover:text-delta-electric transition-colors">Protocol V</h3>
+                                        <p class="text-[10px] text-slate-400 font-mono mt-1">APAC Region • <span class="text-delta-success">Verified Roster</span></p>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-[9px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Global Rank</div>
+                                        <div class="text-2xl font-mono font-bold text-white leading-none">#1</div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4 mb-6">
+                                    <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">Manager</div>
+                                        <div class="flex items-center gap-2">
+                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Manager1" class="w-5 h-5 rounded bg-black">
+                                            <span class="text-xs font-bold text-white">Tactical_X</span>
+                                        </div>
+                                    </div>
+                                    <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">IGL (Captain)</div>
+                                        <div class="flex items-center gap-2">
+                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=P1" class="w-5 h-5 rounded bg-black">
+                                            <span class="text-xs font-bold text-white">F0rsaken</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between border-t border-white/5 pt-4">
+                                    <div class="flex -space-x-2">
+                                        <img class="w-8 h-8 rounded-full border-2 border-delta-highlight bg-black" src="https://api.dicebear.com/7.x/avataaars/svg?seed=P2">
+                                        <img class="w-8 h-8 rounded-full border-2 border-delta-highlight bg-black" src="https://api.dicebear.com/7.x/avataaars/svg?seed=P3">
+                                        <img class="w-8 h-8 rounded-full border-2 border-delta-highlight bg-black" src="https://api.dicebear.com/7.x/avataaars/svg?seed=P4">
+                                        <div class="w-8 h-8 rounded-full border-2 border-delta-highlight bg-delta-surface text-[10px] flex items-center justify-center text-slate-400 font-bold">+2</div>
+                                    </div>
+                                    <button class="px-4 py-2 bg-white/5 hover:bg-delta-electric/20 border border-white/10 hover:border-delta-electric text-xs font-bold text-white uppercase tracking-wider rounded transition-all">
+                                        View Roster
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel rounded-2xl overflow-hidden group border border-white/5 hover:border-delta-gold/50 transition-all duration-300 hover:-translate-y-1 relative">
+                            <div class="h-32 bg-slate-900 relative overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1542751110-97427bbecf20?q=80&w=2071" class="w-full h-full object-cover opacity-50 group-hover:opacity-70 group-hover:scale-105 transition-all duration-700">
+                                <div class="absolute inset-0 bg-gradient-to-t from-delta-highlight to-transparent"></div>
+                                <div class="absolute top-3 left-4 flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-delta-surface rounded-lg flex items-center justify-center border border-white/10 shadow-lg">
+                                        <svg class="w-5 h-5 text-delta-gold" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                    </div>
+                                    <span class="text-xs font-bold text-white uppercase tracking-wider shadow-black drop-shadow-md">CS2</span>
+                                </div>
+                            </div>
+
+                            <div class="p-6 relative">
+                                <div class="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h3 class="text-2xl font-tech font-bold text-white uppercase tracking-wide group-hover:text-delta-gold transition-colors">Syntax CS</h3>
+                                        <p class="text-[10px] text-slate-400 font-mono mt-1">Europe Region • <span class="text-slate-500">Unverified</span></p>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-[9px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Global Rank</div>
+                                        <div class="text-2xl font-mono font-bold text-white leading-none">#12</div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4 mb-6">
+                                    <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">Manager</div>
+                                        <div class="flex items-center gap-2">
+                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Manager2" class="w-5 h-5 rounded bg-black">
+                                            <span class="text-xs font-bold text-white">Niko_Boss</span>
+                                        </div>
+                                    </div>
+                                    <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">IGL (Captain)</div>
+                                        <div class="flex items-center gap-2">
+                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=C1" class="w-5 h-5 rounded bg-black">
+                                            <span class="text-xs font-bold text-white">Karrigan</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between border-t border-white/5 pt-4">
+                                    <div class="flex -space-x-2">
+                                        <img class="w-8 h-8 rounded-full border-2 border-delta-highlight bg-black" src="https://api.dicebear.com/7.x/avataaars/svg?seed=C2">
+                                        <img class="w-8 h-8 rounded-full border-2 border-delta-highlight bg-black" src="https://api.dicebear.com/7.x/avataaars/svg?seed=C3">
+                                        <div class="w-8 h-8 rounded-full border-2 border-delta-highlight bg-delta-surface text-[10px] flex items-center justify-center text-slate-400 font-bold">+3</div>
+                                    </div>
+                                    <button class="px-4 py-2 bg-white/5 hover:bg-delta-gold/20 border border-white/10 hover:border-delta-gold text-xs font-bold text-white uppercase tracking-wider rounded transition-all">
+                                        View Roster
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div id="squads-empty" class="hidden role-owner-only mt-8">
+                        <div class="border-2 border-dashed border-white/10 rounded-2xl p-12 flex flex-col items-center justify-center text-center hover:border-delta-gold/30 hover:bg-white/5 transition-all cursor-pointer group" onclick="toggleModal('createTeamModal')">
+                            <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 group-hover:bg-delta-gold/10 transition-colors">
+                                <svg class="w-8 h-8 text-slate-500 group-hover:text-delta-gold transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            </div>
+                            <h3 class="text-xl font-tech font-bold text-white uppercase mb-2">No Active Squads</h3>
+                            <p class="text-sm text-slate-400 max-w-md mb-6">Your organization has no deployed units. Create a team to start competing in tournaments.</p>
+                            <button class="px-6 py-2 bg-delta-gold text-black font-bold uppercase text-xs rounded shadow-glow-gold hover:scale-105 transition-transform">Create Team</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="operations" class="animate-enter delay-300">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                            <span class="w-1.5 h-6 bg-delta-violet"></span> Operations Log
+                        </h2>
+                        <div class="flex gap-2">
+                            <select class="bg-white/5 border border-white/10 text-white text-[10px] font-bold uppercase rounded px-3 py-1.5 focus:outline-none focus:border-delta-violet cursor-pointer hover:bg-white/10 transition">
+                                <option>All Games</option>
+                                <option>Valorant</option>
+                                <option>CS2</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl overflow-hidden border border-white/10">
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-left text-sm border-collapse">
+                                <thead class="bg-delta-surface/80 backdrop-blur sticky top-0 z-10 border-b border-white/10 text-xs text-slate-400 font-mono uppercase tracking-widest">
+                                    <tr>
+                                        <th class="p-4 font-bold w-32">Status</th>
+                                        <th class="p-4 font-bold">Date</th>
+                                        <th class="p-4 font-bold">Squad</th>
+                                        <th class="p-4 font-bold hidden md:table-cell">Event</th>
+                                        <th class="p-4 font-bold">Opponent</th>
+                                        <th class="p-4 font-bold">Result</th>
+                                        <th class="p-4 font-bold text-right hidden md:table-cell">Prize</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/5 text-slate-300 font-corp">
+                                    <tr class="bg-delta-highlight/50 hover:bg-white/5 transition-colors">
+                                        <td class="p-4"><span class="text-[10px] font-bold bg-delta-danger text-white px-2 py-0.5 rounded animate-pulse">LIVE</span></td>
+                                        <td class="p-4 text-xs font-mono text-white">NOW</td>
+                                        <td class="p-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-delta-electric"></span> <span class="font-bold text-white">Protocol V</span></td>
+                                        <td class="p-4 text-xs text-slate-400 hidden md:table-cell">Winter Major - Finals</td>
+                                        <td class="p-4 font-bold text-white">Sentinels</td>
+                                        <td class="p-4 font-mono font-bold text-delta-electric">1 - 1</td>
+                                        <td class="p-4 text-right font-mono text-slate-500 hidden md:table-cell">---</td>
+                                    </tr>
+                                    <tr class="hover:bg-white/5 transition-colors">
+                                        <td class="p-4"><span class="text-[10px] font-bold text-delta-success">FINISHED</span></td>
+                                        <td class="p-4 text-xs font-mono">Today, 10:00</td>
+                                        <td class="p-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-delta-gold"></span> <span class="font-bold text-white">Syntax CS</span></td>
+                                        <td class="p-4 text-xs text-slate-400 hidden md:table-cell">ESL Pro League</td>
+                                        <td class="p-4">NaVi Academy</td>
+                                        <td class="p-4 font-mono font-bold text-delta-success">WIN 2-0</td>
+                                        <td class="p-4 text-right font-mono text-white hidden md:table-cell">$2,500</td>
+                                    </tr>
+                                    <tr class="hover:bg-white/5 transition-colors">
+                                        <td class="p-4"><span class="text-[10px] font-bold text-slate-500">FINISHED</span></td>
+                                        <td class="p-4 text-xs font-mono">Yesterday</td>
+                                        <td class="p-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-delta-electric"></span> Protocol V</td>
+                                        <td class="p-4 text-xs text-slate-400 hidden md:table-cell">Scrim Block A</td>
+                                        <td class="p-4">Paper Rex</td>
+                                        <td class="p-4 font-mono font-bold text-delta-danger">LOSS 10-13</td>
+                                        <td class="p-4 text-right font-mono text-slate-600 hidden md:table-cell">-</td>
+                                    </tr>
+                                    <tr class="hover:bg-white/5 transition-colors"><td class="p-4"><span class="text-[10px] font-bold text-slate-500">FINISHED</span></td><td class="p-4 text-xs font-mono">24 Jan</td><td class="p-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Null Boyz</td><td class="p-4 text-xs text-slate-400 hidden md:table-cell">Weekly Cup</td><td class="p-4">Dhaka Strikers</td><td class="p-4 font-mono font-bold text-delta-success">WIN 3-1</td><td class="p-4 text-right font-mono text-white hidden md:table-cell">$150</td></tr>
+                                    <tr class="hover:bg-white/5 transition-colors"><td class="p-4"><span class="text-[10px] font-bold text-slate-500">FINISHED</span></td><td class="p-4 text-xs font-mono">22 Jan</td><td class="p-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-delta-gold"></span> Syntax CS</td><td class="p-4 text-xs text-slate-400 hidden md:table-cell">Ranked Ladder</td><td class="p-4">Cloud9 Blue</td><td class="p-4 font-mono font-bold text-delta-danger">LOSS 14-16</td><td class="p-4 text-right font-mono text-slate-600 hidden md:table-cell">-</td></tr>
+                                    <tr class="hover:bg-white/5 transition-colors"><td class="p-4"><span class="text-[10px] font-bold text-slate-500">FINISHED</span></td><td class="p-4 text-xs font-mono">20 Jan</td><td class="p-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-delta-electric"></span> Protocol V</td><td class="p-4 text-xs text-slate-400 hidden md:table-cell">Charity Showmatch</td><td class="p-4">T1 Academy</td><td class="p-4 font-mono font-bold text-delta-success">WIN 2-1</td><td class="p-4 text-right font-mono text-white hidden md:table-cell">$1,000</td></tr>
+                                    <tr class="hover:bg-white/5 transition-colors"><td class="p-4"><span class="text-[10px] font-bold text-slate-500">FINISHED</span></td><td class="p-4 text-xs font-mono">18 Jan</td><td class="p-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-delta-gold"></span> Syntax CS</td><td class="p-4 text-xs text-slate-400 hidden md:table-cell">Open Qualifiers</td><td class="p-4">Mix Team A</td><td class="p-4 font-mono font-bold text-delta-success">WIN 13-2</td><td class="p-4 text-right font-mono text-slate-600 hidden md:table-cell">-</td></tr>
+                                    <tr class="hover:bg-white/5 transition-colors"><td class="p-4"><span class="text-[10px] font-bold text-slate-500">FINISHED</span></td><td class="p-4 text-xs font-mono">15 Jan</td><td class="p-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Null Boyz</td><td class="p-4 text-xs text-slate-400 hidden md:table-cell">Scrim</td><td class="p-4">Local Squad</td><td class="p-4 font-mono font-bold text-delta-success">WIN 5-0</td><td class="p-4 text-right font-mono text-slate-600 hidden md:table-cell">-</td></tr>
+                                    <tr class="hover:bg-white/5 transition-colors"><td class="p-4"><span class="text-[10px] font-bold text-slate-500">FINISHED</span></td><td class="p-4 text-xs font-mono">12 Jan</td><td class="p-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-delta-electric"></span> Protocol V</td><td class="p-4 text-xs text-slate-400 hidden md:table-cell">Monthly Finals</td><td class="p-4">DRX</td><td class="p-4 font-mono font-bold text-delta-danger">LOSS 0-2</td><td class="p-4 text-right font-mono text-white hidden md:table-cell">$250</td></tr>
+                                    <tr class="hover:bg-white/5 transition-colors"><td class="p-4"><span class="text-[10px] font-bold text-slate-500">FINISHED</span></td><td class="p-4 text-xs font-mono">10 Jan</td><td class="p-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-delta-gold"></span> Syntax CS</td><td class="p-4 text-xs text-slate-400 hidden md:table-cell">Ladder Match</td><td class="p-4">FaZe Clan</td><td class="p-4 font-mono font-bold text-delta-success">WIN 16-12</td><td class="p-4 text-right font-mono text-slate-600 hidden md:table-cell">-</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="p-3 border-t border-white/5 bg-white/5 text-center">
+                            <button class="text-xs font-bold text-slate-400 hover:text-white uppercase tracking-wider flex items-center justify-center gap-2 mx-auto">
+                                View All Matches <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+<div class="lg:col-span-3 space-y-8 animate-enter delay-300">
+
+                <div id="finance-widget" class="glass-panel p-6 rounded-2xl border border-delta-gold/20 relative overflow-hidden group role-owner-only flex-col">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 text-delta-gold rotate-12 group-hover:scale-110 transition-transform duration-700">
+                        <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+                    </div>
+                    <div class="flex items-center justify-between mb-6 relative z-10">
+                        <h3 class="text-xs font-bold text-delta-gold uppercase tracking-widest flex items-center gap-2">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                            Treasury
+                        </h3>
+                        <span class="text-[9px] bg-delta-gold/10 text-delta-gold border border-delta-gold/20 px-2 py-0.5 rounded font-mono uppercase tracking-tighter">Secure Link</span>
+                    </div>
+                    <div class="relative z-10 space-y-1 mb-6">
+                        <span class="text-[10px] text-slate-500 font-mono uppercase tracking-tighter">Available Balance</span>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-3xl font-mono font-bold text-white tracking-tighter tracking-widest">৳4,25,000</span>
+                            <span class="text-xs text-slate-500 font-mono">BDT</span>
+                        </div>
+                    </div>
+                    <button class="w-full py-3 bg-delta-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest text-xs rounded-xl shadow-glow-gold transition-all relative overflow-hidden group/btn">
+                        <span class="relative z-10">Withdraw Funds</span>
+                        <div class="absolute inset-0 bg-white transform -translate-x-full group-hover/btn:translate-x-0 transition-transform duration-300"></div>
+                    </button>
+                </div>
+
+                <div id="sponsor-widget" class="glass-panel p-6 rounded-2xl border border-white/10 relative overflow-hidden group role-public-only flex-col">
+                    <div class="absolute inset-0 bg-gradient-to-br from-delta-gold/5 via-transparent to-transparent opacity-50"></div>
+                    <div class="relative z-10">
+                        <h3 class="text-xs font-bold text-white uppercase tracking-widest mb-4">Partner with Syntax</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed mb-6">We empower brands through high-performance competitive narratives and mass-guild engagement.</p>
+                        <button class="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-tech font-bold uppercase tracking-widest text-xs rounded-xl transition-all flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4 text-delta-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Download Media Kit
+                        </button>
+                    </div>
+                </div>
+
+                <div id="transfer-widget" class="glass-panel p-6 rounded-2xl border border-white/5 role-owner-only flex-col">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Transfer Hub</h3>
+                        <span class="text-[10px] font-bold text-delta-danger animate-pulse uppercase">3 Pending</span>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="p-3 bg-black/40 rounded-xl border border-white/5 hover:border-delta-electric/30 transition-all cursor-pointer group/card">
+                            <div class="flex gap-3 mb-3">
+                                <div class="relative">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=P10" class="w-10 h-10 rounded-lg bg-delta-surface border border-white/10">
+                                    <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-delta-success rounded-full border-2 border-delta-base flex items-center justify-center" title="Passport Verified">
+                                        <svg class="w-2 h-2 text-black" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] font-bold text-white uppercase group-hover/card:text-delta-electric transition-colors">Ghost_Ops</div>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <span class="text-[9px] bg-delta-gold/10 text-delta-gold px-1 rounded font-mono">TIER A</span>
+                                        <span class="text-[9px] text-slate-500">Valorant</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="flex-1 py-1.5 bg-delta-success/10 hover:bg-delta-success text-delta-success hover:text-black text-[9px] font-bold uppercase rounded-md border border-delta-success/30 transition-all">Accept</button>
+                                <button class="flex-1 py-1.5 bg-white/5 hover:bg-delta-danger text-slate-400 hover:text-white text-[9px] font-bold uppercase rounded-md border border-white/10 transition-all">Decline</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="trophy-widget" class="glass-panel p-6 rounded-2xl border border-white/5 relative overflow-hidden">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 type-pro-only type-club-only">Legacy Wall</h3>
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 type-guild-only">Guild Milestones</h3>
+
+                    <div class="grid grid-cols-2 gap-4 relative">
+                        <div class="col-span-2 aspect-[3/1] bg-gradient-to-br from-delta-gold/20 to-transparent border border-delta-gold/30 rounded-xl flex items-center px-4 gap-4 group cursor-help transition-all hover:bg-delta-gold/25 shadow-glow-gold/20 has-tooltip">
+                            <svg class="w-10 h-10 text-delta-gold drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.945 1.183a1 1 0 01.678 1.258l-1.047 3.489A5.001 5.001 0 0110 14a5.001 5.001 0 01-3.576-8.747L5.377 1.764a1 1 0 01.678-1.258L10 3.323V3a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+                            <div class="text-left">
+                                <div class="text-[10px] font-bold text-white uppercase leading-tight">Winter Major 2026</div>
+                                <div class="text-[8px] text-delta-gold font-mono uppercase mt-0.5">Protocol V • 1st Place</div>
+                            </div>
+                            <div class="tooltip-content text-[8px]">Earned: Jan 15, 2026</div>
+                        </div>
+
+                        <div class="aspect-square bg-white/5 border border-white/10 rounded-xl flex flex-col items-center justify-center group hover:border-white/30 transition-all cursor-help relative has-tooltip">
+                            <svg class="w-6 h-6 text-slate-400 group-hover:text-delta-violet transition-colors" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                            <span class="text-[7px] text-slate-500 uppercase font-bold mt-2">Regional Cup</span>
+                            <div class="tooltip-content text-[8px]">Syntax CS • Runner Up</div>
+                        </div>
+
+                        <div class="aspect-square border-2 border-dashed border-white/5 rounded-xl flex items-center justify-center text-slate-700 role-owner-only">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+            </div> </div> </main>
+
+    <div id="matchDetailModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/95 backdrop-blur-xl" onclick="toggleModal('matchDetailModal')"></div>
+        <div class="relative w-full max-w-4xl bg-delta-surface border border-white/10 rounded-3xl overflow-hidden shadow-2xl animate-enter">
+            <div class="p-6 border-b border-white/10 flex justify-between items-center bg-delta-highlight">
+                <div class="flex items-center gap-4">
+                    <span class="text-xs font-mono text-delta-success uppercase tracking-widest">Match Report #DC-8842</span>
+                    <h3 class="text-xl font-tech font-bold text-white uppercase">Protocol V vs Sentinels</h3>
+                </div>
+                <button onclick="toggleModal('matchDetailModal')" class="text-slate-500 hover:text-white transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="space-y-4">
+                    <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-white/5 pb-2">Map Vetoes</h4>
+                    <ul class="space-y-2 font-mono text-xs">
+                        <li class="flex justify-between text-slate-400"><span>1. Bind</span> <span class="text-delta-danger uppercase">Banned</span></li>
+                        <li class="flex justify-between text-slate-400"><span>2. Ascent</span> <span class="text-delta-danger uppercase">Banned</span></li>
+                        <li class="flex justify-between text-white"><span>3. Lotus</span> <span class="text-delta-success uppercase font-bold">Picked</span></li>
+                        <li class="flex justify-between text-slate-400"><span>4. Haven</span> <span class="text-delta-danger uppercase">Banned</span></li>
+                    </ul>
+                </div>
+                <div class="md:col-span-2">
+                    <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-white/5 pb-2 mb-4">Player Performance</h4>
+                    <table class="w-full text-left text-xs font-mono">
+                        <thead>
+                            <tr class="text-slate-600">
+                                <th class="pb-3">PLAYER</th>
+                                <th class="pb-3">K/D/A</th>
+                                <th class="pb-3">ADR</th>
+                                <th class="pb-3 text-right">RATING</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-slate-300">
+                            <tr class="border-b border-white/5"><td class="py-2 text-white font-bold">F0rsaken</td><td>24 / 12 / 8</td><td>158</td><td class="text-right text-delta-gold font-bold">1.42</td></tr>
+                            <tr class="border-b border-white/5"><td class="py-2 text-white font-bold">Something</td><td>19 / 14 / 4</td><td>142</td><td class="text-right text-delta-gold">1.21</td></tr>
+                            <tr class="border-b border-white/5"><td class="py-2 text-white font-bold">D4v41</td><td>15 / 15 / 10</td><td>110</td><td class="text-right">1.04</td></tr>
+                            <tr class="border-b border-white/5"><td class="py-2 text-white font-bold">Mindfreak</td><td>12 / 16 / 12</td><td>98</td><td class="text-right">0.92</td></tr>
+                        </tbody>
+                    </table>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button class="px-6 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold text-white uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Download POV Replay
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="border-t border-white/5 bg-delta-base pt-20 pb-10 relative overflow-hidden mt-20">
+        <div class="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+                <div class="space-y-6">
+                    <div class="flex items-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-8 h-8"><path fill="#FFD700" d="M32 200 L64 96 L128 152 L192 96 L224 200 Z" /></svg>
+                        <span class="font-tech font-bold text-2xl text-white uppercase tracking-tighter">Delta<span class="text-delta-gold">Crown</span></span>
+                    </div>
+                    <p class="text-xs text-slate-500 leading-relaxed max-w-xs font-corp uppercase tracking-widest opacity-80">The unified digital standard for competitive esports operations worldwide.</p>
+                </div>
+                <div class="space-y-6">
+                    <h4 class="text-white font-tech font-bold uppercase tracking-widest text-sm border-b border-delta-gold/20 pb-2 inline-block">Intelligence</h4>
+                    <ul class="space-y-3 text-xs text-slate-500 font-mono uppercase">
+                        <li><a href="#" class="hover:text-delta-gold transition-colors">Documentation</a></li>
+                        <li><a href="#" class="hover:text-delta-gold transition-colors">API Keys</a></li>
+                        <li><a href="#" class="hover:text-delta-gold transition-colors">Compliance</a></li>
+                    </ul>
+                </div>
+                <div class="space-y-6">
+                    <h4 class="text-white font-tech font-bold uppercase tracking-widest text-sm border-b border-delta-gold/20 pb-2 inline-block">Governance</h4>
+                    <ul class="space-y-3 text-xs text-slate-500 font-mono uppercase">
+                        <li><a href="#" class="hover:text-delta-gold transition-colors">Fair Play Policy</a></li>
+                        <li><a href="#" class="hover:text-delta-gold transition-colors">TOC Protocol</a></li>
+                        <li><a href="#" class="hover:text-delta-gold transition-colors">Privacy</a></li>
+                    </ul>
+                </div>
+                <div class="space-y-6">
+                    <h4 class="text-white font-tech font-bold uppercase tracking-widest text-sm border-b border-delta-gold/20 pb-2 inline-block">Network</h4>
+                    <div class="flex gap-4">
+                        <a href="#" class="text-slate-500 hover:text-white transition-colors"><i class="fab fa-discord text-xl"></i></a>
+                        <a href="#" class="text-slate-500 hover:text-white transition-colors"><i class="fab fa-twitter text-xl"></i></a>
+                        <a href="#" class="text-slate-500 hover:text-white transition-colors"><i class="fab fa-linkedin text-xl"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-white/5 pt-8 text-center">
+                <p class="text-[9px] text-slate-600 font-mono uppercase tracking-[0.4em]">© 2026 DeltaCrown Enterprise • Internal Operations Dashboard • System Optimal</p>
+            </div>
+        </div>
+    </footer>
+
+    <div class="fixed bottom-6 left-6 z-[110]">
+        <button onclick="uiManager.toggleRole()" class="px-4 py-2 bg-delta-surface border border-white/10 rounded-full text-[9px] font-bold text-white uppercase tracking-widest shadow-2xl hover:border-delta-gold transition-all flex items-center gap-2">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            Switch View Mode
+        </button>
+    </div>
+
+    <script>
+        /**
+         * DeltaCrown UIStateManager vNext
+         * Architecture: State-Driven Rendering & Interactive Overlays
+         */
+
+        const CONFIG = {
+            type: 'PRO',     // PRO, CLUB, GUILD
+            role: 'OWNER',   // OWNER, PUBLIC
+            hasSquads: true
+        };
+
+        class UIStateManager {
+            constructor(config) {
+                this.config = config;
+                this.init();
+            }
+
+            init() {
+                this.applyState();
+                this.attachEventListeners();
+                this.startSimulatedLoad();
+            }
+
+            applyState() {
+                document.body.setAttribute('data-role', this.config.role);
+                document.body.setAttribute('data-type', this.config.type);
+
+                // Toggle empty state based on config
+                const populated = document.getElementById('squads-populated');
+                const empty = document.getElementById('squads-empty');
+                if (this.config.hasSquads) {
+                    populated.classList.remove('hidden');
+                    empty.classList.add('hidden');
+                } else {
+                    populated.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                }
+            }
+
+            attachEventListeners() {
+                // Table Row Click for Match Details
+                const tableRows = document.querySelectorAll('tbody tr');
+                tableRows.forEach(row => {
+                    row.classList.add('cursor-pointer');
+                    row.addEventListener('click', () => toggleModal('matchDetailModal'));
+                });
+
+                // Operations Search Filter
+                const searchInput = document.querySelector('input[placeholder="Search Operations..."]');
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        const term = e.target.value.toLowerCase();
+                        const rows = document.querySelectorAll('tbody tr');
+                        rows.forEach(row => {
+                            const text = row.innerText.toLowerCase();
+                            row.style.display = text.includes(term) ? '' : 'none';
+                        });
+                    });
+                }
+            }
+
+            startSimulatedLoad() {
+                // Add skeleton overlay to new widgets
+                const widgets = ['transfer-widget', 'trophy-widget', 'finance-widget'];
+                widgets.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.add('skeleton');
+                });
+
+                setTimeout(() => {
+                    widgets.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.classList.remove('skeleton');
+                            el.style.animation = 'none';
+                        }
+                    });
+                    document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
+                }, 1500);
+            }
+
+            // Dev helper
+            toggleRole() {
+                this.config.role = this.config.role === 'OWNER' ? 'PUBLIC' : 'OWNER';
+                this.applyState();
+                alert(`Current Mode: ${this.config.role}`);
+            }
+        }
+
+        // --- UTILITY: MODAL TOGGLE ---
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                document.body.style.overflow = 'hidden';
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // --- INSTANTIATE ---
+        const uiManager = new UIStateManager(CONFIG);
+    </script>
+
+</body>
+</html>

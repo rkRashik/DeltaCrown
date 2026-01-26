@@ -1,0 +1,2308 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Organization Settings | DeltaCrown Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            corp: ['"Outfit"', "sans-serif"],
+            tech: ['"Rajdhani"', "sans-serif"],
+            mono: ['"Space Mono"', "monospace"],
+          },
+          colors: {
+            delta: {
+              void: "#000000",
+              obsidian: "#050505",
+              panel: "#0A0A0F",
+              surface: "#12121A",
+              base: "#08080C",
+              gold: "#FFD700",
+              gold_dim: "#BFA200",
+              electric: "#00E5FF",
+              danger: "#FF3131",
+              success: "#00FF41",
+              slate: "#94A3B8",
+            },
+          },
+          keyframes: {
+            "spin-slow": { from: { transform: "rotate(0deg)" }, to: { transform: "rotate(360deg)" } },
+            "pulse-soft": { "0%,100%": { opacity: 0.6 }, "50%": { opacity: 1 } },
+          },
+          animation: {
+            "spin-slow": "spin-slow 6s linear infinite",
+            "pulse-soft": "pulse-soft 2.2s ease-in-out infinite",
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    body { background-color: #000000; color: #E2E8F0; font-family: 'Outfit', sans-serif; }
+
+    .settings-sidebar-link.active {
+      background: rgba(255, 215, 0, 0.1);
+      color: #FFD700;
+      border-right: 3px solid #FFD700;
+    }
+
+    .glass-panel {
+      background: rgba(18, 18, 26, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .corp-input {
+      width: 100%;
+      background: #08080C;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: white;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .corp-input:focus {
+      outline: none;
+      border-color: #FFD700;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.1);
+    }
+
+    .section-tab { display: none; }
+    .section-tab.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .toggle-checkbox:checked { right: 0; border-color: #FFD700; }
+    .toggle-checkbox:checked + .toggle-label { background-color: #FFD700; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .25rem .5rem;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      color: rgba(226,232,240,.9);
+      font-family: "Space Mono", monospace;
+    }
+
+    .chip.gold { border-color: rgba(255,215,0,.25); background: rgba(255,215,0,.08); color: #FFD700; }
+    .chip.electric { border-color: rgba(0,229,255,.25); background: rgba(0,229,255,.08); color: #00E5FF; }
+    .chip.danger { border-color: rgba(255,49,49,.25); background: rgba(255,49,49,.08); color: #FF3131; }
+
+    .mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: "Space Mono", monospace;
+      font-size: 12px;
+    }
+    .mini-table th, .mini-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      vertical-align: middle;
+    }
+    .mini-table th {
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      font-size: 10px;
+      color: rgba(148,163,184,.9);
+      font-weight: 800;
+    }
+  </style>
+</head>
+
+<body class="antialiased">
+  <div class="fixed inset-0 z-0 pointer-events-none">
+    <div class="absolute top-0 left-0 w-full h-full bg-[linear-gradient(rgba(255,215,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,215,0,0.02)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+    <div class="absolute bottom-0 right-0 w-[520px] h-[520px] bg-delta-gold/5 rounded-full blur-[120px]"></div>
+  </div>
+
+  <main class="relative z-10 max-w-[1440px] mx-auto px-6 py-12">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12 border-b border-white/5 pb-8">
+      <div>
+        <div class="flex items-center gap-3 text-delta-gold text-xs font-mono uppercase tracking-[0.3em] mb-2">
+          <i class="fas fa-cog animate-spin-slow"></i>
+          Enterprise Systems
+          <span class="chip gold"><i class="fas fa-shield-alt"></i> Org OS</span>
+          <span class="chip electric"><i class="fas fa-bolt"></i> Advanced</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-tech font-bold text-white uppercase tracking-tight">
+          Organization <span class="text-delta-gold">Sovereignty</span>
+        </h1>
+        <p class="text-xs text-slate-400 mt-3 max-w-2xl leading-relaxed">
+          Configure identity, teams, roster governance, contracts, treasury automation, sponsor conflicts, recruitment gatekeeping, verification state, media integrations, audit, and staff permissions.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10">
+          <i class="fas fa-circle-exclamation text-delta-gold/80"></i>
+          <span id="unsavedIndicator" class="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300">All changes saved</span>
+        </div>
+        <button id="discardBtn" class="px-6 py-2.5 rounded-lg border border-white/10 text-xs font-bold uppercase hover:bg-white/5 transition">
+          Discard
+        </button>
+        <button id="saveBtn" class="px-6 py-2.5 rounded-lg bg-delta-gold text-black text-xs font-bold uppercase shadow-lg shadow-delta-gold/20 hover:scale-105 transition">
+          Save All Changes
+        </button>
+      </div>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-10">
+      <!-- Sidebar -->
+      <aside class="w-full lg:w-72 shrink-0">
+        <nav class="flex flex-col gap-1 sticky top-8">
+          <button onclick="switchTab('general')" class="settings-sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all">
+            <i class="fas fa-id-card w-5 text-center"></i> General Identity
+          </button>
+
+          <button onclick="switchTab('branding')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+            <i class="fas fa-palette w-5 text-center"></i> Brand Assets
+          </button>
+
+          <button onclick="switchTab('squads')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+            <i class="fas fa-users w-5 text-center"></i> Squad Control
+          </button>
+
+          <button onclick="switchTab('recruitment')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+            <i class="fas fa-user-plus w-5 text-center"></i> Recruitment & Growth
+          </button>
+
+          <button onclick="switchTab('staff')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+            <i class="fas fa-user-tie w-5 text-center"></i> Command Staff
+          </button>
+
+          <button onclick="switchTab('finance')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+            <i class="fas fa-wallet w-5 text-center"></i> Empire Treasury
+          </button>
+
+          <button onclick="switchTab('sponsors')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+            <i class="fas fa-handshake w-5 text-center"></i> Partners & Sponsors
+          </button>
+
+          <button onclick="switchTab('media')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+            <i class="fas fa-video w-5 text-center"></i> Media & Streaming
+          </button>
+
+          <button onclick="switchTab('notifications')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+            <i class="fas fa-bell w-5 text-center"></i> Notification Matrix
+          </button>
+
+          <button onclick="switchTab('governance')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white border-t border-white/5 mt-2 pt-4">
+            <i class="fas fa-lock w-5 text-center"></i> Governance & Security
+          </button>
+
+          <button onclick="switchTab('verification')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+            <i class="fas fa-check-double w-5 text-center"></i> Verification
+          </button>
+
+          <button onclick="switchTab('audit')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-slate-400 hover:text-white">
+            <i class="fas fa-scroll w-5 text-center"></i> Audit & Logs
+          </button>
+
+          <button onclick="switchTab('danger')" class="settings-sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all text-delta-danger opacity-70 hover:opacity-100">
+            <i class="fas fa-skull w-5 text-center"></i> Terminal Actions
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Content -->
+      <div class="flex-1 max-w-5xl">
+        <!-- GENERAL -->
+        <section id="general" class="section-tab active space-y-8">
+          <div class="glass-panel p-8 rounded-2xl">
+            <div class="flex items-center justify-between gap-4 mb-6">
+              <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                <span class="w-1 h-5 bg-delta-gold"></span> Corporate Profile
+              </h2>
+              <span class="chip gold"><i class="fas fa-globe"></i> Public Facing</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Organization Name</label>
+                <input type="text" class="corp-input track-change" value="SYNTAX Esports">
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Short Ticker (Tag)</label>
+                <input type="text" class="corp-input track-change" value="SYN" maxlength="5">
+              </div>
+
+              <div class="md:col-span-2 space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Public Handle (URL Slug)</label>
+                <div class="flex items-center">
+                  <span class="bg-white/5 border border-r-0 border-white/10 px-4 py-2 rounded-l-lg text-xs font-mono text-slate-500">deltacrown.gg/org/</span>
+                  <input id="slugInput" type="text" class="corp-input rounded-l-none track-change" value="syntax-official">
+                </div>
+                <p class="text-[10px] text-slate-500">Slug changes can be rate-limited (cooldown) to protect legacy links.</p>
+              </div>
+
+              <div class="md:col-span-2 space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Organization Manifesto</label>
+                <textarea class="corp-input h-32 resize-none track-change" placeholder="We define the code of competitive excellence...">Dominating the South Asian competitive scene. Home to champions in Valorant, CS2, and Mobile Legends.</textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-panel p-8 rounded-2xl">
+            <div class="flex items-center justify-between gap-4 mb-6">
+              <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                <span class="w-1 h-5 bg-delta-electric"></span> Social & Community
+              </h2>
+              <span class="chip electric"><i class="fas fa-users"></i> Community Layer</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="relative">
+                <i class="fab fa-discord absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                <input type="text" class="corp-input pl-12 track-change" placeholder="Discord Server Invite">
+              </div>
+              <div class="relative">
+                <i class="fab fa-facebook absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                <input type="text" class="corp-input pl-12 track-change" placeholder="Facebook Page URL">
+              </div>
+              <div class="relative">
+                <i class="fab fa-instagram absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                <input type="text" class="corp-input pl-12 track-change" placeholder="Instagram Handle">
+              </div>
+              <div class="relative">
+                <i class="fas fa-globe absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                <input type="text" class="corp-input pl-12 track-change" placeholder="Official Website">
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-panel p-8 rounded-2xl">
+            <div class="flex items-center justify-between gap-4 mb-6">
+              <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                <span class="w-1 h-5 bg-delta-gold"></span> SEO & Discovery
+              </h2>
+              <span class="chip gold"><i class="fas fa-search"></i> Indexing</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-2 md:col-span-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Meta Title</label>
+                <input type="text" class="corp-input track-change" placeholder="SYNTAX Esports | Official Org on DeltaCrown">
+              </div>
+
+              <div class="space-y-2 md:col-span-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Meta Description</label>
+                <textarea class="corp-input h-24 resize-none track-change" placeholder="Short description for org discovery pages"></textarea>
+              </div>
+
+              <div class="space-y-2 md:col-span-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Keywords (comma separated)</label>
+                <input type="text" class="corp-input track-change" placeholder="valorant, cs2, bangladesh esports, mobile legends">
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Public Org Page</label>
+                <div class="flex items-center gap-3 h-12">
+                  <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="toggle-checkbox hidden track-change">
+                    <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                      <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                    </div>
+                  </label>
+                  <span class="text-xs text-slate-400">Allow public viewing & discovery listing</span>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Search Engine Indexing</label>
+                <div class="flex items-center gap-3 h-12">
+                  <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="toggle-checkbox hidden track-change">
+                    <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                      <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                    </div>
+                  </label>
+                  <span class="text-xs text-slate-400">Allow Google indexing (SEO)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- BRANDING -->
+        <section id="branding" class="section-tab space-y-8">
+          <div class="glass-panel p-8 rounded-2xl">
+            <div class="flex items-center justify-between gap-4 mb-6">
+              <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                <span class="w-1 h-5 bg-delta-gold"></span> Visual Assets
+              </h2>
+              <span class="chip gold"><i class="fas fa-image"></i> Validation</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div class="space-y-4">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Corporate Emblem</label>
+                <div class="relative group aspect-square rounded-xl bg-delta-base border-2 border-dashed border-white/10 flex items-center justify-center cursor-pointer overflow-hidden hover:border-delta-gold transition">
+                  <img id="logo-prev" src="https://api.dicebear.com/7.x/identicon/svg?seed=Syntax" class="w-full h-full object-cover">
+                  <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                    <i class="fas fa-camera text-white"></i>
+                  </div>
+                  <input id="logoFile" type="file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
+                </div>
+                <p id="logoHint" class="text-[10px] text-center text-slate-500">PNG or SVG, Min 512x512px</p>
+              </div>
+
+              <div class="md:col-span-2 space-y-4">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Empire Banner</label>
+                <div class="relative group h-48 rounded-xl bg-delta-base border-2 border-dashed border-white/10 flex items-center justify-center cursor-pointer overflow-hidden hover:border-delta-gold transition">
+                  <img id="banner-prev" src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="w-full h-full object-cover">
+                  <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                    <i class="fas fa-image text-white text-2xl"></i>
+                  </div>
+                  <input id="bannerFile" type="file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
+                </div>
+                <p id="bannerHint" class="text-[10px] text-slate-500 text-right">Recommended: 1920x400px</p>
+              </div>
+            </div>
+
+            <!-- Live Preview -->
+            <div class="mt-10 pt-8 border-t border-white/5">
+              <div class="flex items-center justify-between mb-5">
+                <label class="text-xs font-bold text-white uppercase tracking-widest">Live Hub Preview</label>
+                <span class="chip electric"><i class="fas fa-eye"></i> Real-time</span>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="p-5 rounded-2xl bg-black/40 border border-white/5">
+                  <div class="text-[10px] text-slate-500 uppercase tracking-[0.22em] font-bold mb-3">Org Card</div>
+                  <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-delta-base">
+                      <img id="hubLogo" src="https://api.dicebear.com/7.x/identicon/svg?seed=Syntax" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                      <div class="text-white font-bold uppercase tracking-wide">SYNTAX Esports <span class="text-delta-gold">✓</span></div>
+                      <div class="text-[10px] text-slate-500 font-mono">deltacrown.gg/org/syntax-official</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-black/40 border border-white/5 overflow-hidden">
+                  <div class="text-[10px] text-slate-500 uppercase tracking-[0.22em] font-bold mb-3">Banner Strip</div>
+                  <div class="h-20 rounded-xl overflow-hidden border border-white/10 bg-delta-base">
+                    <img id="hubBanner" src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="w-full h-full object-cover">
+                  </div>
+                </div>
+              </div>
+
+              <p class="text-[10px] text-slate-500 mt-4">
+                Preview updates instantly after upload. Server-side validation should still enforce dimensions, filetype, and filesize.
+              </p>
+            </div>
+          </div>
+
+          <div class="glass-panel p-8 rounded-2xl">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                <span class="w-1 h-5 bg-delta-gold"></span> Theme Signature
+              </h2>
+              <span class="chip gold"><i class="fas fa-droplet"></i> Palette</span>
+            </div>
+
+            <div class="flex flex-wrap gap-4">
+              <div class="flex-1 min-w-[220px] space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Primary Color</label>
+                <div class="flex items-center gap-3 bg-black rounded-lg p-2 border border-white/10">
+                  <input id="primaryColor" type="color" class="w-8 h-8 rounded border-0 bg-transparent cursor-pointer track-change" value="#FFD700">
+                  <span id="primaryHex" class="text-xs font-mono">#FFD700</span>
+                </div>
+              </div>
+
+              <div class="flex-1 min-w-[220px] space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Banner Inheritance</label>
+                <div class="flex items-center gap-3 h-12">
+                  <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="toggle-checkbox hidden track-change">
+                    <div class="w-10 h-5 bg-white/10 rounded-full relative transition-all toggle-label">
+                      <div class="absolute w-4 h-4 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                    </div>
+                  </label>
+                  <span class="text-xs text-slate-400">Force Org Banner on all sub-teams</span>
+                </div>
+              </div>
+
+              <div class="flex-1 min-w-[220px] space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Brand Safety: Auto Watermark</label>
+                <div class="flex items-center gap-3 h-12">
+                  <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="toggle-checkbox hidden track-change">
+                    <div class="w-10 h-5 bg-white/10 rounded-full relative transition-all toggle-label">
+                      <div class="absolute w-4 h-4 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                    </div>
+                  </label>
+                  <span class="text-xs text-slate-400">Apply subtle logo watermark on org media exports</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SQUADS -->
+        <section id="squads" class="section-tab space-y-8">
+          <div class="glass-panel p-8 rounded-2xl">
+            <div class="flex justify-between items-center mb-8">
+              <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                <span class="w-1 h-5 bg-delta-electric"></span> Active Roster Registry
+              </h2>
+              <button class="px-4 py-2 bg-delta-electric/10 text-delta-electric border border-delta-electric/20 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-delta-electric hover:text-black transition">
+                <i class="fas fa-plus mr-2"></i> Register New Team
+              </button>
+            </div>
+
+            <div class="space-y-4">
+              <div class="flex items-center justify-between p-4 bg-black/40 rounded-xl border border-white/5 hover:border-delta-gold/20 transition group">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-lg bg-delta-surface flex items-center justify-center p-2 border border-white/5 shadow-xl">
+                    <img src="https://img.icons8.com/color/48/valorant.png" class="w-8 h-8">
+                  </div>
+                  <div>
+                    <h4 class="text-white font-bold text-sm uppercase tracking-wide">Protocol V (Valorant)</h4>
+                    <p class="text-[10px] text-slate-500 font-mono">DCRS Rank: #1 Regional • 5 Active Members</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-white transition flex items-center justify-center"><i class="fas fa-external-link-alt text-xs"></i></button>
+                  <button class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-delta-danger transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between p-4 bg-black/40 rounded-xl border border-white/5 hover:border-delta-gold/20 transition group">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-lg bg-delta-surface flex items-center justify-center p-2 border border-white/5 shadow-xl">
+                    <i class="fas fa-futbol text-delta-gold text-2xl"></i>
+                  </div>
+                  <div>
+                    <h4 class="text-white font-bold text-sm uppercase tracking-wide">Syntax FC (eFootball)</h4>
+                    <p class="text-[10px] text-slate-500 font-mono">DCRS Rank: #14 Regional • 2 Active Members</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-white transition flex items-center justify-center"><i class="fas fa-external-link-alt text-xs"></i></button>
+                  <button class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-delta-danger transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Transfer & Acquisition Policy -->
+          <div class="glass-panel p-8 rounded-2xl">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                <span class="w-1 h-5 bg-delta-gold"></span> Transfer & Buyout Policy
+              </h2>
+              <span class="chip gold"><i class="fas fa-scale-balanced"></i> Governance</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="p-5 bg-black/40 border border-white/5 rounded-2xl">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="text-sm font-bold text-white">Open to Acquisition (Transfer Market)</div>
+                    <div class="text-[10px] text-slate-500 font-mono mt-1">If ON: org appears on marketplace + incoming offers allowed</div>
+                  </div>
+                  <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="toggle-checkbox hidden track-change" checked>
+                    <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                      <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="p-5 bg-black/40 border border-white/5 rounded-2xl">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="text-sm font-bold text-white">Roster Locked (Hard Lock)</div>
+                    <div class="text-[10px] text-slate-500 font-mono mt-1">If ON: disallow roster adds/removals except via admin approvals</div>
+                  </div>
+                  <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="toggle-checkbox hidden track-change">
+                    <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                      <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Global Minimum Buyout (BDT)</label>
+                <input type="number" class="corp-input track-change" value="50000">
+                <p class="text-[10px] text-slate-500">Offers below this threshold auto-reject (unless manually overridden).</p>
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Auto-Approve Transfers Under (BDT)</label>
+                <input type="number" class="corp-input track-change" value="15000">
+                <p class="text-[10px] text-slate-500">If 0, all transfers require approval.</p>
+              </div>
+
+              <div class="md:col-span-2 p-5 bg-black/40 border border-white/5 rounded-2xl">
+                <div class="flex items-center justify-between mb-4">
+                  <div>
+                    <div class="text-sm font-bold text-white">Per-Team Buyout Overrides</div>
+                    <div class="text-[10px] text-slate-500 font-mono">Example: Protocol V has higher minimum release fee</div>
+                  </div>
+                  <button class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition">
+                    <i class="fas fa-plus mr-2"></i> Add Override
+                  </button>
+                </div>
+
+                <div class="space-y-3">
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <select class="corp-input track-change">
+                      <option>Protocol V (Valorant)</option>
+                      <option>Syntax FC (eFootball)</option>
+                    </select>
+                    <input type="number" class="corp-input track-change" value="120000" placeholder="Minimum buyout (BDT)">
+                    <select class="corp-input track-change">
+                      <option>Offer Type: Player Buyout</option>
+                      <option>Offer Type: Team Acquisition</option>
+                      <option>Offer Type: Both</option>
+                    </select>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 opacity-70">
+                    <select class="corp-input">
+                      <option>Syntax FC (eFootball)</option>
+                    </select>
+                    <input type="number" class="corp-input" value="25000" placeholder="Minimum buyout (BDT)">
+                    <select class="corp-input">
+                      <option>Offer Type: Player Buyout</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Roster Windows & Integrity -->
+          <div class="glass-panel p-8 rounded-2xl">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                <span class="w-1 h-5 bg-delta-electric"></span> Competitive Integrity
+              </h2>
+              <span class="chip electric"><i class="fas fa-gavel"></i> Enforcement</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Transfer Window Mode</label>
+                <select class="corp-input track-change">
+                  <option>Open (Always)</option>
+                  <option>Closed (Always)</option>
+                  <option>Scheduled Windows</option>
+                </select>
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Lock Policy (Tournament)</label>
+                <select class="corp-input track-change">
+                  <option>Lock on Registration Close</option>
+                  <option>Lock at Check-In</option>
+                  <option>Lock at First Match Start</option>
+                </select>
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Emergency Subs Allowed</label>
+                <select class="corp-input track-change">
+                  <option>0 (Disabled)</option>
+                  <option>1 per tournament</option>
+                  <option>2 per tournament</option>
+                  <option>Unlimited (Admin approval)</option>
+                </select>
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Dispute Escalation Timeout</label>
+                <select class="corp-input track-change">
+                  <option>12 hours</option>
+                  <option selected>24 hours</option>
+                  <option>48 hours</option>
+                </select>
+                <p class="text-[10px] text-slate-500">Auto-escalate unresolved disputes to org moderators/CEO.</p>
+              </div>
+
+              <div class="md:col-span-2 p-5 bg-black/40 border border-white/5 rounded-2xl">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="text-sm font-bold text-white">Auto-Block Mid-Tournament Roster Moves</div>
+                    <div class="text-[10px] text-slate-500 font-mono mt-1">Enforced by roster lock rules for competitive integrity.</div>
+                  </div>
+                  <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="toggle-checkbox hidden track-change">
+                    <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                      <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- RECRUITMENT -->
+        <section id="recruitment" class="section-tab space-y-8">
+          <div class="glass-panel p-8 rounded-2xl">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                <span class="w-1 h-5 bg-delta-electric"></span> Strategic Recruitment
+              </h2>
+              <span class="chip electric"><i class="fas fa-filter"></i> Gatekeeper</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-4">
+                <h5 class="text-sm font-bold text-slate-300 italic">Automatic Filtering</h5>
+
+                <div class="flex items-center justify-between p-3 bg-black/40 rounded-lg border border-white/5">
+                  <span class="text-xs text-slate-400">Strict NID/Passport Check</span>
+                  <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="toggle-checkbox hidden track-change" checked>
+                    <div class="w-10 h-5 bg-white/10 rounded-full relative transition-all toggle-label">
+                      <div class="absolute w-4 h-4 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                    </div>
+                  </label>
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-black/40 rounded-lg border border-white/5">
+                  <span class="text-xs text-slate-400">Pro-Passport Holders Only</span>
+                  <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="toggle-checkbox hidden track-change">
+                    <div class="w-10 h-5 bg-white/10 rounded-full relative transition-all toggle-label">
+                      <div class="absolute w-4 h-4 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                    </div>
+                  </label>
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-black/40 rounded-lg border border-white/5">
+                  <span class="text-xs text-slate-400">Require Phone Verified</span>
+                  <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="toggle-checkbox hidden track-change" checked>
+                    <div class="w-10 h-5 bg-white/10 rounded-full relative transition-all toggle-label">
+                      <div class="absolute w-4 h-4 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Global Talent Search Vibe</label>
+                <select class="corp-input track-change">
+                  <option>Aggressive (Highlight on Scouting Radar)</option>
+                  <option>Passive (Accept apps but don't promote)</option>
+                  <option>Closed (Hide Apply button)</option>
+                </select>
+
+                <div class="mt-6 space-y-2">
+                  <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Minimum DCRS Score</label>
+                  <input type="number" class="corp-input track-change" value="1500" />
+                </div>
+
+                <div class="mt-4 space-y-2">
+                  <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Minimum Win Rate (%)</label>
+                  <input type="number" class="corp-input track-change" value="70" />
+                </div>
+
+                <div class="mt-4 space-y-2">
+                  <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Auto-Reject If</label>
+                  <select class="corp-input track-change">
+                    <option>Off</option>
+                    <option selected>If no Game Passport linked</option>
+                    <option>If less than 50 CP (Community Points)</option>
+                    <option>If underage verification fails</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-10 pt-8 border-t border-white/5">
+              <div class="flex items-center justify-between mb-4">
+                <label class="text-xs font-bold text-white uppercase tracking-widest">Application Pipeline</label>
+                <span class="chip gold"><i class="fas fa-diagram-project"></i> ATS</span>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+                  <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Stage 1</div>
+                  <div class="text-sm text-white font-bold mt-1">New</div>
+                  <div class="text-[10px] text-slate-500 font-mono mt-1">Auto-tags + identity checks</div>
+                </div>
+                <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+                  <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Stage 2</div>
+                  <div class="text-sm text-white font-bold mt-1">Screening</div>
+                  <div class="text-[10px] text-slate-500 font-mono mt-1">Scout review + metrics</div>
+                </div>
+                <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+                  <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Stage 3</div>
+                  <div class="text-sm text-white font-bold mt-1">Trial</div>
+                  <div class="text-[10px] text-slate-500 font-mono mt-1">Tryouts + scrim access</div>
+                </div>
+                <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+                  <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Stage 4</div>
+                  <div class="text-sm text-white font-bold mt-1">Contract</div>
+                  <div class="text-[10px] text-slate-500 font-mono mt-1">Template + e-sign flow</div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <div class="p-5 rounded-2xl bg-black/40 border border-white/5">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-sm font-bold text-white">Enable Tryout Scheduling</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Applicants can book approved slots</div>
+                    </div>
+                    <label class="inline-flex items-center cursor-pointer">
+                      <input type="checkbox" class="toggle-checkbox hidden track-change" checked>
+                      <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                        <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-black/40 border border-white/5">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-sm font-bold text-white">Auto-Grant Scrim Access on Trial</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Temporary access expires automatically</div>
+                    </div>
+                    <label class="inline-flex items-center cursor-pointer">
+                      <input type="checkbox" class="toggle-checkbox hidden track-change">
+                      <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                        <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <p class="text-[10px] text-slate-500 mt-5">
+                AI/logic filters should be transparent: always show rejection reason + threshold that failed.
+              </p>
+            </div>
+          </div>
+
+          <!-- Contract Templates -->
+          <div class="glass-panel p-8 rounded-2xl">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                <span class="w-1 h-5 bg-delta-gold"></span> Contract Templates (Legal Library)
+              </h2>
+              <span class="chip gold"><i class="fas fa-file-signature"></i> Templates</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Default Contract Duration</label>
+                <select class="corp-input track-change">
+                  <option>1 month</option>
+                  <option>3 months</option>
+                  <option selected>6 months</option>
+                  <option>1 year</option>
+                  <option>2 years</option>
+                </select>
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Default Trial Duration</label>
+                <select class="corp-input track-change">
+                  <option>7 days</option>
+                  <option selected>14 days</option>
+                  <option>30 days</option>
+                </select>
+              </div>
+
+              <div class="md:col-span-2 p-5 bg-black/40 border border-white/5 rounded-2xl">
+                <div class="flex items-center justify-between mb-4">
+                  <div>
+                    <div class="text-sm font-bold text-white">Template Vault</div>
+                    <div class="text-[10px] text-slate-500 font-mono">Upload standard agreements, NDAs, buyout addendums</div>
+                  </div>
+                  <button class="px-4 py-2 bg-delta-gold/10 text-delta-gold border border-delta-gold/20 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-delta-gold hover:text-black transition">
+                    <i class="fas fa-upload mr-2"></i> Upload Template
+                  </button>
+                </div>
+
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between p-4 rounded-xl border border-white/10 bg-white/5">
+                    <div class="flex items-center gap-3">
+                      <i class="fas fa-file-pdf text-slate-400"></i>
+                      <div>
+                        <div class="text-sm text-white font-bold">Standard Player Agreement (v2)</div>
+                        <div class="text-[10px] text-slate-500 font-mono">Updated: Jan 08, 2026 • Owner: CEO</div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button class="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">View</button>
+                      <button class="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Set Default</button>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between p-4 rounded-xl border border-white/10 bg-white/5 opacity-70">
+                    <div class="flex items-center gap-3">
+                      <i class="fas fa-file-alt text-slate-400"></i>
+                      <div>
+                        <div class="text-sm text-white font-bold">NDA (Draft)</div>
+                        <div class="text-[10px] text-slate-500 font-mono">Updated: Dec 22, 2025 • Owner: Manager</div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button class="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">View</button>
+                      <button class="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Set Default</button>
+                    </div>
+                  </div>
+                </div>
+
+                <p class="text-[10px] text-slate-500 mt-4">
+                  Recommended: template versioning + e-sign audit trail + per-squad contract addendums.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+          <!-- STAFF -->
+          <section id="staff" class="section-tab space-y-8">
+            <div class="glass-panel p-8 rounded-2xl">
+              <div class="flex justify-between items-center mb-8">
+                <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                  <span class="w-1 h-5 bg-delta-gold"></span> Admin Delegation
+                </h2>
+                <button class="px-4 py-2 bg-delta-gold/10 text-delta-gold border border-delta-gold/20 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-delta-gold hover:text-black transition">
+                  <i class="fas fa-user-plus mr-2"></i> Appoint Staff
+                </button>
+              </div>
+
+              <!-- Role Templates -->
+              <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                <div class="flex items-center justify-between mb-4">
+                  <div>
+                    <div class="text-sm font-bold text-white">Role Templates</div>
+                    <div class="text-[10px] text-slate-500 font-mono mt-1">Create reusable permission presets (Manager, Scout, Finance, Coach)</div>
+                  </div>
+                  <button class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition">
+                    <i class="fas fa-plus mr-2"></i> New Template
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <div class="text-sm font-bold text-white">General Manager</div>
+                        <div class="text-[10px] text-slate-500 font-mono mt-1">Org-wide • Roster + Ops</div>
+                      </div>
+                      <span class="chip gold"><i class="fas fa-crown"></i> Template</span>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                      <button class="flex-1 px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Edit</button>
+                      <button class="flex-1 px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Duplicate</button>
+                    </div>
+                  </div>
+
+                  <div class="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <div class="text-sm font-bold text-white">Lead Scout</div>
+                        <div class="text-[10px] text-slate-500 font-mono mt-1">Scoped • Recruitment</div>
+                      </div>
+                      <span class="chip electric"><i class="fas fa-binoculars"></i> Template</span>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                      <button class="flex-1 px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Edit</button>
+                      <button class="flex-1 px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Duplicate</button>
+                    </div>
+                  </div>
+
+                  <div class="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <div class="text-sm font-bold text-white">Finance Officer</div>
+                        <div class="text-[10px] text-slate-500 font-mono mt-1">Treasury • Approvals</div>
+                      </div>
+                      <span class="chip gold"><i class="fas fa-vault"></i> Template</span>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                      <button class="flex-1 px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Edit</button>
+                      <button class="flex-1 px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Duplicate</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Staff List + Permission Matrix -->
+              <div class="mt-8 pt-8 border-t border-white/5">
+                <div class="flex items-center justify-between mb-5">
+                  <label class="text-xs font-bold text-white uppercase tracking-widest">Command Staff</label>
+                  <span class="chip electric"><i class="fas fa-sitemap"></i> Permission Matrix</span>
+                </div>
+
+                <div class="space-y-4">
+                  <!-- Staff Card 1 -->
+                  <div class="p-6 bg-black/40 rounded-2xl border border-white/5">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-lg bg-delta-surface p-1 border border-white/5">
+                          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Manager" class="w-full h-full rounded bg-black" />
+                        </div>
+                        <div>
+                          <div class="flex flex-wrap items-center gap-2">
+                            <h4 class="text-white font-bold text-sm">Tactical_X</h4>
+                            <span class="text-[8px] bg-delta-gold/20 text-delta-gold px-1.5 py-0.5 rounded font-bold border border-delta-gold/30">GENERAL MANAGER</span>
+                            <span class="chip gold"><i class="fas fa-globe"></i> Org-wide</span>
+                          </div>
+                          <p class="text-[10px] text-slate-500 font-mono mt-1">Appointed: Dec 12, 2025 • Last action: 3h ago</p>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center gap-2">
+                        <button class="px-4 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Apply Template</button>
+                        <button class="w-10 h-10 rounded-lg bg-white/5 text-slate-500 hover:text-white transition"><i class="fas fa-ellipsis-v"></i></button>
+                      </div>
+                    </div>
+
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Roster</div>
+                        <div class="space-y-3">
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Edit Roster</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Approve Transfers</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Emergency Subs</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                        </div>
+                      </div>
+
+                      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Treasury</div>
+                        <div class="space-y-3">
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Withdraw Funds</span>
+                            <input type="checkbox" class="track-change" />
+                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Approve Payouts</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Edit Split Rules</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                        </div>
+                      </div>
+
+                      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Operations</div>
+                        <div class="space-y-3">
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Accept Scrims</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Resolve Disputes</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Manage Sponsors</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="mt-5 text-[10px] text-slate-500 font-mono">
+                      Principle: least privilege. Use approvals for high-risk actions (withdrawals, transfer approvals, roster locks). :contentReference[oaicite:0]{index=0}
+                    </div>
+                  </div>
+
+                  <!-- Staff Card 2 -->
+                  <div class="p-6 bg-black/40 rounded-2xl border border-white/5">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-lg bg-delta-surface p-1 border border-white/5">
+                          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Scout" class="w-full h-full rounded bg-black" />
+                        </div>
+                        <div>
+                          <div class="flex flex-wrap items-center gap-2">
+                            <h4 class="text-white font-bold text-sm">EagleEye_101</h4>
+                            <span class="text-[8px] bg-delta-electric/20 text-delta-electric px-1.5 py-0.5 rounded font-bold border border-delta-electric/30 uppercase">Lead Scout</span>
+                            <span class="chip electric"><i class="fas fa-layer-group"></i> Scoped</span>
+                          </div>
+                          <p class="text-[10px] text-slate-500 font-mono mt-1">Appointed: Jan 02, 2026 • Scope: Protocol V</p>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center gap-2">
+                        <select class="corp-input w-[220px] track-change">
+                          <option>Scope: Org-wide</option>
+                          <option selected>Scope: Protocol V (Valorant)</option>
+                          <option>Scope: Syntax FC (eFootball)</option>
+                        </select>
+                        <button class="w-10 h-10 rounded-lg bg-white/5 text-slate-500 hover:text-white transition"><i class="fas fa-ellipsis-v"></i></button>
+                      </div>
+                    </div>
+
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Recruitment</div>
+                        <div class="space-y-3">
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Review Applications</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Move Pipeline Stages</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Schedule Tryouts</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                        </div>
+                      </div>
+
+                      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Roster</div>
+                        <div class="space-y-3">
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Invite Players</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Kick Players</span>
+                            <input type="checkbox" class="track-change" />
+                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Approve Transfers</span>
+                            <input type="checkbox" class="track-change" />
+                          </label>
+                        </div>
+                      </div>
+
+                      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Visibility</div>
+                        <div class="space-y-3">
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>View Analytics</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Export Candidate List</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300">
+                            <span>Contact Applicants</span>
+                            <input type="checkbox" checked class="track-change" />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Approval Rules -->
+                  <div class="p-6 bg-black/40 rounded-2xl border border-white/5">
+                    <div class="flex items-center justify-between mb-4">
+                      <div>
+                        <div class="text-sm font-bold text-white">High-Risk Action Approvals</div>
+                        <div class="text-[10px] text-slate-500 font-mono mt-1">Define how many approvals are required before execution</div>
+                      </div>
+                      <span class="chip gold"><i class="fas fa-user-shield"></i> 2-Man Rule</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Treasury Withdrawal</div>
+                        <select class="corp-input track-change">
+                          <option>None</option>
+                          <option selected>1 Approval (Finance/CEO)</option>
+                          <option>2 Approvals (2-of-3)</option>
+                          <option>CEO Only</option>
+                        </select>
+                        <div class="mt-3 text-[10px] text-slate-500">Applies to cash-out & gateway payouts.</div>
+                      </div>
+
+                      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Player Kick</div>
+                        <select class="corp-input track-change">
+                          <option selected>None</option>
+                          <option>1 Approval (Manager)</option>
+                          <option>2 Approvals (Manager + Captain)</option>
+                          <option>CEO Only</option>
+                        </select>
+                        <div class="mt-3 text-[10px] text-slate-500">Prevents abuse; logs reason in audit.</div>
+                      </div>
+
+                      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Transfer Approval</div>
+                        <select class="corp-input track-change">
+                          <option>Auto (if above min buyout)</option>
+                          <option selected>Manager Approval</option>
+                          <option>CEO Approval</option>
+                          <option>2 Approvals (CEO + Manager)</option>
+                        </select>
+                        <div class="mt-3 text-[10px] text-slate-500">Syncs with your buyout thresholds.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- FINANCE -->
+          <section id="finance" class="section-tab space-y-8">
+            <div class="glass-panel p-8 rounded-2xl">
+              <div class="flex items-center justify-between gap-4 mb-8">
+                <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                  <span class="w-1 h-5 bg-delta-gold shadow-[0_0_10px_#FFD700]"></span> Financial Infrastructure
+                </h2>
+                <span class="chip gold"><i class="fas fa-coins"></i> Treasury OS</span>
+              </div>
+
+              <div class="space-y-8">
+                <!-- Global Split + Currency -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div class="space-y-4">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Default Prize Split</label>
+                    <div class="relative pt-1">
+                      <div class="flex mb-2 items-center justify-between">
+                        <div>
+                          <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-delta-gold bg-delta-gold/10 border border-delta-gold/20">
+                            Organization Take: <span id="orgTakeLabel">20</span>%
+                          </span>
+                        </div>
+                        <div class="text-right">
+                          <span class="text-xs font-semibold inline-block text-delta-electric">
+                            Players: <span id="playerTakeLabel">80</span>%
+                          </span>
+                        </div>
+                      </div>
+                      <input id="splitRange" type="range" min="0" max="100" value="20" class="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-delta-gold track-change">
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-relaxed italic">Automated prize disbursements can inherit this split unless overridden per squad. :contentReference[oaicite:1]{index=1}</p>
+                  </div>
+
+                  <div class="space-y-4">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Primary Ledger Currency</label>
+                    <select class="corp-input appearance-none cursor-pointer track-change">
+                      <option selected>BDT - Bangladeshi Taka (Default)</option>
+                      <option>USD - United States Dollar</option>
+                    </select>
+                    <p class="text-[10px] text-slate-500">Visual currency on match winnings, salaries, invoices, and reports.</p>
+                  </div>
+                </div>
+
+                <!-- Per-Team Prize Split Overrides -->
+                <div class="pt-8 border-t border-white/5">
+                  <div class="flex items-center justify-between mb-5">
+                    <label class="text-xs font-bold text-white uppercase tracking-widest">Per-Team Prize Split Overrides</label>
+                    <span class="chip electric"><i class="fas fa-sliders"></i> Overrides</span>
+                  </div>
+
+                  <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                      <div>
+                        <div class="text-sm font-bold text-white">Dynamic Rules</div>
+                        <div class="text-[10px] text-slate-500 font-mono mt-1">Example: Protocol V 90/10, Syntax FC 100/0</div>
+                      </div>
+                      <button class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition">
+                        <i class="fas fa-plus mr-2"></i> Add Rule
+                      </button>
+                    </div>
+
+                    <div class="space-y-3">
+                      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <select class="corp-input track-change">
+                          <option selected>Protocol V (Valorant)</option>
+                          <option>Syntax FC (eFootball)</option>
+                        </select>
+                        <input type="number" min="0" max="100" value="10" class="corp-input track-change" placeholder="Org %">
+                        <input type="number" min="0" max="100" value="90" class="corp-input track-change" placeholder="Player %">
+                        <select class="corp-input track-change">
+                          <option selected>Apply: All Prize Pools</option>
+                          <option>Apply: Tournament Winnings Only</option>
+                          <option>Apply: Scrim Rewards Only</option>
+                        </select>
+                      </div>
+
+                      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 opacity-70">
+                        <select class="corp-input">
+                          <option selected>Syntax FC (eFootball)</option>
+                        </select>
+                        <input type="number" value="0" class="corp-input" placeholder="Org %">
+                        <input type="number" value="100" class="corp-input" placeholder="Player %">
+                        <select class="corp-input">
+                          <option selected>Apply: Tournament Winnings Only</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <p class="text-[10px] text-slate-500 mt-4">
+                      Server should validate sums = 100 and store rules in config (JSONB) for flexibility. :contentReference[oaicite:2]{index=2}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Payroll -->
+                <div class="pt-8 border-t border-white/5">
+                  <div class="flex items-center justify-between mb-5">
+                    <label class="text-xs font-bold text-white uppercase tracking-widest">Dynamic Payroll</label>
+                    <span class="chip gold"><i class="fas fa-calendar-check"></i> Automation</span>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                      <div class="text-sm font-bold text-white">Pay Frequency</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">How often salaries are disbursed</div>
+                      <select class="corp-input mt-4 track-change">
+                        <option>Weekly</option>
+                        <option selected>Monthly</option>
+                        <option>Quarterly</option>
+                      </select>
+                    </div>
+
+                    <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                      <div class="text-sm font-bold text-white">Auto-Pay Day</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Day of month (1-28 recommended)</div>
+                      <input type="number" min="1" max="28" value="25" class="corp-input mt-4 track-change">
+                    </div>
+
+                    <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                      <div class="text-sm font-bold text-white">Payroll Safety</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Auto-freeze when treasury below threshold</div>
+                      <input type="number" value="15000" class="corp-input mt-4 track-change" placeholder="Freeze below (BDT)">
+                    </div>
+                  </div>
+
+                  <div class="mt-6 p-6 bg-black/40 border border-white/5 rounded-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                      <div>
+                        <div class="text-sm font-bold text-white">Per-Squad Salary Pools</div>
+                        <div class="text-[10px] text-slate-500 font-mono mt-1">Monthly pools used by payroll engine</div>
+                      </div>
+                      <button class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition">
+                        <i class="fas fa-plus mr-2"></i> Add Pool
+                      </button>
+                    </div>
+
+                    <div class="space-y-3">
+                      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <select class="corp-input track-change">
+                          <option selected>Protocol V (Valorant)</option>
+                          <option>Syntax FC (eFootball)</option>
+                        </select>
+                        <input type="number" value="40000" class="corp-input track-change" placeholder="Pool Amount (BDT)">
+                        <select class="corp-input track-change">
+                          <option selected>Distribution: Manual per player</option>
+                          <option>Distribution: Equal split</option>
+                          <option>Distribution: Performance weighted</option>
+                        </select>
+                      </div>
+
+                      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 opacity-70">
+                        <select class="corp-input">
+                          <option selected>Syntax FC (eFootball)</option>
+                        </select>
+                        <input type="number" value="8000" class="corp-input" placeholder="Pool Amount (BDT)">
+                        <select class="corp-input">
+                          <option selected>Distribution: Equal split</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <p class="text-[10px] text-slate-500 mt-4">
+                      Payroll execution should create immutable transaction rows (append-only) for auditability. :contentReference[oaicite:3]{index=3}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Ledger + History -->
+                <div class="pt-8 border-t border-white/5">
+                  <div class="flex items-center justify-between mb-5">
+                    <label class="text-xs font-bold text-white uppercase tracking-widest">Multi-Ledger History</label>
+                    <span class="chip electric"><i class="fas fa-receipt"></i> Last 5</span>
+                  </div>
+
+                  <div class="p-6 bg-black/40 border border-white/5 rounded-2xl overflow-hidden">
+                    <table class="mini-table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Type</th>
+                          <th>Reference</th>
+                          <th class="text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Jan 26, 2026</td>
+                          <td><span class="chip electric">Inflow</span></td>
+                          <td class="text-slate-300">Prize Pool — Valorant Weekly Cup</td>
+                          <td class="text-right text-delta-success font-bold">+ 12,000 BDT</td>
+                        </tr>
+                        <tr>
+                          <td>Jan 25, 2026</td>
+                          <td><span class="chip gold">Outflow</span></td>
+                          <td class="text-slate-300">Payroll — Protocol V</td>
+                          <td class="text-right text-delta-danger font-bold">- 8,000 BDT</td>
+                        </tr>
+                        <tr>
+                          <td>Jan 24, 2026</td>
+                          <td><span class="chip electric">Inflow</span></td>
+                          <td class="text-slate-300">Sponsor Deposit — Logitech</td>
+                          <td class="text-right text-delta-success font-bold">+ 30,000 BDT</td>
+                        </tr>
+                        <tr>
+                          <td>Jan 22, 2026</td>
+                          <td><span class="chip gold">Outflow</span></td>
+                          <td class="text-slate-300">Staff Payout — Manager</td>
+                          <td class="text-right text-delta-danger font-bold">- 2,500 BDT</td>
+                        </tr>
+                        <tr>
+                          <td>Jan 20, 2026</td>
+                          <td><span class="chip danger">Penalty</span></td>
+                          <td class="text-slate-300">Dispute Fine — Match Forfeit</td>
+                          <td class="text-right text-delta-danger font-bold">- 1,000 BDT</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <div class="flex flex-wrap gap-3 mt-5">
+                      <button class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition">
+                        <i class="fas fa-file-export mr-2"></i> Export CSV
+                      </button>
+                      <button class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition">
+                        <i class="fas fa-tag mr-2"></i> Manage Tags
+                      </button>
+                      <button class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition">
+                        <i class="fas fa-filter mr-2"></i> Filters
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Payout Channels + Policy -->
+                <div class="pt-8 border-t border-white/5 space-y-6">
+                  <div class="flex items-center justify-between">
+                    <label class="text-xs font-bold text-white uppercase tracking-widest">External Payout Channels</label>
+                    <span class="chip gold"><i class="fas fa-shield"></i> Policy</span>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                      <div class="text-sm font-bold text-white">Withdrawal Approvals</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Multi-approval reduces fraud risk</div>
+                      <select class="corp-input mt-4 track-change">
+                        <option>None</option>
+                        <option selected>1 Approval (Finance/CEO)</option>
+                        <option>2-of-3 Multi-Approval</option>
+                        <option>CEO Only</option>
+                      </select>
+                    </div>
+
+                    <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                      <div class="text-sm font-bold text-white">Daily Withdrawal Cap</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Hard ceiling per 24h window</div>
+                      <input type="number" value="50000" class="corp-input mt-4 track-change" placeholder="Cap (BDT)">
+                    </div>
+
+                    <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                      <div class="text-sm font-bold text-white">Payout Freeze</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Emergency stop for all payouts</div>
+                      <div class="flex items-center justify-between mt-4 p-3 bg-white/5 border border-white/10 rounded-xl">
+                        <span class="text-xs text-slate-300">Freeze outgoing payments</span>
+                        <label class="inline-flex items-center cursor-pointer">
+                          <input type="checkbox" class="toggle-checkbox hidden track-change">
+                          <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                            <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between p-4 bg-delta-base border border-white/5 rounded-xl group hover:border-delta-gold/30 transition">
+                    <div class="flex items-center gap-4">
+                      <div class="w-10 h-10 rounded bg-[#E2136E] flex items-center justify-center font-bold text-white">bK</div>
+                      <div>
+                        <h4 class="text-sm font-bold">Mobile Banking: bKash</h4>
+                        <p class="text-[10px] text-slate-500 font-mono">**** **** 5928 (Personal)</p>
+                      </div>
+                    </div>
+                    <button class="text-xs text-delta-gold font-bold uppercase hover:underline">Manage</button>
+                  </div>
+
+                  <div class="flex items-center justify-between p-4 bg-delta-base border border-white/5 rounded-xl group hover:border-delta-gold/30 transition">
+                    <div class="flex items-center gap-4">
+                      <div class="w-10 h-10 rounded bg-blue-600 flex items-center justify-center text-white"><i class="fas fa-university"></i></div>
+                      <div>
+                        <h4 class="text-sm font-bold text-slate-400">Bank Transfer: BEFTN/Wire</h4>
+                        <p class="text-[10px] text-slate-600 font-mono">Not Configured</p>
+                      </div>
+                    </div>
+                    <button class="text-xs text-delta-electric font-bold uppercase hover:underline">Link Account</button>
+                  </div>
+
+                  <div class="flex items-center justify-between p-4 bg-delta-base border border-white/5 rounded-xl group hover:border-delta-gold/30 transition">
+                    <div class="flex items-center gap-4">
+                      <div class="w-10 h-10 rounded bg-[#ff5722] flex items-center justify-center text-white font-bold">N</div>
+                      <div>
+                        <h4 class="text-sm font-bold text-slate-400">Mobile Banking: Nagad</h4>
+                        <p class="text-[10px] text-slate-600 font-mono">Not Configured</p>
+                      </div>
+                    </div>
+                    <button class="text-xs text-delta-electric font-bold uppercase hover:underline">Link Account</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SPONSORS -->
+          <section id="sponsors" class="section-tab space-y-8">
+            <div class="glass-panel p-8 rounded-2xl">
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                  <span class="w-1 h-5 bg-delta-gold"></span> Partners & Sponsors
+                </h2>
+                <span class="chip gold"><i class="fas fa-handshake"></i> Whitelist</span>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-sm font-bold text-white">Enable Sponsor Slots</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Display sponsors on org + sub-team pages</div>
+                    </div>
+                    <label class="inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked class="toggle-checkbox hidden track-change">
+                      <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                        <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-sm font-bold text-white">Auto-Apply Sponsor to Sub-Teams</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Inheritance rules per team can override</div>
+                    </div>
+                    <label class="inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked class="toggle-checkbox hidden track-change">
+                      <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                        <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-8 pt-8 border-t border-white/5">
+                <div class="flex items-center justify-between mb-4">
+                  <label class="text-xs font-bold text-white uppercase tracking-widest">Active Sponsors</label>
+                  <button class="px-4 py-2 bg-delta-gold/10 text-delta-gold border border-delta-gold/20 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-delta-gold hover:text-black transition">
+                    <i class="fas fa-plus mr-2"></i> Add Sponsor
+                  </button>
+                </div>
+
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between p-5 rounded-2xl bg-black/40 border border-white/5">
+                    <div class="flex items-center gap-4">
+                      <div class="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                        <i class="fas fa-keyboard text-delta-gold text-xl"></i>
+                      </div>
+                      <div>
+                        <div class="text-white font-bold">Logitech</div>
+                        <div class="text-[10px] text-slate-500 font-mono">Category: Peripherals • Tier: Primary</div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button class="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Visibility</button>
+                      <button class="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Edit</button>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between p-5 rounded-2xl bg-black/40 border border-white/5 opacity-70">
+                    <div class="flex items-center gap-4">
+                      <div class="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                        <i class="fas fa-bolt text-delta-electric text-xl"></i>
+                      </div>
+                      <div>
+                        <div class="text-white font-bold">Energy Partner (Draft)</div>
+                        <div class="text-[10px] text-slate-500 font-mono">Category: Beverage • Tier: Secondary</div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button class="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Visibility</button>
+                      <button class="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Edit</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Conflict Whitelist / Blocklist -->
+              <div class="mt-10 pt-8 border-t border-white/5">
+                <div class="flex items-center justify-between mb-5">
+                  <label class="text-xs font-bold text-white uppercase tracking-widest">Sponsor Conflicts</label>
+                  <span class="chip danger"><i class="fas fa-ban"></i> Blocklist</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                    <div class="text-sm font-bold text-white">Blocked Brands</div>
+                    <div class="text-[10px] text-slate-500 font-mono mt-1">Example: block Razer if sponsored by Logitech</div>
+
+                    <div class="mt-4 space-y-3">
+                      <div class="flex items-center gap-3">
+                        <input type="text" class="corp-input track-change" placeholder="Add brand name (e.g., Razer)">
+                        <button class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition">
+                          Add
+                        </button>
+                      </div>
+
+                      <div class="flex flex-wrap gap-2">
+                        <span class="chip danger"><i class="fas fa-xmark"></i> Razer</span>
+                        <span class="chip danger"><i class="fas fa-xmark"></i> SteelSeries</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                    <div class="text-sm font-bold text-white">Blocked Categories</div>
+                    <div class="text-[10px] text-slate-500 font-mono mt-1">Optional: ban entire sponsor categories</div>
+
+                    <div class="mt-4 space-y-3">
+                      <select class="corp-input track-change">
+                        <option>Betting / Gambling</option>
+                        <option>Alcohol</option>
+                        <option>Adult Products</option>
+                        <option selected>Competitor Peripherals</option>
+                      </select>
+                      <div class="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
+                        <span class="text-xs text-slate-300">Enforce on sub-team pages</span>
+                        <label class="inline-flex items-center cursor-pointer">
+                          <input type="checkbox" checked class="toggle-checkbox hidden track-change">
+                          <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                            <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <p class="text-[10px] text-slate-500 mt-5">
+                  Sponsor visibility and conflicts should be stored as rules (who/where/when) to keep the ecosystem consistent across teams and pages. :contentReference[oaicite:4]{index=4}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- MEDIA -->
+          <section id="media" class="section-tab space-y-8">
+            <div class="glass-panel p-8 rounded-2xl">
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                  <span class="w-1 h-5 bg-delta-electric"></span> Media & Streaming
+                </h2>
+                <span class="chip electric"><i class="fas fa-video"></i> Integrations</span>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                  <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Org Twitch Channel</label>
+                  <input type="text" class="corp-input track-change" placeholder="https://twitch.tv/syntaxesports">
+                </div>
+
+                <div class="space-y-2">
+                  <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Org YouTube Channel</label>
+                  <input type="text" class="corp-input track-change" placeholder="https://youtube.com/@syntaxesports">
+                </div>
+
+                <div class="p-6 bg-black/40 border border-white/5 rounded-2xl md:col-span-2">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-sm font-bold text-white">Auto-Feature Live Players</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">When org members stream, feature them on org page</div>
+                    </div>
+                    <label class="inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked class="toggle-checkbox hidden track-change">
+                      <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                        <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="p-6 bg-black/40 border border-white/5 rounded-2xl md:col-span-2">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-sm font-bold text-white">Auto-Post Match Results as Highlights</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Creates a community post after verified match completion</div>
+                    </div>
+                    <label class="inline-flex items-center cursor-pointer">
+                      <input type="checkbox" class="toggle-checkbox hidden track-change">
+                      <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                        <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="p-6 bg-black/40 border border-white/5 rounded-2xl md:col-span-2">
+                  <div class="flex items-center justify-between mb-4">
+                    <div>
+                      <div class="text-sm font-bold text-white">Overlay Sponsor Routing</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Choose which sponsor badges appear on stream overlays</div>
+                    </div>
+                    <span class="chip gold"><i class="fas fa-layer-group"></i> Visibility</span>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <label class="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl text-xs text-slate-300">
+                      <span>Org Page</span>
+                      <input type="checkbox" checked class="track-change">
+                    </label>
+                    <label class="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl text-xs text-slate-300">
+                      <span>Team Pages</span>
+                      <input type="checkbox" checked class="track-change">
+                    </label>
+                    <label class="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl text-xs text-slate-300">
+                      <span>Stream Overlay</span>
+                      <input type="checkbox" class="track-change">
+                    </label>
+                  </div>
+
+                  <p class="text-[10px] text-slate-500 mt-4">
+                    Ideal future: event-driven hooks on match completion → highlight post → notification → optional sponsor watermark. :contentReference[oaicite:5]{index=5}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- NOTIFICATIONS -->
+          <section id="notifications" class="section-tab space-y-8">
+            <div class="glass-panel p-8 rounded-2xl">
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                  <span class="w-1 h-5 bg-delta-electric"></span> Notification Matrix
+                </h2>
+                <span class="chip electric"><i class="fas fa-bell"></i> Routing</span>
+              </div>
+
+              <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                <div class="flex items-center justify-between mb-4">
+                  <div>
+                    <div class="text-sm font-bold text-white">Channels</div>
+                    <div class="text-[10px] text-slate-500 font-mono mt-1">Select delivery channels per event type</div>
+                  </div>
+                  <span class="chip gold"><i class="fas fa-satellite-dish"></i> Multi-Channel</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <label class="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl text-xs text-slate-300">
+                    <span>In-App</span>
+                    <input type="checkbox" checked class="track-change">
+                  </label>
+                  <label class="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl text-xs text-slate-300">
+                    <span>Email</span>
+                    <input type="checkbox" checked class="track-change">
+                  </label>
+                  <label class="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl text-xs text-slate-300">
+                    <span>SMS</span>
+                    <input type="checkbox" class="track-change">
+                  </label>
+                  <label class="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl text-xs text-slate-300">
+                    <span>Discord Webhook</span>
+                    <input type="checkbox" class="track-change">
+                  </label>
+                </div>
+
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Quiet Hours</label>
+                    <div class="grid grid-cols-2 gap-3">
+                      <input type="time" class="corp-input track-change" value="23:00">
+                      <input type="time" class="corp-input track-change" value="08:00">
+                    </div>
+                    <p class="text-[10px] text-slate-500">Non-critical notifications are delayed during quiet hours.</p>
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Escalation Timeout</label>
+                    <select class="corp-input track-change">
+                      <option>Off</option>
+                      <option>30 minutes</option>
+                      <option>2 hours</option>
+                      <option selected>24 hours</option>
+                    </select>
+                    <p class="text-[10px] text-slate-500">If unresolved (dispute, withdrawal pending), escalate to CEO.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-8 pt-8 border-t border-white/5">
+                <div class="flex items-center justify-between mb-4">
+                  <label class="text-xs font-bold text-white uppercase tracking-widest">Event Routing</label>
+                  <span class="chip electric"><i class="fas fa-diagram-project"></i> Roles</span>
+                </div>
+
+                <div class="p-6 bg-black/40 border border-white/5 rounded-2xl overflow-hidden">
+                  <table class="mini-table">
+                    <thead>
+                      <tr>
+                        <th>Event</th>
+                        <th>Scouts</th>
+                        <th>Managers</th>
+                        <th>CEO</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="text-slate-200">New Application</td>
+                        <td><input type="checkbox" checked class="track-change"></td>
+                        <td><input type="checkbox" class="track-change"></td>
+                        <td><input type="checkbox" class="track-change"></td>
+                      </tr>
+                      <tr>
+                        <td class="text-slate-200">Match Result Posted</td>
+                        <td><input type="checkbox" class="track-change"></td>
+                        <td><input type="checkbox" checked class="track-change"></td>
+                        <td><input type="checkbox" class="track-change"></td>
+                      </tr>
+                      <tr>
+                        <td class="text-slate-200">Dispute Opened</td>
+                        <td><input type="checkbox" class="track-change"></td>
+                        <td><input type="checkbox" checked class="track-change"></td>
+                        <td><input type="checkbox" checked class="track-change"></td>
+                      </tr>
+                      <tr>
+                        <td class="text-slate-200">Treasury Withdrawal</td>
+                        <td><input type="checkbox" class="track-change"></td>
+                        <td><input type="checkbox" checked class="track-change"></td>
+                        <td><input type="checkbox" checked class="track-change"></td>
+                      </tr>
+                      <tr>
+                        <td class="text-slate-200">Sponsor Added/Changed</td>
+                        <td><input type="checkbox" class="track-change"></td>
+                        <td><input type="checkbox" checked class="track-change"></td>
+                        <td><input type="checkbox" checked class="track-change"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <p class="text-[10px] text-slate-500 mt-5">
+                    Notification events map cleanly to domain events (match.completed, dispute.created, payout.requested). :contentReference[oaicite:6]{index=6}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- GOVERNANCE -->
+          <section id="governance" class="section-tab space-y-8">
+            <div class="glass-panel p-8 rounded-2xl">
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                  <span class="w-1 h-5 bg-delta-gold"></span> Governance & Security
+                </h2>
+                <span class="chip gold"><i class="fas fa-lock"></i> Zero Trust</span>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-sm font-bold text-white">Require 2FA for Sensitive Actions</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Withdrawals, ownership transfer, org purge, template edits</div>
+                    </div>
+                    <label class="inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked class="toggle-checkbox hidden track-change">
+                      <div class="w-12 h-6 bg-white/10 rounded-full relative transition-all toggle-label">
+                        <div class="absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-sm font-bold text-white">Session Revoke</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Log out all devices connected to org admin accounts</div>
+                    </div>
+                    <button class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition">
+                      Revoke All
+                    </button>
+                  </div>
+                </div>
+
+                <div class="p-6 bg-black/40 border border-white/5 rounded-2xl md:col-span-2">
+                  <div class="flex items-center justify-between mb-4">
+                    <div>
+                      <div class="text-sm font-bold text-white">IP Allowlist (Enterprise)</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Restrict admin actions to known networks (optional)</div>
+                    </div>
+                    <span class="chip electric"><i class="fas fa-network-wired"></i> Advanced</span>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input type="text" class="corp-input track-change" placeholder="Add IP/CIDR (e.g., 103.12.34.0/24)">
+                    <select class="corp-input track-change">
+                      <option selected>Applies: Admin Actions</option>
+                      <option>Applies: All Logins</option>
+                      <option>Applies: Treasury Only</option>
+                    </select>
+                    <button class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition">
+                      Add
+                    </button>
+                  </div>
+
+                  <div class="mt-4 flex flex-wrap gap-2">
+                    <span class="chip"><i class="fas fa-location-dot"></i> 103.12.34.0/24</span>
+                    <span class="chip"><i class="fas fa-location-dot"></i> 45.11.92.10</span>
+                  </div>
+                </div>
+
+                <div class="p-6 bg-black/40 border border-white/5 rounded-2xl md:col-span-2">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-sm font-bold text-white">Soft Delete Grace Window</div>
+                      <div class="text-[10px] text-slate-500 font-mono mt-1">Allow restore of accidental deletions within window (recommended)</div>
+                    </div>
+                    <select class="corp-input w-[220px] track-change">
+                      <option>Off</option>
+                      <option>1 hour</option>
+                      <option>6 hours</option>
+                      <option selected>24 hours</option>
+                      <option>72 hours</option>
+                    </select>
+                  </div>
+
+                  <p class="text-[10px] text-slate-500 mt-4">
+                    Soft deletes preserve history and integrity; avoid hard deletion for competitive records. :contentReference[oaicite:7]{index=7}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- VERIFICATION -->
+          <section id="verification" class="section-tab space-y-8">
+            <div class="glass-panel p-8 rounded-2xl relative overflow-hidden">
+              <div class="absolute -right-20 -top-20 text-delta-gold/5 text-[20rem] pointer-events-none"><i class="fas fa-shield-alt"></i></div>
+
+              <div class="relative z-10 max-w-3xl">
+                <div class="flex items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h2 class="text-2xl font-tech font-bold text-white uppercase mb-2">Official Verification</h2>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                      Verified entities unlock priority sponsor slots and automated payouts. The verification system should behave like a state machine (Submitted → Approved/Rejected), with document history and expiry reminders.
+                    </p>
+                  </div>
+                  <span class="chip gold"><i class="fas fa-check-double"></i> Tiered</span>
+                </div>
+
+                <div class="p-6 bg-delta-gold/5 border border-delta-gold/30 rounded-2xl flex items-center gap-6 mb-8 shadow-glow-gold/10">
+                  <div class="w-16 h-16 rounded-full bg-delta-gold flex items-center justify-center text-black text-2xl"><i class="fas fa-hourglass-half"></i></div>
+                  <div>
+                    <h4 class="text-delta-gold font-bold uppercase tracking-widest text-sm">Action Required</h4>
+                    <p class="text-xs text-white">Your business documents have not been submitted.</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <span class="chip"><i class="fas fa-circle"></i> Status: NOT SUBMITTED</span>
+                      <span class="chip gold"><i class="fas fa-medal"></i> Tier: None</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="p-5 border border-white/10 rounded-2xl hover:border-delta-gold cursor-pointer transition bg-black/30">
+                    <div class="flex justify-between items-center">
+                      <div class="flex items-center gap-3">
+                        <i class="fas fa-file-pdf text-slate-500"></i>
+                        <div>
+                          <div class="text-sm text-white font-bold">Trade License / Incorporation PDF</div>
+                          <div class="text-[10px] text-slate-500 font-mono mt-1">Status: Missing</div>
+                        </div>
+                      </div>
+                      <i class="fas fa-upload text-xs text-slate-600"></i>
+                    </div>
+                    <div class="mt-4 grid grid-cols-2 gap-3">
+                      <div class="space-y-1">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Expiry</div>
+                        <input type="date" class="corp-input track-change">
+                      </div>
+                      <div class="space-y-1">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Reminder</div>
+                        <select class="corp-input track-change">
+                          <option>Off</option>
+                          <option>7 days before</option>
+                          <option selected>30 days before</option>
+                          <option>60 days before</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="p-5 border border-white/10 rounded-2xl hover:border-delta-gold cursor-pointer transition bg-black/30">
+                    <div class="flex justify-between items-center">
+                      <div class="flex items-center gap-3">
+                        <i class="fas fa-id-card text-slate-500"></i>
+                        <div>
+                          <div class="text-sm text-white font-bold">Founder's NID / Passport Copy</div>
+                          <div class="text-[10px] text-slate-500 font-mono mt-1">Status: Missing</div>
+                        </div>
+                      </div>
+                      <i class="fas fa-upload text-xs text-slate-600"></i>
+                    </div>
+                    <div class="mt-4 grid grid-cols-2 gap-3">
+                      <div class="space-y-1">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Document Type</div>
+                        <select class="corp-input track-change">
+                          <option selected>NID</option>
+                          <option>Passport</option>
+                        </select>
+                      </div>
+                      <div class="space-y-1">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Review Priority</div>
+                        <select class="corp-input track-change">
+                          <option>Standard</option>
+                          <option selected>High</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Document History -->
+                <div class="mt-10 pt-8 border-t border-white/5">
+                  <div class="flex items-center justify-between mb-4">
+                    <label class="text-xs font-bold text-white uppercase tracking-widest">Document History</label>
+                    <span class="chip electric"><i class="fas fa-clock-rotate-left"></i> Immutable</span>
+                  </div>
+
+                  <div class="p-6 bg-black/40 border border-white/5 rounded-2xl overflow-hidden">
+                    <table class="mini-table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Document</th>
+                          <th>Status</th>
+                          <th>Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>—</td>
+                          <td class="text-slate-200">Trade License</td>
+                          <td><span class="chip danger">Missing</span></td>
+                          <td class="text-slate-500">Upload required</td>
+                        </tr>
+                        <tr>
+                          <td>—</td>
+                          <td class="text-slate-200">Founder ID</td>
+                          <td><span class="chip danger">Missing</span></td>
+                          <td class="text-slate-500">Upload required</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <p class="text-[10px] text-slate-500 mt-5">
+                      Verification actions should be logged with user/time for accountability. :contentReference[oaicite:8]{index=8}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- AUDIT -->
+          <section id="audit" class="section-tab space-y-8">
+            <div class="glass-panel p-8 rounded-2xl">
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                  <span class="w-1 h-5 bg-delta-electric"></span> Audit & Logs
+                </h2>
+                <span class="chip electric"><i class="fas fa-scroll"></i> Immutable</span>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                  <div class="text-sm font-bold text-white">Retention</div>
+                  <div class="text-[10px] text-slate-500 font-mono mt-1">How long logs are kept</div>
+                  <select class="corp-input mt-4 track-change">
+                    <option>30 days</option>
+                    <option selected>90 days</option>
+                    <option>180 days</option>
+                    <option>365 days</option>
+                  </select>
+                </div>
+
+                <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                  <div class="text-sm font-bold text-white">Export</div>
+                  <div class="text-[10px] text-slate-500 font-mono mt-1">Export for compliance review</div>
+                  <button class="w-full mt-4 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition">
+                    <i class="fas fa-file-export mr-2"></i> Export Logs
+                  </button>
+                </div>
+
+                <div class="p-6 bg-black/40 border border-white/5 rounded-2xl">
+                  <div class="text-sm font-bold text-white">Filters</div>
+                  <div class="text-[10px] text-slate-500 font-mono mt-1">Action types & actors</div>
+                  <select class="corp-input mt-4 track-change">
+                    <option selected>All Actions</option>
+                    <option>Treasury</option>
+                    <option>Roster</option>
+                    <option>Verification</option>
+                    <option>Sponsors</option>
+                    <option>Security</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mt-8 p-6 bg-black/40 border border-white/5 rounded-2xl overflow-hidden">
+                <div class="flex items-center justify-between mb-4">
+                  <label class="text-xs font-bold text-white uppercase tracking-widest">Recent Actions</label>
+                  <span class="chip gold"><i class="fas fa-user-clock"></i> Last 10</span>
+                </div>
+
+                <table class="mini-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Actor</th>
+                      <th>Action</th>
+                      <th>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Jan 27, 2026 • 10:12</td>
+                      <td class="text-slate-200">Tactical_X</td>
+                      <td><span class="chip electric">roster.update</span></td>
+                      <td class="text-slate-400">Added player: NeoViper → Protocol V</td>
+                    </tr>
+                    <tr>
+                      <td>Jan 26, 2026 • 22:41</td>
+                      <td class="text-slate-200">CEO</td>
+                      <td><span class="chip gold">payout.split.override</span></td>
+                      <td class="text-slate-400">Protocol V split set to 90/10</td>
+                    </tr>
+                    <tr>
+                      <td>Jan 26, 2026 • 19:03</td>
+                      <td class="text-slate-200">Finance</td>
+                      <td><span class="chip gold">treasury.withdraw.request</span></td>
+                      <td class="text-slate-400">Requested 15,000 BDT via bKash</td>
+                    </tr>
+                    <tr>
+                      <td>Jan 25, 2026 • 13:20</td>
+                      <td class="text-slate-200">Manager</td>
+                      <td><span class="chip electric">sponsor.block.add</span></td>
+                      <td class="text-slate-400">Blocked brand: Razer</td>
+                    </tr>
+                    <tr>
+                      <td>Jan 24, 2026 • 09:55</td>
+                      <td class="text-slate-200">EagleEye_101</td>
+                      <td><span class="chip electric">application.stage.move</span></td>
+                      <td class="text-slate-400">Applicant #219 moved to Trial</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <p class="text-[10px] text-slate-500 mt-5">
+                  Audit logs should be immutable and cover all state-changing operations (tournament ops, disputes, payments, roles). :contentReference[oaicite:9]{index=9}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- DANGER -->
+          <section id="danger" class="section-tab space-y-8">
+            <div class="glass-panel p-8 rounded-2xl border border-delta-danger/30">
+              <h2 class="text-xl font-tech font-bold text-delta-danger uppercase mb-6 flex items-center gap-3">
+                <span class="w-1 h-5 bg-delta-danger"></span> Critical Terminal Actions
+              </h2>
+
+              <div class="space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 bg-delta-danger/5 border border-delta-danger/10 rounded-xl">
+                  <div class="max-w-md">
+                    <h4 class="text-white font-bold mb-1">Transfer Ownership</h4>
+                    <p class="text-xs text-slate-500">Permanently transfer the Organization CEO role to another verified user. This cannot be undone.</p>
+                  </div>
+                  <button class="px-6 py-2 bg-delta-danger text-white text-[10px] font-bold uppercase rounded-lg hover:brightness-110">Initiate Transfer</button>
+                </div>
+
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 bg-delta-danger/10 border border-delta-danger/30 rounded-xl">
+                  <div class="max-w-md">
+                    <h4 class="text-delta-danger font-bold mb-1 uppercase">Decommission Organization</h4>
+                    <p class="text-xs text-slate-500">Immediately disband all sub-teams, lock the treasury, and delete all competitive history. All assets will be purged from the DeltaCrown network.</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <span class="chip danger"><i class="fas fa-triangle-exclamation"></i> Irreversible</span>
+                      <span class="chip"><i class="fas fa-scroll"></i> Logged</span>
+                      <span class="chip"><i class="fas fa-key"></i> 2FA Required</span>
+                    </div>
+                  </div>
+                  <button class="px-6 py-2 border border-delta-danger text-delta-danger text-[10px] font-bold uppercase rounded-lg hover:bg-delta-danger hover:text-white transition">Full Purge</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ---- Unsaved changes indicator ----
+    const unsavedIndicator = document.getElementById("unsavedIndicator");
+    const saveBtn = document.getElementById("saveBtn");
+    const discardBtn = document.getElementById("discardBtn");
+
+    const trackables = () => Array.from(document.querySelectorAll(".track-change"));
+
+    function setUnsaved(state) {
+      if (!unsavedIndicator) return;
+      unsavedIndicator.textContent = state ? "Unsaved changes" : "All changes saved";
+      unsavedIndicator.classList.toggle("text-delta-gold", state);
+      unsavedIndicator.classList.toggle("text-slate-300", !state);
+    }
+
+    trackables().forEach(el => {
+      el.addEventListener("input", () => setUnsaved(true));
+      el.addEventListener("change", () => setUnsaved(true));
+    });
+
+    if (saveBtn) {
+      saveBtn.addEventListener("click", () => {
+        // TODO: wire to backend
+        setUnsaved(false);
+      });
+    }
+
+    if (discardBtn) {
+      discardBtn.addEventListener("click", () => {
+        // TODO: reload values from backend
+        setUnsaved(false);
+      });
+    }
+
+    // ---- Split slider labels ----
+    const splitRange = document.getElementById("splitRange");
+    const orgTakeLabel = document.getElementById("orgTakeLabel");
+    const playerTakeLabel = document.getElementById("playerTakeLabel");
+    if (splitRange && orgTakeLabel && playerTakeLabel) {
+      const syncSplit = () => {
+        const org = parseInt(splitRange.value || "0", 10);
+        const players = 100 - org;
+        orgTakeLabel.textContent = String(org);
+        playerTakeLabel.textContent = String(players);
+      };
+      splitRange.addEventListener("input", syncSplit);
+      syncSplit();
+    }
+
+    // ---- Branding preview ----
+    const logoFile = document.getElementById("logoFile");
+    const bannerFile = document.getElementById("bannerFile");
+    const logoPrev = document.getElementById("logo-prev");
+    const bannerPrev = document.getElementById("banner-prev");
+    const hubLogo = document.getElementById("hubLogo");
+    const hubBanner = document.getElementById("hubBanner");
+
+    function previewImage(fileInput, ...targets) {
+      if (!fileInput) return;
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        targets.forEach(t => { if (t) t.src = url; });
+        setUnsaved(true);
+      });
+    }
+    previewImage(logoFile, logoPrev, hubLogo);
+    previewImage(bannerFile, bannerPrev, hubBanner);
+
+    // ---- Primary color hex ----
+    const primaryColor = document.getElementById("primaryColor");
+    const primaryHex = document.getElementById("primaryHex");
+    if (primaryColor && primaryHex) {
+      primaryColor.addEventListener("input", () => primaryHex.textContent = primaryColor.value.toUpperCase());
+    }
+
+    // ---- Tabs ----
+    function switchTab(tabId) {
+      document.querySelectorAll(".section-tab").forEach(tab => tab.classList.remove("active"));
+      document.querySelectorAll(".settings-sidebar-link").forEach(link => {
+        link.classList.remove("active");
+        link.classList.add("text-slate-400");
+      });
+
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) targetTab.classList.add("active");
+
+      const activeButton = Array.from(document.querySelectorAll(".settings-sidebar-link"))
+        .find(btn => (btn.getAttribute("onclick") || "").includes(`'${tabId}'`));
+
+      if (activeButton) {
+        activeButton.classList.add("active");
+        activeButton.classList.remove("text-slate-400");
+      }
+
+      if (window.innerWidth < 1024) {
+        const aside = document.querySelector("aside");
+        window.scrollTo({ top: (aside ? aside.offsetTop : 0) - 100, behavior: "smooth" });
+      }
+
+      history.replaceState(null, "", "#" + tabId);
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const hash = window.location.hash.replace("#", "");
+      if (hash && document.getElementById(hash)) switchTab(hash);
+    });
+  </script>
+</body>
+</html>
+

@@ -166,6 +166,7 @@ PHASE 3 MIGRATION GUIDE FOR TOURNAMENTS APP:
    Updated Code (Phase 3):
        from apps.organizations.adapters.tournament_helpers import get_team_url_for_tournament
        team_url = get_team_url_for_tournament(team.id)
+       # Note: Returns organizations:team_detail URL (not legacy teams:team_detail)
 
 3. BRACKET GENERATION (MEDIUM PRIORITY):
    Current Location: tournaments/services/bracket_generator.py

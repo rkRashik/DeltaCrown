@@ -211,7 +211,7 @@
                                             </div>
                                             <p class="text-sm text-gray-400 mb-4 break-words leading-relaxed">Recruit players, set roles, and lock rosters before tournaments.</p>
                                             <div class="flex flex-col sm:flex-row justify-center gap-2">
-                                                <a href="/teams/create" class="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 font-bold text-sm shadow-lg whitespace-nowrap hover:shadow-xl transition-shadow">Start a Team</a>
+                                                <a href="{% url 'organizations:team_create' %}" class="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 font-bold text-sm shadow-lg whitespace-nowrap hover:shadow-xl transition-shadow">Start a Team</a>
                                                 <a href="/teams/find" class="px-4 py-2 rounded-lg glass border border-white/10 text-sm whitespace-nowrap hover:bg-white/5 transition-colors">Find Teammates</a>
                                             </div>
                                         </div>
@@ -547,7 +547,7 @@
 
                                 <!-- CTA -->
                                 <div class="text-center pt-2">
-                                    <button data-game-id="{{ game.id }}" onclick="window.location.href='/teams/create?game={{ game.id }}'" class="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg font-bold text-sm transition-all duration-300 shadow-lg hover:shadow-purple-500/50">
+                                    <button data-game-id="{{ game.id }}" onclick="window.location.href='{% url 'organizations:team_create' %}?game={{ game.id }}'" class="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg font-bold text-sm transition-all duration-300 shadow-lg hover:shadow-purple-500/50">
                                         <i class="fas fa-users-cog mr-2"></i>Create {{ game.name }} Team
                                     </button>
                                 </div>

@@ -164,8 +164,8 @@ class OrganizationService:
         except User.DoesNotExist:
             raise NotFoundError(
                 message=f"User not found: id={ceo_user_id}",
-                error_code="USER_NOT_FOUND",
-                details={"ceo_user_id": ceo_user_id}
+                resource_type="User",
+                resource_id=ceo_user_id
             )
         
         # Validation: Check if user already owns an organization (1 query)
@@ -300,8 +300,8 @@ class OrganizationService:
             identifier = f"id={org_id}" if org_id is not None else f"slug={org_slug}"
             raise NotFoundError(
                 message=f"Organization not found: {identifier}",
-                error_code="ORG_NOT_FOUND",
-                details={"org_id": org_id, "org_slug": org_slug}
+                resource_type="Organization",
+                resource_id=org_id or org_slug
             )
         
         # Build DTO (all metadata in memory, no additional queries)
@@ -564,8 +564,8 @@ class OrganizationService:
         if not Organization.objects.filter(id=organization_id).exists():
             raise NotFoundError(
                 message=f"Organization with ID {organization_id} not found",
-                error_code="ORG_NOT_FOUND",
-                details={"organization_id": organization_id}
+                resource_type="Organization",
+                resource_id=organization_id
             )
         
         # Validate role filter if provided
@@ -684,8 +684,8 @@ class OrganizationService:
             identifier = f"id={org_id}" if org_id is not None else f"slug={org_slug}"
             raise NotFoundError(
                 message=f"Organization not found: {identifier}",
-                error_code="ORG_NOT_FOUND",
-                details={"lookup": identifier}
+                resource_type="Organization",
+                resource_id=org_id or org_slug
             )
         
         # Build response data
@@ -804,8 +804,8 @@ class OrganizationService:
             except Organization.DoesNotExist:
                 raise NotFoundError(
                     message=f"Organization with ID {organization_id} not found",
-                    error_code="ORG_NOT_FOUND",
-                    details={"organization_id": organization_id}
+                    resource_type="Organization",
+                    resource_id=organization_id
                 )
             
             # Permission check: CEO or MANAGER can add members
@@ -1095,8 +1095,8 @@ class OrganizationService:
             except Organization.DoesNotExist:
                 raise NotFoundError(
                     message=f"Organization with ID {organization_id} not found",
-                    error_code="ORG_NOT_FOUND",
-                    details={"organization_id": organization_id}
+                    resource_type="Organization",
+                    resource_id=organization_id
                 )
             
             # Permission check: CEO or MANAGER can update settings

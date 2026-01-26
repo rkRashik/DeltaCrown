@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Team Invites | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<style>
+    .glass-panel {
+        background: rgba(8, 8, 16, 0.7);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .invite-card {
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .invite-card:hover {
+        border-color: rgba(0, 229, 255, 0.3);
+        transform: translateX(4px);
+    }
+    
+    .tab-button {
+        position: relative;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .tab-button.active {
+        color: #00E5FF;
+    }
+    
+    .tab-button.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #6C00FF, #00E5FF);
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .badge-pending {
+        background: rgba(255, 215, 0, 0.2);
+        color: #FFD700;
+    }
+    
+    .fade-out {
+        animation: fadeOut 0.5s ease-out forwards;
+    }
+    
+    @keyframes fadeOut {
+        to {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="container mx-auto px-4 max-w-6xl py-8" style="min-height: calc(100vh - 200px);">
+    <!-- Breadcrumb -->
+    <nav aria-label="Breadcrumb" class="text-sm text-gray-400 mb-6">
+        <a class="hover:text-gray-200 transition" href="{% url 'organizations:vnext_hub' %}">Teams Hub</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-200">Invitations</span>
+    </nav>
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold bg-gradient-to-r from-[#FFD700] via-[#6C00FF] to-[#00E5FF] bg-clip-text text-transparent mb-2">
+            Team Invitations
+        </h1>
+        <p class="text-gray-400">
+            Manage your pending team invitations and join new squads
+        </p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="glass-panel rounded-2xl overflow-hidden">
+        <div class="flex border-b border-gray-700">
+            <button 
+                class="tab-button active" 
+                data-tab="membership"
+                onclick="switchTab('membership')"
+            >
+                Team Invites
+                <span id="membershipCount" class="badge badge-pending ml-2">0</span>
+            </button>
+            <button 
+                class="tab-button" 
+                data-tab="email"
+                onclick="switchTab('email')"
+            >
+                Email Invites
+                <span id="emailCount" class="badge badge-pending ml-2">0</span>
+            </button>
+        </div>
+
+        <!-- Membership Invites Tab -->
+        <div id="membershipTab" class="tab-content p-6">
+            <div id="membershipLoading" class="text-center py-12">
+                <i class="fas fa-spinner fa-spin text-4xl text-[#00E5FF]"></i>
+                <p class="text-gray-400 mt-4">Loading invitations...</p>
+            </div>
+            
+            <div id="membershipEmpty" class="hidden text-center py-12">
+                <i class="fas fa-inbox text-6xl text-gray-600 mb-4"></i>
+                <p class="text-gray-400 text-lg">No pending team invitations</p>
+                <p class="text-gray-500 text-sm mt-2">When teams invite you to join, they'll appear here</p>
+            </div>
+            
+            <div id="membershipList" class="hidden space-y-4"></div>
+        </div>
+
+        <!-- Email Invites Tab -->
+        <div id="emailTab" class="tab-content p-6 hidden">
+            <div id="emailLoading" class="text-center py-12">
+                <i class="fas fa-spinner fa-spin text-4xl text-[#00E5FF]"></i>
+                <p class="text-gray-400 mt-4">Loading invitations...</p>
+            </div>
+            
+            <div id="emailEmpty" class="hidden text-center py-12">
+                <i class="fas fa-inbox text-6xl text-gray-600 mb-4"></i>
+                <p class="text-gray-400 text-lg">No pending email invitations</p>
+                <p class="text-gray-500 text-sm mt-2">Email-based invitations sent before you registered will appear here</p>
+            </div>
+            
+            <div id="emailList" class="hidden space-y-4"></div>
+        </div>
+    </div>
+</main>
+
+<!-- Bootstrap config for JS -->
+<script>
+window.VNEXT_INVITES_CONFIG = {
+    listUrl: "{% url 'organizations_api:list_invites' %}",
+    acceptMembershipUrlTemplate: "/api/vnext/teams/invites/membership/{id}/accept/",
+    declineMembershipUrlTemplate: "/api/vnext/teams/invites/membership/{id}/decline/",
+    acceptEmailUrlTemplate: "/api/vnext/teams/invites/email/{token}/accept/",
+    declineEmailUrlTemplate: "/api/vnext/teams/invites/email/{token}/decline/"
+};
+</script>
+<script src="{% static 'organizations/team/team_invites.js' %}"></script>
+{% endblock %}

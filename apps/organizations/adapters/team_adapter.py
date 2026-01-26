@@ -181,8 +181,8 @@ class TeamAdapter:
                     # Legacy path: Use existing legacy Team model
                     try:
                         legacy_team = LegacyTeam.objects.get(id=team_id)
-                        # Use legacy URL pattern (teams app)
-                        return reverse('teams:team_detail', kwargs={'slug': legacy_team.slug})
+                        # Use vNext URL pattern (all team URLs now in organizations app)
+                        return reverse('organizations:team_detail', kwargs={'team_slug': legacy_team.slug})
                     except LegacyTeam.DoesNotExist:
                         raise NotFoundError(
                             message=f"Team {team_id} not found in legacy system",

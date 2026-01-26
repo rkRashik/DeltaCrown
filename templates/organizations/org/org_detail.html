@@ -1,0 +1,761 @@
+{% extends "base.html" %}
+{% load static %}
+{% load org_media %}
+
+{% block title %}{{ organization.name }} | Command Hub | DeltaCrown Enterprise{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+<script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            extend: {
+                fontFamily: {
+                    'corp': ['"Outfit"', 'sans-serif'],     // Corporate Identity
+                    'tech': ['"Rajdhani"', 'sans-serif'],   // Technical Headers
+                    'mono': ['"Space Mono"', 'monospace'],  // Data & Financials
+                },
+                colors: {
+                    delta: {
+                        base: '#020204',       // Absolute Void
+                        obsidian: '#050508',   // Secondary Background
+                        surface: '#0A0A10',    // Card Surface
+                        highlight: '#12121A',  // Hover State
+                        border: 'rgba(255, 255, 255, 0.08)',
+                        gold: '#FFD700',       // Brand Primary (Gold)
+                        violet: '#6C00FF',     // Brand Secondary (Violet)
+                        electric: '#00E5FF',   // Brand Tertiary (Electric Blue)
+                        success: '#10B981',    // Operational Green
+                        danger: '#EF4444',     // Critical Red
+                        warning: '#F59E0B',    // Alert Orange
+                    }
+                },
+                backgroundImage: {
+                    'grid-pattern': "linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)",
+                    'noise': "url('https://grainy-gradients.vercel.app/noise.svg')",
+                    'gradient-crown': 'linear-gradient(135deg, #FFD700 0%, #6C00FF 50%, #00E5FF 100%)',
+                    'gradient-glass': 'linear-gradient(180deg, rgba(18, 18, 26, 0.7) 0%, rgba(5, 5, 8, 0.9) 100%)',
+                    'card-shine': 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.05) 25%, transparent 30%)',
+                },
+                boxShadow: {
+                    'glow-gold': '0 0 40px rgba(255, 215, 0, 0.15)',
+                    'glow-violet': '0 0 40px rgba(108, 0, 255, 0.15)',
+                    'glow-electric': '0 0 40px rgba(0, 229, 255, 0.15)',
+                    'glass-inset': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
+                },
+                animation: {
+                    'shimmer': 'shimmer 3s infinite linear',
+                    'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    'float': 'float 6s ease-in-out infinite',
+                    'spin-slow': 'spin 12s linear infinite',
+                },
+                keyframes: {
+                    shimmer: {
+                        '0%': { backgroundPosition: '-200% 0' },
+                        '100%': { backgroundPosition: '200% 0' },
+                    },
+                    float: {
+                        '0%, 100%': { transform: 'translateY(0)' },
+                        '50%': { transform: 'translateY(-10px)' },
+                    }
+                }
+            }
+        }
+    }
+</script>
+
+<style>
+    /* 1. Global Resets & Scrollbars */
+    :root {
+        --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+        --glass-bg: rgba(10, 10, 16, 0.7);
+        --glass-blur: blur(20px);
+    }
+
+    /* Webkit Scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #050508;
+        border-left: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(to bottom, #6C00FF, #00E5FF);
+        border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #FFD700;
+    }
+
+    /* 2. Glassmorphism Utilities */
+    .glass-panel {
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+        border: var(--glass-border);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .glass-card-hover {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-card-hover:hover {
+        background: rgba(255, 255, 255, 0.03);
+        border-color: rgba(255, 215, 0, 0.3);
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.05);
+        transform: translateY(-2px);
+    }
+
+    /* 3. Typography Enhancements */
+    .text-gradient-gold {
+        background: linear-gradient(135deg, #FFD700 0%, #F59E0B 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .text-gradient-electric {
+        background: linear-gradient(135deg, #00E5FF 0%, #2563EB 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .text-gradient-crown {
+        background: linear-gradient(to right, #FFD700, #6C00FF, #00E5FF);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* 4. Complex Animations */
+    .animate-enter {
+        animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    @keyframes slideUpFade {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .delay-100 { animation-delay: 100ms; }
+    .delay-200 { animation-delay: 200ms; }
+    .delay-300 { animation-delay: 300ms; }
+
+    /* 5. Custom UI Elements */
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        position: relative;
+    }
+    .status-dot::after {
+        content: '';
+        position: absolute;
+        top: -4px; left: -4px; right: -4px; bottom: -4px;
+        border-radius: 50%;
+        border: 1px solid currentColor;
+        opacity: 0.5;
+        animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+
+    .clip-tech-border {
+        clip-path: polygon(
+            0 0,
+            100% 0,
+            100% calc(100% - 10px),
+            calc(100% - 10px) 100%,
+            0 100%
+        );
+    }
+
+    /* Navigation Active State */
+    .nav-item.active {
+        color: #FFD700;
+        background: rgba(255, 215, 0, 0.05);
+        border-bottom: 2px solid #FFD700;
+    }
+
+    /* Tooltip Logic */
+    .has-tooltip { position: relative; }
+    .has-tooltip:hover .tooltip-content {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    .tooltip-content {
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(10px);
+        transition: all 0.2s ease;
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #000;
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        z-index: 50;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    }
+
+    /* Role-based visibility - UPDATE: use #org-detail-root instead of body */
+    #org-detail-root[data-role="PUBLIC"] .role-owner-only {
+        display: none !important;
+    }
+    #org-detail-root[data-role="OWNER"] .role-public-only {
+        display: none !important;
+    }
+
+    /* Type-based visibility */
+    #org-detail-root[data-type="PRO"] .type-guild-only,
+    #org-detail-root[data-type="PRO"] .type-club-only {
+        display: none !important;
+    }
+    #org-detail-root[data-type="GUILD"] .type-pro-only,
+    #org-detail-root[data-type="GUILD"] .type-club-only {
+        display: none !important;
+    }
+    #org-detail-root[data-type="CLUB"] .type-pro-only,
+    #org-detail-root[data-type="CLUB"] .type-guild-only {
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="org-detail-root" data-role="{{ ui_role }}" data-type="{{ ui_type }}">
+
+    <div class="fixed inset-0 z-0 pointer-events-none">
+        <div class="absolute inset-0 bg-grid-pattern bg-[length:60px_60px] opacity-[0.03]"></div>
+        <div class="absolute inset-0 bg-noise opacity-[0.02]"></div>
+        <div class="absolute top-0 right-0 w-[1000px] h-[800px] bg-delta-gold/5 rounded-full blur-[180px] animate-pulse-slow"></div>
+        <div class="absolute bottom-0 left-0 w-[800px] h-[600px] bg-delta-violet/5 rounded-full blur-[150px]"></div>
+    </div>
+
+    <header class="relative w-full h-[550px] group overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <img src="{{ organization.banner|safe_file_url:'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2071&auto=format&fit=crop' }}" class="w-full h-full object-cover opacity-60 scale-105 group-hover:scale-110 transition-transform duration-[20s] ease-linear">
+        </div>
+        <div class="absolute inset-0 z-10 bg-gradient-to-t from-delta-base via-delta-base/80 to-transparent"></div>
+        <div class="absolute inset-0 z-10 bg-gradient-to-b from-delta-base/40 to-transparent"></div>
+
+        <div class="absolute bottom-0 left-0 right-0 z-20 pb-0">
+            <div class="max-w-[1600px] mx-auto px-6 flex flex-col md:flex-row items-end gap-10">
+
+                <div class="relative mb-8 md:mb-12 shrink-0">
+                    <div class="w-40 h-40 md:w-56 md:h-56 rounded-3xl bg-delta-surface border-4 border-delta-highlight shadow-2xl p-1 relative z-30 overflow-hidden group-logo animate-enter">
+                        <div class="w-full h-full rounded-2xl bg-gradient-to-br from-delta-highlight to-black flex items-center justify-center relative overflow-hidden">
+                            <div class="absolute inset-0 bg-delta-gold/5"></div>
+                            {% if organization.logo %}
+                            <img src="{{ organization.logo|safe_file_url }}" alt="{{ organization.name }}" class="w-full h-full object-contain z-10">
+                            {% else %}
+                            <span class="font-tech font-bold text-7xl text-white z-10 drop-shadow-lg tracking-tighter">{{ organization.name|slice:":3"|upper }}</span>
+                            {% endif %}
+                            <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer"></div>
+                        </div>
+                    </div>
+                    <div class="absolute -bottom-3 -right-3 bg-delta-gold text-black w-12 h-12 rounded-full flex items-center justify-center border-4 border-delta-base z-40 shadow-glow-gold has-tooltip cursor-help">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                        <div class="tooltip-content">Verified Organization</div>
+                    </div>
+                </div>
+
+                <div class="flex-1 pb-12 animate-enter delay-100">
+                    <div class="flex flex-wrap items-center gap-4 mb-2">
+                        <h1 class="text-5xl md:text-7xl font-tech font-black text-white uppercase tracking-tight leading-none drop-shadow-2xl">
+                            {{ organization.name|upper }}
+                        </h1>
+                        <div class="flex gap-2 mt-2 md:mt-0">
+                            <span class="px-3 py-1 rounded bg-white/5 border border-white/10 text-xs font-mono text-slate-300 uppercase tracking-widest backdrop-blur-sm">Est. {% if organization.founded_date %}{{ organization.founded_date|date:"Y" }}{% else %}2024{% endif %}</span>
+                            <span class="px-3 py-1 rounded bg-delta-gold/10 border border-delta-gold/20 text-xs font-mono text-delta-gold uppercase tracking-widest flex items-center gap-2 backdrop-blur-sm type-pro-only">
+                                <span class="w-1.5 h-1.5 bg-delta-gold rounded-full animate-pulse"></span> Pro Organization
+                            </span>
+                        </div>
+                    </div>
+
+                    <p class="text-slate-400 max-w-2xl font-corp text-lg leading-relaxed mb-8 drop-shadow-md">
+                        {{ organization.description|default:"Professional esports organization competing at the highest level." }}
+                    </p>
+
+                    <div class="flex flex-wrap items-center gap-6 text-sm font-mono text-slate-300">
+                        {% if organization.country %}
+                        <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors cursor-default">
+                            <img src="https://flagcdn.com/w40/{{ organization.country|lower }}.png" class="w-5 rounded-sm shadow-sm" alt="{{ organization.country }}">
+                            <span>{{ organization.get_country_display }}</span>
+                        </div>
+                        {% endif %}
+
+                        {% if organization.website %}
+                        <a href="{{ organization.website }}" target="_blank" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 hover:border-delta-electric/50 hover:text-delta-electric transition-all group">
+                            <svg class="w-4 h-4 text-slate-500 group-hover:text-delta-electric transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                            {{ organization.website|slice:"8:"|truncatechars:25 }}
+                            <svg class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        </a>
+                        {% endif %}
+
+                        <div class="flex gap-2">
+                            {% if organization.twitter %}
+                            <a href="https://twitter.com/{{ organization.twitter }}" target="_blank" class="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-slate-400 hover:bg-delta-electric hover:text-black transition-all"><i class="fab fa-twitter"></i></a>
+                            {% endif %}
+                            {% if organization.discord %}
+                            <a href="{{ organization.discord }}" target="_blank" class="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-slate-400 hover:bg-[#5865F2] hover:text-white transition-all"><i class="fab fa-discord"></i></a>
+                            {% endif %}
+                            {% if organization.youtube %}
+                            <a href="{{ organization.youtube }}" target="_blank" class="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-slate-400 hover:bg-red-600 hover:text-white transition-all"><i class="fab fa-youtube"></i></a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pb-12 flex flex-col items-end gap-3 min-w-[220px] animate-enter delay-200 role-owner-only">
+                    <button class="w-full px-6 py-4 bg-delta-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest text-sm rounded-xl shadow-glow-gold transition-all flex items-center justify-center gap-2 group transform hover:-translate-y-1">
+                        <svg class="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        Manage Org
+                    </button>
+                    <div class="flex gap-2 w-full">
+                        <button class="flex-1 px-4 py-3 bg-delta-highlight/80 border border-white/10 hover:border-delta-electric text-white font-mono text-xs uppercase rounded-xl transition-all hover:bg-white/5 flex items-center justify-center gap-2 group">
+                            <svg class="w-4 h-4 text-delta-electric group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            New Team
+                        </button>
+                        <button class="flex-1 px-4 py-3 bg-delta-highlight/80 border border-white/10 hover:border-delta-gold text-white font-mono text-xs uppercase rounded-xl transition-all hover:bg-white/5 flex items-center justify-center gap-2 group">
+                            <svg class="w-4 h-4 text-delta-gold group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                            Wallet
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <div class="sticky top-20 z-40 bg-delta-base/80 backdrop-blur-xl border-b border-white/5 shadow-2xl">
+        <div class="max-w-[1600px] mx-auto px-6">
+            <div class="flex items-center gap-8 overflow-x-auto no-scrollbar">
+                <a href="#overview" class="nav-link active py-4 text-sm font-tech font-bold uppercase tracking-widest text-white hover:text-delta-gold transition-colors relative border-b-2 border-delta-gold">
+                    Headquarters
+                </a>
+                <a href="#teams" class="nav-link py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors relative border-b-2 border-transparent hover:border-white/20">
+                    Active Squads <span class="bg-white/10 px-1.5 py-0.5 rounded text-[10px] ml-1 text-white">{{ active_teams_count }}</span>
+                </a>
+                <a href="#streams" class="nav-link py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors relative border-b-2 border-transparent hover:border-white/20 flex items-center gap-2">
+                    Media / Streams <span class="w-1.5 h-1.5 rounded-full bg-delta-danger animate-pulse"></span>
+                </a>
+                <a href="#matches" class="nav-link py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors relative border-b-2 border-transparent hover:border-white/20">
+                    Operations Log
+                </a>
+                <a href="#finance" class="nav-link py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors relative border-b-2 border-transparent hover:border-white/20 role-owner-only">
+                    Financials <i class="fas fa-lock text-[10px] ml-1 opacity-50"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+<main class="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <div class="lg:col-span-9 space-y-12">
+
+                <section id="overview" class="animate-enter delay-200">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+
+                        <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-delta-gold relative group overflow-hidden">
+                            <div class="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <svg class="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                            </div>
+                            <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Global Standing</p>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-4xl font-tech font-bold text-white">#{{ organization.rank|default:"--" }}</span>
+                                <span class="text-xs font-mono text-delta-success flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                                    TOP 1%
+                                </span>
+                            </div>
+                            <div class="w-full bg-white/5 h-1 mt-4 rounded-full overflow-hidden">
+                                <div class="bg-delta-gold h-full w-[95%] shadow-[0_0_10px_#FFD700]"></div>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-delta-success relative group overflow-hidden">
+                            <div class="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <svg class="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.15-1.46-3.27-3.4h1.96c.1 1.05 1.18 1.91 2.53 1.91 1.29 0 2.13-.81 2.13-1.88 0-1.09-.92-1.49-2.6-1.92-2.31-.56-3.37-1.73-3.37-3.41 0-1.72 1.34-2.88 3.12-3.21V4h2.67v1.95c1.4.3 2.65 1.21 2.91 2.99h-1.99c-.15-.8-.92-1.53-2.12-1.53-1.16 0-1.88.75-1.88 1.63 0 .97.86 1.45 2.54 1.86 2.37.58 3.42 1.67 3.42 3.48 0 1.92-1.47 3.18-3.37 3.34z"/></svg>
+                            </div>
+                            <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Total Earnings</p>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-4xl font-tech font-bold text-white">$2.4M</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-2 font-mono">lifetime gross revenue</p>
+                        </div>
+
+                        <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-delta-electric relative group overflow-hidden">
+                            <div class="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <svg class="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                            </div>
+                            <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Active Squads</p>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-4xl font-tech font-bold text-white">{{ active_teams_count }}</span>
+                                <span class="text-xs text-delta-electric font-mono mb-1">/ 10 Slots</span>
+                            </div>
+                            <div class="flex -space-x-2 mt-3">
+                                {% for squad in squads|slice:":3" %}
+                                <div class="w-6 h-6 rounded-full bg-slate-800 border border-black flex items-center justify-center text-[8px]">{{ squad.name|slice:":1"|upper }}</div>
+                                {% endfor %}
+                                {% if active_teams_count > 3 %}
+                                <div class="w-6 h-6 rounded-full bg-slate-800 border border-black flex items-center justify-center text-[8px]">+{{ active_teams_count|add:"-3" }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-delta-violet relative group overflow-hidden">
+                            <div class="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <svg class="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M20.2 2H3.8L2 4.2l1.6 1.8H5v5c0 3.86 3.14 7 7 7s7-3.14 7-7V6h1.4L22 4.2 20.2 2zm-7 13c-2.76 0-5-2.24-5-5V6h10v4c0 2.76-2.24 5-5 5zM4 4l.9 1h-.9V4zm16 1l-.9-1h.9v1z"/></svg>
+                            </div>
+                            <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Trophy Cabinet</p>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-4xl font-tech font-bold text-white">42</span>
+                                <span class="text-xs text-delta-gold font-mono mb-1"><i class="fas fa-plus"></i> 3 This Season</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-2 font-mono">12 Major Titles</p>
+                        </div>
+
+                    </div>
+                </section>
+
+                <section id="teams">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <h2 class="text-2xl font-tech font-bold text-white uppercase tracking-wide">
+                                <span class="text-delta-electric">>></span> Active Squads
+                            </h2>
+                        </div>
+                        <button class="text-xs font-mono font-bold text-slate-400 hover:text-white uppercase tracking-wider flex items-center gap-2 group role-owner-only">
+                            Manage All <svg class="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {% for squad in squads %}
+                        <div class="glass-panel rounded-2xl overflow-hidden group border border-white/5 hover:border-delta-electric/50 transition-all duration-300 hover:-translate-y-1">
+                            <div class="h-40 bg-slate-900 relative">
+                                <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700">
+                                <div class="absolute inset-0 bg-gradient-to-t from-delta-highlight to-transparent"></div>
+
+                                <div class="absolute -bottom-8 left-6 w-20 h-20 bg-delta-surface rounded-2xl border-4 border-delta-highlight shadow-2xl p-3 flex items-center justify-center z-10 group-hover:border-delta-electric transition-colors">
+                                    <span class="text-2xl font-tech font-bold text-white">{{ squad.game|slice:":2"|upper }}</span>
+                                </div>
+                            </div>
+
+                            <div class="pt-10 px-6 pb-6">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 class="text-2xl font-tech font-bold text-white uppercase tracking-wide group-hover:text-delta-electric transition-colors">{{ squad.name }}</h3>
+                                        <p class="text-xs text-slate-400 font-mono">{{ squad.game }} Division</p>
+                                    </div>
+                                </div>
+
+                                {% if squad.igl or squad.manager %}
+                                <div class="grid grid-cols-2 gap-4 mb-4 border-t border-white/5 pt-4">
+                                    {% if squad.igl %}
+                                    <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">IGL (Captain)</div>
+                                        <div class="flex items-center gap-2">
+                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ squad.igl }}" class="w-5 h-5 rounded bg-black">
+                                            <span class="text-xs font-bold text-white">{{ squad.igl }}</span>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    {% if can_manage_org and squad.manager %}
+                                    <div class="bg-white/5 rounded-lg p-3 border border-white/5 role-owner-only">
+                                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">Manager</div>
+                                        <div class="flex items-center gap-2">
+                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ squad.manager }}" class="w-5 h-5 rounded bg-black">
+                                            <span class="text-xs font-bold text-white">{{ squad.manager }}</span>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+
+                                <div class="flex items-center justify-between">
+                                    <div class="flex -space-x-3">
+                                        <img class="w-8 h-8 rounded-full border-2 border-delta-highlight" src="https://api.dicebear.com/7.x/avataaars/svg?seed=P{{ forloop.counter }}1" title="Player 1">
+                                        <img class="w-8 h-8 rounded-full border-2 border-delta-highlight" src="https://api.dicebear.com/7.x/avataaars/svg?seed=P{{ forloop.counter }}2" title="Player 2">
+                                        <img class="w-8 h-8 rounded-full border-2 border-delta-highlight" src="https://api.dicebear.com/7.x/avataaars/svg?seed=P{{ forloop.counter }}3" title="Player 3">
+                                        <div class="w-8 h-8 rounded-full border-2 border-delta-highlight bg-delta-surface text-[10px] flex items-center justify-center text-slate-400">+2</div>
+                                    </div>
+                                    <button class="text-xs font-bold text-delta-electric uppercase hover:underline">View Roster</button>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-span-2 glass-panel p-12 rounded-2xl text-center">
+                            <svg class="w-16 h-16 mx-auto text-slate-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            <p class="text-slate-400 font-mono">No active squads yet</p>
+                        </div>
+                        {% endfor %}
+
+                    </div>
+                </section>
+
+                <section id="streams" class="animate-enter delay-100">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-2 h-2 rounded-full bg-delta-danger animate-pulse"></span>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Live Now</h3>
+                    </div>
+
+                    <div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+                        {% for stream in streams %}
+                        <div class="min-w-[280px] h-40 bg-gradient-to-br from-slate-900 to-black rounded-xl overflow-hidden relative border border-white/10 hover:border-delta-electric/50 transition-colors group cursor-pointer">
+                            <img src="{{ stream.thumbnail_url|default:'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400' }}" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+
+                            <div class="absolute top-3 left-3 bg-delta-danger text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider shadow-lg animate-pulse">LIVE</div>
+
+                            <div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded flex items-center gap-1 text-white text-[10px] font-mono border border-white/10">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                                {{ stream.viewers|default:"0" }}
+                            </div>
+
+                            <div class="absolute bottom-3 left-3 right-3 flex items-center gap-2">
+                                <img src="{{ stream.streamer_avatar|default:'https://api.dicebear.com/7.x/avataaars/svg?seed=streamer' }}" class="w-8 h-8 rounded-full border-2 border-delta-electric shadow-lg">
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-xs font-bold text-white truncate">{{ stream.streamer_name|default:"Streamer" }}</div>
+                                    <div class="text-[10px] text-slate-400 truncate">{{ stream.title|default:"Live Stream" }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="min-w-[280px] h-40 bg-gradient-to-br from-slate-900 to-black rounded-xl overflow-hidden relative border border-dashed border-white/10 flex items-center justify-center">
+                            <div class="text-center">
+                                <svg class="w-12 h-12 mx-auto text-slate-700 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                <p class="text-[10px] text-slate-500 font-mono uppercase">No Active Streams</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        <div class="min-w-[280px] h-40 border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center hover:border-delta-electric/30 hover:bg-white/5 transition-all cursor-pointer group">
+                            <svg class="w-8 h-8 text-slate-600 group-hover:text-delta-electric transition-colors mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            <span class="text-xs font-bold text-slate-500 group-hover:text-white uppercase tracking-wider transition-colors">View All Streams</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="matches">
+                     <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                            <span class="w-1.5 h-6 bg-delta-violet"></span> Operations Log
+                        </h2>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl overflow-hidden border border-white/10">
+                        <div class="overflow-x-auto max-h-[600px] custom-scrollbar">
+                            <table class="w-full text-left text-sm border-collapse">
+                                <thead class="bg-delta-surface sticky top-0 z-10 border-b border-white/10 text-xs text-slate-400 font-mono uppercase tracking-widest shadow-lg">
+                                    <tr>
+                                        <th class="p-4 font-bold w-32">Status</th>
+                                        <th class="p-4 font-bold">Date</th>
+                                        <th class="p-4 font-bold">Squad</th>
+                                        <th class="p-4 font-bold">Event</th>
+                                        <th class="p-4 font-bold">Opponent</th>
+                                        <th class="p-4 font-bold">Score</th>
+                                        <th class="p-4 font-bold text-right">Prize</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/5 text-slate-300 font-corp">
+                                    {% for log in activity_logs %}
+                                    <tr class="hover:bg-white/5 transition-colors">
+                                        <td class="p-4"><span class="text-[10px] font-bold text-slate-500">{{ log.status }}</span></td>
+                                        <td class="p-4 text-xs font-mono">{{ log.date|date:"M d" }}</td>
+                                        <td class="p-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-delta-gold"></span> {{ log.squad }}</td>
+                                        <td class="p-4 text-xs text-slate-400">{{ log.event }}</td>
+                                        <td class="p-4">{{ log.opponent }}</td>
+                                        <td class="p-4 font-mono font-bold">{{ log.score }}</td>
+                                        <td class="p-4 text-right font-mono text-white">{{ log.prize }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="p-12 text-center text-slate-500 font-mono">
+                                            <svg class="w-12 h-12 mx-auto mb-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                            No match history available
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+<div class="lg:col-span-3 space-y-8">
+
+                <div id="finance" class="glass-panel p-6 rounded-2xl border border-delta-gold/20 relative overflow-hidden group role-owner-only">
+                    <div class="absolute top-0 right-0 p-8 opacity-5 text-delta-gold transform rotate-12 group-hover:scale-110 transition-transform duration-700">
+                        <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.15-1.46-3.27-3.4h1.96c.1 1.05 1.18 1.91 2.53 1.91 1.29 0 2.13-.81 2.13-1.88 0-1.09-.92-1.49-2.6-1.92-2.31-.56-3.37-1.73-3.37-3.41 0-1.72 1.34-2.88 3.12-3.21V4h2.67v1.95c1.4.3 2.65 1.21 2.91 2.99h-1.99c-.15-.8-.92-1.53-2.12-1.53-1.16 0-1.88.75-1.88 1.63 0 .97.86 1.45 2.54 1.86 2.37.58 3.42 1.67 3.42 3.48 0 1.92-1.47 3.18-3.37 3.34z"/></svg>
+                    </div>
+
+                    <div class="flex items-center justify-between mb-6 relative z-10">
+                        <h3 class="text-xs font-bold text-delta-gold uppercase tracking-widest flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 bg-delta-gold rounded-full animate-pulse"></span> Treasury
+                        </h3>
+                        <span class="text-[9px] bg-delta-gold/10 text-delta-gold border border-delta-gold/20 px-2 py-0.5 rounded font-mono">SECURE</span>
+                    </div>
+
+                    <div class="relative z-10">
+                        <span class="text-[10px] text-slate-400 font-mono uppercase">Available Liquidity</span>
+                        <div class="flex items-baseline gap-2 mt-1 mb-6">
+                            <span class="text-4xl font-mono font-bold text-white tracking-tighter">৳ 4,25,000</span>
+                            <span class="text-xs text-slate-500 font-mono">BDT</span>
+                        </div>
+
+                        <div class="space-y-3 border-t border-white/5 pt-4 mb-6">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-400">Pending Payouts</span>
+                                <span class="text-white font-mono">$1,200.00</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-400">Last Withdrawal</span>
+                                <span class="text-slate-500 font-mono">2 days ago</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <button class="py-3 bg-delta-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest text-xs rounded shadow-glow-gold transition-all">
+                                Withdraw
+                            </button>
+                            <button class="py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-tech font-bold uppercase tracking-widest text-xs rounded transition-all">
+                                History
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border border-white/5">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Management</h3>
+                        <button class="text-[10px] text-delta-electric font-bold uppercase hover:underline role-owner-only">Edit Staff</button>
+                    </div>
+
+                    <div class="space-y-4">
+                        {% for staff in staff_members %}
+                        <div class="flex items-center gap-3 group cursor-pointer">
+                            <div class="w-10 h-10 rounded-lg bg-delta-surface p-0.5 border border-{% if staff.is_ceo %}delta-gold{% else %}white{% endif %}/30">
+                                <img src="{{ staff.avatar|safe_file_url:'https://api.dicebear.com/7.x/avataaars/svg?seed='|add:staff.username }}" class="w-full h-full rounded bg-black">
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-bold text-white group-hover:text-delta-gold transition-colors">{{ staff.username }}</span>
+                                    {% if staff.is_ceo %}
+                                    <svg class="w-3 h-3 text-delta-gold" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    {% endif %}
+                                </div>
+                                <span class="text-[10px] text-{% if staff.is_ceo %}delta-gold{% else %}slate-500{% endif %} font-mono uppercase">{{ staff.role }}</span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-6">
+                            <p class="text-xs text-slate-500 font-mono">No staff members</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <button class="w-full mt-6 py-3 border border-white/10 rounded-lg text-xs font-bold text-slate-400 uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all flex items-center justify-center gap-2 role-owner-only">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                        Invite Staff
+                    </button>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border border-white/5 role-public-only">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Partner with Us</h3>
+                    <div class="space-y-4">
+                        <p class="text-sm text-slate-400">Interested in sponsoring our organization? Download our media kit and get in touch.</p>
+                        <button class="w-full py-3 bg-delta-electric/10 border border-delta-electric/30 text-delta-electric rounded-lg text-xs font-bold uppercase hover:bg-delta-electric/20 transition-all flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Download Media Kit
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- 1. NAVIGATION TAB FILTERING ---
+        const links = document.querySelectorAll('.nav-link');
+        const orgRoot = document.getElementById('org-detail-root');
+
+        links.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                // Update UI
+                links.forEach(l => {
+                    l.classList.remove('active', 'border-delta-gold', 'text-white');
+                    l.classList.add('text-slate-400', 'border-transparent');
+                });
+                e.currentTarget.classList.add('active', 'border-delta-gold', 'text-white');
+                e.currentTarget.classList.remove('text-slate-400', 'border-transparent');
+
+                // Scroll to Section
+                const targetId = e.currentTarget.getAttribute('href').substring(1);
+                const targetSection = document.getElementById(targetId);
+
+                if (targetSection) {
+                    const navHeight = 100;
+                    const targetPosition = targetSection.getBoundingClientRect().top + window.pageYOffset - navHeight;
+
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // --- 2. INTERSECTION OBSERVER FOR ACTIVE TAB ---
+        const sections = document.querySelectorAll('main section[id]');
+        const observerOptions = {
+            root: null,
+            rootMargin: '-100px 0px -80% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.getAttribute('id');
+                    links.forEach(link => {
+                        link.classList.remove('active', 'border-delta-gold', 'text-white');
+                        link.classList.add('text-slate-400', 'border-transparent');
+                        if (link.getAttribute('href') === `#${id}`) {
+                            link.classList.add('active', 'border-delta-gold', 'text-white');
+                            link.classList.remove('text-slate-400', 'border-transparent');
+                        }
+                    });
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => observer.observe(section));
+
+    });
+</script>
+{% endblock %}

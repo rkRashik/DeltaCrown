@@ -191,9 +191,15 @@ class CreateTeamSerializer(serializers.Serializer):
         help_text="Team display name"
     )
     game_id = serializers.IntegerField(
-        required=True,
+        required=False,
+        allow_null=True,
         min_value=1,
-        help_text="Game ID from games table"
+        help_text="Game ID from games table (deprecated - use game_slug)"
+    )
+    game_slug = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="Game slug identifier (preferred over game_id)"
     )
     organization_id = serializers.IntegerField(
         required=False,
@@ -205,8 +211,49 @@ class CreateTeamSerializer(serializers.Serializer):
         required=False,
         allow_blank=True,
         allow_null=True,
-        max_length=10,
-        help_text="Region code (e.g., NA, EU, APAC)"
+        max_length=50,
+        help_text="Team home country/region (free-form, e.g. 'United States', 'BD')"
+    )
+    tag = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=5,
+        help_text="Team tag/abbreviation (2-5 chars, optional)"
+    )
+    tagline = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=100,
+        help_text="Team motto/tagline (optional)"
+    )
+    description = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Team description/bio (optional)"
+    )
+    logo = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        help_text="Team logo file upload (optional)"
+    )
+    banner = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        help_text="Team banner file upload (optional)"
+    )
+    inherit_branding = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Inherit org branding (org-owned teams only)"
+    )
+    manager_email = serializers.EmailField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Email of user to invite as MANAGER (optional)"
     )
     branding = TeamBrandingSerializer(required=False, allow_null=True)
     
@@ -223,17 +270,27 @@ class CreateTeamSerializer(serializers.Serializer):
         
         return value
     
-    def validate_region(self, value: Optional[str]) -> Optional[str]:
-        """Validate region code format."""
-        if value:
-            value = value.strip().upper()
-            
-            # Check against known region codes (expand as needed)
-            valid_regions = ['NA', 'EU', 'APAC', 'LATAM', 'OCE', 'ME', 'AF', 'SA']
-            if value not in valid_regions:
-                raise serializers.ValidationError(
-                    f"Invalid region code. Valid codes: {', '.join(valid_regions)}",
-                    code="invalid_region"
-                )
+    def validate(self, data):
+        """Cross-field validation - convert game_slug to game_id."""
+        from apps.games.models import Game
         
-        return value
+        game_slug = data.get('game_slug')
+        game_id = data.get('game_id')
+        
+        # Must provide either game_slug or game_id
+        if not game_slug and not game_id:
+            raise serializers.ValidationError({
+                'game': 'Either game_slug or game_id is required.'
+            })
+        
+        # If game_slug provided, convert to game_id
+        if game_slug:
+            try:
+                game = Game.objects.get(slug=game_slug, is_active=True)
+                data['game_id'] = game.id
+            except Game.DoesNotExist:
+                raise serializers.ValidationError({
+                    'game_slug': 'Invalid game selected.'
+                })
+        
+        return data

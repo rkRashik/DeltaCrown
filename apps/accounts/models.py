@@ -53,6 +53,17 @@ class User(AbstractUser):
     class Meta(AbstractUser.Meta):  # type: ignore[misc]
         swappable = "AUTH_USER_MODEL"
 
+    def __str__(self):
+        """Display username with public_id if UserProfile exists."""
+        try:
+            # Try to get UserProfile public_id
+            profile = getattr(self, 'profile', None)
+            if profile and hasattr(profile, 'public_id') and profile.public_id:
+                return f"{self.username} ({profile.public_id})"
+        except Exception:
+            pass
+        return self.username
+
     def mark_email_verified(self):
         if not self.is_verified:
             self.is_verified = True

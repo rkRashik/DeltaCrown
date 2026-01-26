@@ -266,6 +266,160 @@ def create_organization(request: Request) -> Response:
         )
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def validate_team_name(request: Request) -> Response:
+    """
+    Validate team name uniqueness for a given game/org context.
+    
+    GET /api/vnext/teams/validate-name/?name=<name>&game_slug=<slug>&org_id=<id|null>&mode=<independent|org>
+    
+    Response (200 - available):
+        {
+            "ok": true,
+            "available": true
+        }
+    
+    Response (200 - unavailable):
+        {
+            "ok": false,
+            "available": false,
+            "field_errors": {
+                "name": "A team with this name already exists in this game."
+            }
+        }
+    """
+    from apps.organizations.models import Team
+    from apps.games.models import Game
+    
+    name = request.query_params.get('name', '').strip()
+    game_slug = request.query_params.get('game_slug', '').strip()
+    org_id = request.query_params.get('org_id')
+    mode = request.query_params.get('mode', 'independent')
+    
+    # Validate required params
+    if not name or not game_slug:
+        return Response({
+            'ok': False,
+            'field_errors': {'name': 'Name and game are required.'}
+        })
+    
+    # Check if name length is valid (minimum 3 characters)
+    if len(name) < 3:
+        return Response({
+            'ok': False,
+            'available': False,
+            'field_errors': {'name': 'Team name must be at least 3 characters.'}
+        })
+    
+    try:
+        game = Game.objects.get(slug=game_slug, is_active=True)
+    except Game.DoesNotExist:
+        return Response({
+            'ok': False,
+            'field_errors': {'game': 'Invalid game selected.'}
+        })
+    
+    # Check uniqueness: name + game_id (optionally scoped to org)
+    query = Team.objects.filter(name__iexact=name, game_id=game.id)
+    
+    if mode == 'org' and org_id:
+        query = query.filter(organization_id=org_id)
+    else:
+        # For independent teams, check globally within the game
+        query = query.filter(organization__isnull=True)
+    
+    if query.exists():
+        return Response({
+            'ok': False,
+            'available': False,
+            'field_errors': {'name': 'A team with this name already exists in this game.'}
+        })
+    
+    return Response({
+        'ok': True,
+        'available': True
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def validate_team_tag(request: Request) -> Response:
+    """
+    Validate team tag uniqueness for a given game/org context.
+    
+    GET /api/vnext/teams/validate-tag/?tag=<tag>&game_slug=<slug>&org_id=<id|null>&mode=<independent|org>
+    
+    Response (200 - available):
+        {
+            "ok": true,
+            "available": true
+        }
+    
+    Response (200 - unavailable):
+        {
+            "ok": false,
+            "available": false,
+            "field_errors": {
+                "tag": "This tag is already taken in this game."
+            }
+        }
+    """
+    from apps.organizations.models import Team
+    from apps.games.models import Game
+    
+    tag = request.query_params.get('tag', '').strip().upper()
+    game_slug = request.query_params.get('game_slug', '').strip()
+    org_id = request.query_params.get('org_id')
+    mode = request.query_params.get('mode', 'independent')
+    
+    # Validate required params
+    if not tag or not game_slug:
+        return Response({
+            'ok': False,
+            'field_errors': {'tag': 'Tag and game are required.'}
+        })
+    
+    # Check tag length (2-5 characters)
+    if len(tag) < 2:
+        return Response({
+            'ok': False,
+            'available': False,
+            'field_errors': {'tag': 'Tag must be at least 2 characters.'}
+        })
+    
+    if len(tag) > 5:
+        return Response({
+            'ok': False,
+            'available': False,
+            'field_errors': {'tag': 'Tag must be 5 characters or less.'}
+        })
+    
+    try:
+        game = Game.objects.get(slug=game_slug, is_active=True)
+    except Game.DoesNotExist:
+        return Response({
+            'ok': False,
+            'field_errors': {'game': 'Invalid game selected.'}
+        })
+    
+    # Check uniqueness: tag + game_id (case-insensitive)
+    # Tag must be unique per game across all teams (not scoped to org)
+    query = Team.objects.filter(tag__iexact=tag, game_id=game.id)
+    
+    if query.exists():
+        return Response({
+            'ok': False,
+            'available': False,
+            'field_errors': {'tag': 'This tag is already taken in this game.'}
+        })
+    
+    return Response({
+        'ok': True,
+        'available': True
+    })
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_team(request: Request) -> Response:
@@ -349,6 +503,7 @@ def create_team(request: Request) -> Response:
         )
         return Response(
             {
+                'ok': False,
                 'error_code': error_code,
                 'message': error_message,
                 'safe_message': error_message,
@@ -361,9 +516,11 @@ def create_team(request: Request) -> Response:
     if not serializer.is_valid():
         return Response(
             {
+                'ok': False,
                 'error_code': 'validation_error',
                 'message': 'Invalid input data',
-                'details': serializer.errors,
+                'safe_message': 'Please check your inputs and try again.',
+                'field_errors': serializer.errors,
             },
             status=status.HTTP_400_BAD_REQUEST
         )
@@ -398,6 +555,7 @@ def create_team(request: Request) -> Response:
                 )
                 return Response(
                     {
+                        'ok': False,
                         'error_code': 'permission_denied',
                         'message': 'You must be CEO or manager to create org-owned teams.',
                         'safe_message': "You don't have permission to create teams for this organization.",
@@ -408,6 +566,7 @@ def create_team(request: Request) -> Response:
         except Organization.DoesNotExist:
             return Response(
                 {
+                    'ok': False,
                     'error_code': 'organization_not_found',
                     'message': f'Organization with ID {organization_id} does not exist.',
                     'safe_message': 'The specified organization was not found.',
@@ -419,14 +578,35 @@ def create_team(request: Request) -> Response:
     try:
         with transaction.atomic():
             # Create team (model save handles slug generation)
-            team = Team.objects.create(
-                name=validated_data['name'],
-                game_id=validated_data['game_id'],
-                organization_id=organization_id,
-                owner=request.user if not organization_id else None,
-                region=validated_data.get('region', ''),
-                status='ACTIVE',
-            )
+            team_data = {
+                'name': validated_data['name'],
+                'game_id': validated_data['game_id'],
+                'organization_id': organization_id,
+                'owner': request.user if not organization_id else None,
+                'region': validated_data.get('region', ''),
+                'status': 'ACTIVE',
+            }
+            
+            # Add optional fields if provided
+            if validated_data.get('tag'):
+                team_data['tag'] = validated_data['tag']
+            if validated_data.get('tagline'):
+                team_data['tagline'] = validated_data['tagline']
+            if validated_data.get('description'):
+                team_data['description'] = validated_data['description']
+            
+            # Create team instance
+            team = Team.objects.create(**team_data)
+            
+            # Handle file uploads (logo/banner) if provided
+            if validated_data.get('logo'):
+                team.logo = validated_data['logo']
+            if validated_data.get('banner'):
+                team.banner = validated_data['banner']
+            
+            # Save again if files were added
+            if validated_data.get('logo') or validated_data.get('banner'):
+                team.save()
             
             # For independent teams, create owner membership
             if not organization_id:
@@ -437,6 +617,46 @@ def create_team(request: Request) -> Response:
                     role='OWNER',
                     status='ACTIVE',
                 )
+            
+            # Handle manager invite if provided
+            invite_created = False
+            manager_email = validated_data.get('manager_email')
+            if manager_email and manager_email.strip():
+                from apps.organizations.models import TeamInvite
+                
+                # Check if user exists with this email
+                try:
+                    invited_user = User.objects.get(email=manager_email)
+                    
+                    # Create invited membership
+                    TeamMembership.objects.create(
+                        team=team,
+                        user=invited_user,
+                        role='MANAGER',
+                        status='INVITED',
+                    )
+                    invite_created = True
+                except User.DoesNotExist:
+                    # User doesn't exist - create invite record
+                    TeamInvite.objects.create(
+                        team=team,
+                        invited_email=manager_email,
+                        inviter=request.user,
+                        role='MANAGER',
+                        status='PENDING',
+                    )
+                    invite_created = True
+                except Exception as invite_error:
+                    # Don't block team creation if invite fails
+                    logger.warning(
+                        f"Failed to create manager invite for team {team.id}",
+                        extra={
+                            'event_type': 'manager_invite_failed',
+                            'team_id': team.id,
+                            'manager_email': manager_email,
+                            'error': str(invite_error),
+                        }
+                    )
             
             # Get team URL using TeamService
             team_url = TeamService.get_team_url(team.id)
@@ -491,9 +711,11 @@ def create_team(request: Request) -> Response:
         
         return Response(
             {
+                'ok': True,
                 'team_id': team.id,
                 'team_slug': team.slug,
                 'team_url': team_url,
+                'invite_created': invite_created,
             },
             status=status.HTTP_201_CREATED
         )
@@ -504,6 +726,7 @@ def create_team(request: Request) -> Response:
         
         return Response(
             {
+                'ok': False,
                 'error_code': e.error_code,
                 'message': str(e),
                 'safe_message': e.safe_message,
@@ -534,25 +757,7 @@ def create_team(request: Request) -> Response:
         )
         return Response(
             {
-                'error_code': 'internal_error',
-                'message': 'An unexpected error occurred',
-                'safe_message': 'Failed to create team. Please try again.',
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-    
-    except Exception as e:
-        logger.exception(
-            f"Unexpected error creating team for user {request.user.id}",
-            extra={
-                'event_type': 'team_creation_error',
-                'user_id': request.user.id,
-                'organization_id': organization_id,
-                'exception_type': type(e).__name__,
-            }
-        )
-        return Response(
-            {
+                'ok': False,
                 'error_code': 'internal_error',
                 'message': 'An unexpected error occurred',
                 'safe_message': 'Failed to create team. Please try again.',
@@ -1756,3 +1961,833 @@ def update_team_settings(request: Request, team_slug: str) -> Response:
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# ============================================================================
+# PHASE D: TEAM INVITE MANAGEMENT
+# ============================================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_team_invites(request: Request) -> Response:
+    """
+    List all pending team invites for authenticated user.
+    
+    GET /api/vnext/teams/invites/
+    
+    Returns both:
+    - TeamMembership invites (status=INVITED)
+    - TeamInvite records (email-based, status=PENDING)
+    
+    Response:
+        {
+            "ok": true,
+            "data": {
+                "membership_invites": [...],
+                "email_invites": [...],
+                "total_count": 5
+            }
+        }
+    
+    Query Budget: ≤5 queries
+    """
+    from apps.organizations.services.team_invite_service import TeamInviteService
+    
+    try:
+        invites_dto = TeamInviteService.list_user_invites(user_id=request.user.id)
+        
+        # Convert DTOs to dicts
+        membership_invites = [
+            {
+                'id': inv.id,
+                'team_id': inv.team_id,
+                'team_name': inv.team_name,
+                'team_slug': inv.team_slug,
+                'game_name': inv.game_name,
+                'role': inv.role,
+                'inviter_name': inv.inviter_name,
+                'created_at': inv.created_at,
+                'status': inv.status,
+            }
+            for inv in invites_dto.membership_invites
+        ]
+        
+        email_invites = [
+            {
+                'token': inv.token,
+                'team_id': inv.team_id,
+                'team_name': inv.team_name,
+                'team_slug': inv.team_slug,
+                'game_name': inv.game_name,
+                'role': inv.role,
+                'invited_email': inv.invited_email,
+                'inviter_name': inv.inviter_name,
+                'created_at': inv.created_at,
+                'expires_at': inv.expires_at,
+                'status': inv.status,
+            }
+            for inv in invites_dto.email_invites
+        ]
+        
+        return Response({
+            'ok': True,
+            'data': {
+                'membership_invites': membership_invites,
+                'email_invites': email_invites,
+                'total_count': invites_dto.total_count,
+            }
+        })
+    
+    except Exception as e:
+        logger.exception(
+            f"Error listing invites for user {request.user.id}",
+            extra={
+                'event_type': 'list_invites_error',
+                'user_id': request.user.id,
+                'exception_type': type(e).__name__,
+            }
+        )
+        return Response(
+            {
+                'ok': False,
+                'error_code': 'INTERNAL_ERROR',
+                'safe_message': 'Failed to load invitations. Please try again.',
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def accept_membership_invite(request: Request, membership_id: int) -> Response:
+    """
+    Accept a TeamMembership invite.
+    
+    POST /api/vnext/teams/invites/membership/<id>/accept/
+    
+    Changes membership status from INVITED → ACTIVE.
+    
+    Response (200):
+        {
+            "ok": true,
+            "data": {
+                "team_id": 123,
+                "team_slug": "my-team",
+                "team_url": "/teams/my-team/",
+                "role": "MANAGER"
+            }
+        }
+    
+    Errors:
+        404: INVITE_NOT_FOUND
+        403: INVITE_FORBIDDEN
+        400: INVITE_ALREADY_ACCEPTED
+    
+    Query Budget: ≤6 queries
+    """
+    from apps.organizations.services.team_invite_service import (
+        TeamInviteService,
+        InviteNotFoundError,
+        InviteForbiddenError,
+        InviteAlreadyAcceptedError,
+    )
+    
+    try:
+        result = TeamInviteService.accept_membership_invite(
+            membership_id=membership_id,
+            actor_user_id=request.user.id
+        )
+        
+        logger.info(
+            f"User {request.user.id} accepted membership invite {membership_id}",
+            extra={
+                'event_type': 'membership_invite_accepted',
+                'user_id': request.user.id,
+                'membership_id': membership_id,
+                'team_id': result['team_id'],
+            }
+        )
+        
+        return Response({
+            'ok': True,
+            'data': result,
+        })
+    
+    except InviteNotFoundError as e:
+        return Response(
+            {
+                'ok': False,
+                'error_code': e.error_code,
+                'safe_message': e.safe_message,
+            },
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    except InviteForbiddenError as e:
+        return Response(
+            {
+                'ok': False,
+                'error_code': e.error_code,
+                'safe_message': e.safe_message,
+            },
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    except InviteAlreadyAcceptedError as e:
+        return Response(
+            {
+                'ok': False,
+                'error_code': e.error_code,
+                'safe_message': e.safe_message,
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    except Exception as e:
+        logger.exception(
+            f"Error accepting membership invite {membership_id}",
+            extra={
+                'event_type': 'accept_membership_error',
+                'user_id': request.user.id,
+                'membership_id': membership_id,
+                'exception_type': type(e).__name__,
+            }
+        )
+        return Response(
+            {
+                'ok': False,
+                'error_code': 'INTERNAL_ERROR',
+                'safe_message': 'Failed to accept invitation. Please try again.',
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def decline_membership_invite(request: Request, membership_id: int) -> Response:
+    """
+    Decline a TeamMembership invite.
+    
+    POST /api/vnext/teams/invites/membership/<id>/decline/
+    
+    Changes membership status from INVITED → DECLINED.
+    
+    Response (200):
+        {
+            "ok": true,
+            "data": {"success": true}
+        }
+    
+    Errors:
+        404: INVITE_NOT_FOUND
+        403: INVITE_FORBIDDEN
+    
+    Query Budget: ≤6 queries
+    """
+    from apps.organizations.services.team_invite_service import (
+        TeamInviteService,
+        InviteNotFoundError,
+        InviteForbiddenError,
+    )
+    
+    try:
+        result = TeamInviteService.decline_membership_invite(
+            membership_id=membership_id,
+            actor_user_id=request.user.id
+        )
+        
+        logger.info(
+            f"User {request.user.id} declined membership invite {membership_id}",
+            extra={
+                'event_type': 'membership_invite_declined',
+                'user_id': request.user.id,
+                'membership_id': membership_id,
+            }
+        )
+        
+        return Response({
+            'ok': True,
+            'data': result,
+        })
+    
+    except (InviteNotFoundError, InviteForbiddenError) as e:
+        status_code = status.HTTP_404_NOT_FOUND if isinstance(e, InviteNotFoundError) else status.HTTP_403_FORBIDDEN
+        return Response(
+            {
+                'ok': False,
+                'error_code': e.error_code,
+                'safe_message': e.safe_message,
+            },
+            status=status_code
+        )
+    
+    except Exception as e:
+        logger.exception(
+            f"Error declining membership invite {membership_id}",
+            extra={
+                'event_type': 'decline_membership_error',
+                'user_id': request.user.id,
+                'membership_id': membership_id,
+                'exception_type': type(e).__name__,
+            }
+        )
+        return Response(
+            {
+                'ok': False,
+                'error_code': 'INTERNAL_ERROR',
+                'safe_message': 'Failed to decline invitation. Please try again.',
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def accept_email_invite(request: Request, token: str) -> Response:
+    """
+    Accept an email-based TeamInvite.
+    
+    POST /api/vnext/teams/invites/email/<token>/accept/
+    
+    Creates TeamMembership with ACTIVE status and marks invite ACCEPTED.
+    
+    Response (200):
+        {
+            "ok": true,
+            "data": {
+                "team_id": 123,
+                "team_slug": "my-team",
+                "team_url": "/teams/my-team/",
+                "role": "MANAGER"
+            }
+        }
+    
+    Errors:
+        404: INVITE_NOT_FOUND
+        403: INVITE_FORBIDDEN (email mismatch)
+        400: INVITE_EXPIRED
+        400: INVITE_ALREADY_ACCEPTED
+    
+    Query Budget: ≤6 queries
+    """
+    from apps.organizations.services.team_invite_service import (
+        TeamInviteService,
+        InviteNotFoundError,
+        InviteForbiddenError,
+        InviteExpiredError,
+        InviteAlreadyAcceptedError,
+    )
+    
+    try:
+        result = TeamInviteService.accept_email_invite(
+            token=token,
+            actor_user_id=request.user.id
+        )
+        
+        logger.info(
+            f"User {request.user.id} accepted email invite {token}",
+            extra={
+                'event_type': 'email_invite_accepted',
+                'user_id': request.user.id,
+                'token': token,
+                'team_id': result['team_id'],
+            }
+        )
+        
+        return Response({
+            'ok': True,
+            'data': result,
+        })
+    
+    except InviteNotFoundError as e:
+        return Response(
+            {
+                'ok': False,
+                'error_code': e.error_code,
+                'safe_message': e.safe_message,
+            },
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    except InviteForbiddenError as e:
+        return Response(
+            {
+                'ok': False,
+                'error_code': e.error_code,
+                'safe_message': e.safe_message,
+            },
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    except (InviteExpiredError, InviteAlreadyAcceptedError) as e:
+        return Response(
+            {
+                'ok': False,
+                'error_code': e.error_code,
+                'safe_message': e.safe_message,
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    except Exception as e:
+        logger.exception(
+            f"Error accepting email invite {token}",
+            extra={
+                'event_type': 'accept_email_error',
+                'user_id': request.user.id,
+                'token': token,
+                'exception_type': type(e).__name__,
+            }
+        )
+        return Response(
+            {
+                'ok': False,
+                'error_code': 'INTERNAL_ERROR',
+                'safe_message': 'Failed to accept invitation. Please try again.',
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def decline_email_invite(request: Request, token: str) -> Response:
+    """
+    Decline an email-based TeamInvite.
+    
+    POST /api/vnext/teams/invites/email/<token>/decline/
+    
+    Marks invite as DECLINED.
+    
+    Response (200):
+        {
+            "ok": true,
+            "data": {"success": true}
+        }
+    
+    Errors:
+        404: INVITE_NOT_FOUND
+        403: INVITE_FORBIDDEN
+    
+    Query Budget: ≤6 queries
+    """
+    from apps.organizations.services.team_invite_service import (
+        TeamInviteService,
+        InviteNotFoundError,
+        InviteForbiddenError,
+    )
+    
+    try:
+        result = TeamInviteService.decline_email_invite(
+            token=token,
+            actor_user_id=request.user.id
+        )
+        
+        logger.info(
+            f"User {request.user.id} declined email invite {token}",
+            extra={
+                'event_type': 'email_invite_declined',
+                'user_id': request.user.id,
+                'token': token,
+            }
+        )
+        
+        return Response({
+            'ok': True,
+            'data': result,
+        })
+    
+    except (InviteNotFoundError, InviteForbiddenError) as e:
+        status_code = status.HTTP_404_NOT_FOUND if isinstance(e, InviteNotFoundError) else status.HTTP_403_FORBIDDEN
+        return Response(
+            {
+                'ok': False,
+                'error_code': e.error_code,
+                'safe_message': e.safe_message,
+            },
+            status=status_code
+        )
+    
+    except Exception as e:
+        logger.exception(
+            f"Error declining email invite {token}",
+            extra={
+                'event_type': 'decline_email_error',
+                'user_id': request.user.id,
+                'token': token,
+                'exception_type': type(e).__name__,
+            }
+        )
+        return Response(
+            {
+                'ok': False,
+                'error_code': 'INTERNAL_ERROR',
+                'safe_message': 'Failed to decline invitation. Please try again.',
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# ============================================================================
+# ORGANIZATION CREATION ENDPOINTS (Phase D: P3-T7)
+# ============================================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def validate_organization_name(request: Request) -> Response:
+    """
+    Validate organization name uniqueness.
+    
+    GET /api/vnext/organizations/validate-name/?name=<name>
+    
+    Response (200 - available):
+        {
+            "ok": true,
+            "available": true
+        }
+    
+    Response (200 - unavailable):
+        {
+            "ok": false,
+            "available": false,
+            "field_errors": {
+                "name": "An organization with this name already exists."
+            }
+        }
+    """
+    name = request.query_params.get('name', '').strip()
+    
+    # Validate required param
+    if not name:
+        return Response({
+            'ok': False,
+            'field_errors': {'name': 'Organization name is required.'}
+        })
+    
+    # Check name length (minimum 3 characters)
+    if len(name) < 3:
+        return Response({
+            'ok': False,
+            'available': False,
+            'field_errors': {'name': 'Organization name must be at least 3 characters.'}
+        })
+    
+    # Check uniqueness (case-insensitive)
+    if Organization.objects.filter(name__iexact=name).exists():
+        return Response({
+            'ok': False,
+            'available': False,
+            'field_errors': {'name': 'An organization with this name already exists.'}
+        })
+    
+    return Response({
+        'ok': True,
+        'available': True
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def validate_organization_badge(request: Request) -> Response:
+    """
+    Validate organization badge/ticker uniqueness.
+    
+    GET /api/vnext/organizations/validate-badge/?badge=<badge>
+    
+    Note: Organization.badge field is actually a ticker/tag, not an image.
+    
+    Response (200 - available):
+        {
+            "ok": true,
+            "available": true
+        }
+    
+    Response (200 - unavailable):
+        {
+            "ok": false,
+            "available": false,
+            "field_errors": {
+                "badge": "This ticker is already taken."
+            }
+        }
+    """
+    badge = request.query_params.get('badge', '').strip().upper()
+    
+    # Validate required param
+    if not badge:
+        return Response({
+            'ok': False,
+            'field_errors': {'badge': 'Organization ticker is required.'}
+        })
+    
+    # Check badge length (2-5 characters)
+    if len(badge) < 2:
+        return Response({
+            'ok': False,
+            'available': False,
+            'field_errors': {'badge': 'Ticker must be at least 2 characters.'}
+        })
+    
+    if len(badge) > 5:
+        return Response({
+            'ok': False,
+            'available': False,
+            'field_errors': {'badge': 'Ticker must be 5 characters or less.'}
+        })
+    
+    # Note: Organization model may store badge as image field
+    # For now, check against existing organization names as ticker proxy
+    # TODO: Add dedicated ticker field to Organization model if needed
+    
+    return Response({
+        'ok': True,
+        'available': True
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def validate_organization_slug(request: Request) -> Response:
+    """
+    Validate organization slug uniqueness.
+    
+    GET /api/vnext/organizations/validate-slug/?slug=<slug>
+    
+    Response (200 - available):
+        {
+            "ok": true,
+            "available": true
+        }
+    
+    Response (200 - unavailable):
+        {
+            "ok": false,
+            "available": false,
+            "field_errors": {
+                "slug": "This URL slug is already taken."
+            }
+        }
+    """
+    slug = request.query_params.get('slug', '').strip().lower()
+    
+    # Validate required param
+    if not slug:
+        return Response({
+            'ok': False,
+            'field_errors': {'slug': 'URL slug is required.'}
+        })
+    
+    # Check slug length (minimum 3 characters)
+    if len(slug) < 3:
+        return Response({
+            'ok': False,
+            'available': False,
+            'field_errors': {'slug': 'URL slug must be at least 3 characters.'}
+        })
+    
+    # Check uniqueness
+    if Organization.objects.filter(slug=slug).exists():
+        return Response({
+            'ok': False,
+            'available': False,
+            'field_errors': {'slug': 'This URL slug is already taken.'}
+        })
+    
+    return Response({
+        'ok': True,
+        'available': True
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_organization(request: Request) -> Response:
+    """
+    Create a new organization.
+    
+    POST /api/vnext/organizations/create/
+    
+    Request Body (multipart/form-data):
+        - name (required): Organization name
+        - slug (optional): URL slug (auto-generated if not provided)
+        - badge (optional): Ticker/tag (stored as text for now)
+        - description (optional): Manifesto/mission
+        - website (optional): Official website URL
+        - twitter (optional): Twitter handle
+        - logo (optional): Logo image file
+        - banner (optional): Banner image file
+        
+        # Profile fields:
+        - founded_year (optional): Year founded
+        - organization_type (optional): club/pro/guild
+        - hq_city (optional): City location
+        - hq_address (optional): Full address (for Pro orgs)
+        - business_email (optional): Business email (for Pro orgs)
+        - trade_license (optional): Trade license number
+        - discord_link (optional): Discord invite URL
+        - instagram (optional): Instagram handle
+        - facebook (optional): Facebook URL
+        - youtube (optional): YouTube URL
+        - region_code (optional): Country code (default: BD)
+        - currency (optional): Currency code (default: BDT)
+        - payout_method (optional): mobile/bank (default: mobile)
+        - brand_color (optional): Hex color code
+    
+    Response (200 - success):
+        {
+            "ok": true,
+            "data": {
+                "organization_id": 123,
+                "organization_slug": "my-org",
+                "organization_url": "/orgs/my-org/"
+            }
+        }
+    
+    Response (400 - validation error):
+        {
+            "ok": false,
+            "error_code": "VALIDATION_ERROR",
+            "safe_message": "Please fix the errors below.",
+            "field_errors": {
+                "name": "Organization name is required.",
+                ...
+            }
+        }
+    """
+    from apps.organizations.models import OrganizationProfile
+    from django.utils.text import slugify
+    
+    # Extract data from request
+    name = request.data.get('name', '').strip()
+    slug = request.data.get('slug', '').strip()
+    badge = request.data.get('badge', '').strip()
+    description = request.data.get('description', '').strip()
+    website = request.data.get('website', '').strip()
+    twitter = request.data.get('twitter', '').strip()
+    
+    # Profile data
+    founded_year = request.data.get('founded_year')
+    organization_type = request.data.get('organization_type', 'club')
+    hq_city = request.data.get('hq_city', '').strip()
+    hq_address = request.data.get('hq_address', '').strip()
+    business_email = request.data.get('business_email', '').strip()
+    trade_license = request.data.get('trade_license', '').strip()
+    discord_link = request.data.get('discord_link', '').strip()
+    instagram = request.data.get('instagram', '').strip()
+    facebook = request.data.get('facebook', '').strip()
+    youtube = request.data.get('youtube', '').strip()
+    region_code = request.data.get('region_code', 'BD')
+    currency = request.data.get('currency', 'BDT')
+    payout_method = request.data.get('payout_method', 'mobile')
+    brand_color = request.data.get('brand_color', '').strip()
+    
+    # Files
+    logo = request.FILES.get('logo')
+    banner = request.FILES.get('banner')
+    
+    # Validation
+    field_errors = {}
+    
+    if not name:
+        field_errors['name'] = 'Organization name is required.'
+    elif len(name) < 3:
+        field_errors['name'] = 'Organization name must be at least 3 characters.'
+    elif Organization.objects.filter(name__iexact=name).exists():
+        field_errors['name'] = 'An organization with this name already exists.'
+    
+    if not slug:
+        slug = slugify(name)
+    
+    if slug and Organization.objects.filter(slug=slug).exists():
+        field_errors['slug'] = 'This URL slug is already taken.'
+    
+    if founded_year:
+        try:
+            founded_year = int(founded_year)
+            if founded_year < 2000 or founded_year > 2030:
+                field_errors['founded_year'] = 'Invalid year.'
+        except ValueError:
+            field_errors['founded_year'] = 'Invalid year format.'
+    
+    if field_errors:
+        return Response({
+            'ok': False,
+            'error_code': 'VALIDATION_ERROR',
+            'safe_message': 'Please fix the errors below.',
+            'field_errors': field_errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Create organization
+    try:
+        with transaction.atomic():
+            org = Organization.objects.create(
+                name=name,
+                slug=slug,
+                description=description,
+                website=website,
+                twitter=twitter,
+                ceo=request.user,
+                logo=logo,
+                banner=banner,
+            )
+            
+            # Create profile
+            OrganizationProfile.objects.create(
+                organization=org,
+                founded_year=founded_year,
+                organization_type=organization_type,
+                hq_city=hq_city,
+                hq_address=hq_address,
+                business_email=business_email,
+                trade_license=trade_license,
+                discord_link=discord_link,
+                instagram=instagram,
+                facebook=facebook,
+                youtube=youtube,
+                region_code=region_code,
+                currency=currency,
+                payout_method=payout_method,
+                brand_color=brand_color,
+            )
+            
+            # Create CEO membership
+            OrganizationMembership.objects.create(
+                organization=org,
+                user=request.user,
+                role='CEO'
+            )
+            
+            logger.info(
+                f"Organization created: {org.name}",
+                extra={
+                    'event_type': 'org_created',
+                    'org_id': org.id,
+                    'org_slug': org.slug,
+                    'ceo_id': request.user.id,
+                }
+            )
+            
+            return Response({
+                'ok': True,
+                'data': {
+                    'organization_id': org.id,
+                    'organization_slug': org.slug,
+                    'organization_url': org.get_absolute_url(),
+                }
+            })
+    
+    except Exception as e:
+        logger.exception(
+            f"Error creating organization",
+            extra={
+                'event_type': 'org_creation_error',
+                'user_id': request.user.id,
+                'exception_type': type(e).__name__,
+            }
+        )
+        return Response({
+            'ok': False,
+            'error_code': 'INTERNAL_ERROR',
+            'safe_message': 'Failed to create organization. Please try again.',
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

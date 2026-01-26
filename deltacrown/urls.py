@@ -74,6 +74,9 @@ urlpatterns = [
     # vNext Organizations & Teams (MUST come before legacy teams to override /teams/create/)
     path("", include("apps.organizations.urls")),
     
+    # vNext Organizations API (explicitly registered namespace for {% url 'organizations_api:...' %})
+    path("api/vnext/", include(("apps.organizations.api.urls", "organizations_api"), namespace="organizations_api")),
+    
     # Tournament system - Admin only (frontend moved to legacy November 2, 2025)
     # URL namespace kept active for admin panel functionality
     path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),

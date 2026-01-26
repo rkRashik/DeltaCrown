@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organization Directory | DeltaCrown</title>
+    <meta name="description" content="Global Organization Rankings. Track the top esports empires, their earnings, and squad performance.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'corp': ['"Outfit"', 'sans-serif'],
+                        'tech': ['"Rajdhani"', 'sans-serif'],
+                        'mono': ['"Space Mono"', 'monospace'],
+                    },
+                    colors: {
+                        delta: {
+                            base: '#020204',
+                            surface: '#0A0A0F',
+                            highlight: '#12121A',
+                            gold: '#FFD700',
+                            violet: '#6C00FF',
+                            electric: '#00E5FF',
+                            success: '#10B981',
+                            danger: '#EF4444',
+                        }
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(rgba(255, 215, 0, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 215, 0, 0.03) 1px, transparent 1px)",
+                        'rank-1': 'linear-gradient(180deg, rgba(255, 215, 0, 0.1) 0%, rgba(0,0,0,0) 100%)',
+                        'rank-2': 'linear-gradient(180deg, rgba(192, 192, 192, 0.1) 0%, rgba(0,0,0,0) 100%)',
+                        'rank-3': 'linear-gradient(180deg, rgba(205, 127, 50, 0.1) 0%, rgba(0,0,0,0) 100%)',
+                    },
+                    boxShadow: {
+                        'glow-gold': '0 0 30px rgba(255, 215, 0, 0.1)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #020204; color: #E2E8F0; font-family: 'Outfit', sans-serif; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #FFD700; }
+
+        /* Glass Utility */
+        .glass-panel {
+            background: rgba(18, 18, 26, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Rank Badge */
+        .rank-badge {
+            clip-path: polygon(0 0, 100% 0, 85% 100%, 15% 100%);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="fixed inset-0 z-0 pointer-events-none">
+        <div class="absolute inset-0 bg-grid-pattern bg-[length:40px_40px] opacity-20"></div>
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-delta-violet/10 rounded-full blur-[150px]"></div>
+    </div>
+
+    <div class="relative z-10 min-h-screen flex flex-col">
+        
+        <header class="h-20 border-b border-white/5 bg-delta-base/90 backdrop-blur sticky top-0 z-50 flex items-center px-8 justify-between">
+            <div class="flex items-center gap-2 font-tech font-bold text-xl uppercase tracking-wider text-white">
+                <span class="text-delta-gold">Delta</span>Crown
+            </div>
+            <button class="px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-bold uppercase tracking-widest transition">
+                Create Organization
+            </button>
+        </header>
+
+        <section class="pt-16 pb-12 px-6">
+            <div class="max-w-[1400px] mx-auto">
+                <div class="text-center mb-16">
+                    <h1 class="text-5xl md:text-7xl font-tech font-black text-white uppercase tracking-tight mb-4">
+                        Global <span class="text-transparent bg-clip-text bg-gradient-to-r from-delta-gold via-delta-violet to-delta-electric">Empires</span>
+                    </h1>
+                    <p class="text-slate-400 max-w-2xl mx-auto">The highest-grossing and most influential organizations in the DeltaCrown ecosystem.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-end relative">
+                    
+                    <div class="order-2 md:order-1 bg-delta-surface border border-white/10 rounded-t-2xl relative overflow-hidden group hover:-translate-y-2 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-rank-2 opacity-50"></div>
+                        <div class="p-6 relative z-10 text-center">
+                            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-8 bg-gray-400 rank-badge flex items-center justify-center text-black font-bold font-mono text-sm shadow-lg shadow-gray-400/20">#2</div>
+                            
+                            <div class="mt-8 mb-4 mx-auto w-24 h-24 rounded-full p-1 bg-gradient-to-b from-gray-400 to-transparent">
+                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed=TL" class="w-full h-full rounded-full bg-black object-cover">
+                            </div>
+                            
+                            <h2 class="text-2xl font-tech font-bold text-white uppercase tracking-wide">Team Liquid</h2>
+                            <div class="flex items-center justify-center gap-2 text-xs text-gray-400 font-mono mt-1">
+                                <img src="https://flagcdn.com/w20/nl.png" class="w-4 rounded-sm"> Netherlands
+                            </div>
+
+                            <div class="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+                                <div>
+                                    <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Earnings</div>
+                                    <div class="text-white font-mono font-bold">$1.2M</div>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">CP</div>
+                                    <div class="text-gray-300 font-mono font-bold">42,500</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="h-2 w-full bg-gray-400/50"></div>
+                    </div>
+
+                    <div class="order-1 md:order-2 bg-delta-surface border border-delta-gold/30 rounded-t-2xl relative overflow-hidden group shadow-glow-gold transform scale-105 z-10">
+                        <div class="absolute inset-0 bg-rank-1 opacity-60"></div>
+                        <div class="absolute -top-6 -right-6 text-delta-gold/10 text-9xl rotate-12"><i class="fas fa-crown"></i></div>
+
+                        <div class="p-8 relative z-10 text-center">
+                            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-10 bg-delta-gold rank-badge flex items-center justify-center text-black font-bold font-mono text-lg shadow-lg shadow-delta-gold/30">#1</div>
+                            
+                            <div class="mt-8 mb-4 mx-auto w-32 h-32 rounded-full p-1 bg-gradient-to-b from-delta-gold to-transparent">
+                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed=Syntax" class="w-full h-full rounded-full bg-black object-cover">
+                            </div>
+                            
+                            <h2 class="text-4xl font-tech font-bold text-white uppercase tracking-wide mb-1">SYNTAX</h2>
+                            <div class="flex items-center justify-center gap-2 text-xs text-delta-gold font-mono uppercase tracking-widest">
+                                <img src="https://flagcdn.com/w20/bd.png" class="w-4 rounded-sm grayscale-0"> Bangladesh
+                            </div>
+
+                            <div class="mt-8 pt-6 border-t border-delta-gold/20 grid grid-cols-3 gap-4">
+                                <div>
+                                    <div class="text-[10px] text-delta-gold/70 uppercase tracking-widest font-bold">Squads</div>
+                                    <div class="text-white font-mono font-bold text-lg">12</div>
+                                </div>
+                                <div class="border-x border-delta-gold/10">
+                                    <div class="text-[10px] text-delta-gold/70 uppercase tracking-widest font-bold">Earnings</div>
+                                    <div class="text-delta-gold font-mono font-bold text-lg">$2.8M</div>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] text-delta-gold/70 uppercase tracking-widest font-bold">Points</div>
+                                    <div class="text-white font-mono font-bold text-lg">85k</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="h-3 w-full bg-delta-gold"></div>
+                    </div>
+
+                    <div class="order-3 md:order-3 bg-delta-surface border border-white/10 rounded-t-2xl relative overflow-hidden group hover:-translate-y-2 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-rank-3 opacity-50"></div>
+                        <div class="p-6 relative z-10 text-center">
+                            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-8 bg-orange-700 rank-badge flex items-center justify-center text-white font-bold font-mono text-sm shadow-lg shadow-orange-900/20">#3</div>
+                            
+                            <div class="mt-8 mb-4 mx-auto w-24 h-24 rounded-full p-1 bg-gradient-to-b from-orange-700 to-transparent">
+                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed=PRX" class="w-full h-full rounded-full bg-black object-cover">
+                            </div>
+                            
+                            <h2 class="text-2xl font-tech font-bold text-white uppercase tracking-wide">Paper Rex</h2>
+                            <div class="flex items-center justify-center gap-2 text-xs text-gray-400 font-mono mt-1">
+                                <img src="https://flagcdn.com/w20/sg.png" class="w-4 rounded-sm"> Singapore
+                            </div>
+
+                            <div class="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+                                <div>
+                                    <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Earnings</div>
+                                    <div class="text-white font-mono font-bold">$980k</div>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">CP</div>
+                                    <div class="text-orange-300 font-mono font-bold">38,100</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="h-2 w-full bg-orange-800/50"></div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <section class="px-6 pb-24">
+            <div class="max-w-[1400px] mx-auto">
+                
+                <div class="flex flex-col md:flex-row justify-between items-end gap-4 mb-6">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="relative group">
+                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-delta-electric transition-colors"></i>
+                            <input type="text" placeholder="Search Organization..." class="bg-delta-surface border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-delta-electric transition-all w-64 font-corp">
+                        </div>
+
+                        <div class="relative">
+                            <select class="bg-delta-surface border border-white/10 text-white text-xs font-bold uppercase tracking-wider py-3 pl-4 pr-10 rounded-lg appearance-none cursor-pointer hover:bg-white/5 transition focus:border-delta-electric">
+                                <option>All Games</option>
+                                <option>Valorant</option>
+                                <option>CS2</option>
+                                <option>Mobile Legends</option>
+                            </select>
+                            <i class="fas fa-filter absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
+                        </div>
+
+                        <div class="relative">
+                            <select class="bg-delta-surface border border-white/10 text-white text-xs font-bold uppercase tracking-wider py-3 pl-4 pr-10 rounded-lg appearance-none cursor-pointer hover:bg-white/5 transition focus:border-delta-electric">
+                                <option>Global</option>
+                                <option>Asia Pacific</option>
+                                <option>Europe</option>
+                                <option>Americas</option>
+                            </select>
+                            <i class="fas fa-globe absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
+                        </div>
+                    </div>
+
+                    <div class="text-xs text-slate-500 font-mono">
+                        Showing 1-20 of 142 Organizations
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-xl overflow-hidden border border-white/10">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-delta-highlight border-b border-white/10 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                                <tr>
+                                    <th class="p-5 w-20 text-center">Rank</th>
+                                    <th class="p-5">Organization</th>
+                                    <th class="p-5">Region</th>
+                                    <th class="p-5 text-center">Active Squads</th>
+                                    <th class="p-5 text-right">Total Earnings</th>
+                                    <th class="p-5 text-right text-delta-gold">Crown Points</th>
+                                    <th class="p-5 text-center">Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/5 text-sm font-corp">
+                                
+                                <tr class="hover:bg-white/5 transition-colors group">
+                                    <td class="p-5 text-center font-mono font-bold text-slate-300">#4</td>
+                                    <td class="p-5">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-10 h-10 rounded bg-black border border-white/10 p-1">
+                                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed=G2" class="w-full h-full object-cover rounded-sm">
+                                            </div>
+                                            <div>
+                                                <div class="text-white font-bold flex items-center gap-2">
+                                                    G2 Esports <i class="fas fa-check-circle text-delta-electric text-[10px]" title="Verified"></i>
+                                                </div>
+                                                <div class="text-xs text-slate-500 font-mono">G2</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-5">
+                                        <div class="flex items-center gap-2 text-slate-400 text-xs">
+                                            <img src="https://flagcdn.com/w20/de.png" class="w-4 rounded-sm"> Europe
+                                        </div>
+                                    </td>
+                                    <td class="p-5 text-center">
+                                        <span class="bg-white/5 border border-white/10 px-2 py-1 rounded text-xs text-white font-mono">8</span>
+                                    </td>
+                                    <td class="p-5 text-right font-mono text-slate-300">$840,200</td>
+                                    <td class="p-5 text-right font-mono font-bold text-delta-gold">28,400</td>
+                                    <td class="p-5 text-center text-delta-success text-xs font-bold">
+                                        <i class="fas fa-caret-up"></i> 2
+                                    </td>
+                                </tr>
+
+                                <tr class="hover:bg-white/5 transition-colors group">
+                                    <td class="p-5 text-center font-mono font-bold text-slate-300">#5</td>
+                                    <td class="p-5">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-10 h-10 rounded bg-black border border-white/10 p-1">
+                                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed=FNC" class="w-full h-full object-cover rounded-sm">
+                                            </div>
+                                            <div>
+                                                <div class="text-white font-bold flex items-center gap-2">
+                                                    Fnatic <i class="fas fa-check-circle text-delta-electric text-[10px]" title="Verified"></i>
+                                                </div>
+                                                <div class="text-xs text-slate-500 font-mono">FNC</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-5">
+                                        <div class="flex items-center gap-2 text-slate-400 text-xs">
+                                            <img src="https://flagcdn.com/w20/gb.png" class="w-4 rounded-sm"> UK
+                                        </div>
+                                    </td>
+                                    <td class="p-5 text-center">
+                                        <span class="bg-white/5 border border-white/10 px-2 py-1 rounded text-xs text-white font-mono">6</span>
+                                    </td>
+                                    <td class="p-5 text-right font-mono text-slate-300">$710,500</td>
+                                    <td class="p-5 text-right font-mono font-bold text-delta-gold">24,150</td>
+                                    <td class="p-5 text-center text-slate-600 text-xs font-bold">
+                                        <i class="fas fa-minus"></i>
+                                    </td>
+                                </tr>
+
+                                <tr class="hover:bg-white/5 transition-colors group">
+                                    <td class="p-5 text-center font-mono font-bold text-slate-300">#6</td>
+                                    <td class="p-5">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-10 h-10 rounded bg-black border border-white/10 p-1">
+                                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed=SEN" class="w-full h-full object-cover rounded-sm">
+                                            </div>
+                                            <div>
+                                                <div class="text-white font-bold flex items-center gap-2">
+                                                    Sentinels <i class="fas fa-check-circle text-delta-electric text-[10px]" title="Verified"></i>
+                                                </div>
+                                                <div class="text-xs text-slate-500 font-mono">SEN</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-5">
+                                        <div class="flex items-center gap-2 text-slate-400 text-xs">
+                                            <img src="https://flagcdn.com/w20/us.png" class="w-4 rounded-sm"> USA
+                                        </div>
+                                    </td>
+                                    <td class="p-5 text-center">
+                                        <span class="bg-white/5 border border-white/10 px-2 py-1 rounded text-xs text-white font-mono">4</span>
+                                    </td>
+                                    <td class="p-5 text-right font-mono text-slate-300">$680,000</td>
+                                    <td class="p-5 text-right font-mono font-bold text-delta-gold">22,800</td>
+                                    <td class="p-5 text-center text-delta-danger text-xs font-bold">
+                                        <i class="fas fa-caret-down"></i> 1
+                                    </td>
+                                </tr>
+                                
+                                <tr class="hover:bg-white/5 transition-colors group">
+                                    <td class="p-5 text-center font-mono font-bold text-slate-500">#7</td>
+                                    <td class="p-5">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-10 h-10 rounded bg-black border border-white/10 p-1">
+                                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed=DHAKA" class="w-full h-full object-cover rounded-sm">
+                                            </div>
+                                            <div>
+                                                <div class="text-white font-bold flex items-center gap-2">
+                                                    Dhaka Strikers
+                                                </div>
+                                                <div class="text-xs text-slate-500 font-mono">DST</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-5">
+                                        <div class="flex items-center gap-2 text-slate-400 text-xs">
+                                            <img src="https://flagcdn.com/w20/bd.png" class="w-4 rounded-sm"> Bangladesh
+                                        </div>
+                                    </td>
+                                    <td class="p-5 text-center">
+                                        <span class="bg-white/5 border border-white/10 px-2 py-1 rounded text-xs text-white font-mono">2</span>
+                                    </td>
+                                    <td class="p-5 text-right font-mono text-slate-300">$45,000</td>
+                                    <td class="p-5 text-right font-mono font-bold text-delta-gold">18,200</td>
+                                    <td class="p-5 text-center text-delta-success text-xs font-bold">
+                                        <i class="fas fa-caret-up"></i> 5
+                                    </td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="p-4 border-t border-white/10 flex justify-between items-center bg-delta-highlight">
+                        <span class="text-xs text-slate-500 font-mono">Showing rows 1-20</span>
+                        <div class="flex gap-2">
+                            <button class="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white transition"><i class="fas fa-chevron-left"></i></button>
+                            <button class="px-3 py-1 bg-delta-gold text-black border border-delta-gold rounded text-xs font-bold transition">1</button>
+                            <button class="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white transition">2</button>
+                            <button class="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white transition">3</button>
+                            <button class="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white transition"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="border-t border-white/5 bg-delta-base pt-12 pb-8">
+            <div class="max-w-[1400px] mx-auto px-6 text-center">
+                <p class="text-xs text-slate-600 font-corp">© 2026 DeltaCrown Inc. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

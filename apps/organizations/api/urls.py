@@ -32,10 +32,15 @@ from apps.organizations.api import views, hub_endpoints
 app_name = 'organizations_api'
 
 urlpatterns = [
-    # Organization creation
+    # Organization creation (P3-T7)
+    path('organizations/validate-name/', views.validate_organization_name, name='validate_organization_name'),
+    path('organizations/validate-badge/', views.validate_organization_badge, name='validate_organization_badge'),
+    path('organizations/validate-slug/', views.validate_organization_slug, name='validate_organization_slug'),
     path('organizations/create/', views.create_organization, name='create_organization'),
     
     # Team creation
+    path('teams/validate-name/', views.validate_team_name, name='validate_team_name'),
+    path('teams/validate-tag/', views.validate_team_tag, name='validate_team_tag'),
     path('teams/create/', views.create_team, name='create_team'),
     
     # Organization management (P3-T5)
@@ -51,6 +56,13 @@ urlpatterns = [
     path('teams/<str:team_slug>/members/<int:member_id>/role/', views.update_member_role, name='team_update_role'),
     path('teams/<str:team_slug>/members/<int:member_id>/remove/', views.remove_team_member, name='team_remove_member'),
     path('teams/<str:team_slug>/settings/', views.update_team_settings, name='team_update_settings'),
+    
+    # Phase D: Team invite management
+    path('teams/invites/', views.list_team_invites, name='list_invites'),
+    path('teams/invites/membership/<int:membership_id>/accept/', views.accept_membership_invite, name='accept_membership'),
+    path('teams/invites/membership/<int:membership_id>/decline/', views.decline_membership_invite, name='decline_membership'),
+    path('teams/invites/email/<uuid:token>/accept/', views.accept_email_invite, name='accept_email'),
+    path('teams/invites/email/<uuid:token>/decline/', views.decline_email_invite, name='decline_email'),
     
     # Phase C: Hub live widget endpoints
     path('system/ticker/', hub_endpoints.ticker_feed, name='ticker_feed'),

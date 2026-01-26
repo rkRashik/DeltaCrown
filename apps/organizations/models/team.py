@@ -45,6 +45,18 @@ class Team(models.Model):
         db_index=True,
         help_text="URL-safe identifier (auto-generated from name)"
     )
+    tag = models.CharField(
+        max_length=5,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="Team tag/abbreviation (e.g., 'PRTCL', 'SYN') - max 5 chars, unique per game"
+    )
+    tagline = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Short team motto/slogan (e.g., 'Victory Through Strategy')"
+    )
     
     # Ownership (mutually exclusive: organization XOR owner)
     organization = models.ForeignKey(
@@ -153,6 +165,13 @@ class Team(models.Model):
                 ),
                 name='team_has_organization_xor_owner'
             ),
+            # Tag uniqueness per game (case-sensitive at DB level, case-insensitive enforced in app)
+            # Allows NULL tags (teams can exist without tags)
+            models.UniqueConstraint(
+                fields=['game_id', 'tag'],
+                condition=Q(tag__isnull=False),
+                name='unique_tag_per_game'
+            ),
         ]
         
         indexes = [
@@ -161,6 +180,7 @@ class Team(models.Model):
             models.Index(fields=['organization'], name='team_org_idx'),
             models.Index(fields=['status'], name='team_status_idx'),
             models.Index(fields=['owner', 'game_id'], name='team_owner_game_idx'),
+            models.Index(fields=['game_id', 'tag'], name='team_game_tag_idx'),
         ]
         
         verbose_name = 'Team'

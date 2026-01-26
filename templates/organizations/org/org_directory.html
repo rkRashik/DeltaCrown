@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Organization Directory | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            extend: {
+                fontFamily: {
+                    'corp': ['"Outfit"', 'sans-serif'],
+                    'tech': ['"Rajdhani"', 'sans-serif'],
+                    'mono': ['"Space Mono"', 'monospace'],
+                },
+                colors: {
+                    delta: {
+                        base: '#020204',
+                        surface: '#0A0A0F',
+                        highlight: '#12121A',
+                        gold: '#FFD700',
+                        violet: '#6C00FF',
+                        electric: '#00E5FF',
+                        success: '#10B981',
+                        danger: '#EF4444',
+                    }
+                },
+                backgroundImage: {
+                    'grid-pattern': "linear-gradient(rgba(255, 215, 0, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 215, 0, 0.03) 1px, transparent 1px)",
+                    'rank-1': 'linear-gradient(180deg, rgba(255, 215, 0, 0.1) 0%, rgba(0,0,0,0) 100%)',
+                    'rank-2': 'linear-gradient(180deg, rgba(192, 192, 192, 0.1) 0%, rgba(0,0,0,0) 100%)',
+                    'rank-3': 'linear-gradient(180deg, rgba(205, 127, 50, 0.1) 0%, rgba(0,0,0,0) 100%)',
+                },
+                boxShadow: {
+                    'glow-gold': '0 0 30px rgba(255, 215, 0, 0.1)',
+                }
+            }
+        }
+    }
+</script>
+
+<style>
+    body { background-color: #020204; color: #E2E8F0; font-family: 'Outfit', sans-serif; }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #050505; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #FFD700; }
+
+    /* Glass Utility */
+    .glass-panel {
+        background: rgba(18, 18, 26, 0.6);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Rank Badge */
+    .rank-badge {
+        clip-path: polygon(0 0, 100% 0, 85% 100%, 15% 100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fixed inset-0 z-0 pointer-events-none">
+    <div class="absolute inset-0 bg-grid-pattern bg-[length:40px_40px] opacity-20"></div>
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-delta-violet/10 rounded-full blur-[150px]"></div>
+</div>
+
+<div class="relative z-10 min-h-screen flex flex-col pt-16 pb-12">
+    
+    <section class="px-6">
+        <div class="max-w-[1400px] mx-auto">
+            <div class="flex justify-between items-start mb-16">
+                <div>
+                    <h1 class="text-5xl md:text-7xl font-tech font-black text-white uppercase tracking-tight mb-4">
+                        Global <span class="text-transparent bg-clip-text bg-gradient-to-r from-delta-gold via-delta-violet to-delta-electric">Empires</span>
+                    </h1>
+                    <p class="text-slate-400 max-w-2xl">The highest-grossing and most influential organizations in the DeltaCrown ecosystem.</p>
+                </div>
+                <a href="{% url 'organizations:org_create' %}" class="px-6 py-3 bg-delta-gold/10 hover:bg-delta-gold/20 border-2 border-delta-gold rounded-lg text-sm font-bold uppercase tracking-widest text-delta-gold transition flex items-center gap-2">
+                    <i class="fas fa-plus-circle"></i> Create Organization
+                </a>
+            </div>
+
+            {% if top_three_orgs %}
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-end relative">
+                
+                {% for org in top_three_orgs %}
+                    {% if forloop.counter == 2 %}
+                        {# Rank 2 - Silver #}
+                        <div class="order-2 md:order-1 bg-delta-surface border border-white/10 rounded-t-2xl relative overflow-hidden group hover:-translate-y-2 transition-transform duration-500">
+                            <div class="absolute inset-0 bg-rank-2 opacity-50"></div>
+                            <div class="p-6 relative z-10 text-center">
+                                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-8 bg-gray-400 rank-badge flex items-center justify-center text-black font-bold font-mono text-sm shadow-lg shadow-gray-400/20">#2</div>
+                                
+                                <div class="mt-8 mb-4 mx-auto w-24 h-24 rounded-full p-1 bg-gradient-to-b from-gray-400 to-transparent">
+                                    {% if org.logo %}
+                                        <img src="{{ org.logo.url }}" class="w-full h-full rounded-full bg-black object-cover">
+                                    {% else %}
+                                        <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full rounded-full bg-black object-cover">
+                                    {% endif %}
+                                </div>
+                                
+                                <h2 class="text-2xl font-tech font-bold text-white uppercase tracking-wide">
+                                    <a href="{% url 'organizations:organization_detail' org_slug=org.slug %}" class="hover:text-gray-300 transition">{{ org.name }}</a>
+                                </h2>
+                                <div class="flex items-center justify-center gap-2 text-xs text-gray-400 font-mono mt-1">
+                                    {% if org.profile.region_code %}
+                                        <img src="https://flagcdn.com/w20/{{ org.profile.region_code|lower }}.png" class="w-4 rounded-sm" onerror="this.style.display='none'"> {{ org.profile.hq_city|default:org.profile.region_code }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </div>
+
+                                <div class="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+                                    <div>
+                                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Squads</div>
+                                        <div class="text-white font-mono font-bold">{{ org.squads_count|default:0 }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Score</div>
+                                        <div class="text-gray-300 font-mono font-bold">{{ org.ranking.empire_score|default:0|floatformat:0 }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="h-2 w-full bg-gray-400/50"></div>
+                        </div>
+                    {% elif forloop.counter == 1 %}
+                        {# Rank 1 - Gold #}
+                        <div class="order-1 md:order-2 bg-delta-surface border border-delta-gold/30 rounded-t-2xl relative overflow-hidden group shadow-glow-gold transform scale-105 z-10">
+                            <div class="absolute inset-0 bg-rank-1 opacity-60"></div>
+                            <div class="absolute -top-6 -right-6 text-delta-gold/10 text-9xl rotate-12"><i class="fas fa-crown"></i></div>
+
+                            <div class="p-8 relative z-10 text-center">
+                                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-10 bg-delta-gold rank-badge flex items-center justify-center text-black font-bold font-mono text-lg shadow-lg shadow-delta-gold/30">#1</div>
+                                
+                                <div class="mt-8 mb-4 mx-auto w-32 h-32 rounded-full p-1 bg-gradient-to-b from-delta-gold to-transparent">
+                                    {% if org.logo %}
+                                        <img src="{{ org.logo.url }}" class="w-full h-full rounded-full bg-black object-cover">
+                                    {% else %}
+                                        <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full rounded-full bg-black object-cover">
+                                    {% endif %}
+                                </div>
+                                
+                                <h2 class="text-4xl font-tech font-bold text-white uppercase tracking-wide mb-1">
+                                    <a href="{% url 'organizations:organization_detail' org_slug=org.slug %}" class="hover:text-delta-gold transition">{{ org.name }}</a>
+                                </h2>
+                                <div class="flex items-center justify-center gap-2 text-xs text-delta-gold font-mono uppercase tracking-widest">
+                                    {% if org.profile.region_code %}
+                                        <img src="https://flagcdn.com/w20/{{ org.profile.region_code|lower }}.png" class="w-4 rounded-sm grayscale-0" onerror="this.style.display='none'"> {{ org.profile.hq_city|default:org.profile.region_code }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </div>
+
+                                <div class="mt-8 pt-6 border-t border-delta-gold/20 grid grid-cols-3 gap-4">
+                                    <div>
+                                        <div class="text-[10px] text-delta-gold/70 uppercase tracking-widest font-bold">Squads</div>
+                                        <div class="text-white font-mono font-bold text-lg">{{ org.squads_count|default:0 }}</div>
+                                    </div>
+                                    <div class="border-x border-delta-gold/10">
+                                        <div class="text-[10px] text-delta-gold/70 uppercase tracking-widest font-bold">Verified</div>
+                                        <div class="text-delta-gold font-mono font-bold text-lg">
+                                            {% if org.is_verified %}<i class="fas fa-check-circle"></i>{% else %}—{% endif %}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="text-[10px] text-delta-gold/70 uppercase tracking-widest font-bold">Score</div>
+                                        <div class="text-white font-mono font-bold text-lg">{{ org.ranking.empire_score|default:0|floatformat:0 }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="h-3 w-full bg-delta-gold"></div>
+                        </div>
+                    {% elif forloop.counter == 3 %}
+                        {# Rank 3 - Bronze #}
+                        <div class="order-3 md:order-3 bg-delta-surface border border-white/10 rounded-t-2xl relative overflow-hidden group hover:-translate-y-2 transition-transform duration-500">
+                            <div class="absolute inset-0 bg-rank-3 opacity-50"></div>
+                            <div class="p-6 relative z-10 text-center">
+                                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-8 bg-orange-700 rank-badge flex items-center justify-center text-white font-bold font-mono text-sm shadow-lg shadow-orange-900/20">#3</div>
+                                
+                                <div class="mt-8 mb-4 mx-auto w-24 h-24 rounded-full p-1 bg-gradient-to-b from-orange-700 to-transparent">
+                                    {% if org.logo %}
+                                        <img src="{{ org.logo.url }}" class="w-full h-full rounded-full bg-black object-cover">
+                                    {% else %}
+                                        <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full rounded-full bg-black object-cover">
+                                    {% endif %}
+                                </div>
+                                
+                                <h2 class="text-2xl font-tech font-bold text-white uppercase tracking-wide">
+                                    <a href="{% url 'organizations:organization_detail' org_slug=org.slug %}" class="hover:text-orange-300 transition">{{ org.name }}</a>
+                                </h2>
+                                <div class="flex items-center justify-center gap-2 text-xs text-gray-400 font-mono mt-1">
+                                    {% if org.profile.region_code %}
+                                        <img src="https://flagcdn.com/w20/{{ org.profile.region_code|lower }}.png" class="w-4 rounded-sm" onerror="this.style.display='none'"> {{ org.profile.hq_city|default:org.profile.region_code }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </div>
+
+                                <div class="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4">
+                                    <div>
+                                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Squads</div>
+                                        <div class="text-white font-mono font-bold">{{ org.squads_count|default:0 }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Score</div>
+                                        <div class="text-orange-300 font-mono font-bold">{{ org.ranking.empire_score|default:0|floatformat:0 }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="h-2 w-full bg-orange-800/50"></div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="px-6 pb-24 mt-16">
+        <div class="max-w-[1400px] mx-auto">
+            
+            <form method="get" action="" class="flex flex-col md:flex-row justify-between items-end gap-4 mb-6">
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="relative group">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-delta-electric transition-colors"></i>
+                        <input type="text" id="org-search" name="q" value="{{ q }}" placeholder="Search Organization..." class="bg-delta-surface border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-delta-electric transition-all w-64 font-corp">
+                    </div>
+
+                    <div class="relative">
+                        <select id="region-filter" name="region" class="bg-delta-surface border border-white/10 text-white text-xs font-bold uppercase tracking-wider py-3 pl-4 pr-10 rounded-lg appearance-none cursor-pointer hover:bg-white/5 transition focus:border-delta-electric">
+                            <option value="">Global</option>
+                            <option value="BD" {% if region == "BD" %}selected{% endif %}>Bangladesh</option>
+                            <option value="US" {% if region == "US" %}selected{% endif %}>USA</option>
+                            <option value="GB" {% if region == "GB" %}selected{% endif %}>UK</option>
+                            <option value="SG" {% if region == "SG" %}selected{% endif %}>Singapore</option>
+                            <option value="DE" {% if region == "DE" %}selected{% endif %}>Germany</option>
+                            <option value="NL" {% if region == "NL" %}selected{% endif %}>Netherlands</option>
+                        </select>
+                        <i class="fas fa-globe absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
+                    </div>
+                    
+                    <button type="submit" class="px-4 py-2.5 bg-delta-electric/10 hover:bg-delta-electric/20 border border-delta-electric rounded-lg text-xs font-bold uppercase tracking-wider text-delta-electric transition">
+                        Apply
+                    </button>
+                </div>
+
+                <div class="text-xs text-slate-500 font-mono">
+                    Showing {{ rows|length }} of {{ total_count }} Organizations
+                </div>
+            </form>
+
+            <div class="glass-panel rounded-xl overflow-hidden border border-white/10">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-delta-highlight border-b border-white/10 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                            <tr>
+                                <th class="p-5 w-20 text-center">Rank</th>
+                                <th class="p-5">Organization</th>
+                                <th class="p-5">Region</th>
+                                <th class="p-5 text-center">Active Squads</th>
+                                <th class="p-5 text-right text-delta-gold">Empire Score</th>
+                                <th class="p-5 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5 text-sm font-corp">
+                            
+                            {% for org in rows %}
+                            <tr class="hover:bg-white/5 transition-colors group">
+                                <td class="p-5 text-center font-mono font-bold text-slate-300">#{{ forloop.counter|add:3 }}</td>
+                                <td class="p-5">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded bg-black border border-white/10 p-1">
+                                            {% if org.logo %}
+                                                <img src="{{ org.logo.url }}" class="w-full h-full object-cover rounded-sm">
+                                            {% else %}
+                                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ org.slug }}" class="w-full h-full object-cover rounded-sm">
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <div class="text-white font-bold flex items-center gap-2">
+                                                <a href="{% url 'organizations:organization_detail' org_slug=org.slug %}" class="hover:text-delta-electric transition">
+                                                    {{ org.name }}
+                                                </a>
+                                                {% if org.is_verified %}
+                                                <i class="fas fa-check-circle text-delta-electric text-[10px]" title="Verified"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div class="text-xs text-slate-500 font-mono">{{ org.slug|upper }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="p-5">
+                                    <div class="flex items-center gap-2 text-slate-400 text-xs">
+                                        {% if org.profile.region_code %}
+                                            <img src="https://flagcdn.com/w20/{{ org.profile.region_code|lower }}.png" class="w-4 rounded-sm" onerror="this.style.display='none'"> {{ org.profile.hq_city|default:org.profile.region_code }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="p-5 text-center">
+                                    <span class="bg-white/5 border border-white/10 px-2 py-1 rounded text-xs text-white font-mono">{{ org.squads_count|default:0 }}</span>
+                                </td>
+                                <td class="p-5 text-right font-mono font-bold text-delta-gold">{{ org.ranking.empire_score|default:0|floatformat:0 }}</td>
+                                <td class="p-5 text-center text-xs">
+                                    {% if org.is_verified %}
+                                        <span class="bg-delta-success/10 border border-delta-success text-delta-success px-2 py-1 rounded font-bold uppercase">Active</span>
+                                    {% else %}
+                                        <span class="bg-slate-700/10 border border-slate-600 text-slate-500 px-2 py-1 rounded font-bold uppercase">Pending</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="p-12 text-center">
+                                    <div class="text-slate-500 text-sm">
+                                        <i class="fas fa-search text-3xl mb-4 block opacity-30"></i>
+                                        <p class="font-bold">No organizations found</p>
+                                        <p class="text-xs mt-2">Try adjusting your search or filters</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if page_count > 1 %}
+                <div class="p-4 border-t border-white/10 flex justify-between items-center bg-delta-highlight">
+                    <span class="text-xs text-slate-500 font-mono">Page {{ page }} of {{ page_count }}</span>
+                    <div class="flex gap-2">
+                        {% if has_previous %}
+                            <a href="?page={{ previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if region %}&region={{ region }}{% endif %}" class="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white transition"><i class="fas fa-chevron-left"></i></a>
+                        {% else %}
+                            <button disabled class="px-3 py-1 bg-white/5 border border-white/10 rounded text-xs text-slate-600 cursor-not-allowed"><i class="fas fa-chevron-left"></i></button>
+                        {% endif %}
+                        
+                        {% for p in page_count|make_list %}
+                            {% with page_num=forloop.counter %}
+                                {% if page_num == page %}
+                                    <button class="px-3 py-1 bg-delta-gold text-black border border-delta-gold rounded text-xs font-bold">{{ page_num }}</button>
+                                {% elif page_num <= 3 or page_num == page_count or page_num == page|add:"-1" or page_num == page|add:"1" %}
+                                    <a href="?page={{ page_num }}{% if q %}&q={{ q }}{% endif %}{% if region %}&region={{ region }}{% endif %}" class="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white transition">{{ page_num }}</a>
+                                {% endif %}
+                            {% endwith %}
+                        {% endfor %}
+                        
+                        {% if has_next %}
+                            <a href="?page={{ next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if region %}&region={{ region }}{% endif %}" class="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white transition"><i class="fas fa-chevron-right"></i></a>
+                        {% else %}
+                            <button disabled class="px-3 py-1 bg-white/5 border border-white/10 rounded text-xs text-slate-600 cursor-not-allowed"><i class="fas fa-chevron-right"></i></button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<script src="{% static 'organizations/org/org_directory.js' %}"></script>
+{% endblock %}

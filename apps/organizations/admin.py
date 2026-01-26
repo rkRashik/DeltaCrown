@@ -5,12 +5,14 @@ COMPATIBILITY: vNext-only. Does NOT affect legacy team system.
 QUERY OPTIMIZATION: Uses select_related and raw_id_fields to prevent N+1 queries.
 """
 
+from django import forms
 from django.contrib import admin
 from django.db.models import Count, Q
 from django.utils.html import format_html
 
 from apps.organizations.models import (
     Organization,
+    OrganizationProfile,
     OrganizationMembership,
     OrganizationRanking,
     Team,
@@ -20,26 +22,100 @@ from apps.organizations.models import (
 )
 
 
-@admin.register(Organization)
-class OrganizationAdmin(admin.ModelAdmin):
-    """Admin interface for vNext Organizations."""
+class OrganizationAdminForm(forms.ModelForm):
+    """Custom form for Organization admin with better field labels."""
     
-    list_display = ['name', 'slug', 'ceo_link', 'member_count', 'team_count', 'is_verified', 'created_at']
-    search_fields = ['name', 'slug', 'ceo__username', 'ceo__email']
-    list_filter = ['is_verified', 'created_at']
-    raw_id_fields = ['ceo']
-    ordering = ['-created_at']
-    readonly_fields = ['created_at', 'updated_at', 'member_count', 'team_count']
+    class Meta:
+        model = Organization
+        fields = '__all__'
+        labels = {
+            'description': 'Manifesto',
+            'public_id': 'Public ID',
+            'uuid': 'UUID',
+        }
+        help_texts = {
+            'description': 'Organization mission statement and values (shown on profile)',
+            'website': 'Official organization website URL',
+            'enforce_brand': 'Force all teams to use organization logo (disable custom team logos)',
+        }
+
+
+class OrganizationProfileInline(admin.StackedInline):
+    """Inline editor for OrganizationProfile fields."""
+    model = OrganizationProfile
+    can_delete = False
+    verbose_name = 'Extended Profile'
+    verbose_name_plural = 'Extended Profile'
     
     fieldsets = (
-        ('Basic Information', {
-            'fields': ('name', 'slug', 'ceo', 'description')
+        ('Operations', {
+            'fields': ('founded_year', 'organization_type', 'hq_city', 'hq_address', 'business_email', 'trade_license'),
+            'classes': ('collapse',)
+        }),
+        ('Social Links', {
+            'fields': ('discord_link', 'instagram', 'facebook', 'youtube'),
+            'description': 'Discord, Instagram, Facebook, YouTube links'
+        }),
+        ('Location & Treasury', {
+            'fields': ('region_code', 'currency', 'payout_method'),
+            'classes': ('collapse',)
         }),
         ('Branding', {
-            'fields': ('logo_url', 'banner_url', 'primary_color')
+            'fields': ('brand_color',)
         }),
-        ('Status', {
-            'fields': ('is_verified', 'created_at', 'updated_at', 'member_count', 'team_count')
+    )
+
+
+@admin.register(Organization)
+class OrganizationAdmin(admin.ModelAdmin):
+    """
+    Admin interface for vNext Organizations.
+    
+    Fieldsets mirror the organization creation wizard steps:
+    - Step 1: Identity (name, slug, manifesto, links)
+    - Step 4: Branding (logo, banner, brand enforcement)
+    - Verification (admin-only verification status)
+    - Financial/System (collapsed advanced fields)
+    """
+    
+    form = OrganizationAdminForm
+    list_display = ['name', 'slug', 'public_id_display', 'ceo_link', 'member_count', 'team_count', 'is_verified', 'created_at']
+    search_fields = ['name', 'slug', 'public_id', 'ceo__username', 'ceo__email']
+    list_filter = ['is_verified', 'created_at']
+    autocomplete_fields = ['ceo']
+    ordering = ['-created_at']
+    readonly_fields = ['public_id', 'uuid', 'id', 'created_at', 'updated_at', 'member_count', 'team_count']
+    inlines = [OrganizationProfileInline]
+    
+    fieldsets = (
+        ('Identity', {
+            'fields': ('public_id', 'name', 'slug', 'badge', 'description', 'ceo'),
+            'description': 'Core organization identity (wizard Step 1)'
+        }),
+        ('Website', {
+            'fields': ('website',)
+        }),
+        ('Branding', {
+            'fields': ('logo', 'banner', 'enforce_brand'),
+            'description': 'Visual assets and brand enforcement (wizard Step 4)'
+        }),
+        ('Verification', {
+            'fields': ('is_verified', 'verification_date'),
+            'description': 'Admin-only verification status'
+        }),
+        ('Financial / System', {
+            'fields': ('master_wallet_id', 'revenue_split_config'),
+            'classes': ('collapse',),
+            'description': 'Advanced system fields (Phase 3+)'
+        }),
+        ('System Identifiers', {
+            'fields': ('uuid', 'id'),
+            'classes': ('collapse',),
+            'description': 'Internal identifiers (UUID for cross-system integration, DB ID for legacy)'
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at', 'member_count', 'team_count'),
+            'classes': ('collapse',),
         }),
     )
     
@@ -55,6 +131,14 @@ class OrganizationAdmin(admin.ModelAdmin):
         return format_html('<a href="/admin/auth/user/{}/change/">{}</a>', obj.ceo.id, obj.ceo.username)
     ceo_link.short_description = 'CEO'
     ceo_link.admin_order_field = 'ceo__username'
+    
+    def public_id_display(self, obj):
+        """Display public_id with visual formatting."""
+        if obj.public_id:
+            return format_html('<code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">{}</code>', obj.public_id)
+        return '-'
+    public_id_display.short_description = 'Public ID'
+    public_id_display.admin_order_field = 'public_id'
     
     def member_count(self, obj):
         """Display active member count."""

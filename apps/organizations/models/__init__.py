@@ -18,8 +18,10 @@ HARD RULE: Do NOT import from apps.teams.models in this app.
 """
 
 from .organization import Organization, OrganizationMembership
+from .organization_profile import OrganizationProfile
 from .team import Team
 from .membership import TeamMembership
+from .team_invite import TeamInvite
 from .ranking import TeamRanking, OrganizationRanking
 from .migration import TeamMigrationMap
 from .activity import TeamActivityLog
@@ -28,10 +30,12 @@ __all__ = [
     # Organization models
     'Organization',
     'OrganizationMembership',
+    'OrganizationProfile',
     
     # Team models
     'Team',
     'TeamMembership',
+    'TeamInvite',
     
     # Ranking models
     'TeamRanking',

@@ -1,0 +1,552 @@
+{% extends "base.html" %}
+{% load static %}
+{% load org_media %}
+
+{% block title %}{{ organization.name }} Hub | DeltaCrown Enterprise{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom Font Families */
+    .font-corp { font-family: 'Outfit', sans-serif; }
+    .font-tech { font-family: 'Rajdhani', sans-serif; }
+    .font-mono { font-family: 'Space Mono', monospace; }
+
+    /* Background Effects */
+    body {
+        background-color: #020204;
+        color: #E2E8F0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    .bg-grid-pattern {
+        background-image: 
+            linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 60px 60px;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #050508; border-left: 1px solid rgba(255, 255, 255, 0.05); }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #6C00FF, #00E5FF); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #FFD700; }
+
+    /* Glassmorphism */
+    .glass-panel {
+        background: rgba(10, 10, 16, 0.7);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .glass-card-hover {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-card-hover:hover {
+        background: rgba(255, 255, 255, 0.03);
+        border-color: rgba(255, 215, 0, 0.3);
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.05);
+        transform: translateY(-2px);
+    }
+
+    /* Text Gradients */
+    .text-gradient-crown {
+        background: linear-gradient(to right, #FFD700, #6C00FF, #00E5FF);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* Animations */
+    @keyframes slideUpFade {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-enter { animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .delay-100 { animation-delay: 0.1s; opacity: 0; }
+    .delay-200 { animation-delay: 0.2s; opacity: 0; }
+
+    /* Shadows */
+    .shadow-glow-gold { box-shadow: 0 0 40px rgba(255, 215, 0, 0.15); }
+
+    /* Tooltip */
+    .has-tooltip { position: relative; }
+    .has-tooltip .tooltip-content {
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(10px);
+        transition: all 0.2s ease;
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #000;
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        z-index: 50;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    }
+    .has-tooltip:hover .tooltip-content {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    /* Nav Active */
+    .nav-link.active {
+        color: #FFD700;
+        border-bottom-color: #FFD700 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Fixed Background Effects -->
+<div class="fixed inset-0 z-0 pointer-events-none">
+    <div class="absolute inset-0 bg-grid-pattern opacity-[0.03]"></div>
+    <div class="absolute top-0 right-0 w-[1000px] h-[800px] bg-yellow-500/5 rounded-full blur-[180px] animate-pulse"></div>
+    <div class="absolute bottom-0 left-0 w-[800px] h-[600px] bg-purple-600/5 rounded-full blur-[150px]"></div>
+</div>
+
+<!-- Organization Header -->
+<header class="relative z-10 bg-gradient-to-b from-black/40 to-transparent border-b border-white/5 py-16">
+    <div class="max-w-[1600px] mx-auto px-6">
+        <div class="flex flex-col md:flex-row items-end gap-10">
+
+            <!-- Logo -->
+            <div class="relative shrink-0">
+                <div class="w-40 h-40 md:w-56 md:h-56 rounded-3xl bg-black/50 border-4 border-gray-700 shadow-2xl p-1 relative z-30 overflow-hidden animate-enter">
+                    <div class="w-full h-full rounded-2xl bg-gradient-to-br from-gray-800 to-black flex items-center justify-center relative overflow-hidden">
+                        <div class="absolute inset-0 bg-yellow-500/5"></div>
+                        {% if organization.logo %}
+                            <img src="{{ organization.logo|safe_file_url }}" alt="{{ organization.name }}" class="w-full h-full object-cover rounded-2xl">
+                        {% else %}
+                            <span class="font-tech font-bold text-7xl text-white z-10 drop-shadow-lg tracking-tighter">{{ organization.name|slice:":3"|upper }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if organization.is_verified %}
+                <div class="absolute -bottom-3 -right-3 bg-yellow-500 text-black w-12 h-12 rounded-full flex items-center justify-center border-4 border-black z-40 shadow-glow-gold has-tooltip cursor-help">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                    <div class="tooltip-content">Verified Organization</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Details -->
+            <div class="flex-1 pb-12 animate-enter delay-100">
+                <div class="flex flex-wrap items-center gap-4 mb-2">
+                    <h1 class="text-5xl md:text-7xl font-tech font-black text-white uppercase tracking-tight leading-none drop-shadow-2xl">
+                        {{ organization.name }}
+                    </h1>
+                    <div class="flex gap-2 mt-2 md:mt-0">
+                        {% if organization.profile.founded_date %}
+                        <span class="px-3 py-1 rounded bg-white/5 border border-white/10 text-xs font-mono text-slate-300 uppercase tracking-widest">Est. {{ organization.profile.founded_date.year }}</span>
+                        {% endif %}
+                        {% if organization.is_verified %}
+                        <span class="px-3 py-1 rounded bg-yellow-500/10 border border-yellow-500/20 text-xs font-mono text-yellow-500 uppercase tracking-widest flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse"></span> Pro Organization
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <p class="text-slate-400 max-w-2xl font-corp text-lg leading-relaxed mb-8 drop-shadow-md">
+                    {{ organization.profile.description|default:"Dominating the competitive scene. Building legacies, not just teams." }}
+                </p>
+
+                <div class="flex flex-wrap items-center gap-6 text-sm font-mono text-slate-300">
+                    {% if organization.profile.region %}
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5">
+                        <img src="https://flagcdn.com/w40/{{ organization.profile.region|lower }}.png" class="w-5 rounded-sm shadow-sm" onerror="this.style.display='none'">
+                        <span>{{ organization.profile.get_region_display|default:organization.profile.region }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if organization.profile.website %}
+                    <a href="{{ organization.profile.website }}" target="_blank" rel="noopener" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 hover:border-cyan-500/50 hover:text-cyan-500 transition-all group">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                        {{ organization.profile.website|truncatechars:30 }}
+                    </a>
+                    {% endif %}
+
+                    <!-- Social Links -->
+                    <div class="flex gap-2">
+                        {% if organization.profile.twitter_url %}
+                        <a href="{{ organization.profile.twitter_url }}" target="_blank" rel="noopener" class="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-slate-400 hover:bg-cyan-500 hover:text-black transition-all">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        {% endif %}
+                        {% if organization.profile.discord_url %}
+                        <a href="{{ organization.profile.discord_url }}" target="_blank" rel="noopener" class="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-slate-400 hover:bg-[#5865F2] hover:text-white transition-all">
+                            <i class="fab fa-discord"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="pb-12 flex flex-col items-end gap-3 min-w-[220px] animate-enter delay-200">
+                {% if can_manage %}
+                <a href="{% url 'organizations:organization_detail' organization.slug %}" class="w-full px-6 py-4 bg-yellow-500 hover:bg-white text-black font-tech font-bold uppercase tracking-widest text-sm rounded-xl shadow-glow-gold transition-all flex items-center justify-center gap-2 group transform hover:-translate-y-1">
+                    <svg class="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Manage Org
+                </a>
+                <div class="flex gap-2 w-full">
+                    <a href="{% url 'organizations:team_create' %}?org={{ organization.slug }}" class="flex-1 px-4 py-3 bg-gray-800/80 border border-white/10 hover:border-cyan-500 text-white font-mono text-xs uppercase rounded-xl transition-all hover:bg-white/5 flex items-center justify-center gap-2 group">
+                        <svg class="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        New Team
+                    </a>
+                    <button class="flex-1 px-4 py-3 bg-gray-800/80 border border-white/10 hover:border-yellow-500 text-white font-mono text-xs uppercase rounded-xl transition-all hover:bg-white/5 flex items-center justify-center gap-2 group">
+                        <svg class="w-4 h-4 text-yellow-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                        Wallet
+                    </button>
+                </div>
+                {% else %}
+                <a href="{% url 'organizations:organization_detail' organization.slug %}" class="w-full px-6 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-tech font-bold uppercase tracking-widest text-sm rounded-xl transition-all flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    View Details
+                </a>
+                {% endif %}
+                
+                <!-- Create Organization CTA (always visible) -->
+                <a href="{% url 'organizations:org_create' %}" class="w-full px-6 py-4 bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:border-purple-500/50 font-tech font-bold uppercase tracking-widest text-sm rounded-xl transition-all flex items-center justify-center gap-2 group">
+                    <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    Create Organization
+                </a>
+            </div>
+
+        </div>
+    </div>
+</header>
+
+<!-- Sub-Navigation -->
+<div class="sticky top-0 z-40 bg-black/80 backdrop-blur-xl border-b border-white/5 shadow-2xl">
+    <div class="max-w-[1600px] mx-auto px-6">
+        <div class="flex items-center gap-8 overflow-x-auto no-scrollbar">
+            <a href="#overview" class="nav-link active py-4 text-sm font-tech font-bold uppercase tracking-widest text-white hover:text-yellow-500 transition-colors relative border-b-2 border-yellow-500">
+                Headquarters
+            </a>
+            <a href="#teams" class="nav-link py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors relative border-b-2 border-transparent hover:border-white/20">
+                Active Squads <span class="bg-white/10 px-1.5 py-0.5 rounded text-[10px] ml-1 text-white">{{ stats.team_count }}</span>
+            </a>
+            <a href="#activity" class="nav-link py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors relative border-b-2 border-transparent hover:border-white/20">
+                Recent Activity
+            </a>
+            <a href="{% url 'organizations:organization_detail' organization.slug %}" class="py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">
+                Settings
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<main class="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+        <!-- Main Column -->
+        <div class="lg:col-span-9 space-y-12">
+
+            <!-- Stats Cards -->
+            <section id="overview" class="animate-enter delay-200">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+
+                    <!-- Global Ranking -->
+                    <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-yellow-500 relative group overflow-hidden">
+                        <div class="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <svg class="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        </div>
+                        <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Global Standing</p>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-4xl font-tech font-bold text-white">#{{ stats.global_rank|default:"N/A" }}</span>
+                            {% if stats.global_rank and stats.global_rank <= 100 %}
+                            <span class="text-xs font-mono text-green-500 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                                TOP 100
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% if stats.total_cp %}
+                        <div class="w-full bg-white/5 h-1 mt-4 rounded-full overflow-hidden">
+                            <div class="bg-yellow-500 h-full w-[75%] shadow-[0_0_10px_#FFD700]"></div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Total Earnings -->
+                    <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-green-500 relative group overflow-hidden">
+                        <div class="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <svg class="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.15-1.46-3.27-3.4h1.96c.1 1.05 1.18 1.91 2.53 1.91 1.29 0 2.13-.81 2.13-1.88 0-1.09-.92-1.49-2.6-1.92-2.31-.56-3.37-1.73-3.37-3.41 0-1.72 1.34-2.88 3.12-3.21V4h2.67v1.95c1.4.3 2.65 1.21 2.91 2.99h-1.99c-.15-.8-.92-1.53-2.12-1.53-1.16 0-1.88.75-1.88 1.63 0 .97.86 1.45 2.54 1.86 2.37.58 3.42 1.67 3.42 3.48 0 1.92-1.47 3.18-3.37 3.34z"/></svg>
+                        </div>
+                        <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Total Earnings</p>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-4xl font-tech font-bold text-white">${{ stats.total_earnings|floatformat:1|default:"0" }}k</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-2 font-mono">lifetime gross revenue</p>
+                    </div>
+
+                    <!-- Active Squads -->
+                    <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-cyan-500 relative group overflow-hidden">
+                        <div class="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <svg class="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                        </div>
+                        <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Active Squads</p>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-4xl font-tech font-bold text-white">{{ stats.team_count|default:0 }}</span>
+                            <span class="text-xs text-cyan-500 font-mono mb-1">/ 10 Slots</span>
+                        </div>
+                        {% if teams %}
+                        <div class="flex -space-x-2 mt-3">
+                            {% for team in teams|slice:":4" %}
+                            <div class="w-6 h-6 rounded-full bg-slate-800 border border-black flex items-center justify-center text-[8px]" title="{{ team.name }}">{{ team.name|slice:":1" }}</div>
+                            {% endfor %}
+                            {% if teams|length > 4 %}
+                            <div class="w-6 h-6 rounded-full bg-slate-800 border border-black flex items-center justify-center text-[8px]">+{{ teams|length|add:"-4" }}</div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Crown Points -->
+                    <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-purple-600 relative group overflow-hidden">
+                        <div class="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <svg class="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                        </div>
+                        <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Crown Points</p>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-4xl font-tech font-bold text-white">{{ stats.total_cp|default:0|floatformat:0 }}</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-2 font-mono">tournament ranking points</p>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- Teams Section -->
+            <section id="teams">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                        <span class="w-1.5 h-6 bg-cyan-500"></span> Active Squads
+                    </h2>
+                    {% if can_manage %}
+                    <a href="{% url 'organizations:team_create' %}?org={{ organization.slug }}" class="text-xs font-bold text-cyan-500 uppercase hover:underline flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        Deploy New Team
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {% for team in teams %}
+                    <div class="glass-panel glass-card-hover p-6 rounded-2xl border border-white/10 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-2xl group-hover:bg-cyan-500/10 transition-all"></div>
+                        
+                        <div class="flex items-start gap-4 relative z-10">
+                            <!-- Team Icon -->
+                            <div class="w-14 h-14 rounded-lg bg-black border border-white/10 flex items-center justify-center text-2xl shrink-0">
+                                {% if team.game == 'valorant' %}
+                                <span class="text-red-500">V</span>
+                                {% elif team.game == 'cs2' %}
+                                <span class="text-orange-500">C</span>
+                                {% elif team.game == 'mlbb' %}
+                                <span class="text-blue-500">M</span>
+                                {% else %}
+                                <span class="text-white">T</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-xl font-tech font-bold text-white uppercase tracking-wide truncate">{{ team.name }}</h3>
+                                <p class="text-xs text-slate-400 font-mono uppercase mt-1">{{ team.get_game_display|default:team.game }}</p>
+
+                                <!-- Stats -->
+                                <div class="flex items-center gap-4 mt-4 text-xs">
+                                    <div>
+                                        <span class="text-slate-500 font-mono">Roster:</span>
+                                        <span class="text-white font-bold ml-1">{{ team.roster_count|default:0 }}/{{ team.max_roster_size|default:5 }}</span>
+                                    </div>
+                                    <div class="border-l border-white/10 pl-4">
+                                        <span class="text-slate-500 font-mono">Matches:</span>
+                                        <span class="text-white font-bold ml-1">{{ team.match_count|default:0 }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- View Button -->
+                                <div class="flex items-center justify-between border-t border-white/5 pt-4 mt-4">
+                                    <div class="flex -space-x-3">
+                                        {% for player in team.roster|slice:":3" %}
+                                        <div class="w-8 h-8 rounded-full border-2 border-gray-800 bg-slate-700 flex items-center justify-center text-xs font-bold" title="{{ player.username }}">
+                                            {{ player.username|slice:":1"|upper }}
+                                        </div>
+                                        {% empty %}
+                                        <div class="w-8 h-8 rounded-full border-2 border-gray-800 bg-slate-800/50 flex items-center justify-center text-xs text-slate-600">?</div>
+                                        {% endfor %}
+                                        {% if team.roster|length > 3 %}
+                                        <div class="w-8 h-8 rounded-full border-2 border-gray-800 bg-slate-700 text-[10px] flex items-center justify-center text-slate-400">+{{ team.roster|length|add:"-3" }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{% url 'organizations:team_detail' team_slug=team.slug %}" class="text-xs font-bold text-cyan-500 uppercase hover:underline">View Roster</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-span-2 glass-panel p-12 rounded-2xl border border-dashed border-white/10 text-center">
+                        <div class="max-w-md mx-auto">
+                            <svg class="w-16 h-16 mx-auto text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            <h3 class="text-lg font-bold text-white mb-2">No Teams Yet</h3>
+                            <p class="text-sm text-slate-400 mb-6">This organization hasn't created any competitive teams.</p>
+                            {% if can_manage %}
+                            <a href="{% url 'organizations:team_create' %}?org={{ organization.slug }}" class="inline-flex items-center gap-2 px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-black font-bold uppercase text-xs rounded-lg transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                Create First Team
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Activity Section -->
+            <section id="activity">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-tech font-bold text-white uppercase flex items-center gap-3">
+                        <span class="w-1.5 h-6 bg-purple-600"></span> Recent Activity
+                    </h2>
+                </div>
+
+                <div class="glass-panel rounded-2xl overflow-hidden border border-white/10">
+                    <div class="divide-y divide-white/5">
+                        {% for activity in recent_activity %}
+                        <div class="p-4 hover:bg-white/5 transition-colors">
+                            <div class="flex items-start gap-4">
+                                <div class="w-10 h-10 rounded-full bg-{{ activity.color|default:'cyan' }}-500/10 text-{{ activity.color|default:'cyan' }}-500 flex items-center justify-center shrink-0 border border-{{ activity.color|default:'cyan' }}-500/20">
+                                    <i class="fas fa-{{ activity.icon|default:'bolt' }} text-xs"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm text-slate-300">{{ activity.description|safe }}</p>
+                                    <span class="text-xs text-slate-500 font-mono mt-1 block">{{ activity.timestamp|timesince }} ago</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="p-12 text-center">
+                            <svg class="w-16 h-16 mx-auto text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <h3 class="text-lg font-bold text-white mb-2">No Recent Activity</h3>
+                            <p class="text-sm text-slate-400">Activity will appear here once the organization starts competing.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-3 space-y-8">
+
+            <!-- CEO/Management Card -->
+            <div class="glass-panel p-6 rounded-2xl border border-white/10 relative overflow-hidden">
+                <h3 class="text-xs font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span> Leadership
+                </h3>
+
+                {% if organization.ceo %}
+                <div class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors cursor-pointer">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-black font-bold border-2 border-yellow-500/50">
+                        {{ organization.ceo.username|slice:":1"|upper }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-sm font-bold text-white truncate">{{ organization.ceo.username }}</h4>
+                        <p class="text-xs text-slate-400 font-mono uppercase">Chief Executive</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-slate-500 text-sm">No CEO assigned</div>
+                {% endif %}
+
+                {% if members %}
+                <div class="mt-4 pt-4 border-t border-white/5">
+                    <p class="text-xs text-slate-400 font-mono uppercase mb-3">Management Team</p>
+                    <div class="space-y-2">
+                        {% for member in members|slice:":3" %}
+                        <div class="flex items-center gap-2 text-xs">
+                            <div class="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center font-bold text-white">
+                                {{ member.user.username|slice:":1"|upper }}
+                            </div>
+                            <span class="text-white truncate flex-1">{{ member.user.username }}</span>
+                            <span class="text-slate-500 font-mono uppercase text-[10px]">{{ member.role }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Back to Directory -->
+            <div class="glass-panel p-6 rounded-2xl border border-white/10">
+                <a href="{% url 'organizations:org_directory' %}" class="w-full px-4 py-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-mono text-xs uppercase rounded-lg transition-all flex items-center justify-center gap-2 group">
+                    <svg class="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Back to Organizations
+                </a>
+            </div>
+
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Navigation Tab Filtering
+    const links = document.querySelectorAll('.nav-link');
+
+    links.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            // Update UI
+            links.forEach(l => {
+                l.classList.remove('active', 'border-yellow-500', 'text-white');
+                l.classList.add('text-slate-400', 'border-transparent');
+            });
+            e.currentTarget.classList.add('active', 'border-yellow-500', 'text-white');
+            e.currentTarget.classList.remove('text-slate-400', 'border-transparent');
+
+            // Scroll to Section
+            const targetId = e.currentTarget.getAttribute('href').substring(1);
+            const targetSection = document.getElementById(targetId);
+
+            if (targetSection) {
+                const navHeight = 100;
+                const targetPosition = targetSection.getBoundingClientRect().top + window.pageYOffset - navHeight;
+
+                window.scrollTo({
+                    top: targetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+
+    console.log('[OrgHub] UI Initialized - Phase A Complete');
+});
+</script>
+{% endblock %}

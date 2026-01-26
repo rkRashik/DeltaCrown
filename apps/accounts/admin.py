@@ -21,7 +21,7 @@ class UserAdmin(BaseUserAdmin):
     list_display = ("username", "email", "is_active", "is_verified", "is_staff")
     inlines = [SocialLinkInline]
     list_filter = ("is_verified", "is_active", "is_staff")
-    search_fields = ("username", "email")
+    search_fields = ("username", "email", "profile__public_id")
     ordering = ("username",)
     fieldsets = (
         (None, {"fields": ("username", "password")} ),
