@@ -39,8 +39,8 @@ def get_org_detail_context(org_slug, viewer):
             'ceo'
         ).prefetch_related(
             'teams',
-            'teams__members',
-            'teams__members__player'
+            'teams__memberships',
+            'teams__memberships__user'
         ).get(slug=org_slug)
     except Organization.DoesNotExist:
         from django.http import Http404
@@ -55,8 +55,8 @@ def get_org_detail_context(org_slug, viewer):
             can_manage_org = True
         else:
             # Check org membership
-            membership = organization.memberships.filter(
-                player=viewer,
+            membership = organization.staff_memberships.filter(
+                user=viewer,
                 role__in=['MANAGER', 'ADMIN']
             ).first()
             can_manage_org = membership is not None
@@ -78,14 +78,14 @@ def get_org_detail_context(org_slug, viewer):
     squads = []
     for team in active_teams:
         # Get IGL (always visible)
-        igl_member = team.members.filter(role='IGL').first()
-        igl_display = igl_member.player.username if igl_member else None
+        igl_member = team.memberships.filter(role='IGL').first()
+        igl_display = igl_member.user.username if igl_member else None
         
         # Get Manager (only if viewer can manage org)
         manager_display = None
         if can_manage_org:
-            manager_member = team.members.filter(role='MANAGER').first()
-            manager_display = manager_member.player.username if manager_member else None
+            manager_member = team.memberships.filter(role='MANAGER').first()
+            manager_display = manager_member.user.username if manager_member else None
         
         # Get game label safely (Team has game_id integer, not FK)
         game_label = _safe_game_label(team)

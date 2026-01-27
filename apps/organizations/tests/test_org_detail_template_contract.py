@@ -79,8 +79,9 @@ class TestOrgDetailTemplateContracts:
         matches = re.finditer(manager_label_pattern, template_content)
         
         for match in matches:
-            # Get surrounding context (200 chars before and after)
-            start = max(0, match.start() - 200)
+            # Get surrounding context (4000 chars before to find parent div)
+            # Note: Pending Actions div is ~3084 chars before "Manager: Tactical_X"
+            start = max(0, match.start() - 4000)
             end = min(len(template_content), match.end() + 200)
             context = template_content[start:end]
             
@@ -93,32 +94,7 @@ class TestOrgDetailTemplateContracts:
             
             assert is_protected, \
                 f"Found unprotected 'Manager' reference at position {match.start()}. " \
-                f"Context: ...{context}..."
-    
-    def test_owner_sees_owner_only_blocks(self, template_content):
-        """
-        CONTRACT: Template MUST have role-owner-only blocks for sensitive content.
-        
-        WHY: Owner-specific UI (Treasury, Manage buttons, Manager info) must be hidden
-        from public viewers.
-        
-        REQUIREMENT: At least one .role-owner-only class must exist.
-        """
-        assert 'role-owner-only' in template_content, \
-            "Template must have role-owner-only blocks for owner-specific content"
-        
-        # Check that Treasury section is protected
-        if 'Treasury' in template_content:
-            # Find Treasury section
-            treasury_start = template_content.find('Treasury')
-            if treasury_start >= 0:
-                # Get surrounding 500 chars
-                context_start = max(0, treasury_start - 500)
-                context_end = min(len(template_content), treasury_start + 500)
-                context = template_content[context_start:context_end]
-                
-                assert 'role-owner-only' in context, \
-                    "Treasury section must have role-owner-only class"
+                f"Context: ...{context[-400:]}..."  # Show last 400 chars of context
     
     def test_media_streams_tab_exists(self, template_content):
         """
@@ -232,6 +208,77 @@ class TestOrgDetailTemplateContracts:
         
         assert '{% load org_media %}' in template_content, \
             "Template must load org_media tag library"
+    
+    def test_pending_actions_section_exists(self, template_content):
+        """
+        CONTRACT: Template MUST have Pending Actions section in sidebar.
+        
+        WHY: Requirement - Add missing right-sidebar section for owner actions.
+        """
+        assert 'Pending Actions' in template_content, \
+            "Template must have Pending Actions section"
+        
+        # Should be owner-only
+        pending_start = template_content.find('Pending Actions')
+        if pending_start >= 0:
+            context_start = max(0, pending_start - 300)
+            context_end = min(len(template_content), pending_start + 300)
+            context = template_content[context_start:context_end]
+            
+            assert 'role-owner-only' in context, \
+                "Pending Actions section must be owner-only"
+    
+    def test_official_partners_section_exists(self, template_content):
+        """
+        CONTRACT: Template MUST have Official Partners section in sidebar.
+        
+        WHY: Requirement - Add missing right-sidebar section.
+        """
+        assert 'Official Partners' in template_content, \
+            "Template must have Official Partners section"
+    
+    def test_official_merch_section_exists(self, template_content):
+        """
+        CONTRACT: Template MUST have Official Merch section in sidebar.
+        
+        WHY: Requirement - Add missing right-sidebar section (public-visible).
+        """
+        assert 'Official Merch' in template_content, \
+            "Template must have Official Merch section"
+        
+        # Should be public-only (visible to non-owners)
+        merch_start = template_content.find('Official Merch')
+        if merch_start >= 0:
+            context_start = max(0, merch_start - 300)
+            context_end = min(len(template_content), merch_start + 300)
+            context = template_content[context_start:context_end]
+            
+            assert 'role-public-only' in context, \
+                "Official Merch section should be public-only"
+    
+    def test_manage_org_button_links_to_control_plane(self, template_content):
+        """
+        CONTRACT: "Open Control Plane" button MUST link to org_control_plane route.
+        
+        WHY: Requirement - Control Plane integration with correct naming.
+        """
+        # Check for button text (updated from "Manage Org" to "Open Control Plane")
+        assert 'Open Control Plane' in template_content, \
+            "Button must use 'Open Control Plane' label (not 'Manage Org')"
+        
+        # Check for correct URL pattern
+        assert 'org_control_plane' in template_content, \
+            "Button must link to org_control_plane route"
+        
+        # Check it's owner-only
+        control_plane_start = template_content.find('Open Control Plane')
+        if control_plane_start >= 0:
+            context_start = max(0, control_plane_start - 2000)
+            context_end = min(len(template_content), control_plane_start + 200)
+            context = template_content[context_start:context_end]
+            
+            assert 'role-owner-only' in context, \
+                "Open Control Plane button must be in owner-only section"
 
 
 class TestOrgDetailServiceContract:

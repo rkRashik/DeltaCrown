@@ -8,9 +8,12 @@ Handles:
 """
 
 import logging
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
+
+from apps.organizations.models import Organization
 
 logger = logging.getLogger(__name__)
 
@@ -174,5 +177,70 @@ def org_hub(request, org_slug):
             }
         )
         raise
+
+
+@login_required
+def org_control_plane(request, org_slug):
+    """
+    Organization Control Plane - centralized management interface.
+    
+    Access Control:
+    - Organization CEO (owner)
+    - Organization MANAGER/ADMIN (vNext staff)
+    - Site staff
+    
+    Returns:
+    - 403 if user lacks permission
+    - Control plane interface if authorized
+    """
+    # Load organization
+    organization = get_object_or_404(Organization, slug=org_slug)
+    
+    # Check permission: CEO OR org MANAGER/ADMIN OR site staff
+    can_manage_org = False
+    
+    if request.user.is_staff:
+        can_manage_org = True
+    elif organization.ceo_id == request.user.id:
+        can_manage_org = True
+    else:
+        # Check if user is org MANAGER or ADMIN via staff_memberships
+        if organization.staff_memberships.filter(
+            user=request.user,
+            role__in=['MANAGER', 'ADMIN']
+        ).exists():
+            can_manage_org = True
+    
+    if not can_manage_org:
+        logger.warning(
+            f"Unauthorized control plane access attempt",
+            extra={
+                'event_type': 'control_plane_unauthorized',
+                'user_id': request.user.id,
+                'org_slug': org_slug,
+                'organization_id': organization.id,
+            }
+        )
+        return HttpResponseForbidden(
+            "You do not have permission to access the Control Plane for this organization."
+        )
+    
+    # Log authorized access
+    logger.info(
+        f"Control plane accessed",
+        extra={
+            'event_type': 'control_plane_access',
+            'user_id': request.user.id,
+            'org_slug': org_slug,
+            'organization_id': organization.id,
+        }
+    )
+    
+    context = {
+        'organization': organization,
+        'can_manage_org': True,
+    }
+    
+    return render(request, 'organizations/org/org_control_plane.html', context)
 
 

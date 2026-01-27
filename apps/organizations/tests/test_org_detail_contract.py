@@ -253,3 +253,61 @@ class TestOrgDetailIntegration:
         # 3. Has access to hub
         content = response.content.decode()
         assert org.get_hub_url() in content
+
+
+@pytest.mark.contract
+class TestOrgDetailServiceSchema:
+    """Schema validation tests to prevent regressions."""
+    
+    def test_no_invalid_prefetch_relationships(self):
+        """
+        Test that service doesn't use invalid prefetch paths.
+        
+        Regression guard: vNext Team schema uses 'memberships' not 'members'.
+        This test prevents the 'teams__members' AttributeError from returning.
+        """
+        import os
+        from pathlib import Path
+        
+        service_file = Path(__file__).parent.parent / 'services' / 'org_detail_service.py'
+        assert service_file.exists(), f"Service file not found: {service_file}"
+        
+        content = service_file.read_text()
+        
+        # Invalid patterns that cause AttributeError
+        # Use word boundaries to avoid false positives (e.g., 'teams__members' vs 'teams__memberships')
+        invalid_patterns = [
+            "'teams__members'",    # Team has 'memberships' not 'members'
+            '"teams__members"',    # Alternative quote style
+            '.members.filter',     # Should be '.memberships.filter'
+            '.members.all',        # Should be '.memberships.all'
+            'user=viewer',         # WRONG - should be checked in context
+        ]
+        
+        # Context-sensitive check for 'user=viewer' vs 'player=viewer'
+        # OrganizationMembership uses 'user' not 'player'
+        if 'staff_memberships.filter(' in content:
+            # If using staff_memberships, must use 'user=viewer'
+            assert 'player=viewer' not in content, (
+                "OrganizationMembership uses 'user' FK, not 'player'. "
+                "Use 'user=viewer' in staff_memberships queries."
+            )
+        
+        for pattern in invalid_patterns[:4]:  # Skip 'user=viewer' since we check it above
+            assert pattern not in content, (
+                f"Invalid pattern '{pattern}' found in org_detail_service.py. "
+                f"This will cause AttributeError. Use correct vNext schema relationships."
+            )
+        
+        # Valid patterns that should exist
+        valid_patterns = [
+            'teams__memberships',  # Correct prefetch
+            'memberships__user',   # Correct nested prefetch
+        ]
+        
+        for pattern in valid_patterns:
+            assert pattern in content, (
+                f"Expected pattern '{pattern}' not found in org_detail_service.py. "
+                f"Service should use correct vNext Team schema relationships."
+            )
+

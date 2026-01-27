@@ -18,6 +18,7 @@ from apps.organizations.views import (
     team_invites,
     organization_detail,
     org_create,
+    org_control_plane,
     org_hub,
     org_directory,
 )
@@ -51,6 +52,10 @@ urlpatterns = [
     # UI views - Organization Hub (P3-T8)
     # MUST come BEFORE <org_slug> catch-all detail page
     path('orgs/<str:org_slug>/hub/', org_hub, name='org_hub'),
+    
+    # UI views - Organization Control Plane
+    # MUST come BEFORE <org_slug> catch-all detail page
+    path('orgs/<str:org_slug>/control-plane/', org_control_plane, name='org_control_plane'),
     
     # UI views - Organization detail (catch-all, must be LAST)
     path('orgs/<str:org_slug>/', organization_detail, name='organization_detail'),
