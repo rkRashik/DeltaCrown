@@ -1,0 +1,414 @@
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+<meta name="color-scheme" content="dark" />
+<title>Protocol V | Team HQ | DeltaCrown</title>
+
+{# HEAD ASSETS - Tailwind CDN, Fonts, CSS Variables, Glassmorphism #}
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap"
+  rel="stylesheet"
+/>
+
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        fontFamily: {
+          display: ['"Space Grotesk"', "sans-serif"],
+          ui: ['"Plus Jakarta Sans"', "sans-serif"],
+          mono: ['"JetBrains Mono"', "monospace"],
+        },
+        colors: {
+          delta: {
+            base: "#000000",
+            surface: "#0A0A0F",
+            gold: "#FFD700",
+            violet: "#6C00FF",
+            electric: "#00E5FF",
+            danger: "#FF3131",
+            success: "#00FF41",
+          },
+        },
+        boxShadow: {
+          "glow-team": "0 0 44px var(--team-glow)",
+        },
+        animation: {
+          shimmer: "shimmer 2.2s linear infinite",
+          float: "float 6s ease-in-out infinite",
+        },
+        keyframes: {
+          shimmer: {
+            "0%": { transform: "translateX(-120%) skewX(-12deg)" },
+            "100%": { transform: "translateX(240%) skewX(-12deg)" },
+          },
+          float: {
+            "0%, 100%": { transform: "translateY(0)" },
+            "50%": { transform: "translateY(-6px)" },
+          },
+        },
+      },
+    },
+  };
+</script>
+
+<style>
+  :root {
+    --team-primary: #ffd700;
+    --team-dim: rgba(255, 215, 0, 0.12);
+    --team-glow: rgba(255, 215, 0, 0.18);
+    --glass-bg: rgba(10, 10, 15, 0.6);
+    --glass-brd: rgba(255, 255, 255, 0.12);
+    --ring-soft: rgba(255, 255, 255, 0.08);
+  }
+
+  body[data-theme="VIOLATION"] { --team-primary: #6C00FF; --team-dim: rgba(108, 0, 255, 0.16); --team-glow: rgba(108, 0, 255, 0.26); }
+  body[data-theme="CYBER"] { --team-primary: #00E5FF; --team-dim: rgba(0, 229, 255, 0.16); --team-glow: rgba(0, 229, 255, 0.26); }
+  body[data-theme="CRIMSON"] { --team-primary: #FF3131; --team-dim: rgba(255, 49, 49, 0.16); --team-glow: rgba(255, 49, 49, 0.26); }
+  body[data-theme="EMERALD"] { --team-primary: #00FF41; --team-dim: rgba(0, 255, 65, 0.16); --team-glow: rgba(0, 255, 65, 0.26); }
+
+  html, body { height: 100%; }
+  body { background: #000; color: #E2E8F0; overflow-x: hidden; }
+
+  /* Glass */
+  .liquid-glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid var(--glass-brd);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+  }
+
+  .liquid-trace {
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .liquid-trace:hover {
+    border-color: var(--team-primary);
+    box-shadow: 0 0 30px var(--team-glow);
+    transform: translateY(-2px);
+  }
+
+  /* Section Accents */
+  [data-accent="team"] { border-top: 2px solid var(--team-primary); }
+  [data-accent="success"] { border-top: 2px solid #00FF41; }
+  [data-accent="electric"] { border-top: 2px solid #00E5FF; }
+  [data-accent="danger"] { border-top: 2px solid #FF3131; }
+
+  /* Role/Game visibility */
+  .role-public-only, .role-member-only, .role-staff-only, .role-owner-only,
+  .game-fps-only, .game-moba-only, .game-sports-only { display: none !important; }
+
+  body[data-role="PUBLIC"] .role-public-only { display: flex !important; }
+  body[data-role="MEMBER"] .role-member-only { display: flex !important; }
+  body[data-role="STAFF"]  .role-staff-only  { display: flex !important; }
+  body[data-role="OWNER"]  .role-owner-only  { display: flex !important; }
+
+  body[data-game="FPS"]    .game-fps-only    { display: block !important; }
+  body[data-game="MOBA"]   .game-moba-only   { display: block !important; }
+  body[data-game="SPORTS"] .game-sports-only { display: block !important; }
+
+  /* Hero image mask */
+  .hero-mask { mask-image: linear-gradient(to bottom, black 60%, transparent 100%); }
+
+  /* Chip */
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    font-family: "JetBrains Mono", monospace;
+    color: #cbd5e1;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .chip.primary {
+    background: color-mix(in srgb, var(--team-primary) 15%, transparent);
+    border-color: color-mix(in srgb, var(--team-primary) 40%, transparent);
+    color: var(--team-primary);
+  }
+
+  /* Clamp */
+  .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* Tooltip */
+  .has-tooltip { position: relative; cursor: help; }
+  .has-tooltip:hover::after {
+    content: attr(data-tooltip);
+    position: absolute; bottom: 100%; left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background: #000;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    z-index: 50;
+    pointer-events: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  }
+
+  /* Skeleton Loaders */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+  }
+  .skeleton::before {
+    content: "";
+    position: absolute;
+    inset: -50% -50%;
+    transform: translateX(-60%) skewX(-12deg);
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
+    animation: shimmer 2.2s linear infinite;
+  }
+  
+  .skeleton-text {
+    height: 1em;
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px;
+    margin: 0.5em 0;
+  }
+  
+  .skeleton-card {
+    background: rgba(10, 10, 15, 0.6);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 1.5rem;
+  }
+
+  /* Empty States */
+  .empty-state {
+    padding: 3rem 1.5rem;
+    text-align: center;
+    border: 2px dashed rgba(255,255,255,0.1);
+    border-radius: 16px;
+    background: rgba(255,255,255,0.02);
+  }
+  
+  .empty-state__icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    opacity: 0.3;
+  }
+
+  /* Smooth Transitions */
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .transition-transform {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Enhanced Hover States */
+  .hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 20px var(--team-glow);
+  }
+
+  .hover-glow {
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+  .hover-glow:hover {
+    box-shadow: 0 0 30px var(--team-glow), inset 0 0 20px rgba(255,255,255,0.05);
+    border-color: var(--team-primary);
+  }
+
+  /* Smart Dynamic Grid - Cards reposition to fill empty spaces */
+  .dynamic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    grid-auto-flow: dense; /* Smart packing algorithm */
+  }
+  
+  .dynamic-grid-item {
+    grid-column: span 1;
+  }
+  
+  .dynamic-grid-item--wide {
+    grid-column: span 2;
+  }
+  
+  @media (max-width: 768px) {
+    .dynamic-grid {
+      grid-template-columns: 1fr;
+    }
+    .dynamic-grid-item--wide {
+      grid-column: span 1;
+    }
+  }
+
+  /* Lazy Loading - Blur-up effect */
+  .lazy-media {
+    filter: blur(10px);
+    transition: filter 0.5s ease;
+  }
+  
+  .lazy-media.loaded {
+    filter: blur(0);
+  }
+  
+  .lazy-placeholder {
+    background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.08) 100%);
+    position: relative;
+  }
+  
+  .lazy-placeholder::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"%3E%3Cpath d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"%3E%3C/path%3E%3Cpolyline points="17 8 12 3 7 8"%3E%3C/polyline%3E%3Cline x1="12" y1="3" x2="12" y2="15"%3E%3C/line%3E%3C/svg%3E') center/48px no-repeat;
+  }
+
+  /* Fade-in animations */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+  
+  .delay-100 { animation-delay: 0.1s; }
+  .delay-200 { animation-delay: 0.2s; }
+  .delay-300 { animation-delay: 0.3s; }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+
+  /* Mobile safe area */
+  .safe-pad { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+
+  /* Focus ring */
+  :focus-visible { outline: 2px solid var(--team-primary); outline-offset: 3px; border-radius: 10px; }
+
+  /* Team Info Card (matches Cyber Knights screenshot) */
+  .team-card {
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 40px 90px rgba(0,0,0,0.70);
+    background: radial-gradient(1200px 320px at 18% 35%, color-mix(in srgb, var(--team-primary) 16%, transparent) 0%, transparent 55%),
+                linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
+  }
+
+  /* Logo slab = thick frame + inset (screenshot-like) */
+  .logo-slab {
+    width: 180px; height: 180px;
+    border-radius: 2.25rem;
+    background: rgba(10,10,15,0.55);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: inset 0 0 0 8px rgba(0,0,0,0.35), 0 30px 70px rgba(0,0,0,0.65);
+    padding: 10px;
+  }
+  .logo-slab__inner {
+    width: 100%; height: 100%;
+    border-radius: 1.85rem;
+    background: radial-gradient(420px 320px at 30% 25%, color-mix(in srgb, var(--team-primary) 20%, transparent) 0%, transparent 55%),
+                linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .logo-slab__inner::after{
+    content:"";
+    position:absolute; inset:-60%;
+    background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 55%);
+    transform: translate(30%, 20%);
+    pointer-events:none;
+  }
+
+  /* Verified dot bottom-right like screenshot */
+  .verified-dot {
+    width: 42px; height: 42px;
+    border-radius: 999px;
+    background: var(--team-primary);
+    color: #000;
+    border: 6px solid rgba(0,0,0,0.85);
+    box-shadow: 0 0 22px var(--team-glow);
+  }
+
+  /* Modern tag system (minimal, type-based) */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .tag--rank {
+    background: color-mix(in srgb, var(--team-primary) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--team-primary) 40%, transparent);
+    color: color-mix(in srgb, var(--team-primary) 85%, white 15%);
+  }
+  .tag--neutral {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.72);
+  }
+  .tag--recruit {
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--team-primary) 45%, transparent);
+    color: var(--team-primary);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.35) inset;
+  }
+  .meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.75);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+  .meta-pill b { color: rgba(255,255,255,0.95); font-weight: 800; }
+
+  /* Single-line title */
+  .one-line-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Responsive logo slab */
+  @media (max-width: 640px) {
+    .logo-slab { width: 150px; height: 150px; border-radius: 2rem; }
+    .logo-slab__inner { border-radius: 1.6rem; }
+  }
+</style>

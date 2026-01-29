@@ -1,0 +1,1621 @@
+
+  <div class="fixed inset-0 z-0 pointer-events-none">
+    <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04]"></div>
+    <div class="absolute -top-40 -right-40 w-[800px] h-[800px] rounded-full blur-[200px] opacity-10"
+         style="background: var(--team-primary)"></div>
+    <div class="absolute -bottom-56 -left-56 w-[900px] h-[900px] rounded-full blur-[220px] opacity-[0.06]"
+         style="background: var(--team-primary)"></div>
+  </div>
+
+  {% if enable_demo_remote %}
+  {# DEMO CONTROLLER - Dev-only floating remote for testing role/game/theme polymorphism #}
+  <div class="fixed bottom-4 right-4 md:bottom-5 md:right-5 z-[200] liquid-glass p-4 rounded-2xl w-[92vw] max-w-[18rem] shadow-2xl border-l-4 border-l-[var(--team-primary)] safe-pad transition-transform hover:scale-[1.01]">
+    <div class="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-3 flex justify-between items-center">
+      <span class="flex items-center gap-2">
+        Demo Controller
+        <span class="inline-flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-[var(--team-primary)] animate-pulse"></span>
+          <span class="text-[9px] text-slate-500">ROLE</span>
+          <span id="dc-role-pill" class="chip primary !py-0.5 !px-2 !text-[9px]">OWNER</span>
+        </span>
+      </span>
+      <span class="text-[9px] text-slate-500 hidden sm:block">Polymorphic</span>
+    </div>
+
+    <div class="space-y-3">
+      <label class="block">
+        <span class="text-[10px] font-mono uppercase tracking-widest text-slate-500">Viewer Role</span>
+        <select id="dc-demo-role"
+                class="mt-1 w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[var(--team-primary)]">
+          <option value="PUBLIC">Public / Fan</option>
+          <option value="MEMBER">Member / Player</option>
+          <option value="STAFF">Staff / Coach</option>
+          <option value="OWNER" selected>Owner / Admin</option>
+        </select>
+      </label>
+
+      <label class="block">
+        <span class="text-[10px] font-mono uppercase tracking-widest text-slate-500">Game Type</span>
+        <select id="dc-demo-game"
+                class="mt-1 w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[var(--team-primary)]">
+          <option value="FPS" selected>FPS (Valorant)</option>
+          <option value="MOBA">MOBA (Dota 2)</option>
+          <option value="SPORTS">Sports (eFootball)</option>
+        </select>
+      </label>
+
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-mono uppercase tracking-widest text-slate-500">Theme</span>
+        <div class="flex gap-2">
+          <button type="button" data-dc-theme="DEFAULT" class="w-6 h-6 rounded-full bg-[#FFD700] border border-white/20" aria-label="Theme: Gold"></button>
+          <button type="button" data-dc-theme="VIOLATION" class="w-6 h-6 rounded-full bg-[#6C00FF] border border-white/20" aria-label="Theme: Violet"></button>
+          <button type="button" data-dc-theme="CYBER" class="w-6 h-6 rounded-full bg-[#00E5FF] border border-white/20" aria-label="Theme: Cyber"></button>
+          <button type="button" data-dc-theme="CRIMSON" class="w-6 h-6 rounded-full bg-[#FF3131] border border-white/20" aria-label="Theme: Crimson"></button>
+          <button type="button" data-dc-theme="EMERALD" class="w-6 h-6 rounded-full bg-[#00FF41] border border-white/20" aria-label="Theme: Emerald"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="relative z-10">
+
+    <header class="relative mb-16 md:mb-20">
+      <div class="relative w-full h-[420px] sm:h-[460px] md:h-[520px] overflow-hidden">
+        <div class="absolute inset-0">
+          <img id="dc-hero-banner"
+               src="https://pixabay.com/images/download/chess-3526451_1920.jpg"
+               alt="Team banner"
+               class="w-full h-full object-cover hero-mask opacity-80 scale-105 will-change-transform" />
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+
+        <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+      </div>
+
+      <div class="max-w-[1600px] mx-auto px-4 sm:px-6 relative -mt-24 md:-mt-28 z-20">
+        <div class="liquid-glass team-card rounded-[2.5rem] p-5 sm:p-6 md:p-8 flex flex-col lg:flex-row gap-6 md:gap-8 items-stretch lg:items-center">
+
+
+
+      <div class="relative shrink-0">
+        <div class="logo-slab">
+          <div class="logo-slab__inner">
+            <svg class="w-20 h-20 md:w-24 md:h-24 text-white drop-shadow-[0_0_28px_var(--team-glow)]"
+                 fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="absolute -bottom-2 -right-2 verified-dot flex items-center justify-center has-tooltip"
+             data-tooltip="Verified Team" aria-label="Verified Team">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+            <path fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="flex-1 min-w-0">
+        <div class="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+          <h1 class="text-4xl sm:text-5xl font-display font-bold uppercase tracking-tight leading-none text-white one-line-title">
+            Ctber <span class="text-[var(--team-primary)]">Knights</span>
+          </h1>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="tag tag--rank">RANK&nbsp;#3</span>
+            <span class="tag tag--neutral">EST.&nbsp;2025</span>
+          </div>
+        </div>
+
+        <p id="dc-team-motto"
+           class="mt-3 text-slate-400 text-sm leading-relaxed max-w-3xl line-clamp-2"
+           data-max="120">
+          Built for pressure, wired for precision — we strike fast, adapt faster, and never lose the mental game.
+        </p>
+
+        <div class="mt-4 flex flex-wrap items-center gap-2">
+          <span class="meta-pill">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 21V7a2 2 0 012-2h14a2 2 0 012 2v14M9 21V9h6v12"/>
+            </svg>
+            <span>ORG</span>
+            <b>One World</b>
+          </span>
+
+          <span class="meta-pill">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9.75 17L8 21h8l-1.75-4M3 13h18M5 4h14a2 2 0 012 2v9H3V6a2 2 0 012-2z"/>
+            </svg>
+            <span>PLATFORM</span>
+            <b>PC</b>
+          </span>
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center gap-4 text-xs font-mono text-slate-400">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            <span class="text-white">South Asia</span>
+          </div>
+
+          <span class="w-1 h-1 bg-white/20 rounded-full"></span>
+
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span class="text-white">VALORANT</span>
+          </div>
+
+          <span class="w-1 h-1 bg-white/20 rounded-full"></span>
+
+          <span class="tag tag--recruit">RECRUITING</span>
+        </div>
+      </div>
+
+      <div class="flex flex-col justify-between gap-5 lg:items-end">
+        <div id="team-info-actions" class="flex items-center gap-3 lg:justify-end">
+          <!-- PUBLIC/FAN: Follow, Share -->
+          <button type="button" data-role-show="PUBLIC"
+                  class="h-11 px-6 bg-[var(--team-primary)] text-black font-bold uppercase text-[10px] tracking-[0.18em]
+                         rounded-xl hover:brightness-110 transition shadow-[0_0_22px_var(--team-glow)] flex items-center gap-2"
+                  title="Follow this team">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+            </svg>
+            <span>FOLLOW</span>
+          </button>
+          <button type="button" data-role-show="PUBLIC"
+                  class="h-11 w-11 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex items-center justify-center text-slate-200"
+                  title="Share team profile">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+            </svg>
+          </button>
+
+          <!-- MEMBER: Team functions -->
+          <button type="button" data-role-show="MEMBER"
+                  class="h-11 px-6 bg-[var(--team-primary)] text-black font-bold uppercase text-[10px] tracking-[0.18em]
+                         rounded-xl hover:brightness-110 transition shadow-[0_0_22px_var(--team-glow)] flex items-center gap-2"
+                  title="Team chat">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+            </svg>
+            <span>TEAM CHAT</span>
+          </button>
+          <button type="button" data-role-show="MEMBER"
+                  class="h-11 w-11 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex items-center justify-center text-slate-200"
+                  title="Upload match recording">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+          </button>
+
+          <!-- STAFF: Management functions -->
+          <button type="button" data-role-show="STAFF"
+                  class="h-11 px-6 bg-[var(--team-primary)] text-black font-bold uppercase text-[10px] tracking-[0.18em]
+                         rounded-xl hover:brightness-110 transition shadow-[0_0_22px_var(--team-glow)] flex items-center gap-2"
+                  title="Review applications">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <span>REVIEW APPS</span>
+          </button>
+          <button type="button" data-role-show="STAFF"
+                  class="h-11 w-11 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex items-center justify-center text-slate-200"
+                  title="Roster management">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+          </button>
+
+          <!-- OWNER: Full control -->
+          <button type="button" data-role-show="OWNER"
+                  class="h-11 w-11 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex items-center justify-center text-slate-200"
+                  aria-label="Wallet"
+                  title="Team wallet">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+            </svg>
+          </button>
+          <button type="button" data-role-show="OWNER"
+                  class="h-11 w-11 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex items-center justify-center text-slate-200"
+                  aria-label="Settings"
+                  title="Team settings">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </button>
+          <button type="button" data-role-show="OWNER"
+                  class="h-11 px-6 bg-[var(--team-primary)] text-black font-bold uppercase text-[10px] tracking-[0.18em]
+                         rounded-xl hover:brightness-110 transition shadow-[0_0_22px_var(--team-glow)] flex items-center gap-2"
+                  title="Open control plane">
+            <span class="text-base leading-none">＋</span>
+            <span>MANAGE</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-4 lg:gap-x-10">
+          <div class="text-right">
+            <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider">Crown Points</div>
+            <div class="text-2xl font-display font-bold text-white">14,250</div>
+          </div>
+
+          <div class="text-right">
+            <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider">Trophies</div>
+            <div class="text-2xl font-display font-bold text-[var(--team-primary)]">
+              42 <span class="text-xs text-slate-500 ml-1">Season</span>
+            </div>
+          </div>
+
+          <div class="text-right">
+            <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider">Win Rate</div>
+            <div class="text-2xl font-display font-bold text-white">78.2%</div>
+          </div>
+
+          <div class="text-right">
+            <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider">90D Rating</div>
+            <div class="text-2xl font-display font-bold text-white">8.7</div>
+          </div>
+        </div>
+      </div>
+
+</div>
+
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    const el = document.getElementById("dc-team-motto");
+    if (!el) return;
+    const max = Number(el.getAttribute("data-max") || 120);
+    const raw = (el.textContent || "").trim();
+    el.textContent = raw.length > max ? raw.slice(0, max - 1).trim() + "…" : raw;
+  });
+</script>
+
+<nav class="sticky top-0 z-40 bg-[#000]/80 backdrop-blur-md border-b border-white/10 mb-8 transition-all duration-300" id="dc-subnav">
+      <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
+        <div class="flex items-center justify-between h-14 md:h-16 overflow-x-auto no-scrollbar mask-fade-sides">
+
+          <div class="flex items-center gap-1 md:gap-6 text-xs md:text-sm font-bold tracking-widest uppercase font-mono h-full min-w-max">
+
+            <a href="#overview" class="relative h-full flex items-center px-2 text-[var(--team-primary)] nav-link">
+              Overview
+              <span class="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--team-primary)] shadow-[0_0_10px_var(--team-primary)]"></span>
+            </a>
+
+            <a href="#roster" class="h-full flex items-center px-2 text-slate-500 hover:text-white transition-colors nav-link">Roster</a>
+            <a href="#matches" class="h-full flex items-center px-2 text-slate-500 hover:text-white transition-colors nav-link">Matches</a>
+            <a href="#stats" class="h-full flex items-center px-2 text-slate-500 hover:text-white transition-colors nav-link">Stats</a>
+            <a href="#media" class="h-full flex items-center px-2 text-slate-500 hover:text-white transition-colors nav-link">Media</a>
+
+            <a href="#ops" class="role-staff-only h-full flex items-center px-2 text-slate-500 hover:text-emerald-400 transition-colors gap-2 nav-link">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              Ops
+            </a>
+          </div>
+
+          <div class="hidden md:flex items-center gap-3 pl-6 border-l border-white/10 ml-4">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 animate-pulse">
+              <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+              <span class="text-[9px] font-bold tracking-widest uppercase">Live</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </nav>
+
+
+    <main class="max-w-[1600px] mx-auto px-4 sm:px-6 pb-24">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-12 items-start">
+
+        <div class="lg:col-span-8 flex flex-col gap-10" style="min-height: 100vh;">
+
+          <section id="overview">
+            <div class="flex flex-col md:flex-row gap-6 md:gap-10 items-start">
+              <div class="flex-1">
+                <h3 class="text-white font-display font-bold text-lg mb-3 flex items-center gap-2">
+                  <span class="w-1 h-5 bg-[var(--team-primary)] rounded-full"></span>
+                  Mission & Identity
+                </h3>
+                <p class="text-slate-400 text-sm leading-7">
+                  Founded in 2024, <strong class="text-white">Protocol V</strong> has rapidly ascended the South Asian circuit through a philosophy of "calculated aggression." Unlike traditional slow-default teams, we prioritize space-taking utility and decisive mid-round calling.
+                  <span class="hidden md:inline">Current holders of the <span class="text-slate-200 border-b border-dotted border-slate-500" title="Major Tournament">Challengers Split 1</span> trophy.</span>
+                </p>
+
+                <div class="flex flex-wrap gap-2 mt-4">
+                  <div class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-mono uppercase tracking-wider text-slate-300">
+                    Style: <span class="text-white font-bold">Aggressive</span>
+                  </div>
+                  <div class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-mono uppercase tracking-wider text-slate-300">
+                    Pace: <span class="text-white font-bold">Fast</span>
+                  </div>
+                  <div class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-mono uppercase tracking-wider text-slate-300">
+                    Focus: <span class="text-white font-bold">Retake</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="w-full md:w-auto shrink-0 grid grid-cols-2 gap-3">
+                <div class="p-4 rounded-2xl bg-[#0A0A0F] border border-white/10 min-w-[140px]">
+                  <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1">Current Streak</div>
+                  <div class="text-2xl font-display font-bold text-[#00FF41]">8 Wins</div>
+                </div>
+                <div class="p-4 rounded-2xl bg-[#0A0A0F] border border-white/10 min-w-[140px]">
+                  <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1">Global Rank</div>
+                  <div class="text-2xl font-display font-bold text-white">#14</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+
+          <section id="roster" class="transition-smooth">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-white font-display font-bold text-lg flex items-center gap-2">
+                <span class="w-1 h-5 bg-[var(--team-primary)] rounded-full"></span>
+                Active Roster
+                <span class="ml-2 px-2 py-0.5 rounded-full bg-[var(--team-primary)]/10 border border-[var(--team-primary)]/20 text-[var(--team-primary)] text-[9px] font-bold">5</span>
+              </h3>
+              <a href="#" class="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 hover:text-[var(--team-primary)] transition-smooth flex items-center gap-1">
+                View Full Squad
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+              </a>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+
+              <div class="group relative h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer">
+                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1000" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth" alt="Player" loading="lazy">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+
+                <div class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-[var(--team-primary)]">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 3.5l6.5 13h-13L12 5.5z"/></svg>
+                </div>
+
+                <div class="absolute bottom-0 left-0 w-full p-4">
+                  <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5">Duelist</div>
+                  <h4 class="text-xl font-display font-bold text-white mb-1">V1PER</h4>
+                  <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                    <img src="https://flagcdn.com/bd.svg" class="w-3.5 h-2.5 rounded-[1px] object-cover" alt="BD">
+                    <span>Hasan Ahmed</span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/10 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                    <div>
+                      <div class="text-[8px] uppercase text-slate-500">ACS</div>
+                      <div class="text-sm font-bold text-white">248</div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-[8px] uppercase text-slate-500">K/D</div>
+                      <div class="text-sm font-bold text-[var(--team-primary)]">1.24</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="group relative h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer">
+                <img src="https://images.unsplash.com/photo-1531384441138-2736e62e0919?q=80&w=1000" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth" alt="Player" loading="lazy">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                <div class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-[var(--team-primary)]">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+                </div>
+                <div class="absolute bottom-0 left-0 w-full p-4">
+                  <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5">Initiator</div>
+                  <h4 class="text-xl font-display font-bold text-white mb-1">PHANTOM</h4>
+                  <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                    <img src="https://flagcdn.com/in.svg" class="w-3.5 h-2.5 rounded-[1px] object-cover" alt="IN">
+                    <span>Rahul Raj</span>
+                  </div>
+                   <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/10 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                    <div>
+                      <div class="text-[8px] uppercase text-slate-500">AST</div>
+                      <div class="text-sm font-bold text-white">12.4</div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-[8px] uppercase text-slate-500">HS%</div>
+                      <div class="text-sm font-bold text-[var(--team-primary)]">31%</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+               <div class="group relative h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer">
+                <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1000" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth" alt="Player" loading="lazy">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                <div class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-[var(--team-primary)]">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+                </div>
+                <div class="absolute bottom-0 left-0 w-full p-4">
+                  <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5">Controller</div>
+                  <h4 class="text-xl font-display font-bold text-white mb-1">SMOKE</h4>
+                  <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                    <img src="https://flagcdn.com/th.svg" class="w-3.5 h-2.5 rounded-[1px] object-cover" alt="TH">
+                    <span>Somchai K.</span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/10 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                    <div>
+                      <div class="text-[8px] uppercase text-slate-500">CLUTCH</div>
+                      <div class="text-sm font-bold text-white">18%</div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-[8px] uppercase text-slate-500">KAST</div>
+                      <div class="text-sm font-bold text-[var(--team-primary)]">78%</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+               <div class="group relative h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer">
+                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth" alt="Player" loading="lazy">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                <div class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-[var(--team-primary)]">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 3.5l6.5 13h-13L12 5.5z"/></svg>
+                </div>
+                <div class="absolute bottom-0 left-0 w-full p-4">
+                  <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5">Sentinel</div>
+                  <h4 class="text-xl font-display font-bold text-white mb-1">LOCK</h4>
+                  <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                    <img src="https://flagcdn.com/sg.svg" class="w-3.5 h-2.5 rounded-[1px] object-cover" alt="SG">
+                    <span>Wei Jun</span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/10 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                    <div>
+                      <div class="text-[8px] uppercase text-slate-500">FK</div>
+                      <div class="text-sm font-bold text-white">8</div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-[8px] uppercase text-slate-500">FD</div>
+                      <div class="text-sm font-bold text-[var(--team-primary)]">12</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+               <div class="group relative h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer">
+                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1000" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth" alt="Player" loading="lazy">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                <div class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-[var(--team-primary)]">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0v18"/></svg>
+                </div>
+                <div class="absolute bottom-0 left-0 w-full p-4">
+                  <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5">Head Coach</div>
+                  <h4 class="text-xl font-display font-bold text-white mb-1">MIND</h4>
+                  <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                    <img src="https://flagcdn.com/jp.svg" class="w-3.5 h-2.5 rounded-[1px] object-cover" alt="JP">
+                    <span>Kenji Sato</span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/10 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                    <div>
+                      <div class="text-[8px] uppercase text-slate-500">EXP</div>
+                      <div class="text-sm font-bold text-white">5y</div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-[8px] uppercase text-slate-500">Title</div>
+                      <div class="text-sm font-bold text-[var(--team-primary)]">IGL</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          <!-- Operations Log - MOVED UP for visibility -->
+          <section id="operations">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h3 class="text-white font-display font-bold text-lg flex items-center gap-2">
+                  <span class="w-1 h-5 bg-blue-500 rounded-full"></span>
+                  Team Status & Recent Activity
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">Live updates from all Protocol V squads</p>
+              </div>
+            </div>
+
+            <div class="bg-[#0A0A0F] border border-white/10 rounded-2xl overflow-hidden">
+              <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                  Operations Log
+                </h4>
+                <span class="text-[10px] font-mono text-slate-500">SYNCED: LIVE</span>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="text-[9px] font-bold text-slate-500 uppercase tracking-wider border-b border-white/5">
+                      <th class="px-5 py-3 font-mono">Status</th>
+                      <th class="px-5 py-3 font-mono">Squad</th>
+                      <th class="px-5 py-3 font-mono">Event</th>
+                      <th class="px-5 py-3 font-mono text-right">Result</th>
+                      <th class="px-5 py-3 font-mono text-right hidden sm:table-cell">Prize</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-xs text-slate-300">
+                    <tr class="group hover:bg-white/[0.02] transition-colors border-b border-white/5">
+                      <td class="px-5 py-3">
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20 text-[9px] font-bold uppercase tracking-wide animate-pulse">
+                          <span class="w-1 h-1 rounded-full bg-red-500"></span> Live
+                        </span>
+                      </td>
+                      <td class="px-5 py-3 font-bold text-white">Protocol V</td>
+                      <td class="px-5 py-3">
+                        <div class="flex flex-col">
+                          <span class="text-white">Winter Major</span>
+                          <span class="text-[10px] text-slate-500">vs Sentinels</span>
+                        </div>
+                      </td>
+                      <td class="px-5 py-3 text-right font-mono text-white">1 - 1</td>
+                      <td class="px-5 py-3 text-right font-mono text-slate-600 hidden sm:table-cell">---</td>
+                    </tr>
+
+                    <tr class="group hover:bg-white/[0.02] transition-colors border-b border-white/5">
+                      <td class="px-5 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/5 text-[9px] font-bold uppercase tracking-wide">
+                          Finished
+                        </span>
+                      </td>
+                      <td class="px-5 py-3 font-bold text-slate-300">Syntax CS</td>
+                      <td class="px-5 py-3">
+                        <div class="flex flex-col">
+                          <span class="text-slate-300">ESL Pro League</span>
+                          <span class="text-[10px] text-slate-500">vs NaVi Academy</span>
+                        </div>
+                      </td>
+                      <td class="px-5 py-3 text-right">
+                        <span class="text-[var(--team-primary)] font-bold">WIN 2-0</span>
+                      </td>
+                      <td class="px-5 py-3 text-right font-mono text-[#00FF41] hidden sm:table-cell">$2,500</td>
+                    </tr>
+
+                    <tr class="group hover:bg-white/[0.02] transition-colors">
+                      <td class="px-5 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/5 text-[9px] font-bold uppercase tracking-wide">
+                          Finished
+                        </span>
+                      </td>
+                      <td class="px-5 py-3 font-bold text-slate-300">Protocol V</td>
+                      <td class="px-5 py-3">
+                        <div class="flex flex-col">
+                          <span class="text-slate-300">Scrim Block A</span>
+                          <span class="text-[10px] text-slate-500">vs Paper Rex</span>
+                        </div>
+                      </td>
+                      <td class="px-5 py-3 text-right">
+                        <span class="text-red-500 font-bold">LOSS 10-13</span>
+                      </td>
+                      <td class="px-5 py-3 text-right font-mono text-slate-600 hidden sm:table-cell">-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Operations Log - MOVED UP for visibility -->
+          <section id="operations">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h3 class="text-white font-display font-bold text-lg flex items-center gap-2">
+                  <span class="w-1 h-5 bg-blue-500 rounded-full"></span>
+                  Team Status & Recent Activity
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">Live updates from all Protocol V squads</p>
+              </div>
+            </div>
+
+            <div class="bg-[#0A0A0F] border border-white/10 rounded-2xl overflow-hidden">
+              <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                  Operations Log
+                </h4>
+                <span class="text-[10px] font-mono text-slate-500">SYNCED: LIVE</span>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="text-[9px] font-bold text-slate-500 uppercase tracking-wider border-b border-white/5">
+                      <th class="px-5 py-3 font-mono">Status</th>
+                      <th class="px-5 py-3 font-mono">Squad</th>
+                      <th class="px-5 py-3 font-mono">Event</th>
+                      <th class="px-5 py-3 font-mono text-right">Result</th>
+                      <th class="px-5 py-3 font-mono text-right hidden sm:table-cell">Prize</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-xs text-slate-300">
+                    <tr class="group hover:bg-white/[0.02] transition-colors border-b border-white/5">
+                      <td class="px-5 py-3">
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20 text-[9px] font-bold uppercase tracking-wide animate-pulse">
+                          <span class="w-1 h-1 rounded-full bg-red-500"></span> Live
+                        </span>
+                      </td>
+                      <td class="px-5 py-3 font-bold text-white">Protocol V</td>
+                      <td class="px-5 py-3">
+                        <div class="flex flex-col">
+                          <span class="text-white">Winter Major</span>
+                          <span class="text-[10px] text-slate-500">vs Sentinels</span>
+                        </div>
+                      </td>
+                      <td class="px-5 py-3 text-right font-mono text-white">1 - 1</td>
+                      <td class="px-5 py-3 text-right font-mono text-slate-600 hidden sm:table-cell">---</td>
+                    </tr>
+
+                    <tr class="group hover:bg-white/[0.02] transition-colors border-b border-white/5">
+                      <td class="px-5 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/5 text-[9px] font-bold uppercase tracking-wide">
+                          Finished
+                        </span>
+                      </td>
+                      <td class="px-5 py-3 font-bold text-slate-300">Syntax CS</td>
+                      <td class="px-5 py-3">
+                        <div class="flex flex-col">
+                          <span class="text-slate-300">ESL Pro League</span>
+                          <span class="text-[10px] text-slate-500">vs NaVi Academy</span>
+                        </div>
+                      </td>
+                      <td class="px-5 py-3 text-right">
+                        <span class="text-[var(--team-primary)] font-bold">WIN 2-0</span>
+                      </td>
+                      <td class="px-5 py-3 text-right font-mono text-[#00FF41] hidden sm:table-cell">$2,500</td>
+                    </tr>
+
+                    <tr class="group hover:bg-white/[0.02] transition-colors">
+                      <td class="px-5 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/5 text-[9px] font-bold uppercase tracking-wide">
+                          Finished
+                        </span>
+                      </td>
+                      <td class="px-5 py-3 font-bold text-slate-300">Protocol V</td>
+                      <td class="px-5 py-3">
+                        <div class="flex flex-col">
+                          <span class="text-slate-300">Scrim Block A</span>
+                          <span class="text-[10px] text-slate-500">vs Paper Rex</span>
+                        </div>
+                      </td>
+                      <td class="px-5 py-3 text-right">
+                        <span class="text-red-500 font-bold">LOSS 10-13</span>
+                      </td>
+                      <td class="px-5 py-3 text-right font-mono text-slate-600 hidden sm:table-cell">-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Matches Section - NEW -->
+          <section id="matches">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-white font-display font-bold text-lg flex items-center gap-2">
+                <span class="w-1 h-5 bg-[var(--team-primary)] rounded-full"></span>
+                Match Schedule
+              </h3>
+              <div class="flex gap-2">
+                <button class="px-3 py-1.5 rounded-lg bg-white/10 text-white text-[10px] font-bold uppercase tracking-widest transition-colors">Upcoming</button>
+                <button class="px-3 py-1.5 rounded-lg text-slate-500 hover:bg-white/5 text-[10px] font-bold uppercase tracking-widest transition-colors">Results</button>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <!-- Upcoming Match -->
+              <div class="relative group p-5 rounded-2xl bg-gradient-to-br from-[#0A0A0F] to-[#121216] border border-[var(--team-primary)]/30 hover:border-[var(--team-primary)]/60 transition-all">
+                <div class="absolute top-3 right-3">
+                  <span class="px-2 py-1 rounded bg-[var(--team-primary)]/10 border border-[var(--team-primary)]/20 text-[var(--team-primary)] text-[9px] font-bold uppercase tracking-widest">Tomorrow</span>
+                </div>
+
+                <div class="flex flex-col md:flex-row items-center gap-6">
+                  <div class="flex-1 flex items-center justify-between gap-6">
+                    <div class="flex items-center gap-3">
+                      <div class="w-12 h-12 rounded-xl bg-[var(--team-primary)]/10 border border-[var(--team-primary)]/30 flex items-center justify-center">
+                        <span class="font-display font-bold text-[var(--team-primary)] text-sm">PV</span>
+                      </div>
+                      <div>
+                        <div class="font-bold text-white text-sm">Protocol V</div>
+                        <div class="text-[10px] text-slate-500">Rank #14</div>
+                      </div>
+                    </div>
+
+                    <div class="text-center">
+                      <div class="text-xs font-mono text-slate-500 mb-1">BO3</div>
+                      <div class="text-2xl font-display font-bold text-white">VS</div>
+                      <div class="text-xs font-mono text-slate-400 mt-1">20:00 UTC+6</div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                      <div>
+                        <div class="font-bold text-white text-sm text-right">DRX</div>
+                        <div class="text-[10px] text-slate-500 text-right">Rank #8</div>
+                      </div>
+                      <div class="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                        <span class="font-display font-bold text-slate-400 text-sm">DRX</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+                  <div class="text-xs text-slate-400">
+                    <span class="font-bold text-white">Challengers League</span> • Stage 2
+                  </div>
+                  <button class="text-[10px] font-bold text-[var(--team-primary)] hover:text-white transition-colors uppercase tracking-widest">Match Details →</button>
+                </div>
+              </div>
+
+              <!-- Recent Result -->
+              <div class="p-5 rounded-2xl bg-[#0A0A0F] border border-white/10 hover:border-white/20 transition-colors">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div class="flex items-center gap-6 flex-1">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-lg bg-[var(--team-primary)]/10 border border-[var(--team-primary)]/30 flex items-center justify-center">
+                        <span class="font-display font-bold text-[var(--team-primary)] text-xs">PV</span>
+                      </div>
+                      <span class="font-bold text-white text-sm">Protocol V</span>
+                    </div>
+                    <div class="text-xl font-display font-bold text-emerald-400">2 : 0</div>
+                    <div class="flex items-center gap-3">
+                      <span class="font-bold text-slate-400 text-sm">Paper Rex</span>
+                      <div class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                        <span class="font-display font-bold text-slate-500 text-xs">PRX</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-xs text-slate-500 font-mono">2 days ago</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Team Statistics (Enhanced with Form & Performance) -->
+          <section id="stats">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-white font-display font-bold text-lg flex items-center gap-2">
+                <span class="w-1 h-5 bg-[var(--team-primary)] rounded-full"></span>
+                Team Statistics & Performance
+              </h3>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Season 5 • 2026</span>
+                <button class="w-6 h-6 rounded bg-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Form & Recent Performance -->
+            <div class="mb-6 p-6 rounded-2xl bg-[#0A0A0F] border border-white/10">
+              <h4 class="text-xs font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                Recent Form (Last 10 Matches)
+              </h4>
+              
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex gap-2">
+                  <div class="w-8 h-8 rounded bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-400" title="Win">W</div>
+                  <div class="w-8 h-8 rounded bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-400" title="Win">W</div>
+                  <div class="w-8 h-8 rounded bg-red-500/20 border border-red-500/30 flex items-center justify-center text-xs font-bold text-red-400" title="Loss">L</div>
+                  <div class="w-8 h-8 rounded bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-400" title="Win">W</div>
+                  <div class="w-8 h-8 rounded bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-400" title="Win">W</div>
+                  <div class="w-8 h-8 rounded bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-400" title="Win">W</div>
+                  <div class="w-8 h-8 rounded bg-red-500/20 border border-red-500/30 flex items-center justify-center text-xs font-bold text-red-400" title="Loss">L</div>
+                  <div class="w-8 h-8 rounded bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-400" title="Win">W</div>
+                  <div class="w-8 h-8 rounded bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-400" title="Win">W</div>
+                  <div class="w-8 h-8 rounded bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-400" title="Win">W</div>
+                </div>
+                
+                <div class="text-right">
+                  <div class="text-2xl font-display font-bold text-emerald-400">80%</div>
+                  <div class="text-[10px] text-slate-500 font-mono uppercase">Win Rate</div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-4 gap-4">
+                <div class="bg-white/[0.03] rounded-xl p-4 border border-white/5">
+                  <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">Total Played</div>
+                  <div class="text-2xl font-display font-bold text-white">54</div>
+                  <div class="text-[9px] text-slate-600 font-mono mt-1">Official Matches</div>
+                </div>
+                
+                <div class="bg-white/[0.03] rounded-xl p-4 border border-white/5">
+                  <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">Current Streak</div>
+                  <div class="text-2xl font-display font-bold text-emerald-400">6W</div>
+                  <div class="text-[9px] text-emerald-600 font-mono mt-1">Best: 11W</div>
+                </div>
+                
+                <div class="bg-white/[0.03] rounded-xl p-4 border border-white/5">
+                  <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">Avg Rounds</div>
+                  <div class="text-2xl font-display font-bold text-white">14.2</div>
+                  <div class="text-[9px] text-slate-600 font-mono mt-1">Per Map</div>
+                </div>
+                
+                <div class="bg-white/[0.03] rounded-xl p-4 border border-white/5">
+                  <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">Clutch Rate</div>
+                  <div class="text-2xl font-display font-bold text-[var(--team-primary)]">42%</div>
+                  <div class="text-[9px] text-slate-600 font-mono mt-1">1vX Situations</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              <div class="p-5 rounded-2xl bg-[#0A0A0F] border border-white/10 flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-xs font-bold text-white uppercase tracking-wider">Map Pool Strength</h4>
+                  <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                </div>
+
+                <div class="space-y-4">
+                  <div>
+                    <div class="flex justify-between text-[10px] uppercase font-bold mb-1.5">
+                      <span class="text-slate-300">Ascent</span>
+                      <span class="text-[var(--team-primary)]">72% Win</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div class="h-full bg-[var(--team-primary)] rounded-full" style="width: 72%"></div>
+                    </div>
+                    <div class="flex justify-between mt-1 text-[9px] font-mono text-slate-600">
+                      <span>18 Played</span>
+                      <span>13W - 5L</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex justify-between text-[10px] uppercase font-bold mb-1.5">
+                      <span class="text-slate-300">Haven</span>
+                      <span class="text-emerald-400">64% Win</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div class="h-full bg-emerald-400 rounded-full" style="width: 64%"></div>
+                    </div>
+                    <div class="flex justify-between mt-1 text-[9px] font-mono text-slate-600">
+                      <span>14 Played</span>
+                      <span>9W - 5L</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex justify-between text-[10px] uppercase font-bold mb-1.5">
+                      <span class="text-slate-300">Lotus</span>
+                      <span class="text-red-400">41% Win</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div class="h-full bg-red-400 rounded-full" style="width: 41%"></div>
+                    </div>
+                    <div class="flex justify-between mt-1 text-[9px] font-mono text-slate-600">
+                      <span>12 Played</span>
+                      <span>5W - 7L</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-5 rounded-2xl bg-[#0A0A0F] border border-white/10 flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-xs font-bold text-white uppercase tracking-wider">Comp Preference & Playstyle</h4>
+                  <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 h-full">
+                  <div class="bg-white/[0.03] rounded-xl p-3 flex flex-col justify-center items-center text-center border border-white/5">
+                    <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">Standard</div>
+                    <div class="text-xl font-display font-bold text-white">Double</div>
+                    <div class="text-[9px] text-[var(--team-primary)] font-mono uppercase mt-1">Initiator</div>
+                  </div>
+                  <div class="bg-white/[0.03] rounded-xl p-3 flex flex-col justify-center items-center text-center border border-white/5">
+                    <div class="text-[10px] uppercase text-slate-500 mb-1 font-bold">Pace</div>
+                    <div class="text-xl font-display font-bold text-white">Fast</div>
+                    <div class="text-[9px] text-slate-400 font-mono uppercase mt-1">Execute</div>
+                  </div>
+                  <div class="col-span-2 bg-white/[0.03] rounded-xl p-3 border border-white/5 flex items-center justify-between">
+                    <div class="text-xs font-bold text-slate-300">Utility Efficiency</div>
+                    <div class="text-lg font-display font-bold text-emerald-400">A+</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          <section id="tab-journey">
+            <h3 class="text-white font-display font-bold text-lg mb-8 flex items-center gap-2">
+              <span class="w-1 h-5 bg-[var(--team-primary)] rounded-full"></span>
+              The Journey
+            </h3>
+
+            <div class="relative border-l border-white/10 ml-3 space-y-10 pb-4">
+
+              <div class="relative pl-8 group">
+                <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-[var(--team-primary)] shadow-[0_0_10px_var(--team-glow)] ring-4 ring-[#000]"></div>
+
+                <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <span class="text-[10px] font-mono font-bold text-[var(--team-primary)] uppercase tracking-wider bg-[var(--team-primary)]/10 px-2 py-1 rounded">Nov 2025</span>
+                  <div class="h-px w-8 bg-white/10 hidden sm:block"></div>
+                  <h4 class="text-white font-bold text-base">Qualified for Ascension Pacific</h4>
+                </div>
+                <p class="text-sm text-slate-400 mt-2 max-w-2xl leading-relaxed">
+                  After a grueling 5-map series against <span class="text-white">Orangutan</span>, the team secured the seed for the Ascension league, marking our entry into Tier 1 contention.
+                </p>
+              </div>
+
+              <div class="relative pl-8 group">
+                <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-slate-700 ring-4 ring-[#000] group-hover:bg-white transition-colors"></div>
+
+                <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <span class="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Aug 2025</span>
+                  <h4 class="text-slate-200 font-bold text-base">Signed Roster "Velocity"</h4>
+                </div>
+                <p class="text-sm text-slate-500 mt-2 max-w-2xl">
+                  Acquired the core 3 players from Velocity Gaming to rebuild the tactical foundation.
+                </p>
+              </div>
+
+              <div class="relative pl-8 group">
+                <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-slate-700 ring-4 ring-[#000] group-hover:bg-white transition-colors"></div>
+
+                <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <span class="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Jan 2024</span>
+                  <h4 class="text-slate-200 font-bold text-base">Protocol V Established</h4>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          <section id="tab-community" class="animate-fade-in-up delay-300">
+            
+            <div class="mb-8">
+              <div class="flex items-center justify-between mb-6">
+                <h3 class="text-white font-display font-bold text-lg flex items-center gap-2">
+                  <span class="w-1 h-5 bg-[#5865F2] rounded-full"></span>
+                  Team Transmission
+                </h3>
+                <button class="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-colors flex items-center gap-1">
+                  Open Community App
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </button>
+              </div>
+
+              <div class="flex flex-col gap-3">
+                
+                <div class="p-5 rounded-2xl bg-[#0A0A0F] border border-white/10 hover:border-white/20 transition-colors">
+                  <div class="flex gap-4">
+                    <div class="shrink-0 relative">
+                      <div class="w-10 h-10 rounded-xl bg-black border border-white/10 flex items-center justify-center text-[var(--team-primary)]">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/></svg>
+                      </div>
+                      <div class="absolute -bottom-1 -right-1 bg-white text-black p-0.5 rounded-full border-2 border-[#0A0A0F]">
+                        <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+                      </div>
+                    </div>
+                    
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="font-bold text-white text-sm">Protocol V</span>
+                        <svg class="w-3 h-3 text-[var(--team-primary)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                        <span class="text-[10px] text-slate-500 font-mono">@protocol_v • 2h ago</span>
+                        <span class="ml-auto flex items-center gap-1 text-[9px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                          <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg> Pinned
+                        </span>
+                      </div>
+                      
+                      <p class="text-sm text-slate-300 leading-relaxed mb-3">
+                        The bracket has been reset. We face <span class="text-[var(--team-primary)] font-bold">@DRX_VS</span> tomorrow at 20:00. This is the run back we've been waiting for. #ProtocolRising
+                      </p>
+
+                      <div class="relative w-full h-48 rounded-xl overflow-hidden mb-3 border border-white/5 group-hover:border-white/10 transition-colors">
+                        <img src="https://images.unsplash.com/photo-1542751110-97427bbecf20?q=80&w=1000" class="absolute inset-0 w-full h-full object-cover" alt="Match Graphic">
+                        <div class="absolute inset-0 bg-black/20 flex items-center justify-center">
+                          <div class="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10">
+                            <span class="text-xs font-bold text-white uppercase tracking-widest">Match Preview</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center gap-6 text-slate-500 text-xs font-mono">
+                        <button class="flex items-center gap-2 hover:text-[var(--team-primary)] transition-colors">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                          <span>1.2k</span>
+                        </button>
+                        <button class="flex items-center gap-2 hover:text-white transition-colors">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                          <span>48</span>
+                        </button>
+                        <button class="flex items-center gap-2 hover:text-green-400 transition-colors ml-auto">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                          <span>Share</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+
+
+            </div>
+
+          </section>
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </div> <div class="lg:col-span-4 flex flex-col gap-6">
+
+          <div class="relative overflow-hidden rounded-3xl bg-[#0A0A0F] border border-white/10 p-1">
+            <div class="relative bg-white/5 p-4 rounded-t-[1.3rem] flex items-center justify-between">
+              <span class="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--team-primary)]">Up Next</span>
+              <span class="text-[10px] text-slate-400">Tomorrow, 20:00</span>
+            </div>
+
+            <div class="p-6 flex flex-col items-center">
+              <div class="flex items-center gap-6 w-full justify-center mb-4">
+                <div class="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center p-2">
+                   <svg class="w-10 h-10 text-[var(--team-primary)]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/></svg>
+                </div>
+                <div class="text-xs font-mono text-slate-500">VS</div>
+                <div class="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center p-2">
+                  <div class="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center text-red-500 font-bold">DRX</div>
+                </div>
+              </div>
+
+              <h4 class="text-white font-display font-bold text-xl mb-1">Upper Bracket Final</h4>
+              <p class="text-xs text-slate-500 mb-6">VCT Pacific • Best of 3</p>
+
+              <button class="w-full py-3 rounded-xl bg-white text-black font-bold uppercase text-xs tracking-widest hover:bg-slate-200 transition">
+                Set Reminder
+              </button>
+            </div>
+          </div>
+
+          <!-- Join the Ranks (Recruitment Card) -->
+          <div class="relative group bg-[#0A0A0F] border border-[var(--team-primary)]/30 hover:border-[var(--team-primary)]/50 rounded-3xl p-6 transition-all overflow-hidden">
+            <div class="absolute -right-4 -bottom-4 opacity-10 text-[var(--team-primary)] transform -rotate-12 group-hover:scale-110 transition-transform">
+              <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+
+            <div class="relative z-10 flex flex-col h-full justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="text-white font-display font-bold text-lg">Join the Ranks</h4>
+                  <span class="px-2 py-0.5 rounded bg-[#00FF41]/10 border border-[#00FF41]/20 text-[#00FF41] text-[9px] font-bold uppercase tracking-widest animate-pulse">Open</span>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed mb-4">
+                  Protocol V Academy is scouting for rising talent in South Asia. Do you have the mechanics and the discipline?
+                </p>
+                <div class="flex gap-2 mb-6">
+                  <span class="px-2 py-1 bg-white/5 border border-white/10 text-[9px] text-slate-300 font-mono rounded uppercase">Role: Flex</span>
+                  <span class="px-2 py-1 bg-white/5 border border-white/10 text-[9px] text-slate-300 font-mono rounded uppercase">Rank: IMM+</span>
+                </div>
+              </div>
+
+              <button class="w-full py-3 rounded-xl bg-white text-black font-bold uppercase text-[10px] tracking-widest hover:bg-slate-200 transition shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                Apply for Tryouts
+              </button>
+            </div>
+          </div>
+
+          <!-- Enhanced Bounties & Challenges System (Esports-Inspired) -->
+          <div class="rounded-3xl bg-gradient-to-br from-[#0A0A0F] to-[#1a1015] border border-red-500/20 overflow-hidden">
+            <div class="bg-gradient-to-r from-red-600/10 to-orange-600/10 px-5 py-4 border-b border-red-500/20">
+              <div class="flex items-center justify-between mb-1">
+                <h4 class="text-white font-display font-bold text-sm flex items-center gap-2">
+                  <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  Challenge Hub
+                </h4>
+                <span class="px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/30 text-green-400 text-[8px] font-bold uppercase tracking-wider animate-pulse">
+                  <span class="inline-block w-1 h-1 rounded-full bg-green-400 mr-1"></span>2 Open
+                </span>
+              </div>
+              <p class="text-[10px] text-slate-400">Compete for prizes & reputation</p>
+            </div>
+
+            <div class="p-4 space-y-3">
+              <!-- Active Wager Match -->
+              <div class="relative group p-4 rounded-xl bg-gradient-to-br from-red-950/30 to-orange-950/20 border border-red-500/30 hover:border-red-500/50 transition-all cursor-pointer">
+                <div class="absolute top-2 right-2">
+                  <span class="px-1.5 py-0.5 rounded bg-green-500/20 border border-green-500/30 text-green-400 text-[8px] font-bold uppercase">Open</span>
+                </div>
+                
+                <div class="mb-3">
+                  <div class="flex items-center gap-2 mb-1">
+                    <div class="px-1.5 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-[8px] font-bold uppercase tracking-wider">
+                      💰 Wager
+                    </div>
+                    <div class="text-[9px] text-slate-500 font-mono">BO3 • Scrim</div>
+                  </div>
+                  <h5 class="text-white font-bold text-sm mb-1">$500 Showmatch</h5>
+                  <p class="text-[10px] text-slate-400 leading-relaxed mb-2">Map veto • Official server • Streamed to community</p>
+                </div>
+
+                <div class="flex items-center justify-between text-[10px] mb-3">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded bg-[var(--team-primary)]/20 border border-[var(--team-primary)]/30 flex items-center justify-center text-[8px] font-bold text-[var(--team-primary)]">PV</div>
+                    <span class="text-white font-mono">vs</span>
+                    <div class="w-6 h-6 rounded bg-white/5 border border-white/10 border-dashed flex items-center justify-center text-[8px] text-slate-500">?</div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-[8px] text-slate-500 uppercase font-bold">Prize Pool</div>
+                    <div class="text-lg font-display font-bold text-yellow-400">$500</div>
+                  </div>
+                </div>
+
+                <div class="flex gap-2">
+                  <button class="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[9px] font-bold uppercase tracking-widest transition shadow-lg">
+                    Accept
+                  </button>
+                  <button class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  </button>
+                </div>
+
+                <!-- Countdown Timer -->
+                <div class="mt-3 pt-3 border-t border-red-500/10 flex items-center justify-between">
+                  <span class="text-[9px] text-slate-500 uppercase font-mono">Expires in</span>
+                  <span class="text-[9px] font-mono font-bold text-red-400">23:45:12</span>
+                </div>
+              </div>
+
+              <!-- Community Bounty -->
+              <div class="relative group p-4 rounded-xl bg-[#0A0A0F] border border-purple-500/20 hover:border-purple-500/40 transition-all cursor-pointer">
+                <div class="absolute top-2 right-2">
+                  <span class="px-1.5 py-0.5 rounded bg-purple-500/20 border border-purple-500/30 text-purple-400 text-[8px] font-bold uppercase">Bounty</span>
+                </div>
+                
+                <div class="mb-3">
+                  <div class="flex items-center gap-2 mb-1">
+                    <div class="px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[8px] font-bold uppercase tracking-wider">
+                      🎯 Community
+                    </div>
+                    <div class="text-[9px] text-slate-500 font-mono">1v1 • Aim Duel</div>
+                  </div>
+                  <h5 class="text-white font-bold text-sm mb-1">Beat V1PER in 1v1</h5>
+                  <p class="text-[10px] text-slate-400 leading-relaxed mb-2">Aim duel on training map • First to 20 kills</p>
+                </div>
+
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center gap-2">
+                    <img src="https://via.placeholder.com/24/6366f1/ffffff?text=V" class="w-6 h-6 rounded-full border border-white/10" alt="V1PER">
+                    <div>
+                      <div class="text-[9px] text-white font-bold">V1PER</div>
+                      <div class="text-[8px] text-slate-500">Duelist</div>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-[8px] text-slate-500 uppercase font-bold">Reward</div>
+                    <div class="text-sm font-display font-bold text-purple-400">250 CP</div>
+                  </div>
+                </div>
+
+                <button class="w-full py-2 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-400 hover:text-purple-300 text-[9px] font-bold uppercase tracking-widest transition">
+                  Queue for Match
+                </button>
+
+                <!-- Stats Info -->
+                <div class="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[9px]">
+                  <span class="text-slate-500">12 Attempts</span>
+                  <span class="text-slate-400">•</span>
+                  <span class="text-emerald-400 font-bold">0 Wins</span>
+                </div>
+              </div>
+
+              <!-- Challenge Stats Summary -->
+              <div class="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                <div class="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <div class="text-lg font-display font-bold text-emerald-400">8</div>
+                    <div class="text-[8px] text-slate-500 uppercase font-bold tracking-wider">Wins</div>
+                  </div>
+                  <div>
+                    <div class="text-lg font-display font-bold text-red-400">2</div>
+                    <div class="text-[8px] text-slate-500 uppercase font-bold tracking-wider">Losses</div>
+                  </div>
+                  <div>
+                    <div class="text-lg font-display font-bold text-yellow-400">$2.5K</div>
+                    <div class="text-[8px] text-slate-500 uppercase font-bold tracking-wider">Earned</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- CTA Buttons -->
+              <div class="flex gap-2 pt-2">
+                <button class="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white text-[9px] font-bold uppercase tracking-wider transition flex items-center justify-center gap-2">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  History
+                </button>
+                <button class="flex-1 py-2 rounded-lg bg-red-600/90 hover:bg-red-600 text-white text-[9px] font-bold uppercase tracking-wider transition shadow-[0_0_15px_rgba(220,38,38,0.3)] flex items-center justify-center gap-2">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  Issue
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-3xl bg-[#0A0A0F] border border-white/10 p-6">
+            <h4 class="text-xs font-mono font-bold uppercase tracking-widest text-slate-500 mb-4">Connect</h4>
+            <div class="flex gap-2">
+              <a href="#" class="flex-1 h-10 rounded-lg bg-[#5865F2] hover:brightness-110 transition flex items-center justify-center text-white">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0 a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+              </a>
+              <a href="#" class="flex-1 h-10 rounded-lg bg-[#000000] border border-white/20 hover:bg-white/10 transition flex items-center justify-center text-white">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              </a>
+              <a href="#" class="flex-1 h-10 rounded-lg bg-[#FF0000] hover:brightness-110 transition flex items-center justify-center text-white">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.263-4.356 2.627-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+              </a>
+            </div>
+          </div>
+
+
+          <section id="tab-matches" class="animate-fade-in-up delay-100">
+
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-white font-display font-bold text-lg flex items-center gap-2">
+                <span class="w-1 h-5 bg-[var(--team-primary)] rounded-full"></span>
+                Match History
+              </h3>
+
+              <div class="flex bg-[#0A0A0F] border border-white/10 rounded-lg p-1 gap-1">
+                <button class="px-3 py-1 rounded-md bg-white/10 text-[10px] font-bold text-white uppercase tracking-wider shadow-sm transition-all">All</button>
+                <button class="px-3 py-1 rounded-md hover:bg-white/5 text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-wider transition-colors">Official</button>
+                <button class="px-3 py-1 rounded-md hover:bg-white/5 text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-wider transition-colors">Scrims</button>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+
+              <div class="relative group rounded-xl border border-white/5 bg-[#0E0E12] overflow-hidden hover:border-emerald-500/30 transition-smooth hover-lift">
+                <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+
+                <div class="relative p-3 md:p-4 flex flex-col md:flex-row items-center gap-4">
+
+                  <div class="w-full md:w-28 shrink-0 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start gap-1">
+                    <div class="flex items-center gap-2 mb-0.5">
+                      <span class="px-1.5 py-0.5 rounded-[4px] bg-white/10 text-[9px] font-bold text-white border border-white/5">OFFICIAL</span>
+                    </div>
+                    <div class="text-xs font-bold text-white leading-tight">VCT Pacific</div>
+                    <div class="text-[10px] text-slate-500 font-mono mt-0.5">2 Days Ago</div>
+                  </div>
+
+                  <div class="flex-1 flex items-center justify-center w-full md:w-auto border-t md:border-t-0 md:border-l border-white/5 pt-3 md:pt-0 md:pl-4 md:pr-4">
+
+                    <div class="flex flex-col items-center justify-center gap-1 w-20 text-center">
+                      <div class="w-10 h-10 rounded bg-[#0A0A0F] border border-white/10 p-1.5 shrink-0 shadow-[0_0_15px_rgba(0,0,0,0.5)] relative z-10">
+                         <svg class="w-full h-full text-[var(--team-primary)]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/></svg>
+                      </div>
+                      <span class="text-[10px] font-bold text-white uppercase tracking-tight leading-none">Protocol V</span>
+                    </div>
+
+                    <div class="px-2 md:px-4">
+                      <div class="text-2xl font-display font-bold text-white tracking-widest leading-none bg-[#000]/40 px-3 py-1 rounded border border-white/10 backdrop-blur-sm">
+                        <span class="text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">2</span>:<span class="text-slate-600">1</span>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-col items-center justify-center gap-1 w-20 text-center">
+                      <div class="w-10 h-10 rounded bg-[#0A0A0F] border border-white/10 flex items-center justify-center font-display font-bold text-xs text-slate-500 shrink-0 relative z-10">
+                        T1
+                      </div>
+                      <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tight leading-none">T1</span>
+                    </div>
+
+                  </div>
+
+                  <div class="w-full md:w-auto flex flex-row md:flex-col gap-2 md:gap-1 justify-center items-center md:items-end md:pl-4 md:border-l border-white/5 pt-3 md:pt-0 border-t md:border-t-0 shrink-0">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[9px] uppercase tracking-wider text-slate-500 font-mono hidden sm:inline">Ascent</span>
+                      <span class="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-1.5 rounded border border-emerald-400/20">13-9</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[9px] uppercase tracking-wider text-slate-500 font-mono hidden sm:inline">Lotus</span>
+                      <span class="text-[10px] font-bold text-red-400 bg-red-400/10 px-1.5 rounded border border-red-400/20">10-13</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[9px] uppercase tracking-wider text-slate-500 font-mono hidden sm:inline">Haven</span>
+                      <span class="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-1.5 rounded border border-emerald-400/20">13-5</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+
+              <div class="relative group rounded-xl border border-white/5 bg-[#0E0E12] overflow-hidden hover:border-red-500/30 transition-all duration-300">
+                <div class="absolute inset-0 bg-gradient-to-r from-red-500/10 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
+
+                <div class="relative p-3 md:p-4 flex flex-col md:flex-row items-center gap-4">
+
+                  <div class="w-full md:w-28 shrink-0 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start gap-1">
+                    <div class="flex items-center gap-2 mb-0.5">
+                      <span class="px-1.5 py-0.5 rounded-[4px] bg-white/10 text-[9px] font-bold text-white border border-white/5">OFFICIAL</span>
+                    </div>
+                    <div class="text-xs font-bold text-white leading-tight">VCT Pacific</div>
+                    <div class="text-[10px] text-slate-500 font-mono mt-0.5">5 Days Ago</div>
+                  </div>
+
+                  <div class="flex-1 flex items-center justify-center w-full md:w-auto border-t md:border-t-0 md:border-l border-white/5 pt-3 md:pt-0 md:pl-4 md:pr-4">
+
+                    <div class="flex flex-col items-center justify-center gap-1 w-20 text-center">
+                      <div class="w-10 h-10 rounded bg-[#0A0A0F] border border-white/10 p-1.5 shrink-0 grayscale opacity-70 relative z-10">
+                         <svg class="w-full h-full text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/></svg>
+                      </div>
+                      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight leading-none">Protocol V</span>
+                    </div>
+
+                    <div class="px-2 md:px-4">
+                      <div class="text-2xl font-display font-bold text-white tracking-widest leading-none bg-[#000]/40 px-3 py-1 rounded border border-white/10 backdrop-blur-sm">
+                        <span class="text-slate-600">0</span>:<span class="text-white">2</span>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-col items-center justify-center gap-1 w-20 text-center">
+                      <div class="w-10 h-10 rounded bg-[#0A0A0F] border border-white/10 flex items-center justify-center font-display font-bold text-xs text-white shrink-0 relative z-10">
+                        PRX
+                      </div>
+                      <span class="text-[10px] font-bold text-white uppercase tracking-tight leading-none">Paper Rex</span>
+                    </div>
+
+                  </div>
+
+                  <div class="w-full md:w-auto flex flex-row md:flex-col gap-2 md:gap-1 justify-center items-center md:items-end md:pl-4 md:border-l border-white/5 pt-3 md:pt-0 border-t md:border-t-0 shrink-0">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[9px] uppercase tracking-wider text-slate-500 font-mono hidden sm:inline">Bind</span>
+                      <span class="text-[10px] font-bold text-red-400 bg-red-400/10 px-1.5 rounded border border-red-400/20">8-13</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[9px] uppercase tracking-wider text-slate-500 font-mono hidden sm:inline">Split</span>
+                      <span class="text-[10px] font-bold text-red-400 bg-red-400/10 px-1.5 rounded border border-red-400/20">11-13</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+
+              <div class="relative group rounded-xl border border-white/5 bg-[#0E0E12] overflow-hidden hover:border-[var(--team-primary)]/40 transition-all duration-300">
+                 <div class="absolute inset-0 bg-gradient-to-r from-[var(--team-primary)]/10 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-[var(--team-primary)]"></div>
+
+                <div class="relative p-3 md:p-4 flex flex-col md:flex-row items-center gap-4">
+
+                  <div class="w-full md:w-28 shrink-0 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start gap-1">
+                    <div class="flex items-center gap-2 mb-0.5">
+                      <span class="px-1.5 py-0.5 rounded-[4px] bg-[var(--team-primary)] text-[9px] font-bold text-black border border-[var(--team-primary)]">FINALS</span>
+                    </div>
+                    <div class="text-xs font-bold text-white leading-tight">Challengers SA</div>
+                    <div class="text-[10px] text-slate-500 font-mono mt-0.5">2 Weeks Ago</div>
+                  </div>
+
+                  <div class="flex-1 flex items-center justify-center w-full md:w-auto border-t md:border-t-0 md:border-l border-white/5 pt-3 md:pt-0 md:pl-4 md:pr-4">
+
+                    <div class="flex flex-col items-center justify-center gap-1 w-20 text-center">
+                      <div class="w-10 h-10 rounded bg-[#0A0A0F] border border-white/10 p-1.5 shrink-0 shadow-[0_0_15px_rgba(255,215,0,0.4)] relative z-10">
+                         <svg class="w-full h-full text-[var(--team-primary)]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/></svg>
+                      </div>
+                      <span class="text-[10px] font-bold text-white uppercase tracking-tight leading-none">Protocol V</span>
+                    </div>
+
+                    <div class="px-2 md:px-4">
+                      <div class="text-2xl font-display font-bold text-white tracking-widest leading-none bg-[#000]/40 px-3 py-1 rounded border border-[var(--team-primary)]/30 backdrop-blur-sm shadow-[0_0_15px_var(--team-glow)]">
+                        <span class="text-[var(--team-primary)]">3</span>:<span class="text-slate-600">1</span>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-col items-center justify-center gap-1 w-20 text-center">
+                      <div class="w-10 h-10 rounded bg-[#0A0A0F] border border-white/10 flex items-center justify-center font-display font-bold text-xs text-slate-500 shrink-0 relative z-10">
+                        GE
+                      </div>
+                      <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tight leading-none">Global</span>
+                    </div>
+
+                  </div>
+
+                  <div class="w-full md:w-auto flex flex-row md:flex-col gap-2 md:gap-1 justify-center items-center md:items-end md:pl-4 md:border-l border-white/5 pt-3 md:pt-0 border-t md:border-t-0 shrink-0">
+                    <div class="flex items-center gap-2">
+                       <span class="text-[9px] font-bold text-[var(--team-primary)] uppercase tracking-widest">🏆 WON SERIES</span>
+                    </div>
+                    <div class="flex gap-1 mt-1 opacity-70">
+                       <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                       <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                       <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                       <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+
+            <button class="w-full mt-4 py-4 rounded-xl border border-dashed border-white/10 text-[10px] font-mono uppercase tracking-widest text-slate-500 hover:text-white hover:border-white/30 hover:bg-white/5 transition flex items-center justify-center gap-2 group">
+              View Complete Match History
+              <svg class="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+            </button>
+          </section>
+
+
+          <section id="tab-tournaments">
+            <h3 class="text-white font-display font-bold text-lg mb-6 flex items-center gap-2">
+              <span class="w-1 h-5 bg-[var(--team-primary)] rounded-full"></span>
+              Trophy Cabinet
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+
+              <div class="relative group p-6 rounded-2xl bg-gradient-to-br from-[#0A0A0F] to-[#1a1a20] border border-white/10 overflow-hidden hover:-translate-y-1 transition-transform duration-300">
+                <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03]"></div>
+                <div class="absolute top-0 right-0 w-24 h-24 bg-[var(--team-primary)] blur-[60px] opacity-10 group-hover:opacity-20 transition-opacity"></div>
+
+                <div class="relative z-10 flex flex-col items-center text-center">
+                  <div class="mb-4 text-4xl filter drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">🏆</div>
+                  <div class="px-2 py-0.5 mb-2 rounded border border-[var(--team-primary)]/30 bg-[var(--team-primary)]/10 text-[var(--team-primary)] text-[9px] font-bold uppercase tracking-widest">
+                    1st Place
+                  </div>
+                  <h4 class="text-white font-display font-bold text-lg leading-tight mb-1">Challengers South Asia</h4>
+                  <p class="text-[10px] font-mono text-slate-500 uppercase">Split 1 • 2025</p>
+
+                  <div class="mt-4 pt-4 w-full border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <p class="text-[10px] text-slate-400">Prize: <span class="text-white font-bold">$12,000</span></p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="relative group p-6 rounded-2xl bg-gradient-to-br from-[#0A0A0F] to-[#1a1a20] border border-white/10 overflow-hidden hover:-translate-y-1 transition-transform duration-300">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-slate-300 blur-[60px] opacity-5 group-hover:opacity-10 transition-opacity"></div>
+
+                <div class="relative z-10 flex flex-col items-center text-center">
+                  <div class="mb-4 text-4xl filter drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">🥈</div>
+                  <div class="px-2 py-0.5 mb-2 rounded border border-slate-400/30 bg-slate-400/10 text-slate-300 text-[9px] font-bold uppercase tracking-widest">
+                    2nd Place
+                  </div>
+                  <h4 class="text-white font-display font-bold text-lg leading-tight mb-1">Predator League</h4>
+                  <p class="text-[10px] font-mono text-slate-500 uppercase">Regional Finals • 2024</p>
+
+                  <div class="mt-4 pt-4 w-full border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <p class="text-[10px] text-slate-400">Prize: <span class="text-white font-bold">$6,500</span></p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="relative group p-6 rounded-2xl bg-gradient-to-br from-[#0A0A0F] to-[#1a1a20] border border-white/10 overflow-hidden hover:-translate-y-1 transition-transform duration-300">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-orange-700 blur-[60px] opacity-5 group-hover:opacity-10 transition-opacity"></div>
+
+                <div class="relative z-10 flex flex-col items-center text-center">
+                  <div class="mb-4 text-4xl filter drop-shadow-[0_0_10px_rgba(205,127,50,0.2)]">🥉</div>
+                  <div class="px-2 py-0.5 mb-2 rounded border border-orange-400/30 bg-orange-400/10 text-orange-400 text-[9px] font-bold uppercase tracking-widest">
+                    3rd Place
+                  </div>
+                  <h4 class="text-white font-display font-bold text-lg leading-tight mb-1">Convergence</h4>
+                  <p class="text-[10px] font-mono text-slate-500 uppercase">Invitational • 2024</p>
+
+                  <div class="mt-4 pt-4 w-full border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <p class="text-[10px] text-slate-400">Prize: <span class="text-white font-bold">$3,000</span></p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+
+          <!-- Media Section (Combined Highlights & Hall of Frames) -->
+          <section id="media">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-white font-display font-bold text-lg flex items-center gap-2">
+                <span class="w-1 h-5 bg-[var(--team-primary)] rounded-full"></span>
+                Highlights & Media
+              </h3>
+              <a href="#" class="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 hover:text-[var(--team-primary)] transition-colors">View Gallery</a>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-[300px] md:h-[340px]">
+
+              <div class="md:col-span-2 relative group rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 cursor-pointer">
+                <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700" alt="Highlight">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
+
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="w-16 h-16 rounded-full bg-[var(--team-primary)]/20 backdrop-blur-sm border border-[var(--team-primary)] flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-[0_0_30px_var(--team-glow)]">
+                    <svg class="w-6 h-6 text-[var(--team-primary)] ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  </div>
+                </div>
+
+                <div class="absolute bottom-0 left-0 w-full p-6">
+                  <div class="inline-flex items-center gap-2 px-2 py-1 rounded bg-red-600 text-white text-[9px] font-bold uppercase tracking-wider mb-2">
+                    <span class="animate-pulse w-1.5 h-1.5 rounded-full bg-white"></span> Live Mic
+                  </div>
+                  <h4 class="text-2xl font-display font-bold text-white leading-tight mb-1">Grand Finals: Voice Comms</h4>
+                  <p class="text-xs text-slate-300 line-clamp-1">Listen to IGL MIND call the winning play on Ascent.</p>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-4">
+
+                <div class="flex-1 relative group rounded-xl overflow-hidden bg-[#0A0A0F] border border-white/10 cursor-pointer hover-lift transition-smooth">
+                  <img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=600" class="lazy-media loaded absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-70 transition-opacity" alt="Clip" loading="lazy">
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent"></div>
+                  <div class="absolute bottom-0 left-0 p-3">
+                    <div class="text-[9px] font-mono text-[var(--team-primary)] mb-0.5">ACE CLUTCH</div>
+                    <div class="text-sm font-bold text-white">V1PER vs DRX</div>
+                  </div>
+                  <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[9px] font-mono font-bold text-white border border-white/10">0:42</div>
+                </div>
+
+                <div class="flex-1 relative group rounded-xl overflow-hidden bg-[#0A0A0F] border border-white/10 cursor-pointer hover-lift transition-smooth">
+                  <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=600" class="lazy-media loaded absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-70 transition-opacity" alt="Clip" loading="lazy">
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent"></div>
+                  <div class="absolute bottom-0 left-0 p-3">
+                    <div class="text-[9px] font-mono text-[var(--team-primary)] mb-0.5">VLOG</div>
+                    <div class="text-sm font-bold text-white">Bootcamp Tour 2026</div>
+                  </div>
+                  <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[9px] font-mono font-bold text-white border border-white/10">12:05</div>
+                </div>
+
+              </div>
+            </div>
+          </section>
+
+
+
+
+        </div> </div> </main>
+
+    <!-- Partners Section (Centered) -->
+    <section class="border-t border-white/10 bg-[#050507] py-12">
+      <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
+        <p class="text-[10px] text-center text-slate-600 font-mono uppercase tracking-[0.2em] mb-8">Partners</p>
+        <div class="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+          <div class="text-xl font-display font-bold text-white tracking-tighter">LOGITECH <span class="text-[var(--team-primary)]">G</span></div>
+          <div class="text-xl font-display font-bold text-white tracking-tighter">RED <span class="text-red-500">BULL</span></div>
+          <div class="text-xl font-display font-bold text-white tracking-tighter">RAZER</div>
+          <div class="text-xl font-display font-bold text-white tracking-tighter">ASUS <span class="text-slate-400">ROG</span></div>
+        </div>
+      </div>
+    </section>

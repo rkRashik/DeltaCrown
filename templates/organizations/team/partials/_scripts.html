@@ -1,0 +1,486 @@
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+
+        // 1. STICKY NAV GLASSPHILLIC EFFECT
+        const nav = document.getElementById("dc-subnav");
+        window.addEventListener("scroll", () => {
+          if (window.scrollY > 400) {
+            nav.classList.add("bg-[#000]/90", "backdrop-blur-xl", "shadow-2xl");
+            nav.classList.remove("bg-[#000]/80", "backdrop-blur-md");
+          } else {
+            nav.classList.remove("bg-[#000]/90", "backdrop-blur-xl", "shadow-2xl");
+            nav.classList.add("bg-[#000]/80", "backdrop-blur-md");
+          }
+        });
+
+        // 2. SCROLLSPY (Highlight Nav Items on Scroll)
+        const sections = document.querySelectorAll("section[id]");
+        const navLinks = document.querySelectorAll("#dc-subnav a");
+
+        function highlightNav() {
+          let scrollY = window.scrollY;
+          sections.forEach(current => {
+            const sectionHeight = current.offsetHeight;
+            const sectionTop = current.offsetTop - 150; // Offset for header
+            const sectionId = current.getAttribute("id");
+
+            if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
+              navLinks.forEach(link => {
+                link.classList.remove("text-[var(--team-primary)]");
+                link.classList.add("text-slate-500");
+                // Reset underlines (rough implementation for demo)
+                const span = link.querySelector("span");
+                if(span) span.style.display = "none";
+
+                // Active state
+                if (link.textContent.trim().toLowerCase() === sectionId.replace("tab-", "")) {
+                  link.classList.add("text-[var(--team-primary)]");
+                  link.classList.remove("text-slate-500");
+                  if(span) span.style.display = "block";
+                }
+              });
+            }
+          });
+        }
+        window.addEventListener("scroll", highlightNav);
+
+        // 3. MATCH FILTERS (Simple Client-Side Logic)
+        const filterBtns = document.querySelectorAll("#tab-matches button");
+        // This is a visual demo logic - in production, this would filter the DOM nodes
+        filterBtns.forEach(btn => {
+          btn.addEventListener("click", () => {
+            filterBtns.forEach(b => {
+              b.classList.remove("bg-white/10", "text-white");
+              b.classList.add("text-slate-500", "hover:bg-white/5");
+            });
+            btn.classList.remove("text-slate-500", "hover:bg-white/5");
+            btn.classList.add("bg-white/10", "text-white");
+          });
+        });
+
+        // 4. LAZY LOADING FOR IMAGES
+        const lazyImages = document.querySelectorAll('.lazy-media');
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const img = entry.target;
+              img.classList.add('loaded');
+              observer.unobserve(img);
+            }
+          });
+        }, {
+          rootMargin: '50px' // Start loading 50px before image enters viewport
+        });
+
+        lazyImages.forEach(img => {
+          img.classList.remove('loaded'); // Start with blur
+          imageObserver.observe(img);
+        });
+
+        // 5. SCROLL ANIMATIONS - Fade in elements as they appear
+        const animatedElements = document.querySelectorAll('section');
+        const scrollObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.style.opacity = '0';
+              entry.target.style.transform = 'translateY(20px)';
+              requestAnimationFrame(() => {
+                entry.target.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+              });
+              scrollObserver.unobserve(entry.target);
+            }
+          });
+        }, {
+          threshold: 0.1
+        });
+
+        animatedElements.forEach(el => scrollObserver.observe(el));
+
+        // 6. SMART GRID POSITIONING - Auto-adjust sidebar to fill gaps
+        function adjustSidebarPosition() {
+          const mainContent = document.querySelector('.lg\\:col-span-8');
+          const sidebar = document.querySelector('.lg\\:col-span-4');
+          
+          if (!mainContent || !sidebar || window.innerWidth < 1024) return;
+          
+          const mainHeight = mainContent.offsetHeight;
+          const sidebarHeight = sidebar.offsetHeight;
+          
+          // If sidebar is shorter than main content, make it sticky
+          if (sidebarHeight < mainHeight) {
+            sidebar.style.position = 'sticky';
+            sidebar.style.top = '80px';
+            sidebar.style.alignSelf = 'start';
+          }
+        }
+        
+        // Run on load and resize
+        adjustSidebarPosition();
+        window.addEventListener('resize', adjustSidebarPosition);
+
+        // 7. SKELETON LOADER SIMULATION (for demo - remove in production)
+        // In production, this would be controlled by actual data loading states
+        setTimeout(() => {
+          document.querySelectorAll('.skeleton-card').forEach(card => {
+            card.classList.add('transition-smooth');
+            card.style.opacity = '0';
+            setTimeout(() => card.remove(), 300);
+          });
+        }, 1000);
+
+      });
+    </script>
+
+    {% if enable_demo_remote %}
+    <!-- DEMO CONTROLLER & GAME PROFILES -->
+    <div id="demo-controller">
+      <div class="dc-header">
+        <div class="dc-title">🎮 Demo Controller</div>
+        <button class="dc-toggle" onclick="document.getElementById('demo-controller').classList.toggle('collapsed')">−</button>
+      </div>
+      <div class="dc-body">
+        <div class="dc-section">
+          <div class="dc-label">Viewer Role</div>
+          <select id="dc-role">
+            <option value="PUBLIC">👥 Public/Fan</option>
+            <option value="MEMBER">🎯 Team Member</option>
+            <option value="STAFF">⚙️ Staff (Coach/Manager)</option>
+            <option value="OWNER">👑 Team Owner</option>
+          </select>
+        </div>
+
+        <div class="dc-section">
+          <div class="dc-label">Game Context</div>
+          <select id="dc-game">
+            <option value="valorant">VALORANT (5v5 Tactical FPS)</option>
+            <option value="cs2">Counter-Strike 2 (5v5 FPS)</option>
+            <option value="dota2">Dota 2 (5v5 MOBA)</option>
+            <option value="mlbb">Mobile Legends (5v5 MOBA)</option>
+            <option value="pubgm">PUBG Mobile (BR)</option>
+            <option value="freefire">Free Fire (BR)</option>
+            <option value="codm">Call of Duty Mobile (MP+BR)</option>
+            <option value="ea-fc">EA Sports FC 26 (Sports)</option>
+            <option value="efootball">eFootball 2026 (Sports)</option>
+            <option value="r6siege">Rainbow Six Siege (5v5 FPS)</option>
+            <option value="rocketleague">Rocket League (Vehicle Sports)</option>
+          </select>
+        </div>
+
+        <div class="dc-section">
+          <div class="dc-label">Team Type</div>
+          <select id="dc-team-type">
+            <option value="independent">Independent Team</option>
+            <option value="org-pro">Organization Team (PRO)</option>
+            <option value="org-academy">Organization Team (ACADEMY)</option>
+            <option value="org-community">Organization Team (COMMUNITY)</option>
+          </select>
+        </div>
+
+        <div class="dc-section">
+          <div class="dc-label">Team Theme</div>
+          <select id="dc-theme">
+            <option value="CROWN">👑 Crown Gold</option>
+            <option value="VIOLATION">💜 Violation Purple</option>
+            <option value="CYBER">🔵 Cyber Blue</option>
+            <option value="CRIMSON">🔴 Crimson Red</option>
+            <option value="EMERALD">🟢 Emerald Green</option>
+          </select>
+        </div>
+
+        <div class="dc-info">
+          <strong>Status:</strong> <span class="dc-status">Active</span><br>
+          Current view adapts buttons, sections, and terminology based on role and game type.
+        </div>
+      </div>
+    </div>
+
+    <script>
+    // ============================================================================
+    // GAME PROFILES - 2026 Real Data from seed_identity_configs_2026.py
+    // ============================================================================
+    const GAME_PROFILES = {
+      'valorant': {
+        name: 'VALORANT',
+        slug: 'valorant',
+        category: 'FPS_TACTICAL',
+        format: '5v5',
+        roster_size: 5,
+        roles: ['Duelist', 'Controller', 'Initiator', 'Sentinel'],
+        role_count: 4,
+        player_term: 'Agent',
+        match_term: 'Series',
+        rank_system: 'Tier-based (Iron 1 → Radiant)',
+        rank_tiers: 26,
+        regions: 9,
+        identity_fields: ['riot_id', 'region', 'rank', 'role'],
+        competitive_format: 'Best of 25 rounds (first to 13)',
+        stats_primary: ['K/D/A', 'ACS (Avg Combat Score)', 'HS%', 'First Bloods'],
+        stats_secondary: ['Clutches', 'Entry Success', 'Multi-kills']
+      },
+      'cs2': {
+        name: 'Counter-Strike 2',
+        slug: 'cs2',
+        category: 'FPS_TACTICAL',
+        format: '5v5',
+        roster_size: 5,
+        roles: ['Entry Fragger', 'AWPer', 'Support', 'IGL', 'Lurker'],
+        role_count: 5,
+        player_term: 'Player',
+        match_term: 'Match',
+        rank_system: 'Premier Rating (0-30,000+)',
+        rank_tiers: 8,
+        regions: 8,
+        identity_fields: ['steam_id', 'region', 'premier_rating', 'role'],
+        competitive_format: 'MR12 (first to 13 rounds)',
+        stats_primary: ['K/D', 'ADR', 'HS%', 'Rating 2.0'],
+        stats_secondary: ['KAST', 'Impact', 'Utility Damage', 'Clutch%']
+      },
+      'dota2': {
+        name: 'Dota 2',
+        slug: 'dota2',
+        category: 'MOBA',
+        format: '5v5',
+        roster_size: 5,
+        roles: ['Position 1 (Carry)', 'Position 2 (Mid)', 'Position 3 (Offlane)', 'Position 4 (Soft Support)', 'Position 5 (Hard Support)'],
+        role_count: 5,
+        player_term: 'Hero',
+        match_term: 'Match',
+        rank_system: 'MMR-based (Herald → Immortal)',
+        rank_tiers: 36,
+        regions: 11,
+        identity_fields: ['steam_id', 'server', 'mmr', 'position'],
+        competitive_format: 'Best of 3 or Best of 5',
+        stats_primary: ['K/D/A', 'GPM', 'XPM', 'Hero Damage'],
+        stats_secondary: ['Tower Damage', 'Wards Placed', 'Last Hits', 'Denies']
+      },
+      'mlbb': {
+        name: 'Mobile Legends: Bang Bang',
+        slug: 'mlbb',
+        category: 'MOBA_MOBILE',
+        format: '5v5',
+        roster_size: 5,
+        roles: ['Tank', 'Fighter', 'Assassin', 'Mage', 'Marksman', 'Support'],
+        role_count: 6,
+        player_term: 'Legend',
+        match_term: 'Match',
+        rank_system: 'Tier-based (Warrior → Mythical Honor)',
+        rank_tiers: 7,
+        regions: 1,
+        identity_fields: ['account_id', 'server_id', 'ign', 'rank', 'role'],
+        competitive_format: 'Best of 3 or Best of 5',
+        stats_primary: ['K/D/A', 'Gold/min', 'Damage', 'MVP'],
+        stats_secondary: ['Turret Damage', 'Assists', 'Savage/Maniac']
+      },
+      'pubgm': {
+        name: 'PUBG Mobile',
+        slug: 'pubgm',
+        category: 'BATTLE_ROYALE',
+        format: 'Squad (1-4 players)',
+        roster_size: 4,
+        roles: null,
+        role_count: 0,
+        player_term: 'Player',
+        match_term: 'Tournament',
+        rank_system: 'Tier-based (Bronze → Conqueror)',
+        rank_tiers: 10,
+        regions: 5,
+        identity_fields: ['character_id', 'server', 'rank', 'mode'],
+        competitive_format: 'Multi-match points system',
+        stats_primary: ['K/D', 'Avg Damage', 'Top 10 Rate', 'Survival Time'],
+        stats_secondary: ['Headshot%', 'Wins', 'Total Kills']
+      },
+      'freefire': {
+        name: 'Free Fire',
+        slug: 'freefire',
+        category: 'BATTLE_ROYALE',
+        format: 'Squad (1-4 players)',
+        roster_size: 4,
+        roles: null,
+        role_count: 0,
+        player_term: 'Player',
+        match_term: 'Tournament',
+        rank_system: 'Tier-based (Bronze → Grandmaster)',
+        rank_tiers: 7,
+        regions: 7,
+        identity_fields: ['player_id', 'server', 'rank'],
+        competitive_format: 'Multi-match points system',
+        stats_primary: ['K/D', 'Booyahs', 'Headshot%', 'Avg Survival'],
+        stats_secondary: ['Damage/Match', 'Revives', 'Kills/Match']
+      },
+      'codm': {
+        name: 'Call of Duty: Mobile',
+        slug: 'codm',
+        category: 'HYBRID_MOBILE',
+        format: '5v5 MP / Squad BR',
+        roster_size: 5,
+        roles: null,
+        role_count: 0,
+        player_term: 'Player',
+        match_term: 'Match',
+        rank_system: 'Dual (MP: Rookie → Legendary, BR: Rookie → Legendary)',
+        rank_tiers: 7,
+        regions: 6,
+        identity_fields: ['codm_uid', 'region', 'rank_mp', 'rank_br', 'mode'],
+        competitive_format: 'MP: Best of 5 rounds | BR: Points system',
+        stats_primary: ['K/D (MP)', 'Avg Damage (BR)', 'Accuracy', 'Win Rate'],
+        stats_secondary: ['Obj Score', 'Headshots', 'Longest Streak']
+      },
+      'ea-fc': {
+        name: 'EA Sports FC 26',
+        slug: 'ea-fc',
+        category: 'SPORTS_FOOTBALL',
+        format: '11v11 or Pro Clubs',
+        roster_size: 11,
+        roles: null,
+        role_count: 0,
+        player_term: 'Player',
+        match_term: 'Match',
+        rank_system: 'FUT Rivals (Division 10 → Elite)',
+        rank_tiers: 11,
+        regions: 1,
+        identity_fields: ['ea_id', 'platform', 'division', 'mode'],
+        competitive_format: 'FUT Champions (20-30 matches/weekend)',
+        stats_primary: ['Goals', 'Assists', 'Clean Sheets', 'Win%'],
+        stats_secondary: ['Pass Accuracy', 'Possession', 'Shots on Target']
+      },
+      'efootball': {
+        name: 'eFootball 2026',
+        slug: 'efootball',
+        category: 'SPORTS_FOOTBALL',
+        format: '11v11',
+        roster_size: 11,
+        roles: null,
+        role_count: 0,
+        player_term: 'Player',
+        match_term: 'Match',
+        rank_system: 'Division-based (Division 9 → Division 1)',
+        rank_tiers: 9,
+        regions: 1,
+        identity_fields: ['konami_id', 'user_id', 'platform', 'division'],
+        competitive_format: 'eFootball League rounds',
+        stats_primary: ['Goals', 'Assists', 'Pass%', 'Win Rate'],
+        stats_secondary: ['Possession', 'Shot Accuracy', 'Tackles']
+      },
+      'r6siege': {
+        name: 'Rainbow Six Siege',
+        slug: 'r6siege',
+        category: 'FPS_TACTICAL',
+        format: '5v5',
+        roster_size: 5,
+        roles: ['Entry Fragger', 'Support', 'Intel Gatherer', 'Flex'],
+        role_count: 4,
+        player_term: 'Operator',
+        match_term: 'Match',
+        rank_system: 'Tier-based (Copper V → Champion)',
+        rank_tiers: 29,
+        regions: 4,
+        identity_fields: ['uplay_id', 'platform', 'region', 'rank', 'role'],
+        competitive_format: 'Best of 7 rounds',
+        stats_primary: ['K/D', 'Win%', 'HS%', 'K/R (Kills per Round)'],
+        stats_secondary: ['Plants', 'Clutches', 'KOST', 'Survival%']
+      },
+      'rocketleague': {
+        name: 'Rocket League',
+        slug: 'rocketleague',
+        category: 'VEHICLE_SPORTS',
+        format: '1v1/2v2/3v3',
+        roster_size: 3,
+        roles: null,
+        role_count: 0,
+        player_term: 'Player',
+        match_term: 'Series',
+        rank_system: 'Tier-based (Bronze I → Supersonic Legend)',
+        rank_tiers: 23,
+        regions: 1,
+        identity_fields: ['epic_id', 'platform', 'rank', 'mode'],
+        competitive_format: 'Best of 5/7 games',
+        stats_primary: ['Goals', 'Assists', 'Saves', 'Shots'],
+        stats_secondary: ['Goals/Game', 'Save%', 'Aerial Hits', 'Demos']
+      }
+    };
+
+    // ============================================================================
+    // DEMO CONTROLLER LOGIC
+    // ============================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      const dcRole = document.getElementById('dc-role');
+      const dcGame = document.getElementById('dc-game');
+      const dcTeamType = document.getElementById('dc-team-type');
+      const dcTheme = document.getElementById('dc-theme');
+
+      // Initialize with defaults
+      updateRole('PUBLIC');
+      updateGame('valorant');
+      updateTeamType('independent');
+      updateTheme('CROWN');
+
+      // Event listeners
+      dcRole.addEventListener('change', (e) => updateRole(e.target.value));
+      dcGame.addEventListener('change', (e) => updateGame(e.target.value));
+      dcTeamType.addEventListener('change', (e) => updateTeamType(e.target.value));
+      dcTheme.addEventListener('change', (e) => updateTheme(e.target.value));
+
+      function updateRole(role) {
+        document.body.setAttribute('data-role', role);
+        
+        // Hide all role-specific buttons
+        document.querySelectorAll('[data-role-show]').forEach(el => el.style.display = 'none');
+        
+        // Show buttons for current role
+        document.querySelectorAll(`[data-role-show="${role}"]`).forEach(el => {
+          el.style.display = 'flex';
+        });
+
+        console.log(`✅ Role changed to: ${role}`);
+      }
+
+      function updateGame(gameSlug) {
+        const profile = GAME_PROFILES[gameSlug];
+        if (!profile) {
+          console.error(`Game profile not found: ${gameSlug}`);
+          return;
+        }
+
+        document.body.setAttribute('data-game', gameSlug);
+        
+        // Update dynamic terminology in the page
+        document.querySelectorAll('[data-term="player"]').forEach(el => {
+          el.textContent = profile.player_term;
+        });
+        document.querySelectorAll('[data-term="match"]').forEach(el => {
+          el.textContent = profile.match_term;
+        });
+
+        console.log(`🎮 Game changed to: ${profile.name}`);
+        console.log(`   Format: ${profile.format}`);
+        console.log(`   Roles: ${profile.role_count > 0 ? profile.roles.join(', ') : 'None (flexible)'}`);
+        console.log(`   Roster: ${profile.roster_size} ${profile.player_term}s`);
+      }
+
+      function updateTeamType(type) {
+        document.body.setAttribute('data-team-type', type);
+        console.log(`🏆 Team type changed to: ${type}`);
+      }
+
+      function updateTheme(theme) {
+        document.body.setAttribute('data-theme', theme);
+        console.log(`🎨 Theme changed to: ${theme}`);
+      }
+
+      // Expose for debugging
+      window.GAME_PROFILES = GAME_PROFILES;
+      window.demoController = {
+        updateRole,
+        updateGame,
+        updateTeamType,
+        updateTheme
+      };
+
+      console.log('✨ Demo Controller initialized - Use window.demoController or dropdowns to test');
+    });
+    </script>
+    {% endif %}
+
+  </div>

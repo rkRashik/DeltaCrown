@@ -57,12 +57,12 @@ class TestTeamDetailURLRouting:
 
 @pytest.mark.django_db
 class TestTeamDetailTemplateLoad:
-    """Test that Demo_detailTeam.html template exists and loads."""
+    """Test that team_detail.html template exists and loads."""
     
     def test_template_exists(self):
         """Template file should exist at correct path."""
         from django.template.loader import get_template
-        template = get_template('organizations/team/Demo_detailTeam.html')
+        template = get_template('organizations/team/team_detail.html')
         assert template is not None
     
     def test_template_renders_with_context(self):
@@ -86,7 +86,7 @@ class TestTeamDetailTemplateLoad:
             'can_view_hub': False,
             'can_manage_team': False,
         }
-        html = render_to_string('organizations/team/Demo_detailTeam.html', context)
+        html = render_to_string('organizations/team/team_detail.html', context)
         assert 'Test Team' in html
         assert 'TEST' in html
 

@@ -33,6 +33,45 @@ class TeamDetailService:
     """Service for public team detail page queries."""
     
     @staticmethod
+    def _is_team_public(team) -> bool:
+        """
+        Detect if team is public or private using available model fields.
+        
+        Priority order:
+        1. visibility field ("PUBLIC" / "public" = public)
+        2. is_private field (public = not is_private)
+        3. privacy field (check if indicates public)
+        4. Default to PUBLIC (no privacy system implemented yet)
+        
+        Args:
+            team: Team instance
+        
+        Returns:
+            bool: True if team is public, False if private
+        """
+        # Check for visibility field
+        if hasattr(team, 'visibility'):
+            visibility = getattr(team, 'visibility', '').upper()
+            return visibility in ('PUBLIC', 'OPEN')
+        
+        # Check for is_private field
+        if hasattr(team, 'is_private'):
+            return not team.is_private
+        
+        # Check for privacy field
+        if hasattr(team, 'privacy'):
+            privacy = getattr(team, 'privacy', '').upper()
+            return privacy in ('PUBLIC', 'OPEN')
+        
+        # Default: Public (no privacy system implemented)
+        # Log warning so we know when this needs proper implementation
+        logger.debug(
+            f"Team {team.slug} has no privacy fields - defaulting to public. "
+            "Consider adding 'visibility' field to Team model."
+        )
+        return True
+    
+    @staticmethod
     def get_public_team_display(
         team_slug: str,
         viewer_user=None
@@ -80,8 +119,9 @@ class TeamDetailService:
                 status=MembershipStatus.ACTIVE
             ).exists()
         
-        # Privacy check
-        if not team.is_public and not is_member:
+        # Privacy check using helper
+        is_public = TeamDetailService._is_team_public(team)
+        if not is_public and not is_member:
             # Private team - viewer must be member
             can_view_details = False
         else:
@@ -94,7 +134,7 @@ class TeamDetailService:
             'slug': team.slug,
             'tag': team.tag if hasattr(team, 'tag') else None,
             'description': team.description if can_view_details else None,
-            'is_public': team.is_public,
+            'is_public': is_public,  # Use computed value, not model field
             'avatar': team.logo.url if team.logo else None,
             'banner': team.banner.url if hasattr(team, 'banner') and team.banner else None,
             'organization': {
@@ -166,7 +206,7 @@ class TeamDetailService:
         from apps.organizations.choices import MembershipStatus
         
         try:
-            team = Team.objects.only('id', 'is_public').get(slug=team_slug)
+            team = Team.objects.only('id', 'slug').get(slug=team_slug)
         except Team.DoesNotExist:
             return {
                 'exists': False,
@@ -183,11 +223,12 @@ class TeamDetailService:
                 status=MembershipStatus.ACTIVE
             ).exists()
         
-        can_view = team.is_public or is_member
+        is_public = TeamDetailService._is_team_public(team)
+        can_view = is_public or is_member
         
         return {
             'exists': True,
-            'is_public': team.is_public,
+            'is_public': is_public,
             'is_member': is_member,
             'can_view': can_view,
         }

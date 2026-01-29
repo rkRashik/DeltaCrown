@@ -1,0 +1,63 @@
+{# DEMO CONTROLLER - Dev-only floating remote for role/game/theme switching #}
+{# Only renders when enable_demo_remote context variable is True (defaults to DEBUG) #}
+
+<div id="demo-controller">
+  <div class="dc-header">
+    <div class="dc-title">🎮 Demo Controller</div>
+    <button class="dc-toggle" onclick="document.getElementById('demo-controller').classList.toggle('collapsed')">−</button>
+  </div>
+  <div class="dc-body">
+    <div class="dc-section">
+      <div class="dc-label">Viewer Role</div>
+      <select id="dc-role">
+        <option value="PUBLIC">👥 Public/Fan</option>
+        <option value="MEMBER">🎯 Team Member</option>
+        <option value="STAFF">⚙️ Staff (Coach/Manager)</option>
+        <option value="OWNER">👑 Team Owner</option>
+      </select>
+    </div>
+
+    <div class="dc-section">
+      <div class="dc-label">Game Context</div>
+      <select id="dc-game">
+        <option value="valorant">VALORANT (5v5 Tactical FPS)</option>
+        <option value="cs2">Counter-Strike 2 (5v5 FPS)</option>
+        <option value="dota2">Dota 2 (5v5 MOBA)</option>
+        <option value="mlbb">Mobile Legends (5v5 MOBA)</option>
+        <option value="pubgm">PUBG Mobile (BR)</option>
+        <option value="freefire">Free Fire (BR)</option>
+        <option value="codm">Call of Duty Mobile (MP+BR)</option>
+        <option value="ea-fc">EA Sports FC 26 (Sports)</option>
+        <option value="efootball">eFootball 2026 (Sports)</option>
+        <option value="r6siege">Rainbow Six Siege (5v5 FPS)</option>
+        <option value="rocketleague">Rocket League (Vehicle Sports)</option>
+      </select>
+    </div>
+
+    <div class="dc-section">
+      <div class="dc-label">Team Type</div>
+      <select id="dc-team-type">
+        <option value="independent">Independent Team</option>
+        <option value="org-pro">Organization Team (PRO)</option>
+        <option value="org-academy">Organization Team (ACADEMY)</option>
+        <option value="org-community">Organization Team (COMMUNITY)</option>
+      </select>
+    </div>
+
+    <div class="dc-section">
+      <div class="dc-label">Team Theme</div>
+      <select id="dc-theme">
+        <option value="CROWN">👑 Crown Gold</option>
+        <option value="VIOLATION">💜 Violation Purple</option>
+        <option value="CYBER">🔵 Cyber Blue</option>
+        <option value="CRIMSON">🔴 Crimson Red</option>
+        <option value="EMERALD">🟢 Emerald Green</option>
+      </select>
+    </div>
+
+    <div class="dc-info">
+      <strong>Status:</strong> <span class="dc-status">Active</span><br>
+      Current view adapts buttons, sections, and terminology based on role and game type.
+    </div>
+  </div>
+</div>

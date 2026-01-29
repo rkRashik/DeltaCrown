@@ -264,7 +264,7 @@ def team_detail(request, team_slug):
         team_slug: Team URL slug
     
     Returns:
-        - 200: Renders Demo_detailTeam.html (public display)
+        - 200: Renders team_detail.html (public display)
         - 403: Private team, user not a member
         - 404: Team not found
     """
@@ -278,12 +278,16 @@ def team_detail(request, team_slug):
             viewer_user=request.user if request.user.is_authenticated else None
         )
         
+        # Add demo controller flag (dev-only feature for testing role/game polymorphism)
+        context['enable_demo_remote'] = settings.DEBUG
+        
         # Check if user can view details
         if not context['can_view_details']:
-            return render(request, 'organizations/team/Demo_detailTeam.html', {
+            return render(request, 'organizations/team/team_detail.html', {
                 'team': context['team'],
                 'can_view_details': False,
                 'error_message': 'This team is private. Only members can view details.',
+                'enable_demo_remote': settings.DEBUG,  # Include flag for privacy block too
             })
         
         logger.info(
@@ -296,7 +300,7 @@ def team_detail(request, team_slug):
             }
         )
         
-        return render(request, 'organizations/team/Demo_detailTeam.html', context)
+        return render(request, 'organizations/team/team_detail.html', context)
     
     except NotFoundError:
         messages.error(request, f'Team "{team_slug}" not found.')

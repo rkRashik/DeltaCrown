@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Team Command Center | DeltaCrown Ecosystem</title>
+    <meta name="description" content="The engine room for professional esports team management.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Unbounded:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Outfit"', 'sans-serif'],
+                        tech: ['"Rajdhani"', 'sans-serif'], // Headers, Numbers
+                        mono: ['"Space Mono"', 'monospace'], // Data, IDs
+                        cyber: ['"Unbounded"', 'sans-serif'], // Hero titles
+                    },
+                    colors: {
+                        delta: {
+                            base: '#020204',       // Deepest Black
+                            surface: '#09090b',    // Card Backgrounds
+                            panel: '#121215',      // Sidebar/Header
+                            border: '#1E1E24',     // Subtle Borders
+                            gold: '#D4AF37',       // DeltaCrown Signature Gold
+                            goldHover: '#B5952F',
+                            red: '#EF4444',        // Danger/Admin
+                            green: '#10B981',      // Success/Online
+                            blue: '#3B82F6',       // Information
+                        },
+                        game: {
+                            val: '#FF4655', // Valorant
+                            cs2: '#DE9B35', // CS2
+                            dota: '#A33E3E', // Dota 2
+                            lol: '#0AC8B9', // LoL (Generic MOBA fallback)
+                            rl: '#0088FF', // Rocket League
+                        }
+                    },
+                    boxShadow: {
+                        'glow-gold': '0 0 15px -3px rgba(212, 175, 55, 0.3)',
+                        'glow-red': '0 0 15px -3px rgba(239, 68, 68, 0.3)',
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* CUSTOM SCROLLBAR for Sidebar */
+        .scroller::-webkit-scrollbar {
+            width: 4px;
+        }
+        .scroller::-webkit-scrollbar-track {
+            background: #020204;
+        }
+        .scroller::-webkit-scrollbar-thumb {
+            background: #1E1E24;
+            border-radius: 2px;
+        }
+        .scroller::-webkit-scrollbar-thumb:hover {
+            background: #D4AF37;
+        }
+
+        /* LIQUID CYBERPUNK UTILS */
+        .glass-panel {
+            background: rgba(18, 18, 21, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.1) 0%, transparent 100%);
+            border-left: 3px solid #D4AF37;
+            color: white;
+        }
+        .nav-item.active i {
+            color: #D4AF37;
+            filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.5));
+        }
+
+        /* Hide elements based on role attribute applied to BODY */
+        /* Default: Hide sensitive areas unless role matches */
+        body[data-current-role="member"] .role-staff-only,
+        body[data-current-role="member"] .role-owner-only,
+        body[data-current-role="member"] .role-admin-only { display: none !important; }
+
+        body[data-current-role="staff"] .role-owner-only,
+        body[data-current-role="staff"] .role-admin-only { display: none !important; }
+
+        body[data-current-role="owner"] .role-admin-only { display: none !important; }
+
+        /* Animation for menu items */
+        .nav-text {
+            transition: transform 0.2s ease;
+        }
+        .nav-item:hover .nav-text {
+            transform: translateX(4px);
+        }
+    </style>
+</head>
+<body class="bg-delta-base text-slate-300 font-sans h-screen overflow-hidden flex selection:bg-delta-gold selection:text-black"
+      data-current-role="owner"
+      data-active-game="valorant">
+
+    <aside class="w-[280px] h-full flex flex-col bg-delta-panel border-r border-delta-border relative z-50 transition-all duration-300 flex-shrink-0" id="mainSidebar">
+
+        <div class="h-20 flex items-center px-6 border-b border-delta-border/50 bg-gradient-to-r from-delta-surface to-transparent">
+            <div class="relative w-10 h-10 mr-3 flex-shrink-0 group cursor-pointer">
+                <img src="https://ui-avatars.com/api/?name=Delta+Team&background=020204&color=D4AF37&bold=true"
+                     alt="Team Logo"
+                     class="w-full h-full rounded-lg border border-delta-border group-hover:border-delta-gold transition-colors object-cover">
+                <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-delta-green rounded-full border-2 border-delta-panel"></div>
+            </div>
+            <div class="flex flex-col justify-center overflow-hidden">
+                <h1 class="font-tech font-bold text-lg text-white leading-tight tracking-wide truncate">PROTOCOL V</h1>
+                <div class="flex items-center text-xs text-delta-gold font-mono space-x-2">
+                    <span class="opacity-80">DIV. 1</span>
+                    <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+                    <span id="activeGameLabel">VALORANT</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-4 py-4 border-b border-delta-border/50 bg-[#0A0A0C]">
+            <label class="text-[10px] uppercase font-mono text-slate-500 tracking-widest mb-2 block">Perspective Control</label>
+            <div class="relative w-full">
+                <select id="roleSwitcher" onchange="switchRole(this.value)"
+                        class="w-full bg-[#18181B] border border-delta-border text-xs text-white font-mono rounded px-3 py-2 appearance-none focus:outline-none focus:border-delta-gold cursor-pointer hover:bg-[#202025] transition-colors">
+                    <option value="member">VIEW: TEAM MEMBER</option>
+                    <option value="staff">VIEW: TEAM STAFF</option>
+                    <option value="owner" selected>VIEW: TEAM OWNER</option>
+                    <option value="admin" class="text-delta-red font-bold">VIEW: ORG ADMIN</option>
+                </select>
+                <div class="absolute right-3 top-2.5 pointer-events-none text-slate-500 text-xs">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto scroller py-4 px-3 space-y-8">
+
+            <div class="nav-group">
+                <h3 class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.15em] mb-2 font-mono">Core Command</h3>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="#" onclick="activateNav(this, 'dashboard')" class="nav-item active flex items-center px-4 py-2.5 rounded-lg text-sm group transition-all duration-200 hover:bg-white/5 text-slate-300 hover:text-white">
+                            <i class="fa-solid fa-grid-2 w-6 text-center text-slate-400 group-hover:text-delta-gold transition-colors"></i>
+                            <span class="nav-text font-medium ml-2">Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="activateNav(this, 'roster')" class="nav-item flex items-center px-4 py-2.5 rounded-lg text-sm group transition-all duration-200 hover:bg-white/5 text-slate-300 hover:text-white">
+                            <i class="fa-solid fa-users w-6 text-center text-slate-400 group-hover:text-delta-gold transition-colors"></i>
+                            <span class="nav-text font-medium ml-2">Roster & Roles</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="activateNav(this, 'tournaments')" class="nav-item flex items-center px-4 py-2.5 rounded-lg text-sm group transition-all duration-200 hover:bg-white/5 text-slate-300 hover:text-white">
+                            <i class="fa-solid fa-trophy w-6 text-center text-slate-400 group-hover:text-delta-gold transition-colors"></i>
+                            <span class="nav-text font-medium ml-2">Tournaments</span>
+                            <span class="ml-auto flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-delta-red opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-delta-red"></span>
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="activateNav(this, 'matches')" class="nav-item flex items-center px-4 py-2.5 rounded-lg text-sm group transition-all duration-200 hover:bg-white/5 text-slate-300 hover:text-white">
+                            <i class="fa-solid fa-chart-line w-6 text-center text-slate-400 group-hover:text-delta-gold transition-colors"></i>
+                            <span class="nav-text font-medium ml-2">Match Reports</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="nav-group role-staff-only">
+                <h3 class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-[0.15em] mb-2 font-mono">Operations</h3>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="#" onclick="activateNav(this, 'recruitment')" class="nav-item flex items-center px-4 py-2.5 rounded-lg text-sm group transition-all duration-200 hover:bg-white/5 text-slate-300 hover:text-white">
+                            <i class="fa-solid fa-user-plus w-6 text-center text-slate-400 group-hover:text-delta-gold transition-colors"></i>
+                            <span class="nav-text font-medium ml-2">Recruitment</span>
+                            <span class="ml-auto bg-delta-panel border border-delta-border text-xs font-mono py-0.5 px-1.5 rounded text-delta-gold">3</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="activateNav(this, 'command')" class="nav-item flex items-center px-4 py-2.5 rounded-lg text-sm group transition-all duration-200 hover:bg-white/5 text-slate-300 hover:text-white">
+                            <i class="fa-solid fa-headset w-6 text-center text-slate-400 group-hover:text-delta-gold transition-colors"></i>
+                            <span class="nav-text font-medium ml-2">Command Center</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="activateNav(this, 'assets')" class="nav-item flex items-center px-4 py-2.5 rounded-lg text-sm group transition-all duration-200 hover:bg-white/5 text-slate-300 hover:text-white">
+                            <i class="fa-solid fa-photo-film w-6 text-center text-slate-400 group-hover:text-delta-gold transition-colors"></i>
+                            <span class="nav-text font-medium ml-2">Media & Assets</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="nav-group role-owner-only">
+                <h3 class="px-4 text-[10px] font-bold text-delta-gold/70 uppercase tracking-[0.15em] mb-2 font-mono">Administration</h3>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="#" onclick="activateNav(this, 'finance')" class="nav-item flex items-center px-4 py-2.5 rounded-lg text-sm group transition-all duration-200 hover:bg-white/5 text-slate-300 hover:text-white">
+                            <i class="fa-solid fa-coins w-6 text-center text-slate-400 group-hover:text-delta-gold transition-colors"></i>
+                            <span class="nav-text font-medium ml-2">Treasury & Wallet</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="activateNav(this, 'sponsors')" class="nav-item flex items-center px-4 py-2.5 rounded-lg text-sm group transition-all duration-200 hover:bg-white/5 text-slate-300 hover:text-white">
+                            <i class="fa-solid fa-handshake w-6 text-center text-slate-400 group-hover:text-delta-gold transition-colors"></i>
+                            <span class="nav-text font-medium ml-2">Sponsors</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="activateNav(this, 'audit')" class="nav-item flex items-center px-4 py-2.5 rounded-lg text-sm group transition-all duration-200 hover:bg-white/5 text-slate-300 hover:text-white">
+                            <i class="fa-solid fa-clipboard-list w-6 text-center text-slate-400 group-hover:text-delta-gold transition-colors"></i>
+                            <span class="nav-text font-medium ml-2">Audit Logs</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="activateNav(this, 'settings')" class="nav-item flex items-center px-4 py-2.5 rounded-lg text-sm group transition-all duration-200 hover:bg-white/5 text-slate-300 hover:text-white">
+                            <i class="fa-solid fa-cog w-6 text-center text-slate-400 group-hover:text-delta-gold transition-colors"></i>
+                            <span class="nav-text font-medium ml-2">Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+             <div class="nav-group role-owner-only mt-8 border-t border-delta-border/50 pt-4">
+                <ul class="space-y-1">
+                     <li>
+                        <a href="#" onclick="activateNav(this, 'danger')" class="nav-item flex items-center px-4 py-2.5 rounded-lg text-sm group transition-all duration-200 hover:bg-delta-red/10 text-delta-red hover:text-white border border-transparent hover:border-delta-red/30">
+                            <i class="fa-solid fa-skull-crossbones w-6 text-center text-delta-red group-hover:text-white transition-colors"></i>
+                            <span class="nav-text font-medium ml-2">Delete Team</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+
+        <div class="h-16 border-t border-delta-border/50 flex items-center px-4 bg-[#0A0A0C]">
+            <div class="flex items-center w-full">
+                <img src="https://ui-avatars.com/api/?name=User+Name&background=1E1E24&color=fff" class="w-8 h-8 rounded-full border border-delta-border">
+                <div class="ml-3 flex-1 overflow-hidden">
+                    <p class="text-sm font-medium text-white truncate">Delta Operative</p>
+                    <p class="text-[10px] font-mono text-slate-500 truncate" id="userRoleDisplay">OWNER_ACCESS_KEY</p>
+                </div>
+                <button class="text-slate-500 hover:text-white transition-colors">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 h-full overflow-hidden flex flex-col relative bg-delta-base" id="mainContent">
+
+        <script>
+            // 1. Perspective Switcher Logic
+            function switchRole(role) {
+                // Update Body Attribute
+                document.body.setAttribute('data-current-role', role);
+
+                // Update User Display in Footer
+                const display = document.getElementById('userRoleDisplay');
+                if (role === 'member') display.innerText = 'ROSTER_MEMBER';
+                else if (role === 'staff') display.innerText = 'STAFF_CLEARANCE';
+                else if (role === 'owner') display.innerText = 'OWNER_ACCESS_KEY';
+                else if (role === 'admin') display.innerText = 'SYSTEM_ADMIN_OVERRIDE';
+
+                console.log(`[SYSTEM] Perspective Switched: ${role.toUpperCase()}`);
+            }
+
+            // 2. Navigation Active State Logic
+            function activateNav(element, sectionId) {
+                // Remove active class from all items
+                document.querySelectorAll('.nav-item').forEach(el => {
+                    el.classList.remove('active');
+                    el.classList.remove('border-l-4'); // clean up old styles if any
+                    // Reset icons color if needed, handled by CSS mostly
+                });
+
+                // Add active class to clicked
+                element.classList.add('active');
+
+                // Trigger Content Load (Placeholder for Part 2)
+                console.log(`[NAV] Loading Section: ${sectionId}`);
+
+                // In a real SPA, this would swap the main content.
+                // For this build, we will manage visibility in the Main Content Area.
+            }
+
+            // 3. Initialize
+            document.addEventListener('DOMContentLoaded', () => {
+                console.log("[SYSTEM] DeltaCrown Team Management Center Initialized.");
+                // Ensure default state matches select
+                switchRole(document.getElementById('roleSwitcher').value);
+            });
+        </script>
+
+<div class="h-20 flex items-center px-6 border-b border-delta-border/50 bg-gradient-to-r from-delta-surface to-transparent relative z-50">
+    <div class="relative w-10 h-10 mr-3 flex-shrink-0 group cursor-pointer">
+        <img src="https://ui-avatars.com/api/?name=Delta+Org&background=020204&color=D4AF37&bold=true"
+             alt="Org Logo"
+             class="w-full h-full rounded-lg border border-delta-border group-hover:border-delta-gold transition-colors object-cover shadow-[0_0_15px_-3px_rgba(212,175,55,0.2)]">
+        <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-delta-green rounded-full border-2 border-delta-panel"></div>
+    </div>
+
+    <div class="flex flex-col justify-center overflow-hidden flex-1 relative">
+        <h1 class="font-tech font-bold text-lg text-white leading-tight tracking-wide truncate">PROTOCOL V</h1>
+
+        <button onclick="toggleDivisionMenu()" class="flex items-center text-xs text-delta-gold font-mono space-x-2 hover:text-white transition-colors focus:outline-none group">
+            <span class="opacity-80">DIV. 1</span>
+            <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+            <span id="activeGameLabel" class="font-bold border-b border-dashed border-delta-gold/50 group-hover:border-delta-gold">VALORANT</span>
+            <i class="fa-solid fa-caret-down text-[10px] ml-1 transition-transform group-hover:rotate-180"></i>
+        </button>
+
+        <div id="divisionDropdown" class="hidden absolute top-full left-0 mt-2 w-56 bg-delta-panel border border-delta-border shadow-2xl rounded-lg overflow-hidden flex-col py-1 z-50">
+            <div class="px-3 py-2 text-[10px] font-mono text-slate-500 uppercase tracking-wider border-b border-delta-border/50 bg-delta-base/50">
+                Switch Division
+            </div>
+
+            <button onclick="selectGame('valorant', 'PROTOCOL V')" class="flex items-center px-4 py-3 hover:bg-white/5 transition-colors w-full text-left group">
+                <div class="w-6 h-6 rounded flex items-center justify-center bg-game-val/10 border border-game-val/20 mr-3 text-game-val group-hover:shadow-[0_0_10px_rgba(255,70,85,0.4)] transition-all">
+                    <i class="fa-solid fa-v text-xs"></i>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-white">VALORANT</div>
+                    <div class="text-[10px] text-slate-400">FPS • Tier 1</div>
+                </div>
+                <i class="fa-solid fa-check text-delta-green ml-auto text-xs opacity-100" id="check-valorant"></i>
+            </button>
+
+            <button onclick="selectGame('cs2', 'DELTA STRIKE')" class="flex items-center px-4 py-3 hover:bg-white/5 transition-colors w-full text-left group">
+                <div class="w-6 h-6 rounded flex items-center justify-center bg-game-cs2/10 border border-game-cs2/20 mr-3 text-game-cs2 group-hover:shadow-[0_0_10px_rgba(222,155,53,0.4)] transition-all">
+                    <i class="fa-solid fa-crosshairs text-xs"></i>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-white">CS2</div>
+                    <div class="text-[10px] text-slate-400">FPS • Premier</div>
+                </div>
+                <i class="fa-solid fa-check text-delta-green ml-auto text-xs opacity-0" id="check-cs2"></i>
+            </button>
+
+            <button onclick="selectGame('rl', 'DELTA AERO')" class="flex items-center px-4 py-3 hover:bg-white/5 transition-colors w-full text-left group">
+                <div class="w-6 h-6 rounded flex items-center justify-center bg-game-rl/10 border border-game-rl/20 mr-3 text-game-rl group-hover:shadow-[0_0_10px_rgba(0,136,255,0.4)] transition-all">
+                    <i class="fa-solid fa-car text-xs"></i>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-white">ROCKET LEAGUE</div>
+                    <div class="text-[10px] text-slate-400">Sports • Academy</div>
+                </div>
+                <i class="fa-solid fa-check text-delta-green ml-auto text-xs opacity-0" id="check-rl"></i>
+            </button>
+
+            <div class="border-t border-delta-border/50 mt-1 pt-1">
+                <button class="flex items-center px-4 py-2 hover:bg-white/5 transition-colors w-full text-left text-xs text-delta-gold">
+                    <i class="fa-solid fa-plus mr-2"></i> Initialize New Division
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<header class="h-16 border-b border-delta-border bg-delta-base/95 backdrop-blur flex items-center justify-between px-8 sticky top-0 z-40">
+    <nav class="flex items-center text-sm font-mono text-slate-500">
+        <span class="hover:text-white cursor-pointer transition-colors">Command</span>
+        <span class="mx-2 text-slate-700">/</span>
+        <span class="text-delta-gold font-medium">Dashboard</span>
+    </nav>
+
+    <div class="flex items-center space-x-4">
+        <button class="relative p-2 text-slate-400 hover:text-white transition-colors">
+            <i class="fa-regular fa-bell"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 bg-delta-red rounded-full animate-pulse"></span>
+        </button>
+
+        <button class="role-staff-only hidden md:flex items-center space-x-2 bg-white/5 border border-white/10 hover:border-delta-gold/50 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all">
+            <i class="fa-solid fa-link"></i>
+            <span>INVITE PLAYER</span>
+        </button>
+    </div>
+</header>
+
+<div class="flex-1 overflow-y-auto p-6 space-y-6 scroller">
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 relative h-64 rounded-2xl overflow-hidden group border border-delta-border">
+            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670&auto=format&fit=crop"
+                 class="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-50 group-hover:scale-105 transition-all duration-700 ease-out">
+            <div class="absolute inset-0 bg-gradient-to-t from-delta-base via-delta-base/80 to-transparent"></div>
+
+            <div class="absolute bottom-0 left-0 w-full p-8 flex items-end justify-between">
+                <div>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <span class="px-2 py-1 rounded bg-delta-gold/20 text-delta-gold border border-delta-gold/30 text-[10px] font-mono font-bold uppercase tracking-wider">
+                            Verified Roster
+                        </span>
+                        <span class="px-2 py-1 rounded bg-white/10 text-slate-300 border border-white/10 text-[10px] font-mono font-bold uppercase tracking-wider">
+                            Season 2026
+                        </span>
+                    </div>
+                    <h2 class="text-4xl font-cyber font-bold text-white mb-1" id="dashboardTeamName">PROTOCOL V</h2>
+                    <p class="text-slate-400 font-mono text-sm">DeltaCrown Regional Series • Division 1</p>
+                </div>
+
+                <div class="hidden md:block text-right">
+                    <div class="text-5xl font-tech font-bold text-white tracking-tighter">14<span class="text-slate-600">/</span>2</div>
+                    <div class="text-xs text-delta-green font-mono uppercase tracking-widest mt-1">Win Streak: 5</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-delta-panel border border-delta-border rounded-2xl p-1 relative overflow-hidden flex flex-col">
+            <div class="absolute top-0 right-0 p-3">
+                <i class="fa-solid fa-calendar-day text-slate-700 text-6xl opacity-20 -rotate-12"></i>
+            </div>
+
+            <div class="flex-1 p-5 flex flex-col justify-center">
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-xs font-mono text-delta-red font-bold animate-pulse">● LIVE IN 2H 15M</span>
+                    <span class="text-[10px] text-slate-500 font-mono border border-delta-border px-2 py-0.5 rounded">BO3</span>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <div class="flex flex-col items-center">
+                        <img src="https://ui-avatars.com/api/?name=Protocol+V&background=020204&color=D4AF37" class="w-12 h-12 rounded-full border-2 border-delta-gold shadow-[0_0_15px_-3px_rgba(212,175,55,0.4)] mb-2">
+                        <span class="text-sm font-bold text-white">PRT-V</span>
+                    </div>
+
+                    <div class="text-center px-4">
+                        <span class="block text-2xl font-tech font-bold text-slate-200">VS</span>
+                    </div>
+
+                    <div class="flex flex-col items-center opacity-80">
+                        <img src="https://ui-avatars.com/api/?name=Team+Liquid&background=0e1d3e&color=fff" class="w-12 h-12 rounded-full border border-delta-border mb-2 grayscale">
+                        <span class="text-sm font-bold text-slate-300">TL</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="w-full py-3 bg-white/5 hover:bg-white/10 border-t border-delta-border text-xs font-mono text-center text-white transition-colors">
+                VIEW MATCH ROOM <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+        <div class="bg-delta-surface border border-delta-border rounded-xl p-5 hover:border-delta-border/80 transition-colors">
+            <div class="flex justify-between items-start mb-2">
+                <div class="p-2 rounded bg-purple-500/10 text-purple-400"><i class="fa-solid fa-crown"></i></div>
+                <span class="text-[10px] font-mono text-slate-500 uppercase">Top 5%</span>
+            </div>
+            <div class="text-2xl font-tech font-bold text-white">980 <span class="text-sm font-normal text-slate-500">PTS</span></div>
+            <div class="text-xs text-slate-500 mt-1">Empire Score</div>
+        </div>
+
+        <div class="bg-delta-surface border border-delta-border rounded-xl p-5 hover:border-delta-border/80 transition-colors">
+            <div class="flex justify-between items-start mb-2">
+                <div class="p-2 rounded bg-blue-500/10 text-blue-400"><i class="fa-solid fa-chart-pie"></i></div>
+                <span class="text-[10px] font-mono text-green-500 uppercase">+12%</span>
+            </div>
+            <div class="text-2xl font-tech font-bold text-white">72.4%</div>
+            <div class="text-xs text-slate-500 mt-1">Scrim Win Rate</div>
+        </div>
+
+        <div class="role-staff-only bg-delta-surface border border-delta-border rounded-xl p-5 hover:border-delta-border/80 transition-colors relative overflow-hidden">
+            <div class="absolute right-0 top-0 w-16 h-16 bg-gradient-to-br from-delta-gold/10 to-transparent rounded-bl-full -mr-4 -mt-4"></div>
+            <div class="flex justify-between items-start mb-2">
+                <div class="p-2 rounded bg-delta-gold/10 text-delta-gold"><i class="fa-solid fa-users-viewfinder"></i></div>
+                <span class="text-[10px] font-mono text-delta-gold font-bold uppercase animate-pulse">Action Req</span>
+            </div>
+            <div class="text-2xl font-tech font-bold text-white">5</div>
+            <div class="text-xs text-slate-500 mt-1">Pending Recruits</div>
+        </div>
+
+        <div class="role-owner-only bg-delta-surface border border-delta-border rounded-xl p-5 hover:border-delta-border/80 transition-colors relative overflow-hidden">
+            <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
+            <div class="flex justify-between items-start mb-2">
+                <div class="p-2 rounded bg-green-500/10 text-green-400"><i class="fa-solid fa-wallet"></i></div>
+                <button class="text-[10px] font-mono text-slate-500 hover:text-white underline">History</button>
+            </div>
+            <div class="text-2xl font-tech font-bold text-white tracking-tight">$14,250<span class="text-sm text-slate-500">.00</span></div>
+            <div class="text-xs text-slate-500 mt-1">Org Balance</div>
+        </div>
+
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-6">
+
+        <div class="lg:col-span-2 bg-delta-panel border border-delta-border rounded-xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-tech font-bold text-white text-lg">ACTIVE DEPLOYMENT</h3>
+                <button class="text-xs font-mono text-delta-gold hover:text-white transition-colors">MANAGE ROSTER <i class="fa-solid fa-arrow-right ml-1"></i></button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="flex items-center p-3 rounded-lg bg-white/5 border border-white/5 hover:border-delta-gold/50 transition-all group cursor-pointer">
+                    <div class="relative">
+                        <img src="https://ui-avatars.com/api/?name=Red+Wan&background=random" class="w-12 h-12 rounded-lg object-cover grayscale group-hover:grayscale-0 transition-all">
+                        <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-delta-green rounded-full border-2 border-delta-panel"></div>
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-white text-sm">RedWan</span>
+                            <span class="text-[9px] font-mono bg-delta-gold text-black px-1.5 rounded font-bold">IGL</span>
+                        </div>
+                        <div class="text-xs text-slate-500 font-mono mt-0.5">Initiator • Rank #244</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center p-3 rounded-lg bg-white/5 border border-white/5 hover:border-delta-gold/50 transition-all group cursor-pointer">
+                    <div class="relative">
+                        <img src="https://ui-avatars.com/api/?name=Viper+X&background=random" class="w-12 h-12 rounded-lg object-cover grayscale group-hover:grayscale-0 transition-all">
+                        <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-delta-panel" title="In Game"></div>
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-white text-sm">ViperX</span>
+                        </div>
+                        <div class="text-xs text-slate-500 font-mono mt-0.5">Duelist • Rank #512</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center p-3 rounded-lg bg-white/5 border border-white/5 hover:border-delta-gold/50 transition-all group cursor-pointer">
+                    <div class="relative">
+                        <img src="https://ui-avatars.com/api/?name=Shadow&background=random" class="w-12 h-12 rounded-lg object-cover grayscale group-hover:grayscale-0 transition-all">
+                        <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-500 rounded-full border-2 border-delta-panel"></div>
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-white text-sm">Shadow</span>
+                        </div>
+                        <div class="text-xs text-slate-500 font-mono mt-0.5">Controller • Rank #110</div>
+                    </div>
+                </div>
+                 <div class="flex items-center p-3 rounded-lg bg-white/5 border border-white/5 hover:border-delta-gold/50 transition-all group cursor-pointer">
+                    <div class="relative">
+                        <img src="https://ui-avatars.com/api/?name=Ghost&background=random" class="w-12 h-12 rounded-lg object-cover grayscale group-hover:grayscale-0 transition-all">
+                        <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-500 rounded-full border-2 border-delta-panel"></div>
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-white text-sm">Ghost</span>
+                        </div>
+                        <div class="text-xs text-slate-500 font-mono mt-0.5">Sentinel • Rank #330</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-delta-panel border border-delta-border rounded-xl p-6 flex flex-col h-full">
+            <h3 class="font-tech font-bold text-white text-lg mb-4">LIVE FEED</h3>
+
+            <div class="flex-1 space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+                <div class="flex items-start space-x-3 pb-3 border-b border-white/5">
+                    <div class="w-2 h-2 rounded-full bg-delta-gold mt-1.5 flex-shrink-0"></div>
+                    <div>
+                        <p class="text-xs text-slate-300"><span class="text-white font-bold">RedWan</span> registered for <span class="text-delta-gold">Weekly Cup #44</span>.</p>
+                        <p class="text-[10px] text-slate-500 font-mono mt-1">10 mins ago</p>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-3 pb-3 border-b border-white/5">
+                    <div class="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></div>
+                    <div>
+                        <p class="text-xs text-slate-300">Scrim result uploaded: <span class="text-green-400">WIN 13-9</span> vs Team Spirit.</p>
+                        <p class="text-[10px] text-slate-500 font-mono mt-1">2 hours ago</p>
+                    </div>
+                </div>
+                <div class="role-owner-only flex items-start space-x-3 pb-3 border-b border-white/5">
+                    <div class="w-2 h-2 rounded-full bg-delta-red mt-1.5 flex-shrink-0"></div>
+                    <div>
+                        <p class="text-xs text-slate-300">Contract expiry warning: <span class="text-white">Player ViperX</span> (14 Days).</p>
+                        <p class="text-[10px] text-slate-500 font-mono mt-1">5 hours ago</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    // 1. Division Switcher Logic
+    function toggleDivisionMenu() {
+        const menu = document.getElementById('divisionDropdown');
+        menu.classList.toggle('hidden');
+        menu.classList.toggle('flex');
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const menu = document.getElementById('divisionDropdown');
+        const trigger = document.querySelector('button[onclick="toggleDivisionMenu()"]');
+        if (!menu.classList.contains('hidden') && !menu.contains(event.target) && !trigger.contains(event.target)) {
+            menu.classList.add('hidden');
+            menu.classList.remove('flex');
+        }
+    });
+
+    // 2. Select Game Logic
+    function selectGame(gameId, teamName) {
+        // Visual updates
+        document.getElementById('activeGameLabel').textContent = gameId.toUpperCase();
+        document.getElementById('dashboardTeamName').textContent = teamName;
+
+        // Checkmark logic
+        document.querySelectorAll('.fa-check').forEach(el => el.classList.add('opacity-0'));
+        document.getElementById(`check-${gameId}`).classList.remove('opacity-0');
+
+        // Close menu
+        toggleDivisionMenu();
+
+        // Trigger Global Update (Mocking Part 1 Logic)
+        // In a real Django app, this might trigger an HTMX request or window.location.reload
+        console.log(`[SYSTEM] Context Switched to Division: ${gameId}`);
+
+        // Optional: Change accent color based on game?
+        // document.documentElement.style.setProperty('--accent-color', '...');
+    }
+</script>
+
+
+
+
