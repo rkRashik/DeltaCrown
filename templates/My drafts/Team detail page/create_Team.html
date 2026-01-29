@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge Your Squad | DeltaCrown</title>
+    <meta name="description" content="Register your team, recruit players, and dominate the rankings.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Teko:wght@300;400;500;600;700&family=Unbounded:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'cyber': ['"Unbounded"', 'sans-serif'],
+                        'ui': ['"Plus Jakarta Sans"', 'sans-serif'],
+                        'stats': ['"Teko"', 'sans-serif'],
+                    },
+                    colors: {
+                        delta: {
+                            base: '#020204',       // Deepest Void
+                            surface: '#080810',    // Card Surface
+                            gold: '#FFD700',       // Brand Gold
+                            violet: '#6C00FF',     // Brand Violet
+                            electric: '#00E5FF',   // Brand Electric Blue
+                            success: '#00F0FF',    // Cyber Green/Cyan
+                            danger: '#FF0055',     // Neon Red
+                            text: '#E2E8F0',       // Soft White
+                        }
+                    },
+                    backgroundImage: {
+                        'noise': "url('https://grainy-gradients.vercel.app/noise.svg')",
+                        'cyber-grid': "linear-gradient(rgba(108, 0, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(108, 0, 255, 0.05) 1px, transparent 1px)",
+                        // The specific gradient from your logo
+                        'crown-gradient': 'linear-gradient(135deg, #FFD700 0%, #6C00FF 50%, #00E5FF 100%)',
+                        'card-hover': 'linear-gradient(180deg, rgba(108, 0, 255, 0.05) 0%, rgba(0, 229, 255, 0.05) 100%)',
+                    },
+                    boxShadow: {
+                        'glow-gold': '0 0 20px rgba(255, 215, 0, 0.3)',
+                        'glow-violet': '0 0 20px rgba(108, 0, 255, 0.3)',
+                        'glow-electric': '0 0 20px rgba(0, 229, 255, 0.3)',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* BASE & SCROLLBAR */
+        body { background-color: #020204; color: #ffffff; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050508; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #6C00FF, #00E5FF); border-radius: 4px; }
+
+        /* GLASSMORPHISM */
+        .glass-panel {
+            background: rgba(8, 8, 16, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* WIZARD TRANSITIONS */
+        .step-content {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.4s ease-out;
+        }
+        .step-content.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* CUSTOM RADIO CARDS */
+        .game-radio:checked + div {
+            border-color: #00E5FF;
+            background: linear-gradient(135deg, rgba(108, 0, 255, 0.1) 0%, rgba(0, 229, 255, 0.1) 100%);
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.15);
+        }
+        .game-radio:checked + div .check-icon {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .game-radio:checked + div img,
+        .game-radio:checked + div i {
+            filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.5));
+            transform: scale(1.1);
+        }
+
+        /* TEXT GRADIENT */
+        .text-crown {
+            background: linear-gradient(to right, #FFD700, #6C00FF, #00E5FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* BUTTONS */
+        .btn-primary {
+            background: linear-gradient(135deg, #6C00FF 0%, #00E5FF 100%);
+            color: white;
+            clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+        }
+    </style>
+</head>
+<body class="font-ui antialiased selection:bg-delta-violet selection:text-white">
+
+    <div class="fixed inset-0 z-0 pointer-events-none">
+        <div class="absolute inset-0 bg-noise opacity-[0.03]"></div>
+        <div class="absolute inset-0 bg-cyber-grid bg-[length:60px_60px] opacity-10"></div>
+        <div class="absolute top-[-10%] right-[-5%] w-[800px] h-[800px] bg-delta-violet/10 rounded-full blur-[120px] animate-pulse-slow"></div>
+        <div class="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-delta-electric/10 rounded-full blur-[120px] animate-float"></div>
+        <div class="absolute top-[20%] left-[20%] w-[300px] h-[300px] bg-delta-gold/5 rounded-full blur-[80px]"></div>
+    </div>
+
+    <nav class="sticky top-0 z-50 w-full glass-panel border-x-0 border-t-0 border-b border-white/5 transition-all duration-300">
+        <div class="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+
+                <div class="flex items-center gap-4 cursor-pointer group">
+                    <div class="relative w-11 h-11 flex items-center justify-center">
+                        <div class="absolute inset-0 bg-crown-gradient opacity-20 blur-md rounded-lg group-hover:opacity-40 transition-opacity"></div>
+                        <div class="relative w-10 h-10 bg-delta-surface rounded-lg border border-white/10 flex items-center justify-center overflow-hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6 h-6">
+                                <defs>
+                                    <linearGradient id="navGrad" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stop-color="#FFD700"/>
+                                        <stop offset="50%" stop-color="#6C00FF"/>
+                                        <stop offset="100%" stop-color="#00E5FF"/>
+                                    </linearGradient>
+                                </defs>
+                                <path fill="url(#navGrad)" d="M32 200 L64 96 L128 152 L192 96 L224 200 Z" style="filter: drop-shadow(0 0 5px rgba(108,0,255,0.5));" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-cyber font-bold text-lg tracking-wide text-white leading-none">DELTA<span class="text-crown">CROWN</span></span>
+                        <span class="font-ui text-[9px] uppercase tracking-[0.3em] text-slate-500 group-hover:text-delta-electric transition-colors mt-0.5">Operations</span>
+                    </div>
+                </div>
+
+                <div class="hidden 2xl:flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/5 backdrop-blur-md">
+                    <a href="#" class="px-5 py-2.5 rounded-lg text-xs font-cyber font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all uppercase tracking-wider">Tournaments</a>
+                    <a href="#" class="px-5 py-2.5 rounded-lg text-xs font-cyber font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all uppercase tracking-wider">Teams</a>
+                    <a href="#" class="px-5 py-2.5 rounded-lg text-xs font-cyber font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all uppercase tracking-wider">Dashboard</a>
+
+                    <a href="#" class="px-5 py-2.5 rounded-lg text-xs font-cyber font-bold text-white bg-delta-violet/20 border border-delta-violet/30 shadow-glow-violet flex items-center gap-2 uppercase tracking-wider">
+                        Team & Org <i class="fas fa-chevron-down text-[8px]"></i>
+                    </a>
+
+                    <a href="#" class="px-5 py-2.5 rounded-lg text-xs font-cyber font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all flex items-center gap-2 uppercase tracking-wider">
+                        Community <span class="px-1.5 py-0.5 rounded text-[8px] bg-delta-electric/10 text-delta-electric border border-delta-electric/20 font-bold">BETA</span>
+                    </a>
+                    <a href="#" class="px-5 py-2.5 rounded-lg text-xs font-cyber font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all uppercase tracking-wider">Arena</a>
+                    <a href="#" class="px-5 py-2.5 rounded-lg text-xs font-cyber font-bold text-delta-gold/90 hover:text-delta-gold hover:bg-delta-gold/10 transition-all flex items-center gap-2 uppercase tracking-wider"><i class="fas fa-store"></i> Store</a>
+                </div>
+
+                <div class="flex items-center gap-6">
+                    <button class="relative w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+                        <i class="fa-regular fa-bell text-lg"></i>
+                        <span class="absolute top-2.5 right-3 w-2 h-2 bg-delta-danger rounded-full shadow-[0_0_8px_#FF0055] animate-pulse"></span>
+                    </button>
+                    <div class="flex items-center gap-4 pl-6 border-l border-white/10 cursor-pointer group">
+                        <div class="text-right hidden sm:block">
+                            <div class="font-cyber font-bold text-sm text-white group-hover:text-delta-electric transition-colors">SIUU</div>
+                            <div class="font-stats text-sm text-delta-gold tracking-wide flex items-center gap-1 justify-end"><i class="fas fa-crown text-[10px]"></i> Pro</div>
+                        </div>
+                        <div class="relative w-11 h-11 p-0.5 rounded-xl bg-crown-gradient">
+                            <div class="w-full h-full rounded-[10px] overflow-hidden bg-delta-base relative">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="SIUU" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+
+        <div class="mb-10 animate-fade-in-down">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <a href="#" class="text-slate-500 hover:text-delta-electric text-xs font-bold uppercase tracking-wider flex items-center gap-2 mb-4 transition-colors">
+                        <i class="fas fa-arrow-left"></i> Back to Command Hub
+                    </a>
+                    <h1 class="text-5xl md:text-7xl font-cyber font-black text-white uppercase tracking-tight mb-3">
+                        Forge Your <span class="text-crown">Squad</span>
+                    </h1>
+                    <p class="text-slate-400 max-w-2xl text-lg font-ui">The journey to the Hall of Fame starts here. Assemble your roster, define your identity, and compete for glory.</p>
+                </div>
+
+                <div class="mb-2">
+                    <button class="flex items-center gap-3 px-6 py-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 hover:border-delta-electric/50 transition-all group">
+                        <div class="w-8 h-8 rounded-full bg-delta-electric/10 flex items-center justify-center text-delta-electric group-hover:scale-110 transition-transform">
+                            <i class="fas fa-book-open"></i>
+                        </div>
+                        <div class="text-left">
+                            <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Need Help?</div>
+                            <div class="text-xs text-white font-bold group-hover:text-delta-electric transition-colors">View Creation Guidelines</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+
+            <div class="lg:col-span-8">
+
+                <div class="mb-10">
+                    <div class="flex items-center justify-between relative">
+                        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-white/5 rounded-full -z-10"></div>
+                        <div class="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-crown-gradient rounded-full -z-10 transition-all duration-500 shadow-glow-violet" style="width: 25%" id="progressBar"></div>
+
+                        <div class="step-indicator active flex flex-col items-center gap-3 cursor-pointer" onclick="goToStep(1)">
+                            <div class="w-12 h-12 rounded-full bg-delta-surface text-delta-electric flex items-center justify-center font-bold font-cyber border-2 border-delta-electric shadow-glow-electric transition-all">1</div>
+                            <span class="text-[10px] font-bold uppercase text-delta-electric tracking-widest">Combat Zone</span>
+                        </div>
+                        <div class="step-indicator flex flex-col items-center gap-3 opacity-40 cursor-pointer hover:opacity-70 transition-opacity" onclick="goToStep(2)">
+                            <div class="w-12 h-12 rounded-full bg-delta-surface text-slate-400 flex items-center justify-center font-bold font-cyber border-2 border-white/10">2</div>
+                            <span class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Identity</span>
+                        </div>
+                        <div class="step-indicator flex flex-col items-center gap-3 opacity-40 cursor-pointer hover:opacity-70 transition-opacity" onclick="goToStep(3)">
+                            <div class="w-12 h-12 rounded-full bg-delta-surface text-slate-400 flex items-center justify-center font-bold font-cyber border-2 border-white/10">3</div>
+                            <span class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Roster</span>
+                        </div>
+                        <div class="step-indicator flex flex-col items-center gap-3 opacity-40 cursor-pointer hover:opacity-70 transition-opacity" onclick="goToStep(4)">
+                            <div class="w-12 h-12 rounded-full bg-delta-surface text-slate-400 flex items-center justify-center font-bold font-cyber border-2 border-white/10">4</div>
+                            <span class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Launch</span>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="createTeamForm" class="space-y-8" onsubmit="return false;">
+
+                    <div id="step1" class="step-content active">
+                        <div class="mb-6 flex justify-between items-end border-b border-white/5 pb-4">
+                            <div>
+                                <h2 class="text-2xl font-cyber font-bold text-white uppercase">Select Combat Zone</h2>
+                                <p class="text-sm text-slate-500 mt-1">Choose the primary game title for this squad.</p>
+                            </div>
+                            <span class="text-xs text-delta-danger font-bold hidden animate-pulse" id="gameError"><i class="fas fa-exclamation-triangle"></i> Selection Required</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+
+                            <label class="cursor-pointer group relative">
+                                <input type="radio" name="game" value="valorant" class="game-radio hidden" onchange="validateStep(1); updatePreview()">
+                                <div class="relative h-36 rounded-2xl bg-delta-surface border border-white/5 hover:border-delta-electric/50 transition-all overflow-hidden flex flex-col items-center justify-center gap-3 group-hover:-translate-y-1">
+                                    <div class="check-icon absolute top-3 right-3 w-6 h-6 bg-delta-electric rounded-full flex items-center justify-center text-delta-base text-xs opacity-0 transform scale-0 transition-all duration-300 z-20 font-bold"><i class="fas fa-check"></i></div>
+                                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 z-10 group-hover:bg-delta-electric/10 transition-colors">
+                                        <img src="https://img.icons8.com/color/48/valorant.png" class="w-8 h-8 grayscale group-hover:grayscale-0 transition-all">
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-400 group-hover:text-white uppercase tracking-wider z-10 transition-colors">Valorant</span>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-delta-electric/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-0"></div>
+                                </div>
+                            </label>
+
+                            <label class="cursor-pointer group relative">
+                                <input type="radio" name="game" value="cs2" class="game-radio hidden" onchange="validateStep(1); updatePreview()">
+                                <div class="relative h-36 rounded-2xl bg-delta-surface border border-white/5 hover:border-delta-gold/50 transition-all overflow-hidden flex flex-col items-center justify-center gap-3 group-hover:-translate-y-1">
+                                    <div class="check-icon absolute top-3 right-3 w-6 h-6 bg-delta-gold rounded-full flex items-center justify-center text-delta-base text-xs opacity-0 transform scale-0 transition-all duration-300 z-20 font-bold"><i class="fas fa-check"></i></div>
+                                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 z-10 group-hover:bg-delta-gold/10 transition-colors">
+                                        <i class="fas fa-bomb text-2xl text-slate-500 group-hover:text-delta-gold transition-colors"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-400 group-hover:text-white uppercase tracking-wider z-10">CS2</span>
+                                </div>
+                            </label>
+
+                            <label class="cursor-pointer group relative">
+                                <input type="radio" name="game" value="efootball" class="game-radio hidden" onchange="validateStep(1); updatePreview()">
+                                <div class="relative h-36 rounded-2xl bg-delta-surface border border-white/5 hover:border-delta-electric/50 transition-all overflow-hidden flex flex-col items-center justify-center gap-3 group-hover:-translate-y-1">
+                                    <div class="check-icon absolute top-3 right-3 w-6 h-6 bg-delta-electric rounded-full flex items-center justify-center text-delta-base text-xs opacity-0 transform scale-0 transition-all duration-300 z-20 font-bold"><i class="fas fa-check"></i></div>
+                                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 z-10 group-hover:bg-delta-electric/10 transition-colors">
+                                        <i class="fas fa-futbol text-2xl text-slate-500 group-hover:text-delta-electric transition-colors"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-400 group-hover:text-white uppercase tracking-wider z-10">eFootball 26</span>
+                                </div>
+                            </label>
+
+                            <label class="cursor-pointer group relative">
+                                <input type="radio" name="game" value="dota2" class="game-radio hidden" onchange="validateStep(1); updatePreview()">
+                                <div class="relative h-36 rounded-2xl bg-delta-surface border border-white/5 hover:border-delta-danger/50 transition-all overflow-hidden flex flex-col items-center justify-center gap-3 group-hover:-translate-y-1">
+                                    <div class="check-icon absolute top-3 right-3 w-6 h-6 bg-delta-danger rounded-full flex items-center justify-center text-white text-xs opacity-0 transform scale-0 transition-all duration-300 z-20 font-bold"><i class="fas fa-check"></i></div>
+                                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 z-10 group-hover:bg-delta-danger/10 transition-colors">
+                                        <i class="fas fa-dragon text-2xl text-slate-500 group-hover:text-delta-danger transition-colors"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-400 group-hover:text-white uppercase tracking-wider z-10">Dota 2</span>
+                                </div>
+                            </label>
+
+                            <label class="cursor-pointer group relative">
+                                <input type="radio" name="game" value="pubgm" class="game-radio hidden" onchange="validateStep(1); updatePreview()">
+                                <div class="relative h-36 rounded-2xl bg-delta-surface border border-white/5 hover:border-delta-gold/50 transition-all overflow-hidden flex flex-col items-center justify-center gap-3 group-hover:-translate-y-1">
+                                    <div class="check-icon absolute top-3 right-3 w-6 h-6 bg-delta-gold rounded-full flex items-center justify-center text-delta-base text-xs opacity-0 transform scale-0 transition-all duration-300 z-20 font-bold"><i class="fas fa-check"></i></div>
+                                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 z-10 group-hover:bg-delta-gold/10 transition-colors">
+                                        <i class="fas fa-parachute-box text-2xl text-slate-500 group-hover:text-delta-gold transition-colors"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-400 group-hover:text-white uppercase tracking-wider z-10">PUBG M</span>
+                                </div>
+                            </label>
+
+                            <label class="cursor-pointer group relative">
+                                <input type="radio" name="game" value="fc26" class="game-radio hidden" onchange="validateStep(1); updatePreview()">
+                                <div class="relative h-36 rounded-2xl bg-delta-surface border border-white/5 hover:border-emerald-500 transition-all overflow-hidden flex flex-col items-center justify-center gap-3 group-hover:-translate-y-1">
+                                    <div class="check-icon absolute top-3 right-3 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-delta-base text-xs opacity-0 transform scale-0 transition-all duration-300 z-20 font-bold"><i class="fas fa-check"></i></div>
+                                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 z-10 group-hover:bg-emerald-500/10 transition-colors">
+                                        <i class="fas fa-running text-2xl text-slate-500 group-hover:text-emerald-500 transition-colors"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-400 group-hover:text-white uppercase tracking-wider z-10">FC 26</span>
+                                </div>
+                            </label>
+
+                            <label class="cursor-pointer group relative">
+                                <input type="radio" name="game" value="codm" class="game-radio hidden" onchange="validateStep(1); updatePreview()">
+                                <div class="relative h-36 rounded-2xl bg-delta-surface border border-white/5 hover:border-slate-300 transition-all overflow-hidden flex flex-col items-center justify-center gap-3 group-hover:-translate-y-1">
+                                    <div class="check-icon absolute top-3 right-3 w-6 h-6 bg-slate-300 rounded-full flex items-center justify-center text-delta-base text-xs opacity-0 transform scale-0 transition-all duration-300 z-20 font-bold"><i class="fas fa-check"></i></div>
+                                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 z-10 group-hover:bg-white/10 transition-colors">
+                                        <i class="fas fa-crosshairs text-2xl text-slate-500 group-hover:text-slate-300 transition-colors"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-400 group-hover:text-white uppercase tracking-wider z-10">CoD M</span>
+                                </div>
+                            </label>
+
+                            <label class="cursor-pointer group relative">
+                                <input type="radio" name="game" value="mlbb" class="game-radio hidden" onchange="validateStep(1); updatePreview()">
+                                <div class="relative h-36 rounded-2xl bg-delta-surface border border-white/5 hover:border-delta-violet/50 transition-all overflow-hidden flex flex-col items-center justify-center gap-3 group-hover:-translate-y-1">
+                                    <div class="check-icon absolute top-3 right-3 w-6 h-6 bg-delta-violet rounded-full flex items-center justify-center text-white text-xs opacity-0 transform scale-0 transition-all duration-300 z-20 font-bold"><i class="fas fa-check"></i></div>
+                                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 z-10 group-hover:bg-delta-violet/10 transition-colors">
+                                        <i class="fas fa-gem text-2xl text-slate-500 group-hover:text-delta-violet transition-colors"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-400 group-hover:text-white uppercase tracking-wider z-10">MLBB</span>
+                                </div>
+                            </label>
+
+                             <label class="cursor-pointer group relative">
+                                <input type="radio" name="game" value="freefire" class="game-radio hidden" onchange="validateStep(1); updatePreview()">
+                                <div class="relative h-36 rounded-2xl bg-delta-surface border border-white/5 hover:border-orange-500/50 transition-all overflow-hidden flex flex-col items-center justify-center gap-3 group-hover:-translate-y-1">
+                                    <div class="check-icon absolute top-3 right-3 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs opacity-0 transform scale-0 transition-all duration-300 z-20 font-bold"><i class="fas fa-check"></i></div>
+                                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 z-10 group-hover:bg-orange-500/10 transition-colors">
+                                        <i class="fas fa-fire text-2xl text-slate-500 group-hover:text-orange-500 transition-colors"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-400 group-hover:text-white uppercase tracking-wider z-10">Free Fire</span>
+                                </div>
+                            </label>
+
+                             <label class="cursor-pointer group relative">
+                                <input type="radio" name="game" value="r6" class="game-radio hidden" onchange="validateStep(1); updatePreview()">
+                                <div class="relative h-36 rounded-2xl bg-delta-surface border border-white/5 hover:border-sky-500/50 transition-all overflow-hidden flex flex-col items-center justify-center gap-3 group-hover:-translate-y-1">
+                                    <div class="check-icon absolute top-3 right-3 w-6 h-6 bg-sky-500 rounded-full flex items-center justify-center text-delta-base text-xs opacity-0 transform scale-0 transition-all duration-300 z-20 font-bold"><i class="fas fa-check"></i></div>
+                                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 z-10 group-hover:bg-sky-500/10 transition-colors">
+                                        <i class="fas fa-shield-alt text-2xl text-slate-500 group-hover:text-sky-500 transition-colors"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-400 group-hover:text-white uppercase tracking-wider z-10">R6 Siege</span>
+                                </div>
+                            </label>
+
+                             <label class="cursor-pointer group relative">
+                                <input type="radio" name="game" value="rocket" class="game-radio hidden" onchange="validateStep(1); updatePreview()">
+                                <div class="relative h-36 rounded-2xl bg-delta-surface border border-white/5 hover:border-delta-electric/50 transition-all overflow-hidden flex flex-col items-center justify-center gap-3 group-hover:-translate-y-1">
+                                    <div class="check-icon absolute top-3 right-3 w-6 h-6 bg-delta-electric rounded-full flex items-center justify-center text-delta-base text-xs opacity-0 transform scale-0 transition-all duration-300 z-20 font-bold"><i class="fas fa-check"></i></div>
+                                    <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 z-10 group-hover:bg-delta-electric/10 transition-colors">
+                                        <i class="fas fa-car text-2xl text-slate-500 group-hover:text-delta-electric transition-colors"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-400 group-hover:text-white uppercase tracking-wider z-10">Rocket</span>
+                                </div>
+                            </label>
+
+                        </div>
+
+                        <div class="mt-10 flex justify-end">
+                            <button type="button" onclick="nextStep(2)" class="btn-primary px-10 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 group">
+                                Define Identity <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                            </button>
+                        </div>
+                    </div>
+
+		<div id="step2" class="step-content hidden">
+                        <div class="mb-8 border-b border-white/5 pb-4">
+                            <h2 class="text-2xl font-cyber font-bold text-white uppercase">Define Identity</h2>
+                            <p class="text-sm text-slate-500 mt-1">Establish your command structure and team handle.</p>
+                        </div>
+
+                        <div class="space-y-8">
+
+                            <div>
+                                <label class="block text-xs font-bold text-delta-electric uppercase tracking-widest mb-4">Command Structure <span class="text-delta-danger">*</span></label>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <label class="cursor-pointer group">
+                                        <input type="radio" name="org_status" value="independent" class="peer hidden" checked onchange="toggleOrgPanel(false); updatePreview()">
+                                        <div class="h-full p-6 bg-delta-surface border-2 border-white/10 rounded-xl hover:border-delta-electric/50 peer-checked:border-delta-electric peer-checked:bg-delta-electric/5 transition-all flex flex-col gap-3 relative overflow-hidden">
+                                            <div class="absolute top-0 right-0 p-2 opacity-0 peer-checked:opacity-100 transition-opacity">
+                                                <i class="fas fa-check-circle text-delta-electric text-xl"></i>
+                                            </div>
+                                            <div class="w-12 h-12 rounded-lg bg-delta-electric/10 flex items-center justify-center text-delta-electric text-2xl border border-delta-electric/20 mb-2">
+                                                <i class="fas fa-user-astronaut"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-cyber font-bold text-white text-sm uppercase">Independent Unit</h4>
+                                                <p class="text-xs text-slate-400 mt-1 leading-relaxed">You are the sole owner. Best for casual squads or new competitive teams.</p>
+                                            </div>
+                                        </div>
+                                    </label>
+
+                                    <label class="cursor-pointer group">
+                                        <input type="radio" name="org_status" value="organization" class="peer hidden" onchange="toggleOrgPanel(true); updatePreview()">
+                                        <div class="h-full p-6 bg-delta-surface border-2 border-white/10 rounded-xl hover:border-delta-gold/50 peer-checked:border-delta-gold peer-checked:bg-delta-gold/5 transition-all flex flex-col gap-3 relative overflow-hidden">
+                                            <div class="absolute top-0 right-0 p-2 opacity-0 peer-checked:opacity-100 transition-opacity">
+                                                <i class="fas fa-check-circle text-delta-gold text-xl"></i>
+                                            </div>
+                                            <div class="w-12 h-12 rounded-lg bg-delta-gold/10 flex items-center justify-center text-delta-gold text-2xl border border-delta-gold/20 mb-2">
+                                                <i class="fas fa-building"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-cyber font-bold text-white text-sm uppercase">Organization Division</h4>
+                                                <p class="text-xs text-slate-400 mt-1 leading-relaxed">Owned by an Empire. Shared finances, verified status, and staff management.</p>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="orgSelectorPanel" class="hidden animate-slide-up">
+                                <div class="p-6 bg-delta-gold/5 border border-delta-gold/20 rounded-xl space-y-4 relative overflow-hidden">
+                                    <div class="absolute -right-6 -top-6 p-4 opacity-5 text-delta-gold text-9xl rotate-12 pointer-events-none">
+                                        <i class="fas fa-crown"></i>
+                                    </div>
+                                    <div class="relative z-10">
+                                        <label class="block text-xs font-bold text-delta-gold uppercase tracking-widest mb-2">Select Parent Organization</label>
+                                        <div class="relative">
+                                            <select id="orgSelect" class="w-full bg-black/80 border border-delta-gold/30 rounded-lg py-3 pl-4 pr-10 text-sm text-white focus:outline-none focus:border-delta-gold appearance-none cursor-pointer hover:bg-black/60 transition-colors" onchange="updatePreview()">
+                                                <option value="" disabled selected>Choose from your organizations...</option>
+                                                <option value="SYNTAX">SYNTAX (Verified)</option>
+                                                <option value="Cloud9 BD">Cloud9 BD</option>
+                                                <option value="GamerHub">GamerHub Esports</option>
+                                            </select>
+                                            <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-delta-gold text-xs pointer-events-none"></i>
+                                        </div>
+                                    </div>
+                                    <div class="relative z-10 pt-2 border-t border-white/5">
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" id="inheritBranding" class="w-4 h-4 rounded border-delta-gold/50 bg-black text-delta-gold focus:ring-0" onchange="toggleBrandingStep(this.checked)">
+                                            <span class="text-sm text-slate-300">Inherit Organization Branding (Logo & Banner)</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-6 pt-4 border-t border-white/5">
+                                <div class="group">
+                                    <label class="block text-xs font-bold text-white uppercase tracking-widest mb-2">Squad Name <span class="text-delta-danger">*</span></label>
+                                    <div class="relative">
+                                        <input type="text" id="inputName" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 pr-12 text-white font-ui focus:outline-none focus:border-delta-electric focus:shadow-glow-electric transition-all placeholder-slate-600" placeholder="e.g. Protocol V" oninput="validateField(this); updatePreview()" onblur="validateField(this)">
+                                        <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 status-icon transition-colors duration-300">
+                                            <i class="fas fa-asterisk text-[10px]"></i>
+                                        </div>
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 mt-2 flex justify-between font-ui">
+                                        <span id="nameValidationMsg">Must be unique within the game.</span>
+                                        <span id="nameCount" class="font-mono">0/20</span>
+                                    </p>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div class="md:col-span-1">
+                                        <label class="block text-xs font-bold text-white uppercase tracking-widest mb-2">Tag <span class="text-delta-danger">*</span></label>
+                                        <div class="relative">
+                                            <input type="text" id="inputTag" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 text-white font-cyber uppercase tracking-widest focus:outline-none focus:border-delta-gold focus:shadow-glow-gold transition-all placeholder-slate-600" placeholder="PRV" maxlength="5" oninput="validateField(this); updatePreview()">
+                                        </div>
+                                        <p class="text-[10px] text-slate-400 mt-2">Max 5 chars.</p>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-widest mb-2">Motto (Optional)</label>
+                                        <input type="text" id="inputTagline" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 text-slate-300 font-ui focus:outline-none focus:border-delta-violet transition-all placeholder-slate-600" placeholder="e.g. Silence is Golden" oninput="updatePreview()">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-widest mb-2">Description (Optional)</label>
+                                    <textarea id="inputDesc" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 text-slate-300 font-ui focus:outline-none focus:border-delta-violet transition-all placeholder-slate-600 h-24 resize-none" placeholder="Tell us about your team's history or goals..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-10 flex justify-between">
+                            <button type="button" onclick="prevStep(1)" class="px-6 py-3 text-slate-400 hover:text-white font-cyber font-bold uppercase text-xs tracking-wider transition-colors flex items-center gap-2">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button type="button" onclick="nextStep(3)" class="btn-primary px-10 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 group">
+                                Next: Operations <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="step3" class="step-content hidden">
+                        <div class="mb-8 border-b border-white/5 pb-4">
+                            <h2 class="text-2xl font-cyber font-bold text-white uppercase">Operational Base</h2>
+                            <p class="text-sm text-slate-500 mt-1">Set your team's location and management structure.</p>
+                        </div>
+
+                        <div class="space-y-8">
+
+                            <div>
+                                <label class="block text-xs font-bold text-delta-electric uppercase tracking-widest mb-4">Regional Identity (Smart Detect)</label>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="p-4 bg-delta-surface border border-delta-electric/30 rounded-xl flex items-center gap-4 relative overflow-hidden group hover:bg-delta-electric/5 transition-colors cursor-pointer ring-2 ring-transparent hover:ring-delta-electric/50" onclick="selectRegion('BD', 'Bangladesh')">
+                                        <div class="w-12 h-8 rounded overflow-hidden border border-white/10 shadow-lg">
+                                            <img src="https://flagcdn.com/w160/bd.png" class="w-full h-full object-cover">
+                                        </div>
+                                        <div>
+                                            <span class="text-[10px] font-bold text-delta-electric uppercase tracking-wider block">Detected Location</span>
+                                            <span class="text-white font-bold text-lg">Bangladesh</span>
+                                        </div>
+                                        <div class="absolute right-4 text-delta-electric opacity-100">
+                                            <i class="fas fa-check-circle text-xl"></i>
+                                        </div>
+                                    </div>
+
+                                    <div class="relative">
+                                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Or Choose Manual Location</label>
+                                        <div class="relative">
+                                            <select id="manualRegion" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-12 pr-10 text-white font-ui focus:outline-none focus:border-delta-electric appearance-none cursor-pointer" onchange="updatePreview()">
+                                                <option value="" disabled selected>Select Country...</option>
+                                                <option value="US">United States</option>
+                                                <option value="GB">United Kingdom</option>
+                                                <option value="IN">India</option>
+                                                <option value="SG">Singapore</option>
+                                                <option value="BR">Brazil</option>
+                                                <option value="BD">Bangladesh</option>
+                                            </select>
+                                            <i class="fas fa-globe absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                                            <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-white uppercase tracking-widest mb-4">Command Authority</label>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <label class="cursor-pointer group">
+                                        <input type="radio" name="manager_mode" value="self" class="peer hidden" checked onchange="toggleManagerInvite(false)">
+                                        <div class="p-4 bg-delta-surface border border-white/10 rounded-xl peer-checked:border-delta-violet peer-checked:bg-delta-violet/5 hover:border-white/30 transition-all flex gap-3 items-start h-full">
+                                            <div class="mt-1 w-5 h-5 rounded-full border border-white/20 peer-checked:bg-delta-violet peer-checked:border-delta-violet flex items-center justify-center shrink-0">
+                                                <div class="w-2 h-2 bg-white rounded-full opacity-0 peer-checked:opacity-100"></div>
+                                            </div>
+                                            <div>
+                                                <span class="block text-sm font-bold text-white">Self-Managed</span>
+                                                <span class="text-xs text-slate-500 mt-1 block">You will be the Manager. Recommended for Independent Teams.</span>
+                                            </div>
+                                        </div>
+                                    </label>
+
+                                    <label class="cursor-pointer group">
+                                        <input type="radio" name="manager_mode" value="invite" class="peer hidden" onchange="toggleManagerInvite(true)">
+                                        <div class="p-4 bg-delta-surface border border-white/10 rounded-xl peer-checked:border-delta-violet peer-checked:bg-delta-violet/5 hover:border-white/30 transition-all flex gap-3 items-start h-full">
+                                            <div class="mt-1 w-5 h-5 rounded-full border border-white/20 peer-checked:bg-delta-violet peer-checked:border-delta-violet flex items-center justify-center shrink-0">
+                                                <div class="w-2 h-2 bg-white rounded-full opacity-0 peer-checked:opacity-100"></div>
+                                            </div>
+                                            <div>
+                                                <span class="block text-sm font-bold text-white">Appoint Manager</span>
+                                                <span class="text-xs text-slate-500 mt-1 block">Invite another user via email to manage this squad immediately.</span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div id="managerInviteField" class="hidden mt-4 animate-fade-in-down">
+                                    <div class="relative">
+                                        <input type="email" id="managerEmail" class="w-full bg-delta-surface border border-delta-violet/30 rounded-lg py-3 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-delta-violet" placeholder="Enter Manager's Email Address">
+                                        <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                                    </div>
+                                    <p class="text-[10px] text-delta-violet mt-1 ml-1">An invitation will be sent upon team creation.</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-white/5 rounded-xl p-4 border border-white/5">
+                                <label class="flex items-center justify-between cursor-pointer mb-2">
+                                    <span class="text-sm font-bold text-white uppercase tracking-wider">Recruit Members Now?</span>
+                                    <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" name="recruit_now" id="toggleRecruitInvite" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer peer checked:right-0 checked:border-delta-electric" onchange="document.getElementById('memberInviteArea').classList.toggle('hidden')"/>
+                                        <label for="toggleRecruitInvite" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-800 cursor-pointer peer-checked:bg-delta-electric/50"></label>
+                                    </div>
+                                </label>
+                                <p class="text-xs text-slate-500 mb-3">Send invites to players immediately after creation.</p>
+
+                                <div id="memberInviteArea" class="hidden space-y-2">
+                                    <div class="flex gap-2">
+                                        <input type="text" class="flex-1 bg-black/50 border border-white/10 rounded-lg py-2 px-3 text-xs text-white" placeholder="Player Email or DeltaID">
+                                        <button type="button" class="bg-white/10 hover:bg-white/20 text-white rounded-lg px-3 py-1 text-xs font-bold transition"><i class="fas fa-plus"></i></button>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input type="text" class="flex-1 bg-black/50 border border-white/10 rounded-lg py-2 px-3 text-xs text-white" placeholder="Player Email or DeltaID">
+                                        <button type="button" class="bg-white/10 hover:bg-white/20 text-white rounded-lg px-3 py-1 text-xs font-bold transition"><i class="fas fa-plus"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-10 flex justify-between">
+                            <button type="button" onclick="prevStep(2)" class="px-6 py-3 text-slate-400 hover:text-white font-cyber font-bold uppercase text-xs tracking-wider transition-colors flex items-center gap-2">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button type="button" onclick="nextStep(4)" class="btn-primary px-10 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 group">
+                                Next: Branding <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="step4" class="step-content hidden">
+                        <div class="mb-8 border-b border-white/5 pb-4">
+                            <h2 class="text-2xl font-cyber font-bold text-white uppercase">Visual Assets</h2>
+                            <p class="text-sm text-slate-500 mt-1">Upload high-quality assets to attract sponsors and fans.</p>
+                        </div>
+
+                        <div id="brandingInheritMsg" class="hidden mb-6 p-4 bg-delta-gold/10 border border-delta-gold/20 rounded-lg flex items-center gap-3 text-delta-gold">
+                            <i class="fas fa-info-circle text-lg"></i>
+                            <span class="text-xs font-bold uppercase">Branding inherited from Organization. Custom uploads disabled.</span>
+                        </div>
+
+                        <div id="brandingUploadSection" class="space-y-8">
+
+                            <div class="bg-[#12121A] rounded-2xl p-6 border border-white/10">
+                                <div class="flex justify-between items-center mb-4">
+                                    <label class="block text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                        <i class="fas fa-shield-alt text-delta-gold"></i> Team Emblem
+                                    </label>
+                                    <span class="text-[10px] text-slate-400 bg-white/5 px-2 py-1 rounded">500x500px Recommended</span>
+                                </div>
+                                <div class="flex gap-6 items-center">
+                                    <div class="w-24 h-24 rounded-full bg-black border-2 border-dashed border-white/20 flex items-center justify-center overflow-hidden shrink-0 relative group">
+                                        <img id="previewLogoImg" class="absolute inset-0 w-full h-full object-cover hidden">
+                                        <i class="fas fa-image text-2xl text-slate-600 group-hover:text-white transition-colors z-0"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="w-full h-24 rounded-xl bg-delta-base border border-white/10 hover:border-delta-gold/50 transition-colors flex flex-col items-center justify-center cursor-pointer relative group" onclick="document.getElementById('logoUpload').click()">
+                                            <input type="file" id="logoUpload" class="hidden" accept="image/*" onchange="previewImage(this, 'previewLogoImg')">
+                                            <span class="text-xs font-bold text-delta-gold uppercase mb-1 group-hover:scale-105 transition-transform">Click to Upload Logo</span>
+                                            <span class="text-[10px] text-slate-500">Max 2MB (JPG, PNG)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-[#12121A] rounded-2xl p-6 border border-white/10">
+                                <div class="flex justify-between items-center mb-4">
+                                    <label class="block text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                        <i class="fas fa-panorama text-delta-violet"></i> Team Banner
+                                    </label>
+                                    <span class="text-[10px] text-slate-400 bg-white/5 px-2 py-1 rounded">1920x400px Recommended</span>
+                                </div>
+                                <div class="w-full h-48 rounded-xl bg-delta-base border-2 border-dashed border-white/10 hover:border-delta-violet transition-colors flex flex-col items-center justify-center cursor-pointer relative overflow-hidden group" onclick="document.getElementById('bannerUpload').click()">
+                                    <input type="file" id="bannerUpload" class="hidden" accept="image/*" onchange="previewImage(this, 'previewBannerImg')">
+
+                                    <div class="z-10 flex flex-col items-center text-slate-500 group-hover:text-delta-violet transition-colors">
+                                        <i class="fas fa-cloud-upload-alt text-4xl mb-3"></i>
+                                        <span class="text-sm font-bold uppercase group-hover:scale-105 transition-transform">Upload Cover Image</span>
+                                        <span class="text-xs opacity-60 mt-1">Drag & Drop or Click</span>
+                                    </div>
+
+                                    <img id="previewBannerImg" class="absolute inset-0 w-full h-full object-cover opacity-60 hidden">
+                                    <div class="absolute inset-0 bg-black/40 hidden transition-opacity hover:opacity-30" id="bannerOverlay"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-10 flex justify-between">
+                            <button type="button" onclick="prevStep(3)" class="px-6 py-3 text-slate-400 hover:text-white font-cyber font-bold uppercase text-xs tracking-wider transition-colors flex items-center gap-2">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button type="button" onclick="nextStep(5)" class="btn-primary px-10 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 group">
+                                Final Review <i class="fas fa-check-circle group-hover:scale-110 transition-transform"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="step5" class="step-content hidden">
+                        <div class="mb-8 border-b border-white/5 pb-4">
+                            <h2 class="text-2xl font-cyber font-bold text-white uppercase">Mission Briefing</h2>
+                            <p class="text-sm text-slate-500 mt-1">Confirm details and sign the operational protocols.</p>
+                        </div>
+
+                        <div class="bg-delta-surface border border-white/10 rounded-xl p-6 mb-8 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-32 h-32 bg-delta-electric/5 rounded-full blur-[50px]"></div>
+
+                            <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-4 border-b border-white/5 pb-2 relative z-10">Unit Summary</h3>
+
+                            <div class="grid grid-cols-2 gap-y-6 gap-x-4 text-sm relative z-10">
+                                <div>
+                                    <span class="block text-[10px] text-slate-500 uppercase tracking-wide">Name</span>
+                                    <span class="font-cyber font-bold text-white text-lg" id="summaryName">Protocol V</span>
+                                </div>
+                                <div>
+                                    <span class="block text-[10px] text-slate-500 uppercase tracking-wide">Command Structure</span>
+                                    <span class="font-bold text-delta-gold" id="summaryType">Independent</span>
+                                    <span class="text-xs text-slate-400 block" id="summaryOrgName"></span>
+                                </div>
+                                <div>
+                                    <span class="block text-[10px] text-slate-500 uppercase tracking-wide">Combat Zone</span>
+                                    <span class="font-bold text-delta-electric" id="summaryGame">Valorant</span>
+                                </div>
+                                <div>
+                                    <span class="block text-[10px] text-slate-500 uppercase tracking-wide">Base Region</span>
+                                    <span class="font-bold text-white" id="summaryRegion">Bangladesh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-xs font-bold text-white uppercase tracking-widest mb-2">DeltaCrown Code of Conduct</label>
+                            <div class="h-48 overflow-y-auto bg-[#0A0A10] border border-white/10 rounded-lg p-5 text-xs text-slate-300 font-ui leading-relaxed custom-scrollbar shadow-inner">
+                                <div class="mb-4">
+                                    <h4 class="text-delta-danger font-bold uppercase mb-1">1. Integrity & Fair Play</h4>
+                                    <p class="opacity-80">Absolute zero tolerance for cheating, scripting, bug exploitation, or match-fixing. Violations result in immediate Hardware ID bans for the entire roster and forfeiture of all assets.</p>
+                                </div>
+                                <div class="mb-4">
+                                    <h4 class="text-delta-electric font-bold uppercase mb-1">2. Competitive Roster Locks</h4>
+                                    <p class="opacity-80">Rosters are locked 1 hour before tournament brackets are generated. Emergency substitutions require admin approval and may incur penalties.</p>
+                                </div>
+                                <div class="mb-4">
+                                    <h4 class="text-delta-gold font-bold uppercase mb-1">3. Financial Protocol</h4>
+                                    <p class="opacity-80">Prize winnings are distributed solely to the Team Wallet designated by the Command Authority. DeltaCrown is not liable for internal disputes regarding payout splits.</p>
+                                </div>
+                                <div class="mb-4">
+                                    <h4 class="text-white font-bold uppercase mb-1">4. Professional Conduct</h4>
+                                    <p class="opacity-80">Teams represent the platform. Toxicity, hate speech, or unsportsmanlike conduct in lobbies will result in suspension.</p>
+                                </div>
+                                <p class="text-[10px] text-slate-500 mt-4 italic">By clicking "Establish Team", you digitally sign this agreement under your User ID.</p>
+                            </div>
+                        </div>
+
+                        <label class="flex items-start gap-3 cursor-pointer group p-3 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/10">
+                            <div class="relative flex items-center">
+                                <input type="checkbox" id="termsCheck" class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-500 bg-black checked:border-delta-success checked:bg-delta-success transition-all">
+                                <i class="fas fa-check absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-black text-xs opacity-0 peer-checked:opacity-100 pointer-events-none"></i>
+                            </div>
+                            <span class="text-xs text-slate-300 group-hover:text-white transition-colors select-none pt-0.5">
+                                I accept the Code of Conduct and confirm I have authority to register this competitive unit.
+                            </span>
+                        </label>
+
+                        <div class="mt-10 flex justify-between items-center">
+                            <button type="button" onclick="prevStep(4)" class="px-6 py-3 text-slate-400 hover:text-white font-cyber font-bold uppercase text-xs tracking-wider transition-colors flex items-center gap-2">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button type="submit" onclick="submitTeam()" class="btn-primary px-12 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 hover:brightness-110 transition-all transform hover:scale-105">
+                                Establish Team <i class="fas fa-rocket"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="lg:col-span-4 hidden lg:block">
+                <div class="sticky top-32">
+                    <div class="mb-4 flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Holographic Preview</h3>
+                        <span class="text-[9px] bg-delta-electric/20 text-delta-electric px-2 py-0.5 rounded border border-delta-electric/30 animate-pulse font-bold">LIVE UPDATE</span>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl overflow-hidden border border-white/10 relative group transition-all duration-500 shadow-2xl" id="previewCard">
+                        <div id="previewOrgBadge" class="hidden absolute top-0 left-0 right-0 z-20 bg-delta-gold text-delta-base text-[9px] font-bold uppercase tracking-widest py-1 text-center font-cyber">
+                            Official Division of <span id="previewOrgName">SYNTAX</span>
+                        </div>
+
+                        <div class="h-40 bg-delta-panel relative overflow-hidden" id="previewBannerBg">
+                            <img id="realBannerPreview" class="absolute inset-0 w-full h-full object-cover hidden transition-transform duration-700 group-hover:scale-110">
+                            <div class="absolute inset-0 bg-cyber-grid opacity-30"></div>
+                            <div class="absolute inset-0 bg-gradient-to-t from-delta-panel via-delta-panel/50 to-transparent"></div>
+                            <div class="absolute top-8 right-3 bg-black/80 backdrop-blur-md border border-white/10 px-2 py-1 rounded flex items-center gap-2">
+                                <span class="text-[10px] font-bold text-white uppercase" id="previewGameBadge">GAME</span>
+                            </div>
+                        </div>
+
+                        <div class="px-6 pb-6 -mt-12 relative z-10">
+                            <div class="flex items-end justify-between mb-4">
+                                <div class="w-24 h-24 rounded-2xl border-4 border-delta-panel bg-delta-panel shadow-2xl flex items-center justify-center overflow-hidden relative group-hover:border-delta-electric transition-colors duration-300">
+                                    <div class="absolute inset-0 bg-crown-gradient opacity-20"></div>
+                                    <img id="realLogoPreview" class="absolute inset-0 w-full h-full object-cover hidden">
+                                    <span class="font-cyber font-bold text-xl text-white z-10" id="previewTagPlaceholder">TAG</span>
+                                </div>
+                                <div class="mb-1 text-right">
+                                    <div class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Global Rank</div>
+                                    <div class="text-2xl font-stats font-bold text-white">Unranked</div>
+                                </div>
+                            </div>
+
+                            <h3 class="text-2xl font-cyber font-bold text-white leading-tight break-words" id="previewNameText">Team Name</h3>
+                            <p class="text-xs text-delta-gold font-ui mt-1 italic truncate" id="previewTaglineText">"Motto goes here..."</p>
+
+                            <div class="mt-4 flex items-center gap-3 text-xs text-slate-400 border-t border-white/5 pt-4">
+                                <span id="previewRegionText"><i class="fas fa-globe"></i> Region</span>
+                                <span class="w-1 h-1 bg-slate-600 rounded-full"></span>
+                                <span class="text-delta-electric font-bold">New Challenger</span>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-2 mt-4">
+                                <div class="text-center bg-white/5 rounded p-2 border border-white/5">
+                                    <div class="text-[8px] text-slate-500 uppercase font-bold">CP</div>
+                                    <div class="font-stats text-lg text-white">0</div>
+                                </div>
+                                <div class="text-center bg-white/5 rounded p-2 border border-white/5">
+                                    <div class="text-[8px] text-slate-500 uppercase font-bold">Win%</div>
+                                    <div class="font-stats text-lg text-white">0%</div>
+                                </div>
+                                <div class="text-center bg-white/5 rounded p-2 border border-white/5">
+                                    <div class="text-[8px] text-slate-500 uppercase font-bold">Strk</div>
+                                    <div class="font-stats text-lg text-slate-500">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-4 rounded-xl bg-delta-surface border border-white/5 flex gap-3 items-start">
+                        <i class="fas fa-info-circle text-delta-violet mt-0.5"></i>
+                        <div class="text-xs text-slate-400">
+                            <strong class="text-white block mb-1">Pro Tip:</strong>
+                            <span id="previewTipText">Select an Organization to inherit verified status and shared wallet benefits.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. WIZARD NAVIGATION ---
+        let currentStep = 1;
+        const totalSteps = 5;
+
+        function goToStep(step) {
+            if (step > currentStep && !validateStep(currentStep)) return;
+
+            document.querySelectorAll('.step-content').forEach(el => {
+                el.classList.remove('active');
+                setTimeout(() => el.classList.add('hidden'), 300);
+                el.classList.add('hidden');
+            });
+
+            const target = document.getElementById(`step${step}`);
+            target.classList.remove('hidden');
+            setTimeout(() => target.classList.add('active'), 10);
+
+            const indicators = document.querySelectorAll('.step-indicator');
+            indicators.forEach((ind, index) => {
+                if (index + 1 === step) {
+                    ind.classList.add('active');
+                    ind.style.opacity = '1';
+                    ind.querySelector('div').classList.remove('bg-delta-surface', 'border-white/10');
+                    ind.querySelector('div').classList.add('bg-delta-surface', 'border-delta-electric', 'shadow-glow-electric', 'text-delta-electric');
+                } else if (index + 1 < step) {
+                    ind.classList.remove('active');
+                    ind.style.opacity = '1';
+                    ind.querySelector('div').classList.add('bg-delta-electric', 'text-black', 'border-delta-electric');
+                    ind.querySelector('div').innerHTML = '<i class="fas fa-check"></i>';
+                } else {
+                    ind.classList.remove('active');
+                    ind.style.opacity = '0.4';
+                    ind.querySelector('div').classList.remove('bg-delta-electric', 'text-black');
+                    ind.querySelector('div').innerHTML = index + 1;
+                }
+            });
+
+            const progress = ((step - 1) / (totalSteps - 1)) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+
+            currentStep = step;
+        }
+
+        function nextStep(step) {
+            if (validateStep(step - 1)) {
+                goToStep(step);
+            }
+        }
+
+        function prevStep(step) {
+            goToStep(step);
+        }
+
+        // --- 2. VALIDATION LOGIC ---
+        function validateStep(step) {
+            let isValid = true;
+            if (step === 1) { // Game Selection
+                const game = document.querySelector('input[name="game"]:checked');
+                const error = document.getElementById('gameError');
+                if (!game) { error.classList.remove('hidden'); isValid = false; }
+                else { error.classList.add('hidden'); }
+            } else if (step === 2) { // Identity
+                const name = document.getElementById('inputName');
+                const tag = document.getElementById('inputTag');
+                if (name.value.length < 3) { name.classList.add('border-delta-danger'); isValid = false; }
+                if (tag.value.length < 2) { tag.classList.add('border-delta-danger'); isValid = false; }
+            }
+            return isValid;
+        }
+
+        function validateField(input) {
+            if (input.value.length < 3 && input.id !== 'inputTag') {
+                input.classList.add('border-delta-danger', 'ring-1', 'ring-delta-danger');
+                input.classList.remove('border-white/10', 'focus:border-delta-electric');
+            } else if (input.id === 'inputTag' && input.value.length < 2) {
+                input.classList.add('border-delta-danger', 'ring-1', 'ring-delta-danger');
+            } else {
+                input.classList.remove('border-delta-danger', 'ring-1', 'ring-delta-danger');
+                input.classList.add('border-delta-success');
+            }
+        }
+
+        // --- 3. ORG & STRUCTURE LOGIC ---
+        function toggleOrgPanel(isOrg) {
+            const panel = document.getElementById('orgSelectorPanel');
+            const tipText = document.getElementById('previewTipText');
+
+            if (isOrg) {
+                panel.classList.remove('hidden');
+                tipText.textContent = "Great choice! Your team will inherit the Organization's verified status and sponsor slots.";
+            } else {
+                panel.classList.add('hidden');
+                tipText.textContent = "Independent teams have full control but must earn their own verification status.";
+                document.getElementById('inheritBranding').checked = false;
+                toggleBrandingStep(false);
+            }
+        }
+
+        function toggleBrandingStep(isInherited) {
+            const uploadSection = document.getElementById('brandingUploadSection');
+            const msg = document.getElementById('brandingInheritMsg');
+            if (isInherited) {
+                uploadSection.classList.add('hidden');
+                msg.classList.remove('hidden');
+            } else {
+                uploadSection.classList.remove('hidden');
+                msg.classList.add('hidden');
+            }
+            updatePreview();
+        }
+
+        function toggleManagerInvite(isInvite) {
+            const field = document.getElementById('managerInviteField');
+            if(isInvite) {
+                field.classList.remove('hidden');
+            } else {
+                field.classList.add('hidden');
+            }
+        }
+
+        // --- 4. LIVE PREVIEW LOGIC ---
+        function updatePreview() {
+            // Game
+            const game = document.querySelector('input[name="game"]:checked');
+            if(game) {
+                const gameName = game.nextElementSibling.querySelector('span').innerText;
+                document.getElementById('previewGameBadge').textContent = gameName;
+                document.getElementById('summaryGame').textContent = gameName;
+            }
+
+            // Identity
+            const name = document.getElementById('inputName').value;
+            document.getElementById('previewNameText').textContent = name || "Team Name";
+            document.getElementById('summaryName').textContent = name || "Pending...";
+            document.getElementById('nameCount').textContent = `${name.length}/20`;
+
+            const tag = document.getElementById('inputTag').value;
+            document.getElementById('previewTagPlaceholder').textContent = tag || "TAG";
+            document.getElementById('summaryTag').textContent = tag || "-";
+
+            const tagline = document.getElementById('inputTagline').value;
+            document.getElementById('previewTaglineText').textContent = tagline ? `"${tagline}"` : '"Motto goes here..."';
+
+            // Region (Smart Detect + Manual)
+            const manualRegionSelect = document.getElementById('manualRegion');
+            let regionName = "Bangladesh"; // Default from smart detect
+            if (manualRegionSelect && manualRegionSelect.value) {
+                regionName = manualRegionSelect.options[manualRegionSelect.selectedIndex].text;
+            }
+            // Fallback for radio
+            const regionRadio = document.querySelector('input[name="region"]:checked');
+             if(regionRadio && !manualRegionSelect.value) {
+                 const regionMap = { 'NA': 'North America', 'EU': 'Europe', 'SEA': 'Asia Pacific', 'SA': 'South America' };
+                 regionName = regionMap[regionRadio.value];
+             }
+
+            document.getElementById('previewRegionText').innerHTML = `<i class="fas fa-globe"></i> ${regionName}`;
+            document.getElementById('summaryRegion').textContent = regionName;
+
+            // Org Logic
+            const isOrg = document.querySelector('input[name="org_status"]:checked').value === 'organization';
+            const orgSelect = document.getElementById('orgSelect');
+            const previewOrgBadge = document.getElementById('previewOrgBadge');
+
+            if (isOrg && orgSelect.value) {
+                previewOrgBadge.classList.remove('hidden');
+                document.getElementById('previewOrgName').textContent = orgSelect.value;
+                document.getElementById('summaryType').textContent = "Division of " + orgSelect.value;
+                document.getElementById('summaryOrgName').textContent = "Owner: " + orgSelect.value;
+            } else {
+                previewOrgBadge.classList.add('hidden');
+                document.getElementById('summaryType').textContent = "Independent Unit";
+                document.getElementById('summaryOrgName').textContent = "Owner: You";
+            }
+        }
+
+        function selectRegion(code, name) {
+            document.getElementById('manualRegion').value = "";
+            document.getElementById('previewRegionText').innerHTML = `<i class="fas fa-globe"></i> ${name}`;
+            document.getElementById('summaryRegion').textContent = name;
+        }
+
+        // --- 5. IMAGE PREVIEW ---
+        function previewImage(input, targetId) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById(targetId);
+                    img.src = e.target.result;
+                    img.classList.remove('hidden');
+
+                    if(targetId === 'previewLogoImg') {
+                        document.getElementById('realLogoPreview').src = e.target.result;
+                        document.getElementById('realLogoPreview').classList.remove('hidden');
+                        document.getElementById('previewTagPlaceholder').classList.add('hidden');
+                    } else if (targetId === 'previewBannerImg') {
+                        document.getElementById('realBannerPreview').src = e.target.result;
+                        document.getElementById('realBannerPreview').classList.remove('hidden');
+                        document.getElementById('bannerOverlay').classList.remove('hidden');
+                    }
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function submitTeam() {
+            if(!document.getElementById('termsCheck').checked) {
+                alert("You must accept the terms.");
+                return;
+            }
+            const btn = document.querySelector('button[type="submit"]');
+            const ogContent = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Establishing Link...';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                alert("Request Sent to Command! (Backend Integration Required)");
+                btn.innerHTML = ogContent;
+                btn.disabled = false;
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

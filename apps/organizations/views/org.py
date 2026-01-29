@@ -14,6 +14,11 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 
 from apps.organizations.models import Organization
+from apps.organizations.permissions import (
+    get_org_role,
+    can_access_control_plane,
+    get_permission_context,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +189,7 @@ def org_control_plane(request, org_slug):
     """
     Organization Control Plane - centralized management interface.
     
-    Access Control:
+    Access Control (via centralized permissions module):
     - Organization CEO (owner)
     - Organization MANAGER/ADMIN (vNext staff)
     - Site staff
@@ -196,22 +201,11 @@ def org_control_plane(request, org_slug):
     # Load organization
     organization = get_object_or_404(Organization, slug=org_slug)
     
-    # Check permission: CEO OR org MANAGER/ADMIN OR site staff
-    can_manage_org = False
+    # Get role and permissions from centralized module
+    role = get_org_role(request.user, organization)
+    has_access = can_access_control_plane(role)
     
-    if request.user.is_staff:
-        can_manage_org = True
-    elif organization.ceo_id == request.user.id:
-        can_manage_org = True
-    else:
-        # Check if user is org MANAGER or ADMIN via staff_memberships
-        if organization.staff_memberships.filter(
-            user=request.user,
-            role__in=['MANAGER', 'ADMIN']
-        ).exists():
-            can_manage_org = True
-    
-    if not can_manage_org:
+    if not has_access:
         logger.warning(
             f"Unauthorized control plane access attempt",
             extra={
@@ -219,6 +213,7 @@ def org_control_plane(request, org_slug):
                 'user_id': request.user.id,
                 'org_slug': org_slug,
                 'organization_id': organization.id,
+                'viewer_role': role,
             }
         )
         return HttpResponseForbidden(
@@ -233,13 +228,13 @@ def org_control_plane(request, org_slug):
             'user_id': request.user.id,
             'org_slug': org_slug,
             'organization_id': organization.id,
+            'viewer_role': role,
         }
     )
     
-    context = {
-        'organization': organization,
-        'can_manage_org': True,
-    }
+    # Build context with permissions
+    context = get_permission_context(request.user, organization)
+    context['organization'] = organization
     
     return render(request, 'organizations/org/org_control_plane.html', context)
 

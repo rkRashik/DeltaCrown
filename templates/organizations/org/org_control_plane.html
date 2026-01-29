@@ -2,49 +2,6 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        fontFamily: {
-          corp: ['"Outfit"', "sans-serif"],
-          tech: ['"Rajdhani"', "sans-serif"],
-          mono: ['"Space Mono"', "monospace"],
-        },
-        colors: {
-          delta: {
-            void: "#000000",
-            obsidian: "#050505",
-            panel: "#0A0A0F",
-            surface: "#12121A",
-            base: "#08080C",
-            gold: "#FFD700",
-            gold_dim: "#BFA200",
-            electric: "#00E5FF",
-            danger: "#FF3131",
-            success: "#00FF41",
-            slate: "#94A3B8",
-          },
-        },
-        keyframes: {
-          "spin-slow": { from: { transform: "rotate(0deg)" }, to: { transform: "rotate(360deg)" } },
-          "pulse-soft": { "0%,100%": { opacity: 0.6 }, "50%": { opacity: 1 } },
-        },
-        animation: {
-          "spin-slow": "spin-slow 6s linear infinite",
-          "pulse-soft": "pulse-soft 2.2s ease-in-out infinite",
-        },
-      },
-    },
-  };
-</script>
-
 <style>
     body { background-color: #000000; color: #E2E8F0; font-family: 'Outfit', sans-serif; }
 
@@ -131,7 +88,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="fixed inset-0 z-0 pointer-events-none">
+
+  <div class="fixed inset-0 z-0 pointer-events-none">
     <div class="absolute top-0 left-0 w-full h-full bg-[linear-gradient(rgba(255,215,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,215,0,0.02)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
     <div class="absolute bottom-0 right-0 w-[520px] h-[520px] bg-delta-gold/5 rounded-full blur-[120px]"></div>
   </div>
@@ -2189,11 +2147,11 @@
         </div>
       </div>
     </div>
-  </main>
-{% endblock %}
+  </main>{% endblock %}
 
 {% block extra_js %}
-<script>
+
+  <script>
     // ---- Unsaved changes indicator ----
     const unsavedIndicator = document.getElementById("unsavedIndicator");
     const saveBtn = document.getElementById("saveBtn");
@@ -2303,4 +2261,3 @@
     });
   </script>
 {% endblock %}
-

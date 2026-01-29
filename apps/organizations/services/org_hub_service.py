@@ -14,6 +14,8 @@ from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.conf import settings
 
+from apps.organizations.permissions import get_permission_context
+
 logger = logging.getLogger(__name__)
 
 # Cache TTL for organization hub context (5 minutes)
@@ -96,21 +98,16 @@ def get_org_hub_context(org_slug: str, user: Optional[User] = None) -> Dict[str,
             )
             raise
     
-    # Check if user can manage this organization (NOT cached for security)
-    can_manage = False
-    if user and user.is_authenticated:
-        can_manage = (
-            user == organization.ceo or
-            user.is_staff or
-            organization.staff_memberships.filter(
-                user=user,
-                role__in=['MANAGER', 'ADMIN']
-            ).exists()
-        )
-    
-    if not cached_data:
-        # Get teams with roster counts
-        teams = list(organization.teams.all())
+# Get permissions (NOT cached for security - must be computed per-request)
+permissions = get_permission_context(user, organization) if (user and user.is_authenticated) else {
+    'viewer_role': 'NONE',
+    'can_access_control_plane': False,
+    'can_manage_org': False,
+    'can_view_financials': False,
+    'can_manage_staff': False,
+    'can_modify_governance': False,
+    'can_execute_terminal_actions': False,
+}
         for team in teams:
             team.roster_count = team.roster.count() if hasattr(team, 'roster') else 0
             team.match_count = 0  # TODO: wire to matches app when ready
@@ -137,7 +134,7 @@ def get_org_hub_context(org_slug: str, user: Optional[User] = None) -> Dict[str,
     
     # Get members (only if user can manage) - NOT cached for security
     members = []
-    if can_manage:
+    if permissions['can_manage_org']:
         members = list(
             organization.staff_memberships.select_related('user')
             .filter(role__in=['MANAGER', 'ADMIN'])
@@ -150,7 +147,7 @@ def get_org_hub_context(org_slug: str, user: Optional[User] = None) -> Dict[str,
             'org_slug': org_slug,
             'org_id': organization.id,
             'user_id': user.id if user else None,
-            'can_manage': can_manage,
+            'can_manage': permissions['can_manage_org'],
             'team_count': len(teams),
             'member_count': len(members),
             'cache_hit': cached_data is not None
@@ -163,7 +160,7 @@ def get_org_hub_context(org_slug: str, user: Optional[User] = None) -> Dict[str,
         'teams': teams,
         'members': members,
         'recent_activity': recent_activity,
-        'can_manage': can_manage,
+        **permissions,
     }
 
 

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Protocol V | Team HQ | DeltaCrown</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Teko:wght@300;400;500;600;700&family=Unbounded:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cyber: ['"Unbounded"', 'sans-serif'],
+                        ui: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        stats: ['"Teko"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        delta: {
+                            base: '#000000',
+                            surface: '#0A0A0F',
+                            highlight: '#12121A',
+                            gold: '#FFD700',
+                            violet: '#6C00FF',
+                            electric: '#00E5FF',
+                            danger: '#FF3131',
+                            success: '#00FF41',
+                        },
+                        team: {
+                            primary: 'var(--team-primary)',
+                            dim: 'var(--team-dim)',
+                            glow: 'var(--team-glow)',
+                        }
+                    },
+                    backgroundImage: {
+                        'noise': "url('https://grainy-gradients.vercel.app/noise.svg')",
+                        'hero-gradient': 'linear-gradient(to top, #000000 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.2) 100%)',
+                    },
+                    boxShadow: {
+                        "glow-team": "0 0 50px -10px var(--team-glow)",
+                        'glass-edge': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.1)',
+                    },
+                    animation: {
+                        shimmer: "shimmer 2.5s linear infinite",
+                        float: "float 3s ease-in-out infinite",
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        shimmer: {
+                            "0%": { transform: "translateX(-100%)" },
+                            "100%": { transform: "translateX(100%)" },
+                        },
+                        float: {
+                            "0%, 100%": { transform: "translateY(0px)" },
+                            "50%": { transform: "translateY(-10px)" },
+                        },
+                    },
+                },
+            },
+        };
+    </script>
+
+    <style>
+        :root {
+            --team-primary: #FF4655;
+            --team-dim: rgba(255, 70, 85, 0.15);
+            --team-glow: rgba(255, 70, 85, 0.3);
+            --glass-bg: rgba(10, 10, 15, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        [data-theme="VALORANT"] {
+            --team-primary: #FF4655;
+            --team-dim: rgba(255, 70, 85, 0.15);
+            --team-glow: rgba(255, 70, 85, 0.3);
+        }
+
+        [data-theme="EFOOTBALL"] {
+            --team-primary: #00E5FF;
+            --team-dim: rgba(0, 229, 255, 0.15);
+            --team-glow: rgba(0, 229, 255, 0.3);
+        }
+
+        [data-theme="PUBG"] {
+            --team-primary: #FFD700;
+            --team-dim: rgba(255, 215, 0, 0.15);
+            --team-glow: rgba(255, 215, 0, 0.3);
+        }
+
+        [data-theme="MLBB"] {
+            --team-primary: #6C00FF;
+            --team-dim: rgba(108, 0, 255, 0.15);
+            --team-glow: rgba(108, 0, 255, 0.3);
+        }
+
+        body {
+            background: #000;
+            color: #E2E8F0;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .role-owner-only,
+        .role-public-only,
+        .game-fps-only,
+        .game-moba-only,
+        .game-sports-only,
+        .game-br-only {
+            display: none !important;
+        }
+
+        body[data-role="OWNER"] .role-owner-only {
+            display: flex !important;
+        }
+
+        body[data-role="PUBLIC"] .role-public-only {
+            display: flex !important;
+        }
+
+        body[data-game="FPS"] .game-fps-only {
+            display: flex !important;
+        }
+
+        body[data-game="MOBA"] .game-moba-only {
+            display: flex !important;
+        }
+
+        body[data-game="SPORTS"] .game-sports-only {
+            display: flex !important;
+        }
+
+        body[data-game="BR"] .game-br-only {
+            display: flex !important;
+        }
+
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-clamp: 2;
+        }
+
+        .hero-mask {
+            mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .tab-btn {
+            color: #94a3b8;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-btn:hover {
+            color: #fff;
+        }
+
+        .tab-btn.active {
+            color: #fff;
+            border-color: var(--team-primary);
+            text-shadow: 0 0 20px var(--team-glow);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body class="font-ui selection:bg-team-primary selection:text-black" data-role="OWNER" data-game="FPS"
+    data-theme="VALORANT">
+
+    <div class="fixed inset-0 z-0 pointer-events-none">
+        <div class="absolute inset-0 bg-noise opacity-[0.03]"></div>
+        <div class="absolute top-0 right-0 w-[800px] h-[800px] bg-team-primary rounded-full blur-[300px] opacity-10">
+        </div>
+        <div class="absolute bottom-0 left-0 w-[600px] h-[600px] bg-delta-violet rounded-full blur-[250px] opacity-10">
+        </div>
+    </div>
+
+    <div class="relative z-10">
+
+        <header class="relative w-full mb-16 group">
+
+            <div class="relative w-full h-[400px] overflow-hidden bg-delta-surface">
+                <div class="absolute inset-0 z-0">
+                    <img src="C:/Users/rkras/.gemini/antigravity/brain/35970894-6828-4e2b-8901-65a2192df2b9/team_banner_cyber_1769595300717.png"
+                        class="w-full h-full object-cover opacity-80 game-fps-only hero-mask">
+                    <img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2070"
+                        class="w-full h-full object-cover opacity-80 game-sports-only hero-mask">
+                    <img src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=2070"
+                        class="w-full h-full object-cover opacity-80 game-moba-only hero-mask">
+                    <img src="https://images.unsplash.com/photo-1599553733075-807d9d7092c4?q=80&w=2070"
+                        class="w-full h-full object-cover opacity-80 game-br-only hero-mask">
+                </div>
+                <div class="absolute inset-0 bg-hero-gradient z-10"></div>
+            </div>
+
+            <div class="relative z-20 max-w-[1600px] mx-auto px-6 -mt-24">
+
+                <div
+                    class="glass-panel rounded-3xl p-6 md:p-8 flex flex-col xl:flex-row items-start xl:items-end gap-8 shadow-glow-team backdrop-blur-xl relative overflow-hidden">
+
+                    <div
+                        class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_3s_infinite] pointer-events-none">
+                    </div>
+
+                    <div class="relative -mt-20 xl:-mt-24 shrink-0 group/avatar">
+                        <div
+                            class="w-40 h-40 xl:w-52 xl:h-52 rounded-[2rem] bg-delta-surface border-[4px] border-delta-highlight shadow-2xl p-1 overflow-hidden relative z-10">
+                            <div
+                                class="w-full h-full rounded-[1.5rem] bg-black flex items-center justify-center relative overflow-hidden">
+                                <div class="absolute inset-0 bg-team-primary opacity-10"></div>
+                                <img src="C:/Users/rkras/.gemini/antigravity/brain/35970894-6828-4e2b-8901-65a2192df2b9/team_logo_shield_1769595404518.png"
+                                    class="w-full h-full object-cover transform group-hover/avatar:scale-110 transition-transform duration-500">
+                            </div>
+                        </div>
+
+                        <div class="absolute bottom-0 right-0 w-12 h-12 bg-team-primary text-black rounded-full flex items-center justify-center border-4 border-delta-surface z-20 shadow-[0_0_15px_var(--team-glow)]"
+                            title="Verified Team">
+                            <i class="fas fa-check-circle text-lg"></i>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 w-full min-w-0 pt-2">
+                        <div class="flex flex-col md:flex-row md:items-center gap-4 mb-3">
+                            <h1
+                                class="text-4xl md:text-5xl font-cyber font-bold text-white uppercase tracking-tight leading-none truncate">
+                                PROTOCOL <span class="text-team-primary">V</span>
+                            </h1>
+                            <div class="flex flex-wrap gap-2">
+                                <span
+                                    class="px-3 py-1 rounded-full bg-team-primary/10 border border-team-primary/30 text-xs font-bold text-team-primary uppercase tracking-wider font-mono flex items-center gap-2">
+                                    <i class="fas fa-globe"></i>
+                                    <span class="game-fps-only">Global #14</span>
+                                    <span class="game-moba-only">Global #5</span>
+                                    <span class="game-br-only">Regional #2</span>
+                                    <span class="game-sports-only">Div 1 Leader</span>
+                                </span>
+
+                                <span
+                                    class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-slate-300 uppercase tracking-wider font-mono flex items-center gap-2">
+                                    <i class="fas fa-gamepad"></i>
+                                    <span class="game-fps-only">VALORANT</span>
+                                    <span class="game-moba-only">MLBB</span>
+                                    <span class="game-br-only">PUBG MOBILE</span>
+                                    <span class="game-sports-only">EFOOTBALL</span>
+                                </span>
+
+                                <span
+                                    class="px-3 py-1 rounded-full bg-delta-success/10 border border-delta-success/30 text-xs font-bold text-delta-success uppercase tracking-wider font-mono animate-pulse">
+                                    Recruiting
+                                </span>
+                            </div>
+                        </div>
+
+                        <p class="text-slate-400 text-sm leading-relaxed max-w-2xl mb-5 font-ui line-clamp-2">
+                            The elite tactical division of SYNTAX Esports. Dominating the APAC region with precision,
+                            discipline, and unyielding aggression. Home to the 2025 Winter Major Champions.
+                            <button class="text-team-primary hover:underline ml-1 font-bold text-xs uppercase">Read
+                                More</button>
+                        </p>
+
+                        <div class="flex flex-wrap items-center gap-6 text-xs font-mono text-slate-400">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-map-marker-alt text-slate-500"></i>
+                                <span>Dhaka, BD</span>
+                            </div>
+                            <div class="w-1 h-1 bg-white/20 rounded-full"></div>
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-users text-slate-500"></i>
+                                <span class="text-white">7 Active Members</span>
+                            </div>
+                            <div class="w-1 h-1 bg-white/20 rounded-full"></div>
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-calendar-alt text-slate-500"></i>
+                                <span>Est. 2024</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="flex flex-col items-end gap-6 w-full xl:w-auto border-t xl:border-t-0 xl:border-l border-white/10 pt-6 xl:pt-0 xl:pl-8">
+
+                        <div class="flex items-center gap-3 w-full justify-end">
+
+                            <div class="role-owner-only flex items-center gap-2 w-full justify-end">
+                                <button
+                                    class="h-11 w-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition text-slate-300 hover:text-white group"
+                                    title="Wallet">
+                                    <i class="fas fa-wallet group-hover:scale-110 transition-transform"></i>
+                                </button>
+                                <button
+                                    class="h-11 w-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition text-slate-300 hover:text-white group"
+                                    title="Settings">
+                                    <i class="fas fa-cog group-hover:rotate-90 transition-transform"></i>
+                                </button>
+                                <button
+                                    class="h-11 px-6 bg-white text-black font-bold uppercase text-[11px] tracking-widest rounded-xl hover:bg-team-primary transition-all shadow-lg flex items-center gap-2 group">
+                                    <i class="fas fa-sliders-h"></i>
+                                    <span>Manage</span>
+                                </button>
+                            </div>
+
+                            <div class="role-public-only flex items-center gap-2 w-full justify-end">
+                                <button
+                                    class="h-11 px-6 bg-team-primary text-black font-bold uppercase text-[11px] tracking-widest rounded-xl hover:brightness-110 transition-all shadow-[0_0_20px_var(--team-glow)] flex items-center gap-2 hover:scale-105">
+                                    <i class="fas fa-heart"></i>
+                                    <span>Follow</span>
+                                </button>
+                                <button
+                                    class="h-11 px-5 bg-white/5 border border-white/10 text-white font-bold uppercase text-[11px] tracking-widest rounded-xl hover:bg-white/10 hover:border-team-primary transition-all flex items-center gap-2">
+                                    <i class="fas fa-paper-plane"></i>
+                                    <span>Apply</span>
+                                </button>
+                                <button
+                                    class="h-11 w-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition text-slate-300 hover:text-team-primary"
+                                    title="Sponsor">
+                                    <i class="fas fa-handshake"></i>
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <div class="flex gap-8 w-full justify-between xl:justify-end">
+                            <div class="text-right">
+                                <div class="text-[10px] font-mono uppercase text-slate-500 tracking-wider mb-1">Crown
+                                    Points</div>
+                                <div class="text-2xl font-stats font-bold text-white leading-none">14,250</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-[10px] font-mono uppercase text-slate-500 tracking-wider mb-1">Trophies
+                                </div>
+                                <div class="text-2xl font-stats font-bold text-team-primary leading-none">
+                                    42 <span class="text-xs text-white font-ui font-normal ml-1 opacity-60">| 3
+                                        Season</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-[10px] font-mono uppercase text-slate-500 tracking-wider mb-1">Win Rate
+                                </div>
+                                <div class="text-2xl font-stats font-bold text-white leading-none">
+                                    78.2% <span class="text-xs text-delta-success ml-1"><i
+                                            class="fas fa-caret-up"></i></span>
+                                </div>
+                            </div>
+                            <div class="text-right hidden sm:block">
+                                <div class="text-[10px] font-mono uppercase text-slate-500 tracking-wider mb-1">
+                                    Followers</div>
+                                <div class="text-2xl font-stats font-bold text-white leading-none">850k</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </header>
+
+        <p class="text-center text-3xl text-white font-cyber my-20">✨ Team Detail Page - Coming Soon! ✨</p>
+
+    </div>
+
+</body>
+
+</html>

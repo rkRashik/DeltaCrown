@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="description" content="DeltaCrown Team Detail — modern esports team profile." />
+
+  <!--
+    PART 1 (REDESIGNED)
+    - Global visuals + typography (cleaner body font, esports heading font only)
+    - Liquid Glass system (consistent)
+    - Accent system via data-accent
+    - Watermark/Ghost icons + top border accents
+    - Polymorphic role/game visibility logic
+    - Demo Controller (role + 4 game contexts)
+    - Hero: banner visibility improved + info dock between hero & body
+    - Metrics: platform-verifiable + game-adaptive (no API-dependent noise)
+    - Text density reduced (clamps + minimal labels)
+  -->
+
+  <title>Team Profile | DeltaCrown</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonts: clean body + esports headings only -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Unbounded:wght@300;400;500;600;700;800&family=Teko:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            ui: ['"Inter"', "sans-serif"],
+            head: ['"Unbounded"', "sans-serif"],
+            stats: ['"Teko"', "sans-serif"],
+          },
+          colors: {
+            delta: {
+              void: "#000000",
+              obsidian: "#050508",
+              panel: "#0A0A0F",
+              surface: "#12121A",
+              highlight: "#171721",
+              gold: "#FFD700",
+              gold_dim: "#BFA200",
+              electric: "#00E5FF",
+              success: "#00FF41",
+              danger: "#FF3131",
+              slate: "#94A3B8",
+            },
+          },
+          keyframes: {
+            "spin-slow": { from: { transform: "rotate(0deg)" }, to: { transform: "rotate(360deg)" } },
+            "float-soft": { "0%,100%": { transform: "translateY(0)" }, "50%": { transform: "translateY(-6px)" } },
+            "shine": { "0%": { transform: "translateX(-120%)" }, "100%": { transform: "translateX(120%)" } },
+            "pulse-soft": { "0%,100%": { opacity: 0.55 }, "50%": { opacity: 1 } },
+          },
+          animation: {
+            "spin-slow": "spin-slow 8s linear infinite",
+            "float-soft": "float-soft 6.5s ease-in-out infinite",
+            "shine": "shine 1.8s ease-in-out infinite",
+            "pulse-soft": "pulse-soft 2.2s ease-in-out infinite",
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    :root{
+      /* Dynamic per-team primary (default) */
+      --team-primary: #FFD700;
+      --team-dim: rgba(255, 215, 0, 0.10);
+      --team-glow: rgba(255, 215, 0, 0.20);
+
+      /* Enhanced Liquid Glass tuning - more transparent and elegant */
+      --glass-bg: rgba(18,18,26,.35);
+      --glass-bg-strong: rgba(18,18,26,.55);
+      --glass-border: rgba(255,255,255,.12);
+      --glass-border-soft: rgba(255,255,255,.08);
+    }
+
+    body{
+      background: #000000;
+      color: #E2E8F0;
+      font-family: Inter, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbar: clean & subtle */
+    ::-webkit-scrollbar{ width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track{ background: #050505; }
+    ::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.18); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,.35); }
+
+    /* ------------------------------------------------------------
+      LIQUID GLASS ENGINE - Enhanced with better transparency
+    ------------------------------------------------------------ */
+    .glass{
+      background: var(--glass-bg);
+      backdrop-filter: blur(24px) saturate(1.4);
+      -webkit-backdrop-filter: blur(24px) saturate(1.4);
+      border: 1px solid var(--glass-border-soft);
+      box-shadow:
+        0 20px 80px rgba(0,0,0,.55),
+        0 8px 32px rgba(0,0,0,.3),
+        inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .glass-strong{
+      background: var(--glass-bg-strong);
+      backdrop-filter: blur(24px) saturate(1.4);
+      -webkit-backdrop-filter: blur(24px) saturate(1.4);
+      border: 1px solid var(--glass-border);
+    }
+
+    /* Liquid edge highlight (soft, modern) */
+    .liquid-edge{
+      position: relative;
+      overflow: hidden;
+    }
+    .liquid-edge:before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background:
+        radial-gradient(1000px 280px at 20% -20%, rgba(255,255,255,.08), transparent 55%),
+        radial-gradient(900px 260px at 90% 10%, var(--team-dim), transparent 55%);
+      pointer-events:none;
+      mix-blend-mode: screen;
+      opacity: .95;
+    }
+
+    /* ------------------------------------------------------------
+      ACCENT SYSTEM (section tone)
+      usage: class="accent-card" data-accent="team|electric|success|danger|gold"
+    ------------------------------------------------------------ */
+    .accent-card{
+      border-top: 2px solid rgba(255,255,255,.08);
+      position: relative;
+      overflow: hidden;
+    }
+    .accent-card[data-accent="team"]{ border-top-color: color-mix(in srgb, var(--team-primary) 70%, transparent); }
+    .accent-card[data-accent="electric"]{ border-top-color: rgba(0,229,255,.75); }
+    .accent-card[data-accent="success"]{ border-top-color: rgba(0,255,65,.75); }
+    .accent-card[data-accent="danger"]{ border-top-color: rgba(255,49,49,.75); }
+    .accent-card[data-accent="gold"]{ border-top-color: rgba(255,215,0,.75); }
+
+    /* ------------------------------------------------------------
+      WATERMARK / GHOST ICONS
+      usage: <svg class="wm-icon">...</svg> or <i class="wm-icon fa..."></i>
+    ------------------------------------------------------------ */
+    .wm-icon{
+      position:absolute;
+      right: -10px;
+      top: -14px;
+      font-size: 92px;
+      width: 92px;
+      height: 92px;
+      opacity: .055;
+      color: rgba(255,255,255,.9);
+      transform: rotate(8deg);
+      pointer-events:none;
+      filter: blur(.0px);
+    }
+    .wm-icon.team{ color: color-mix(in srgb, var(--team-primary) 65%, white); opacity: .06; }
+    .wm-icon.electric{ color: rgba(0,229,255,1); opacity: .07; }
+    .wm-icon.success{ color: rgba(0,255,65,1); opacity: .07; }
+    .wm-icon.danger{ color: rgba(255,49,49,1); opacity: .07; }
+
+    /* ------------------------------------------------------------
+      CLAMPS (no plugin required)
+    ------------------------------------------------------------ */
+    .clamp-1{ display:-webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow:hidden; }
+    .clamp-2{ display:-webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow:hidden; }
+    .clamp-3{ display:-webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow:hidden; }
+
+    /* ------------------------------------------------------------
+      CHIPS (reduced count, higher signal) - More spacious
+    ------------------------------------------------------------ */
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:.55rem;
+      padding:.55rem .9rem;
+      border-radius:999px;
+      font-size:10.5px;
+      font-weight:800;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: rgba(226,232,240,.92);
+      font-family: Inter, sans-serif;
+      white-space: nowrap;
+      transition: all .2s ease;
+    }
+    .chip:hover{
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.15);
+    }
+    .chip.team{ border-color: color-mix(in srgb, var(--team-primary) 22%, transparent); background: color-mix(in srgb, var(--team-primary) 10%, transparent); color: var(--team-primary); }
+    .chip.electric{ border-color: rgba(0,229,255,.25); background: rgba(0,229,255,.08); color: #00E5FF; }
+    .chip.success{ border-color: rgba(0,255,65,.25); background: rgba(0,255,65,.08); color: #00FF41; }
+    .chip.danger{ border-color: rgba(255,49,49,.25); background: rgba(255,49,49,.08); color: #FF3131; }
+
+    /* ------------------------------------------------------------
+      TOOLTIP ICON BUTTONS (replace many labels) - More spacious
+    ------------------------------------------------------------ */
+    .icon-btn{
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.25);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: transform .22s ease, border-color .22s ease, background .22s ease;
+      position: relative;
+      cursor: pointer;
+    }
+    .icon-btn:hover{
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,.25);
+      background: rgba(255,255,255,.08);
+    }
+    .tt{
+      position:absolute;
+      bottom: -42px;
+      left:50%;
+      transform: translateX(-50%);
+      padding: .35rem .5rem;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      background: rgba(10,10,15,.82);
+      border: 1px solid rgba(255,255,255,.10);
+      color: rgba(226,232,240,.92);
+      opacity: 0;
+      pointer-events:none;
+      white-space:nowrap;
+      transition: opacity .15s ease, transform .15s ease;
+    }
+    .icon-btn:hover .tt{
+      opacity: 1;
+      transform: translateX(-50%) translateY(-2px);
+    }
+
+    /* ------------------------------------------------------------
+      POLYMORPHIC VISIBILITY (ROLE + GAME + OWNERSHIP)
+    ------------------------------------------------------------ */
+    .role-owner-only, .role-staff-only, .role-member-only, .role-public-only,
+    .game-fps-only, .game-moba-only, .game-sports-only, .game-br-only,
+    .owned-only, .independent-only,
+    .recruiting-only { display:none !important; }
+
+    body[data-role="OWNER"] .role-owner-only{ display:flex !important; }
+    body[data-role="STAFF"] .role-staff-only{ display:flex !important; }
+    body[data-role="MEMBER"] .role-member-only{ display:flex !important; }
+    body[data-role="PUBLIC"] .role-public-only{ display:flex !important; }
+
+    body[data-game="FPS"] .game-fps-only{ display:flex !important; }
+    body[data-game="MOBA"] .game-moba-only{ display:flex !important; }
+    body[data-game="SPORTS"] .game-sports-only{ display:flex !important; }
+    body[data-game="BR"] .game-br-only{ display:flex !important; }
+
+    body[data-owned="ORG"] .owned-only{ display:flex !important; }
+    body[data-owned="INDEPENDENT"] .independent-only{ display:flex !important; }
+
+    body[data-recruiting="true"] .recruiting-only{ display:inline-flex !important; }
+
+    /* ------------------------------------------------------------
+      HERO: banner visibility improved with better height
+    ------------------------------------------------------------ */
+    .hero-banner{
+      position: relative;
+      height: clamp(380px, 45vw, 600px);
+      overflow:hidden;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      background: #050508;
+    }
+
+    .hero-banner:after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(900px 420px at 85% 0%, var(--team-dim), transparent 55%),
+        linear-gradient(to top, rgba(0,0,0,.92) 0%, rgba(0,0,0,.65) 28%, rgba(0,0,0,.25) 62%, rgba(0,0,0,.05) 100%);
+      pointer-events:none;
+    }
+
+    /* ------------------------------------------------------------
+      STAT TILE (bento) - More spacious and elegant
+    ------------------------------------------------------------ */
+    .stat-tile{
+      position:relative;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.25);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 20px 18px;
+      overflow:hidden;
+      transition: transform .22s ease, border-color .22s ease, background .22s ease;
+    }
+    .stat-tile:hover{
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,.20);
+      background: rgba(0,0,0,.35);
+    }
+    .stat-label{
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(148,163,184,.85);
+    }
+    .stat-value{
+      font-family: Teko, sans-serif;
+      font-size: 40px;
+      line-height: 1;
+      margin-top: 10px;
+      color: white;
+      letter-spacing: .01em;
+    }
+    .stat-sub{
+      font-size: 12px;
+      color: rgba(148,163,184,.85);
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    /* small shimmer line for premium signal */
+    .shine-line{
+      position:absolute;
+      top:0;
+      left:0;
+      height: 2px;
+      width: 42%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.30), transparent);
+      opacity:.35;
+      transform: translateX(-120%);
+    }
+    .accent-card:hover .shine-line{
+      animation: shine 1.8s ease-in-out infinite;
+    }
+  </style>
+</head>
+
+<body
+  class="font-ui antialiased selection:bg-[color:var(--team-primary)] selection:text-black"
+  data-role="OWNER"
+  data-game="FPS"
+  data-owned="ORG"
+  data-recruiting="true"
+>
+  <!-- Ambient background grid + glows -->
+  <div class="fixed inset-0 z-0 pointer-events-none">
+    <div class="absolute inset-0 opacity-[0.12]"
+      style="background-image:
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+        background-size: 44px 44px;">
+    </div>
+    <div class="absolute -top-24 -right-24 w-[740px] h-[740px] rounded-full blur-[160px]"
+      style="background: var(--team-dim);">
+    </div>
+    <div class="absolute -bottom-32 -left-24 w-[620px] h-[620px] rounded-full blur-[180px] opacity-60"
+      style="background: rgba(0,229,255,.08);">
+    </div>
+  </div>
+
+  <!-- DEMO CONTROLLER (fixed bottom-right) -->
+  <div class="fixed bottom-8 right-8 z-[200] w-[330px] glass glass-strong liquid-edge accent-card rounded-[24px] p-5 shadow-2xl"
+       data-accent="team">
+    <i class="fa-solid fa-sliders wm-icon team"></i>
+    <div class="shine-line"></div>
+
+    <div class="flex items-center justify-between pb-4 border-b border-white/10">
+      <div class="flex items-center gap-2.5">
+        <i class="fa-solid fa-bolt text-[13px]" style="color: var(--team-primary);"></i>
+        <div class="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-300">Demo Controller</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-2 h-2 rounded-full animate-pulse-soft" style="background: var(--team-primary);"></div>
+        <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">LIVE</div>
+      </div>
+    </div>
+
+    <div class="mt-4 space-y-4">
+      <!-- Team context -->
+      <div>
+        <label class="text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-500 block mb-2">
+          Team Context (4 demos)
+        </label>
+        <select id="demoTeamSelect"
+          class="w-full bg-black/40 border border-white/10 rounded-2xl text-[13px] text-white p-3 focus:outline-none focus:border-white/25 cursor-pointer"
+        >
+          <option value="VALO" selected>VALORANT — Org Owned (PC)</option>
+          <option value="EFOOT">eFootball 2026 — Independent (Mobile)</option>
+          <option value="PUBG">PUBG MOBILE — Independent (Mobile)</option>
+          <option value="MLBB">MLBB — Org Owned (Mobile)</option>
+        </select>
+      </div>
+
+      <!-- Role -->
+      <div>
+        <label class="text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-500 block mb-2">
+          Viewer Role
+        </label>
+        <select id="demoRoleSelect"
+          class="w-full bg-black/40 border border-white/10 rounded-2xl text-[13px] text-white p-3 focus:outline-none focus:border-white/25 cursor-pointer"
+        >
+          <option value="PUBLIC">Public / Fan</option>
+          <option value="MEMBER">Team Member</option>
+          <option value="STAFF">Staff</option>
+          <option value="OWNER" selected>Owner</option>
+        </select>
+      </div>
+
+      <!-- Recruiting toggle -->
+      <div class="flex items-center justify-between bg-black/25 border border-white/10 rounded-xl px-3 py-2">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-user-plus text-[12px]" style="color: var(--team-primary);"></i>
+          <span class="text-xs text-slate-300 font-semibold">Recruiting</span>
+        </div>
+        <label class="inline-flex items-center cursor-pointer">
+          <input id="demoRecruitToggle" type="checkbox" checked class="hidden">
+          <div class="w-12 h-7 rounded-full relative border border-white/10 bg-white/10">
+            <div id="demoRecruitKnob"
+              class="absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white transition-all"
+              style="box-shadow: 0 10px 24px rgba(0,0,0,.5);">
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <div id="team-detail-page" class="relative z-10">
+
+    <!-- HERO (banner only) -->
+    <header class="hero-banner">
+      <!-- Banner images (game adaptive) -->
+      <img id="heroBanner"
+        src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2400"
+        class="absolute inset-0 w-full h-full object-cover opacity-70 scale-[1.03]"
+        alt="Team banner" />
+
+      <!-- Top left: subtle system label -->
+      <div class="absolute top-6 left-6 z-10 flex items-center gap-3">
+        <div class="glass px-3 py-2 rounded-2xl border border-white/10 flex items-center gap-2">
+          <i class="fa-solid fa-crown text-[12px] animate-spin-slow" style="color: var(--team-primary);"></i>
+          <span class="text-[10px] font-extrabold uppercase tracking-[0.22em] text-slate-300">DeltaCrown Team Profile</span>
+        </div>
+
+        <!-- Minimal chips (reduced) -->
+        <span class="chip team" id="chipGameRank">
+          <i class="fa-solid fa-trophy"></i>
+          <span>Game #14</span>
+        </span>
+
+        <span class="chip electric" id="chipGlobalRank">
+          <i class="fa-solid fa-globe"></i>
+          <span>Global #142</span>
+        </span>
+
+        <span class="chip success recruiting-only" id="chipRecruiting">
+          <i class="fa-solid fa-user-plus"></i>
+          Recruiting
+        </span>
+      </div>
+
+      <!-- Top right: icon actions (public) -->
+      <div class="absolute top-6 right-6 z-10 flex items-center gap-2">
+        <button class="icon-btn role-public-only" aria-label="Share">
+          <i class="fa-solid fa-arrow-up-right-from-square text-slate-200"></i>
+          <span class="tt">Share</span>
+        </button>
+
+        <button class="icon-btn role-public-only" aria-label="Follow">
+          <i class="fa-solid fa-heart text-slate-200"></i>
+          <span class="tt">Follow</span>
+        </button>
+
+        <!-- Staff/Owner quick actions (icons) -->
+        <button class="icon-btn role-staff-only role-owner-only" aria-label="Open control plane">
+          <i class="fa-solid fa-screwdriver-wrench text-slate-200"></i>
+          <span class="tt">Control</span>
+        </button>
+
+        <button class="icon-btn role-staff-only role-owner-only" aria-label="Create scrim">
+          <i class="fa-solid fa-calendar-plus text-slate-200"></i>
+          <span class="tt">Scrim</span>
+        </button>
+      </div>
+
+      <!-- Bottom fade spacing (keeps banner visible) -->
+      <div class="absolute inset-x-0 bottom-0 h-28 z-10"></div>
+    </header>
+
+    <!-- INFO DOCK (between hero and body; improves banner visibility) -->
+    <section class="relative -mt-20 md:-mt-24 mb-12">
+      <div class="max-w-[1600px] mx-auto px-6 lg:px-8">
+        <div class="glass glass-strong liquid-edge accent-card rounded-[32px] p-6 md:p-8 lg:p-10"
+             data-accent="team">
+          <i class="fa-solid fa-shield-halved wm-icon team"></i>
+          <div class="shine-line"></div>
+
+          <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
+            <!-- Identity (left) -->
+            <div class="flex items-start gap-6 flex-1">
+              <!-- Logo (refined size for prominence) -->
+              <div class="relative shrink-0">
+                <div class="w-[110px] h-[110px] md:w-[130px] md:h-[130px] rounded-[24px] bg-black/55 border border-white/10 overflow-hidden"
+                     style="box-shadow: 0 20px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.06) inset;">
+                  <img id="teamLogo"
+                    src="https://api.dicebear.com/7.x/identicon/svg?seed=ProtocolV"
+                    class="w-full h-full object-cover"
+                    alt="Team logo"/>
+                </div>
+
+                <!-- Verified badge -->
+                <div class="absolute -bottom-3 -right-3 w-12 h-12 rounded-full flex items-center justify-center border border-white/10 glass"
+                     title="Verified">
+                  <i class="fa-solid fa-check text-[16px]" style="color: var(--team-primary);"></i>
+                </div>
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <!-- Title row -->
+                <div class="flex flex-wrap items-end gap-4 mb-4">
+                  <h1 id="teamName"
+                      class="font-head uppercase tracking-tight text-white text-[32px] md:text-[40px] lg:text-[44px] leading-none">
+                    Protocol V
+                  </h1>
+
+                  <!-- Game name replaces "Timezone" slot -->
+                  <span class="chip" id="chipGameName">
+                    <i class="fa-solid fa-gamepad"></i>
+                    VALORANT
+                  </span>
+
+                  <!-- Ownership chip (org/independent) -->
+                  <span class="chip owned-only" id="chipOrgOwned">
+                    <i class="fa-solid fa-building"></i>
+                    <span id="orgName">SYNTAX Esports</span>
+                  </span>
+
+                  <span class="chip independent-only" id="chipIndependent">
+                    <i class="fa-solid fa-user-ninja"></i>
+                    Independent
+                  </span>
+                </div>
+
+                <!-- Minimal subtitle (clamped) -->
+                <p id="teamBio" class="mt-4 text-[15px] text-slate-300/90 leading-relaxed clamp-2 max-w-3xl">
+                  Elite tactical division competing across DeltaCrown tournaments and challenges.
+                </p>
+
+                <!-- Expand bio (optional) -->
+                <button id="bioExpandBtn"
+                        class="mt-2 text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400 hover:text-white transition">
+                  Read more
+                </button>
+
+                <!-- Micro facts row (icons instead of labels) -->
+                <div class="mt-5 flex flex-wrap items-center gap-3">
+                  <span class="chip team" id="chipPrimaryPlatform">
+                    <i class="fa-solid fa-desktop"></i>
+                    PC
+                  </span>
+
+                  <span class="chip" id="chipSquadSize">
+                    <i class="fa-solid fa-users"></i>
+                    7 Players
+                  </span>
+
+                  <span class="chip role-staff-only role-owner-only" id="chipStaff">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                    1 Coach • 1 Manager
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Primary CTAs (right) -->
+            <div class="flex flex-col gap-4 lg:items-end lg:justify-between">
+              <!-- Owner/Staff: Control Plane CTA (modern spacing) -->
+              <div class="role-owner-only role-staff-only w-full lg:w-[280px] flex flex-col gap-3">
+                <button
+                  class="w-full py-4 rounded-[20px] font-extrabold uppercase tracking-[0.14em] text-[12px] text-black transition
+                         hover:brightness-110 hover:translate-y-[-2px]"
+                  style="background: var(--team-primary); box-shadow: 0 20px 70px var(--team-glow);">
+                  <i class="fa-solid fa-screwdriver-wrench mr-2"></i>
+                  Open Team Control
+                </button>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <button
+                    class="py-3.5 rounded-[18px] border border-white/10 bg-black/40 text-white text-[11px] font-extrabold uppercase tracking-[0.16em]
+                           hover:bg-white/5 hover:translate-y-[-2px] transition flex items-center justify-center gap-2"
+                  >
+                    <i class="fa-solid fa-handshake text-[13px] text-delta-electric"></i>
+                    Offers
+                    <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-delta-danger text-white">2</span>
+                  </button>
+
+                  <button
+                    class="py-3.5 rounded-[18px] border border-white/10 bg-black/40 text-white text-[11px] font-extrabold uppercase tracking-[0.16em]
+                           hover:bg-white/5 hover:translate-y-[-2px] transition flex items-center justify-center gap-2"
+                  >
+                    <i class="fa-solid fa-calendar-check text-[13px]" style="color: var(--team-primary);"></i>
+                    Scrims
+                  </button>
+                </div>
+              </div>
+
+              <!-- Public: Follow / Apply (if recruiting) -->
+              <div class="role-public-only w-full lg:w-[260px] flex flex-col gap-2">
+                <button
+                  class="w-full py-3.5 rounded-2xl font-extrabold uppercase tracking-[0.14em] text-[11px] text-black transition
+                         hover:brightness-110 hover:translate-y-[-1px]"
+                  style="background: var(--team-primary); box-shadow: 0 18px 60px var(--team-glow);"
+                >
+                  <i class="fa-solid fa-heart mr-2"></i>
+                  Follow Team
+                </button>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <button
+                    class="py-3 rounded-2xl border border-white/10 bg-black/40 text-white text-[10px] font-extrabold uppercase tracking-[0.16em]
+                           hover:bg-white/5 hover:translate-y-[-1px] transition flex items-center justify-center gap-2"
+                  >
+                    <i class="fa-solid fa-bell text-[12px] text-delta-electric"></i>
+                    Alerts
+                  </button>
+
+                  <button
+                    class="py-3 rounded-2xl border border-white/10 bg-black/40 text-white text-[10px] font-extrabold uppercase tracking-[0.16em]
+                           hover:bg-white/5 hover:translate-y-[-1px] transition flex items-center justify-center gap-2 recruiting-only"
+                  >
+                    <i class="fa-solid fa-paper-plane text-[12px]" style="color: var(--team-primary);"></i>
+                    Apply
+                  </button>
+                </div>
+              </div>
+
+              <!-- Member: Team tools -->
+              <div class="role-member-only w-full lg:w-[260px] flex flex-col gap-2">
+                <button
+                  class="w-full py-3.5 rounded-2xl font-extrabold uppercase tracking-[0.14em] text-[11px] text-white transition
+                         hover:translate-y-[-1px] border border-white/10"
+                  style="background: rgba(108,0,255,.65); box-shadow: 0 18px 50px rgba(108,0,255,.25);"
+                >
+                  <i class="fa-solid fa-comments mr-2"></i>
+                  Team Chat
+                </button>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <button class="py-3 rounded-2xl border border-white/10 bg-black/40 text-white text-[10px] font-extrabold uppercase tracking-[0.16em]
+                                 hover:bg-white/5 hover:translate-y-[-1px] transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-user-clock text-[12px] text-delta-electric"></i>
+                    Availability
+                  </button>
+
+                  <button class="py-3 rounded-2xl border border-white/10 bg-black/40 text-white text-[10px] font-extrabold uppercase tracking-[0.16em]
+                                 hover:bg-white/5 hover:translate-y-[-1px] transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-video text-[12px]" style="color: var(--team-primary);"></i>
+                    Highlight
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KEY METRICS (platform-verifiable + game-adaptive; no extra explanations) -->
+          <div class="mt-8 pt-8 border-t border-white/10">
+            <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+              <!-- Metric 1: Crown Points (CP) — main team ranking score -->
+              <div class="stat-tile accent-card" data-accent="team">
+                <i class="fa-solid fa-crown wm-icon team"></i>
+                <div class="stat-label">Crown Points</div>
+                <div class="stat-value" id="mCP">8,450</div>
+                <div class="stat-sub clamp-1" id="mCPSub">Ranked ladder score</div>
+              </div>
+
+              <!-- Metric 2: Game Rank (primary) -->
+              <div class="stat-tile accent-card" data-accent="electric">
+                <i class="fa-solid fa-ranking-star wm-icon electric"></i>
+                <div class="stat-label">Game Rank</div>
+                <div class="stat-value" id="mGameRank">#14</div>
+                <div class="stat-sub clamp-1" id="mGameRankSub">VALORANT</div>
+              </div>
+
+              <!-- Metric 3: Global Rank (secondary) -->
+              <div class="stat-tile accent-card" data-accent="gold">
+                <i class="fa-solid fa-globe wm-icon"></i>
+                <div class="stat-label">Global Rank</div>
+                <div class="stat-value" id="mGlobalRank">#142</div>
+                <div class="stat-sub clamp-1" id="mGlobalRankSub">All games</div>
+              </div>
+
+              <!-- Metric 4: Trophies -->
+              <div class="stat-tile accent-card" data-accent="success">
+                <i class="fa-solid fa-trophy wm-icon success"></i>
+                <div class="stat-label">Trophies</div>
+                <div class="stat-value" id="mTrophies">42</div>
+                <div class="stat-sub clamp-1" id="mTrophiesSub">3 seasons</div>
+              </div>
+
+              <!-- Metric 5: Win Rate -->
+              <div class="stat-tile accent-card" data-accent="team">
+                <i class="fa-solid fa-chart-line wm-icon team"></i>
+                <div class="stat-label">Win Rate</div>
+                <div class="stat-value" id="mWinRate">68%</div>
+                <div class="stat-sub clamp-1" id="mWL">W 112 • L 52</div>
+              </div>
+
+              <!-- Metric 6: Game-adaptive highlight -->
+              <div class="stat-tile accent-card" data-accent="danger" id="mGameSpecificTile">
+                <i class="fa-solid fa-crosshairs wm-icon danger" id="mGameSpecificIcon"></i>
+                <div class="stat-label" id="mGameSpecificLabel">Map Win %</div>
+                <div class="stat-value" id="mGameSpecificValue">61%</div>
+                <div class="stat-sub clamp-1" id="mGameSpecificSub">Ascent • Haven</div>
+              </div>
+            </div>
+
+            <!-- Secondary quick metrics row (minimal) -->
+            <div class="mt-5 flex flex-wrap items-center gap-3">
+              <span class="chip" id="chipFollowers">
+                <i class="fa-solid fa-users"></i>
+                <span id="mFollowers">18.2K</span> Followers
+              </span>
+
+              <span class="chip danger" id="chipBounties">
+                <i class="fa-solid fa-bullseye"></i>
+                <span id="mBounties">5</span> Bounties
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- BODY STARTS (Part 2 will continue after this) -->
+    <main class="relative mt-12 max-w-[1600px] mx-auto px-6 lg:px-8 pb-20">
+      <!-- PART 2 will start here -->
+      <!-- END PART 1 -->
+
+
+
+
+      <!-- =========================================================
+        PART 2 (REDESIGNED): SUB-NAV + OVERVIEW TAB (ONLY)
+        - Sub-nav: icons + team name only (no “Team Profile Hub” text)
+        - Overview: remove noisy headers, reduce text heaviness
+        - Identity/Profile: complete redesign (cinematic + visual)
+        - Story/Journey: new cinematic timeline block
+        - Upcoming Match: redesigned card (modern, readable)
+        - Performance Posture: redesigned + game-adaptive widget (preview of Performance tab)
+        - Ecosystem: redesigned (more interactive, alive)
+        - Bounties: extracted into dedicated widget (interactive entry point)
+      ========================================================== -->
+
+      <!-- Sub Navigation -->
+      <section class="mt-8">
+        <div class="glass liquid-edge accent-card rounded-[28px] px-6 py-5 md:px-7 md:py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+             data-accent="electric">
+          <i class="fa-solid fa-compass wm-icon electric"></i>
+          <div class="shine-line"></div>
+
+          <!-- Left: only Team Name (+ org if owned) -->
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-2xl flex items-center justify-center border border-white/10 bg-black/40">
+              <i class="fa-solid fa-layer-group text-[14px] text-slate-200"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 min-w-0">
+                <div id="navTeamName" class="font-head uppercase tracking-tight text-white text-[14px] md:text-[16px] clamp-1">
+                  Protocol V
+                </div>
+                <span class="chip owned-only clamp-1" id="navOrgChip">
+                  <i class="fa-solid fa-building"></i>
+                  <span id="navOrgName">SYNTAX Esports</span>
+                </span>
+              </div>
+              <div class="text-[11px] text-slate-400 flex items-center gap-2">
+                <span id="navGameName" class="clamp-1">VALORANT</span>
+                <span class="opacity-50">•</span>
+                <span id="navPlatform" class="clamp-1">PC</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Center: Tabs -->
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+            <button class="tab-btn tab-active" data-tab="overview">
+              <i class="fa-solid fa-satellite-dish"></i>
+              <span>Overview</span>
+            </button>
+            <button class="tab-btn" data-tab="roster">
+              <i class="fa-solid fa-users"></i>
+              <span>Roster</span>
+            </button>
+            <button class="tab-btn" data-tab="matches">
+              <i class="fa-solid fa-calendar-days"></i>
+              <span>Matches</span>
+            </button>
+            <button class="tab-btn" data-tab="performance">
+              <i class="fa-solid fa-chart-line"></i>
+              <span>Performance</span>
+            </button>
+            <button class="tab-btn" data-tab="media">
+              <i class="fa-solid fa-film"></i>
+              <span>Media</span>
+            </button>
+            <button class="tab-btn" data-tab="community">
+              <i class="fa-solid fa-sparkles"></i>
+              <span>Community</span>
+            </button>
+          </div>
+
+          <!-- Right: actions with modern icons -->
+          <div class="flex items-center gap-2">
+            <button class="icon-btn role-public-only" aria-label="Share">
+              <i class="fa-solid fa-share-nodes text-slate-200"></i>
+              <span class="tt">Share</span>
+            </button>
+            <button class="icon-btn role-public-only" aria-label="Follow">
+              <i class="fa-solid fa-heart text-slate-200"></i>
+              <span class="tt">Follow</span>
+            </button>
+
+            <button class="icon-btn role-staff-only role-owner-only" aria-label="Control plane">
+              <i class="fa-solid fa-sliders text-slate-200"></i>
+              <span class="tt">Control</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <style>
+        /* Tab styling (modern, lightweight) */
+        .no-scrollbar::-webkit-scrollbar{ display:none; }
+        .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none; }
+
+        .tab-btn{
+          display:inline-flex;
+          align-items:center;
+          gap:.5rem;
+          height: 40px;
+          padding: 0 .9rem;
+          border-radius: 999px;
+          border: 1px solid rgba(255,255,255,.10);
+          background: rgba(0,0,0,.30);
+          color: rgba(226,232,240,.85);
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: .14em;
+          text-transform: uppercase;
+          transition: transform .18s ease, background .18s ease, border-color .18s ease, color .18s ease;
+          white-space: nowrap;
+        }
+        .tab-btn i{ font-size: 13px; opacity: .9; }
+        .tab-btn:hover{
+          transform: translateY(-1px);
+          border-color: rgba(255,255,255,.18);
+          background: rgba(255,255,255,.06);
+          color: white;
+        }
+        .tab-active{
+          background: color-mix(in srgb, var(--team-primary) 12%, rgba(0,0,0,.35));
+          border-color: color-mix(in srgb, var(--team-primary) 30%, rgba(255,255,255,.10));
+          color: white;
+          box-shadow: 0 20px 70px var(--team-glow);
+        }
+
+        /* Soft section title (keeps UI airy) */
+        .sec-title{
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap: 1rem;
+          margin-bottom: .9rem;
+        }
+        .sec-title h2{
+          font-family: Unbounded, sans-serif;
+          text-transform: uppercase;
+          letter-spacing: .08em;
+          font-size: 14px;
+          color: white;
+        }
+        .sec-title .hint{
+          font-size: 11px;
+          color: rgba(148,163,184,.9);
+        }
+
+        /* Tiny icon label used inside cards */
+        .kpi{
+          display:flex;
+          align-items:center;
+          gap:.5rem;
+          padding:.55rem .75rem;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,.08);
+          background: rgba(0,0,0,.28);
+        }
+        .kpi i{
+          width: 28px;
+          height: 28px;
+          border-radius: 12px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          border: 1px solid rgba(255,255,255,.10);
+          background: rgba(255,255,255,.04);
+          color: rgba(226,232,240,.92);
+          font-size: 12px;
+        }
+        .kpi .k{
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: .16em;
+          text-transform: uppercase;
+          color: rgba(148,163,184,.9);
+          line-height: 1.1;
+        }
+        .kpi .v{
+          font-family: Teko, sans-serif;
+          font-size: 22px;
+          line-height: 1;
+          color: white;
+          margin-top: 2px;
+        }
+      </style>
+
+      <!-- Tabs content wrappers (you said it behaves like a page) -->
+      <section class="mt-8">
+        <!-- OVERVIEW TAB -->
+        <div id="tab-overview" class="tab-panel">
+          <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+
+            <!-- LEFT COLUMN -->
+            <div class="xl:col-span-8 space-y-6">
+
+              <!-- Identity / Team Profile (Complete redesign) -->
+              <div class="glass liquid-edge accent-card rounded-[28px] p-6 md:p-8" data-accent="team">
+                <i class="fa-solid fa-id-badge wm-icon team"></i>
+                <div class="shine-line"></div>
+
+                <div class="sec-title">
+                  <h2>Team Profile</h2>
+                  <div class="flex items-center gap-3">
+                    <span class="chip team"><i class="fa-solid fa-badge-check"></i> Verified</span>
+                    <span class="chip electric recruiting-only"><i class="fa-solid fa-user-plus"></i> Recruiting</span>
+                  </div>
+                </div>
+
+                <!-- Cinematic identity layout -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+                  <!-- Left: Bio card -->
+                  <div class="md:col-span-7">
+                    <div class="rounded-[24px] border border-white/10 bg-black/30 backdrop-filter backdrop-blur-md p-5 md:p-6 relative overflow-hidden">
+                      <i class="fa-solid fa-feather-pointed wm-icon team" style="top:-24px; right:-20px;"></i>
+
+                      <div class="flex items-start justify-between gap-4">
+                        <div class="min-w-0">
+                          <div class="text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Signature</div>
+                          <div id="ovSignature" class="mt-3 text-white text-[15px] leading-relaxed clamp-3">
+                            Precision-first tactical unit. Built for bracket pressure: majors, bounties, and high-stakes showdowns.
+                          </div>
+                        </div>
+
+                        <button class="icon-btn" aria-label="Copy share link">
+                          <i class="fa-solid fa-link text-slate-200"></i>
+                          <span class="tt">Copy link</span>
+                        </button>
+                      </div>
+
+                      <div class="mt-5 flex flex-wrap gap-3">
+                        <span class="chip team"><i class="fa-solid fa-bolt"></i> High tempo</span>
+                        <span class="chip"><i class="fa-solid fa-shield"></i> Disciplined</span>
+                        <span class="chip electric"><i class="fa-solid fa-location-dot"></i> APAC</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Right: quick facts (visual, not text heavy) -->
+                  <div class="md:col-span-5">
+                    <div class="grid grid-cols-2 gap-4">
+                      <div class="kpi">
+                        <i class="fa-solid fa-ranking-star" style="color: var(--team-primary);"></i>
+                        <div>
+                          <div class="k">Game Rank</div>
+                          <div class="v" id="ovGameRank">#14</div>
+                        </div>
+                      </div>
+
+                      <div class="kpi">
+                        <i class="fa-solid fa-globe text-delta-electric"></i>
+                        <div>
+                          <div class="k">Global Rank</div>
+                          <div class="v" id="ovGlobalRank">#142</div>
+                        </div>
+                      </div>
+
+                      <div class="kpi">
+                        <i class="fa-solid fa-trophy text-delta-success"></i>
+                        <div>
+                          <div class="k">Trophies</div>
+                          <div class="v" id="ovTrophies">42</div>
+                        </div>
+                      </div>
+
+                      <div class="kpi">
+                        <i class="fa-solid fa-users"></i>
+                        <div>
+                          <div class="k">Followers</div>
+                          <div class="v" id="ovFollowers">18.2K</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Game-adaptive mini tile -->
+                    <div class="mt-3 rounded-2xl border border-white/10 bg-black/30 p-4 relative overflow-hidden">
+                      <i id="ovGameMiniIcon" class="fa-solid fa-crosshairs wm-icon danger"></i>
+                      <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500" id="ovGameMiniLabel">Map Win %</div>
+                      <div class="font-stats text-3xl text-white mt-1" id="ovGameMiniValue">61%</div>
+                      <div class="text-xs text-slate-400 mt-1 clamp-1" id="ovGameMiniSub">Ascent • Haven</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Story / Journey (new cinematic section) -->
+              <div class="glass liquid-edge accent-card rounded-[28px] p-6 md:p-8" data-accent="gold">
+                <i class="fa-solid fa-book-open wm-icon"></i>
+                <div class="shine-line"></div>
+
+                <div class="sec-title">
+                  <h2>Legacy Feed</h2>
+                  <div class="hint clamp-1">Milestones that define this squad</div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="rounded-[24px] border border-white/10 bg-black/30 backdrop-filter backdrop-blur-md p-5 relative overflow-hidden">
+                    <i class="fa-solid fa-flag-checkered wm-icon team" style="opacity:.05;"></i>
+                    <div class="text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Origin</div>
+                    <div class="mt-3 font-head uppercase text-white text-[15px]">The Founding Run</div>
+                    <div class="mt-3 text-[14px] text-slate-300/90 clamp-2 leading-relaxed">
+                      Started as a ranked stack, became a verified roster after 3 consecutive bracket wins.
+                    </div>
+                  </div>
+
+                  <div class="rounded-[24px] border border-white/10 bg-black/30 backdrop-filter backdrop-blur-md p-5 relative overflow-hidden">
+                    <i class="fa-solid fa-trophy wm-icon success" style="opacity:.06;"></i>
+                    <div class="text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Peak</div>
+                    <div class="mt-3 font-head uppercase text-white text-[15px]">Major Title</div>
+                    <div class="mt-3 text-[14px] text-slate-300/90 clamp-2 leading-relaxed">
+                      Won a verified Major event — boosted Crown Points and unlocked sponsor eligibility.
+                    </div>
+                  </div>
+
+                  <div class="rounded-[24px] border border-white/10 bg-black/30 backdrop-filter backdrop-blur-md p-5 relative overflow-hidden">
+                    <i class="fa-solid fa-bolt wm-icon electric" style="opacity:.06;"></i>
+                    <div class="text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Now</div>
+                    <div class="mt-3 font-head uppercase text-white text-[15px]">Chasing #1</div>
+                    <div class="mt-3 text-[14px] text-slate-300/90 clamp-2 leading-relaxed">
+                      Grinding tournaments + bounties for a clean climb to top regional dominance.
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Mini timeline strip -->
+                <div class="mt-4 rounded-2xl border border-white/10 bg-black/25 p-4 overflow-x-auto no-scrollbar">
+                  <div class="flex items-center gap-3 min-w-[720px]">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-2xl border border-white/10 bg-black/40 flex items-center justify-center">
+                        <i class="fa-solid fa-circle-dot text-slate-200"></i>
+                      </div>
+                      <div>
+                        <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Season 1</div>
+                        <div class="text-sm text-white font-semibold">Verified</div>
+                      </div>
+                    </div>
+                    <div class="h-px flex-1 bg-white/10"></div>
+
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-2xl border border-white/10 bg-black/40 flex items-center justify-center">
+                        <i class="fa-solid fa-trophy text-delta-success"></i>
+                      </div>
+                      <div>
+                        <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Season 2</div>
+                        <div class="text-sm text-white font-semibold">Major Win</div>
+                      </div>
+                    </div>
+                    <div class="h-px flex-1 bg-white/10"></div>
+
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-2xl border border-white/10 bg-black/40 flex items-center justify-center">
+                        <i class="fa-solid fa-ranking-star" style="color: var(--team-primary);"></i>
+                      </div>
+                      <div>
+                        <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Season 3</div>
+                        <div class="text-sm text-white font-semibold">Top 20</div>
+                      </div>
+                    </div>
+                    <div class="h-px flex-1 bg-white/10"></div>
+
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-2xl border border-white/10 bg-black/40 flex items-center justify-center">
+                        <i class="fa-solid fa-bullseye text-delta-danger"></i>
+                      </div>
+                      <div>
+                        <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Now</div>
+                        <div class="text-sm text-white font-semibold">Bounty Era</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Upcoming Match (redesigned) -->
+              <div class="glass liquid-edge accent-card rounded-[28px] p-6 md:p-8" data-accent="electric">
+                <i class="fa-solid fa-calendar-star wm-icon electric"></i>
+                <div class="shine-line"></div>
+
+                <div class="sec-title">
+                  <h2>Next Operation</h2>
+                  <div class="hint clamp-1">Upcoming match / scrim (public-safe)</div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
+                  <!-- Left: matchup -->
+                  <div class="md:col-span-7 rounded-2xl border border-white/10 bg-black/30 p-4 md:p-5 relative overflow-hidden">
+                    <i class="fa-solid fa-swords wm-icon electric" style="opacity:.06;"></i>
+
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Match</div>
+                        <div class="mt-2 flex items-center gap-3">
+                          <div class="min-w-0">
+                            <div class="text-white font-head uppercase text-base clamp-1" id="matchA">Protocol V</div>
+                            <div class="text-xs text-slate-400 clamp-1" id="matchASub">Home</div>
+                          </div>
+                          <div class="w-10 h-10 rounded-2xl border border-white/10 bg-black/40 flex items-center justify-center">
+                            <i class="fa-solid fa-xmark text-slate-200"></i>
+                          </div>
+                          <div class="min-w-0">
+                            <div class="text-white font-head uppercase text-base clamp-1" id="matchB">NightRaid</div>
+                            <div class="text-xs text-slate-400 clamp-1" id="matchBSub">Away</div>
+                          </div>
+                        </div>
+
+                        <div class="mt-4 flex flex-wrap gap-2">
+                          <span class="chip electric" id="matchEvent"><i class="fa-solid fa-medal"></i> Weekly Cup</span>
+                          <span class="chip" id="matchStage"><i class="fa-solid fa-diagram-project"></i> Semifinal</span>
+                          <span class="chip team" id="matchMode"><i class="fa-solid fa-gamepad"></i> BO3</span>
+                        </div>
+                      </div>
+
+                      <!-- Right: time -->
+                      <div class="text-right">
+                        <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Starts</div>
+                        <div class="font-stats text-4xl text-white mt-1" id="matchTime">21:30</div>
+                        <div class="text-xs text-slate-400" id="matchDate">Feb 02 • UTC+6</div>
+                      </div>
+                    </div>
+
+                    <div class="mt-4 flex items-center justify-between gap-3">
+                      <div class="text-xs text-slate-400 clamp-1">
+                        <i class="fa-solid fa-location-dot mr-2 text-slate-500"></i>
+                        <span id="matchRegion">APAC</span>
+                      </div>
+
+                      <div class="flex items-center gap-2">
+                        <button class="icon-btn role-public-only" aria-label="Add reminder">
+                          <i class="fa-solid fa-bell text-slate-200"></i>
+                          <span class="tt">Remind</span>
+                        </button>
+                        <button class="icon-btn role-staff-only role-owner-only" aria-label="Prep checklist">
+                          <i class="fa-solid fa-clipboard-check text-slate-200"></i>
+                          <span class="tt">Prep</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Right: small bento (map/mode preview game-adaptive) -->
+                  <div class="md:col-span-5 grid grid-cols-2 gap-3">
+                    <div class="rounded-2xl border border-white/10 bg-black/30 p-4 relative overflow-hidden">
+                      <i class="fa-solid fa-crosshairs wm-icon danger"></i>
+                      <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500" id="nextKeyLabel1">Map</div>
+                      <div class="font-head uppercase text-white mt-2 clamp-1" id="nextKeyVal1">Ascent</div>
+                      <div class="text-xs text-slate-400 mt-1 clamp-1" id="nextKeySub1">Likely pick</div>
+                    </div>
+                    <div class="rounded-2xl border border-white/10 bg-black/30 p-4 relative overflow-hidden">
+                      <i class="fa-solid fa-bolt wm-icon team"></i>
+                      <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500" id="nextKeyLabel2">Win Chance</div>
+                      <div class="font-stats text-3xl text-white mt-2" id="nextKeyVal2">64%</div>
+                      <div class="text-xs text-slate-400 mt-1 clamp-1" id="nextKeySub2">Based on logged results</div>
+                    </div>
+                    <div class="rounded-2xl border border-white/10 bg-black/30 p-4 relative overflow-hidden col-span-2">
+                      <i class="fa-solid fa-circle-play wm-icon electric"></i>
+                      <div class="flex items-center justify-between gap-3">
+                        <div class="min-w-0">
+                          <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Last VOD</div>
+                          <div class="mt-2 text-white font-semibold clamp-1">Quarterfinal — Clean sweep</div>
+                          <div class="text-xs text-slate-400 mt-1 clamp-1">Watch highlights & key rounds</div>
+                        </div>
+                        <button class="icon-btn" aria-label="Play">
+                          <i class="fa-solid fa-play text-slate-200"></i>
+                          <span class="tt">Play</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Performance Posture (widget preview; game-adaptive) -->
+              <div class="glass liquid-edge accent-card rounded-[28px] p-6 md:p-8" data-accent="success">
+                <i class="fa-solid fa-chart-simple wm-icon success"></i>
+                <div class="shine-line"></div>
+
+                <div class="sec-title">
+                  <h2>Performance Pulse</h2>
+                  <div class="hint clamp-1">A quick read — deeper analytics in Performance</div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div class="rounded-2xl border border-white/10 bg-black/30 p-4 relative overflow-hidden">
+                    <i class="fa-solid fa-fire wm-icon danger"></i>
+                    <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Form</div>
+                    <div class="mt-2 flex items-center gap-1" id="pulseForm">
+                      <div class="w-7 h-7 rounded-xl bg-delta-success text-black flex items-center justify-center text-[11px] font-extrabold">W</div>
+                      <div class="w-7 h-7 rounded-xl bg-delta-success text-black flex items-center justify-center text-[11px] font-extrabold">W</div>
+                      <div class="w-7 h-7 rounded-xl bg-slate-600 text-white flex items-center justify-center text-[11px] font-extrabold">D</div>
+                      <div class="w-7 h-7 rounded-xl bg-delta-danger text-white flex items-center justify-center text-[11px] font-extrabold">L</div>
+                      <div class="w-7 h-7 rounded-xl bg-delta-success text-black flex items-center justify-center text-[11px] font-extrabold">W</div>
+                    </div>
+                    <div class="text-xs text-slate-400 mt-2 clamp-1" id="pulseFormSub">Last 5</div>
+                  </div>
+
+                  <div class="rounded-2xl border border-white/10 bg-black/30 p-4 relative overflow-hidden">
+                    <i class="fa-solid fa-bullseye wm-icon team"></i>
+                    <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500" id="pulseFocusLabel">Focus Metric</div>
+                    <div class="font-stats text-4xl text-white mt-1" id="pulseFocusVal">61%</div>
+                    <div class="text-xs text-slate-400 mt-2 clamp-1" id="pulseFocusSub">Map win rate (logged)</div>
+                  </div>
+
+                  <div class="rounded-2xl border border-white/10 bg-black/30 p-4 relative overflow-hidden">
+                    <i class="fa-solid fa-atom wm-icon electric"></i>
+                    <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Stability</div>
+                    <div class="mt-2">
+                      <div class="h-2.5 rounded-full bg-white/10 overflow-hidden">
+                        <div class="h-full rounded-full" id="pulseStabilityBar" style="width:74%; background: var(--team-primary);"></div>
+                      </div>
+                      <div class="mt-2 flex items-center justify-between text-xs text-slate-400">
+                        <span id="pulseStabilityLeft">Consistency</span>
+                        <span id="pulseStabilityRight">74</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-4 flex flex-wrap gap-2">
+                  <span class="chip success"><i class="fa-solid fa-check"></i> Verified results</span>
+                  <span class="chip"><i class="fa-solid fa-file-lines"></i> User-submitted logs</span>
+                  <span class="chip team"><i class="fa-solid fa-arrow-trend-up"></i> Trending up</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="xl:col-span-4 space-y-6">
+
+              <!-- Dedicated Bounties widget (exciting + interactive) -->
+              <div class="glass liquid-edge accent-card rounded-[28px] p-6 md:p-8" data-accent="danger">
+                <i class="fa-solid fa-bullseye wm-icon danger"></i>
+                <div class="shine-line"></div>
+
+                <div class="sec-title">
+                  <h2>Bounties</h2>
+                  <div class="hint clamp-1">Challenge this team on DeltaCrown</div>
+                </div>
+
+                <div class="rounded-2xl border border-white/10 bg-black/30 p-4 relative overflow-hidden">
+                  <i class="fa-solid fa-skull wm-icon danger" style="opacity:.05;"></i>
+
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Active</div>
+                      <div class="font-stats text-4xl text-white mt-1" id="bountyActiveCount">5</div>
+                    </div>
+
+                    <button class="w-14 h-14 rounded-2xl flex items-center justify-center font-extrabold text-black hover:brightness-110 transition"
+                            style="background: var(--team-primary); box-shadow: 0 18px 60px var(--team-glow);"
+                            aria-label="Create bounty">
+                      <i class="fa-solid fa-plus"></i>
+                    </button>
+                  </div>
+
+                  <div class="mt-3 text-sm text-slate-300/90 clamp-2">
+                    Put a prize on this team. If someone beats them under the bounty rules, they claim it.
+                  </div>
+
+                  <div class="mt-4 grid grid-cols-2 gap-2">
+                    <button class="py-3 rounded-2xl border border-white/10 bg-black/40 text-white text-[10px] font-extrabold uppercase tracking-[0.16em]
+                                   hover:bg-white/5 hover:translate-y-[-1px] transition flex items-center justify-center gap-2">
+                      <i class="fa-solid fa-scroll text-delta-electric"></i>
+                      Rules
+                    </button>
+                    <button class="py-3 rounded-2xl border border-white/10 bg-black/40 text-white text-[10px] font-extrabold uppercase tracking-[0.16em]
+                                   hover:bg-white/5 hover:translate-y-[-1px] transition flex items-center justify-center gap-2">
+                      <i class="fa-solid fa-clock text-slate-200"></i>
+                      History
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Public list preview (compact, low text) -->
+                <div class="mt-3 space-y-2" id="bountyPreviewList">
+                  <div class="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="text-[11px] text-white font-semibold clamp-1">BO3 vs Ranked Challenger</div>
+                      <div class="text-[10px] text-slate-400 clamp-1">Expires in 3 days</div>
+                    </div>
+                    <span class="chip danger"><i class="fa-solid fa-coins"></i> 15K</span>
+                  </div>
+
+                  <div class="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="text-[11px] text-white font-semibold clamp-1">Tournament Knockout</div>
+                      <div class="text-[10px] text-slate-400 clamp-1">Expires in 6 days</div>
+                    </div>
+                    <span class="chip danger"><i class="fa-solid fa-coins"></i> 30K</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Ecosystem (alive + interactive; NO bounties here) -->
+              <div class="glass liquid-edge accent-card rounded-[28px] p-6 md:p-8" data-accent="electric">
+                <i class="fa-solid fa-network-wired wm-icon electric"></i>
+                <div class="shine-line"></div>
+
+                <div class="sec-title">
+                  <h2>Ecosystem</h2>
+                  <div class="hint clamp-1">Where fans engage</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <button class="rounded-2xl border border-white/10 bg-black/30 p-4 text-left hover:bg-white/5 transition relative overflow-hidden">
+                    <i class="fa-solid fa-users wm-icon team" style="opacity:.05;"></i>
+                    <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Community</div>
+                    <div class="mt-2 text-white font-semibold">Fan Hub</div>
+                    <div class="text-xs text-slate-400 mt-1 clamp-1">Polls • Q&amp;A</div>
+                  </button>
+
+                  <button class="rounded-2xl border border-white/10 bg-black/30 p-4 text-left hover:bg-white/5 transition relative overflow-hidden">
+                    <i class="fa-solid fa-gift wm-icon electric" style="opacity:.06;"></i>
+                    <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Drops</div>
+                    <div class="mt-2 text-white font-semibold">Rewards</div>
+                    <div class="text-xs text-slate-400 mt-1 clamp-1">Watch • Earn</div>
+                  </button>
+
+                  <button class="rounded-2xl border border-white/10 bg-black/30 p-4 text-left hover:bg-white/5 transition relative overflow-hidden">
+                    <i class="fa-solid fa-shirt wm-icon team" style="opacity:.05;"></i>
+                    <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Store</div>
+                    <div class="mt-2 text-white font-semibold">Merch</div>
+                    <div class="text-xs text-slate-400 mt-1 clamp-1">Limited runs</div>
+                  </button>
+
+                  <button class="rounded-2xl border border-white/10 bg-black/30 p-4 text-left hover:bg-white/5 transition relative overflow-hidden">
+                    <i class="fa-solid fa-medal wm-icon success" style="opacity:.06;"></i>
+                    <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Challenges</div>
+                    <div class="mt-2 text-white font-semibold">Open Calls</div>
+                    <div class="text-xs text-slate-400 mt-1 clamp-1">Verified matchups</div>
+                  </button>
+                </div>
+
+                <div class="mt-3 rounded-2xl border border-white/10 bg-black/25 p-4 relative overflow-hidden">
+                  <i class="fa-solid fa-sparkles wm-icon electric" style="opacity:.06;"></i>
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Live Pulse</div>
+                      <div class="mt-2 text-white font-semibold clamp-1">New highlight uploaded</div>
+                      <div class="text-xs text-slate-400 mt-1 clamp-1">Fans are reacting now</div>
+                    </div>
+                    <button class="icon-btn" aria-label="Open">
+                      <i class="fa-solid fa-arrow-right text-slate-200"></i>
+                      <span class="tt">Open</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mini Sponsors (optional, lightweight) -->
+              <div class="glass liquid-edge accent-card rounded-[28px] p-6 md:p-8" data-accent="gold">
+                <i class="fa-solid fa-handshake wm-icon"></i>
+                <div class="shine-line"></div>
+
+                <div class="sec-title">
+                  <h2>Sponsors</h2>
+                  <div class="hint clamp-1">Public partners</div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="h-14 rounded-2xl border border-white/10 bg-black/30 flex items-center justify-center text-slate-300/90 text-[10px] font-extrabold uppercase tracking-[0.14em]">
+                    AURA
+                  </div>
+                  <div class="h-14 rounded-2xl border border-white/10 bg-black/30 flex items-center justify-center text-slate-300/90 text-[10px] font-extrabold uppercase tracking-[0.14em]">
+                    NOVA
+                  </div>
+                  <div class="h-14 rounded-2xl border border-white/10 bg-black/30 flex items-center justify-center text-slate-300/90 text-[10px] font-extrabold uppercase tracking-[0.14em]">
+                    HEX
+                  </div>
+                </div>
+
+                <div class="mt-3 text-xs text-slate-400 clamp-2">
+                  Sponsor conflicts & brand safety are enforced by org governance (if owned).
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Placeholder panels (Part 3/4/5 will populate) -->
+        <div id="tab-roster" class="tab-panel hidden">
+          <!-- Part 3 will start here -->
+          <div id="roster" class="h-2"></div>
+        </div>
+
+        <div id="tab-matches" class="tab-panel hidden">
+          <div class="glass rounded-2xl p-6 border border-white/10 text-slate-300">
+            Matches coming in Part 4.
+          </div>
+        </div>
+
+        <div id="tab-performance" class="tab-panel hidden">
+          <div class="glass rounded-2xl p-6 border border-white/10 text-slate-300">
+            Performance coming in Part 4/5.
+          </div>
+        </div>
+
+        <div id="tab-media" class="tab-panel hidden">
+          <div class="glass rounded-2xl p-6 border border-white/10 text-slate-300">
+            Media coming in Part 5.
+          </div>
+        </div>
+
+        <div id="tab-community" class="tab-panel hidden">
+          <div class="glass rounded-2xl p-6 border border-white/10 text-slate-300">
+            Community coming in Part 5.
+          </div>
+        </div>
+      </section>
+
+
+
+
+      <script>
+        // ------------------------------------------------------------
+        // PART 1 LOGIC: demo controller + polymorphic hero hydration
+        // ------------------------------------------------------------
+
+        const TEAM_DEMOS = {
+          VALO: {
+            teamName: "Protocol V",
+            gameName: "VALORANT",
+            gameContext: "FPS",
+            owned: "ORG",
+            orgName: "SYNTAX Esports",
+            recruiting: true,
+            primaryColor: "#FFD700",
+            banner: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2400",
+            logo: "https://api.dicebear.com/7.x/identicon/svg?seed=ProtocolV",
+            platform: "PC",
+            squad: { players: 7, coach: 1, manager: 1 },
+
+            ranks: { game: 14, global: 142 },
+            stats: {
+              crownPoints: 8450,
+              trophies: { total: 42, sub: "3 seasons" },
+              wins: 112,
+              losses: 52,
+              winRate: 68,
+              followers: "18.2K",
+              bounties: 5,
+              gameSpecific: { label: "Map Win %", value: "61%", sub: "Ascent • Haven", icon: "fa-crosshairs" }
+            }
+          },
+
+          EFOOT: {
+            teamName: "Neo Eleven",
+            gameName: "eFootball™ 2026",
+            gameContext: "SPORTS",
+            owned: "INDEPENDENT",
+            orgName: "",
+            recruiting: false,
+            primaryColor: "#00E5FF",
+            banner: "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2400",
+            logo: "https://api.dicebear.com/7.x/identicon/svg?seed=NeoEleven",
+            platform: "Mobile",
+            squad: { players: 3, coach: 0, manager: 0 },
+
+            ranks: { game: 31, global: 406 },
+            stats: {
+              crownPoints: 3120,
+              trophies: { total: 9, sub: "2 seasons" },
+              wins: 58,
+              losses: 41,
+              winRate: 58,
+              followers: "4.9K",
+              bounties: 1,
+              gameSpecific: { label: "Form", value: "WWDLW", sub: "Last 5", icon: "fa-futbol" }
+            }
+          },
+
+          PUBG: {
+            teamName: "NightRaid",
+            gameName: "PUBG MOBILE",
+            gameContext: "BR",
+            owned: "INDEPENDENT",
+            orgName: "",
+            recruiting: true,
+            primaryColor: "#FF3131",
+            banner: "https://images.unsplash.com/photo-1599553733075-807d9d7092c4?q=80&w=2400",
+            logo: "https://api.dicebear.com/7.x/identicon/svg?seed=NightRaid",
+            platform: "Mobile",
+            squad: { players: 6, coach: 0, manager: 1 },
+
+            ranks: { game: 22, global: 260 },
+            stats: {
+              crownPoints: 5660,
+              trophies: { total: 17, sub: "2 seasons" },
+              wins: 73,
+              losses: 55,
+              winRate: 57,
+              followers: "9.3K",
+              bounties: 4,
+              gameSpecific: { label: "Avg Place", value: "#3.2", sub: "Last 25", icon: "fa-location-crosshairs" }
+            }
+          },
+
+          MLBB: {
+            teamName: "CrownWave",
+            gameName: "Mobile Legends: Bang Bang",
+            gameContext: "MOBA",
+            owned: "ORG",
+            orgName: "SYNTAX Esports",
+            recruiting: false,
+            primaryColor: "#00FF41",
+            banner: "https://images.unsplash.com/photo-1542751110-97427bbecf20?q=80&w=2400",
+            logo: "https://api.dicebear.com/7.x/identicon/svg?seed=CrownWave",
+            platform: "Mobile",
+            squad: { players: 7, coach: 1, manager: 1 },
+
+            ranks: { game: 9, global: 98 },
+            stats: {
+              crownPoints: 12040,
+              trophies: { total: 31, sub: "4 seasons" },
+              wins: 140,
+              losses: 66,
+              winRate: 68,
+              followers: "22.7K",
+              bounties: 2,
+              gameSpecific: { label: "Obj Control", value: "72%", sub: "Turtles • Lords", icon: "fa-chess-king" }
+            }
+          }
+        };
+
+        const el = (id) => document.getElementById(id);
+
+        function formatNumber(n){
+          try{
+            return new Intl.NumberFormat().format(n);
+          } catch(e){
+            return String(n);
+          }
+        }
+
+        function setPrimaryColor(hex){
+          document.documentElement.style.setProperty("--team-primary", hex);
+          const dim = hex + "1A"; // rough alpha hint for browsers that accept hex+alpha
+          // fallback rgba dims (simple, safe)
+          const rgbaDim = "rgba(255,255,255,.06)";
+          document.documentElement.style.setProperty("--team-dim", rgbaDim);
+          document.documentElement.style.setProperty("--team-glow", "rgba(0,0,0,.0)");
+          // If you want accurate glow/dim, compute RGB properly later (backend can provide rgba)
+        }
+
+        function hydrateHero(demo){
+          // body attrs (polymorphism)
+          document.body.setAttribute("data-game", demo.gameContext);
+          document.body.setAttribute("data-owned", demo.owned);
+          document.body.setAttribute("data-recruiting", String(demo.recruiting));
+
+          // primary color
+          setPrimaryColor(demo.primaryColor);
+
+          // banner + logo + identity
+          el("heroBanner").src = demo.banner;
+          el("teamLogo").src = demo.logo;
+          el("teamName").textContent = demo.teamName;
+          el("chipGameName").innerHTML = `<i class="fa-solid fa-gamepad"></i> ${demo.gameName}`;
+
+          // org / independent chips
+          if (demo.owned === "ORG") {
+            el("orgName").textContent = demo.orgName || "Organization";
+          }
+
+          // rank chips
+          el("chipGameRank").innerHTML = `<i class="fa-solid fa-trophy"></i> Game #${demo.ranks.game}`;
+          el("chipGlobalRank").innerHTML = `<i class="fa-solid fa-globe"></i> Global #${demo.ranks.global}`;
+
+          // squad/platform
+          el("chipPrimaryPlatform").innerHTML =
+            demo.platform === "PC"
+              ? `<i class="fa-solid fa-desktop"></i> ${demo.platform}`
+              : `<i class="fa-solid fa-mobile-screen"></i> ${demo.platform}`;
+
+          el("chipSquadSize").innerHTML = `<i class="fa-solid fa-users"></i> ${demo.squad.players} Players`;
+
+          el("chipStaff").textContent =
+            `${demo.squad.coach || 0} Coach • ${demo.squad.manager || 0} Manager`;
+
+          // metrics
+          el("mCP").textContent = formatNumber(demo.stats.crownPoints);
+          el("mGameRank").textContent = `#${demo.ranks.game}`;
+          el("mGameRankSub").textContent = demo.gameName;
+
+          el("mGlobalRank").textContent = `#${demo.ranks.global}`;
+
+          el("mTrophies").textContent = formatNumber(demo.stats.trophies.total);
+          el("mTrophiesSub").textContent = demo.stats.trophies.sub;
+
+          el("mWinRate").textContent = `${demo.stats.winRate}%`;
+          el("mWL").textContent = `W ${demo.stats.wins} • L ${demo.stats.losses}`;
+
+          el("mFollowers").textContent = demo.stats.followers;
+          el("mBounties").textContent = demo.stats.bounties;
+
+          // game-specific tile
+          el("mGameSpecificLabel").textContent = demo.stats.gameSpecific.label;
+          el("mGameSpecificValue").textContent = demo.stats.gameSpecific.value;
+          el("mGameSpecificSub").textContent = demo.stats.gameSpecific.sub;
+
+          const iconEl = el("mGameSpecificIcon");
+          iconEl.className = `fa-solid ${demo.stats.gameSpecific.icon} wm-icon danger`;
+
+          // bio demo (short cinematic, clamped)
+          const bios = {
+            VALO: "Precision-first tactical unit. Built for bracket pressure: majors, bounties, and high-stakes showdowns.",
+            EFOOT: "Fast, ruthless, clean mechanics. Independent squad chasing trophies through verified DeltaCrown leagues.",
+            PUBG: "Calculated rotations, lethal late-game. We farm placements, then flip the lobby at the final circle.",
+            MLBB: "Objective-centric discipline. Macro-first MOBA squad engineered for consistent series wins."
+          };
+          el("teamBio").textContent = bios[el("demoTeamSelect").value] || el("teamBio").textContent;
+
+          // title
+          document.title = `${demo.teamName} | Team Profile | DeltaCrown`;
+        }
+
+        // Demo controller wiring
+        const teamSelect = el("demoTeamSelect");
+        const roleSelect = el("demoRoleSelect");
+        const recruitToggle = el("demoRecruitToggle");
+        const recruitKnob = el("demoRecruitKnob");
+
+        teamSelect.addEventListener("change", () => hydrateHero(TEAM_DEMOS[teamSelect.value]));
+        roleSelect.addEventListener("change", () => document.body.setAttribute("data-role", roleSelect.value));
+
+        function syncRecruitUI(){
+          const on = recruitToggle.checked;
+          document.body.setAttribute("data-recruiting", String(on));
+          recruitKnob.style.left = on ? "22px" : "2px";
+          recruitKnob.style.background = on ? "white" : "rgba(255,255,255,.8)";
+        }
+
+        recruitToggle.addEventListener("change", syncRecruitUI);
+
+        // Bio expand (simple clamp toggle)
+        const bioBtn = el("bioExpandBtn");
+        let bioExpanded = false;
+        bioBtn.addEventListener("click", () => {
+          bioExpanded = !bioExpanded;
+          el("teamBio").classList.toggle("clamp-2", !bioExpanded);
+          bioBtn.textContent = bioExpanded ? "Show less" : "Read more";
+        });
+
+        // Boot
+        hydrateHero(TEAM_DEMOS[teamSelect.value]);
+        document.body.setAttribute("data-role", roleSelect.value);
+        syncRecruitUI();
+
+
+        // ------------------------------------------------------------
+        // PART 2 LOGIC: tab switcher + overview hydration (from demo)
+        // ------------------------------------------------------------
+
+        // Hook to existing TEAM_DEMOS + hydrateHero from Part 1
+        // We'll reuse the same demo dataset and extend UI fields here.
+
+        const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+        const tabPanels = {
+          overview: document.getElementById("tab-overview"),
+          roster: document.getElementById("tab-roster"),
+          matches: document.getElementById("tab-matches"),
+          performance: document.getElementById("tab-performance"),
+          media: document.getElementById("tab-media"),
+          community: document.getElementById("tab-community"),
+        };
+
+        function setActiveTab(key){
+          tabButtons.forEach(btn => {
+            const active = btn.getAttribute("data-tab") === key;
+            btn.classList.toggle("tab-active", active);
+          });
+          Object.keys(tabPanels).forEach(k => {
+            tabPanels[k].classList.toggle("hidden", k !== key);
+          });
+
+          // Scroll behavior: keep same “page position” area
+          // If you want to snap to top of content area:
+          // document.getElementById("team-detail-page").scrollIntoView({behavior:"smooth", block:"start"});
+        }
+
+        tabButtons.forEach(btn => {
+          btn.addEventListener("click", () => setActiveTab(btn.getAttribute("data-tab")));
+        });
+
+        // Overview hydration
+        const $ = (id) => document.getElementById(id);
+
+        function hydrateOverview(demo){
+          // Subnav name strip
+          $("navTeamName").textContent = demo.teamName;
+          $("navGameName").textContent = demo.gameName;
+          $("navPlatform").textContent = demo.platform;
+
+          // Org name in subnav
+          const orgEl = $("navOrgName");
+          if (orgEl) orgEl.textContent = demo.orgName || "Organization";
+
+          // Identity KPIs
+          $("ovGameRank").textContent = `#${demo.ranks.game}`;
+          $("ovGlobalRank").textContent = `#${demo.ranks.global}`;
+          $("ovTrophies").textContent = String(demo.stats.trophies.total);
+          $("ovFollowers").textContent = demo.stats.followers;
+
+          // Signature (cinematic short)
+          const sig = {
+            FPS: "Precision-first tactical unit. Built for bracket pressure: majors, bounties, and high-stakes showdowns.",
+            MOBA: "Objective-centric discipline. Macro-first roster engineered for consistent series wins.",
+            BR: "Calculated rotations, lethal late-game. We farm placements, then flip the lobby at final circle.",
+            SPORTS: "Fast mechanics, patient control, ruthless finishing. We grind verified leagues for clean trophies."
+          };
+          $("ovSignature").textContent = sig[demo.gameContext] || $("ovSignature").textContent;
+
+          // Game mini tile
+          $("ovGameMiniLabel").textContent = demo.stats.gameSpecific.label;
+          $("ovGameMiniValue").textContent = demo.stats.gameSpecific.value;
+          $("ovGameMiniSub").textContent = demo.stats.gameSpecific.sub;
+
+          const icon = $("ovGameMiniIcon");
+          icon.className = `fa-solid ${demo.stats.gameSpecific.icon} wm-icon danger`;
+
+          // Upcoming Match: game-adaptive small bento labels
+          // (Demo placeholders; backend will hydrate these)
+          const nextKeyByGame = {
+            FPS: { l1:"Map", v1:"Ascent", s1:"Likely pick", l2:"Win Chance", v2:"64%", s2:"Based on logged results" },
+            MOBA:{ l1:"Draft", v1:"Front-to-back", s1:"Team identity", l2:"Series", v2:"BO3", s2:"Bracket format" },
+            BR:  { l1:"Drop", v1:"Pochinki", s1:"Preferred", l2:"Top 10 Rate", v2:"45%", s2:"Last 25" },
+            SPORTS:{ l1:"Mode", v1:"1v1 League", s1:"Mobile", l2:"Form", v2:"WWDLW", s2:"Last 5" },
+          };
+
+          const nk = nextKeyByGame[demo.gameContext] || nextKeyByGame.FPS;
+          $("nextKeyLabel1").textContent = nk.l1;
+          $("nextKeyVal1").textContent = nk.v1;
+          $("nextKeySub1").textContent = nk.s1;
+          $("nextKeyLabel2").textContent = nk.l2;
+          $("nextKeyVal2").textContent = nk.v2;
+          $("nextKeySub2").textContent = nk.s2;
+
+          // Performance Pulse: adapt focus metric text
+          const focusByGame = {
+            FPS: { label:"Map Win %", val: demo.stats.gameSpecific.value, sub:"Logged match results" },
+            MOBA:{ label:"Obj Control", val: demo.stats.gameSpecific.value, sub:"Turtles/Lords (logged)" },
+            BR:  { label:"Avg Place", val: demo.stats.gameSpecific.value, sub:"Logged placements" },
+            SPORTS:{ label:"Form", val: demo.stats.gameSpecific.value, sub:"Last 5 (logged)" },
+          };
+          const f = focusByGame[demo.gameContext] || focusByGame.FPS;
+          $("pulseFocusLabel").textContent = f.label;
+          $("pulseFocusVal").textContent = f.val;
+          $("pulseFocusSub").textContent = f.sub;
+
+          // Stability bar: simple derived (demo only)
+          const stability = Math.min(92, Math.max(38, Math.round((demo.stats.winRate || 60) + (demo.stats.trophies.total > 20 ? 10 : 0))));
+          $("pulseStabilityBar").style.width = `${stability}%`;
+          $("pulseStabilityRight").textContent = String(stability);
+
+          // Recruiting chip state already handled by body attribute in Part 1
+        }
+
+        // When demo team changes, Part 1 calls hydrateHero(). We'll hook into that.
+        // Simple: re-run hydrateOverview() on teamSelect changes.
+        const demoTeamSelect2 = document.getElementById("demoTeamSelect");
+        if (demoTeamSelect2) {
+          demoTeamSelect2.addEventListener("change", () => {
+            const demo = TEAM_DEMOS[demoTeamSelect2.value];
+            hydrateOverview(demo);
+          });
+          // initial
+          hydrateOverview(TEAM_DEMOS[demoTeamSelect2.value]);
+        }
+
+        // Keep default tab
+        setActiveTab("overview");
+      </script>
+
+      <!-- END PART 2 -->
+
+      </script>
+
+      <!-- KEEP FILE OPEN (no closing tags in infinite-scroll build) -->

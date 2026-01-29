@@ -252,7 +252,7 @@ class TestLegacyDependencyGuard:
         required_templates = [
             'hub/vnext_hub.html',
             'team/team_create.html',
-            'team/team_detail.html',
+            'team/Demo_detailTeam.html',
             'team/team_invites.html',
             'org/organization_detail.html',
         ]

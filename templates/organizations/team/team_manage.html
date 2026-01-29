@@ -1,272 +1,53 @@
-{% extends "base.html" %}
 {% load static %}
-{% load org_media %}
-
-{% block title %}{{ team.name }} | Team Profile | DeltaCrown Enterprise{% endblock %}
-
-{% block extra_css %}
-<script src="https://cdn.tailwindcss.com"></script>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-
-<script>
-    tailwind.config = {
-        darkMode: 'class',
-        theme: {
-            extend: {
-                fontFamily: {
-                    'corp': ['"Outfit"', 'sans-serif'],
-                    'tech': ['"Rajdhani"', 'sans-serif'],
-                    'mono': ['"Space Mono"', 'monospace'],
-                },
-                colors: {
-                    delta: {
-                        base: '#020204',
-                        obsidian: '#050508',
-                        surface: '#0A0A10',
-                        highlight: '#12121A',
-                        border: 'rgba(255, 255, 255, 0.08)',
-                        gold: '#FFD700',
-                        violet: '#6C00FF',
-                        electric: '#00E5FF',
-                        success: '#10B981',
-                        danger: '#EF4444',
-                        warning: '#F59E0B',
-                    }
-                },
-                backgroundImage: {
-                    'grid-pattern': "linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)",
-                    'gradient-crown': 'linear-gradient(135deg, #FFD700 0%, #6C00FF 50%, #00E5FF 100%)',
-                    'gradient-glass': 'linear-gradient(180deg, rgba(18, 18, 26, 0.7) 0%, rgba(5, 5, 8, 0.9) 100%)',
-                },
-                boxShadow: {
-                    'glow-gold': '0 0 40px rgba(255, 215, 0, 0.15)',
-                    'glow-violet': '0 0 40px rgba(108, 0, 255, 0.15)',
-                    'glass-inset': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
-                },
-            }
-        }
-    }
-</script>
-
-<style>
-    :root {
-        --glass-border: 1px solid rgba(255, 255, 255, 0.08);
-        --glass-bg: rgba(10, 10, 16, 0.7);
-        --glass-blur: blur(20px);
-    }
-
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #050508; border-left: 1px solid rgba(255, 255, 255, 0.05); }
-    ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #6C00FF, #00E5FF); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #FFD700; }
-
-    .glass-panel {
-        background: var(--glass-bg);
-        backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
-        border: var(--glass-border);
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-    }
-
-    .glass-card-hover {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .glass-card-hover:hover {
-        background: rgba(255, 255, 255, 0.03);
-        border-color: rgba(255, 215, 0, 0.3);
-        box-shadow: 0 0 30px rgba(255, 215, 0, 0.05);
-        transform: translateY(-2px);
-    }
-
-    .text-gradient-gold {
-        background: linear-gradient(135deg, #FFD700 0%, #F59E0B 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    .badge {
-        font-size: 10px;
-        font-weight: 600;
-        padding: 2px 8px;
-        border-radius: 4px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .stat-card {
-        position: relative;
-        overflow: hidden;
-    }
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.03) 25%, transparent 30%);
-        transform: translateX(-100%);
-        transition: transform 0.6s;
-    }
-    .stat-card:hover::before {
-        transform: translateX(100%);
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="min-h-screen bg-delta-base text-white" style="background-image: url('https://grainy-gradients.vercel.app/noise.svg'), linear-gradient(to bottom, #020204, #050508); background-size: 200px, cover; background-position: center;">
-
-    <!-- Header -->
-    <header class="sticky top-0 z-50 glass-panel border-b border-delta-border">
-        <div class="max-w-7xl mx-auto px-4 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <!-- Team Avatar -->
-                    <div class="w-12 h-12 rounded-lg overflow-hidden shadow-glow-gold">
-                        {% if team.avatar %}
-                            <img src="{{ team.avatar }}" alt="{{ team.name }}" class="w-full h-full object-cover">
-                        {% else %}
-                            <div class="w-full h-full bg-gradient-crown flex items-center justify-center font-tech text-xl font-bold">
-                                {{ team.tag|default:team.name|slice:":2"|upper }}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Team Identity -->
-                    <div>
-                        <div class="flex items-center gap-3">
-                            <h1 class="font-tech text-2xl font-bold text-gradient-gold">{{ team.name }}</h1>
-                            {% if team.tag %}
-                                <span class="badge bg-delta-violet text-white">[{{ team.tag }}]</span>
-                            {% endif %}
-                            {% if not team.is_public %}
-                                <span class="badge bg-delta-danger text-white">Private</span>
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ team.name }} - Team Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-full">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Team Header -->
+        <div class="bg-gray-800 rounded-lg shadow-xl overflow-hidden mb-6">
+            {% if team.banner_url %}
+            <div class="h-48 bg-cover bg-center" style="background-image: url('{{ team.banner_url }}');"></div>
+            {% else %}
+            <div class="h-48 bg-gradient-to-r from-blue-600 to-purple-600"></div>
+            {% endif %}
+            
+            <div class="px-6 py-6">
+                <div class="flex items-center gap-6">
+                    <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-24 h-24 rounded-lg border-4 border-gray-900 shadow-lg">
+                    
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <h1 class="text-3xl font-bold text-white">{{ team.name }}</h1>
+                            {% if team.is_organization_team %}
+                            <span class="px-3 py-1 bg-purple-600 text-white text-xs font-bold rounded-full">ORG TEAM</span>
                             {% endif %}
                         </div>
-                        {% if team.organization %}
-                        <p class="text-sm text-gray-400 font-corp mt-1">
-                            <a href="{% url 'organizations:organization_detail' org_slug=team.organization.slug %}" class="hover:text-delta-gold transition-colors">
-                                {{ team.organization.name }}
-                            </a>
-                        </p>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="flex items-center gap-2">
-                    {% if can_manage_team %}
-                        <a href="{% url 'organizations:team_control_plane' team_slug=team.slug %}" class="px-4 py-2 bg-gradient-crown text-delta-base font-tech font-semibold rounded-lg hover:opacity-90 transition-opacity">
-                            Manage Team
-                        </a>
-                    {% endif %}
-                    {% if can_view_hub %}
-                        <a href="{% url 'organizations:team_hub' team_slug=team.slug %}" class="px-4 py-2 glass-panel text-white font-corp rounded-lg hover:bg-white/5 transition-colors">
-                            Team Hub
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 py-8">
-        
-        {% if can_view_details %}
-        <!-- Team Overview Section -->
-        <section class="mb-8">
-            <div class="glass-panel rounded-xl p-8">
-                <h2 class="font-tech text-xl font-bold text-gradient-gold mb-4">Team Overview</h2>
-                
-                {% if team.description %}
-                    <p class="text-gray-300 font-corp leading-relaxed mb-6">{{ team.description }}</p>
-                {% else %}
-                    <p class="text-gray-500 italic font-corp mb-6">No team description provided.</p>
-                {% endif %}
-
-                <!-- Team Stats -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                    <!-- Active Members -->
-                    <div class="glass-panel rounded-lg p-4 stat-card">
-                        <div class="text-gray-400 text-xs font-mono uppercase tracking-wide mb-1">Members</div>
-                        <div class="text-3xl font-tech font-bold text-gradient-gold">{{ member_count }}</div>
-                    </div>
-
-                    <!-- Tournaments Entered -->
-                    <div class="glass-panel rounded-lg p-4 stat-card">
-                        <div class="text-gray-400 text-xs font-mono uppercase tracking-wide mb-1">Tournaments</div>
-                        <div class="text-3xl font-tech font-bold text-delta-electric">{{ stats.tournament_count }}</div>
-                    </div>
-
-                    <!-- Win Rate -->
-                    <div class="glass-panel rounded-lg p-4 stat-card">
-                        <div class="text-gray-400 text-xs font-mono uppercase tracking-wide mb-1">Win Rate</div>
-                        <div class="text-3xl font-tech font-bold text-delta-success">{{ stats.win_rate }}%</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Roster Section (Public Members Only) -->
-        {% if public_members %}
-        <section class="mb-8">
-            <div class="glass-panel rounded-xl p-8">
-                <h2 class="font-tech text-xl font-bold text-gradient-gold mb-6">Roster</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {% for member in public_members %}
-                    <div class="glass-panel rounded-lg p-4 glass-card-hover">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full overflow-hidden bg-delta-surface">
-                                {% if member.user.avatar %}
-                                    <img src="{{ member.user.avatar }}" alt="{{ member.user.username }}" class="w-full h-full object-cover">
-                                {% else %}
-                                    <div class="w-full h-full flex items-center justify-center text-delta-gold font-tech font-bold">
-                                        {{ member.user.username|slice:":1"|upper }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="flex-1">
-                                <div class="font-corp font-semibold text-white">{{ member.user.username }}</div>
-                                <div class="text-xs text-gray-400 font-mono uppercase">{{ member.role }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </section>
-        {% endif %}
-
-        {% else %}
-        <!-- Privacy Notice for Private Teams -->
-        <section class="mb-8">
-            <div class="glass-panel rounded-xl p-8 text-center">
-                <div class="text-6xl mb-4">🔒</div>
-                <h2 class="font-tech text-2xl font-bold text-gradient-gold mb-2">Private Team</h2>
-                <p class="text-gray-400 font-corp">This team's details are only visible to members.</p>
-                {% if error_message %}
-                    <p class="text-sm text-gray-500 mt-4 font-mono">{{ error_message }}</p>
-                {% endif %}
-            </div>
-        </section>
-        {% endif %}
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="border-t border-delta-border mt-12">
-        <div class="max-w-7xl mx-auto px-4 py-6">
-            <p class="text-center text-gray-500 text-sm font-corp">
-                Team Profile • {% if team.organization %}Part of <span class="text-gradient-gold font-semibold">{{ team.organization.name }}</span>{% else %}Independent Team{% endif %}
-            </p>
-        </div>
-    </footer>
-
-</div>
-{% endblock %}
+                        
+                        <div class="flex items-center gap-4 text-sm text-gray-400">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                                </svg>
+                                {{ team.region }}
+                            </span>
+                            
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
+                                </svg>
+                                Game ID: {{ team.game_id }}
+                            </span>
+                            
+                            {% if team.is_organization_team %}
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                                 <a href="/orgs/{{ team.organization_slug }}/" class="text-blue-400 hover:text-blue-300">{{ team.organization_name }}</a>
                             </span>

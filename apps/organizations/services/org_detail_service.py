@@ -5,6 +5,7 @@ Provides context for organization detail page.
 
 from django.shortcuts import get_object_or_404
 from apps.organizations.models.organization import Organization
+from apps.organizations.permissions import get_permission_context
 
 
 def _safe_game_label(team):
@@ -47,19 +48,8 @@ def get_org_detail_context(org_slug, viewer):
         raise Http404(f'Organization with slug "{org_slug}" does not exist.')
     
     # Permission: CEO OR org MANAGER/ADMIN OR staff
-    can_manage_org = False
-    if viewer.is_authenticated:
-        if viewer.is_staff:
-            can_manage_org = True
-        elif organization.ceo_id == viewer.id:
-            can_manage_org = True
-        else:
-            # Check org membership
-            membership = organization.staff_memberships.filter(
-                user=viewer,
-                role__in=['MANAGER', 'ADMIN']
-            ).first()
-            can_manage_org = membership is not None
+    # Use centralized permission module
+    permissions = get_permission_context(viewer, organization)
     
     # Get active teams (Team has 'status' field, not 'is_active')
     # Safe fallback: never crash on status value assumptions
@@ -102,13 +92,18 @@ def get_org_detail_context(org_slug, viewer):
     return {
         'organization': organization,
         'can_manage_org': can_manage_org,
+    return {
+        'organization': organization,
+        'teams': teams_list,
         'active_teams_count': active_teams_count,
         'squads': squads,
         # Empty placeholders for future wiring
         'activity_logs': [],
         'staff_members': [],
         'streams': [],
-        # UI role and type for template
-        'ui_role': 'OWNER' if can_manage_org else 'PUBLIC',
+        # Permissions from centralized module
+        **permissions,
+        # UI role for legacy template compatibility
+        'ui_role': 'OWNER' if permissions['can_manage_org'] else 'PUBLIC',
         'ui_type': 'PRO',  # Safe default; can be enhanced later based on org tier
     }

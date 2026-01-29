@@ -1,0 +1,2839 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="description" content="DeltaCrown Team Detail - Team Profile Hub (Polymorphic Demo)." />
+  <title>Protocol V | Team Profile Hub | DeltaCrown</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Clean + readable (body), esports vibe (headings), mono for chips -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Space Grotesk"', "sans-serif"],           // headings
+            ui: ['"Plus Jakarta Sans"', "sans-serif"],            // body/ui (cleaner)
+            mono: ['"JetBrains Mono"', "monospace"],              // tiny labels
+          },
+          colors: {
+            delta: {
+              base: "#000000",
+              obsidian: "#050508",
+              surface: "#0A0A0F",
+              highlight: "#12121A",
+              gold: "#FFD700",
+              gold_dim: "#BFA200",
+              violet: "#6C00FF",
+              electric: "#00E5FF",
+              danger: "#FF3131",
+              success: "#00FF41",
+              slate: "#94A3B8",
+            },
+            team: {
+              primary: "var(--team-primary)",
+              dim: "var(--team-dim)",
+              glow: "var(--team-glow)",
+            },
+          },
+          boxShadow: {
+            "glow-team": "0 0 44px var(--team-glow)",
+            "glow-gold": "0 0 34px rgba(255, 215, 0, 0.14)",
+            "depth-soft": "0 20px 60px rgba(0,0,0,0.55)",
+          },
+          backgroundImage: {
+            "noise": "url('https://grainy-gradients.vercel.app/noise.svg')",
+            "hero-soft": "linear-gradient(to top, rgba(0,0,0,1) 12%, rgba(0,0,0,.72) 48%, rgba(0,0,0,.08) 100%)",
+            "sheen": "linear-gradient(135deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,0) 40%, rgba(255,255,255,.10) 100%)",
+            "grid-gold": "linear-gradient(rgba(255,215,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,215,0,0.03) 1px, transparent 1px)",
+          },
+          keyframes: {
+            shimmer: {
+              "0%": { transform: "translateX(-120%) skewX(-12deg)" },
+              "100%": { transform: "translateX(240%) skewX(-12deg)" },
+            },
+            floaty: {
+              "0%,100%": { transform: "translateY(0px)" },
+              "50%": { transform: "translateY(-6px)" },
+            },
+            pulseRing: {
+              "0%": { transform: "scale(0.95)", opacity: 0.75 },
+              "70%": { transform: "scale(1.35)", opacity: 0 },
+              "100%": { transform: "scale(0.95)", opacity: 0 },
+            },
+          },
+          animation: {
+            shimmer: "shimmer 2.2s linear infinite",
+            floaty: "floaty 6s ease-in-out infinite",
+            pulseRing: "pulseRing 2.2s ease-out infinite",
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    :root{
+      /* Default team theme */
+      --team-primary: #FFD700;
+      --team-dim: rgba(255, 215, 0, 0.12);
+      --team-glow: rgba(255, 215, 0, 0.18);
+
+      /* liquid glass tuning */
+      --glass-bg: rgba(10, 10, 15, 0.50);
+      --glass-bg-strong: rgba(10, 10, 15, 0.72);
+      --glass-brd: rgba(255, 255, 255, 0.10);
+      --glass-brd-soft: rgba(255, 255, 255, 0.07);
+      --glass-hi: rgba(255,255,255,0.14);
+    }
+
+    /* ====== NEW: Contrast & section separation tuning ====== */
+    :root{
+      /* lighten the glass slightly so sections don’t all look the same heavy slab */
+      --glass-bg: rgba(10, 10, 15, 0.42);
+      --glass-bg-strong: rgba(10, 10, 15, 0.62);
+
+      /* slightly clearer borders for hierarchy */
+      --glass-brd: rgba(255,255,255,0.12);
+      --glass-brd-soft: rgba(255,255,255,0.09);
+
+      /* section glow wash (very subtle) */
+      --section-wash: color-mix(in srgb, var(--team-primary) 10%, transparent);
+    }
+
+    /* Each section gets a soft “wash” so your eye understands boundaries */
+    .section-wrap{
+      position: relative;
+    }
+    .section-wrap::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      pointer-events:none;
+      background:
+        radial-gradient(1200px 420px at 18% 0%, var(--section-wash), transparent 60%),
+        radial-gradient(900px 360px at 92% 8%, rgba(255,255,255,0.05), transparent 62%);
+      opacity: .75;
+    }
+
+    /* Section header visual strip (icon + title + desc) */
+    .section-head{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .section-kicker{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      letter-spacing: .26em;
+      text-transform: uppercase;
+      color: rgba(148,163,184,.85);
+    }
+    .section-icon{
+      width:40px; height:40px;
+      border-radius: 14px;
+      background: rgba(0,0,0,.40);
+      border: 1px solid rgba(255,255,255,.12);
+      display:grid;
+      place-items:center;
+      position: relative;
+      overflow:hidden;
+    }
+    .section-icon::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: radial-gradient(420px 160px at 20% 0%, var(--team-dim), transparent 55%);
+      opacity:.9;
+    }
+    .section-icon > svg{ position: relative; z-index:1; }
+    .section-title{
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+    }
+    .section-desc{
+      margin-top: 6px;
+      color: rgba(148,163,184,.85);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Make “cards inside cards” less muddy */
+    .inner-card{
+      background: rgba(0,0,0,.26);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+
+    .subnav-link.is-active{
+      background: color-mix(in srgb, var(--team-primary) 16%, rgba(255,255,255,.04));
+      border: 1px solid color-mix(in srgb, var(--team-primary) 30%, rgba(255,255,255,.10));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--team-primary) 12%, transparent);
+      color: #fff;
+    }
+
+    /* Dynamic themes (toggled on body[data-theme]) */
+    body[data-theme="DEFAULT"]  { --team-primary:#FFD700; --team-dim:rgba(255,215,0,.12);  --team-glow:rgba(255,215,0,.18); }
+    body[data-theme="VIOLATION"]{ --team-primary:#6C00FF; --team-dim:rgba(108,0,255,.16); --team-glow:rgba(108,0,255,.26); }
+    body[data-theme="CYBER"]    { --team-primary:#00E5FF; --team-dim:rgba(0,229,255,.16); --team-glow:rgba(0,229,255,.26); }
+    body[data-theme="CRIMSON"]  { --team-primary:#FF3131; --team-dim:rgba(255,49,49,.16); --team-glow:rgba(255,49,49,.26); }
+    body[data-theme="EMERALD"]  { --team-primary:#00FF41; --team-dim:rgba(0,255,65,.16);  --team-glow:rgba(0,255,65,.26); }
+
+    body{
+      background:#000;
+      color:#E2E8F0;
+      overflow-x:hidden;
+    }
+
+    /* subtle premium scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #050508; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--team-primary); }
+
+    /* Liquid Glass Surface */
+    .liquid-glass{
+      background: var(--glass-bg);
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      border: 1px solid var(--glass-brd-soft);
+      box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+      position: relative;
+      overflow: hidden;
+    }
+    .liquid-glass::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background: radial-gradient(1200px 260px at 20% 0%, rgba(255,255,255,0.14), transparent 55%),
+                  radial-gradient(900px 240px at 90% 10%, rgba(255,255,255,0.09), transparent 58%),
+                  radial-gradient(1000px 420px at 70% 120%, rgba(255,255,255,0.05), transparent 52%);
+      pointer-events:none;
+      opacity: .9;
+    }
+    .liquid-glass::after{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03), rgba(255,255,255,0.09));
+      mix-blend-mode: overlay;
+      pointer-events:none;
+      opacity: .35;
+    }
+
+    /* Liquid border trace */
+    .liquid-trace{
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .liquid-trace:hover{
+      border-color: rgba(255,255,255,.16);
+      box-shadow: 0 18px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,.06), 0 0 42px var(--team-glow);
+      transform: translateY(-2px);
+    }
+    .liquid-trace{
+      transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease, background .25s ease;
+    }
+
+    /* Polymorphic visibility logic (same as Gemini, kept functional) */
+    .role-owner-only, .role-staff-only, .role-member-only, .role-public-only,
+    .game-fps-only, .game-moba-only, .game-sports-only, .game-br-only{
+      display:none !important;
+    }
+
+    /* IMPORTANT: Owner should also see staff-only blocks in many systems.
+       We'll keep the original behavior AND add a convenience rule so owner sees staff blocks too (optional).
+       If you don't want it, remove the second line. */
+    body[data-role="OWNER"]  .role-owner-only { display:flex !important; }
+    body[data-role="OWNER"]  .role-staff-only { display:flex !important; } /* optional: owner inherits staff */
+    body[data-role="STAFF"]  .role-staff-only { display:flex !important; }
+    body[data-role="MEMBER"] .role-member-only{ display:flex !important; }
+    body[data-role="PUBLIC"] .role-public-only{ display:flex !important; }
+
+    body[data-game="FPS"]    .game-fps-only   { display:flex !important; }
+    body[data-game="MOBA"]   .game-moba-only  { display:flex !important; }
+    body[data-game="SPORTS"] .game-sports-only{ display:flex !important; }
+    body[data-game="BR"]     .game-br-only    { display:flex !important; }
+
+    /* tiny chip */
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      padding:.35rem .6rem;
+      border-radius:999px;
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: rgba(226,232,240,.92);
+      font-family: "JetBrains Mono", monospace;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .chip.primary{
+      border-color: color-mix(in srgb, var(--team-primary) 35%, transparent);
+      background: color-mix(in srgb, var(--team-primary) 14%, rgba(255,255,255,.02));
+      color: var(--team-primary);
+    }
+    .chip.good{
+      border-color: rgba(0,255,65,.25);
+      background: rgba(0,255,65,.10);
+      color:#00FF41;
+    }
+    .chip.warn{
+      border-color: rgba(255,49,49,.28);
+      background: rgba(255,49,49,.10);
+      color:#FF3131;
+    }
+
+    /* Stat pill / mini bento */
+    .stat-pill{
+      background: rgba(0,0,0,.38);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 18px;
+      padding: 12px 14px;
+      min-width: 160px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-pill::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: radial-gradient(520px 160px at 10% 0%, var(--team-dim), transparent 55%);
+      opacity: .9;
+      pointer-events:none;
+    }
+
+    /* shimmer sweep for premium */
+    .sweep{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      opacity: .55;
+    }
+    .sweep > span{
+      position:absolute;
+      top:-30%;
+      left:-40%;
+      width: 50%;
+      height: 160%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+      transform: skewX(-12deg);
+      animation: shimmer 2.6s linear infinite;
+      opacity: .85;
+    }
+
+    /* Hero banner mask */
+    .hero-mask{
+      mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
+    }
+
+    /* Live dot */
+    .live-dot{
+      width:8px; height:8px;
+      background:#FF3131;
+      border-radius:999px;
+      position:relative;
+    }
+    .live-dot::after{
+      content:"";
+      position:absolute;
+      inset:-6px;
+      border-radius:999px;
+      background: rgba(255,49,49,.35);
+      animation: pulseRing 2.2s ease-out infinite;
+    }
+
+    /* Floating demo controller */
+    .controller-select{
+      width:100%;
+      background: rgba(0,0,0,.45);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 12px;
+      padding: 10px 10px;
+      color: white;
+      font-size: 12px;
+      outline: none;
+      font-family: "JetBrains Mono", monospace;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .controller-select:focus{
+      border-color: color-mix(in srgb, var(--team-primary) 60%, rgba(255,255,255,.10));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--team-primary) 18%, transparent);
+    }
+
+    /* Primary button */
+    .btn-primary{
+      background: linear-gradient(135deg, color-mix(in srgb, var(--team-primary) 92%, #fff 8%), var(--team-primary));
+      color: #000;
+      border: 1px solid color-mix(in srgb, var(--team-primary) 55%, transparent);
+      box-shadow: 0 18px 50px var(--team-glow);
+      transition: transform .18s ease, filter .18s ease, box-shadow .18s ease;
+    }
+    .btn-primary:hover{
+      transform: translateY(-2px);
+      filter: brightness(1.05);
+      box-shadow: 0 22px 60px var(--team-glow);
+    }
+    .btn-ghost{
+      background: rgba(0,0,0,.45);
+      border: 1px solid rgba(255,255,255,.12);
+      color: rgba(226,232,240,.92);
+      transition: transform .18s ease, background .18s ease, border-color .18s ease;
+    }
+    .btn-ghost:hover{
+      transform: translateY(-2px);
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.18);
+    }
+    .btn-icon{
+      background: rgba(0,0,0,.45);
+      border: 1px solid rgba(255,255,255,.12);
+      transition: transform .18s ease, background .18s ease, border-color .18s ease;
+    }
+    .btn-icon:hover{
+      transform: translateY(-2px);
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.18);
+    }
+
+/* ===== Card Decoration System (Watermark + Top Accent) ===== */
+.card-accent{
+  border-top: 2px solid rgba(255,255,255,0.08);
+}
+.card-accent[data-accent="team"]{ border-top-color: color-mix(in srgb, var(--team-primary) 70%, transparent); }
+.card-accent[data-accent="success"]{ border-top-color: rgba(0,255,65,0.65); }
+.card-accent[data-accent="electric"]{ border-top-color: rgba(0,229,255,0.55); }
+.card-accent[data-accent="danger"]{ border-top-color: rgba(255,49,49,0.55); }
+.card-accent[data-accent="violet"]{ border-top-color: rgba(108,0,255,0.55); }
+
+.wm-icon{
+  position:absolute;
+  right: 14px;
+  top: 14px;
+  width: 86px;
+  height: 86px;
+  opacity: 0.06;            /* ghost */
+  pointer-events:none;
+  filter: blur(0.0px);
+}
+.wm-icon.soft{ opacity: 0.045; }
+    /* ========== SECTION TONE (ACCENTS) ==========
+       Add data-accent="electric|success|danger|gold|team" on major cards
+    */
+    [data-accent] { position: relative; }
+    [data-accent]::before{
+      content:"";
+      position:absolute; left:0; right:0; top:0;
+      height:2px;
+      opacity:.95;
+      border-radius: 999px;
+      background: rgba(255,255,255,.12);
+    }
+    [data-accent="electric"]::before{ background: rgba(0,229,255,.75); }
+    [data-accent="success"]::before{ background: rgba(0,255,65,.65); }
+    [data-accent="danger"]::before{ background: rgba(255,49,49,.75); }
+    [data-accent="gold"]::before{ background: rgba(255,215,0,.75); }
+    [data-accent="team"]::before{ background: rgba(255,255,255,.18); }
+
+    /* ========== WATERMARK / GHOST ICON ==========
+       Place inside card: <div class="wm-icon">...svg...</div>
+    */
+    .wm-icon{
+      position:absolute;
+      right:-10px; top:-12px;
+      width:160px; height:160px;
+      opacity:.06;
+      pointer-events:none;
+      filter: blur(.2px);
+      transform: rotate(8deg);
+    }
+    @media (max-width: 640px){
+      .wm-icon{ width:120px; height:120px; right:-18px; top:-18px; opacity:.07; }
+    }
+
+    /* ========== TEXT CLAMP (NO PLUGIN NEEDED) ==========
+       Use: class="clamp-2" / "clamp-3"
+    */
+    .clamp-1, .clamp-2, .clamp-3{
+      display:-webkit-box;
+      -webkit-box-orient: vertical;
+      overflow:hidden;
+    }
+    .clamp-1{ -webkit-line-clamp: 1; }
+    .clamp-2{ -webkit-line-clamp: 2; }
+    .clamp-3{ -webkit-line-clamp: 3; }
+
+    /* ========== ICON-ONLY LABELS ==========
+       Use for compact labels with tooltip:
+       <span class="icon-pill" title="Followers">...</span>
+    */
+    .icon-pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:30px;
+      height:30px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+      color: rgba(226,232,240,.85);
+      transition: transform .2s, background .2s, border-color .2s;
+    }
+    .icon-pill:hover{
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.14);
+    }
+
+    /* ========== LIQUID GLASS CONSISTENCY ==========
+       Make all glass panels feel “liquid”, not flat.
+    */
+    .glass-panel{
+      background: linear-gradient(
+        180deg,
+        rgba(255,255,255,.07) 0%,
+        rgba(255,255,255,.03) 60%,
+        rgba(255,255,255,.02) 100%
+      );
+      backdrop-filter: blur(18px) saturate(1.1);
+      -webkit-backdrop-filter: blur(18px) saturate(1.1);
+    }
+  </style>
+</head>
+
+<body class="font-ui selection:bg-[var(--team-primary)] selection:text-black"
+      data-role="OWNER"
+      data-game="FPS"
+      data-theme="DEFAULT">
+
+  <!-- Ambient background (no global nav) -->
+  <div class="fixed inset-0 z-0 pointer-events-none">
+    <div class="absolute inset-0 bg-noise opacity-[0.035]"></div>
+    <div class="absolute inset-0 bg-[linear-gradient(rgba(255,215,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,215,0,0.02)_1px,transparent_1px)] bg-[size:46px_46px] opacity-[0.20]"></div>
+    <div class="absolute -top-40 -right-40 w-[760px] h-[640px] rounded-full blur-[220px] opacity-10"
+         style="background: var(--team-primary)"></div>
+    <div class="absolute -bottom-52 -left-40 w-[720px] h-[560px] bg-delta-violet rounded-full blur-[230px] opacity-10"></div>
+  </div>
+
+  <!-- Demo Controller (bottom-right as requested) -->
+  <div class="fixed bottom-5 right-5 z-[200] liquid-glass liquid-trace rounded-2xl p-4 w-[280px] shadow-2xl">
+    <div class="relative z-[1]">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex w-2.5 h-2.5 rounded-full" style="background: var(--team-primary)"></span>
+          <span class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-300">Demo Controller</span>
+        </div>
+        <span class="chip primary"><span class="live-dot"></span> live</span>
+      </div>
+
+      <div class="mt-4 space-y-4">
+        <div>
+          <label class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500 flex items-center gap-2 mb-2">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+            Viewer Role
+          </label>
+          <select id="roleSelect" class="controller-select">
+            <option value="PUBLIC">PUBLIC / FAN</option>
+            <option value="MEMBER">MEMBER</option>
+            <option value="STAFF">STAFF</option>
+            <option value="OWNER" selected>OWNER</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500 flex items-center gap-2 mb-2">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Game Context
+          </label>
+          <select id="gameSelect" class="controller-select">
+            <option value="FPS" selected>FPS (VAL/CS2/R6)</option>
+            <option value="MOBA">MOBA (DOTA2/MLBB)</option>
+            <option value="SPORTS">SPORTS (FC/eFOOT)</option>
+            <option value="BR">BR (PUBG/FF/CODM)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500 mb-2 block">
+            Theme
+          </label>
+          <div class="grid grid-cols-5 gap-2">
+            <button class="btn-icon rounded-xl h-10 grid place-items-center"
+                    data-theme-btn="DEFAULT" title="Default / Gold">
+              <span class="w-5 h-5 rounded-full" style="background:#FFD700"></span>
+            </button>
+            <button class="btn-icon rounded-xl h-10 grid place-items-center"
+                    data-theme-btn="VIOLATION" title="Violet">
+              <span class="w-5 h-5 rounded-full" style="background:#6C00FF"></span>
+            </button>
+            <button class="btn-icon rounded-xl h-10 grid place-items-center"
+                    data-theme-btn="CYBER" title="Cyan">
+              <span class="w-5 h-5 rounded-full" style="background:#00E5FF"></span>
+            </button>
+            <button class="btn-icon rounded-xl h-10 grid place-items-center"
+                    data-theme-btn="CRIMSON" title="Crimson">
+              <span class="w-5 h-5 rounded-full" style="background:#FF3131"></span>
+            </button>
+            <button class="btn-icon rounded-xl h-10 grid place-items-center"
+                    data-theme-btn="EMERALD" title="Emerald">
+              <span class="w-5 h-5 rounded-full" style="background:#00FF41"></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/10">
+          <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">
+            Active:
+          </div>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <span id="rolePill" class="chip primary">OWNER</span>
+            <span id="gamePill" class="chip">FPS</span>
+            <span id="themePill" class="chip">DEFAULT</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE ROOT -->
+  <div id="team-detail-page" class="relative z-10">
+
+    <!-- HERO (Banner-dominant + Dock) -->
+    <header class="relative">
+      <!-- Banner Area (dominant visibility) -->
+      <div class="relative w-full overflow-hidden">
+        <!-- Banner height: mobile shorter, desktop bigger -->
+        <div class="relative h-[380px] sm:h-[440px] lg:h-[520px]">
+          <!-- Banner Images (game-adaptive) -->
+          <div class="absolute inset-0">
+            <img
+              class="w-full h-full object-cover hero-mask opacity-[0.78] scale-[1.02] game-fps-only"
+              src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070"
+              alt="FPS banner"
+            />
+            <img
+              class="w-full h-full object-cover hero-mask opacity-[0.78] scale-[1.02] game-moba-only"
+              src="https://images.unsplash.com/photo-1542751110-97427bbecf20?q=80&w=2070"
+              alt="MOBA banner"
+            />
+            <img
+              class="w-full h-full object-cover hero-mask opacity-[0.78] scale-[1.02] game-br-only"
+              src="https://images.unsplash.com/photo-1599553733075-807d9d7092c4?q=80&w=2070"
+              alt="BR banner"
+            />
+            <img
+              class="w-full h-full object-cover hero-mask opacity-[0.78] scale-[1.02] game-sports-only"
+              src="https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2070"
+              alt="Sports banner"
+            />
+          </div>
+
+          <!-- Lighter overlay for visibility (do not suffocate banner) -->
+          <div class="absolute inset-0 bg-hero-soft"></div>
+
+          <!-- Subtle premium highlights -->
+          <div class="absolute inset-0 pointer-events-none">
+            <div class="absolute inset-0 bg-[radial-gradient(1200px_420px_at_20%_0%,var(--team-dim),transparent_58%)] opacity-90"></div>
+            <div class="absolute inset-0 bg-[radial-gradient(900px_380px_at_90%_12%,rgba(255,255,255,.06),transparent_62%)]"></div>
+          </div>
+
+          <!-- Top banner chips row (keeps banner visible, adds context without blocking) -->
+          <div class="relative max-w-[1600px] mx-auto px-5 sm:px-6 pt-5 sm:pt-7">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+              <span class="chip primary">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+                Verified
+              </span>
+
+              <!-- Org-owned indicator (example) -->
+              <span class="chip">
+                <svg class="w-3.5 h-3.5 text-delta-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 3l8 4v6c0 5-3 9-8 10C7 22 4 18 4 13V7l8-4z"/>
+                </svg>
+                Org Team
+              </span>
+
+              <span class="chip">
+                <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                Est. 2024
+              </span>
+
+              <span class="chip good">
+                <span class="live-dot"></span>
+                Live now
+              </span>
+
+              <!-- Game label (purely visual; use backend later) -->
+              <span class="chip primary game-fps-only">
+                <span class="w-2 h-2 rounded-full bg-delta-electric"></span> FPS Division
+              </span>
+              <span class="chip primary game-moba-only">
+                <span class="w-2 h-2 rounded-full bg-delta-violet"></span> MOBA Division
+              </span>
+              <span class="chip primary game-br-only">
+                <span class="w-2 h-2 rounded-full bg-delta-danger"></span> BR Division
+              </span>
+              <span class="chip primary game-sports-only">
+                <span class="w-2 h-2 rounded-full bg-delta-gold"></span> Sports Division
+              </span>
+            </div>
+          </div>
+
+          <!-- A thin “banner strip” near bottom (keeps visuals, adds premium feel) -->
+          <div class="absolute left-0 right-0 bottom-0 h-16 sm:h-20 pointer-events-none">
+            <div class="h-full bg-[linear-gradient(to_right,transparent,rgba(255,255,255,.06),transparent)] opacity-40"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HERO DOCK (10–20% overlap between hero and body) -->
+      <div class="relative -mt-14 sm:-mt-16 lg:-mt-20">
+        <div class="max-w-[1600px] mx-auto px-5 sm:px-6">
+          <div class="liquid-glass liquid-trace rounded-[28px]">
+            <div class="relative z-[1] p-4 sm:p-6 lg:p-7">
+              <!-- Dock layout: mobile stacked, desktop split -->
+              <div class="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-7">
+
+                <!-- Left: Logo + name + meta -->
+                <div class="flex items-start gap-4 sm:gap-5">
+                  <!-- Logo (kept in dock to preserve banner visibility) -->
+                  <div class="relative shrink-0">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-2xl bg-black/55 border border-white/10 overflow-hidden shadow-depth-soft">
+                      <!-- Replace with real 512x512 logo -->
+                      <img
+                        src="https://api.dicebear.com/7.x/identicon/svg?seed=ProtocolV"
+                        alt="Team logo"
+                        class="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    <!-- Verified badge on logo corner -->
+                    <div class="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl grid place-items-center text-black shadow-glow-team"
+                         style="background: var(--team-primary)">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h1 class="font-display font-bold tracking-tight text-white text-2xl sm:text-3xl lg:text-4xl uppercase">
+                        Protocol <span style="color: var(--team-primary)">V</span>
+                      </h1>
+
+                      <!-- Tier chip -->
+                      <span class="chip primary">
+                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                        Pro Tier
+                      </span>
+
+                      <!-- Location / region -->
+                      <span class="chip">
+                        <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3z"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19.5 8c0 7-7.5 13-7.5 13S4.5 15 4.5 8a7.5 7.5 0 1115 0z"/>
+                        </svg>
+                        APAC
+                      </span>
+                    </div>
+
+                    <p class="mt-2 text-slate-400 text-sm leading-relaxed max-w-2xl">
+                      Elite tactical division of SYNTAX Esports — precision executes, disciplined rotations, and relentless pace.
+                    </p>
+
+<!-- Micro meta row (lighter, more meaningful) -->
+<div class="mt-3 flex flex-wrap items-center gap-2">
+  <!-- Identity: Org-owned => show org name, otherwise show Independent -->
+  <span id="identityLine" class="chip">
+    <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 21h18M6 21V7l6-4 6 4v14M9 21v-6h6v6"/>
+    </svg>
+    <span class="text-slate-200" id="identityValue">SYNTAX Esports</span>
+  </span>
+
+  <!-- Game-wise rank (primary) -->
+  <span class="chip primary" id="gameRankBadge" title="Rank within this game">
+    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+    </svg>
+    <span id="gameRankText">VALORANT #14</span>
+  </span>
+
+  <!-- Global rank across all games (secondary) -->
+  <span class="chip" id="globalRankBadge" title="Global rank across DeltaCrown">
+    <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 2l3 7h7l-5.5 4.1L18.5 21 12 16.8 5.5 21l2-7.9L2 9h7l3-7z"/>
+    </svg>
+    <span id="globalRankText" class="text-slate-200">Global #38</span>
+  </span>
+
+  <!-- Game label (replaces timezone) -->
+  <span class="chip" id="gameLabelBadge">
+    <svg class="w-3.5 h-3.5 text-team-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M7 21h10a4 4 0 004-4V7a4 4 0 00-4-4H7a4 4 0 00-4 4v10a4 4 0 004 4z"/>
+    </svg>
+    <span class="text-slate-200" id="gameLabelText">VALORANT • PC</span>
+  </span>
+</div>
+                  </div>
+                </div>
+
+                <!-- Right: CTAs (role adaptive) -->
+                <div class="lg:ml-auto w-full lg:w-auto">
+                  <!-- Owner/Staff CTA Block -->
+                  <div class="role-owner-only role-staff-only w-full flex flex-col sm:flex-row gap-2 sm:gap-3 lg:justify-end">
+                    <button
+                      class="btn-primary rounded-2xl px-4 sm:px-5 py-3 text-xs sm:text-[13px] font-semibold uppercase tracking-[0.14em] flex items-center justify-center gap-2 w-full sm:w-auto">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                      </svg>
+                      Open Team Control Plane
+                    </button>
+
+                    <!-- Sleek icon pills -->
+                    <div class="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                      <button class="btn-ghost rounded-2xl px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4 text-delta-electric" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Offers
+                        <span class="chip warn !px-2 !py-1 !rounded-full !text-[9px] !tracking-[0.12em]">2</span>
+                      </button>
+
+                      <button class="btn-ghost rounded-2xl px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" style="color: var(--team-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Scrims
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Public CTA Block -->
+                  <div class="role-public-only w-full flex flex-col sm:flex-row gap-2 sm:gap-3 lg:justify-end">
+                    <button
+                      class="btn-primary rounded-2xl px-4 sm:px-5 py-3 text-xs sm:text-[13px] font-semibold uppercase tracking-[0.14em] flex items-center justify-center gap-2 w-full sm:w-auto">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                      </svg>
+                      Follow Team
+                    </button>
+
+                    <div class="grid grid-cols-2 gap-2 w-full sm:w-auto">
+                      <button class="btn-ghost rounded-2xl px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        Alerts
+                      </button>
+
+                      <button class="rounded-2xl px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center justify-center gap-2"
+                              style="background: rgba(0,229,255,.10); border:1px solid rgba(0,229,255,.30); color:#00E5FF">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Member CTA Block -->
+                  <div class="role-member-only w-full flex flex-col sm:flex-row gap-2 sm:gap-3 lg:justify-end">
+                    <button class="rounded-2xl px-4 sm:px-5 py-3 text-xs sm:text-[13px] font-semibold uppercase tracking-[0.14em] flex items-center justify-center gap-2 w-full sm:w-auto"
+                            style="background: rgba(108,0,255,.18); border:1px solid rgba(108,0,255,.30); color:#fff">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586M7.586 15.414L11 12h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/>
+                      </svg>
+                      Team Chat
+                    </button>
+
+                    <button class="btn-ghost rounded-2xl px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center justify-center gap-2 w-full sm:w-auto">
+                      <svg class="w-4 h-4 text-delta-electric" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                      </svg>
+                      Availability
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Metrics Row (bento strip; scrolls on mobile) -->
+              <div class="mt-5 sm:mt-6">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">
+                    Key Metrics
+                  </div>
+<!-- Recruiting chip (only show if team is recruiting) -->
+<span class="chip warn" id="recruitingChip" style="display:none" title="This team is currently recruiting">
+  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/>
+    <circle cx="9" cy="7" r="4" stroke-width="2"/>
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 8v6m3-3h-6"/>
+  </svg>
+  Recruiting
+</span>
+                </div>
+
+<div class="mt-3 flex gap-3 overflow-x-auto pb-2" id="heroMetricsRow">
+  <!-- Crown Points (team score) -->
+  <div class="stat-pill" data-accent="gold">
+    <div class="wm-icon text-team-primary">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.1L18.5 21 12 16.8 5.5 21l2-7.9L2 9h7l3-7z"/></svg>
+    </div>
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="icon-pill" title="Crown Points">
+          <svg class="w-4 h-4 text-team-primary" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </span>
+        <span class="text-xs font-semibold text-slate-200">Crown Points</span>
+      </div>
+      <span class="text-xl font-cyber font-black text-team-primary" id="metricCrownPoints">8,450</span>
+    </div>
+  </div>
+
+  <!-- Trophies -->
+  <div class="stat-pill" data-accent="success">
+    <div class="wm-icon text-delta-success">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4h10v2h3v3a6 6 0 01-6 6h-1a5 5 0 01-2 3.9V21h3v2H8v-2h3v-2.1A5 5 0 019 15H8a6 6 0 01-6-6V6h3V4zm-3 4v1a4 4 0 004 4h1V8H4zm16 0h-5v5h1a4 4 0 004-4V8z"/></svg>
+    </div>
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="icon-pill" title="Trophies (tournaments won)">
+          <svg class="w-4 h-4 text-delta-success" fill="currentColor" viewBox="0 0 24 24"><path d="M7 4h10v2h3v3a6 6 0 01-6 6h-1a5 5 0 01-2 3.9V21h3v2H8v-2h3v-2.1A5 5 0 019 15H8a6 6 0 01-6-6V6h3V4zm-3 4v1a4 4 0 004 4h1V8H4zm16 0h-5v5h1a4 4 0 004-4V8z"/></svg>
+        </span>
+        <span class="text-xs font-semibold text-slate-200">Trophies</span>
+      </div>
+      <div class="text-right leading-tight">
+        <div class="text-xl font-cyber font-black text-white" id="metricTrophies">42</div>
+        <div class="text-[11px] text-slate-400" id="metricTrophySeasons">3 seasons</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- W/L Record -->
+  <div class="stat-pill" data-accent="team">
+    <div class="wm-icon text-white">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h2v18H3V3zm16 7h2v11h-2V10zM11 13h2v8h-2v-8zM7 9h2v12H7V9zm8-6h2v18h-2V3z"/></svg>
+    </div>
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="icon-pill" title="Matches (W-L)">
+          <svg class="w-4 h-4 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12 6-12 7z"/></svg>
+        </span>
+        <span class="text-xs font-semibold text-slate-200">W–L</span>
+      </div>
+      <span class="text-xl font-cyber font-black text-white" id="metricWL">68–32</span>
+    </div>
+  </div>
+
+  <!-- Win Rate -->
+  <div class="stat-pill" data-accent="electric">
+    <div class="wm-icon text-delta-electric">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+    </div>
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="icon-pill" title="Win Rate">
+          <svg class="w-4 h-4 text-delta-electric" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        </span>
+        <span class="text-xs font-semibold text-slate-200">Win Rate</span>
+      </div>
+      <span class="text-xl font-cyber font-black text-delta-electric" id="metricWinRate">68.4%</span>
+    </div>
+  </div>
+
+  <!-- Followers -->
+  <div class="stat-pill" data-accent="team">
+    <div class="wm-icon text-white">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 3-1.34 3-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zM8 11c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+    </div>
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="icon-pill" title="Followers">
+          <svg class="w-4 h-4 text-slate-200" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11c1.66 0 3-1.34 3-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zM8 11c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        </span>
+        <span class="text-xl font-cyber font-black text-white" id="metricFollowers">18.2k</span>
+    </div>
+  </div>
+
+  <!-- Active Bounties -->
+  <div class="stat-pill" data-accent="danger">
+    <div class="wm-icon text-delta-danger">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1l3 7h7l-5.5 4.1L18.5 20 12 15.8 5.5 20l2-7.9L2 8h7l3-7z"/></svg>
+    </div>
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="icon-pill" title="Active bounties">
+          <svg class="w-4 h-4 text-delta-danger" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4.1L18.5 21 12 16.8 5.5 21l2-7.9L2 9h7l3-7z"/></svg>
+        </span>
+        <span class="text-xs font-semibold text-slate-200">Bounties</span>
+      </div>
+      <span class="text-xl font-cyber font-black text-delta-danger" id="metricBounties">6</span>
+    </div>
+  </div>
+</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- spacing after dock so next section doesn't collide -->
+      <div class="h-10 sm:h-12 lg:h-14"></div>
+    </header>
+
+    <!-- END OF PART 1 (Stop here: Hero + controller + CSS logic) -->
+  </div>
+
+<!-- PART 2: Sub-Navigation + Overview (High-signal summary) -->
+    <!-- Sub-Navigation (sticky) -->
+    <div id="subnav" class="sticky top-0 z-[120]">
+      <div class="liquid-glass border-t border-white/5 border-b border-white/10">
+        <div class="relative z-[1] max-w-[1600px] mx-auto px-5 sm:px-6">
+          <div class="flex items-center gap-3 py-3">
+            <!-- Left: mini identity -->
+            <div class="hidden md:flex items-center gap-3 pr-3 border-r border-white/10">
+              <div class="w-10 h-10 rounded-xl overflow-hidden border border-white/10 bg-black/50">
+                <img
+                  src="https://api.dicebear.com/7.x/identicon/svg?seed=ProtocolV"
+                  alt="Team logo mini"
+                  class="w-full h-full object-cover"
+                />
+              </div>
+              <div class="leading-tight">
+                <div class="text-sm font-display font-bold text-white uppercase tracking-tight">
+                  Protocol <span style="color: var(--team-primary)">V</span>
+                </div>
+<div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">
+  <span id="subnavOrgLine">SYNTAX Esports</span>
+</div>
+              </div>
+            </div>
+
+            <!-- Center: scrollable tabs -->
+            <div class="flex-1 overflow-x-auto">
+              <div class="flex items-center gap-2 min-w-max">
+<a href="#overview"
+   class="subnav-link px-3 py-2 rounded-xl text-[11px] font-semibold uppercase tracking-[0.14em] btn-ghost flex items-center gap-2">
+  <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4 6h16M4 12h16M4 18h16"/>
+  </svg>
+  Overview
+</a>
+
+<a href="#roster"
+   class="subnav-link px-3 py-2 rounded-xl text-[11px] font-semibold uppercase tracking-[0.14em] btn-ghost flex items-center gap-2">
+  <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M17 20h5v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2h5"/>
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 12a4 4 0 100-8 4 4 0 000 8z"/>
+  </svg>
+  Roster
+</a>
+
+<a href="#matches"
+   class="subnav-link px-3 py-2 rounded-xl text-[11px] font-semibold uppercase tracking-[0.14em] btn-ghost flex items-center gap-2">
+  <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4z"/>
+  </svg>
+  Matches
+</a>
+
+<a href="#performance"
+   class="subnav-link px-3 py-2 rounded-xl text-[11px] font-semibold uppercase tracking-[0.14em] btn-ghost flex items-center gap-2">
+  <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4 19h16M6 16l3-4 3 2 4-6 2 3"/>
+  </svg>
+  Performance
+</a>
+
+<a href="#media"
+   class="subnav-link px-3 py-2 rounded-xl text-[11px] font-semibold uppercase tracking-[0.14em] btn-ghost flex items-center gap-2">
+  <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3 7h4l2-2h6l2 2h4v12H3V7z"/>
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 17a4 4 0 100-8 4 4 0 000 8z"/>
+  </svg>
+  Media
+</a>
+
+<a href="#tryouts"
+   class="subnav-link px-3 py-2 rounded-xl text-[11px] font-semibold uppercase tracking-[0.14em] btn-ghost flex items-center gap-2">
+  <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+  </svg>
+  Tryouts
+</a>
+
+<a href="#sponsors"
+   class="subnav-link px-3 py-2 rounded-xl text-[11px] font-semibold uppercase tracking-[0.14em] btn-ghost flex items-center gap-2">
+  <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M13.828 10.172a4 4 0 010 5.656l-1.414 1.414a4 4 0 01-5.656 0"/>
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M10.172 13.828a4 4 0 010-5.656l1.414-1.414a4 4 0 015.656 0"/>
+  </svg>
+  Sponsors
+</a>
+
+                <!-- Private tabs -->
+<a href="#ops"
+   class="subnav-link px-3 py-2 rounded-xl text-[11px] font-semibold uppercase tracking-[0.14em] btn-ghost flex items-center gap-2 role-member-only role-staff-only role-owner-only">
+  <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+  </svg>
+  Operations
+</a>
+
+<a href="#finance"
+   class="subnav-link px-3 py-2 rounded-xl text-[11px] font-semibold uppercase tracking-[0.14em] btn-ghost flex items-center gap-2 role-owner-only">
+  <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-10V6m0 12v-2"/>
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M20 12a8 8 0 11-16 0 8 8 0 0116 0z"/>
+  </svg>
+  Finance
+</a>
+
+<a href="#audit"
+   class="subnav-link px-3 py-2 rounded-xl text-[11px] font-semibold uppercase tracking-[0.14em] btn-ghost flex items-center gap-2 role-staff-only role-owner-only">
+  <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 3l8 4v6c0 5-3 9-8 10C7 22 4 18 4 13V7l8-4z"/>
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12l2 2 4-4"/>
+  </svg>
+  Audit
+</a>
+              </div>
+            </div>
+
+            <!-- Right: quick actions -->
+            <div class="hidden lg:flex items-center gap-2 pl-3 border-l border-white/10">
+              <button class="btn-icon rounded-xl w-11 h-11 grid place-items-center" title="Share">
+                <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M7 17l10-10M7 7h10v10"/>
+                </svg>
+              </button>
+
+              <button class="btn-icon rounded-xl w-11 h-11 grid place-items-center role-public-only" title="Follow">
+                <svg class="w-5 h-5" style="color: var(--team-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+              </button>
+
+              <button class="btn-primary rounded-xl px-4 h-11 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center gap-2 role-owner-only role-staff-only"
+                      title="Control Plane">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                </svg>
+                Control
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overview Section -->
+    <section id="overview" data-panel="overview" class="relative section-wrap">
+      <div class="max-w-[1600px] mx-auto px-5 sm:px-6 py-10 sm:py-12 lg:py-14">
+        <!-- Section header -->
+        <!-- NEW: Overview section header (visual + modern) -->
+        <div class="section-head">
+          <div class="min-w-0">
+            <div class="section-kicker">
+              <span class="w-2 h-2 rounded-full" style="background: var(--team-primary)"></span>
+              High-signal Summary
+              <span class="chip primary">OVERVIEW</span>
+            </div>
+
+            <div class="mt-3 flex items-start gap-3">
+              <div class="section-icon">
+                <!-- icon: dashboard -->
+                <svg class="w-5 h-5" style="color: var(--team-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 13h8V3H3v10zm10 8h8V11h-8v10zM13 3h8v6h-8V3zM3 21h8v-6H3v6z"/>
+                </svg>
+              </div>
+
+              <div class="min-w-0">
+<h2 class="mt-2 text-2xl sm:text-3xl font-display font-bold text-white uppercase tracking-tight">
+  Team Dashboard
+</h2>
+<p class="mt-2 text-slate-400 text-sm max-w-3xl leading-relaxed">
+  The essentials — identity, form, milestones, and what’s happening next.
+</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Keep your role adaptive CTAs (same buttons you already have) -->
+          <div class="flex flex-wrap items-center gap-2">
+            <button class="btn-ghost rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center gap-2 role-public-only">
+              <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5"/>
+              </svg>
+              Notify me
+            </button>
+
+            <button class="btn-ghost rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center gap-2 role-member-only role-staff-only role-owner-only">
+              <svg class="w-4 h-4 text-delta-electric" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              Open Calendar
+            </button>
+
+            <button class="btn-primary rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center gap-2 role-public-only">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+              </svg>
+              Apply / Tryout
+            </button>
+
+            <button class="btn-primary rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center gap-2 role-owner-only role-staff-only">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+              </svg>
+              Control Plane
+            </button>
+          </div>
+        </div>
+
+        <!-- Bento Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
+          <!-- Identity / Bio Card -->
+          <div class="lg:col-span-7 liquid-glass liquid-trace rounded-[28px] card-accent" data-accent="team">
+            <div class="relative z-[1] p-5 sm:p-6">
+              <svg class="wm-icon" style="color: var(--team-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 3l8 4v6c0 5-3 9-8 10C7 22 4 18 4 13V7l8-4z"/>
+              </svg>
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500 flex items-center gap-2">
+                    <span class="w-1.5 h-4 rounded-full" style="background: var(--team-primary)"></span>
+                    Identity
+                  </div>
+                  <h3 class="mt-2 text-xl font-display font-bold text-white uppercase tracking-tight">
+                    Team Profile
+                  </h3>
+                </div>
+
+                <!-- Status chips -->
+                <div class="flex flex-wrap items-center gap-2 justify-end">
+                  <span class="chip primary">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    Verified
+                  </span>
+                  <span class="chip">Active</span>
+                  <span class="chip role-staff-only role-owner-only">Roster Locked</span>
+                </div>
+              </div>
+
+              <p class="mt-4 text-slate-400 text-sm leading-relaxed max-w-3xl clamp-2">
+                Protocol V is built for high-discipline executes and tempo control. We prioritize structured comms, adaptive
+                mid-round calls, and measurable improvement loops.
+              </p>
+
+              <!-- Tags / Playstyle -->
+              <div class="mt-5 flex flex-wrap gap-2">
+                <span class="chip">Structured Comms</span>
+                <span class="chip">Tempo Control</span>
+                <span class="chip">Anti-Tilt Protocol</span>
+
+                <!-- Game-adaptive tags -->
+                <span class="chip primary game-fps-only">Map Pool: 7</span>
+                <span class="chip primary game-moba-only">Draft Priority</span>
+                <span class="chip primary game-sports-only">Form: WWDLW</span>
+                <span class="chip primary game-br-only">Hot Drop Ready</span>
+              </div>
+
+              <!-- Quick Facts (2 rows) -->
+              <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="rounded-2xl inner-card p-4">
+                  <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Organization</div>
+                  <div class="mt-1 text-sm font-semibold text-white uppercase tracking-tight">
+                    SYNTAX Esports
+                  </div>
+                  <div class="mt-2 text-xs text-slate-400">Org-owned team • inherits sponsor rules & verification.</div>
+                </div>
+
+                <div class="rounded-2xl inner-card p-4">
+                  <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Training Window</div>
+                  <div class="mt-1 text-sm font-semibold text-white uppercase tracking-tight">
+                    Mon–Fri • 8:30 PM (UTC+6)
+                  </div>
+                  <div class="mt-2 text-xs text-slate-400">Scrims + VOD review • availability tracked for members.</div>
+                </div>
+
+                <div class="rounded-2xl inner-card p-4">
+                  <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Primary Region</div>
+                  <div class="mt-1 text-sm font-semibold text-white uppercase tracking-tight">
+                    APAC South
+                  </div>
+                  <div class="mt-2 text-xs text-slate-400">Eligibility gates apply for certain tournaments.</div>
+                </div>
+
+                <div class="rounded-2xl inner-card p-4">
+                  <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Recruitment</div>
+                  <div class="mt-1 text-sm font-semibold text-white uppercase tracking-tight">
+                    Open Trials
+                  </div>
+                  <div class="mt-2 text-xs text-slate-400">Auto-filters active • role gaps visible to staff.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right column (bento stack) -->
+          <div class="lg:col-span-5 grid grid-cols-1 gap-4 lg:gap-5">
+            <!-- Next Match / Event -->
+            <div class="liquid-glass liquid-trace rounded-[28px]" data-accent="electric">
+              <div class="relative z-[1] p-5 sm:p-6">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500 flex items-center gap-2">
+                      <span class="w-1.5 h-4 rounded-full bg-delta-electric"></span>
+                      Next Operation
+                    </div>
+                    <h3 class="mt-2 text-lg font-display font-bold text-white uppercase tracking-tight">
+                      Upcoming Match
+                    </h3>
+                  </div>
+
+                  <span class="chip primary game-fps-only">BO3</span>
+                  <span class="chip primary game-moba-only">Series</span>
+                  <span class="chip primary game-sports-only">League</span>
+                  <span class="chip primary game-br-only">Stage</span>
+                </div>
+
+                <!-- Match card -->
+                <div class="mt-4 rounded-2xl inner-card p-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <div class="w-10 h-10 rounded-xl border border-white/10 bg-black/60 grid place-items-center">
+                        <span class="text-xs font-mono uppercase tracking-[0.18em]" style="color: var(--team-primary)">PV</span>
+                      </div>
+                      <div class="min-w-0">
+                        <div class="text-sm font-semibold text-white uppercase tracking-tight truncate">
+                          Protocol V vs NightRaid
+                        </div>
+                        <div class="text-[11px] text-slate-400 font-mono uppercase tracking-[0.14em]">
+                          Jan 30 • 9:00 PM (UTC+6)
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="text-right">
+                      <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Event</div>
+                      <div class="text-sm font-semibold text-white uppercase tracking-tight">Delta Circuit</div>
+                    </div>
+                  </div>
+
+                  <div class="mt-4 flex flex-wrap gap-2">
+                    <span class="chip">Stage: Qualifier</span>
+                    <span class="chip">Map Veto: Pending</span>
+
+                    <span class="chip role-staff-only role-owner-only">
+                      Prep: <span class="text-slate-200">3 tasks</span>
+                    </span>
+                  </div>
+
+                  <div class="mt-4 flex flex-col sm:flex-row gap-2">
+                    <button class="btn-ghost rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center justify-center gap-2 w-full">
+                      <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 8v4l3 3"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      View Schedule
+                    </button>
+
+                    <button class="btn-primary rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center justify-center gap-2 w-full role-member-only role-staff-only role-owner-only">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                      </svg>
+                      Confirm Availability
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Skeleton loader example (for API loading) -->
+                <div class="mt-4 hidden" id="overviewNextMatchSkeleton">
+                  <div class="rounded-2xl inner-card p-4">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl bg-white/10 animate-pulse"></div>
+                      <div class="flex-1">
+                        <div class="h-3 w-2/3 bg-white/10 rounded animate-pulse"></div>
+                        <div class="mt-2 h-3 w-1/2 bg-white/10 rounded animate-pulse"></div>
+                      </div>
+                      <div class="h-3 w-16 bg-white/10 rounded animate-pulse"></div>
+                    </div>
+                    <div class="mt-4 h-10 bg-white/10 rounded-xl animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- KPI Strip (role + game adaptive) -->
+            <div class="liquid-glass liquid-trace rounded-[28px]" data-accent="success">
+              <div class="relative z-[1] p-5 sm:p-6">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500 flex items-center gap-2">
+                      <span class="w-1.5 h-4 rounded-full" style="background: var(--team-primary)"></span>
+                      Performance Posture
+                    </div>
+                    <h3 class="mt-2 text-lg font-display font-bold text-white uppercase tracking-tight">
+                      KPI Grid
+                    </h3>
+                  </div>
+
+                  <span class="chip">Last 90d</span>
+                </div>
+
+                <div class="mt-4 grid grid-cols-2 gap-3">
+                  <!-- Universal -->
+                  <div class="rounded-2xl inner-card p-4">
+                    <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Global Rank</div>
+                    <div class="mt-1 text-2xl font-display font-bold text-white">#14</div>
+                    <div class="mt-2 text-xs text-delta-success font-mono uppercase tracking-[0.14em]">+2</div>
+                  </div>
+
+                  <div class="rounded-2xl inner-card p-4">
+                    <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Win Rate</div>
+                    <div class="mt-1 text-2xl font-display font-bold" style="color: var(--team-primary)">68.4%</div>
+                    <div class="mt-2 text-xs text-slate-400">Official + scrims</div>
+                  </div>
+
+                  <!-- FPS -->
+                  <div class="rounded-2xl inner-card p-4 game-fps-only">
+                    <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Map Pool</div>
+                    <div class="mt-1 text-2xl font-display font-bold text-white">7</div>
+                    <div class="mt-2 text-xs text-slate-400">Active maps</div>
+                  </div>
+
+                  <div class="rounded-2xl inner-card p-4 game-fps-only">
+                    <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Clutch Rate</div>
+                    <div class="mt-1 text-2xl font-display font-bold text-white">21%</div>
+                    <div class="mt-2 text-xs text-slate-400">1vX closes</div>
+                  </div>
+
+                  <!-- MOBA -->
+                  <div class="rounded-2xl inner-card p-4 game-moba-only">
+                    <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Objective Ctrl</div>
+                    <div class="mt-1 text-2xl font-display font-bold text-white">72%</div>
+                    <div class="mt-2 text-xs text-slate-400">Macro index</div>
+                  </div>
+
+                  <div class="rounded-2xl inner-card p-4 game-moba-only">
+                    <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Avg Duration</div>
+                    <div class="mt-1 text-2xl font-display font-bold text-white">32:15</div>
+                    <div class="mt-2 text-xs text-slate-400">Match time</div>
+                  </div>
+
+                  <!-- SPORTS -->
+                  <div class="rounded-2xl inner-card p-4 game-sports-only">
+                    <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">League Pos</div>
+                    <div class="mt-1 text-2xl font-display font-bold text-white">2nd</div>
+                    <div class="mt-2 text-xs text-slate-400">Current</div>
+                  </div>
+
+                  <div class="rounded-2xl inner-card p-4 game-sports-only">
+                    <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Goal Diff</div>
+                    <div class="mt-1 text-2xl font-display font-bold text-white">+24</div>
+                    <div class="mt-2 text-xs text-slate-400">GF - GA</div>
+                  </div>
+
+                  <!-- BR -->
+                  <div class="rounded-2xl inner-card p-4 game-br-only">
+                    <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Avg Place</div>
+                    <div class="mt-1 text-2xl font-display font-bold text-white">#3.2</div>
+                    <div class="mt-2 text-xs text-slate-400">Top finishes</div>
+                  </div>
+
+                  <div class="rounded-2xl inner-card p-4 game-br-only">
+                    <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Top 10 Rate</div>
+                    <div class="mt-1 text-2xl font-display font-bold text-white">45%</div>
+                    <div class="mt-2 text-xs text-slate-400">Consistency</div>
+                  </div>
+                </div>
+
+                <!-- Private note (staff/owner) -->
+                <div class="mt-4 rounded-2xl inner-card p-4 role-staff-only role-owner-only">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Insight</div>
+                      <div class="mt-1 text-sm font-semibold text-white uppercase tracking-tight">
+                        Role Gap Detected
+                      </div>
+                      <p class="mt-2 text-sm text-slate-400 leading-relaxed">
+                        Current roster lacks a consistent secondary initiator. Consider tryouts for flexible utility profiles.
+                      </p>
+                    </div>
+                    <span class="chip warn">action</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right-side mini modules: Community + Store + Bounties (public-friendly) -->
+            <div class="liquid-glass liquid-trace rounded-[28px]" data-accent="gold">
+              <div class="relative z-[1] p-5 sm:p-6">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500 flex items-center gap-2">
+                      <span class="w-1.5 h-4 rounded-full bg-delta-gold"></span>
+                      Ecosystem
+                    </div>
+                    <h3 class="mt-2 text-lg font-display font-bold text-white uppercase tracking-tight">
+                      Community & Drops
+                    </h3>
+                  </div>
+                  <span class="chip primary">ENGAGE</span>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-3">
+                  <!-- Community -->
+                  <div class="rounded-2xl inner-card p-4 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl border border-white/10 bg-black/60 grid place-items-center">
+                        <svg class="w-5 h-5 text-delta-electric" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 20h5v-2a4 4 0 00-4-4h-1"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 20H4v-2a4 4 0 014-4h1"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 3.13a4 4 0 010 7.75"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 3.13a4 4 0 000 7.75"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 12a4 4 0 100-8 4 4 0 000 8z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="text-sm font-semibold text-white uppercase tracking-tight">Community</div>
+                        <div class="text-xs text-slate-400">Followers • posts • fan badges</div>
+                      </div>
+                    </div>
+                    <button class="btn-ghost rounded-2xl px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                      Open
+                    </button>
+                  </div>
+
+                  <!-- Bounties / Challenges -->
+                  <div class="rounded-2xl inner-card p-4 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl border border-white/10 bg-black/60 grid place-items-center">
+                        <svg class="w-5 h-5" style="color: var(--team-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8c-1.657 0-3 1.343-3 3v1a3 3 0 006 0v-1c0-1.657-1.343-3-3-3z"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11V9a7 7 0 10-14 0v2a2 2 0 00-2 2v2a2 2 0 002 2h14a2 2 0 002-2v-2a2 2 0 00-2-2z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="text-sm font-semibold text-white uppercase tracking-tight">Bounties</div>
+                        <div class="text-xs text-slate-400">Challenges • wagers • rewards</div>
+                      </div>
+                    </div>
+                    <button class="btn-ghost rounded-2xl px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                      View
+                    </button>
+                  </div>
+
+                  <!-- Store / Merch -->
+                  <div class="rounded-2xl inner-card p-4 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl border border-white/10 bg-black/60 grid place-items-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.2 6h12.4L17 13M7 13h10"/>
+                          <circle cx="9" cy="21" r="1"></circle>
+                          <circle cx="17" cy="21" r="1"></circle>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="text-sm font-semibold text-white uppercase tracking-tight">Store</div>
+                        <div class="text-xs text-slate-400">Merch • drops • digital items</div>
+                      </div>
+                    </div>
+                    <button class="btn-ghost rounded-2xl px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                      Shop
+                    </button>
+                  </div>
+                </div>
+
+                <div class="mt-4 text-[11px] text-slate-400 leading-relaxed">
+                  Public modules are safe by default. Private ops tools (scrims, tasks, notes) are gated to members/staff/owner.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-10 sm:mt-12 lg:mt-14">
+          <div class="h-px bg-[linear-gradient(to_right,transparent,rgba(255,255,255,.10),transparent)]"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Next anchor placeholders (so nav scroll feels correct during dev) -->
+<!-- PART 3: Roster Section ONLY -->
+<!-- Keep your anchor for correct scroll target -->
+<div id="roster" class="h-2"></div>
+
+<section id="rosterPanel" data-panel="roster" class="relative hidden section-wrap">
+  <div class="max-w-[1600px] mx-auto px-5 sm:px-6 py-10 sm:py-12 lg:py-14">
+
+    <!-- Section header -->
+    <div class="section-head">
+      <div class="min-w-0">
+        <div class="section-kicker">
+          <span class="w-2 h-2 rounded-full" style="background: var(--team-primary)"></span>
+          Roster Intelligence
+          <span class="chip primary">ROSTER</span>
+        </div>
+
+        <div class="mt-3 flex items-start gap-3">
+          <div class="section-icon">
+            <!-- icon: users -->
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1M16 3.13a4 4 0 010 7.75M8 3.13a4 4 0 000 7.75M12 12a4 4 0 100-8 4 4 0 000 8z"/>
+            </svg>
+          </div>
+
+          <div class="min-w-0">
+            <h2 class="section-title text-2xl sm:text-3xl text-white">
+              Operators & Lineup
+            </h2>
+            <p class="section-desc max-w-3xl">
+              Public shows the competitive lineup. Members get availability + comms. Staff/Owner get contracts, eligibility, and actions.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- keep your existing role-adaptive CTA buttons (same as you already have) -->
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Public -->
+        <button class="btn-primary rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center gap-2 role-public-only">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+          Follow Roster
+        </button>
+
+        <!-- Member -->
+        <button class="btn-ghost rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center gap-2 role-member-only">
+          <svg class="w-4 h-4 text-delta-electric" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          Update Availability
+        </button>
+
+        <!-- Staff/Owner -->
+        <button id="btnInvitePlayer"
+                class="btn-primary rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center gap-2 role-staff-only role-owner-only">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6a4 4 0 110 8 4 4 0 010-8z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 20a6 6 0 0112 0"/>
+          </svg>
+          Invite Player
+        </button>
+
+        <button id="btnManageRoster"
+                class="btn-ghost rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center gap-2 role-staff-only role-owner-only">
+          <svg class="w-4 h-4" style="color: var(--team-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+          </svg>
+          Roster Tools
+        </button>
+      </div>
+    </div>
+
+    <!-- Layout: left main + right sidebar (bento) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
+
+      <!-- LEFT: Roster Core -->
+      <div class="lg:col-span-8 space-y-4 lg:space-y-5">
+
+        <!-- A) Role Slots (game-adaptive) -->
+        <div class="liquid-glass liquid-trace rounded-[28px]">
+          <div class="relative z-[1] p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500 flex items-center gap-2">
+                  <span class="section-icon !w-8 !h-8 !rounded-xl">
+                    <svg class="w-4 h-4" style="color: var(--team-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                  </span>
+                  Starting Unit
+                </div>
+                <h3 class="mt-2 text-lg font-display font-bold text-white uppercase tracking-tight">
+                  Active Lineup
+                </h3>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2 justify-end">
+                <span id="rosterGameChip" class="chip primary">FPS</span>
+                <span class="chip role-staff-only role-owner-only">Roster Locked</span>
+                <span class="chip good">Synced</span>
+              </div>
+            </div>
+
+            <!-- Game role slot legend -->
+            <div class="mt-4 flex flex-wrap gap-2">
+              <!-- FPS -->
+              <span class="chip game-fps-only">Duelist</span>
+              <span class="chip game-fps-only">Initiator</span>
+              <span class="chip game-fps-only">Controller</span>
+              <span class="chip game-fps-only">Sentinel</span>
+              <span class="chip game-fps-only">IGL</span>
+
+              <!-- MOBA -->
+              <span class="chip game-moba-only">Carry</span>
+              <span class="chip game-moba-only">Mid</span>
+              <span class="chip game-moba-only">Offlane</span>
+              <span class="chip game-moba-only">Support</span>
+              <span class="chip game-moba-only">Roamer</span>
+
+              <!-- BR -->
+              <span class="chip game-br-only">IGL</span>
+              <span class="chip game-br-only">Entry</span>
+              <span class="chip game-br-only">Support</span>
+              <span class="chip game-br-only">Scout</span>
+
+              <!-- SPORTS -->
+              <span class="chip game-sports-only">Striker</span>
+              <span class="chip game-sports-only">Midfield</span>
+              <span class="chip game-sports-only">Defense</span>
+              <span class="chip game-sports-only">Goalkeeper</span>
+            </div>
+
+            <!-- Cards grid -->
+            <div id="rosterCards"
+                 class="mt-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              <!-- JS renders cards here -->
+            </div>
+
+            <!-- Empty state (if no roster) -->
+              <div id="rosterEmpty"
+                class="mt-5 hidden rounded-2xl inner-card p-6">
+              <div class="text-sm font-semibold text-white uppercase tracking-tight">No roster published yet</div>
+              <p class="mt-2 text-sm text-slate-400">
+                Staff can invite players or publish the active lineup from the Team Control Plane.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- B) Bench / Academy / Trials (game-adaptive + role-adaptive visibility) -->
+        <div class="liquid-glass liquid-trace rounded-[28px]">
+          <div class="relative z-[1] p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500 flex items-center gap-2">
+                  <span class="section-icon !w-8 !h-8 !rounded-xl">
+                    <svg class="w-4 h-4 text-delta-electric" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                  </span>
+                  Depth Chart
+                </div>
+                <h3 class="mt-2 text-lg font-display font-bold text-white uppercase tracking-tight">
+                  Bench • Trials • Academy
+                </h3>
+              </div>
+              <span class="chip">Depth</span>
+            </div>
+
+            <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div class="rounded-2xl inner-card p-4">
+                <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Bench</div>
+                <div id="benchList" class="mt-3 space-y-2">
+                  <!-- JS renders -->
+                </div>
+              </div>
+
+              <div class="rounded-2xl inner-card p-4">
+                <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Trials / Academy</div>
+                <div id="trialList" class="mt-3 space-y-2">
+                  <!-- JS renders -->
+                </div>
+
+                <div class="mt-4 rounded-2xl inner-card p-3 role-staff-only role-owner-only">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <div class="text-xs font-semibold text-white uppercase tracking-tight">Pipeline</div>
+                      <div class="text-xs text-slate-400">New → Screening → Trial → Contract</div>
+                    </div>
+                    <button class="btn-ghost rounded-2xl px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                      Review
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Staff/Owner: roster actions row -->
+            <div class="mt-5 hidden role-staff-only role-owner-only" id="rosterActionsRow">
+              <div class="flex flex-wrap gap-2">
+                <button class="btn-ghost rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  Promote Trial
+                </button>
+                <button class="btn-ghost rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  Bench / Release
+                </button>
+                <button class="btn-ghost rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  Export Roster (Tournament)
+                </button>
+                <button class="btn-primary rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                  Create Transfer Offer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- C) Staff/Owner table (private operational view) -->
+        <div class="liquid-glass liquid-trace rounded-[28px] role-staff-only role-owner-only">
+          <div class="relative z-[1] p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500 flex items-center gap-2">
+                  <span class="section-icon !w-8 !h-8 !rounded-xl">
+                    <svg class="w-4 h-4 text-delta-danger" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l8 4v6c0 5-3.5 9.4-8 10-4.5-.6-8-5-8-10V7l8-4z"/>
+                    </svg>
+                  </span>
+                  Private Ops View
+                </div>
+                <h3 class="mt-2 text-lg font-display font-bold text-white uppercase tracking-tight">
+                  Contracts • Eligibility • Status
+                </h3>
+              </div>
+              <span class="chip warn">private</span>
+            </div>
+
+            <div class="mt-5 overflow-x-auto">
+              <table class="min-w-full text-left border-separate border-spacing-y-2">
+                <thead>
+                  <tr class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">
+                    <th class="px-3 py-2">Player</th>
+                    <th class="px-3 py-2">Role</th>
+                    <th class="px-3 py-2">Status</th>
+                    <th class="px-3 py-2">Contract</th>
+                    <th class="px-3 py-2">Eligibility</th>
+                    <th class="px-3 py-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="rosterTableBody">
+                  <!-- JS renders -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mt-4 text-[11px] text-slate-400">
+              Backend rule: sensitive fields (contract dates, flags) must not be returned unless permitted.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Roster Side Modules -->
+      <div class="lg:col-span-4 grid grid-cols-1 gap-4 lg:gap-5">
+
+        <!-- Availability (Member+) -->
+        <div class="liquid-glass liquid-trace rounded-[28px] role-member-only role-staff-only role-owner-only">
+          <div class="relative z-[1] p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500 flex items-center gap-2">
+                  <span class="section-icon !w-8 !h-8 !rounded-xl">
+                    <svg class="w-4 h-4 text-delta-electric" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                  </span>
+                  Readiness
+                </div>
+                <h3 class="mt-2 text-lg font-display font-bold text-white uppercase tracking-tight">
+                  Availability Pulse
+                </h3>
+              </div>
+              <span class="chip primary">member+</span>
+            </div>
+
+            <div class="mt-4 space-y-3" id="availabilityList">
+              <!-- JS renders -->
+            </div>
+
+            <div class="mt-4 flex gap-2">
+              <button class="btn-primary rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] w-full">
+                Update Mine
+              </button>
+              <button class="btn-ghost rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] w-full role-staff-only role-owner-only">
+                Nudge Team
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recruitment / Role gaps (public-safe; richer for staff) -->
+        <div class="liquid-glass liquid-trace rounded-[28px]">
+          <div class="relative z-[1] p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500 flex items-center gap-2">
+                  <span class="section-icon !w-8 !h-8 !rounded-xl">
+                    <svg class="w-4 h-4" style="color: var(--team-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </span>
+                  Recruitment
+                </div>
+                <h3 class="mt-2 text-lg font-display font-bold text-white uppercase tracking-tight">
+                  Role Gaps
+                </h3>
+              </div>
+              <span class="chip">signal</span>
+            </div>
+
+            <div id="roleGaps" class="mt-4 space-y-2">
+              <!-- JS renders -->
+            </div>
+
+            <div class="mt-4 rounded-2xl inner-card p-4 role-staff-only role-owner-only">
+              <div class="text-xs font-semibold text-white uppercase tracking-tight">Tryout Filters (Org Inherited)</div>
+              <div class="mt-2 text-xs text-slate-400">
+                DCRS min • Region • Age gate • Verification state • Sponsor conflicts
+              </div>
+              <button class="mt-3 btn-ghost rounded-2xl px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                Edit in Control Plane
+              </button>
+            </div>
+
+            <button class="mt-4 btn-primary rounded-2xl px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center justify-center gap-2 w-full role-public-only">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+              </svg>
+              Apply to Tryout
+            </button>
+          </div>
+        </div>
+
+        <!-- Team Documents quick access (Member+/private) -->
+        <div class="liquid-glass liquid-trace rounded-[28px] role-member-only role-staff-only role-owner-only">
+          <div class="relative z-[1] p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500 flex items-center gap-2">
+                  <span class="section-icon !w-8 !h-8 !rounded-xl">
+                    <svg class="w-4 h-4 text-delta-violet" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 1.343-3 3v1a3 3 0 006 0v-1c0-1.657-1.343-3-3-3z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 11V9a7 7 0 10-14 0v2a2 2 0 00-2 2v2a2 2 0 002 2h14a2 2 0 002-2v-2a2 2 0 00-2-2z"/>
+                    </svg>
+                  </span>
+                  Team Vault
+                </div>
+                <h3 class="mt-2 text-lg font-display font-bold text-white uppercase tracking-tight">
+                  Playbooks & Docs
+                </h3>
+              </div>
+              <span class="chip warn">private</span>
+            </div>
+
+            <div class="mt-4 space-y-2">
+              <button class="btn-ghost rounded-2xl px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center justify-between w-full">
+                <span class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  Strategy Notes
+                </span>
+                <span class="chip">12</span>
+              </button>
+
+              <button class="btn-ghost rounded-2xl px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center justify-between w-full">
+                <span class="flex items-center gap-2">
+                  <svg class="w-4 h-4" style="color: var(--team-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4l3 3"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  VOD Review Queue
+                </span>
+                <span class="chip primary">5</span>
+              </button>
+
+              <button class="btn-primary rounded-2xl px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] w-full role-staff-only role-owner-only">
+                Upload / Manage
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Player Drawer / Modal (used by roster cards + table) -->
+    <div id="playerModal" class="fixed inset-0 z-[300] hidden">
+      <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+
+      <div class="absolute inset-0 flex items-end sm:items-center justify-center p-4">
+        <div class="liquid-glass liquid-trace rounded-[28px] w-full max-w-3xl overflow-hidden">
+          <div class="relative z-[1] p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Player</div>
+                <div class="mt-1 text-xl font-display font-bold text-white uppercase tracking-tight truncate" id="pmName">
+                  —
+                </div>
+                <div class="mt-2 flex flex-wrap items-center gap-2">
+                  <span class="chip primary" id="pmRole">—</span>
+                  <span class="chip" id="pmStatus">—</span>
+                  <span class="chip" id="pmGame">—</span>
+                </div>
+              </div>
+
+              <button id="playerModalClose" class="btn-icon rounded-xl w-11 h-11 grid place-items-center" title="Close">
+                <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="rounded-2xl inner-card p-4">
+                <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Snapshot</div>
+                <div class="mt-2 text-sm text-slate-300" id="pmSnapshot">—</div>
+              </div>
+
+              <div class="rounded-2xl inner-card p-4">
+                <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Notes</div>
+                <div class="mt-2 text-sm text-slate-300" id="pmNotes">—</div>
+              </div>
+
+              <div class="rounded-2xl inner-card p-4 role-staff-only role-owner-only">
+                <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Contract</div>
+                <div class="mt-2 text-sm text-slate-300" id="pmContract">—</div>
+              </div>
+
+              <div class="rounded-2xl inner-card p-4 role-staff-only role-owner-only">
+                <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Eligibility</div>
+                <div class="mt-2 text-sm text-slate-300" id="pmEligibility">—</div>
+              </div>
+            </div>
+
+            <div class="mt-5 flex flex-col sm:flex-row gap-2 role-staff-only role-owner-only">
+              <button class="btn-ghost rounded-2xl px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] w-full">
+                Bench
+              </button>
+              <button class="btn-ghost rounded-2xl px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] w-full">
+                Release
+              </button>
+              <button class="btn-primary rounded-2xl px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] w-full">
+                Open Profile (Control Plane)
+              </button>
+            </div>
+
+            <div class="mt-4 text-[11px] text-slate-400">
+              This modal is front-end only for demo. Later: hydrate from `/api/teams/:id/roster` + permission-gated fields.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-10 sm:mt-12 lg:mt-14">
+      <div class="h-px bg-[linear-gradient(to_right,transparent,rgba(255,255,255,.10),transparent)]"></div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ===========================
+   PART 3 JS — Roster Engine
+   + Tab-as-page switching (lightweight)
+   =========================== */
+
+(function(){
+  // ---------- Helpers ----------
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+  const getRole = () => document.body.getAttribute("data-role") || "PUBLIC";
+  const getGame = () => document.body.getAttribute("data-game") || "FPS";
+
+  function safeText(s){ return (s ?? "").toString(); }
+
+  // ---------- Demo Data (replace with API later) ----------
+  // NOTE: we keep one schema and just change roleNames + stat labels per game.
+  const ROSTER_DEMO = {
+    FPS: {
+      gaps: ["Secondary Initiator", "Flex Sentinel"],
+      starters: [
+        { id:"p1", ign:"Vanta",  role:"Duelist",  status:"Active", country:"BD", join:"2024-02-01", contract:"2026-12-31", eligibility:"Verified", snapshot:"Entry impact + first-blood threat.", notes:"Keep discipline on eco rounds." },
+        { id:"p2", ign:"Nyx",    role:"Initiator",status:"Active", country:"SG", join:"2024-03-10", contract:"2026-10-01", eligibility:"Verified", snapshot:"Utility timing + info denial.", notes:"Work on post-plant positioning." },
+        { id:"p3", ign:"Cipher", role:"Controller",status:"Active",country:"IN", join:"2024-05-22", contract:"2026-06-01", eligibility:"Verified", snapshot:"Tempo control + smoke discipline.", notes:"Improve mid-round comm clarity." },
+        { id:"p4", ign:"Astra",  role:"Sentinel",status:"Active", country:"MY", join:"2024-08-14", contract:"2025-12-31", eligibility:"Pending Doc", snapshot:"Anchor stability + clutch potential.", notes:"Eligibility doc expiring soon." },
+        { id:"p5", ign:"Orion",  role:"IGL",     status:"Active", country:"PH", join:"2024-01-03", contract:"2027-01-01", eligibility:"Verified", snapshot:"Mid-round calls + adaptation.", notes:"Review veto patterns weekly." },
+      ],
+      bench: [
+        { id:"b1", ign:"Kite", role:"Flex", status:"Bench" },
+        { id:"b2", ign:"Hex", role:"Sentinel", status:"Bench" },
+      ],
+      trials: [
+        { id:"t1", ign:"Nova", role:"Initiator", status:"Trial" },
+      ],
+      availability: [
+        { ign:"Vanta", state:"Ready", note:"On time" },
+        { ign:"Nyx", state:"Ready", note:"On time" },
+        { ign:"Cipher", state:"Limited", note:"Late 20m" },
+        { ign:"Astra", state:"Ready", note:"On time" },
+        { ign:"Orion", state:"Ready", note:"On time" },
+      ],
+    },
+
+    MOBA: {
+      gaps: ["Hard Support", "Flex Roamer"],
+      starters: [
+        { id:"m1", ign:"Rift",  role:"Carry",   status:"Active", country:"BD", join:"2024-04-02", contract:"2026-08-01", eligibility:"Verified", snapshot:"Late-game conversion + scaling.", notes:"Track power spikes." },
+        { id:"m2", ign:"Lumen", role:"Mid",     status:"Active", country:"PK", join:"2024-02-18", contract:"2026-11-30", eligibility:"Verified", snapshot:"Lane control + pick potential.", notes:"Improve rune discipline." },
+        { id:"m3", ign:"Bastion", role:"Offlane", status:"Active", country:"IN", join:"2024-05-01", contract:"2026-04-01", eligibility:"Verified", snapshot:"Frontline + objective setup.", notes:"Work on TP timings." },
+        { id:"m4", ign:"Muse",  role:"Support", status:"Active", country:"SG", join:"2024-06-20", contract:"2025-12-15", eligibility:"Verified", snapshot:"Vision + defensive saves.", notes:"Improve ward routes." },
+        { id:"m5", ign:"Shade", role:"Roamer",  status:"Active", country:"MY", join:"2024-07-09", contract:"2026-01-10", eligibility:"Pending Doc", snapshot:"Rotation tempo + engage.", notes:"Document check pending." },
+      ],
+      bench: [{ id:"mb1", ign:"Axis", role:"Flex", status:"Bench" }],
+      trials: [{ id:"mt1", ign:"Pulse", role:"Support", status:"Trial" }],
+      availability: [
+        { ign:"Rift", state:"Ready", note:"On time" },
+        { ign:"Lumen", state:"Ready", note:"On time" },
+        { ign:"Bastion", state:"Ready", note:"On time" },
+        { ign:"Muse", state:"Ready", note:"On time" },
+        { ign:"Shade", state:"Limited", note:"Late 15m" },
+      ],
+    },
+
+    BR: {
+      gaps: ["Scout / IGL backup"],
+      starters: [
+        { id:"r1", ign:"Echo", role:"IGL", status:"Active", country:"BD", join:"2024-01-11", contract:"2026-09-01", eligibility:"Verified", snapshot:"Macro calls + rotations.", notes:"Map circle reads strong." },
+        { id:"r2", ign:"Blitz", role:"Entry", status:"Active", country:"IN", join:"2024-03-04", contract:"2026-06-01", eligibility:"Verified", snapshot:"First contact + damage share.", notes:"Avoid over-commit." },
+        { id:"r3", ign:"Aegis", role:"Support", status:"Active", country:"SG", join:"2024-05-18", contract:"2026-02-20", eligibility:"Verified", snapshot:"Utility + revive discipline.", notes:"Prioritize smoke economy." },
+        { id:"r4", ign:"Mako", role:"Scout", status:"Active", country:"MY", join:"2024-08-01", contract:"2025-12-31", eligibility:"Verified", snapshot:"Info gathering + flank watch.", notes:"Improve late-zone comms." },
+      ],
+      bench: [{ id:"rb1", ign:"Drift", role:"Support", status:"Bench" }],
+      trials: [{ id:"rt1", ign:"Frost", role:"Scout", status:"Trial" }],
+      availability: [
+        { ign:"Echo", state:"Ready", note:"On time" },
+        { ign:"Blitz", state:"Ready", note:"On time" },
+        { ign:"Aegis", state:"Ready", note:"On time" },
+        { ign:"Mako", state:"Ready", note:"On time" },
+      ],
+    },
+
+    SPORTS: {
+      gaps: ["Defensive Midfield"],
+      starters: [
+        { id:"s1", ign:"Kairo", role:"Striker", status:"Active", country:"BD", join:"2024-02-02", contract:"2026-12-01", eligibility:"Verified", snapshot:"Finishing + press trigger.", notes:"Work on weak-foot shots." },
+        { id:"s2", ign:"Vega",  role:"Midfield", status:"Active", country:"IN", join:"2024-04-12", contract:"2026-08-15", eligibility:"Verified", snapshot:"Build-up + through balls.", notes:"Improve stamina management." },
+        { id:"s3", ign:"Stone", role:"Defense", status:"Active", country:"SG", join:"2024-06-01", contract:"2026-01-01", eligibility:"Verified", snapshot:"Backline organization.", notes:"Reduce risky tackles." },
+        { id:"s4", ign:"NovaGK", role:"Goalkeeper", status:"Active", country:"MY", join:"2024-07-07", contract:"2025-11-30", eligibility:"Pending Doc", snapshot:"Shot-stopping + distribution.", notes:"Eligibility check pending." },
+      ],
+      bench: [{ id:"sb1", ign:"Pace", role:"Midfield", status:"Bench" }],
+      trials: [{ id:"st1", ign:"Anchor", role:"Defense", status:"Trial" }],
+      availability: [
+        { ign:"Kairo", state:"Ready", note:"On time" },
+        { ign:"Vega", state:"Ready", note:"On time" },
+        { ign:"Stone", state:"Limited", note:"Travel delay" },
+        { ign:"NovaGK", state:"Ready", note:"On time" },
+      ],
+    },
+  };
+
+  // ---------- Rendering ----------
+  function renderRoster(){
+    const game = getGame();
+    const role = getRole();
+    const data = ROSTER_DEMO[game] || ROSTER_DEMO.FPS;
+
+    // Chips
+    const rosterGameChip = $("#rosterGameChip");
+    if(rosterGameChip) rosterGameChip.textContent = game;
+
+    // Role gaps
+    const gapsRoot = $("#roleGaps");
+    if(gapsRoot){
+      gapsRoot.innerHTML = "";
+      (data.gaps || []).slice(0,4).forEach(g => {
+        const el = document.createElement("div");
+        el.className = "rounded-2xl inner-card p-4 flex items-center justify-between gap-3";
+        el.innerHTML = `
+          <div>
+            <div class="text-xs font-semibold text-white uppercase tracking-tight">${safeText(g)}</div>
+            <div class="text-xs text-slate-400">Recruitment signal detected for this role.</div>
+          </div>
+          <span class="chip primary">open</span>
+        `;
+        gapsRoot.appendChild(el);
+      });
+
+      if((data.gaps || []).length === 0){
+        gapsRoot.innerHTML = `
+          <div class="rounded-2xl inner-card p-4">
+            <div class="text-xs font-semibold text-white uppercase tracking-tight">No urgent gaps</div>
+            <div class="text-xs text-slate-400">Roster coverage is healthy for this game.</div>
+          </div>
+        `;
+      }
+    }
+
+    // Cards
+    const cardsRoot = $("#rosterCards");
+    const empty = $("#rosterEmpty");
+    if(cardsRoot){
+      cardsRoot.innerHTML = "";
+      const starters = data.starters || [];
+      if(starters.length === 0){
+        if(empty) empty.classList.remove("hidden");
+      } else {
+        if(empty) empty.classList.add("hidden");
+      }
+
+      starters.forEach(p => {
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "text-left rounded-2xl inner-card p-4 hover:bg-white/5 transition liquid-trace";
+        card.setAttribute("data-player-id", p.id);
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-12 h-12 rounded-xl overflow-hidden border border-white/10 bg-black/50 shrink-0">
+                <img class="w-full h-full object-cover" src="https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(p.ign)}" alt="${safeText(p.ign)}" />
+              </div>
+              <div class="min-w-0">
+                <div class="text-sm font-semibold text-white uppercase tracking-tight truncate">${safeText(p.ign)}</div>
+                <div class="text-[10px] font-mono uppercase tracking-[0.18em] text-slate-500">${safeText(p.country)} • joined ${safeText(p.join)}</div>
+              </div>
+            </div>
+            <span class="chip primary">${safeText(p.role)}</span>
+          </div>
+
+          <div class="mt-3 flex flex-wrap gap-2">
+            <span class="chip">${safeText(p.status)}</span>
+            <span class="chip">${safeText(p.eligibility)}</span>
+            ${
+              (role !== "PUBLIC")
+                ? `<span class="chip">Avail: <span class="text-slate-200">${availabilityStateFor(data, p.ign)}</span></span>`
+                : ``
+            }
+          </div>
+
+          <div class="mt-3 text-sm text-slate-400 leading-relaxed">
+            ${safeText(p.snapshot)}
+          </div>
+        `;
+        cardsRoot.appendChild(card);
+      });
+    }
+
+    // Bench list
+    const benchRoot = $("#benchList");
+    if(benchRoot){
+      benchRoot.innerHTML = "";
+      (data.bench || []).forEach(p => benchRoot.appendChild(miniRow(p)));
+      if((data.bench || []).length === 0){
+        benchRoot.innerHTML = `<div class="text-sm text-slate-400">No bench players listed.</div>`;
+      }
+    }
+
+    // Trial list
+    const trialRoot = $("#trialList");
+    if(trialRoot){
+      trialRoot.innerHTML = "";
+      (data.trials || []).forEach(p => trialRoot.appendChild(miniRow(p, true)));
+      if((data.trials || []).length === 0){
+        trialRoot.innerHTML = `<div class="text-sm text-slate-400">No active trials.</div>`;
+      }
+    }
+
+    // Availability list (member+)
+    const availRoot = $("#availabilityList");
+    if(availRoot){
+      availRoot.innerHTML = "";
+      (data.availability || []).forEach(a => {
+        const state = safeText(a.state).toLowerCase();
+        const chipClass = state === "ready" ? "chip good" : (state === "limited" ? "chip warn" : "chip");
+        const row = document.createElement("div");
+        row.className = "rounded-2xl inner-card p-4 flex items-center justify-between gap-3";
+        row.innerHTML = `
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-white uppercase tracking-tight truncate">${safeText(a.ign)}</div>
+            <div class="text-xs text-slate-400">${safeText(a.note || "")}</div>
+          </div>
+          <span class="${chipClass}">${safeText(a.state)}</span>
+        `;
+        availRoot.appendChild(row);
+      });
+
+      if((data.availability || []).length === 0){
+        availRoot.innerHTML = `<div class="rounded-2xl inner-card p-4 text-sm text-slate-400">No availability data.</div>`;
+      }
+    }
+
+    // Staff/Owner table
+    const tbody = $("#rosterTableBody");
+    if(tbody){
+      tbody.innerHTML = "";
+      (data.starters || []).forEach(p => {
+        const tr = document.createElement("tr");
+        tr.className = "inner-card";
+        tr.style.borderRadius = "16px";
+        tr.innerHTML = `
+          <td class="px-3 py-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl overflow-hidden border border-white/10 bg-black/50">
+                <img class="w-full h-full object-cover" src="https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(p.ign)}" alt="${safeText(p.ign)}" />
+              </div>
+              <div class="min-w-0">
+                <div class="text-sm font-semibold text-white uppercase tracking-tight truncate">${safeText(p.ign)}</div>
+                <div class="text-[10px] font-mono uppercase tracking-[0.18em] text-slate-500">${safeText(p.country)} • joined ${safeText(p.join)}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-3 py-3"><span class="chip primary">${safeText(p.role)}</span></td>
+          <td class="px-3 py-3"><span class="chip">${safeText(p.status)}</span></td>
+          <td class="px-3 py-3">
+            <div class="text-xs text-slate-300">${safeText(p.contract)}</div>
+            <div class="text-[10px] font-mono uppercase tracking-[0.16em] text-slate-500">end</div>
+          </td>
+          <td class="px-3 py-3">
+            <span class="chip ${p.eligibility.toLowerCase().includes("pending") ? "warn" : "good"}">${safeText(p.eligibility)}</span>
+          </td>
+          <td class="px-3 py-3 text-right">
+            <button class="btn-ghost rounded-2xl px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em]"
+                    data-open-player="${safeText(p.id)}">Open</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if((data.starters || []).length === 0){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="6" class="px-3 py-4 text-sm text-slate-400">No players.</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // Enable click handlers after render
+    bindRosterClicks();
+  }
+
+  function miniRow(p, isTrial=false){
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "w-full text-left rounded-2xl inner-card p-3 hover:bg-white/5 transition flex items-center justify-between gap-3";
+    row.setAttribute("data-player-mini", p.id);
+    row.innerHTML = `
+      <div class="min-w-0">
+        <div class="text-sm font-semibold text-white uppercase tracking-tight truncate">${safeText(p.ign)}</div>
+        <div class="text-xs text-slate-400">${safeText(p.role || "Flex")}</div>
+      </div>
+      <span class="chip ${isTrial ? "primary" : ""}">${safeText(p.status || (isTrial ? "Trial" : "Bench"))}</span>
+    `;
+    return row;
+  }
+
+  function availabilityStateFor(data, ign){
+    const hit = (data.availability || []).find(a => a.ign === ign);
+    return hit ? hit.state : "—";
+  }
+
+  // ---------- Modal / Drawer ----------
+  function openPlayerModal(player){
+    $("#pmName").textContent = player.ign;
+    $("#pmRole").textContent = player.role;
+    $("#pmStatus").textContent = player.status;
+    $("#pmGame").textContent = getGame();
+    $("#pmSnapshot").textContent = player.snapshot || "—";
+    $("#pmNotes").textContent = player.notes || "—";
+    $("#pmContract").textContent = player.contract || "—";
+    $("#pmEligibility").textContent = player.eligibility || "—";
+
+    $("#playerModal").classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closePlayerModal(){
+    $("#playerModal").classList.add("hidden");
+    document.body.style.overflow = "";
+  }
+
+  function findPlayerById(id){
+    const data = ROSTER_DEMO[getGame()] || ROSTER_DEMO.FPS;
+    return (data.starters || []).concat(data.bench || [], data.trials || []).find(p => p.id === id);
+  }
+
+  function bindRosterClicks(){
+    // Card clicks
+    $$("#rosterCards [data-player-id]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const p = findPlayerById(btn.getAttribute("data-player-id"));
+        if(p) openPlayerModal(p);
+      });
+    });
+
+    // Table "Open" actions
+    $$("#rosterTableBody [data-open-player]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const p = findPlayerById(btn.getAttribute("data-open-player"));
+        if(p) openPlayerModal(p);
+      });
+    });
+
+    // Mini rows (bench/trials)
+    $$("[data-player-mini]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const p = findPlayerById(btn.getAttribute("data-player-mini"));
+        if(p) openPlayerModal(p);
+      });
+    });
+
+    // Modal close
+    const closeBtn = $("#playerModalClose");
+    if(closeBtn) closeBtn.onclick = closePlayerModal;
+
+    const modalRoot = $("#playerModal");
+    if(modalRoot){
+      modalRoot.addEventListener("click", (e) => {
+        // click outside dialog closes
+        if(e.target === modalRoot || e.target === modalRoot.firstElementChild) closePlayerModal();
+      });
+    }
+  }
+
+  // ---------- Tabs behave like pages ----------
+  // When you click "Roster" in subnav:
+  // - hide other panels
+  // - show rosterPanel
+  // - smooth scroll to top of content area (optional)
+  function initPanelRouting(){
+    const links = $$("#subnav a.subnav-link");
+    const panels = $$("[data-panel]");
+
+    function setActiveLink(id){
+      links.forEach(a => {
+        const isActive = (a.getAttribute("href") || "") === ("#" + id);
+        a.classList.toggle("is-active", isActive);
+      });
+    }
+
+    // If overview has no data-panel yet, we won't hard fail — but routing will be partial.
+    function showPanel(panelId){
+      panels.forEach(p => p.classList.add("hidden"));
+      const el = $("#"+panelId+"Panel") || $("[data-panel=\""+panelId+"\"]");
+      if(el) el.classList.remove("hidden");
+
+      setActiveLink(panelId);
+
+      // keep your active styling logic working
+      // also scroll to the top of the content zone under subnav
+      const subnav = $("#subnav");
+      if(subnav){
+        const y = subnav.getBoundingClientRect().bottom + window.scrollY - 6;
+        window.scrollTo({ top: y, behavior: "smooth" });
+      }
+    }
+
+    links.forEach(a => {
+      a.addEventListener("click", (e) => {
+        const href = a.getAttribute("href") || "";
+        const id = href.startsWith("#") ? href.slice(1) : "";
+        if(!id) return;
+
+        // Intercept default anchor behavior to behave like SPA panels
+        // Still allow the hash for shareability
+        e.preventDefault();
+        history.replaceState(null, "", "#" + id);
+
+        // The panel id we expect:
+        // overview -> section with data-panel="overview"
+        // roster -> this section uses rosterPanel / data-panel="roster"
+        showPanel(id);
+
+        // If switching to roster, ensure it’s hydrated
+        if(id === "roster") renderRoster();
+      });
+    });
+
+    // Initial route based on URL hash
+    const initial = (location.hash || "#overview").replace("#","");
+    // Try show it; if roster, render
+    if(initial === "roster"){
+      showPanel("roster");
+      renderRoster();
+    } else {
+      // show overview if exists; otherwise do nothing
+      // (Developer: add data-panel="overview" to your overview section for full routing.)
+      const overviewPanel = $("[data-panel=\"overview\"]") || $("#overview");
+      if(overviewPanel) overviewPanel.classList.remove("hidden");
+      setActiveLink("overview");
+    }
+  }
+
+  // ---------- Hooks: update roster when demo controller changes game/role ----------
+  function attachControllerHooks(){
+    const roleSelect = $("#roleSelect");
+    const gameSelect = $("#gameSelect");
+    if(roleSelect) roleSelect.addEventListener("change", () => {
+      // If roster is visible, rerender so availability chips + private table match role rules
+      const rosterVisible = !$("#rosterPanel")?.classList.contains("hidden");
+      if(rosterVisible) renderRoster();
+    });
+    if(gameSelect) gameSelect.addEventListener("change", () => {
+      const rosterVisible = !$("#rosterPanel")?.classList.contains("hidden");
+      if(rosterVisible) renderRoster();
+    });
+
+    // If your theme buttons change data-theme only, roster doesn't need re-render.
+  }
+
+  // ---------- Init ----------
+  // Only init once DOM is ready
+  function boot(){
+    initPanelRouting();
+    attachControllerHooks();
+
+    // If someone scrolls directly to #roster and you still want it:
+    // render roster if hash is roster.
+    if((location.hash || "").toLowerCase() === "#roster"){
+      $("#rosterPanel")?.classList.remove("hidden");
+      renderRoster();
+    }
+  }
+
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})();
+</script>
+
+    <div id="matches" class="h-2"></div>
+    <div id="performance" class="h-2"></div>
+    <div id="media" class="h-2"></div>
+    <div id="tryouts" class="h-2"></div>
+    <div id="sponsors" class="h-2"></div>
+    <div id="ops" class="h-2 role-member-only role-staff-only role-owner-only"></div>
+    <div id="finance" class="h-2 role-owner-only"></div>
+    <div id="audit" class="h-2 role-staff-only role-owner-only"></div>
+
+
+
+
+
+
+
+
+
+  <script>
+    // Demo Controller wiring
+    const roleSelect = document.getElementById("roleSelect");
+    const gameSelect = document.getElementById("gameSelect");
+    const rolePill = document.getElementById("rolePill");
+    const gamePill = document.getElementById("gamePill");
+    const themePill = document.getElementById("themePill");
+
+    function setRole(val){
+      document.body.setAttribute("data-role", val);
+      rolePill.textContent = val;
+    }
+    function setGame(val){
+      document.body.setAttribute("data-game", val);
+      gamePill.textContent = val;
+    }
+    function setTheme(val){
+      document.body.setAttribute("data-theme", val);
+      themePill.textContent = val;
+    }
+
+    roleSelect.addEventListener("change", (e) => setRole(e.target.value));
+    gameSelect.addEventListener("change", (e) => setGame(e.target.value));
+
+    document.querySelectorAll("[data-theme-btn]").forEach(btn => {
+      btn.addEventListener("click", () => setTheme(btn.getAttribute("data-theme-btn")));
+    });
+
+    // Initialize pills from body
+    setRole(document.body.getAttribute("data-role") || "PUBLIC");
+    setGame(document.body.getAttribute("data-game") || "FPS");
+    setTheme(document.body.getAttribute("data-theme") || "DEFAULT");
+// Subnav active state (simple + lightweight)
+      // Add/remove "active" style on scroll without a framework.
+      (function(){
+        const links = Array.from(document.querySelectorAll("#subnav a.subnav-link"));
+        const ids = links.map(a => (a.getAttribute("href") || "").replace("#","")).filter(Boolean);
+
+        function setActive(id){
+          links.forEach(a => {
+            const isActive = a.getAttribute("href") === ("#" + id);
+            a.classList.toggle("is-active", isActive);
+            a.style.borderColor = "";
+            a.style.background = "";
+            a.style.color = "";
+          });
+        }
+
+        const observers = [];
+        ids.forEach(id => {
+          const el = document.getElementById(id);
+          if(!el) return;
+
+          const obs = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if(entry.isIntersecting){
+                setActive(id);
+              }
+            });
+          }, { root: null, threshold: 0.25 });
+
+          obs.observe(el);
+          observers.push(obs);
+        });
+
+        // default
+        setActive((location.hash || "#overview").replace("#", ""));
+      })();
+    </script>
+
+<script>
+  // ===== Hero Identity + Ranking (demo logic; replace with backend later) =====
+  const TEAM_IS_ORG_OWNED = true;                 // TODO: hydrate from backend
+  const ORG_NAME = "SYNTAX Esports";              // TODO: hydrate from backend
+
+  const GAME_LABELS = {
+    FPS: "VALORANT / CS2 / R6",
+    MOBA: "DOTA 2 / MLBB",
+    SPORTS: "FC 26 / eFootball 2026",
+    BR: "PUBG MOBILE / Free Fire / CODM",
+  };
+
+  // Demo ranks per game type (replace with real per-game ranks)
+  const GAME_RANKS = {
+    FPS: "Global #14",
+    MOBA: "Global #38",
+    SPORTS: "Global #07",
+    BR: "Global #22",
+  };
+
+  function computeWinRate(recordText){
+    // expects "W–L" like "84–39" (en dash) or "84-39"
+    const cleaned = recordText.replace("–","-");
+    const [w,l] = cleaned.split("-").map(n => parseInt(n.trim(), 10));
+    if (!Number.isFinite(w) || !Number.isFinite(l) || (w+l) === 0) return "—";
+    const pct = (w / (w + l)) * 100;
+    return `${pct.toFixed(1)}%`;
+  }
+
+function updateHeroContext(){
+  const s = window.demoState || { role: "PUBLIC", game: "FPS", orgOwned: true };
+
+  // --- Identity (org vs independent) ---
+  const identityValue = document.getElementById("identityValue");
+  if(identityValue){
+    identityValue.textContent = s.orgOwned ? "SYNTAX Esports" : "Independent";
+  }
+
+  // --- Game label ---
+  const gameLabelText = document.getElementById("gameLabelText");
+  if(gameLabelText){
+    // You can later map platform per game; for now use demo presets
+    const platform = (s.game === "FPS") ? "PC" : "Mobile";
+    const gameName =
+      (s.game === "FPS") ? "VALORANT" :
+      (s.game === "MOBA") ? "Mobile Legends" :
+      (s.game === "BR") ? "PUBG MOBILE" :
+      "eFootball";
+    gameLabelText.textContent = `${gameName} • ${platform}`;
+  }
+
+  // --- Ranks (game-wise first, global second) ---
+  const gameRankText = document.getElementById("gameRankText");
+  const globalRankText = document.getElementById("globalRankText");
+
+  // Demo numbers (swap later with real data)
+  const rankByGame = {
+    FPS: { game: "#14", global: "#38" },
+    MOBA:{ game: "#9",  global: "#41" },
+    BR:  { game: "#22", global: "#57" },
+    SPORTS:{ game:"#5", global:"#19" }
+  };
+
+  const r = rankByGame[s.game] || rankByGame.FPS;
+  if(gameRankText){
+    const gameName =
+      (s.game === "FPS") ? "VALORANT" :
+      (s.game === "MOBA") ? "MLBB" :
+      (s.game === "BR") ? "PUBG" :
+      "eFootball";
+    gameRankText.textContent = `${gameName} ${r.game}`;
+  }
+  if(globalRankText){
+    globalRankText.textContent = `Global ${r.global}`;
+  }
+
+  // --- Recruiting chip ---
+  // (Later: this should come from team.recruitment.openTryouts OR team.recruitment.isRecruiting)
+  const recruitingEnabled = Boolean(s.recruiting);
+  const recruitingChip = document.getElementById("recruitingChip");
+  if(recruitingChip){
+    recruitingChip.style.display = recruitingEnabled ? "inline-flex" : "none";
+  }
+
+  // --- Platform-verifiable metrics (no external APIs needed) ---
+  // Use “Crown Points” for team (CP). Org uses Empire Score aggregated from team CP.
+  const metricCrownPoints = document.getElementById("metricCrownPoints");
+  const metricTrophies = document.getElementById("metricTrophies");
+  const metricTrophySeasons = document.getElementById("metricTrophySeasons");
+  const metricWL = document.getElementById("metricWL");
+  const metricWinRate = document.getElementById("metricWinRate");
+  const metricFollowers = document.getElementById("metricFollowers");
+  const metricBounties = document.getElementById("metricBounties");
+
+  // Demo payload per game type (swap with server response later)
+  const stats = {
+    FPS:    { cp: 8450, trophies: 42, seasons: "3 seasons", wl: "68–32", wr: "68.4%", followers: "18.2k", bounties: 6 },
+    MOBA:   { cp: 9120, trophies: 28, seasons: "2 seasons", wl: "51–19", wr: "72.8%", followers: "22.7k", bounties: 4 },
+    BR:     { cp: 6300, trophies: 11, seasons: "1 season",  wl: "39–27", wr: "59.1%", followers: "9.4k",  bounties: 9 },
+    SPORTS: { cp: 10450,trophies: 17, seasons: "2 seasons", wl: "33–10", wr: "76.7%", followers: "14.8k", bounties: 2 }
+  }[s.game] || stats.FPS;
+
+  if(metricCrownPoints) metricCrownPoints.textContent = stats.cp.toLocaleString();
+  if(metricTrophies) metricTrophies.textContent = stats.trophies;
+  if(metricTrophySeasons) metricTrophySeasons.textContent = stats.seasons;
+  if(metricWL) metricWL.textContent = stats.wl;
+  if(metricWinRate) metricWinRate.textContent = stats.wr;
+  if(metricFollowers) metricFollowers.textContent = stats.followers;
+  if(metricBounties) metricBounties.textContent = stats.bounties;
+}
+
+  // Hook into your existing controller events:
+  document.addEventListener("DOMContentLoaded", () => {
+    updateHeroContext();
+
+    const gameSelect = document.getElementById("gameSelect");
+    if (gameSelect){
+      gameSelect.addEventListener("change", () => {
+        document.body.setAttribute("data-game", gameSelect.value);
+        const gamePill = document.getElementById("gamePill");
+        if (gamePill) gamePill.textContent = gameSelect.value;
+        updateHeroContext();
+      });
+    }
+
+    // If your existing JS already sets data-game elsewhere, calling this is harmless:
+    const roleSelect = document.getElementById("roleSelect");
+    if (roleSelect){
+      roleSelect.addEventListener("change", () => {
+        document.body.setAttribute("data-role", roleSelect.value);
+        const rolePill = document.getElementById("rolePill");
+        if (rolePill) rolePill.textContent = roleSelect.value;
+      });
+    }
+
+    // Theme buttons: keep your existing logic; after setting data-theme, also update pill
+    document.querySelectorAll("[data-theme-btn]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const theme = btn.getAttribute("data-theme-btn");
+        document.body.setAttribute("data-theme", theme);
+        const themePill = document.getElementById("themePill");
+        if (themePill) themePill.textContent = theme;
+      });
+    });
+  });
+</script>
+</body>
+</html>

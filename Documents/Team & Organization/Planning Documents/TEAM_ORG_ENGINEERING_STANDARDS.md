@@ -577,7 +577,7 @@ def team_detail(request, slug):
         team_identity = TeamService.get_team_identity_by_slug(slug)
         roster = TeamService.get_roster_members(team_identity.team_id)
         
-        return render(request, 'organizations/team_detail.html', {
+        return render(request, 'organizations/Demo_detailTeam.html', {
             'team': team_identity,
             'roster': roster
         })

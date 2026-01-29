@@ -15,6 +15,7 @@ from apps.organizations.views import (
     vnext_hub,
     team_create,
     team_detail,
+    team_manage,
     team_invites,
     organization_detail,
     org_create,
@@ -38,8 +39,11 @@ urlpatterns = [
     # UI views - Team creation
     path('teams/create/', team_create, name='team_create'),
     
-    # UI views - Team detail (P3-T6)
+    # UI views - Team detail (P4-T1 - Public display)
     path('teams/<str:team_slug>/', team_detail, name='team_detail'),
+    
+    # UI views - Team management (P3-T6 - Roster operations, requires auth)
+    path('teams/<str:team_slug>/manage/', team_manage, name='team_manage'),
     
     # UI views - Organization creation (P3-T7)
     # MUST come BEFORE <org_slug> catch-all to avoid capturing 'create' as slug

@@ -146,14 +146,17 @@ def team_create(request):
 
 
 @login_required
-def team_detail(request, team_slug):
+def team_manage(request, team_slug):
     """
-    Team detail and roster management UI (P3-T6).
+    Team management UI with roster operations (P3-T6).
     
-    Displays team information with tabs for:
+    Displays team management interface with tabs for:
     - Roster: View/add/remove/change roles for team members
     - Invites: View pending invitations (placeholder)
     - Settings: Update team branding and preferences (if authorized)
+    
+    NOTE: This is the MANAGEMENT interface, not the public display page.
+    For public display, see team_detail() function.
     
     Permission Logic:
     - Independent team: OWNER or MANAGER can manage
@@ -163,7 +166,7 @@ def team_detail(request, team_slug):
         team_slug: Team URL slug
     
     Returns:
-        - 200: Renders team_detail.html (Tailwind UI)
+        - 200: Renders team_manage.html (Tailwind UI)
         - 404: Team not found
         - 302: Redirects if error
     """
@@ -221,20 +224,79 @@ def team_detail(request, team_slug):
                 can_manage = True
         
         logger.info(
-            f"Team detail accessed: {team_slug}",
+            f"Team management accessed: {team_slug}",
             extra={
-                'event_type': 'team_detail_accessed',
+                'event_type': 'team_manage_accessed',
                 'user_id': request.user.id,
                 'team_slug': team_slug,
                 'can_manage': can_manage,
             }
         )
         
-        return render(request, 'organizations/team/team_detail.html', {
+        return render(request, 'organizations/team/team_manage.html', {
             'team': team_data['team'],
             'team_data': json.dumps(team_data),
             'can_manage': can_manage,
         })
+    
+    except NotFoundError:
+        messages.error(request, f'Team "{team_slug}" not found.')
+        return redirect('/teams/')
+
+
+def team_detail(request, team_slug):
+    """
+    Public team detail display page (P4-T1).
+    
+    Public-facing read-only page showing team information, roster, and stats.
+    Accessible to anonymous users for public teams, members-only for private teams.
+    
+    This is the PUBLIC DISPLAY page, not the management interface.
+    For management operations, see team_manage() or team_control_plane().
+    
+    Architecture:
+    - Read-only display (no forms, no mutations)
+    - Uses team_detail_service.py for queries
+    - Respects team privacy (public vs private)
+    - Respects organization visibility settings
+    
+    Args:
+        team_slug: Team URL slug
+    
+    Returns:
+        - 200: Renders Demo_detailTeam.html (public display)
+        - 403: Private team, user not a member
+        - 404: Team not found
+    """
+    from apps.organizations.services.team_detail_service import TeamDetailService
+    from apps.organizations.services.exceptions import NotFoundError, PermissionDeniedError
+    
+    try:
+        # Get public display data
+        context = TeamDetailService.get_public_team_display(
+            team_slug=team_slug,
+            viewer_user=request.user if request.user.is_authenticated else None
+        )
+        
+        # Check if user can view details
+        if not context['can_view_details']:
+            return render(request, 'organizations/team/Demo_detailTeam.html', {
+                'team': context['team'],
+                'can_view_details': False,
+                'error_message': 'This team is private. Only members can view details.',
+            })
+        
+        logger.info(
+            f"Team detail (public) accessed: {team_slug}",
+            extra={
+                'event_type': 'team_detail_public_accessed',
+                'user_id': request.user.id if request.user.is_authenticated else None,
+                'team_slug': team_slug,
+                'is_authenticated': request.user.is_authenticated,
+            }
+        )
+        
+        return render(request, 'organizations/team/Demo_detailTeam.html', context)
     
     except NotFoundError:
         messages.error(request, f'Team "{team_slug}" not found.')

@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>Cyber Knights | Team HQ | DeltaCrown</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Teko:wght@300;400;500;600;700&family=Unbounded:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cyber: ['"Unbounded"', 'sans-serif'],
+                        ui: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        stats: ['"Teko"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        delta: {
+                            base: '#000000',
+                            surface: '#0A0A0F',
+                            highlight: '#12121A',
+                            gold: '#FFD700',
+                            violet: '#6C00FF',
+                            electric: '#00E5FF',
+                            danger: '#FF3131',
+                            success: '#00FF41',
+                        },
+                        team: {
+                            primary: 'var(--team-primary)',
+                            dim: 'var(--team-dim)',
+                            glow: 'var(--team-glow)',
+                        }
+                    },
+                    backgroundImage: {
+                        'noise': "url('https://grainy-gradients.vercel.app/noise.svg')",
+                        'hero-gradient': 'linear-gradient(to top, #000000 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.2) 100%)',
+                    },
+                    boxShadow: {
+                        "glow-team": "0 0 50px -10px var(--team-glow)",
+                        'glass-edge': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.1)',
+                    },
+                    animation: {
+                        shimmer: "shimmer 2.5s linear infinite",
+                        float: "float 3s ease-in-out infinite",
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        shimmer: {
+                            "0%": { transform: "translateX(-100%)" },
+                            "100%": { transform: "translateX(100%)" },
+                        },
+                        float: {
+                            "0%, 100%": { transform: "translateY(0px)" },
+                            "50%": { transform: "translateY(-10px)" },
+                        },
+                    },
+                },
+            },
+        };
+    </script>
+
+    <style>
+        :root {
+            --team-primary: #FF4655;
+            --team-dim: rgba(255, 70, 85, 0.15);
+            --team-glow: rgba(255, 70, 85, 0.3);
+            --glass-bg: rgba(10, 10, 15, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Theme Overrides */
+        [data-theme="VALORANT"] {
+            --team-primary: #FF4655;
+            --team-dim: rgba(255, 70, 85, 0.15);
+            --team-glow: rgba(255, 70, 85, 0.3);
+        }
+
+        [data-theme="EFOOTBALL"] {
+            --team-primary: #00E5FF;
+            --team-dim: rgba(0, 229, 255, 0.15);
+            --team-glow: rgba(0, 229, 255, 0.3);
+        }
+
+        [data-theme="PUBG"] {
+            --team-primary: #FFD700;
+            --team-dim: rgba(255, 215, 0, 0.15);
+            --team-glow: rgba(255, 215, 0, 0.3);
+        }
+
+        [data-theme="MLBB"] {
+            --team-primary: #6C00FF;
+            --team-dim: rgba(108, 0, 255, 0.15);
+            --team-glow: rgba(108, 0, 255, 0.3);
+        }
+
+        body {
+            background: #000;
+            color: #E2E8F0;
+            overflow-x: hidden;
+        }
+
+        /* Custom Utilities */
+        .liquid-glass {
+            background: linear-gradient(135deg, rgba(10, 10, 15, 0.7) 0%, rgba(10, 10, 15, 0.5) 100%);
+            backdrop-filter: blur(24px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .liquid-trace {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.01) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .liquid-trace::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+            transition: left 0.5s;
+        }
+
+        .liquid-trace:hover::before {
+            left: 100%;
+        }
+
+        .liquid-trace:hover {
+            border-color: var(--team-primary);
+            box-shadow: 0 0 40px var(--team-glow), inset 0 0 20px rgba(0, 229, 255, 0.05);
+            transform: translateY(-4px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 100%);
+        }
+
+        /* Frosted Glass Hero */
+        .frosted-hero {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0%, rgba(10, 10, 15, 0.7) 100%);
+            backdrop-filter: blur(20px) saturate(130%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 1px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Section Accents */
+        [data-accent="team"] {
+            border-top: 3px solid var(--team-primary);
+            position: relative;
+        }
+
+        [data-accent="team"]::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--team-primary), transparent);
+            opacity: 0.3;
+            filter: blur(8px);
+        }
+
+        [data-accent="success"] {
+            border-top: 3px solid #00FF41;
+            position: relative;
+        }
+
+        [data-accent="success"]::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00FF41, transparent);
+            opacity: 0.3;
+            filter: blur(8px);
+        }
+
+        [data-accent="electric"] {
+            border-top: 3px solid #00E5FF;
+            position: relative;
+        }
+
+        [data-accent="electric"]::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00E5FF, transparent);
+            opacity: 0.3;
+            filter: blur(8px);
+        }
+
+        [data-accent="danger"] {
+            border-top: 3px solid #FF3131;
+            position: relative;
+        }
+
+        [data-accent="danger"]::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #FF3131, transparent);
+            opacity: 0.3;
+            filter: blur(8px);
+        }
+
+        /* Hero Mask */
+        .hero-mask {
+            mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+        }
+
+        /* Chip Styling */
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 99px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: "JetBrains Mono", monospace;
+            color: #cbd5e1;
+        }
+
+        .chip.primary {
+            background: color-mix(in srgb, var(--team-primary) 15%, transparent);
+            border-color: color-mix(in srgb, var(--team-primary) 40%, transparent);
+            color: var(--team-primary);
+        }
+
+        /* Text Clamp */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Stat Card Styles */
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--team-primary), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        /* Role Badge */
+        .role-badge {
+            position: relative;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            font-family: "JetBrains Mono", monospace;
+        }
+
+        .role-badge.captain {
+            background: linear-gradient(135deg, var(--team-primary) 0%, transparent 100%);
+            border-color: var(--team-primary);
+            color: white;
+            box-shadow: 0 0 20px var(--team-glow);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0A0A0F;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1A1A2F;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--team-primary);
+        }
+
+        /* Tab Navigation */
+        .tab-btn {
+            background: transparent;
+            color: #94a3b8;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--team-primary);
+            color: black;
+            box-shadow: 0 0 20px var(--team-glow);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Glass Panel Utility */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Dynamic Visibility Classes */
+        .role-owner-only,
+        .role-public-only,
+        .game-fps-only,
+        .game-moba-only,
+        .game-sports-only,
+        .game-br-only {
+            display: none !important;
+        }
+
+        body[data-role="OWNER"] .role-owner-only {
+            display: flex !important;
+        }
+
+        body[data-role="PUBLIC"] .role-public-only {
+            display: flex !important;
+        }
+
+        body[data-game="FPS"] .game-fps-only {
+            display: flex !important;
+        }
+
+        body[data-game="MOBA"] .game-moba-only {
+            display: flex !important;
+        }
+
+        body[data-game="SPORTS"] .game-sports-only {
+            display: flex !important;
+        }
+
+        body[data-game="BR"] .game-br-only {
+            display: flex !important;
+        }
+
+        /* Hero Mask */
+        .hero-mask {
+            mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+        }
+
+        /* Custom Scrollbar */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="font-ui selection:bg-team-primary selection:text-black" data-role="OWNER" data-game="FPS"
+    data-theme="VALORANT">
+
+    <!-- Background Effects -->
+    <div class="fixed inset-0 z-0 pointer-events-none">
+        <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04]"></div>
+        <div class="absolute -top-40 -right-40 w-[800px] h-[800px] rounded-full blur-[200px] opacity-10"
+            style="background: var(--team-primary)"></div>
+        <div class="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full blur-[180px] opacity-5"
+            style="background: var(--team-primary)"></div>
+    </div>
+
+    <!-- Theme Switcher -->
+    <div
+        class="fixed bottom-5 right-5 z-[200] liquid-glass p-4 rounded-xl w-64 shadow-2xl border-l-4 border-l-[var(--team-primary)] hidden md:block">
+        <div class="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-3 flex justify-between">
+            <span>Theme Controller</span>
+            <div class="w-2 h-2 rounded-full bg-[var(--team-primary)] animate-pulse"></div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="document.body.setAttribute('data-theme', 'GOLD')"
+                class="w-8 h-8 rounded-lg bg-[#FFD700] border border-white/20 hover:scale-110 transition-transform"></button>
+            <button onclick="document.body.setAttribute('data-theme', 'VIOLATION')"
+                class="w-8 h-8 rounded-lg bg-[#6C00FF] border border-white/20 hover:scale-110 transition-transform"></button>
+            <button onclick="document.body.setAttribute('data-theme', 'CYBER')"
+                class="w-8 h-8 rounded-lg bg-[#00E5FF] border border-white/20 hover:scale-110 transition-transform ring-2 ring-white/40"></button>
+            <button onclick="document.body.setAttribute('data-theme', 'CRIMSON')"
+                class="w-8 h-8 rounded-lg bg-[#FF3131] border border-white/20 hover:scale-110 transition-transform"></button>
+            <button onclick="document.body.setAttribute('data-theme', 'EMERALD')"
+                class="w-8 h-8 rounded-lg bg-[#00FF41] border border-white/20 hover:scale-110 transition-transform"></button>
+        </div>
+    </div>
+
+    <div class="relative z-10">
+
+        <!-- Hero Section -->
+        <header class="relative mb-24">
+            <!-- Banner -->
+            <div class="relative w-full h-[450px] overflow-hidden">
+                <div class="absolute inset-0">
+                    <img src="C:/Users/rkras/.gemini/antigravity/brain/35970894-6828-4e2b-8901-65a2192df2b9/team_banner_cyber_1769595300717.png"
+                        class="w-full h-full object-cover scale-105">
+                    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black"></div>
+                </div>
+                <!-- Animated Overlay -->
+                <div class="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60"></div>
+            </div>
+
+            <!-- Hero Card -->
+            <div class="max-w-[1600px] mx-auto px-6 relative -mt-32 z-20">
+                <div class="frosted-hero rounded-[2rem] p-8 md:p-10 flex flex-col lg:flex-row gap-10 items-end">
+
+                    <!-- Team Logo with Advanced Effects -->
+                    <div class="relative -mt-24 md:-mt-32 shrink-0 group">
+                        <div
+                            class="absolute inset-0 bg-[var(--team-primary)] blur-3xl opacity-20 rounded-full animate-pulse">
+                        </div>
+                        <div
+                            class="relative w-40 h-40 md:w-56 md:h-56 rounded-[2.5rem] bg-gradient-to-br from-[#0A0A0F] to-black border-[5px] border-[#12121A] shadow-2xl p-2 overflow-hidden">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-br from-[var(--team-primary)]/10 to-transparent">
+                            </div>
+                            <div
+                                class="w-full h-full rounded-[2rem] overflow-hidden relative bg-black flex items-center justify-center">
+                                <img src="C:/Users/rkras/.gemini/antigravity/brain/35970894-6828-4e2b-8901-65a2192df2b9/team_logo_shield_1769595404518.png"
+                                    class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
+                            </div>
+                        </div>
+                        <!-- Verification Badge with Glow -->
+                        <div
+                            class="absolute -bottom-2 -right-2 w-12 h-12 bg-[var(--team-primary)] text-black rounded-2xl flex items-center justify-center border-[5px] border-[#0A0A0F] z-20 shadow-[0_0_30px_var(--team-glow)] animate-float">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Team Info with Enhanced Typography -->
+                    <div class="flex-1 w-full">
+                        <div class="flex flex-col md:flex-row md:items-start gap-5 mb-4">
+                            <div class="flex-1">
+                                <h1
+                                    class="text-5xl md:text-6xl lg:text-7xl font-display font-bold text-white uppercase tracking-tight leading-none mb-3">
+                                    Cyber <span
+                                        class="bg-gradient-to-r from-[var(--team-primary)] to-[#00FF41] bg-clip-text text-transparent drop-shadow-[0_0_30px_var(--team-glow)]">Knights</span>
+                                </h1>
+                                <div class="flex gap-2 flex-wrap mb-4">
+                                    <span class="chip primary shadow-lg">APAC #14</span>
+                                    <span class="chip">Est. 2024</span>
+                                    <span class="chip primary !py-0.5 !px-2 !text-[9px]">Recruiting</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-slate-300 text-base leading-relaxed max-w-3xl mb-5">
+                            Elite tactical division dominating the APAC region with precision, discipline, and
+                            unyielding aggression. We recruit only the best—strategic minds who live and breathe
+                            competitive Valorant.
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-5 text-sm font-mono text-slate-400 mb-6">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-[var(--team-primary)]" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                                    </path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                <span class="text-white font-semibold">North America</span>
+                            </div>
+                            <span class="w-1.5 h-1.5 bg-[var(--team-primary)] rounded-full"></span>
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-[var(--team-primary)]" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z">
+                                    </path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span class="text-white font-semibold">VALORANT</span>
+                            </div>
+                        </div>
+
+                        <!-- Actions and Stats Row -->
+                        <div
+                            class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pt-6 border-t border-white/10">
+                            <!-- Action Buttons -->
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <button
+                                    class="h-12 w-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all text-slate-300 hover:text-white hover:border-[var(--team-primary)]"
+                                    title="Share">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z">
+                                        </path>
+                                    </svg>
+                                </button>
+                                <button
+                                    class="h-12 px-8 bg-gradient-to-r from-[var(--team-primary)] to-[#00FF41] text-black font-bold uppercase text-xs tracking-widest rounded-xl hover:brightness-110 transition-all shadow-[0_0_30px_var(--team-glow)] flex items-center gap-2 hover:scale-105">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z">
+                                        </path>
+                                    </svg>
+                                    <span>Follow</span>
+                                </button>
+                                <button
+                                    class="h-12 px-6 bg-white/5 border border-white/10 text-white font-bold uppercase text-xs tracking-widest rounded-xl hover:bg-white/10 transition-all hover:border-[var(--team-primary)]">
+                                    Apply to Join
+                                </button>
+                            </div>
+
+                            <!-- Quick Stats -->
+                            <div class="flex gap-8">
+                                <div class="text-center">
+                                    <div class="text-[10px] font-mono uppercase text-slate-500 tracking-wider mb-1">
+                                        Crown Points</div>
+                                    <div class="text-2xl font-display font-bold text-white">8,420</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-[10px] font-mono uppercase text-slate-500 tracking-wider mb-1">
+                                        Trophies</div>
+                                    <div
+                                        class="text-2xl font-display font-bold bg-gradient-to-r from-[var(--team-primary)] to-[#00FF41] bg-clip-text text-transparent">
+                                        12</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-[10px] font-mono uppercase text-slate-500 tracking-wider mb-1">Win
+                                        Rate</div>
+                                    <div class="text-2xl font-display font-bold text-white">62.5%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="max-w-[1600px] mx-auto px-6 mb-8">
+            <div class="liquid-glass rounded-2xl p-2 flex gap-2 overflow-x-auto">
+                <button onclick="switchTab('overview')" id="tab-overview"
+                    class="tab-btn active flex-1 min-w-[120px] h-11 rounded-xl font-display font-bold uppercase text-xs tracking-wider">Overview</button>
+                <button onclick="switchTab('tournaments')" id="tab-tournaments"
+                    class="tab-btn flex-1 min-w-[120px] h-11 rounded-xl font-display font-bold uppercase text-xs tracking-wider">Tournaments</button>
+                <button onclick="switchTab('statistics')" id="tab-statistics"
+                    class="tab-btn flex-1 min-w-[120px] h-11 rounded-xl font-display font-bold uppercase text-xs tracking-wider">Statistics</button>
+                <button onclick="switchTab('media')" id="tab-media"
+                    class="tab-btn flex-1 min-w-[120px] h-11 rounded-xl font-display font-bold uppercase text-xs tracking-wider">Media</button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-[1600px] mx-auto px-6 pb-20">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                <!-- Left Column -->
+                <div class="lg:col-span-8 space-y-8">
+
+                    <!-- OVERVIEW TAB -->
+                    <div id="content-overview" class="tab-content active space-y-8">
+
+                        <!-- Active Roster -->
+                        <section class="liquid-glass rounded-2xl p-6 md:p-8" data-accent="team">
+                            <div class="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2
+                                        class="text-2xl font-display font-bold text-white uppercase tracking-tight mb-1">
+                                        Active Roster</h2>
+                                    <p class="text-xs font-mono text-slate-500 uppercase tracking-wider">4/5 Slots
+                                        Filled
+                                    </p>
+                                </div>
+                                <button
+                                    class="h-9 px-4 bg-white/5 border border-white/10 text-white font-bold uppercase text-[9px] tracking-widest rounded-lg hover:bg-white/10 transition flex items-center gap-2">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    Invite
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                                <!-- Player Card: Captain -->
+                                <div
+                                    class="liquid-trace rounded-xl p-5 bg-gradient-to-br from-white/[0.03] to-transparent group cursor-pointer">
+                                    <div class="flex items-start gap-4 mb-4">
+                                        <div class="relative">
+                                            <div
+                                                class="w-14 h-14 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 overflow-hidden border-2 border-[var(--team-primary)]/30 shadow-lg">
+                                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=NightHawk77"
+                                                    class="w-full h-full object-cover">
+                                            </div>
+                                            <div
+                                                class="absolute -bottom-1 -right-1 w-5 h-5 bg-[var(--team-primary)] rounded-full flex items-center justify-center border-2 border-[#0A0A0F]">
+                                                <svg class="w-2.5 h-2.5 text-black" fill="currentColor"
+                                                    viewBox="0 0 20 20">
+                                                    <path
+                                                        d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <h3
+                                                    class="font-display font-bold text-lg text-white group-hover:text-[var(--team-primary)] transition truncate">
+                                                    NightHawk</h3>
+                                                <span class="role-badge captain">CAPTAIN</span>
+                                            </div>
+                                            <p class="text-xs text-slate-500 font-mono uppercase mb-2">OWNER • IGL</p>
+                                            <div class="flex gap-1.5 flex-wrap">
+                                                <span class="chip !text-[8px] !px-1.5 !py-0.5">Initiator</span>
+                                                <span class="chip !text-[8px] !px-1.5 !py-0.5">Ascendant 3</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-3 pt-3 border-t border-white/5">
+                                        <div class="text-center">
+                                            <div class="text-[9px] text-slate-500 uppercase font-mono mb-0.5">K/D</div>
+                                            <div class="text-base font-display font-bold text-white">1.24</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-[9px] text-slate-500 uppercase font-mono mb-0.5">HS%</div>
+                                            <div class="text-base font-display font-bold text-[var(--team-primary)]">28%
+                                            </div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-[9px] text-slate-500 uppercase font-mono mb-0.5">Win</div>
+                                            <div class="text-base font-display font-bold text-white">58%</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Player Card 2 -->
+                                <div
+                                    class="liquid-trace rounded-xl p-5 bg-gradient-to-br from-white/[0.03] to-transparent group cursor-pointer">
+                                    <div class="flex items-start gap-4 mb-4">
+                                        <div
+                                            class="w-14 h-14 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 overflow-hidden border border-white/10 shadow-lg">
+                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=ViperZero99"
+                                                class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <h3
+                                                class="font-display font-bold text-lg text-white group-hover:text-[var(--team-primary)] transition truncate mb-1">
+                                                ViperZero</h3>
+                                            <p class="text-xs text-slate-500 font-mono uppercase mb-2">DUELIST</p>
+                                            <div class="flex gap-1.5 flex-wrap">
+                                                <span class="chip !text-[8px] !px-1.5 !py-0.5">Jett Main</span>
+                                                <span class="chip !text-[8px] !px-1.5 !py-0.5">Immortal 1</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-3 pt-3 border-t border-white/5">
+                                        <div class="text-center">
+                                            <div class="text-[9px] text-slate-500 uppercase font-mono mb-0.5">K/D</div>
+                                            <div class="text-base font-display font-bold text-white">1.45</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-[9px] text-slate-500 uppercase font-mono mb-0.5">ACS</div>
+                                            <div class="text-base font-display font-bold text-[var(--team-primary)]">285
+                                            </div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-[9px] text-slate-500 uppercase font-mono mb-0.5">Matches
+                                            </div>
+                                            <div class="text-base font-display font-bold text-white">42</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Player Card 3 -->
+                                <div
+                                    class="liquid-trace rounded-xl p-5 bg-gradient-to-br from-white/[0.03] to-transparent group cursor-pointer">
+                                    <div class="flex items-start gap-4 mb-4">
+                                        <div
+                                            class="w-14 h-14 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 overflow-hidden border border-white/10 shadow-lg">
+                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=SentinelXX"
+                                                class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <h3
+                                                class="font-display font-bold text-lg text-white group-hover:text-[var(--team-primary)] transition truncate mb-1">
+                                                SentinelX</h3>
+                                            <p class="text-xs text-slate-500 font-mono uppercase mb-2">SENTINEL</p>
+                                            <div class="flex gap-1.5 flex-wrap">
+                                                <span class="chip !text-[8px] !px-1.5 !py-0.5">Cypher</span>
+                                                <span class="chip !text-[8px] !px-1.5 !py-0.5">Ascendant 2</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-3 pt-3 border-t border-white/5">
+                                        <div class="text-center">
+                                            <div class="text-[9px] text-slate-500 uppercase font-mono mb-0.5">K/D</div>
+                                            <div class="text-base font-display font-bold text-white">0.98</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-[9px] text-slate-500 uppercase font-mono mb-0.5">KAST</div>
+                                            <div class="text-base font-display font-bold text-[var(--team-primary)]">78%
+                                            </div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-[9px] text-slate-500 uppercase font-mono mb-0.5">Matches
+                                            </div>
+                                            <div class="text-base font-display font-bold text-white">38</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Player Card 4 -->
+                                <div
+                                    class="liquid-trace rounded-xl p-5 bg-gradient-to-br from-white/[0.03] to-transparent group cursor-pointer">
+                                    <div class="flex items-start gap-4 mb-4">
+                                        <div
+                                            class="w-14 h-14 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 overflow-hidden border border-white/10 shadow-lg">
+                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=FlashMaster"
+                                                class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <h3
+                                                class="font-display font-bold text-lg text-white group-hover:text-[var(--team-primary)] transition truncate mb-1">
+                                                FlashMaster</h3>
+                                            <p class="text-xs text-slate-500 font-mono uppercase mb-2">SUPPORT</p>
+                                            <div class="flex gap-1.5 flex-wrap">
+                                                <span class="chip !text-[8px] !px-1.5 !py-0.5">Breach</span>
+                                                <span class="chip !text-[8px] !px-1.5 !py-0.5">Diamond 3</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-3 pt-3 border-t border-white/5">
+                                        <div class="text-center">
+                                            <div class="text-[9px] text-slate-500 uppercase font-mono mb-0.5">K/D</div>
+                                            <div class="text-base font-display font-bold text-white">1.08</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-[9px] text-slate-500 uppercase font-mono mb-0.5">Assists
+                                            </div>
+                                            <div class="text-base font-display font-bold text-[var(--team-primary)]">142
+                                            </div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-[9px] text-slate-500 uppercase font-mono mb-0.5">Matches
+                                            </div>
+                                            <div class="text-base font-display font-bold text-white">35</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Empty Slot -->
+                                <div
+                                    class="liquid-trace rounded-xl p-5 bg-gradient-to-br from-white/[0.02] to-transparent border-dashed flex flex-col items-center justify-center gap-3 min-h-[160px] cursor-pointer hover:bg-white/[0.04]">
+                                    <div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
+                                        <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-sm font-display font-bold text-white mb-1">Open Slot</div>
+                                        <div class="text-xs text-slate-500 font-mono uppercase">Recruiting Controller
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </section>
+
+                        <!-- Recent Matches -->
+                        <section class="liquid-glass rounded-2xl p-6 md:p-8" data-accent="electric">
+                            <div class="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2
+                                        class="text-2xl font-display font-bold text-white uppercase tracking-tight mb-1">
+                                        Recent Operations</h2>
+                                    <p class="text-xs font-mono text-slate-500 uppercase tracking-wider">Last 7 Days</p>
+                                </div>
+                                <button
+                                    class="text-xs font-mono uppercase text-[var(--team-primary)] hover:underline">View
+                                    All</button>
+                            </div>
+
+                            <div class="space-y-3">
+
+                                <!-- Match Win -->
+                                <div
+                                    class="flex items-center gap-4 bg-white/[0.02] border-l-4 border-l-[#00FF41] rounded-r-xl p-4 hover:bg-white/[0.04] transition cursor-pointer">
+                                    <div class="text-center min-w-[60px]">
+                                        <div class="text-[10px] font-mono uppercase text-[#00FF41] font-bold mb-0.5">
+                                            VICTORY
+                                        </div>
+                                        <div class="text-[9px] text-slate-600 font-mono">2d ago</div>
+                                    </div>
+                                    <div class="flex-1 flex items-center justify-between gap-4">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <div class="w-8 h-8 rounded-lg bg-slate-800 overflow-hidden flex-shrink-0">
+                                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed=RedDragons"
+                                                    class="w-full h-full">
+                                            </div>
+                                            <span class="font-display font-bold text-white truncate">vs.
+                                                RedDragons</span>
+                                        </div>
+                                        <div class="flex items-center gap-4">
+                                            <div class="text-2xl font-display font-bold text-white tabular-nums">13 - 9
+                                            </div>
+                                            <span class="text-xs text-slate-500 font-mono hidden sm:block">Ascent</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Match Loss -->
+                                <div
+                                    class="flex items-center gap-4 bg-white/[0.02] border-l-4 border-l-[#FF3131] rounded-r-xl p-4 hover:bg-white/[0.04] transition cursor-pointer">
+                                    <div class="text-center min-w-[60px]">
+                                        <div class="text-[10px] font-mono uppercase text-[#FF3131] font-bold mb-0.5">
+                                            DEFEAT
+                                        </div>
+                                        <div class="text-[9px] text-slate-600 font-mono">5d ago</div>
+                                    </div>
+                                    <div class="flex-1 flex items-center justify-between gap-4">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <div class="w-8 h-8 rounded-lg bg-slate-800 overflow-hidden flex-shrink-0">
+                                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed=LiquidMist"
+                                                    class="w-full h-full">
+                                            </div>
+                                            <span class="font-display font-bold text-white truncate">vs.
+                                                LiquidMist</span>
+                                        </div>
+                                        <div class="flex items-center gap-4">
+                                            <div class="text-2xl font-display font-bold text-white tabular-nums">11 - 13
+                                            </div>
+                                            <span class="text-xs text-slate-500 font-mono hidden sm:block">Lotus</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Match Win -->
+                                <div
+                                    class="flex items-center gap-4 bg-white/[0.02] border-l-4 border-l-[#00FF41] rounded-r-xl p-4 hover:bg-white/[0.04] transition cursor-pointer">
+                                    <div class="text-center min-w-[60px]">
+                                        <div class="text-[10px] font-mono uppercase text-[#00FF41] font-bold mb-0.5">
+                                            VICTORY
+                                        </div>
+                                        <div class="text-[9px] text-slate-600 font-mono">6d ago</div>
+                                    </div>
+                                    <div class="flex-1 flex items-center justify-between gap-4">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <div class="w-8 h-8 rounded-lg bg-slate-800 overflow-hidden flex-shrink-0">
+                                                <img src="https://api.dicebear.com/7.x/identicon/svg?seed=TitanGaming"
+                                                    class="w-full h-full">
+                                            </div>
+                                            <span class="font-display font-bold text-white truncate">vs. Titan
+                                                Gaming</span>
+                                        </div>
+                                        <div class="flex items-center gap-4">
+                                            <div class="text-2xl font-display font-bold text-white tabular-nums">13 - 7
+                                            </div>
+                                            <span class="text-xs text-slate-500 font-mono hidden sm:block">Haven</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </section>
+
+                    </div>
+                    <!-- END OVERVIEW TAB -->
+
+                    <!-- TOURNAMENTS TAB -->
+                    <div id="content-tournaments" class="tab-content space-y-8">
+                        <section class="liquid-glass rounded-2xl p-6 md:p-8" data-accent="team">
+                            <h2 class="text-2xl font-display font-bold text-white uppercase tracking-tight mb-6">
+                                Upcoming Tournaments</h2>
+                            <div class="space-y-4">
+                                <div
+                                    class="liquid-trace rounded-xl p-5 bg-gradient-to-br from-white/[0.03] to-transparent">
+                                    <div class="flex items-start justify-between mb-3">
+                                        <div class="flex-1">
+                                            <h3 class="font-display font-bold text-lg text-white mb-1">VCT Champions
+                                                2026</h3>
+                                            <p class="text-xs font-mono text-slate-500 uppercase">March 15-22, 2026 •
+                                                Los Angeles</p>
+                                        </div>
+                                        <span class="chip primary">Qualifier</span>
+                                    </div>
+                                    <div class="flex items-center gap-6 text-sm mt-4 pt-4 border-t border-white/5">
+                                        <div><span class="text-slate-500">Prize:</span> <span
+                                                class="text-white font-bold">$250K</span></div>
+                                        <div><span class="text-slate-500">Teams:</span> <span
+                                                class="text-white font-bold">16</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!--STATISTICS TAB -->
+                    <div id="content-statistics" class="tab-content space-y-8">
+                        <section class="liquid-glass rounded-2xl p-6 md:p-8" data-accent="electric">
+                            <h2 class="text-2xl font-display font-bold text-white uppercase tracking-tight mb-6">Team
+                                Statistics</h2>
+                            <canvas id="performanceChart" style="max-height: 300px;"></canvas>
+                        </section>
+                    </div>
+
+                    <!-- MEDIA TAB -->
+                    <div id="content-media" class="tab-content space-y-8">
+                        <section class="liquid-glass rounded-2xl p-6 md:p-8">
+                            <h2 class="text-2xl font-display font-bold text-white uppercase tracking-tight mb-6">Team
+                                Gallery</h2>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                <div
+                                    class="aspect-video rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform">
+                                    <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400"
+                                        class="w-full h-full object-cover">
+                                </div>
+                                <div
+                                    class="aspect-video rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform">
+                                    <img src="https://images.unsplash.com/photo-1560419015-7c427e8ae5ba?w=400"
+                                        class="w-full h-full object-cover">
+                                </div>
+                                <div
+                                    class="aspect-video rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform">
+                                    <img src="https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=400"
+                                        class="w-full h-full object-cover">
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                </div>
+
+                <!-- Right Sidebar -->
+                <aside class="lg:col-span-4 space-y-8">
+
+                    <!-- Organization -->
+                    <section class="liquid-glass rounded-2xl p-6">
+                        <h3 class="text-xs font-mono uppercase text-slate-500 tracking-wider mb-4">Affiliated
+                            Organization</h3>
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+                                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="font-display font-bold text-xl text-white">Nexus Gaming</div>
+                                <div class="text-xs text-[var(--team-primary)] font-mono">Division 1 • APAC</div>
+                            </div>
+                        </div>
+                        <button
+                            class="w-full h-9 bg-white/5 border border-white/10 text-white font-bold uppercase text-[9px] tracking-widest rounded-lg hover:bg-white/10 transition">View
+                            Organization</button>
+                    </section>
+
+                    <!-- Performance Stats -->
+                    <section class="liquid-glass rounded-2xl p-6" data-accent="success">
+                        <h3 class="text-xs font-mono uppercase text-slate-500 tracking-wider mb-6">Team Performance
+                        </h3>
+
+                        <div class="mb-6">
+                            <div class="flex justify-between items-baseline mb-2">
+                                <span class="text-sm text-slate-300">Win Rate</span>
+                                <span class="text-2xl font-display font-bold text-white">62.5%</span>
+                            </div>
+                            <div class="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-[var(--team-primary)] to-[#00FF41] rounded-full"
+                                    style="width: 62.5%"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="stat-card bg-white/[0.02] rounded-xl p-4 text-center">
+                                <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider mb-1">
+                                    Matches
+                                </div>
+                                <div class="text-2xl font-display font-bold text-white">48</div>
+                            </div>
+                            <div class="stat-card bg-white/[0.02] rounded-xl p-4 text-center">
+                                <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider mb-1">
+                                    Streak
+                                </div>
+                                <div class="text-2xl font-display font-bold text-[#00FF41]">W2</div>
+                            </div>
+                            <div class="stat-card bg-white/[0.02] rounded-xl p-4 text-center">
+                                <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider mb-1">
+                                    Tournaments</div>
+                                <div class="text-2xl font-display font-bold text-white">3</div>
+                            </div>
+                            <div class="stat-card bg-white/[0.02] rounded-xl p-4 text-center">
+                                <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider mb-1">
+                                    Ranking
+                                </div>
+                                <div class="text-2xl font-display font-bold text-[var(--team-primary)]">#142</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Trophy Case -->
+                    <section class="liquid-glass rounded-2xl p-6">
+                        <h3 class="text-xs font-mono uppercase text-slate-500 tracking-wider mb-4">Trophy Case</h3>
+                        <div class="grid grid-cols-4 gap-2">
+                            <div
+                                class="aspect-square bg-white/[0.03] rounded-lg flex items-center justify-center text-[var(--team-primary)] hover:bg-white/[0.06] transition cursor-pointer relative group">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-.5a1.5 1.5 0 000 3h.5a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-.5a1.5 1.5 0 00-3 0v.5a1 1 0 01-1 1H6a1 1 0 01-1-1v-3a1 1 0 00-1-1h-.5a1.5 1.5 0 010-3H4a1 1 0 001-1V6a1 1 0 011-1h3a1 1 0 001-1v-.5z" />
+                                </svg>
+                                <div
+                                    class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-black text-[9px] px-2 py-1 rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                    Spring Cup Winner</div>
+                            </div>
+                            <div
+                                class="aspect-square bg-white/[0.03] rounded-lg flex items-center justify-center text-slate-600 hover:bg-white/[0.06] transition cursor-pointer">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                            </div>
+                            <div
+                                class="aspect-square bg-white/[0.03] rounded-lg flex items-center justify-center text-slate-600 hover:bg-white/[0.06] transition cursor-pointer">
+                                <div class="w-6 h-6 rounded-full border-2 border-dashed border-slate-700"></div>
+                            </div>
+                            <div
+                                class="aspect-square bg-white/[0.03] rounded-lg flex items-center justify-center text-slate-600 hover:bg-white/[0.06] transition cursor-pointer">
+                                <div class="w-6 h-6 rounded-full border-2 border-dashed border-slate-700"></div>
+                            </div>
+                        </div>
+                    </section>
+
+                </aside>
+
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="border-t border-white/5 py-8 text-center">
+            <p class="text-sm text-slate-600 font-mono">&copy; 2026 DeltaCrown Ecosystem. All rights reserved.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        // Tab Switching
+        function switchTab(tabName) {
+            // Remove active from all tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Add active to selected tab
+            document.getElementById('tab-' + tabName).classList.add('active');
+            document.getElementById('content-' + tabName).classList.add('active');
+        }
+
+        // Initialize Chart (only if on statistics tab)
+        document.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('performanceChart');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+                        datasets: [{
+                            label: 'Win Rate %',
+                            data: [55, 58, 62, 60, 65, 62],
+                            borderColor: 'rgb(0, 229, 255)',
+                            backgroundColor: 'rgba(0, 229, 255, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Avg K/D',
+                            data: [1.05, 1.12, 1.18, 1.15, 1.22, 1.18],
+                            borderColor: 'rgb(0, 255, 65)',
+                            backgroundColor: 'rgba(0, 255, 65, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#E2E8F0',
+                                    font: { family: 'Space Grotesk', size: 12 }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                ticks: { color: '#94a3b8' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                ticks: { color: '#94a3b8' }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+
+</body>
+
+</html>
