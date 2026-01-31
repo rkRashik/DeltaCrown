@@ -34,9 +34,9 @@ class TeamMembership(models.Model):
     
     # Relationships
     team = models.ForeignKey(
-        'Team',
+        'teams.Team',  # Using legacy Team model
         on_delete=models.CASCADE,
-        related_name='memberships',
+        related_name='vnext_memberships',  # Changed to avoid clash with teams.TeamMembership.memberships
         help_text="Team this membership belongs to"
     )
     user = models.ForeignKey(

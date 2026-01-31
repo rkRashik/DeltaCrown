@@ -268,40 +268,30 @@ def team_detail(request, team_slug):
         - 403: Private team, user not a member
         - 404: Team not found
     """
-    from apps.organizations.services.team_detail_service import TeamDetailService
-    from apps.organizations.services.exceptions import NotFoundError, PermissionDeniedError
+    from apps.organizations.services.team_detail_context import get_team_detail_context
+    from apps.organizations.models import Team
     
     try:
-        # Get public display data
-        context = TeamDetailService.get_public_team_display(
+        # Build complete context using new contract-based builder
+        context = get_team_detail_context(
             team_slug=team_slug,
-            viewer_user=request.user if request.user.is_authenticated else None
+            viewer=request.user if request.user.is_authenticated else None,
+            request=request
         )
         
-        # Add demo controller flag (dev-only feature for testing role/game polymorphism)
-        context['enable_demo_remote'] = settings.DEBUG
-        
-        # Check if user can view details
-        if not context['can_view_details']:
-            return render(request, 'organizations/team/team_detail.html', {
-                'team': context['team'],
-                'can_view_details': False,
-                'error_message': 'This team is private. Only members can view details.',
-                'enable_demo_remote': settings.DEBUG,  # Include flag for privacy block too
-            })
-        
         logger.info(
-            f"Team detail (public) accessed: {team_slug}",
+            f"Team detail accessed: {team_slug}",
             extra={
-                'event_type': 'team_detail_public_accessed',
+                'event_type': 'team_detail_accessed',
                 'user_id': request.user.id if request.user.is_authenticated else None,
                 'team_slug': team_slug,
                 'is_authenticated': request.user.is_authenticated,
+                'viewer_role': context['viewer']['role'],
             }
         )
         
         return render(request, 'organizations/team/team_detail.html', context)
     
-    except NotFoundError:
+    except Team.DoesNotExist:
         messages.error(request, f'Team "{team_slug}" not found.')
         return redirect('/teams/')

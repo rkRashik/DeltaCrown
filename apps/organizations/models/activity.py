@@ -41,7 +41,7 @@ class TeamActivityLog(models.Model):
     
     # Relationship
     team = models.ForeignKey(
-        'Team',
+        'teams.Team',  # Using legacy Team model
         on_delete=models.CASCADE,
         related_name='activity_logs',
         db_index=True,

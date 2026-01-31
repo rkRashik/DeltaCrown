@@ -35,7 +35,8 @@ class TeamSponsor(models.Model):
     team = models.ForeignKey(
         'teams.Team',
         on_delete=models.CASCADE,
-        related_name='sponsors'
+        related_name='sponsors',
+        help_text='Team receiving sponsorship'
     )
     
     # Sponsor Information

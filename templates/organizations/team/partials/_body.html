@@ -1,3 +1,5 @@
+{% load team_filters %}
+{% load humanize %}
 
   <div class="fixed inset-0 z-0 pointer-events-none">
     <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04]"></div>
@@ -64,8 +66,8 @@
       <div class="relative w-full h-[420px] sm:h-[460px] md:h-[520px] overflow-hidden">
         <div class="absolute inset-0">
           <img id="dc-hero-banner"
-               src="https://pixabay.com/images/download/chess-3526451_1920.jpg"
-               alt="Team banner"
+               src="{{ team.banner_url|safe_img_url }}"
+               alt="{{ team.name }} banner"
                class="w-full h-full object-cover hero-mask opacity-80 scale-105 will-change-transform" />
         </div>
         <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
@@ -81,10 +83,9 @@
       <div class="relative shrink-0">
         <div class="logo-slab">
           <div class="logo-slab__inner">
-            <svg class="w-20 h-20 md:w-24 md:h-24 text-white drop-shadow-[0_0_28px_var(--team-glow)]"
-                 fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/>
-            </svg>
+            <img src="{{ team.logo_url|safe_img_url }}"
+                 alt="{{ team.name }} logo"
+                 class="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-[0_0_28px_var(--team-glow)]" />
           </div>
         </div>
 
@@ -101,11 +102,11 @@
       <div class="flex-1 min-w-0">
         <div class="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
           <h1 class="text-4xl sm:text-5xl font-display font-bold uppercase tracking-tight leading-none text-white one-line-title">
-            Ctber <span class="text-[var(--team-primary)]">Knights</span>
+            {{ team.name|default:"Unknown Team" }}
           </h1>
 
           <div class="flex flex-wrap items-center gap-2">
-            <span class="tag tag--rank">RANK&nbsp;#3</span>
+            <span class="tag tag--rank">{% if stats.global_rank %}RANK&nbsp;#{{ stats.global_rank }}{% else %}TIER&nbsp;{{ stats.tier|default:"UNRANKED" }}{% endif %}</span>
             <span class="tag tag--neutral">EST.&nbsp;2025</span>
           </div>
         </div>
@@ -113,7 +114,7 @@
         <p id="dc-team-motto"
            class="mt-3 text-slate-400 text-sm leading-relaxed max-w-3xl line-clamp-2"
            data-max="120">
-          Built for pressure, wired for precision — we strike fast, adapt faster, and never lose the mental game.
+          {{ team.tagline|default:"Built for pressure, wired for precision — we strike fast, adapt faster, and never lose the mental game." }}
         </p>
 
         <div class="mt-4 flex flex-wrap items-center gap-2">
@@ -123,7 +124,11 @@
                     d="M3 21V7a2 2 0 012-2h14a2 2 0 012 2v14M9 21V9h6v12"/>
             </svg>
             <span>ORG</span>
-            <b>One World</b>
+            {% if organization and organization.name %}
+              <b><a href="{{ organization.url }}" class="hover:text-[var(--team-primary)] transition">{{ organization.name }}</a></b>
+            {% else %}
+              <b>Independent</b>
+            {% endif %}
           </span>
 
           <span class="meta-pill">
@@ -156,7 +161,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <span class="text-white">VALORANT</span>
+            <span class="text-white">{{ team.game.name|default:"Unknown Game"|upper }}</span>
           </div>
 
           <span class="w-1 h-1 bg-white/20 rounded-full"></span>
@@ -221,7 +226,8 @@
             </svg>
           </button>
 
-          <!-- OWNER: Full control -->
+          <!-- OWNER: Full control (gated by permissions.can_edit_team) -->
+          {% if permissions.can_edit_team %}
           <button type="button" data-role-show="OWNER"
                   class="h-11 w-11 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex items-center justify-center text-slate-200"
                   aria-label="Wallet"
@@ -243,18 +249,20 @@
             </svg>
           </button>
           <button type="button" data-role-show="OWNER"
+                  onclick="window.location.href='/teams/{{ team.slug }}/manage/'"
                   class="h-11 px-6 bg-[var(--team-primary)] text-black font-bold uppercase text-[10px] tracking-[0.18em]
-                         rounded-xl hover:brightness-110 transition shadow-[0_0_22px_var(--team-glow)] flex items-center gap-2"
-                  title="Open control plane">
+                         rounded-xl hover:brightness-110 transition shadow-[0_0_22px_var(--team-glow)] flex items-center gap-2 cursor-pointer"
+                  title="Open Team Management Console">
             <span class="text-base leading-none">＋</span>
             <span>MANAGE</span>
           </button>
+          {% endif %}
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-4 lg:gap-x-10">
           <div class="text-right">
             <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider">Crown Points</div>
-            <div class="text-2xl font-display font-bold text-white">14,250</div>
+            <div class="text-2xl font-display font-bold text-white">{{ stats.crown_points|default:0|intcomma }}</div>
           </div>
 
           <div class="text-right">
@@ -335,7 +343,7 @@
                   Mission & Identity
                 </h3>
                 <p class="text-slate-400 text-sm leading-7">
-                  Founded in 2024, <strong class="text-white">Protocol V</strong> has rapidly ascended the South Asian circuit through a philosophy of "calculated aggression." Unlike traditional slow-default teams, we prioritize space-taking utility and decisive mid-round calling.
+                  Founded in 2024, <strong class="text-white">{{ team.name|default:"Protocol V" }}</strong> has rapidly ascended the South Asian circuit through a philosophy of "calculated aggression." Unlike traditional slow-default teams, we prioritize space-taking utility and decisive mid-round calling.
                   <span class="hidden md:inline">Current holders of the <span class="text-slate-200 border-b border-dotted border-slate-500" title="Major Tournament">Challengers Split 1</span> trophy.</span>
                 </p>
 
@@ -355,11 +363,11 @@
               <div class="w-full md:w-auto shrink-0 grid grid-cols-2 gap-3">
                 <div class="p-4 rounded-2xl bg-[#0A0A0F] border border-white/10 min-w-[140px]">
                   <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1">Current Streak</div>
-                  <div class="text-2xl font-display font-bold text-[#00FF41]">8 Wins</div>
+                  <div class="text-2xl font-display font-bold {% if stats.is_hot_streak %}text-[#00FF41]{% else %}text-white{% endif %}">{{ stats.streak_count|default:0 }} Win{{ stats.streak_count|pluralize }}</div>
                 </div>
                 <div class="p-4 rounded-2xl bg-[#0A0A0F] border border-white/10 min-w-[140px]">
                   <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1">Global Rank</div>
-                  <div class="text-2xl font-display font-bold text-white">#14</div>
+                  <div class="text-2xl font-display font-bold text-white">{% if stats.global_rank %}#{{ stats.global_rank }}{% else %}—{% endif %}</div>
                 </div>
               </div>
             </div>
@@ -371,149 +379,64 @@
               <h3 class="text-white font-display font-bold text-lg flex items-center gap-2">
                 <span class="w-1 h-5 bg-[var(--team-primary)] rounded-full"></span>
                 Active Roster
-                <span class="ml-2 px-2 py-0.5 rounded-full bg-[var(--team-primary)]/10 border border-[var(--team-primary)]/20 text-[var(--team-primary)] text-[9px] font-bold">5</span>
+                <span class="ml-2 px-2 py-0.5 rounded-full bg-[var(--team-primary)]/10 border border-[var(--team-primary)]/20 text-[var(--team-primary)] text-[9px] font-bold">{{ roster.count }}</span>
               </h3>
+              {% if roster.count > 0 %}
               <a href="#" class="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 hover:text-[var(--team-primary)] transition-smooth flex items-center gap-1">
                 View Full Squad
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
               </a>
+              {% endif %}
             </div>
 
+            {% if roster.items %}
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
-
+              {% for member in roster.items %}
               <div class="group relative h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer">
-                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1000" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth" alt="Player" loading="lazy">
+                <img src="{{ member.avatar_url|safe_img_url }}" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth" alt="{{ member.username }}" loading="lazy">
                 <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
 
+                {% if member.is_captain %}
                 <div class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-[var(--team-primary)]">
                   <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 3.5l6.5 13h-13L12 5.5z"/></svg>
                 </div>
+                {% endif %}
 
                 <div class="absolute bottom-0 left-0 w-full p-4">
-                  <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5">Duelist</div>
-                  <h4 class="text-xl font-display font-bold text-white mb-1">V1PER</h4>
+                  {% if member.player_role %}
+                  <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5">{{ member.player_role }}</div>
+                  {% else %}
+                  <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5">{{ member.role }}</div>
+                  {% endif %}
+                  <h4 class="text-xl font-display font-bold text-white mb-1">{{ member.username }}</h4>
                   <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
-                    <img src="https://flagcdn.com/bd.svg" class="w-3.5 h-2.5 rounded-[1px] object-cover" alt="BD">
-                    <span>Hasan Ahmed</span>
+                    <span>{{ member.display_name }}</span>
                   </div>
                   <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/10 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
                     <div>
-                      <div class="text-[8px] uppercase text-slate-500">ACS</div>
-                      <div class="text-sm font-bold text-white">248</div>
+                      <div class="text-[8px] uppercase text-slate-500">STATUS</div>
+                      <div class="text-sm font-bold text-white">{{ member.status }}</div>
                     </div>
                     <div class="text-right">
-                      <div class="text-[8px] uppercase text-slate-500">K/D</div>
-                      <div class="text-sm font-bold text-[var(--team-primary)]">1.24</div>
+                      <div class="text-[8px] uppercase text-slate-500">JOINED</div>
+                      <div class="text-sm font-bold text-[var(--team-primary)]">{{ member.joined_date|default:"--" }}</div>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <div class="group relative h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer">
-                <img src="https://images.unsplash.com/photo-1531384441138-2736e62e0919?q=80&w=1000" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth" alt="Player" loading="lazy">
-                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-                <div class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-[var(--team-primary)]">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-                </div>
-                <div class="absolute bottom-0 left-0 w-full p-4">
-                  <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5">Initiator</div>
-                  <h4 class="text-xl font-display font-bold text-white mb-1">PHANTOM</h4>
-                  <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
-                    <img src="https://flagcdn.com/in.svg" class="w-3.5 h-2.5 rounded-[1px] object-cover" alt="IN">
-                    <span>Rahul Raj</span>
-                  </div>
-                   <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/10 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                    <div>
-                      <div class="text-[8px] uppercase text-slate-500">AST</div>
-                      <div class="text-sm font-bold text-white">12.4</div>
-                    </div>
-                    <div class="text-right">
-                      <div class="text-[8px] uppercase text-slate-500">HS%</div>
-                      <div class="text-sm font-bold text-[var(--team-primary)]">31%</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-               <div class="group relative h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer">
-                <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1000" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth" alt="Player" loading="lazy">
-                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-                <div class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-[var(--team-primary)]">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
-                </div>
-                <div class="absolute bottom-0 left-0 w-full p-4">
-                  <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5">Controller</div>
-                  <h4 class="text-xl font-display font-bold text-white mb-1">SMOKE</h4>
-                  <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
-                    <img src="https://flagcdn.com/th.svg" class="w-3.5 h-2.5 rounded-[1px] object-cover" alt="TH">
-                    <span>Somchai K.</span>
-                  </div>
-                  <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/10 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                    <div>
-                      <div class="text-[8px] uppercase text-slate-500">CLUTCH</div>
-                      <div class="text-sm font-bold text-white">18%</div>
-                    </div>
-                    <div class="text-right">
-                      <div class="text-[8px] uppercase text-slate-500">KAST</div>
-                      <div class="text-sm font-bold text-[var(--team-primary)]">78%</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-               <div class="group relative h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer">
-                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth" alt="Player" loading="lazy">
-                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-                <div class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-[var(--team-primary)]">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 3.5l6.5 13h-13L12 5.5z"/></svg>
-                </div>
-                <div class="absolute bottom-0 left-0 w-full p-4">
-                  <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5">Sentinel</div>
-                  <h4 class="text-xl font-display font-bold text-white mb-1">LOCK</h4>
-                  <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
-                    <img src="https://flagcdn.com/sg.svg" class="w-3.5 h-2.5 rounded-[1px] object-cover" alt="SG">
-                    <span>Wei Jun</span>
-                  </div>
-                  <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/10 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                    <div>
-                      <div class="text-[8px] uppercase text-slate-500">FK</div>
-                      <div class="text-sm font-bold text-white">8</div>
-                    </div>
-                    <div class="text-right">
-                      <div class="text-[8px] uppercase text-slate-500">FD</div>
-                      <div class="text-sm font-bold text-[var(--team-primary)]">12</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-               <div class="group relative h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer">
-                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1000" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth" alt="Player" loading="lazy">
-                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-                <div class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-[var(--team-primary)]">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0v18"/></svg>
-                </div>
-                <div class="absolute bottom-0 left-0 w-full p-4">
-                  <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5">Head Coach</div>
-                  <h4 class="text-xl font-display font-bold text-white mb-1">MIND</h4>
-                  <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
-                    <img src="https://flagcdn.com/jp.svg" class="w-3.5 h-2.5 rounded-[1px] object-cover" alt="JP">
-                    <span>Kenji Sato</span>
-                  </div>
-                  <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/10 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                    <div>
-                      <div class="text-[8px] uppercase text-slate-500">EXP</div>
-                      <div class="text-sm font-bold text-white">5y</div>
-                    </div>
-                    <div class="text-right">
-                      <div class="text-[8px] uppercase text-slate-500">Title</div>
-                      <div class="text-sm font-bold text-[var(--team-primary)]">IGL</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
+              {% endfor %}
             </div>
+            {% else %}
+            <div class="bg-[#0A0A0F] border border-white/10 rounded-2xl p-12 text-center">
+              <div class="text-slate-500 mb-3">
+                <svg class="w-12 h-12 mx-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+              </div>
+              <h4 class="text-lg font-bold text-white mb-2">No Roster Available</h4>
+              <p class="text-sm text-slate-400">This team hasn't added any members yet.</p>
+            </div>
+            {% endif %}
           </section>
 
           <!-- Operations Log - MOVED UP for visibility -->

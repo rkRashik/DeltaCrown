@@ -244,6 +244,20 @@ class CreateTeamSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Team banner file upload (optional)"
     )
+    primary_color = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=7,
+        help_text="Primary team color (hex format, e.g., #3B82F6)"
+    )
+    accent_color = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=7,
+        help_text="Accent team color (hex format, e.g., #10B981)"
+    )
     inherit_branding = serializers.BooleanField(
         required=False,
         default=False,
@@ -271,7 +285,7 @@ class CreateTeamSerializer(serializers.Serializer):
         return value
     
     def validate(self, data):
-        """Cross-field validation - convert game_slug to game_id."""
+        """Cross-field validation - convert game_slug to game_id for vNext Team."""
         from apps.games.models import Game
         
         game_slug = data.get('game_slug')
@@ -283,11 +297,13 @@ class CreateTeamSerializer(serializers.Serializer):
                 'game': 'Either game_slug or game_id is required.'
             })
         
-        # If game_slug provided, convert to game_id
+        # If game_slug provided, resolve to game_id for vNext Team.game_id (IntegerField)
         if game_slug:
             try:
                 game = Game.objects.get(slug=game_slug, is_active=True)
+                # vNext Team uses game_id IntegerField, not game CharField
                 data['game_id'] = game.id
+                data['game_slug'] = game_slug  # Keep slug for reference
             except Game.DoesNotExist:
                 raise serializers.ValidationError({
                     'game_slug': 'Invalid game selected.'

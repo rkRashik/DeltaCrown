@@ -51,14 +51,16 @@ class TestListInvitesEndpoint:
         team1 = Team.objects.create(
             name='Team Alpha',
             slug='team-alpha',
-            game_id=game,
-            owner=user1
+            game='valorant',
+            is_active=True,
+            is_public=True,
         )
         team2 = Team.objects.create(
             name='Team Beta',
             slug='team-beta',
-            game_id=game,
-            owner=user2
+            game='valorant',
+            is_active=True,
+            is_public=True,
         )
         
         return {
@@ -228,7 +230,7 @@ class TestAcceptMembershipInvite:
         user1 = User.objects.create_user(username='user1', email='user1@test.com')
         user2 = User.objects.create_user(username='user2', email='user2@test.com')
         game = Game.objects.create(slug='valorant', name='Valorant', is_active=True)
-        team = Team.objects.create(name='Team Alpha', slug='team-alpha', game_id=game, owner=user1)
+        team = Team.objects.create(name='Team Alpha', slug='team-alpha', game='valorant', is_active=True, is_public=True)
         
         return {'user1': user1, 'user2': user2, 'team': team}
     
@@ -379,7 +381,7 @@ class TestAcceptEmailInvite:
         user1 = User.objects.create_user(username='user1', email='user1@test.com')
         user2 = User.objects.create_user(username='user2', email='user2@test.com')
         game = Game.objects.create(slug='valorant', name='Valorant', is_active=True)
-        team = Team.objects.create(name='Team Alpha', slug='team-alpha', game_id=game, owner=user1)
+        team = Team.objects.create(name='Team Alpha', slug='team-alpha', game='valorant', is_active=True, is_public=True)
         return {'user1': user1, 'user2': user2, 'team': team}
     
     def test_accept_email_success(self, setup_data):
@@ -476,8 +478,8 @@ class TestDeclineEmailInvite:
     def setup_data(self):
         user1 = User.objects.create_user(username='user1', email='user1@test.com')
         user2 = User.objects.create_user(username='user2', email='user2@test.com')
-        game = Game.objects.create_user(slug='valorant', name='Valorant', is_active=True)
-        team = Team.objects.create(name='Team Alpha', slug='team-alpha', game_id=game, owner=user1)
+        game = Game.objects.create(slug='valorant', name='Valorant', is_active=True)
+        team = Team.objects.create(name='Team Alpha', slug='team-alpha', game='valorant', is_active=True, is_public=True)
         return {'user1': user1, 'user2': user2, 'team': team}
     
     def test_decline_email_success(self, setup_data):
@@ -543,8 +545,9 @@ class TestQueryBudget:
             team = Team.objects.create(
                 name=f'Team {i}',
                 slug=f'team-{i}',
-                game_id=game,
-                owner=user1
+                game='valorant',
+                is_active=True,
+                is_public=True,
             )
             teams.append(team)
         

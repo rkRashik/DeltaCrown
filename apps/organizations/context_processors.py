@@ -28,6 +28,6 @@ def vnext_feature_flags(request):
         'TEAM_VNEXT_ROUTING_MODE': getattr(settings, 'TEAM_VNEXT_ROUTING_MODE', 'adapter_first'),
     }
     # Force logging to see if this is being called
-    logger.warning(f"🔍 CONTEXT PROCESSOR CALLED for {request.path}: {result}")
-    print(f"🔍 CONTEXT PROCESSOR CALLED for {request.path}: {result}")  # Also to stdout
+    logger.warning(f"[DEBUG] CONTEXT PROCESSOR CALLED for {request.path}: {result}")
+    # Removed print() to avoid Unicode errors in Windows terminal
     return result

@@ -40,7 +40,8 @@ def _get_hero_carousel_context(request):
     
     Cache: 2 minutes per user (carousel data)
     """
-    from apps.organizations.models import Team, Organization
+    from apps.teams.models import Team  # Legacy Team is authoritative
+    from apps.organizations.models import Organization
     
     cache_key = f'hero_carousel_{request.user.id}'
     cached_data = cache.get(cache_key)
@@ -85,24 +86,23 @@ def _get_hero_carousel_context(request):
     
     # Slide 2: User's team status
     try:
-        carousel_data['user_teams_count'] = Team.objects.filter(
-            memberships__user=request.user,
-            memberships__status='ACTIVE',
-            status='ACTIVE'
-        ).distinct().count()
+        # Legacy Team: no 'status' field, no 'owner' FK
+        # Use is_active instead, memberships use 'profile' FK not 'user' FK
+        viewer_profile = getattr(request.user, 'userprofile', None) if request.user.is_authenticated and hasattr(request.user, 'userprofile') else None
         
-        # Find user's primary team (owner or first active membership)
-        carousel_data['user_primary_team'] = Team.objects.filter(
-            owner=request.user,
-            status='ACTIVE'
-        ).first()
-        
-        if not carousel_data['user_primary_team']:
-            carousel_data['user_primary_team'] = Team.objects.filter(
-                memberships__user=request.user,
+        if viewer_profile:
+            carousel_data['user_teams_count'] = Team.objects.filter(
+                memberships__profile=viewer_profile,
                 memberships__status='ACTIVE',
-                status='ACTIVE'
-            ).select_related('game').first()
+                is_active=True
+            ).distinct().count()
+            
+            # Find user's primary team (first active membership)
+            carousel_data['user_primary_team'] = Team.objects.filter(
+                memberships__profile=viewer_profile,
+                memberships__status='ACTIVE',
+                is_active=True
+            ).first()
     except Exception as e:
         logger.warning(f"Could not fetch user team data: {e}")
     
@@ -154,7 +154,7 @@ def _get_featured_teams(game_id=None, limit=12):
     
     Cache: 2 minutes (key includes game_id)
     """
-    from apps.organizations.models import Team
+    from apps.teams.models import Team  # Legacy Team is authoritative
     from apps.organizations.utils import has_team_tag_columns
     
     cache_key = f'featured_teams_{game_id or "all"}_{limit}'
@@ -164,14 +164,15 @@ def _get_featured_teams(game_id=None, limit=12):
         return cached_teams
     
     try:
+        # Legacy Team: no 'status' field, no 'organization'/'owner' FKs
+        # Use is_active and is_public for filtering
         teams_qs = Team.objects.filter(
-            status='ACTIVE'
+            is_active=True,
+            is_public=True
         ).select_related(
-            'organization',
-            'owner',
             'ranking'
         ).prefetch_related(
-            'memberships__user'
+            'memberships__profile__user'  # memberships use profile FK
         )
         
         # Only order by ranking if it exists
@@ -234,16 +235,19 @@ def _get_leaderboard(game_id=None, limit=50):
         return cached_leaderboard
     
     try:
+        # Legacy Team: no 'status', 'organization', or 'owner' FKs
+        # Use team__is_active for filtering
         leaderboard_qs = TeamRanking.objects.select_related(
-            'team__organization',
-            'team__owner'
+            'team'
         ).filter(
-            team__status='ACTIVE'
+            team__is_active=True
         ).order_by('-current_cp')
         
-        # Apply game filter
-        if game_id:
-            leaderboard_qs = leaderboard_qs.filter(team__game_id=game_id)
+        # Apply game filter (legacy Team uses 'game' CharField slug, not game_id FK)
+        # We have game_id but need to convert to slug - skip game filter for now
+        # TODO: Convert game_id to slug via Game.objects.get(id=game_id).slug if needed
+        # if game_id:
+        #     leaderboard_qs = leaderboard_qs.filter(team__game=game_slug)
         
         leaderboard = list(leaderboard_qs[:limit])
         

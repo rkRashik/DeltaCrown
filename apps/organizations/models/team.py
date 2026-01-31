@@ -97,6 +97,19 @@ class Team(models.Model):
         help_text="Team lifecycle status"
     )
     
+    # Privacy
+    visibility = models.CharField(
+        max_length=20,
+        choices=[
+            ('PUBLIC', 'Public'),
+            ('PRIVATE', 'Private'),
+            ('UNLISTED', 'Unlisted'),
+        ],
+        default='PUBLIC',
+        db_index=True,
+        help_text='Team visibility setting'
+    )
+    
     # Branding assets
     logo = models.ImageField(
         upload_to='teams/logos/',
@@ -110,6 +123,21 @@ class Team(models.Model):
         blank=True,
         help_text="Profile page header banner"
     )
+    
+    # Team Colors
+    primary_color = models.CharField(
+        max_length=7,
+        blank=True,
+        default='#3B82F6',
+        help_text="Primary team color (hex format, e.g., #3B82F6)"
+    )
+    accent_color = models.CharField(
+        max_length=7,
+        blank=True,
+        default='#10B981',
+        help_text="Accent team color (hex format, e.g., #10B981)"
+    )
+    
     description = models.TextField(
         blank=True,
         help_text="Team bio/description"
@@ -132,6 +160,28 @@ class Team(models.Model):
         help_text="TOC: Phone number for tournament emergencies"
     )
     
+    # Social Media Links (Gate 5)
+    twitter_url = models.URLField(
+        blank=True,
+        max_length=200,
+        help_text='Team Twitter/X profile URL'
+    )
+    instagram_url = models.URLField(
+        blank=True,
+        max_length=200,
+        help_text='Team Instagram profile URL'
+    )
+    youtube_url = models.URLField(
+        blank=True,
+        max_length=200,
+        help_text='Team YouTube channel URL'
+    )
+    twitch_url = models.URLField(
+        blank=True,
+        max_length=200,
+        help_text='Team Twitch channel URL'
+    )
+    
     # Metadata
     is_temporary = models.BooleanField(
         default=False,
@@ -147,7 +197,7 @@ class Team(models.Model):
     )
     
     class Meta:
-        db_table = 'organizations_team'
+        db_table = 'organizations_team'  # vNext Team uses its own table
         ordering = ['-created_at']
         
         constraints = [

@@ -59,6 +59,18 @@ from apps.organizations.api.serializers import (
     CreateTeamSerializer,
 )
 
+# CRITICAL SAFETY CHECK: Ensure we're using vNext Team, not legacy
+# vNext Team uses organizations_team table, has game_id (IntegerField FK)
+# Legacy Team uses teams_team table, has game (CharField slug)
+assert hasattr(Team, 'game_id'), (
+    "FATAL: Team model in organizations.api.views must be vNext Team with game_id field. "
+    "Got legacy Team with 'game' CharField. Check import at line 56."
+)
+assert Team._meta.db_table == 'organizations_team', (
+    f"FATAL: Team model must use organizations_team table. "
+    f"Got {Team._meta.db_table}. This indicates legacy Team is imported."
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -289,57 +301,94 @@ def validate_team_name(request: Request) -> Response:
             }
         }
     """
-    from apps.organizations.models import Team
-    from apps.games.models import Game
-    
-    name = request.query_params.get('name', '').strip()
-    game_slug = request.query_params.get('game_slug', '').strip()
-    org_id = request.query_params.get('org_id')
-    mode = request.query_params.get('mode', 'independent')
-    
-    # Validate required params
-    if not name or not game_slug:
-        return Response({
-            'ok': False,
-            'field_errors': {'name': 'Name and game are required.'}
-        })
-    
-    # Check if name length is valid (minimum 3 characters)
-    if len(name) < 3:
-        return Response({
-            'ok': False,
-            'available': False,
-            'field_errors': {'name': 'Team name must be at least 3 characters.'}
-        })
-    
     try:
-        game = Game.objects.get(slug=game_slug, is_active=True)
-    except Game.DoesNotExist:
+        # Explicit import to ensure vNext Team (organizations_team table)
+        from apps.organizations.models import Team as VNextTeam
+        from apps.games.models import Game
+        
+        name = request.query_params.get('name', '').strip()
+        game_slug = request.query_params.get('game_slug', '').strip()
+        org_id = request.query_params.get('org_id')
+        mode = request.query_params.get('mode', 'independent')
+        
+        # DEBUG: Log incoming request
+        logger.info(
+            f"validate_team_name called: name={name}, game_slug={game_slug}, mode={mode}, org_id={org_id}, "
+            f"user_id={request.user.id}, Team model={VNextTeam.__module__}.{VNextTeam.__name__}, "
+            f"db_table={VNextTeam._meta.db_table}"
+        )
+        
+        # Validate required params
+        if not name or not game_slug:
+            return Response({
+                'ok': False,
+                'field_errors': {'name': 'Name and game are required.'}
+            })
+        
+        # Check if name length is valid (minimum 3 characters)
+        if len(name) < 3:
+            return Response({
+                'ok': False,
+                'available': False,
+                'field_errors': {'name': 'Team name must be at least 3 characters.'}
+            })
+        
+        try:
+            game = Game.objects.get(slug=game_slug, is_active=True)
+            logger.info(f"validate_team_name: Found game id={game.id} for slug={game_slug}")
+        except Game.DoesNotExist:
+            logger.warning(f"validate_team_name: Game not found for slug={game_slug}")
+            return Response({
+                'ok': False,
+                'field_errors': {'game': 'Invalid game selected.'}
+            })
+        
+        # Check uniqueness: vNext Team uses game_id (IntegerField FK)
+        # Scope by mode: independent (org IS NULL) or organization (org = org_id)
+        query = VNextTeam.objects.filter(name__iexact=name, game_id=game.id)
+        logger.info(f"validate_team_name: Initial query filter: name__iexact={name}, game_id={game.id}")
+        
+        if mode == 'independent':
+            query = query.filter(organization__isnull=True)
+            logger.info("validate_team_name: Filtered for independent (organization__isnull=True)")
+        elif mode == 'organization' and org_id:
+            try:
+                query = query.filter(organization_id=int(org_id))
+                logger.info(f"validate_team_name: Filtered for organization_id={org_id}")
+            except (ValueError, TypeError) as e:
+                logger.warning(f"validate_team_name: Invalid org_id={org_id}: {e}")
+                pass  # Invalid org_id, check globally
+        
+        exists = query.exists()
+        logger.info(f"validate_team_name: Query exists={exists}, SQL={query.query}")
+        
+        if exists:
+            return Response({
+                'ok': False,
+                'available': False,
+                'field_errors': {'name': 'A team with this name already exists in this game.'}
+            })
+        
         return Response({
-            'ok': False,
-            'field_errors': {'game': 'Invalid game selected.'}
+            'ok': True,
+            'available': True
         })
     
-    # Check uniqueness: name + game_id (optionally scoped to org)
-    query = Team.objects.filter(name__iexact=name, game_id=game.id)
-    
-    if mode == 'org' and org_id:
-        query = query.filter(organization_id=org_id)
-    else:
-        # For independent teams, check globally within the game
-        query = query.filter(organization__isnull=True)
-    
-    if query.exists():
-        return Response({
-            'ok': False,
-            'available': False,
-            'field_errors': {'name': 'A team with this name already exists in this game.'}
-        })
-    
-    return Response({
-        'ok': True,
-        'available': True
-    })
+    except Exception as e:
+        logger.exception(
+            f"validate_team_name FAILED: name={request.query_params.get('name')}, "
+            f"game_slug={request.query_params.get('game_slug')}, mode={request.query_params.get('mode')}, "
+            f"exception_type={type(e).__name__}, exception_msg={str(e)}"
+        )
+        return Response(
+            {
+                'ok': False,
+                'error_code': 'validation_error',
+                'message': f'Validation failed: {str(e)}',
+                'safe_message': 'Unable to validate team name. Please try again.',
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['GET'])
@@ -365,59 +414,90 @@ def validate_team_tag(request: Request) -> Response:
             }
         }
     """
-    from apps.organizations.models import Team
-    from apps.games.models import Game
-    
-    tag = request.query_params.get('tag', '').strip().upper()
-    game_slug = request.query_params.get('game_slug', '').strip()
-    org_id = request.query_params.get('org_id')
-    mode = request.query_params.get('mode', 'independent')
-    
-    # Validate required params
-    if not tag or not game_slug:
-        return Response({
-            'ok': False,
-            'field_errors': {'tag': 'Tag and game are required.'}
-        })
-    
-    # Check tag length (2-5 characters)
-    if len(tag) < 2:
-        return Response({
-            'ok': False,
-            'available': False,
-            'field_errors': {'tag': 'Tag must be at least 2 characters.'}
-        })
-    
-    if len(tag) > 5:
-        return Response({
-            'ok': False,
-            'available': False,
-            'field_errors': {'tag': 'Tag must be 5 characters or less.'}
-        })
-    
     try:
-        game = Game.objects.get(slug=game_slug, is_active=True)
-    except Game.DoesNotExist:
+        # Explicit import to ensure vNext Team (organizations_team table)
+        from apps.organizations.models import Team as VNextTeam
+        from apps.games.models import Game
+        
+        tag = request.query_params.get('tag', '').strip().upper()
+        game_slug = request.query_params.get('game_slug', '').strip()
+        org_id = request.query_params.get('org_id')
+        mode = request.query_params.get('mode', 'independent')
+        
+        # DEBUG: Log incoming request
+        logger.info(
+            f"validate_team_tag called: tag={tag}, game_slug={game_slug}, mode={mode}, org_id={org_id}, "
+            f"user_id={request.user.id}, Team model={VNextTeam.__module__}.{VNextTeam.__name__}, "
+            f"db_table={VNextTeam._meta.db_table}"
+        )
+        
+        # Validate required params
+        if not tag or not game_slug:
+            return Response({
+                'ok': False,
+                'field_errors': {'tag': 'Tag and game are required.'}
+            })
+        
+        # Check tag length (2-5 characters)
+        if len(tag) < 2:
+            return Response({
+                'ok': False,
+                'available': False,
+                'field_errors': {'tag': 'Tag must be at least 2 characters.'}
+            })
+        
+        if len(tag) > 5:
+            return Response({
+                'ok': False,
+                'available': False,
+                'field_errors': {'tag': 'Tag must be 5 characters or less.'}
+            })
+        
+        try:
+            game = Game.objects.get(slug=game_slug, is_active=True)
+            logger.info(f"validate_team_tag: Found game id={game.id} for slug={game_slug}")
+        except Game.DoesNotExist:
+            logger.warning(f"validate_team_tag: Game not found for slug={game_slug}")
+            return Response({
+                'ok': False,
+                'field_errors': {'game': 'Invalid game selected.'}
+            })
+        
+        # Check uniqueness: vNext Team uses game_id (IntegerField FK)
+        # Tag must be unique per game across all teams (tags are globally unique per game)
+        query = VNextTeam.objects.filter(tag__iexact=tag, game_id=game.id)
+        logger.info(f"validate_team_tag: Query filter: tag__iexact={tag}, game_id={game.id}")
+        
+        exists = query.exists()
+        logger.info(f"validate_team_tag: Query exists={exists}")
+        
+        if exists:
+            return Response({
+                'ok': False,
+                'available': False,
+                'field_errors': {'tag': 'This tag is already taken in this game.'}
+            })
+        
         return Response({
-            'ok': False,
-            'field_errors': {'game': 'Invalid game selected.'}
+            'ok': True,
+            'available': True
         })
     
-    # Check uniqueness: tag + game_id (case-insensitive)
-    # Tag must be unique per game across all teams (not scoped to org)
-    query = Team.objects.filter(tag__iexact=tag, game_id=game.id)
-    
-    if query.exists():
-        return Response({
-            'ok': False,
-            'available': False,
-            'field_errors': {'tag': 'This tag is already taken in this game.'}
-        })
-    
-    return Response({
-        'ok': True,
-        'available': True
-    })
+    except Exception as e:
+        logger.exception(
+            f"validate_team_tag FAILED: tag={request.query_params.get('tag')}, "
+            f"game_slug={request.query_params.get('game_slug')}, mode={request.query_params.get('mode')}, "
+            f"exception_type={type(e).__name__}, exception_msg={str(e)}"
+        )
+        return Response(
+            {
+                'ok': False,
+                'error_code': 'validation_error',
+                'message': f'Validation failed: {str(e)}',
+                'safe_message': 'Unable to validate team tag. Please try again.',
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['POST'])
@@ -578,14 +658,22 @@ def create_team(request: Request) -> Response:
     try:
         with transaction.atomic():
             # Create team (model save handles slug generation)
+            # vNext Team model fields: game_id (Integer), status, owner FK, organization FK
             team_data = {
                 'name': validated_data['name'],
-                'game_id': validated_data['game_id'],
-                'organization_id': organization_id,
-                'owner': request.user if not organization_id else None,
+                'game_id': validated_data.get('game_id'),  # IntegerField
                 'region': validated_data.get('region', ''),
-                'status': 'ACTIVE',
+                'status': 'ACTIVE',  # vNext uses status choices instead of is_active
+                'visibility': 'PUBLIC',
             }
+            
+            # Set owner or organization FK (one or the other, not both)
+            if organization_id:
+                team_data['organization_id'] = organization_id
+                team_data['owner'] = None
+            else:
+                team_data['owner'] = request.user
+                team_data['organization'] = None
             
             # Add optional fields if provided
             if validated_data.get('tag'):
@@ -594,6 +682,10 @@ def create_team(request: Request) -> Response:
                 team_data['tagline'] = validated_data['tagline']
             if validated_data.get('description'):
                 team_data['description'] = validated_data['description']
+            if validated_data.get('primary_color'):
+                team_data['primary_color'] = validated_data['primary_color']
+            if validated_data.get('accent_color'):
+                team_data['accent_color'] = validated_data['accent_color']
             
             # Create team instance
             team = Team.objects.create(**team_data)
@@ -608,15 +700,17 @@ def create_team(request: Request) -> Response:
             if validated_data.get('logo') or validated_data.get('banner'):
                 team.save()
             
+            # TODO: FIX CRITICAL BUG - TeamMembership FK points to legacy teams.Team, not organizations.Team
+            # Cannot create membership for vNext Team until TeamMembership is migrated to use organizations.Team
             # For independent teams, create owner membership
-            if not organization_id:
-                from apps.organizations.models import TeamMembership
-                TeamMembership.objects.create(
-                    team=team,
-                    user=request.user,
-                    role='OWNER',
-                    status='ACTIVE',
-                )
+            # if not organization_id:
+            #     from apps.organizations.models import TeamMembership
+            #     TeamMembership.objects.create(
+            #         team=team,
+            #         user=request.user,
+            #         role='OWNER',
+            #         status='ACTIVE',
+            #     )
             
             # Handle manager invite if provided
             invite_created = False

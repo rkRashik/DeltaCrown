@@ -38,7 +38,7 @@ class TeamRanking(models.Model):
     
     # Relationship
     team = models.OneToOneField(
-        'Team',
+        'teams.Team',  # Using legacy Team model
         on_delete=models.CASCADE,
         related_name='ranking',
         primary_key=True,

@@ -188,6 +188,9 @@ from .views.ajax import (
     leave_team,
 )
 
+# Import Team Management Console
+from .views.manage_console import team_management_console
+
 # Import API views for new REST endpoints (optional - requires DRF)
 try:
     from rest_framework.routers import DefaultRouter
@@ -219,6 +222,9 @@ HAS_DRF = True
 app_name = "teams"
 
 urlpatterns = [
+    # Team Management Console (Admin/Staff only)
+    path("management/", team_management_console, name="management_console"),
+    
     # Team List - Now the main landing page (removed hub redirect)
     path("", team_list, name="index"),
     path("", team_list, name="hub"),

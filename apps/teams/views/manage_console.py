@@ -37,7 +37,7 @@ def manage_team_by_game(request):
 class AchievementForm(forms.ModelForm):
     class Meta:
         model = apps.get_model("teams", "TeamAchievement")
-        fields = ["title", "placement", "year", "notes", "tournament"]
+        fields = ["title", "placement", "year", "notes"]
 
 @login_required
 @transaction.atomic
@@ -95,3 +95,42 @@ def manage_team_by_game(request, game: str):
         "achievements": achievements,
         "game": game,
     })
+
+
+@login_required
+def team_management_console(request):
+    """
+    Team Management Console (HQ) - Unified interface for team operations.
+    
+    ARCHITECTURE NOTE (OPTION C):
+    - Uses Legacy Team model (apps.teams.models.Team) as authoritative source
+    - Template is UI shell - business logic will be added incrementally
+    - Staff-only access (for now) - team-specific permissions TBD
+    
+    Template: teams/management/team_management.html (copied from My drafts/TMC/)
+    Data Source: Legacy Team model (apps.teams.models.Team)
+    
+    Access: Staff/admin users only
+    """
+    # Restrict to staff users
+    if not request.user.is_staff:
+        raise PermissionDenied("Staff access required")
+    
+    # Get user's teams via legacy TeamMembership
+    user_teams = Team.objects.filter(
+        memberships__profile=request.user.profile
+    ).distinct() if hasattr(request.user, 'profile') else []
+    
+    # Get all teams for staff overview
+    all_teams = Team.objects.all().select_related().order_by('-created_at')[:100]
+    
+    context = {
+        'user_teams': user_teams,
+        'teams': all_teams,
+        'total_teams': Team.objects.count(),
+        'is_staff': request.user.is_staff,
+        'is_superuser': request.user.is_superuser,
+        'page_title': 'Team Management Console',
+    }
+    
+    return render(request, "teams/management/team_management.html", context)

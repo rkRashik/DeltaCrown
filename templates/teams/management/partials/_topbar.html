@@ -1,0 +1,47 @@
+            <header class="sticky top-0 z-30">
+                <div
+                    class="mx-3 lg:mx-6 mt-3 lg:mt-5 rounded-2xl border border-line bg-white/5 backdrop-blur-xl shadow-soft">
+                    <div class="p-3 lg:p-4 flex items-center gap-3">
+                        <!-- Mobile menu -->
+                        <button id="openSidebar"
+                            class="lg:hidden h-9 w-9 rounded-xl border border-line bg-white/5 hover:bg-white/10 transition grid place-items-center">
+                            <i data-lucide="menu" class="w-4 h-4"></i>
+                        </button>
+
+                        <!-- Page Title (Compact) -->
+                        <div class="hidden lg:block">
+                            <h1 class="text-sm font-bold tracking-tight" id="pageTitle">Command Center</h1>
+                            <p class="text-xs text-muted mt-0.5" id="pageSub">Dashboard overview</p>
+                        </div>
+
+                        <!-- Search (Context-Aware) -->
+                        <div class="flex-1 relative group">
+                            <div
+                                class="flex items-center gap-2 rounded-xl border border-line bg-black/30 px-3 py-2 group-focus-within:border-white/25 group-focus-within:bg-black/40 transition-all">
+                                <i data-lucide="search" class="w-4 h-4 text-white/50"></i>
+                                <input id="hqSearch"
+                                    class="w-full bg-transparent outline-none text-sm placeholder:text-white/40"
+                                    placeholder="Search in Command Center..." type="search" />
+                                <kbd
+                                    class="hidden sm:inline-block px-2 py-0.5 text-[10px] rounded border border-white/10 bg-white/5 text-white/40 font-mono">⌘K</kbd>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex items-center gap-2">
+                            <button id="btnNotifications"
+                                class="hidden sm:grid h-9 w-9 rounded-xl border border-line bg-white/5 hover:bg-white/10 transition place-items-center relative"
+                                title="Notifications">
+                                <i data-lucide="bell" class="w-4 h-4"></i>
+                                <span
+                                    class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 border border-white/20 text-[10px] font-bold grid place-items-center">3</span>
+                            </button>
+                            <button id="btnPrimary"
+                                class="hidden md:block rounded-xl px-4 py-2 text-sm font-medium border" style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.06));
+                           border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));">
+                                <i data-lucide="zap" class="w-3.5 h-3.5 inline mr-1.5"></i>Quick Action
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>

@@ -237,17 +237,9 @@ def _get_recent_activity(organization, limit: int = 10) -> List[Dict[str, Any]]:
     
     activities = []
     
-    # Add team creation activities (REAL DATA)
-    try:
-        recent_teams = organization.teams.order_by('-created_at')[:3]
-        for team in recent_teams:
-            if hasattr(team, 'created_at') and team.created_at:
-                activities.append({
-                    'description': f"<strong>{team.name}</strong> team was created for <strong>{team.get_game_display() if hasattr(team, 'get_game_display') else team.game}</strong>.",
-                    'timestamp': team.created_at,
-                    'icon': 'users',
-                    'color': 'cyan',
-                })
+    # TODO PHASE 6: Add team creation activities once org-team FK activated
+    # Organizations do NOT own teams yet (Legacy Team is authoritative)
+    # Stubbing team activities until migration complete
     except Exception as e:
         logger.warning(
             f"Error fetching team activities",

@@ -19,7 +19,7 @@ HARD RULE: Do NOT import from apps.teams.models in this app.
 
 from .organization import Organization, OrganizationMembership
 from .organization_profile import OrganizationProfile
-from .team import Team
+from .team import Team  # vNext Team model (Phase 5 - write-enabled)
 from .membership import TeamMembership
 from .team_invite import TeamInvite
 from .ranking import TeamRanking, OrganizationRanking
@@ -33,7 +33,7 @@ __all__ = [
     'OrganizationProfile',
     
     # Team models
-    'Team',
+    'Team',  # Re-exported from apps.teams.models (legacy)
     'TeamMembership',
     'TeamInvite',
     

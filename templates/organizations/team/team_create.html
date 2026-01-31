@@ -525,6 +525,31 @@
                                 <div class="absolute inset-0 bg-black/40 hidden transition-opacity hover:opacity-30" id="bannerOverlay"></div>
                             </div>
                         </div>
+
+                        <div class="bg-[#12121A] rounded-2xl p-6 border border-white/10">
+                            <div class="flex justify-between items-center mb-4">
+                                <label class="block text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                    <i class="fas fa-palette text-delta-violet"></i> Team Colors
+                                </label>
+                                <span class="text-[10px] text-slate-400 bg-white/5 px-2 py-1 rounded">Hex Format</span>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-2">Primary Color</label>
+                                    <div class="flex gap-2 items-center">
+                                        <input type="color" id="primaryColorPicker" value="#3B82F6" class="h-12 w-16 rounded-lg border border-white/20 bg-black cursor-pointer" onchange="updateColorInput('primary')">
+                                        <input type="text" id="primaryColorInput" value="#3B82F6" maxlength="7" class="flex-1 bg-delta-surface border border-white/10 rounded-lg py-3 px-4 text-sm text-white font-mono focus:outline-none focus:border-delta-electric" onchange="updateColorPicker('primary')" placeholder="#3B82F6">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-2">Accent Color</label>
+                                    <div class="flex gap-2 items-center">
+                                        <input type="color" id="accentColorPicker" value="#10B981" class="h-12 w-16 rounded-lg border border-white/20 bg-black cursor-pointer" onchange="updateColorInput('accent')">
+                                        <input type="text" id="accentColorInput" value="#10B981" maxlength="7" class="flex-1 bg-delta-surface border border-white/10 rounded-lg py-3 px-4 text-sm text-white font-mono focus:outline-none focus:border-delta-electric" onchange="updateColorPicker('accent')" placeholder="#10B981">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mt-10 flex justify-between">
@@ -606,7 +631,7 @@
                         <button type="button" onclick="prevStep(4)" class="px-6 py-3 text-slate-400 hover:text-white font-cyber font-bold uppercase text-xs tracking-wider transition-colors flex items-center gap-2">
                             <i class="fas fa-arrow-left"></i> Back
                         </button>
-                        <button type="submit" onclick="submitTeam()" class="btn-primary px-12 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 hover:brightness-110 transition-all transform hover:scale-105">
+                        <button type="submit" onclick="submitTeam(event)" class="btn-primary px-12 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 hover:brightness-110 transition-all transform hover:scale-105">
                             Establish Team <i class="fas fa-rocket"></i>
                         </button>
                     </div>
@@ -1019,6 +1044,27 @@
         }
     }
 
+    // Color picker sync functions
+    function updateColorInput(type) {
+        const picker = document.getElementById(`${type}ColorPicker`);
+        const input = document.getElementById(`${type}ColorInput`);
+        input.value = picker.value.toUpperCase();
+    }
+
+    function updateColorPicker(type) {
+        const picker = document.getElementById(`${type}ColorPicker`);
+        const input = document.getElementById(`${type}ColorInput`);
+        const value = input.value.trim();
+        
+        // Validate hex color format
+        if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+            picker.value = value;
+        } else {
+            // Invalid format, revert to picker value
+            input.value = picker.value.toUpperCase();
+        }
+    }
+
     async function submitTeam(event) {
         event.preventDefault();
         
@@ -1088,7 +1134,13 @@
             const bannerFile = document.getElementById('bannerUpload')?.files[0];
             if (bannerFile) formData.append('banner', bannerFile);
             
-            // B3.6: POST to backend
+            // B3.6: Team colors
+            const primaryColor = document.getElementById('primaryColorInput')?.value.trim();
+            const accentColor = document.getElementById('accentColorInput')?.value.trim();
+            if (primaryColor) formData.append('primary_color', primaryColor);
+            if (accentColor) formData.append('accent_color', accentColor);
+            
+            // B3.7: POST to backend
             const response = await fetch('/api/vnext/teams/create/', {
                 method: 'POST',
                 headers: {

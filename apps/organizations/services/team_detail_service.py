@@ -38,7 +38,7 @@ class TeamDetailService:
         Detect if team is public or private using available model fields.
         
         Priority order:
-        1. visibility field ("PUBLIC" / "public" = public)
+        1. visibility field: PUBLIC/UNLISTED = public, PRIVATE = private
         2. is_private field (public = not is_private)
         3. privacy field (check if indicates public)
         4. Default to PUBLIC (no privacy system implemented yet)
@@ -47,12 +47,13 @@ class TeamDetailService:
             team: Team instance
         
         Returns:
-            bool: True if team is public, False if private
+            bool: True if team is public/unlisted, False if private
         """
         # Check for visibility field
         if hasattr(team, 'visibility'):
             visibility = getattr(team, 'visibility', '').upper()
-            return visibility in ('PUBLIC', 'OPEN')
+            # UNLISTED teams are accessible (just not shown in public lists)
+            return visibility in ('PUBLIC', 'UNLISTED', 'OPEN')
         
         # Check for is_private field
         if hasattr(team, 'is_private'):

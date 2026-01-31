@@ -27,12 +27,15 @@ from django.urls import reverse
 from django.db.models import Q
 
 # vNext system imports
-from apps.organizations.models import Team as VNextTeam, TeamMembership as VNextMembership
+# from apps.organizations.models import Team as VNextTeam, TeamMembership as VNextMembership  # DISABLED: vNext Team not ready
 from apps.organizations.services.team_service import TeamService
 from apps.organizations.services.exceptions import NotFoundError
+from apps.organizations.models import TeamMembership as VNextMembership  # Only membership is ready
 
 # Legacy system imports (for fallback behavior)
 from apps.teams.models import Team as LegacyTeam, TeamMembership as LegacyMembership
+# Temporary: Use legacy Team as VNextTeam until vNext Team model is ready
+VNextTeam = LegacyTeam
 
 # Feature flags and metrics (P3-T2)
 from .flags import should_use_vnext_routing, get_routing_reason

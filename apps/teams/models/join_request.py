@@ -28,7 +28,8 @@ class TeamJoinRequest(models.Model):
     team = models.ForeignKey(
         'teams.Team',
         on_delete=models.CASCADE,
-        related_name='join_requests'
+        related_name='join_requests',
+        help_text='Team receiving join request'
     )
     applicant = models.ForeignKey(
         'user_profile.UserProfile',

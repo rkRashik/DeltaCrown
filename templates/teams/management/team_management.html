@@ -1,0 +1,44 @@
+<!-- =========================
+PART 1 / DeltaCrown Team HQ (Template)
+Stack: HTML5 + Tailwind (CDN) + Vanilla JS + Lucide Icons (CDN)
+Includes:
+- Modern responsive layout (desktop sidebar + mobile drawer)
+- Final menu architecture (Command Center, Roster Ops, Competition Hub, Training Lab, Community & Media, Team Profile, Settings & Security)
+- Optional Organization Console (role-gated: Org Admin only)
+- Team Color system (primary/accent defaults) using CSS variables
+- Bottom-right Demo Controller (Role + Game + Team Colors) as popover
+- Section placeholders for PART 2 to fill
+
+➡️ Paste PART 2 below the bottom marker.
+========================= -->
+
+<!doctype html>
+<html lang="en">
+
+{% include "teams/management/partials/_head_styles.html" %}
+
+<body class="min-h-screen">
+    <!-- Mobile scrim -->
+    <div id="scrim" class="fixed inset-0 bg-black/60 hidden z-40"></div>
+
+    <div class="min-h-screen grid lg:grid-cols-[320px_1fr]">
+        {% include "teams/management/partials/_sidebar.html" %}
+
+        <!-- =========================
+    MAIN
+    ========================== -->
+        <main class="min-h-screen lg:pl-0">
+            {% include "teams/management/partials/_topbar.html" %}
+
+            {% include "teams/management/partials/_main_panel.html" %}
+        </main>
+    </div>
+
+    {% include "teams/management/partials/_modals.html" %}
+
+    {% include "teams/management/partials/_scripts.html" %}
+
+
+</body>
+
+</html>

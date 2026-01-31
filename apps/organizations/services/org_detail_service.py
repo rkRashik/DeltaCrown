@@ -34,14 +34,10 @@ def get_org_detail_context(org_slug, viewer):
             - squads: List of active teams with IGL/Manager info
     """
     # Query organization with proper related data
-    # Note: Organization has NO is_active field - do not filter on it
+    # Note: Organization has NO teams relation yet (Option C - Legacy Team authoritative)
     try:
         organization = Organization.objects.select_related(
             'ceo'
-        ).prefetch_related(
-            'teams',
-            'teams__memberships',
-            'teams__memberships__user'
         ).get(slug=org_slug)
     except Organization.DoesNotExist:
         from django.http import Http404
@@ -51,50 +47,20 @@ def get_org_detail_context(org_slug, viewer):
     # Use centralized permission module
     permissions = get_permission_context(viewer, organization)
     
-    # Get active teams (Team has 'status' field, not 'is_active')
-    # Safe fallback: never crash on status value assumptions
-    teams_qs = organization.teams.all()
-    try:
-        # Team.status choices: ACTIVE, DELETED, SUSPENDED, DISBANDED
-        teams_qs = teams_qs.filter(status__in=['ACTIVE', 'active'])
-    except Exception:
-        # Never crash - fallback to all teams if status filter fails
-        teams_qs = organization.teams.all()
+    # TODO PHASE 6: Organizations do NOT own teams yet (Legacy Team is authoritative)
+    # organization.teams relation does not exist until migration complete
+    # Stubbing team list until org-team FK is activated
+    active_teams = []
+    active_teams_count = 0
     
-    active_teams = list(teams_qs.order_by('-updated_at')[:24])
-    active_teams_count = len(active_teams)
-    
-    # Build squad data with IGL/Manager info (privacy-aware)
+    # TODO PHASE 6: Build squad data once org-team FK activated
+    # Currently stubbed - Organizations do not own teams yet
     squads = []
-    for team in active_teams:
-        # Get IGL (always visible)
-        igl_member = team.memberships.filter(role='IGL').first()
-        igl_display = igl_member.user.username if igl_member else None
-        
-        # Get Manager (only if viewer can manage org)
-        manager_display = None
-        if can_manage_org:
-            manager_member = team.memberships.filter(role='MANAGER').first()
-            manager_display = manager_member.user.username if manager_member else None
-        
-        # Get game label safely (Team has game_id integer, not FK)
-        game_label = _safe_game_label(team)
-        
-        squads.append({
-            'team': team,
-            'name': team.name,
-            'slug': team.slug,
-            'game': game_label,
-            'igl': igl_display,
-            'manager': manager_display,  # None for public viewers
-        })
     
     return {
         'organization': organization,
-        'can_manage_org': can_manage_org,
-    return {
-        'organization': organization,
-        'teams': teams_list,
+        'teams': [],  # TODO PHASE 6: Organization→Teams ownership deferred (Option C)
+        'teams_count': 0,  # TODO PHASE 6: Will populate after org-team FK activated
         'active_teams_count': active_teams_count,
         'squads': squads,
         # Empty placeholders for future wiring
