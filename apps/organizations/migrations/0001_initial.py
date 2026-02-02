@@ -11,7 +11,11 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ('games', '0001_initial'),  # Ensure game configurations exist before team creation
     ]
+    
+    # Force atomic transaction to prevent partial table creation
+    atomic = True
 
     operations = [
         migrations.CreateModel(

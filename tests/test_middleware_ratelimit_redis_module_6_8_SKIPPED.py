@@ -33,7 +33,7 @@ Test Categories:
 5. Redis failover scenarios
 
 Prerequisites:
-- Redis running: docker-compose -f docker-compose.test.yml up -d
+- Redis running: Start Redis instance on localhost:6379
 - Tests skip gracefully if Redis unavailable
 """
 
@@ -995,4 +995,4 @@ class TestRedisFailover:
 # Test count: 17 tests across 5 categories
 # Redis isolation: Per-test namespace with uuid4 prefix
 # TTLs: 200ms cooldown windows for deterministic timing
-# Prerequisites: docker-compose -f docker-compose.test.yml up -d
+# Prerequisites: Start Redis instance on localhost:6379

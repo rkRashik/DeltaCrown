@@ -64,4 +64,4 @@ class Command(BaseCommand):
         
         self.stdout.write(f'\n✅ Remaining eFootball fields: {list(remaining_fields)}')
         self.stdout.write(self.style.SUCCESS('\n[SUCCESS] eFootball schema cleaned!'))
-        self.stdout.write('\n💡 Now run: python manage.py seed_identity_configs_2026 --game efootball --force\n')
+        self.stdout.write('\n💡 Now run: python manage.py seed_games --force\n')

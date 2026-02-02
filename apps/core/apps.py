@@ -1,8 +1,11 @@
 """
-Core App Configuration
+Core App Configuration with Database Migration Guards
 """
 import logging
+import os
+import sys
 from django.apps import AppConfig
+from django.conf import settings
 from django.db import ProgrammingError, OperationalError
 
 logger = logging.getLogger(__name__)
@@ -15,6 +18,16 @@ class CoreConfig(AppConfig):
     
     def ready(self):
         """Initialize core infrastructure when Django starts"""
+        # Skip initialization during migrations
+        if 'migrate' in sys.argv:
+            logger.info("⏭️  Skipping core initialization during migrations")
+            return
+        
+        # Skip initialization during makemigrations
+        if 'makemigrations' in sys.argv:
+            logger.info("⏭️  Skipping core initialization during makemigrations")
+            return
+        
         # Import here to avoid AppRegistryNotReady
         from .events.bus import event_bus
         from .registry import service_registry

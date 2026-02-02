@@ -187,8 +187,9 @@ class TestTeamMembership:
         # Managers can do most things except delete team
         assert "register_tournaments" in permissions
         assert "edit_roster" in permissions
-        assert "edit_team_info" in permissions
-        assert "view_team" in permissions
+        assert "edit_team" in permissions  # Canonical name (not edit_team_info)
+        assert "schedule_scrims" in permissions
+        assert "edit_toc" in permissions
         assert "ALL" not in permissions  # Not owner
     
     def test_get_permission_list_coach(self):
@@ -197,8 +198,9 @@ class TestTeamMembership:
         
         permissions = membership.get_permission_list()
         
-        assert "view_team" in permissions
-        assert "view_roster" in permissions
+        assert "edit_toc" in permissions
+        assert "schedule_scrims" in permissions
+        assert "view_analytics" in permissions
         assert "edit_roster" not in permissions  # Coaches can't edit roster
     
     def test_get_permission_list_player(self):
@@ -207,9 +209,9 @@ class TestTeamMembership:
         
         permissions = membership.get_permission_list()
         
-        assert "view_team" in permissions
-        assert "view_roster" in permissions
+        assert "view_dashboard" in permissions
         assert "register_tournaments" not in permissions  # Players can't register
+        assert "edit_roster" not in permissions  # Players can't edit roster
     
     def test_can_manage_roster_owner(self):
         """Test that OWNER can manage roster."""

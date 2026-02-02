@@ -1,0 +1,99 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Competition Schema Status{% endblock %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header }}</a></h1>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Home</a>
+  &rsaquo; Competition Status
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <h1>Competition Schema Status</h1>
+  
+  {% if schema_ready %}
+    <div class="messagelist">
+      <div class="success">
+        <strong>✓ Competition schema is ready.</strong> All required tables exist.
+      </div>
+    </div>
+    
+    <p><a href="{% url 'admin:index' %}">Return to admin</a> to access Competition models.</p>
+  {% else %}
+    <div class="messagelist">
+      <div class="error">
+        <strong>✗ Competition schema is not ready.</strong>
+        {% if error %}
+          Database error: {{ error }}
+        {% else %}
+          Missing {{ missing_tables|length }} table(s).
+        {% endif %}
+      </div>
+    </div>
+    
+    {% if missing_tables %}
+      <h2>Missing Tables</h2>
+      <ul>
+        {% for table in missing_tables %}
+          <li><code>{{ table }}</code></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    
+    {% if existing_tables %}
+      <h2>Existing Tables</h2>
+      <ul>
+        {% for table in existing_tables %}
+          <li><code>{{ table }}</code></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    
+    <h2>How to Fix</h2>
+    <p>Run the following command to apply competition migrations:</p>
+    <pre style="background: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">python manage.py migrate competition</pre>
+    
+    <p>Or to apply all pending migrations:</p>
+    <pre style="background: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">python manage.py migrate</pre>
+  {% endif %}
+  
+  <h2>Schema Checks</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Table</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>competition_game_ranking_config</code></td>
+        <td>{% if 'competition_game_ranking_config' in existing_tables %}✓ Exists{% else %}✗ Missing{% endif %}</td>
+      </tr>
+      <tr>
+        <td><code>competition_match_report</code></td>
+        <td>{% if 'competition_match_report' in existing_tables %}✓ Exists{% else %}✗ Missing{% endif %}</td>
+      </tr>
+      <tr>
+        <td><code>competition_match_verification</code></td>
+        <td>{% if 'competition_match_verification' in existing_tables %}✓ Exists{% else %}✗ Missing{% endif %}</td>
+      </tr>
+      <tr>
+        <td><code>competition_team_game_ranking_snapshot</code></td>
+        <td>{% if 'competition_team_game_ranking_snapshot' in existing_tables %}✓ Exists{% else %}✗ Missing{% endif %}</td>
+      </tr>
+      <tr>
+        <td><code>competition_team_global_ranking_snapshot</code></td>
+        <td>{% if 'competition_team_global_ranking_snapshot' in existing_tables %}✓ Exists{% else %}✗ Missing{% endif %}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

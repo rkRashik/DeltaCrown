@@ -10,6 +10,11 @@ class SiteUIConfig(AppConfig):
     verbose_name = "Site UI"
 
     def ready(self):
+        # Skip during migrations
+        import sys
+        if 'migrate' in sys.argv or 'makemigrations' in sys.argv:
+            return
+        
         # NEW: Register event handlers
         try:
             from .events import register_siteui_event_handlers

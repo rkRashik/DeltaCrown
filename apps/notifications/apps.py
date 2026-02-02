@@ -10,6 +10,11 @@ class NotificationsConfig(AppConfig):
     label = "notifications"
 
     def ready(self):
+        # Skip during migrations
+        import sys
+        if 'migrate' in sys.argv or 'makemigrations' in sys.argv:
+            return
+        
         # NEW: Register event handlers for event-driven architecture
         try:
             from .events import register_notification_event_handlers

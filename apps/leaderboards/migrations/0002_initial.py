@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    initial = True
+    initial = False  # Changed from True - FK additions must run after initial batch
 
     dependencies = [
         ("leaderboards", "0001_initial"),

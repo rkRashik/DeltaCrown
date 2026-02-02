@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Match Reports | Competition | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-4xl font-bold text-white mb-2">Match Reports</h1>
+                <p class="text-gray-300">View and manage your team's match submissions</p>
+            </div>
+            <a href="{% url 'competition:match_report_form' %}" 
+               class="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105">
+                <i class="fas fa-plus mr-2"></i>Report New Match
+            </a>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="bg-gray-800 bg-opacity-50 backdrop-blur-lg rounded-lg shadow-xl border border-gray-700 p-4 mb-6">
+            <div class="flex flex-wrap gap-2">
+                <a href="{% url 'competition:match_report_list' %}" 
+                   class="px-4 py-2 rounded-lg transition-all {% if not status_filter %}bg-purple-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+                    All
+                </a>
+                <a href="{% url 'competition:match_report_list' %}?status=PENDING" 
+                   class="px-4 py-2 rounded-lg transition-all {% if status_filter == 'PENDING' %}bg-yellow-600 text-black{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+                    <i class="fas fa-clock mr-1"></i>Pending
+                </a>
+                <a href="{% url 'competition:match_report_list' %}?status=CONFIRMED" 
+                   class="px-4 py-2 rounded-lg transition-all {% if status_filter == 'CONFIRMED' %}bg-green-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+                    <i class="fas fa-check mr-1"></i>Confirmed
+                </a>
+                <a href="{% url 'competition:match_report_list' %}?status=DISPUTED" 
+                   class="px-4 py-2 rounded-lg transition-all {% if status_filter == 'DISPUTED' %}bg-red-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>Disputed
+                </a>
+                <a href="{% url 'competition:match_report_list' %}?status=ADMIN_VERIFIED" 
+                   class="px-4 py-2 rounded-lg transition-all {% if status_filter == 'ADMIN_VERIFIED' %}bg-blue-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+                    <i class="fas fa-shield-alt mr-1"></i>Admin Verified
+                </a>
+                <a href="{% url 'competition:match_report_list' %}?status=REJECTED" 
+                   class="px-4 py-2 rounded-lg transition-all {% if status_filter == 'REJECTED' %}bg-red-800 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+                    <i class="fas fa-times mr-1"></i>Rejected
+                </a>
+            </div>
+        </div>
+
+        <!-- Match Reports Table -->
+        <div class="bg-gray-800 bg-opacity-50 backdrop-blur-lg rounded-lg shadow-2xl border border-gray-700 overflow-hidden">
+            {% if match_reports %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-700/50">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Date</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Game</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Teams</th>
+                            <th class="px-6 py-4 text-center text-sm font-semibold text-gray-300">Result</th>
+                            <th class="px-6 py-4 text-center text-sm font-semibold text-gray-300">Status</th>
+                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700">
+                        {% for report in match_reports %}
+                        <tr class="hover:bg-gray-700/30 transition-colors">
+                            <td class="px-6 py-4 text-sm text-gray-300">
+                                {{ report.played_at|date:"M j, Y" }}<br>
+                                <span class="text-xs text-gray-500">{{ report.played_at|date:"g:i A" }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-white font-medium">
+                                {{ report.get_game_id_display }}
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                <div class="text-white font-medium">{{ report.team1.name }}</div>
+                                <div class="text-gray-400 text-xs">vs</div>
+                                <div class="text-white font-medium">{{ report.team2.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {% if report.result == 'WIN' %}bg-green-900 text-green-300{% elif report.result == 'LOSS' %}bg-red-900 text-red-300{% else %}bg-yellow-900 text-yellow-300{% endif %}">
+                                    {{ report.get_result_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {% if report.verification.status == 'CONFIRMED' %}bg-green-900 text-green-300{% elif report.verification.status == 'DISPUTED' %}bg-red-900 text-red-300{% elif report.verification.status == 'ADMIN_VERIFIED' %}bg-blue-900 text-blue-300{% elif report.verification.status == 'REJECTED' %}bg-red-900 text-red-300{% else %}bg-yellow-900 text-yellow-300{% endif %}">
+                                    {{ report.verification.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <a href="{% url 'competition:match_report_detail' report.id %}" 
+                                   class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-all">
+                                    <i class="fas fa-eye mr-2"></i>View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="px-8 py-12 text-center">
+                <i class="fas fa-inbox text-6xl text-gray-600 mb-4"></i>
+                <h3 class="text-xl font-semibold text-gray-300 mb-2">No Match Reports Found</h3>
+                <p class="text-gray-400 mb-6">You haven't submitted any match reports yet, or no matches match your filter.</p>
+                <a href="{% url 'competition:match_report_form' %}" 
+                   class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105">
+                    <i class="fas fa-plus mr-2"></i>Report Your First Match
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

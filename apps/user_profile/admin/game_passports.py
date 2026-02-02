@@ -165,7 +165,7 @@ class GameProfileAdmin(admin.ModelAdmin):
                 'in_game_name',
                 'identity_key',
             ],
-            'description': 'Player identity information. Field labels and available options adapt based on selected game. Run seed_identity_configs_2026 command if dropdown options are missing.'
+            'description': 'Player identity information. Field labels and available options adapt based on selected game. Run: python manage.py seed_games'
         }),
         ('Visibility & Status', {
             'fields': [

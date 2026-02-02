@@ -114,7 +114,7 @@ def get_available_games(request):
             if settings.DEBUG and config_count == 0:
                 logger.warning(
                     f"⚠️  Game '{game.display_name}' (slug={game.slug}) has ZERO identity configs. "
-                    f"Run: python manage.py seed_identity_configs --game {game.slug}"
+                    f"Run: python manage.py seed_games"
                 )
             
             # Get GamePassportSchema for select field options (Phase 9A-7: all 8 choice types)
@@ -184,7 +184,7 @@ def get_available_games(request):
                 # PHASE 9A-6: Only warn, don't create fake schema
                 logger.warning(
                     f"No passport_schema found for game: {game.display_name} (slug={game.slug}). "
-                    f"Run: python manage.py seed_identity_configs --game {game.slug}"
+                    f"Run: python manage.py seed_games"
                 )
                 passport_schema = [
                     {

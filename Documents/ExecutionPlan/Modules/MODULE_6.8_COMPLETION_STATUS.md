@@ -228,7 +228,6 @@
 - ✅ `tests/redis_fixtures.py` (211 lines, shared infrastructure)
 
 ### Infrastructure
-- ✅ `docker-compose.test.yml` (Redis 7-alpine configuration)
 - ✅ `Documents/ExecutionPlan/Modules/MODULE_6.8_PHASE1_STATUS.md` (blocker analysis + pivot decision)
 - ✅ `Documents/ExecutionPlan/Modules/MODULE_6.8_KICKOFF.md` (original plan, superseded)
 

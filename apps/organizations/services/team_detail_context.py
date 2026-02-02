@@ -10,7 +10,7 @@ from django.conf import settings
 from django.utils.html import escape
 from django.core.cache import cache
 
-from apps.teams.models import Team  # Using legacy Team model (PHASE 5 migration not complete)
+from apps.organizations.models import Team  # vNext Team model (Phase 2B migration)
 from apps.games.services import GameService
 
 
@@ -48,9 +48,10 @@ def get_team_detail_context(
         Team.DoesNotExist: If team_slug is invalid
     """
     # Fetch team with optimizations (guard against missing relationships)
-    # Note: Legacy Team model has no organization FK, and game is CharField (not FK)
+    # Note: vNext Team model has organization FK (nullable), game_id FK (not CharField)
+    # Phase 3A-A: Legacy TeamRanking removed. Ranking data now from apps/competition/
     try:
-        team = Team.objects.select_related('ranking').get(slug=team_slug)
+        team = Team.objects.get(slug=team_slug)
     except Team.DoesNotExist:
         raise
     
@@ -81,9 +82,6 @@ def get_team_detail_context(
         'merch': _build_merch_context(team, is_private_restricted),
         'pending_actions': _build_pending_actions_context(team, viewer, is_authorized),
         'page': _build_page_context(team, request),
-        
-        # Legacy compatibility flags (preserve existing template expectations)
-        'enable_demo_remote': False,  # Disabled per PHASE 1A directive
     }
     
     return context
@@ -144,7 +142,7 @@ def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
 
 def _build_organization_context(team: Team) -> Optional[Dict[str, Any]]:
     """Build organization context (nullable)."""
-    # Legacy Team model has no organization FK - always return None
+    # vNext Team model has organization FK (nullable)
     try:
         if hasattr(team, 'organization'):
             org = team.organization
@@ -183,17 +181,45 @@ def _build_viewer_context(viewer: Optional[User], role: str) -> Dict[str, Any]:
 
 
 def _build_permissions(team: Team, viewer: Optional[User], role: str) -> Dict[str, bool]:
-    """Build permissions flags."""
+    """Build permissions flags using TeamMembership.get_permission_list()."""
+    from apps.organizations.models import TeamMembership
+    from apps.organizations.choices import MembershipStatus
+    
     # Use schema-resilient visibility check
     can_view_private = _check_team_accessibility(team, viewer)
     
+    # Get actual permissions from membership
+    if viewer and viewer.is_authenticated:
+        membership = TeamMembership.objects.filter(
+            team=team,
+            user=viewer,
+            status=MembershipStatus.ACTIVE
+        ).first()
+        
+        if membership:
+            perms = membership.get_permission_list()
+            has_all = 'ALL' in perms
+            # Phase 3A-C: Report matches permission (OWNER or MANAGER only)
+            can_report_matches = has_all or role in ('OWNER', 'MANAGER')
+            return {
+                'can_view_private': can_view_private,
+                'can_edit_team': has_all or 'edit_team' in perms,
+                'can_manage_roster': has_all or 'edit_roster' in perms,
+                'can_invite': has_all or 'edit_roster' in perms,
+                'can_view_operations': has_all or role in ('OWNER', 'STAFF', 'MEMBER'),
+                'can_view_financial': has_all or role == 'OWNER',
+                'can_report_matches': can_report_matches,
+            }
+    
+    # Anonymous or non-member: no permissions
     return {
         'can_view_private': can_view_private,
-        'can_edit_team': role in ('OWNER', 'STAFF'),
-        'can_manage_roster': role in ('OWNER', 'STAFF'),
-        'can_invite': role in ('OWNER', 'STAFF', 'MEMBER'),
-        'can_view_operations': role in ('OWNER', 'STAFF', 'MEMBER'),
-        'can_view_financial': role == 'OWNER',
+        'can_edit_team': False,
+        'can_manage_roster': False,
+        'can_invite': False,
+        'can_view_operations': False,
+        'can_view_financial': False,
+        'can_report_matches': False,
     }
 
 
@@ -201,7 +227,6 @@ def _build_ui_context(team: Team, role: str) -> Dict[str, Any]:
     """Build UI configuration."""
     return {
         'theme': getattr(team, 'theme', 'CROWN'),
-        'enable_demo_remote': False,  # Disabled per PHASE 1A directive
         'enable_streams': True,  # Feature flag (always enabled for now)
         'enable_merch': False,  # Future feature
         'skeleton_loading': False,  # Could be based on request parameter
@@ -236,24 +261,22 @@ def _build_roster_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
         return {'items': [], 'count': 0}
     
     # Try to fetch roster (guard against missing relationship)
-    # Note: relationship is 'memberships' not 'members'
+    # vNext TeamMembership has 'user' FK pointing to User model, related_name='vnext_memberships'
     try:
-        # Fetch active memberships with user data AND their profiles for avatars
-        # This prevents N+1 queries when accessing avatar URLs
-        # Legacy TeamMembership has 'profile' FK (UserProfile), not 'user' FK (User)
-        # UserProfile has 'user' FK to User model
-        memberships = team.memberships.select_related(
-            'profile',           # FK to UserProfile
-            'profile__user'      # UserProfile.user → User
+        from apps.organizations.choices import MembershipStatus
+        
+        # Fetch active memberships with user data (use vnext_memberships related name)
+        memberships = team.vnext_memberships.select_related(
+            'user'  # vNext FK to User
         ).filter(
-            status='ACTIVE'
+            status=MembershipStatus.ACTIVE
         ).order_by('-joined_at')[:20]  # Limit to 20
         
         roster_items = [
             {
-                'username': getattr(member.profile.user, 'username', 'Unknown') if member.profile else 'Unknown',
-                'display_name': getattr(member.profile.user, 'username', 'Unknown') if member.profile else 'Unknown',
-                'avatar_url': _get_user_avatar(member.profile.user if member.profile else None),
+                'username': getattr(member.user, 'username', 'Unknown'),
+                'display_name': getattr(member.user, 'username', 'Unknown'),
+                'avatar_url': _get_user_avatar(member.user),
                 'role': getattr(member, 'role', 'PLAYER'),
                 'player_role': getattr(member, 'player_role', ''),  # Game-specific role
                 'status': getattr(member, 'status', 'ACTIVE'),
@@ -272,47 +295,65 @@ def _build_roster_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
         return {'items': [], 'count': 0}
 
 
-def _build_stats_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
-    """Build stats from TeamRanking (Gate 4B - Option A: Ranking-only stats)."""
-    if is_restricted:
-        # Private team: hide all stats for non-members
-        return {
-            'crown_points': 0,
-            'tier': 'UNRANKED',
-            'global_rank': None,
-            'regional_rank': None,
-            'streak_count': 0,
-            'is_hot_streak': False,
-            'rank_change_24h': 0,
-            'last_activity_date': None,
-        }
-    
-    # Try to fetch TeamRanking (OneToOne relationship)
-    try:
-        ranking = team.ranking
-        return {
-            'crown_points': getattr(ranking, 'current_cp', 0),
-            'tier': getattr(ranking, 'tier', 'UNRANKED'),
-            'global_rank': getattr(ranking, 'global_rank', None),
-            'regional_rank': getattr(ranking, 'regional_rank', None),
-            'streak_count': getattr(ranking, 'streak_count', 0),
-            'is_hot_streak': getattr(ranking, 'is_hot_streak', False),
-            'rank_change_24h': getattr(ranking, 'rank_change_24h', 0),
-            'last_activity_date': getattr(ranking, 'last_activity_date', None),
-        }
-    except AttributeError:
-        # No ranking exists: return safe defaults
-        return {
-            'crown_points': 0,
-            'tier': 'UNRANKED',
-            'global_rank': None,
-            'regional_rank': None,
-            'streak_count': 0,
-            'is_hot_streak': False,
-            'rank_change_24h': 0,
-            'last_activity_date': None,
-        'streak': {'type': '', 'count': 0},  # Tier 3: defer calculation
+def _get_default_stats() -> Dict[str, Any]:
+    """Default stats when no ranking exists (Phase 3A-A safe fallback)."""
+    return {
+        'score': 0,
+        'tier': 'UNRANKED',
+        'rank': None,
+        'percentile': 0.0,
+        'global_score': 0,
+        'global_tier': 'UNRANKED',
+        'verified_match_count': 0,
+        'confidence_level': 'PROVISIONAL',
+        'breakdown': {},
     }
+
+
+def _build_stats_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
+    """Build stats from apps/competition/ ranking system (Phase 3A-D)."""
+    if is_restricted:
+        # Private team: hide stats for non-members
+        return _get_default_stats()
+    
+    # Phase 3A-D: Wire to competition app ranking snapshots
+    # Check if competition app is enabled
+    if not getattr(settings, 'COMPETITION_APP_ENABLED', False):
+        return _get_default_stats()
+    
+    try:
+        from apps.competition.models import TeamGlobalRankingSnapshot, TeamGameRankingSnapshot
+        
+        # Get global ranking snapshot
+        try:
+            global_snapshot = TeamGlobalRankingSnapshot.objects.get(team=team)
+            
+            # Get game-specific snapshot if team has primary game
+            game_snapshot = None
+            if hasattr(team, 'game_id') and team.game_id:
+                game_snapshot = TeamGameRankingSnapshot.objects.filter(
+                    team=team,
+                    game_id=str(team.game_id)
+                ).first()
+            
+            # Build stats dict from snapshots
+            return {
+                'score': game_snapshot.score if game_snapshot else 0,
+                'tier': game_snapshot.tier if game_snapshot else 'UNRANKED',
+                'rank': game_snapshot.rank if game_snapshot else None,
+                'percentile': game_snapshot.percentile if game_snapshot else 0.0,
+                'global_score': global_snapshot.global_score,
+                'global_tier': global_snapshot.global_tier,
+                'verified_match_count': game_snapshot.verified_match_count if game_snapshot else 0,
+                'confidence_level': game_snapshot.confidence_level if game_snapshot else 'PROVISIONAL',
+                'breakdown': game_snapshot.breakdown if game_snapshot else {},
+            }
+        except TeamGlobalRankingSnapshot.DoesNotExist:
+            # No snapshot yet (team hasn't had rankings computed)
+            return _get_default_stats()
+    except ImportError:
+        # Competition app not available
+        return _get_default_stats()
 
 
 def _build_streams_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
@@ -330,12 +371,12 @@ def _build_streams_context(team: Team, is_restricted: bool) -> List[Dict[str, An
     
     streams = []
     
-    # Map legacy Team social fields to stream items
+    # Map vNext Team social fields to stream items (use _url suffix)
     social_platforms = [
-        ('twitch', team.twitch, 'Twitch', 'https://static-cdn.jtvnw.net/jtv_user_pictures/twitch-logo.png'),
-        ('twitter', team.twitter, 'Twitter/X', 'https://abs.twimg.com/icons/apple-touch-icon-192x192.png'),
-        ('youtube', team.youtube, 'YouTube', 'https://www.youtube.com/s/desktop/logo.png'),
-        ('instagram', team.instagram, 'Instagram', 'https://www.instagram.com/static/images/ico/favicon-192.png/68d99ba29cc8.png'),
+        ('twitch', getattr(team, 'twitch_url', None), 'Twitch', 'https://static-cdn.jtvnw.net/jtv_user_pictures/twitch-logo.png'),
+        ('twitter', getattr(team, 'twitter_url', None), 'Twitter/X', 'https://abs.twimg.com/icons/apple-touch-icon-192x192.png'),
+        ('youtube', getattr(team, 'youtube_url', None), 'YouTube', 'https://www.youtube.com/s/desktop/logo.png'),
+        ('instagram', getattr(team, 'instagram_url', None), 'Instagram', 'https://www.instagram.com/static/images/ico/favicon-192.png/68d99ba29cc8.png'),
     ]
     
     for platform, url, platform_name, default_thumb in social_platforms:
@@ -358,27 +399,38 @@ def _build_partners_context(team: Team, is_restricted: bool) -> List[Dict[str, A
     
     Returns list of active sponsors with logo, name, URL, and tier.
     Privacy: Returns empty list for restricted (private + unauthorized) viewers.
+    
+    NOTE Phase 3: TeamSponsor.team FK points to legacy teams.Team, not vNext Team.
+    vNext Team objects do not have .sponsors relationship. Returns empty for now.
     """
     if is_restricted:
         return []
     
-    # Query active sponsors (TeamSponsor.team points to teams.Team)
-    from apps.teams.models.sponsorship import TeamSponsor
+    # vNext Team has no sponsors relationship yet (Phase 3 migration needed)
+    if not hasattr(team, 'sponsors'):
+        return []
     
-    sponsors = team.sponsors.filter(
-        status='active',
-        is_active=True
-    ).order_by('-sponsor_tier', 'sponsor_name')[:10]  # Limit to top 10
-    
-    partners = []
-    for sponsor in sponsors:
-        partners.append({
-            'name': sponsor.sponsor_name,
-            'logo_url': _safe_image_url(sponsor.sponsor_logo.url if sponsor.sponsor_logo else None, 
-                                        FALLBACK_URLS['org_logo']),
-            'url': sponsor.sponsor_link or '#',
-            'tier': sponsor.sponsor_tier or 'partner',
-        })
+    try:
+        # Query active sponsors (only works with legacy Team objects)
+        from apps.teams.models.sponsorship import TeamSponsor
+        
+        sponsors = team.sponsors.filter(
+            status='active',
+            is_active=True
+        ).order_by('-sponsor_tier', 'sponsor_name')[:10]  # Limit to top 10
+        
+        partners = []
+        for sponsor in sponsors:
+            partners.append({
+                'name': sponsor.sponsor_name,
+                'logo_url': _safe_image_url(sponsor.sponsor_logo.url if sponsor.sponsor_logo else None, 
+                                            FALLBACK_URLS['org_logo']),
+                'url': sponsor.sponsor_link or '#',
+                'tier': sponsor.sponsor_tier or 'partner',
+            })
+    except AttributeError:
+        # Team object has no sponsors relationship
+        return []
     
     return partners
 
@@ -408,31 +460,27 @@ def _build_pending_actions_context(team: Team, viewer, is_authorized: bool) -> D
         }
     
     # Check if user is already a member
-    # Legacy TeamMembership has 'profile' FK (UserProfile), not 'user' FK
-    from apps.teams.models import TeamMembership, TeamInvite, TeamJoinRequest
+    # vNext TeamMembership has 'user' FK (User), not 'profile' FK
+    from apps.organizations.models import TeamMembership, TeamInvite
+    from apps.organizations.choices import MembershipStatus
     
-    # Get viewer's UserProfile
-    viewer_profile = getattr(viewer, 'userprofile', None) if hasattr(viewer, 'userprofile') else None
-    
+    # vNext: Query by user directly (not profile)
     is_member = TeamMembership.objects.filter(
         team=team,
-        profile=viewer_profile,
-        status='ACTIVE'
-    ).exists() if viewer_profile else False
+        user=viewer,
+        status=MembershipStatus.ACTIVE
+    ).exists()
     
-    # Check for pending invite (TeamInvite.invited_user points to UserProfile, not User)
+    # Check for pending invite (vNext TeamInvite.invited_user is User FK)
     pending_invite = TeamInvite.objects.filter(
         team=team,
-        invited_user=viewer_profile,
+        invited_user=viewer,
         status='PENDING'
-    ).first() if viewer_profile else None
+    ).first()
     
-    # Check for pending join request (TeamJoinRequest.applicant points to UserProfile)
-    pending_request = TeamJoinRequest.objects.filter(
-        team=team,
-        applicant=viewer_profile,
-        status='PENDING'
-    ).first() if viewer_profile else None
+    # vNext organizations app has no TeamJoinRequest model yet (Phase 3 work)
+    # For now, always None (no join request functionality)
+    pending_request = None
     
     # User can request to join if: not a member, no pending invite, no pending request, team allows requests
     can_request = (
@@ -476,8 +524,34 @@ def _safe_image_url(value, fallback: str) -> str:
 
 def _safe_game_context(team: Team) -> Dict[str, Any]:
     """Safely extract game context with GameService lookup and caching."""
-    # Legacy Team uses 'game' CharField (slug), not 'game_id' FK
-    game_slug = getattr(team, 'game', None)
+    # vNext Team uses 'game_id' FK (int), legacy used 'game' CharField (slug)
+    game_id = getattr(team, 'game_id', None)
+    game_slug = getattr(team, 'game', None)  # Fallback for legacy
+    
+    # If we have game_id (vNext), fetch by ID
+    if game_id:
+        # Fetch from database using GameService
+        try:
+            from apps.games.models import Game
+            game = Game.objects.get(id=game_id)
+            return {
+                'id': game.id,
+                'name': game.display_name,
+                'slug': game.slug,
+                'logo_url': game.logo.url if game.logo else None,
+                'primary_color': game.primary_color,
+            }
+        except Game.DoesNotExist:
+            # Fallback for invalid game_id
+            return {
+                'id': game_id,
+                'name': f'Game #{game_id}',
+                'slug': None,
+                'logo_url': None,
+                'primary_color': '#7c3aed',
+            }
+    
+    # Legacy path: game is a CharField slug
     if not game_slug:
         return {
             'id': None,
@@ -507,11 +581,11 @@ def _safe_game_context(team: Team) -> Dict[str, Any]:
         cache.set(cache_key, result, 86400)  # 24 hours
         return result
     
-    # Fallback for invalid game_id
+    # Fallback for invalid slug
     return {
-        'id': team.game_id,
-        'name': f'Game #{team.game_id}',
-        'slug': None,
+        'id': None,
+        'name': 'Unknown Game',
+        'slug': game_slug,
         'logo_url': None,
         'primary_color': '#7c3aed',
     }
@@ -528,26 +602,35 @@ def _is_private_team(team: Team) -> bool:
 
 
 def _get_viewer_role(team: Team, viewer: Optional[User]) -> str:
-    """Determine viewer's role relative to team."""
-    # Legacy Team has no owner FK - ownership determined by TeamMembership with role='OWNER'
+    """Determine viewer's role relative to team (returns truthful role)."""
+    from apps.organizations.models import TeamMembership
+    from apps.organizations.choices import MembershipStatus, MembershipRole
+    
     if not viewer or not viewer.is_authenticated:
         return 'PUBLIC'
     
-    # Check if viewer is in team staff/members
-    # Legacy TeamMembership has 'profile' FK (UserProfile), not 'user' FK
+    # Query vNext TeamMembership with user FK
     try:
-        if hasattr(team, 'memberships'):  # Use 'memberships' not 'members'
-            viewer_profile = getattr(viewer, 'userprofile', None) if hasattr(viewer, 'userprofile') else None
-            if viewer_profile:
-                member = team.memberships.filter(profile=viewer_profile).first()
-                if member:
-                    role = getattr(member, 'role', '').upper()
-                    if 'OWNER' in role or 'ADMIN' in role:
-                        return 'OWNER'
-                    if 'STAFF' in role or 'COACH' in role or 'MANAGER' in role:
-                        return 'STAFF'
-                    return 'MEMBER'
-    except AttributeError:
+        membership = TeamMembership.objects.filter(
+            team=team,
+            user=viewer,
+            status=MembershipStatus.ACTIVE
+        ).first()
+        
+        if membership:
+            # Return truthful role (no mapping to 'OWNER' for MANAGER)
+            role = membership.role
+            if role == MembershipRole.OWNER:
+                return 'OWNER'
+            elif role == MembershipRole.MANAGER:
+                return 'MANAGER'
+            elif role == MembershipRole.COACH:
+                return 'COACH'
+            elif role in (MembershipRole.PLAYER, MembershipRole.SUBSTITUTE):
+                return 'PLAYER'
+            else:
+                return 'MEMBER'
+    except Exception:
         pass
     
     return 'PUBLIC'

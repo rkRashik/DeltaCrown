@@ -11,7 +11,7 @@ C. Upgrade + multi-connection semantics (3 tests) - HTTP→WS upgrade tracking
 D. Edge cases (4 tests) - Malformed scopes, zero limits, burst traffic, anonymous
 
 Prerequisites:
-- Redis running: docker-compose -f docker-compose.test.yml up -d
+- Redis running: Start Redis instance on localhost:6379
 - WS_RATE_ENABLED=True in settings
 - Tests use ephemeral Redis namespace for isolation
 

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Match Report #{{ match_report.id }} | Competition | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="mb-6">
+            <a href="{% url 'competition:match_report_list' %}" class="text-gray-400 hover:text-white transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Match Reports
+            </a>
+        </div>
+
+        <div class="bg-gray-800 bg-opacity-50 backdrop-blur-lg rounded-lg shadow-2xl border border-gray-700 overflow-hidden">
+            <!-- Status Banner -->
+            <div class="px-8 py-4 border-b border-gray-700 {% if match_report.verification.status == 'CONFIRMED' %}bg-green-900/30{% elif match_report.verification.status == 'DISPUTED' %}bg-red-900/30{% elif match_report.verification.status == 'ADMIN_VERIFIED' %}bg-blue-900/30{% elif match_report.verification.status == 'REJECTED' %}bg-red-900/30{% else %}bg-yellow-900/30{% endif %}">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Match Report #{{ match_report.id }}</h1>
+                        <p class="text-sm text-gray-300 mt-1">Submitted {{ match_report.created_at|timesince }} ago</p>
+                    </div>
+                    <div>
+                        <span class="px-4 py-2 rounded-full text-sm font-semibold {% if match_report.verification.status == 'CONFIRMED' %}bg-green-600 text-white{% elif match_report.verification.status == 'DISPUTED' %}bg-red-600 text-white{% elif match_report.verification.status == 'ADMIN_VERIFIED' %}bg-blue-600 text-white{% elif match_report.verification.status == 'REJECTED' %}bg-red-800 text-white{% else %}bg-yellow-600 text-black{% endif %}">
+                            {% if match_report.verification.status == 'PENDING' %}<i class="fas fa-clock mr-1"></i>{% elif match_report.verification.status == 'CONFIRMED' %}<i class="fas fa-check mr-1"></i>{% elif match_report.verification.status == 'DISPUTED' %}<i class="fas fa-exclamation-triangle mr-1"></i>{% elif match_report.verification.status == 'ADMIN_VERIFIED' %}<i class="fas fa-shield-alt mr-1"></i>{% elif match_report.verification.status == 'REJECTED' %}<i class="fas fa-times mr-1"></i>{% endif %}
+                            {{ match_report.verification.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Match Details -->
+            <div class="p-8">
+                <!-- Teams Section -->
+                <div class="grid md:grid-cols-3 gap-6 mb-8">
+                    <!-- Team 1 -->
+                    <div class="bg-gray-700/50 rounded-lg p-6 text-center">
+                        <p class="text-sm text-gray-400 mb-2">Reporting Team</p>
+                        <h3 class="text-xl font-bold text-white mb-2">{{ match_report.team1.name }}</h3>
+                        {% if match_report.team1.logo %}
+                        <img src="{{ match_report.team1.logo.url }}" alt="{{ match_report.team1.name }}" class="w-20 h-20 mx-auto rounded-full object-cover">
+                        {% else %}
+                        <div class="w-20 h-20 mx-auto bg-purple-600 rounded-full flex items-center justify-center">
+                            <i class="fas fa-users text-3xl text-white"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Result -->
+                    <div class="flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="text-4xl font-bold mb-2 {% if match_report.result == 'WIN' %}text-green-400{% elif match_report.result == 'LOSS' %}text-red-400{% else %}text-yellow-400{% endif %}">
+                                {{ match_report.get_result_display }}
+                            </div>
+                            <p class="text-sm text-gray-400">{{ match_report.get_game_id_display }}</p>
+                            <p class="text-xs text-gray-500 mt-1">{{ match_report.get_match_type_display }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Team 2 -->
+                    <div class="bg-gray-700/50 rounded-lg p-6 text-center">
+                        <p class="text-sm text-gray-400 mb-2">Opponent Team</p>
+                        <h3 class="text-xl font-bold text-white mb-2">{{ match_report.team2.name }}</h3>
+                        {% if match_report.team2.logo %}
+                        <img src="{{ match_report.team2.logo.url }}" alt="{{ match_report.team2.name }}" class="w-20 h-20 mx-auto rounded-full object-cover">
+                        {% else %}
+                        <div class="w-20 h-20 mx-auto bg-blue-600 rounded-full flex items-center justify-center">
+                            <i class="fas fa-users text-3xl text-white"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Match Info -->
+                <div class="grid md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-gray-700/30 rounded-lg p-4">
+                        <p class="text-sm text-gray-400 mb-1"><i class="fas fa-calendar mr-2"></i>Match Date</p>
+                        <p class="text-white font-semibold">{{ match_report.played_at|date:"F j, Y g:i A" }}</p>
+                    </div>
+                    <div class="bg-gray-700/30 rounded-lg p-4">
+                        <p class="text-sm text-gray-400 mb-1"><i class="fas fa-user mr-2"></i>Submitted By</p>
+                        <p class="text-white font-semibold">{{ match_report.submitted_by.username }}</p>
+                    </div>
+                </div>
+
+                <!-- Evidence -->
+                {% if match_report.evidence_url or match_report.evidence_file %}
+                <div class="bg-gray-700/30 rounded-lg p-6 mb-8">
+                    <h3 class="text-lg font-semibold text-white mb-4"><i class="fas fa-paperclip mr-2"></i>Evidence</h3>
+                    {% if match_report.evidence_url %}
+                    <div class="mb-3">
+                        <a href="{{ match_report.evidence_url }}" target="_blank" class="text-blue-400 hover:text-blue-300 transition-colors">
+                            <i class="fas fa-external-link-alt mr-1"></i>{{ match_report.evidence_url }}
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% if match_report.evidence_file %}
+                    <div>
+                        <a href="{{ match_report.evidence_file.url }}" target="_blank" class="text-blue-400 hover:text-blue-300 transition-colors">
+                            <i class="fas fa-file mr-1"></i>View uploaded evidence
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Verification Details -->
+                <div class="bg-gray-700/30 rounded-lg p-6 mb-8">
+                    <h3 class="text-lg font-semibold text-white mb-4"><i class="fas fa-shield-alt mr-2"></i>Verification Details</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="text-sm text-gray-400">Confidence Level</p>
+                            <p class="text-white font-semibold">
+                                {% if match_report.verification.confidence == 'HIGH' %}<i class="fas fa-check-circle text-green-400 mr-1"></i>
+                                {% elif match_report.verification.confidence == 'MEDIUM' %}<i class="fas fa-minus-circle text-yellow-400 mr-1"></i>
+                                {% elif match_report.verification.confidence == 'LOW' %}<i class="fas fa-exclamation-circle text-orange-400 mr-1"></i>
+                                {% else %}<i class="fas fa-times-circle text-red-400 mr-1"></i>{% endif %}
+                                {{ match_report.verification.get_confidence_display }}
+                            </p>
+                        </div>
+                        {% if match_report.verification.verified_at %}
+                        <div>
+                            <p class="text-sm text-gray-400">Verified At</p>
+                            <p class="text-white font-semibold">{{ match_report.verification.verified_at|date:"F j, Y g:i A" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if match_report.verification.verified_by %}
+                        <div>
+                            <p class="text-sm text-gray-400">Verified By</p>
+                            <p class="text-white font-semibold">{{ match_report.verification.verified_by.username }}</p>
+                        </div>
+                        {% endif %}
+                        {% if match_report.verification.verification_notes %}
+                        <div>
+                            <p class="text-sm text-gray-400">Notes</p>
+                            <p class="text-white">{{ match_report.verification.verification_notes }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                {% if messages %}
+                <div class="space-y-2 mb-8">
+                    {% for message in messages %}
+                    <div class="px-4 py-3 rounded-lg {% if message.tags == 'error' %}bg-red-900 border border-red-700 text-red-200{% else %}bg-green-900 border border-green-700 text-green-200{% endif %}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Action Buttons -->
+                {% if can_confirm_or_dispute %}
+                <div class="border-t border-gray-700 pt-6">
+                    <h3 class="text-lg font-semibold text-white mb-4">Opponent Actions</h3>
+                    <p class="text-gray-300 mb-4">You are a member of the opponent team. Please confirm or dispute this match report.</p>
+                    <div class="flex gap-4">
+                        <form method="post" action="{% url 'competition:match_report_confirm' match_report.id %}" class="flex-1">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all">
+                                <i class="fas fa-check-circle mr-2"></i>Confirm Match
+                            </button>
+                        </form>
+                        <button onclick="document.getElementById('dispute-form').classList.toggle('hidden')" class="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>Dispute Match
+                        </button>
+                    </div>
+                    
+                    <!-- Dispute Form (hidden by default) -->
+                    <form method="post" action="{% url 'competition:match_report_dispute' match_report.id %}" id="dispute-form" class="hidden mt-4 bg-red-900/20 border border-red-700 rounded-lg p-4">
+                        {% csrf_token %}
+                        <label for="dispute_reason" class="block text-sm font-medium text-gray-300 mb-2">Reason for Dispute (minimum 10 characters)</label>
+                        <textarea name="dispute_reason" id="dispute_reason" rows="3" required minlength="10" placeholder="Explain why you dispute this match result..."
+                                  class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-red-500 mb-3"></textarea>
+                        <button type="submit" class="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all">
+                            Submit Dispute
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

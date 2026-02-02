@@ -10,6 +10,11 @@ class TeamsConfig(AppConfig):
     verbose_name = "Teams (Legacy System)"
 
     def ready(self):
+        # Skip during migrations to avoid initialization issues
+        import sys
+        if 'migrate' in sys.argv or 'makemigrations' in sys.argv:
+            return
+        
         # NEW: Register event handlers for event-driven architecture
         try:
             from .events import register_team_event_handlers

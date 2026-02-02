@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}How Ranking Works - DeltaCrown Competition{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-white mb-4">
+                🏆 How DeltaCrown Ranking Works
+            </h1>
+            <p class="text-xl text-gray-300">
+                Transparent, verifiable, and fair competitive rankings
+            </p>
+        </div>
+
+        <!-- What Counts Section -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-purple-500/30">
+            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                <span class="text-3xl mr-3">✅</span>
+                What Counts Toward Your Ranking
+            </h2>
+            
+            <div class="space-y-4 text-gray-200">
+                <div class="pl-12">
+                    <h3 class="text-lg font-semibold text-purple-300 mb-2">1. Verified Match Wins</h3>
+                    <p class="mb-2">Competitive matches that have been confirmed by your opponent or verified by admins.</p>
+                    <ul class="list-disc list-inside space-y-1 text-gray-300">
+                        <li><strong>Confirmed by Opponent:</strong> 100% weight (HIGH confidence)</li>
+                        <li><strong>Admin Verified:</strong> 100% weight (HIGH confidence)</li>
+                        <li><strong>Unconfirmed with Evidence:</strong> 70% weight (MEDIUM confidence)</li>
+                        <li><strong>Unconfirmed without Evidence:</strong> 30% weight (LOW confidence)</li>
+                    </ul>
+                </div>
+
+                <div class="pl-12">
+                    <h3 class="text-lg font-semibold text-purple-300 mb-2">2. Tournament Participation</h3>
+                    <p class="mb-2">Placement in official DeltaCrown tournaments contributes significantly to your ranking.</p>
+                    <ul class="list-disc list-inside space-y-1 text-gray-300">
+                        <li><strong>Tournament Win:</strong> Major score boost (typically 500+ points)</li>
+                        <li><strong>Top Placements:</strong> Scored based on position and tournament tier</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- What Does NOT Count Section -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-red-500/30">
+            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                <span class="text-3xl mr-3">❌</span>
+                What Does NOT Count
+            </h2>
+            
+            <div class="space-y-2 text-gray-200 pl-12">
+                <p>• <strong>Disputed Matches:</strong> If your opponent disputes the result, it has 0% weight until admin review</p>
+                <p>• <strong>Rejected Reports:</strong> Matches marked as invalid/fraudulent by admins</p>
+                <p>• <strong>Self-Reported Matches (PENDING):</strong> Until verified, they only contribute partial weight</p>
+                <p>• <strong>Casual/Scrim Matches:</strong> Practice matches don't affect ranked standing</p>
+            </div>
+        </div>
+
+        <!-- How Scoring Works -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-blue-500/30">
+            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                <span class="text-3xl mr-3">🔢</span>
+                How Scores Are Calculated
+            </h2>
+            
+            <div class="text-gray-200 space-y-4">
+                <p class="pl-12">
+                    Your ranking score is calculated per-game using this formula:
+                </p>
+                
+                <div class="bg-gray-800/50 rounded p-4 font-mono text-sm text-green-300 ml-12">
+                    Total Score = (Verified Match Wins × Weight × Confidence) + Tournament Points - Decay Penalty
+                </div>
+
+                <div class="pl-12 space-y-3">
+                    <div>
+                        <h4 class="font-semibold text-purple-300">Example (League of Legends):</h4>
+                        <ul class="list-disc list-inside space-y-1 text-gray-300 mt-2">
+                            <li>10 verified match wins × 10 points × 1.0 (HIGH) = <strong>100 points</strong></li>
+                            <li>1 tournament win × 500 points = <strong>500 points</strong></li>
+                            <li>Decay penalty (30+ days inactive) = <strong>-50 points</strong></li>
+                            <li><strong>Total Score: 550 points</strong></li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 class="font-semibold text-purple-300">Per-Game vs. Global Ranking:</h4>
+                        <ul class="list-disc list-inside space-y-1 text-gray-300 mt-2">
+                            <li><strong>Per-Game Ranking:</strong> Your standing in a specific game (e.g., LOL, Valorant)</li>
+                            <li><strong>Global Ranking:</strong> Sum of all your per-game scores across all games</li>
+                            <li>Multi-game teams can climb global leaderboards faster</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ranking Tiers -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-yellow-500/30">
+            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                <span class="text-3xl mr-3">🎖️</span>
+                Ranking Tiers
+            </h2>
+            
+            <div class="text-gray-200 space-y-3 pl-12">
+                <p class="mb-4">Your score determines your tier. Tier thresholds vary by game but typically follow this pattern:</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded p-3 border border-cyan-400/30">
+                        <div class="font-bold text-cyan-300">💎 DIAMOND</div>
+                        <div class="text-sm text-gray-300">2000+ points - Elite teams</div>
+                    </div>
+                    <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded p-3 border border-purple-400/30">
+                        <div class="font-bold text-purple-300">🟣 PLATINUM</div>
+                        <div class="text-sm text-gray-300">1200-1999 points - Competitive teams</div>
+                    </div>
+                    <div class="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded p-3 border border-yellow-400/30">
+                        <div class="font-bold text-yellow-300">🟡 GOLD</div>
+                        <div class="text-sm text-gray-300">600-1199 points - Skilled teams</div>
+                    </div>
+                    <div class="bg-gradient-to-r from-gray-400/20 to-gray-500/20 rounded p-3 border border-gray-400/30">
+                        <div class="font-bold text-gray-300">⚪ SILVER</div>
+                        <div class="text-sm text-gray-300">250-599 points - Developing teams</div>
+                    </div>
+                    <div class="bg-gradient-to-r from-orange-700/20 to-red-700/20 rounded p-3 border border-orange-600/30">
+                        <div class="font-bold text-orange-400">🟤 BRONZE</div>
+                        <div class="text-sm text-gray-300">100-249 points - New teams</div>
+                    </div>
+                    <div class="bg-gradient-to-r from-gray-700/20 to-gray-800/20 rounded p-3 border border-gray-600/30">
+                        <div class="font-bold text-gray-400">⬛ UNRANKED</div>
+                        <div class="text-sm text-gray-300">0-99 points - No verified matches</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confidence Levels -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-green-500/30">
+            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                <span class="text-3xl mr-3">📊</span>
+                Confidence Levels
+            </h2>
+            
+            <div class="text-gray-200 space-y-3 pl-12">
+                <p class="mb-4">Your ranking confidence indicates how established your rating is:</p>
+                
+                <div class="space-y-3">
+                    <div class="bg-green-500/10 rounded p-3 border border-green-400/30">
+                        <div class="font-bold text-green-300">🟢 STABLE (20+ verified matches)</div>
+                        <div class="text-sm text-gray-300">Your ranking is well-established and reliable</div>
+                    </div>
+                    <div class="bg-yellow-500/10 rounded p-3 border border-yellow-400/30">
+                        <div class="font-bold text-yellow-300">🟡 ESTABLISHED (10-19 verified matches)</div>
+                        <div class="text-sm text-gray-300">Your ranking is moderately reliable</div>
+                    </div>
+                    <div class="bg-orange-500/10 rounded p-3 border border-orange-400/30">
+                        <div class="font-bold text-orange-300">🟠 PROVISIONAL (0-9 verified matches)</div>
+                        <div class="text-sm text-gray-300">Your ranking may be volatile as you play more matches</div>
+                    </div>
+                </div>
+
+                <p class="mt-4 text-sm text-gray-400">
+                    <strong>Note:</strong> Only verified matches (CONFIRMED or ADMIN_VERIFIED) count toward confidence levels. Pending matches don't increase confidence until verified.
+                </p>
+            </div>
+        </div>
+
+        <!-- Inactivity Decay -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-orange-500/30">
+            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                <span class="text-3xl mr-3">⏰</span>
+                Inactivity Decay
+            </h2>
+            
+            <div class="text-gray-200 space-y-3 pl-12">
+                <p>To keep rankings current, inactive teams experience score decay:</p>
+                
+                <ul class="list-disc list-inside space-y-2 text-gray-300 mt-3">
+                    <li><strong>Threshold:</strong> 30 days without a match in a game</li>
+                    <li><strong>Decay Rate:</strong> Small penalty per day of inactivity</li>
+                    <li><strong>Prevention:</strong> Play at least one ranked match per month to stay current</li>
+                    <li><strong>Recovery:</strong> Decay stops immediately when you resume playing</li>
+                </ul>
+
+                <p class="mt-4 text-sm text-yellow-300">
+                    💡 <strong>Tip:</strong> Keep your team active with regular matches to maintain your hard-earned ranking!
+                </p>
+            </div>
+        </div>
+
+        <!-- Supported Games -->
+        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 mb-8 border border-indigo-500/30">
+            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                <span class="text-3xl mr-3">🎮</span>
+                Supported Games
+            </h2>
+            
+            <div class="text-gray-200 pl-12">
+                <p class="mb-4">DeltaCrown ranking system currently supports {{ game_configs.count }} competitive games:</p>
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {% for config in game_configs %}
+                    <div class="bg-gray-800/50 rounded p-3 text-center border border-gray-700/50">
+                        <div class="font-semibold text-purple-300">{{ config.game_name }}</div>
+                        <div class="text-xs text-gray-400">{{ config.game_id }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- How to Get Started -->
+        <div class="bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-lg p-8 border border-purple-500/50">
+            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                <span class="text-3xl mr-3">🚀</span>
+                How to Get Started
+            </h2>
+            
+            <div class="text-gray-200 space-y-3 pl-12">
+                <ol class="list-decimal list-inside space-y-2">
+                    <li><strong>Create or Join a Team:</strong> Must be team owner or manager</li>
+                    <li><strong>Play Competitive Matches:</strong> Scrim against other teams</li>
+                    <li><strong>Report Your Results:</strong> Use the "Report Match" button on your team page</li>
+                    <li><strong>Get Verified:</strong> Opponent confirms or admin verifies your match</li>
+                    <li><strong>Climb the Ranks:</strong> Keep playing to increase your score and tier</li>
+                </ol>
+
+                <div class="mt-6 text-center">
+                    <a href="{% url 'competition:match_report_form' %}" 
+                       class="inline-block px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg">
+                        Report Your First Match →
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 text-gray-400 text-sm">
+            <p>Questions about ranking? Contact support at <a href="mailto:support@deltacrown.com" class="text-purple-400 hover:text-purple-300">support@deltacrown.com</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

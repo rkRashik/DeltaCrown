@@ -1793,7 +1793,6 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   - tests/test_ratelimit_utilities_redis_module_6_8.py (548 lines, 15 passing + 3 skipped)
   - tests/test_middleware_mapping_module_6_8.py (174 lines, 3 passing)
   - tests/redis_fixtures.py (211 lines, shared infrastructure)
-  - docker-compose.test.yml (Redis 7-alpine configuration)
   - tests/test_middleware_ratelimit_redis_module_6_8_SKIPPED.py (preserved WebSocket tests for traceability)
   - Artifacts/coverage/module_6_8/ (coverage HTML)
 - **Coverage Results**:

@@ -1769,7 +1769,6 @@ phase_6:
         completed_date: "2025-01-23"
         commits: ["a7bad0b", "36927a2"]
         files:
-          - "docker-compose.test.yml (Redis 7-alpine)"
           - "tests/redis_fixtures.py (211 lines)"
         notes: "Per-test namespace isolation, async user creation, django-redis cache backend, fast TTLs (200ms), fixed async/sync ORM issues, removed HiredisParser requirement"
       

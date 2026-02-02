@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Report Match | Competition | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">Report Match Result</h1>
+            <p class="text-gray-300">Submit your competitive match for verification</p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-gray-800 bg-opacity-50 backdrop-blur-lg rounded-lg shadow-2xl border border-gray-700 p-8">
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+
+                <!-- Team 1 (Your Team) -->
+                <div>
+                    <label for="team1" class="block text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-users mr-2"></i>Your Team
+                    </label>
+                    <select name="team1" id="team1" required
+                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        <option value="">Select your team...</option>
+                        {% for team in user_teams %}
+                        <option value="{{ team.id }}" {% if team.id|stringformat:"s" == team1_id %}selected{% endif %}>
+                            {{ team.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Team 2 (Opponent) -->
+                <div>
+                    <label for="team2" class="block text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-users mr-2"></i>Opponent Team
+                    </label>
+                    <select name="team2" id="team2" required
+                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        <option value="">Select opponent team...</option>
+                        {% for team in all_teams %}
+                        <option value="{{ team.id }}">{{ team.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Game Selection -->
+                <div>
+                    <label for="game_id" class="block text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-gamepad mr-2"></i>Game
+                    </label>
+                    <select name="game_id" id="game_id" required
+                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        <option value="">Select game...</option>
+                        {% for game in games %}
+                        <option value="{{ game.game_id }}">{{ game.get_game_id_display }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Result -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-trophy mr-2"></i>Match Result
+                    </label>
+                    <div class="grid grid-cols-3 gap-3">
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="result" value="WIN" required class="sr-only peer">
+                            <div class="px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-center text-white peer-checked:bg-green-600 peer-checked:border-green-500 transition-all">
+                                <i class="fas fa-check-circle mr-1"></i> Win
+                            </div>
+                        </label>
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="result" value="LOSS" required class="sr-only peer">
+                            <div class="px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-center text-white peer-checked:bg-red-600 peer-checked:border-red-500 transition-all">
+                                <i class="fas fa-times-circle mr-1"></i> Loss
+                            </div>
+                        </label>
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="result" value="DRAW" required class="sr-only peer">
+                            <div class="px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-center text-white peer-checked:bg-yellow-600 peer-checked:border-yellow-500 transition-all">
+                                <i class="fas fa-minus-circle mr-1"></i> Draw
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Match Type -->
+                <div>
+                    <label for="match_type" class="block text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-flag mr-2"></i>Match Type
+                    </label>
+                    <select name="match_type" id="match_type" required
+                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        <option value="RANKED">Ranked</option>
+                        <option value="CASUAL">Casual</option>
+                        <option value="SCRIM">Scrim</option>
+                    </select>
+                </div>
+
+                <!-- Played At -->
+                <div>
+                    <label for="played_at" class="block text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-calendar mr-2"></i>Match Date & Time
+                    </label>
+                    <input type="datetime-local" name="played_at" id="played_at" required
+                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                </div>
+
+                <!-- Evidence URL -->
+                <div>
+                    <label for="evidence_url" class="block text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-link mr-2"></i>Evidence URL (Optional)
+                    </label>
+                    <input type="url" name="evidence_url" id="evidence_url" placeholder="https://example.com/match-screenshot"
+                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <p class="text-sm text-gray-400 mt-1">Screenshot, VOD, or match link to support your report</p>
+                </div>
+
+                <!-- Evidence File -->
+                <div>
+                    <label for="evidence_file" class="block text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-upload mr-2"></i>Evidence File (Optional)
+                    </label>
+                    <input type="file" name="evidence_file" id="evidence_file" accept="image/*,video/*"
+                           class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <p class="text-sm text-gray-400 mt-1">Upload a screenshot or video of the match results</p>
+                </div>
+
+                <!-- Messages -->
+                {% if messages %}
+                <div class="space-y-2">
+                    {% for message in messages %}
+                    <div class="px-4 py-3 rounded-lg {% if message.tags == 'error' %}bg-red-900 border border-red-700 text-red-200{% else %}bg-green-900 border border-green-700 text-green-200{% endif %}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Submit Button -->
+                <div class="flex gap-4">
+                    <button type="submit"
+                            class="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105">
+                        <i class="fas fa-paper-plane mr-2"></i>Submit Match Report
+                    </button>
+                    <a href="{% url 'competition:match_report_list' %}"
+                       class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-all duration-300">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

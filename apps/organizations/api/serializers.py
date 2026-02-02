@@ -130,7 +130,7 @@ class TeamBrandingSerializer(serializers.Serializer):
     logo_url = serializers.URLField(required=False, allow_blank=True, max_length=500)
     banner_url = serializers.URLField(required=False, allow_blank=True, max_length=500)
     primary_color = serializers.CharField(required=False, allow_blank=True, max_length=7)
-    secondary_color = serializers.CharField(required=False, allow_blank=True, max_length=7)
+    accent_color = serializers.CharField(required=False, allow_blank=True, max_length=7)
     tagline = serializers.CharField(required=False, allow_blank=True, max_length=200)
     
     def validate_primary_color(self, value: str) -> str:
@@ -139,7 +139,7 @@ class TeamBrandingSerializer(serializers.Serializer):
             raise serializers.ValidationError("Color must be hex format (e.g., #FF5733)")
         return value
     
-    def validate_secondary_color(self, value: str) -> str:
+    def validate_accent_color(self, value: str) -> str:
         """Validate hex color format."""
         if value and not value.startswith('#'):
             raise serializers.ValidationError("Color must be hex format (e.g., #FF5733)")

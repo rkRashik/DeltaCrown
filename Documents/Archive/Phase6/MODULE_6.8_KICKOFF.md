@@ -59,7 +59,7 @@
 
 **Test Environment Setup**:
 ```yaml
-# docker-compose.test.yml
+# Redis test configuration (archived - no longer using Docker Compose)
 services:
   redis-test:
     image: redis:7-alpine
@@ -83,10 +83,10 @@ def redis_test_setup():
     import time
     import redis
     
-    # Start Redis container
-    subprocess.run(["docker-compose", "-f", "docker-compose.test.yml", "up", "-d"])
+    # Start Redis (archived approach - no longer using Docker Compose)
+    # Redis should be available on localhost:6379
     
-    # Wait for health check
+    # Wait for connection
     client = redis.Redis(host='localhost', port=6380, decode_responses=True)
     for _ in range(30):
         try:
@@ -98,7 +98,7 @@ def redis_test_setup():
     yield
     
     # Teardown
-    subprocess.run(["docker-compose", "-f", "docker-compose.test.yml", "down"])
+    # No Docker cleanup needed
 
 @pytest.fixture
 def redis_test_client():
@@ -355,7 +355,6 @@ tests/
       - test_redis_down_graceful_degradation
       - test_redis_recovery_after_outage
 
-docker-compose.test.yml                              (ephemeral Redis config)
 tests/conftest.py                                     (Redis fixtures + setup/teardown)
 Documents/ExecutionPlan/MODULE_6.8_COMPLETION_STATUS.md
 ```
@@ -367,7 +366,7 @@ Documents/ExecutionPlan/MODULE_6.8_COMPLETION_STATUS.md
 ### Phase 1: Infrastructure Setup (~1 hour)
 
 **Tasks**:
-1. Create `docker-compose.test.yml` with Redis 7 Alpine image
+1. Set up Redis test infrastructure
 2. Add `redis_test_setup` fixture in `tests/conftest.py`
 3. Add `redis_test_client` fixture for assertions
 4. Add `clear_redis` autouse fixture for test isolation

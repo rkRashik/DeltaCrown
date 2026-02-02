@@ -28,7 +28,8 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.contrib.auth import get_user_model
+from django.db import transaction, IntegrityError
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -54,10 +55,14 @@ from apps.organizations.services.exceptions import (
     TeamValidationError,
 )
 from apps.organizations.models import Organization, OrganizationMembership, Team
+from apps.organizations.choices import MembershipRole, MembershipStatus
+from apps.games.models import Game
 from apps.organizations.api.serializers import (
     CreateOrganizationSerializer,
     CreateTeamSerializer,
 )
+
+User = get_user_model()
 
 # CRITICAL SAFETY CHECK: Ensure we're using vNext Team, not legacy
 # vNext Team uses organizations_team table, has game_id (IntegerField FK)
@@ -613,15 +618,11 @@ def create_team(request: Request) -> Response:
         try:
             organization = Organization.objects.get(id=organization_id)
             
-            # Check if user is CEO or manager
+            # Check if user is CEO or manager (OrganizationMembership uses string choices)
             membership = OrganizationMembership.objects.filter(
                 organization=organization,
                 user=request.user,
-                role__in=[
-                    OrganizationMembership.Role.CEO,
-                    OrganizationMembership.Role.MANAGER,
-                ],
-                status=OrganizationMembership.Status.ACTIVE,
+                role__in=['CEO', 'MANAGER'],  # OrganizationMembership has no nested Role enum
             ).first()
             
             if not membership:
@@ -650,6 +651,20 @@ def create_team(request: Request) -> Response:
                     'error_code': 'organization_not_found',
                     'message': f'Organization with ID {organization_id} does not exist.',
                     'safe_message': 'The specified organization was not found.',
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    # Validate game_id exists before creating team
+    game_id = validated_data.get('game_id')
+    if game_id:
+        if not Game.objects.filter(id=game_id).exists():
+            return Response(
+                {
+                    'ok': False,
+                    'error_code': 'invalid_game_id',
+                    'message': f'Game with ID {game_id} does not exist.',
+                    'safe_message': 'The specified game was not found.',
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
@@ -700,17 +715,15 @@ def create_team(request: Request) -> Response:
             if validated_data.get('logo') or validated_data.get('banner'):
                 team.save()
             
-            # TODO: FIX CRITICAL BUG - TeamMembership FK points to legacy teams.Team, not organizations.Team
-            # Cannot create membership for vNext Team until TeamMembership is migrated to use organizations.Team
-            # For independent teams, create owner membership
-            # if not organization_id:
-            #     from apps.organizations.models import TeamMembership
-            #     TeamMembership.objects.create(
-            #         team=team,
-            #         user=request.user,
-            #         role='OWNER',
-            #         status='ACTIVE',
-            #     )
+            # Create owner membership for independent teams
+            if not organization_id:
+                from apps.organizations.models import TeamMembership
+                TeamMembership.objects.create(
+                    team=team,
+                    user=request.user,
+                    role=MembershipRole.OWNER,
+                    status=MembershipStatus.ACTIVE,
+                )
             
             # Handle manager invite if provided
             invite_created = False
@@ -726,8 +739,8 @@ def create_team(request: Request) -> Response:
                     TeamMembership.objects.create(
                         team=team,
                         user=invited_user,
-                        role='MANAGER',
-                        status='INVITED',
+                        role=MembershipRole.MANAGER,
+                        status=MembershipStatus.INVITED,
                     )
                     invite_created = True
                 except User.DoesNotExist:
@@ -736,7 +749,7 @@ def create_team(request: Request) -> Response:
                         team=team,
                         invited_email=manager_email,
                         inviter=request.user,
-                        role='MANAGER',
+                        role=MembershipRole.MANAGER,
                         status='PENDING',
                     )
                     invite_created = True
@@ -837,6 +850,59 @@ def create_team(request: Request) -> Response:
                 'safe_message': e.safe_message,
             },
             status=status.HTTP_404_NOT_FOUND
+        )
+    
+    except IntegrityError as e:
+        # Handle database constraint violations with user-friendly messages
+        error_message = str(e).lower()
+        
+        # Determine constraint type from error message
+        if 'team_has_organization_xor_owner' in error_message:
+            error_code = 'xor_constraint_violation'
+            user_message = 'A team must have either an organization or an owner, but not both.'
+            safe_message = 'Invalid team ownership configuration.'
+            status_code = status.HTTP_400_BAD_REQUEST
+        elif 'unique_tag_per_game' in error_message:
+            error_code = 'tag_already_exists'
+            user_message = f"The tag '{validated_data.get('tag')}' is already taken for this game."
+            safe_message = 'This team tag is already in use.'
+            status_code = status.HTTP_409_CONFLICT
+        elif 'one_independent_team_per_game' in error_message:
+            error_code = 'team_limit_reached'
+            user_message = f"You already own an active team for this game."
+            safe_message = 'You can only own one team per game.'
+            status_code = status.HTTP_409_CONFLICT
+        elif 'slug' in error_message or 'unique' in error_message:
+            error_code = 'team_name_conflict'
+            user_message = f"The name '{validated_data.get('name')}' is too similar to an existing team."
+            safe_message = 'This team name is already taken or too similar to another team.'
+            status_code = status.HTTP_409_CONFLICT
+        else:
+            # Generic integrity error
+            error_code = 'database_constraint_violation'
+            user_message = 'Team creation failed due to a database constraint.'
+            safe_message = 'Failed to create team. Please check your inputs.'
+            status_code = status.HTTP_409_CONFLICT
+        
+        logger.warning(
+            f"IntegrityError during team creation for user {request.user.id}",
+            extra={
+                'event_type': 'integrity_error_handled',
+                'user_id': request.user.id,
+                'organization_id': organization_id,
+                'constraint_violated': error_code,
+                'error_message': str(e),
+            }
+        )
+        
+        return Response(
+            {
+                'ok': False,
+                'error_code': error_code,
+                'message': user_message,
+                'safe_message': safe_message,
+            },
+            status=status_code
         )
     
     except Exception as e:

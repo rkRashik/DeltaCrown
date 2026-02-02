@@ -14,7 +14,7 @@ Test Categories:
 5. Redis failover scenarios
 
 Prerequisites:
-- Redis running: docker-compose -f docker-compose.test.yml up -d
+- Redis running: Start Redis instance on localhost:6379
 - Tests skip gracefully if Redis unavailable
 """
 

@@ -14,6 +14,15 @@ from ..choices import RankingTier
 
 class TeamRanking(models.Model):
     """
+    DEPRECATED: Legacy ranking model (Phase 2 artifact).
+    
+    This model points to legacy teams.Team FK. Not used by vNext teams.
+    Replaced by: apps.competition.models.TeamGameRankingSnapshot + TeamGlobalRankingSnapshot
+    
+    DO NOT CREATE NEW RECORDS. Scheduled for removal in Phase 3A-E.
+    
+    ---
+    
     Crown Point rankings for teams.
     
     The Delta Crown Ranking System (DCRS) awards Crown Points (CP) based on:

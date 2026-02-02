@@ -10,8 +10,8 @@
 
 ### ✅ Infrastructure (100% Complete)
 
-1. **Docker Compose for Redis:**
-   - `docker-compose.test.yml` created with Redis 7-alpine
+1. **Redis Test Infrastructure:**
+   - Redis 7 used for test infrastructure
    - Healthcheck configured, container running successfully
    - Port 6379 exposed, DB 15 reserved for tests
 

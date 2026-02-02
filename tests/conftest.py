@@ -7,11 +7,13 @@ Provides:
 - WebSocket testing utilities
 - Redis fixtures for Module 6.8 rate limit tests
 - Test schema setup (avoids CREATEDB requirement)
+- Database policy enforcement (always use DATABASE_URL_TEST)
 """
 
 import asyncio
 import pytest
 import uuid
+import os
 from django.contrib.auth import get_user_model
 from channels.testing import WebsocketCommunicator
 from django.conf import settings
@@ -22,6 +24,32 @@ pytest_plugins = ['tests.redis_fixtures']
 
 
 User = get_user_model()
+
+
+@pytest.fixture(scope='session', autouse=True)
+def enforce_test_database():
+    """
+    Enforce use of DATABASE_URL_TEST for all pytest runs.
+    Prevents tests from running on Neon or any remote database.
+    """
+    db_url = os.getenv('DATABASE_URL_TEST')
+    
+    if not db_url:
+        pytest.exit(
+            "\n❌ DATABASE_URL_TEST not set. Tests require local postgres.\n"
+            "   Example: export DATABASE_URL_TEST='postgresql://localhost:5432/deltacrown_test'\n",
+            returncode=1
+        )
+    
+    # Refuse to run on Neon or any non-local database
+    if 'neon.tech' in db_url or not any(host in db_url for host in ['localhost', '127.0.0.1', 'postgres:']):
+        pytest.exit(
+            f"\n❌ Tests cannot run on remote database: {db_url}\n"
+            "   DATABASE_URL_TEST must point to localhost postgres.\n",
+            returncode=1
+        )
+    
+    yield
 
 
 @pytest.fixture(scope='session', autouse=True)

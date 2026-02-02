@@ -1,0 +1,24 @@
+{% extends "admin/index.html" %}
+{% load i18n static %}
+
+{% block content %}
+{{ block.super }}
+
+{# Inject Competition section even if models not registered #}
+<div class="module">
+    <table>
+        <caption>
+            <a href="{% url 'admin:app_list' app_label='competition' %}" class="section" title="Models in the Competition application">Competition</a>
+        </caption>
+        <tr>
+            <th scope="row">
+                <a href="{% url 'competition_status' %}">Competition Status</a>
+            </th>
+            <td>
+                Check competition schema and model registration status
+            </td>
+        </tr>
+    </table>
+</div>
+
+{% endblock %}

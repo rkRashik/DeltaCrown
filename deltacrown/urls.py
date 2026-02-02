@@ -4,6 +4,7 @@ from importlib import import_module
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.contrib.admin.views.decorators import staff_member_required
 from django.urls import include, path
 from .views import healthz, readiness, test_game_assets
 from django.views.generic import TemplateView
@@ -23,6 +24,9 @@ from drf_spectacular.views import (
     SpectacularRedocView,
 )
 
+# Import competition admin status view (safe - no model queries)
+from apps.competition.admin import competition_admin_status
+
 
 urlpatterns = [
     # Root + health
@@ -38,6 +42,11 @@ urlpatterns = [
     # Phase 9A-30: Custom Game Passport Admin (must come BEFORE Django admin catch-all)
     # Routes /admin/game-passports/* to custom interface instead of Django admin
     path("admin/game-passports/", include("apps.user_profile.urls_admin")),
+    
+    # Competition admin status (safe, no model queries)
+    path("admin/competition/status/", 
+         staff_member_required(competition_admin_status),
+         name="competition_status"),
     
     path("admin/", admin.site.urls),
     path("account/", include(("apps.accounts.urls", "account"), namespace="account")),
@@ -76,6 +85,9 @@ urlpatterns = [
     
     # vNext Organizations API (explicitly registered namespace for {% url 'organizations_api:...' %})
     path("api/vnext/", include(("apps.organizations.api.urls", "organizations_api"), namespace="organizations_api")),
+    
+    # Phase 3A-C: Competition - Match Reporting & Verification (gated by COMPETITION_APP_ENABLED)
+    path("competition/", include("apps.competition.urls")),
     
     # Tournament system - Admin only (frontend moved to legacy November 2, 2025)
     # URL namespace kept active for admin panel functionality

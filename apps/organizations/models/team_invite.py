@@ -35,9 +35,9 @@ class TeamInvite(models.Model):
     
     # Core relationships
     team = models.ForeignKey(
-        'teams.Team',  # Using legacy Team model
+        'organizations.Team',  # vNext Team model
         on_delete=models.CASCADE,
-        related_name='vnext_invites',  # Changed to avoid clash with teams.TeamInvite.invites
+        related_name='vnext_invites',
         help_text='Team extending invitation'
     )
     invited_user = models.ForeignKey(

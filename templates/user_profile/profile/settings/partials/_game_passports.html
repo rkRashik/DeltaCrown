@@ -1611,7 +1611,7 @@ input.touched:placeholder-shown:not([required]):not([type="checkbox"]):not([type
         
         if (!state.currentGame.passport_schema || state.currentGame.passport_schema.length === 0) {
             const debugMsg = isDev 
-                ? `<div class="text-yellow-400"><strong>⚠️ Development Notice:</strong> No identity schema found for ${escapeHtml(state.currentGame.display_name)}. Run: <code class="bg-black/30 px-2 py-1 rounded">python manage.py seed_identity_configs --game ${escapeHtml(state.currentGame.slug)}</code></div>`
+                ? `<div class="text-yellow-400"><strong>⚠️ Development Notice:</strong> No identity schema found for ${escapeHtml(state.currentGame.display_name)}. Run: <code class="bg-black/30 px-2 py-1 rounded">python manage.py seed_games</code></div>`
                 : `<p class="text-gray-400">Schema not configured for this game</p>`;
             
             els.fieldsIdentity.innerHTML = debugMsg;

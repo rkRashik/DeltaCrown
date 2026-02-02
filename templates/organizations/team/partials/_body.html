@@ -9,57 +9,6 @@
          style="background: var(--team-primary)"></div>
   </div>
 
-  {% if enable_demo_remote %}
-  {# DEMO CONTROLLER - Dev-only floating remote for testing role/game/theme polymorphism #}
-  <div class="fixed bottom-4 right-4 md:bottom-5 md:right-5 z-[200] liquid-glass p-4 rounded-2xl w-[92vw] max-w-[18rem] shadow-2xl border-l-4 border-l-[var(--team-primary)] safe-pad transition-transform hover:scale-[1.01]">
-    <div class="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-3 flex justify-between items-center">
-      <span class="flex items-center gap-2">
-        Demo Controller
-        <span class="inline-flex items-center gap-2">
-          <span class="w-1.5 h-1.5 rounded-full bg-[var(--team-primary)] animate-pulse"></span>
-          <span class="text-[9px] text-slate-500">ROLE</span>
-          <span id="dc-role-pill" class="chip primary !py-0.5 !px-2 !text-[9px]">OWNER</span>
-        </span>
-      </span>
-      <span class="text-[9px] text-slate-500 hidden sm:block">Polymorphic</span>
-    </div>
-
-    <div class="space-y-3">
-      <label class="block">
-        <span class="text-[10px] font-mono uppercase tracking-widest text-slate-500">Viewer Role</span>
-        <select id="dc-demo-role"
-                class="mt-1 w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[var(--team-primary)]">
-          <option value="PUBLIC">Public / Fan</option>
-          <option value="MEMBER">Member / Player</option>
-          <option value="STAFF">Staff / Coach</option>
-          <option value="OWNER" selected>Owner / Admin</option>
-        </select>
-      </label>
-
-      <label class="block">
-        <span class="text-[10px] font-mono uppercase tracking-widest text-slate-500">Game Type</span>
-        <select id="dc-demo-game"
-                class="mt-1 w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[var(--team-primary)]">
-          <option value="FPS" selected>FPS (Valorant)</option>
-          <option value="MOBA">MOBA (Dota 2)</option>
-          <option value="SPORTS">Sports (eFootball)</option>
-        </select>
-      </label>
-
-      <div class="flex items-center justify-between">
-        <span class="text-[10px] font-mono uppercase tracking-widest text-slate-500">Theme</span>
-        <div class="flex gap-2">
-          <button type="button" data-dc-theme="DEFAULT" class="w-6 h-6 rounded-full bg-[#FFD700] border border-white/20" aria-label="Theme: Gold"></button>
-          <button type="button" data-dc-theme="VIOLATION" class="w-6 h-6 rounded-full bg-[#6C00FF] border border-white/20" aria-label="Theme: Violet"></button>
-          <button type="button" data-dc-theme="CYBER" class="w-6 h-6 rounded-full bg-[#00E5FF] border border-white/20" aria-label="Theme: Cyber"></button>
-          <button type="button" data-dc-theme="CRIMSON" class="w-6 h-6 rounded-full bg-[#FF3131] border border-white/20" aria-label="Theme: Crimson"></button>
-          <button type="button" data-dc-theme="EMERALD" class="w-6 h-6 rounded-full bg-[#00FF41] border border-white/20" aria-label="Theme: Emerald"></button>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
   <div class="relative z-10">
 
     <header class="relative mb-16 md:mb-20">
@@ -200,6 +149,18 @@
             </svg>
             <span>TEAM CHAT</span>
           </button>
+          <!-- Phase 3A-C: Report Match Button (for OWNER/ADMIN roles) -->
+          {% if settings.COMPETITION_APP_ENABLED and permissions.can_report_matches %}
+          <a href="{% url 'competition:match_report_form' %}?team1={{ team.id }}" data-role-show="MEMBER"
+             class="h-11 px-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold uppercase text-[10px] tracking-[0.18em]
+                    rounded-xl hover:brightness-110 transition shadow-[0_0_20px_rgba(147,51,234,0.4)] flex items-center gap-2"
+             title="Report competitive match result">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <span>REPORT MATCH</span>
+          </a>
+          {% endif %}
           <button type="button" data-role-show="MEMBER"
                   class="h-11 w-11 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex items-center justify-center text-slate-200"
                   title="Upload match recording">

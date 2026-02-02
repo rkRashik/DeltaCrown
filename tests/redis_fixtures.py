@@ -40,7 +40,7 @@ def is_redis_available():
 # Skip marker for Redis tests
 redis_required = pytest.mark.skipif(
     not is_redis_available(),
-    reason="Redis not available (start with: docker-compose -f docker-compose.test.yml up -d)"
+    reason="Redis not available (start Redis instance on localhost:6379)"
 )
 
 

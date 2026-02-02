@@ -4,7 +4,7 @@ Management command to clean up stale Game Passport schema fields.
 PHASE 9A-20: Fix Issue #1 - eFootball has stale owner_id and ign fields
 
 This command deletes GamePlayerIdentityConfig entries that no longer exist in 
-seed_identity_configs_2026.py schema definition. Use with --apply to execute.
+seed_games.py schema definition. Use with --apply to execute.
 
 Usage:
     # Preview changes (dry run)

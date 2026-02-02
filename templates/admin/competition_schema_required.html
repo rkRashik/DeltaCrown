@@ -1,0 +1,60 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div class="content-main">
+    <h1>Competition App Setup Required</h1>
+    
+    <div class="module" style="margin-top: 20px;">
+        <h2>Schema Not Ready</h2>
+        
+        <div style="padding: 20px; background: #FFF3CD; border: 1px solid #FFEAA7; border-radius: 4px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0; font-size: 14px;">
+                <strong>⚠️ The Competition app database tables have not been created yet.</strong>
+            </p>
+            <p style="margin: 0; font-size: 14px; color: #856404;">
+                To use the Competition app admin features, you need to apply the database migrations first.
+            </p>
+        </div>
+        
+        <h3>Required Setup Steps:</h3>
+        <ol style="line-height: 1.8;">
+            <li>
+                <strong>Apply migrations:</strong>
+                <pre style="background: #f8f8f8; padding: 10px; border-radius: 4px; margin: 10px 0;">python manage.py migrate competition</pre>
+            </li>
+            <li>
+                <strong>Seed game configurations (optional):</strong>
+                <pre style="background: #f8f8f8; padding: 10px; border-radius: 4px; margin: 10px 0;">python manage.py seed_game_ranking_configs</pre>
+            </li>
+            <li>
+                <strong>Restart the Django server</strong>
+            </li>
+        </ol>
+        
+        <div style="margin-top: 30px; padding: 15px; background: #E7F3FF; border-left: 4px solid #2196F3; border-radius: 4px;">
+            <h4 style="margin-top: 0;">ℹ️ Check Current Status</h4>
+            <p style="margin-bottom: 10px;">Run this command to see which tables are missing:</p>
+            <pre style="background: #f8f8f8; padding: 10px; border-radius: 4px; margin: 0;">python manage.py competition_check_schema</pre>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 15px; background: #F0F0F0; border-radius: 4px;">
+            <h4 style="margin-top: 0;">📋 What This App Provides</h4>
+            <p style="margin-bottom: 5px;">Once set up, you'll be able to manage:</p>
+            <ul style="margin: 10px 0;">
+                <li><strong>Game Ranking Configs</strong> - Configure ranking rules for different games</li>
+                <li><strong>Match Reports</strong> - Review submitted match results</li>
+                <li><strong>Match Verifications</strong> - Verify or reject match reports</li>
+                <li><strong>Team Game Rankings</strong> - View per-game team rankings and snapshots</li>
+                <li><strong>Team Global Rankings</strong> - View cross-game team rankings</li>
+            </ul>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <a href="{% url 'admin:index' %}" class="button" style="display: inline-block; background: #417690; color: white; padding: 8px 15px; text-decoration: none; border-radius: 4px;">
+                ← Back to Admin Home
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

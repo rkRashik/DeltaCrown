@@ -10,6 +10,11 @@ class AccountsConfig(AppConfig):
     verbose_name = "Accounts"
 
     def ready(self):
+        # Skip during migrations
+        import sys
+        if 'migrate' in sys.argv or 'makemigrations' in sys.argv:
+            return
+        
         # NEW: Register event handlers
         try:
             from .events import register_accounts_event_handlers

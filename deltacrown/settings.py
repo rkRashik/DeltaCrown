@@ -2,14 +2,127 @@ from pathlib import Path
 import os
 import sys
 import dj_database_url
+from urllib.parse import urlparse, parse_qs
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
+
+# Module-level flag to ensure migration guard only prints once
+_migration_guard_checked = False
 
 # -----------------------------------------------------------------------------
 # Paths & Core
 # -----------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Deterministic .env loading - explicit path, no override
+load_dotenv(dotenv_path=BASE_DIR / ".env", override=False)
+
+# Fail-fast: DATABASE_URL must be set to prevent localhost fallback
+if not os.getenv("DATABASE_URL"):
+    raise ImproperlyConfigured(
+        "DATABASE_URL environment variable is required. "
+        "DeltaCrown refuses to start without it to prevent accidental localhost usage. "
+        "Create a .env file in project root with DATABASE_URL=postgresql://..."
+    )
+
+# -----------------------------------------------------------------------------
+# Database URL Parsing Helper
+# -----------------------------------------------------------------------------
+def parse_database_url(url_string):
+    """
+    Parse DATABASE_URL with proper handling of quotes and query parameters.
+    
+    Args:
+        url_string: Database URL string, may have quotes from .env
+        
+    Returns:
+        dict: Parsed database configuration
+        
+    Example:
+        >>> url = 'postgresql://user:pass@host:5432/db?sslmode=require'
+        >>> config = parse_database_url(url)
+        >>> config['NAME']
+        'db'
+    """
+    if not url_string:
+        return None
+        
+    # Strip leading/trailing quotes that might come from .env
+    url_string = url_string.strip()
+    if url_string.startswith(('"', "'")) and url_string.endswith(('"', "'")):
+        url_string = url_string[1:-1]
+    
+    # Parse using dj_database_url
+    config = dj_database_url.parse(url_string)
+    
+    # Preserve query parameters in OPTIONS
+    parsed = urlparse(url_string)
+    if parsed.query:
+        query_params = parse_qs(parsed.query)
+        # Convert query params to single values
+        options = {k: v[0] if len(v) == 1 else v for k, v in query_params.items()}
+        config.setdefault('OPTIONS', {}).update(options)
+    
+    return config
+
+def get_database_environment():
+    """
+    Get database URL and environment label.
+    Simple production-like config: DATABASE_URL for everything, DATABASE_URL_TEST for tests.
+    
+    Returns:
+        tuple: (db_url, label) - 'PROD' for DATABASE_URL, 'TEST' for DATABASE_URL_TEST
+    """
+    import sys
+    
+    # Tests use DATABASE_URL_TEST (enforced in conftest.py)
+    is_test = (
+        'test' in sys.argv or 
+        'pytest' in sys.argv[0] or
+        os.getenv('PYTEST_CURRENT_TEST') or
+        os.getenv('DJANGO_SETTINGS_MODULE', '').endswith('_test')
+    )
+    
+    if is_test:
+        db_url = os.getenv('DATABASE_URL_TEST')
+        if db_url:
+            return db_url, 'TEST'
+        # Fail fast if DATABASE_URL_TEST not set during tests
+        sys.stderr.write("\n❌ DATABASE_URL_TEST required for tests. Set to local postgres URL.\n\n")
+        sys.exit(1)
+    
+    # Default: use DATABASE_URL for everything (runserver, shell, migrate, etc.)
+    db_url = os.getenv('DATABASE_URL')
+    if not db_url:
+        sys.stderr.write("\n❌ DATABASE_URL required. Set to Neon database URL.\n\n")
+        sys.exit(1)
+    
+    return db_url, 'PROD'
+
+def get_sanitized_db_info():
+    """Get sanitized database info for logging (no passwords)."""
+    db_url = os.getenv('DATABASE_URL_TEST') or os.getenv('DATABASE_URL', '')
+    if not db_url:
+        return {'error': 'DATABASE_URL not set'}
+    
+    parsed = urlparse(db_url)
+    return {
+        'engine': parsed.scheme,
+        'host': parsed.hostname or 'unknown',
+        'port': parsed.port or 5432,
+        'database': parsed.path.lstrip('/') if parsed.path else 'unknown',
+        'user': parsed.username or 'unknown',
+    }
+
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key-change-me")
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
+
+# -----------------------------------------------------------------------------
+# Feature Flags
+# -----------------------------------------------------------------------------
+# Phase 3A-C0: Competition app gated behind feature flag to prevent runtime errors
+# when database schema not yet migrated. Set COMPETITION_APP_ENABLED=1 to enable.
+COMPETITION_APP_ENABLED = os.getenv("COMPETITION_APP_ENABLED", "0") == "1"
 
 # --- ALLOWED_HOSTS / CSRF (add your LAN IP here) ---
 ALLOWED_HOSTS = [
@@ -142,6 +255,10 @@ INSTALLED_APPS = [
 
 ]
 
+# Phase 3A-C0: Conditionally enable competition app if database ready
+if COMPETITION_APP_ENABLED:
+    INSTALLED_APPS.append("apps.competition")  # Phase 3A-B: Multi-game ranking & match reporting
+
 AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
@@ -213,40 +330,50 @@ CACHES = {
 WSGI_APPLICATION = "deltacrown.wsgi.application"
 
 # -----------------------------------------------------------------------------
-# Database (Smart Config: Cloud first, Local fallback)
+# Database Configuration
 # -----------------------------------------------------------------------------
+# Simple production-standard database config:
+# - DATABASE_URL: Runtime database (Neon production)
+# - DATABASE_URL_TEST: Test database (local Postgres only)
+#
+# Tests use DATABASE_URL_TEST (enforced in conftest.py).
+# Everything else (runserver, shell, migrate, admin) uses DATABASE_URL.
 
-# 1. Define Local DB settings (Fallback)
-DB_NAME = os.getenv("DB_NAME", "deltacrown")
-DB_USER = os.getenv("DB_USER", "dc_user")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "Rashik0001")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
+# Determine which database to use
+database_url, db_label = get_database_environment()
 
-LOCAL_DB_URL = f"postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+if not database_url:
+    raise ImproperlyConfigured(
+        "No database URL configured. Set:\n"
+        "  DATABASE_URL       - Neon database (runtime)\n"
+        "  DATABASE_URL_TEST  - Local Postgres (tests only)\n"
+    )
 
-# 2. Get Configuration (Safe Mode)
-# We call config() without arguments to avoid TypeError on older versions
-db_config = dj_database_url.config(default=os.getenv("DATABASE_URL", LOCAL_DB_URL))
+# Parse database URL with robust quote handling
+db_config = parse_database_url(database_url)
+if not db_config:
+    raise ImproperlyConfigured(f"Failed to parse database URL for {db_label} environment")
 
-# 3. Manually apply the optimized settings
+# Apply optimized connection settings
 db_config['CONN_MAX_AGE'] = 600
 db_config['CONN_HEALTH_CHECKS'] = True
 
-# 4. SSL Configuration
-if "neon.tech" in os.getenv("DATABASE_URL", ""):
-    # Force SSL for cloud database (Neon)
-    db_config['OPTIONS'] = {'sslmode': 'require'}
-elif DB_HOST == "localhost" or DB_HOST == "127.0.0.1":
-    # Disable SSL for local development to avoid connection issues
-    db_config['OPTIONS'] = {'sslmode': 'disable'}
-else:
-    # Prefer SSL but allow without for other hosts
-    db_config['OPTIONS'] = {'sslmode': 'prefer'}
+# SSL Configuration for Neon
+if "neon.tech" in database_url:
+    # Neon requires SSL
+    db_config.setdefault('OPTIONS', {})['sslmode'] = 'require'
 
 DATABASES = {
     'default': db_config
 }
+
+# Store database environment label
+DB_ENVIRONMENT = db_label
+
+# Show connection info in debug mode
+if DEBUG:
+    db_info = get_sanitized_db_info()
+    print(f"[{db_label}] {db_info['host']}:{db_info['port']}/{db_info['database']}")
 
 # -----------------------------------------------------------------------------
 # Passwords, Auth, I18N

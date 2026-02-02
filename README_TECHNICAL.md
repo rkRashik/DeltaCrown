@@ -1,12 +1,399 @@
-# DeltaCrown Technical Architecture
+# DeltaCrown Platform - Bootstrap & Technical Guide
 
-**Status:** Production-Ready Backend, Frontend in Active Development  
-**Last Updated:** January 2025  
-**Architecture Version:** 2.0 (Post-Refactor)
+**Status**: Production-ready configuration  
+**Last Updated**: 2026-02-02  
+**Database**: Neon (ep-lively-queen-a13dp7w6) for all non-test environments
 
 ---
 
-## 1. Overview of the System
+## 📋 Quick Start (Fresh Database)
+
+```bash
+# 1. Set environment variables
+export DATABASE_URL='postgresql://neondb_owner:...'
+export DATABASE_URL_TEST='postgresql://localhost:5432/deltacrown_test'
+
+# 2. Run migrations
+python manage.py migrate
+
+# 3. Seed core data (order matters!)
+python manage.py seed_games
+python manage.py seed_game_passport_schemas
+python manage.py seed_game_ranking_configs
+
+# 4. Create superuser
+python manage.py createsuperuser
+
+# 5. (Optional) Backfill game profiles for existing users
+python manage.py backfill_game_profiles --all --limit 100 --dry-run
+python manage.py backfill_game_profiles --all --limit 100
+
+# 6. Verify
+python manage.py runserver
+# Visit: http://localhost:8000/admin
+```
+
+---
+
+## 🗄️ Database Configuration
+
+### Environment Variables
+
+**Runtime (Django server, management commands)**:
+- `DATABASE_URL` - **REQUIRED** - Points to Neon for all environments
+- Format: `postgresql://user:pass@ep-lively-queen-a13dp7w6.ap-southeast-1.aws.neon.tech:5432/deltacrown?sslmode=require`
+- Used for: `runserver`, `migrate`, `seed_*`, `shell`, etc.
+
+**Tests (pytest only)**:
+- `DATABASE_URL_TEST` - **REQUIRED** - Points to local PostgreSQL
+- Format: `postgresql://localhost:5432/deltacrown_test`
+- Must NOT contain `neon.tech` (enforced by `tests/conftest.py`)
+- Used for: `pytest` runs only
+
+### Configuration Logic (deltacrown/settings.py)
+
+```python
+def get_database_environment():
+    """
+    Simple database selection:
+    - Tests: Use DATABASE_URL_TEST (local only, remote refused)
+    - Everything else: Use DATABASE_URL (Neon)
+    
+    No auto-switching, no fallbacks, no dev/prod/staging URLs.
+    """
+    if is_test:
+        db_url = os.getenv('DATABASE_URL_TEST')
+        if not db_url:
+            sys.stderr.write("\n❌ DATABASE_URL_TEST required for tests.\n\n")
+            sys.exit(1)
+        return db_url, 'TEST'
+    
+    db_url = os.getenv('DATABASE_URL')
+    if not db_url:
+        sys.stderr.write("\n❌ DATABASE_URL required.\n\n")
+        sys.exit(1)
+    
+    return db_url, 'PROD'
+```
+
+**Key Points**:
+- No migration guard (Neon is dev database)
+- Tests REFUSE to run on remote databases
+- Runtime ALWAYS uses Neon via DATABASE_URL
+- Clear error messages if DATABASE_URL missing
+
+---
+
+## 🌱 Seed Commands (Idempotent)
+
+All seed commands are **idempotent** - safe to run multiple times.
+
+### 1. seed_games
+**Purpose**: Seeds 11 core games with comprehensive metadata  
+**Location**: `apps/games/management/commands/seed_games.py`  
+**What it creates**:
+- Game records (LOL, VAL, CS2, DOTA2, RL, APEX, OW2, FORT, COD, R6, PUBG)
+- GameRosterConfig (min/max players per game)
+- GameRole (per-game competitive roles)
+- GamePlayerIdentityConfig (identity field requirements)
+- GameTournamentConfig (match formats, scoring)
+
+**Usage**:
+```bash
+# Initial seed
+python manage.py seed_games
+
+# Re-seed (updates existing games)
+python manage.py seed_games --force
+```
+
+**Data Date**: December 2025 competitive meta
+
+---
+
+### 2. seed_game_passport_schemas
+**Purpose**: Seeds GamePassportSchema records (per-game identity configuration)  
+**Location**: `apps/user_profile/management/commands/seed_game_passport_schemas.py`  
+**What it creates**:
+- GamePassportSchema (one per game)
+- Defines identity fields (ign, discriminator, platform, region)
+- Defines rank tiers, verification requirements, regions per game
+
+**Dependencies**: Requires `seed_games` first
+
+**Usage**:
+```bash
+# Initial seed (idempotent)
+python manage.py seed_game_passport_schemas
+
+# Reset (delete and recreate)
+python manage.py seed_game_passport_schemas --reset
+```
+
+**⚠️ IMPORTANT**: This creates CONFIGURATION, not user data. User GameProfile instances are created separately.
+
+---
+
+### 3. seed_game_ranking_configs
+**Purpose**: Seeds competition ranking configurations  
+**Location**: `apps/competition/management/commands/seed_game_ranking_configs.py`  
+**What it creates**:
+- GameRankingConfig (per game)
+- Ranking weights (win/loss/kill/death/assist)
+- Tier thresholds (Bronze/Silver/Gold/etc.)
+- Decay policy (LP decay for inactivity)
+- Verification rules
+
+**Dependencies**: Requires `seed_games` first
+
+**Usage**:
+```bash
+python manage.py seed_game_ranking_configs
+```
+
+**Idempotency**: Uses `update_or_create`, safe to re-run
+
+---
+
+### 4. backfill_game_profiles (NEW)
+**Purpose**: Create GameProfile instances for existing users  
+**Location**: `apps/user_profile/management/commands/backfill_game_profiles.py`  
+**What it creates**:
+- GameProfile records (user game identities/passports)
+- One per user per game (e.g., user "alice" gets 11 GameProfiles, one for each game)
+
+**Dependencies**: 
+- Requires `seed_games` first
+- Requires `seed_game_passport_schemas` first
+- Requires at least 1 user to exist
+
+**Usage**:
+```bash
+# Dry-run (see what would be created)
+python manage.py backfill_game_profiles --dry-run
+
+# Backfill for specific user
+python manage.py backfill_game_profiles --user alice
+python manage.py backfill_game_profiles --user 123
+
+# Backfill for all users (with safety limit)
+python manage.py backfill_game_profiles --all --limit 100
+
+# Backfill for specific game only
+python manage.py backfill_game_profiles --all --game valorant --limit 50
+```
+
+**Behavior**:
+- Only creates GameProfiles if user doesn't have one for that game
+- Creates minimal skeleton (user fills in ign/rank/stats later)
+- Safe to run on fresh database with zero users (exits gracefully)
+- Uses `get_or_create` for atomic operation
+
+**⚠️ IMPORTANT**: This is NOT required for fresh databases. GameProfiles can be created:
+1. When user edits their profile via UI
+2. When user verifies their game account via API
+3. By this backfill command (for existing users from legacy system)
+
+---
+
+## 📊 Seed Sequence (Correct Order)
+
+```bash
+# Order matters due to foreign key dependencies:
+python manage.py seed_games                      # 1. Games registry first
+python manage.py seed_game_passport_schemas      # 2. Requires games
+python manage.py seed_game_ranking_configs       # 3. Requires games
+
+# Only if users exist:
+python manage.py backfill_game_profiles --all    # 4. Requires games + schemas + users
+```
+
+---
+
+## 🔄 Reset Workflow (Neon Database)
+
+See: [docs/ops/neon-reset.md](docs/ops/neon-reset.md)
+
+**Summary**:
+```bash
+# 1. Drop all tables (Neon Console or psql)
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+
+# 2. Fresh migrations
+python manage.py migrate
+
+# 3. Seed in order
+python manage.py seed_games
+python manage.py seed_game_passport_schemas
+python manage.py seed_game_ranking_configs
+
+# 4. Create admin
+python manage.py createsuperuser
+
+# 5. Verify
+python manage.py runserver
+```
+
+---
+
+## 🐛 Common Issues
+
+### Issue 1: `organizations_team` missing
+
+**Error**: `DoesNotExist: Table 'organizations_team' doesn't exist`  
+**When**: Accessing `/teams/protocol-v/` before migrations run  
+**Fix**:
+```bash
+python manage.py migrate organizations
+```
+
+**Root Cause**: URL accessed before `organizations.Team` model created by migrations.
+
+---
+
+### Issue 2: `competition_game_ranking_config` missing in admin
+
+**Error**: Admin crashes when accessing Competition models  
+**When**: Admin tries to register Competition models before table exists  
+**Fix**: Already handled defensively in `apps/competition/admin.py`:
+
+```python
+try:
+    from apps.competition.models import GameRankingConfig
+    admin.site.register(GameRankingConfig, GameRankingConfigAdmin)
+except Exception as e:
+    print(f"⚠️ Could not register Competition admin: {e}")
+```
+
+**Prevention**: Always run `python manage.py migrate` before accessing admin.
+
+---
+
+### Issue 3: No games found when seeding passport schemas
+
+**Error**: `❌ No games found. Run: python manage.py seed_games`  
+**Fix**: Seed games first:
+```bash
+python manage.py seed_games
+python manage.py seed_game_passport_schemas
+```
+
+---
+
+### Issue 4: Tests try to run on Neon
+
+**Error**: `❌ Tests cannot run on remote database: ep-lively-queen-a13dp7w6...`  
+**Fix**: Set `DATABASE_URL_TEST` to local PostgreSQL:
+```bash
+export DATABASE_URL_TEST='postgresql://localhost:5432/deltacrown_test'
+pytest
+```
+
+**Prevention**: `tests/conftest.py` enforces this automatically.
+
+---
+
+## 📁 Repository Structure (Post-Cleanup)
+
+```
+deltacrown/
+├── README.md                      # Project overview
+├── README_TECHNICAL.md            # This file - Bootstrap guide
+├── requirements.txt               # Dependencies
+├── manage.py                      # Django management
+├── apps/                          # Application code
+│   ├── games/
+│   │   └── management/commands/
+│   │       └── seed_games.py      # ✅ Idempotent games seeder
+│   ├── user_profile/
+│   │   └── management/commands/
+│   │       ├── seed_game_passport_schemas.py  # ✅ Passport schemas
+│   │       └── backfill_game_profiles.py      # ✅ NEW: User passports
+│   ├── competition/
+│   │   └── management/commands/
+│   │       └── seed_game_ranking_configs.py   # ✅ Competition configs
+│   ├── organizations/
+│   │   └── models/
+│   │       └── team.py             # organizations_team model
+│   └── teams/
+│       └── models/
+│           └── team.py             # teams_team model (different!)
+├── docs/
+│   ├── ops/
+│   │   └── neon-reset.md          # Neon reset workflow
+│   └── vnext/
+│       ├── README.md               # Historical docs index
+│       ├── db-normalization-reset-report.md
+│       └── ... (archived reports)
+├── tests/
+│   └── conftest.py                # ✅ Test DB protection
+└── deltacrown/
+    └── settings.py                # ✅ Simplified DB config
+```
+
+**Cleanup Summary**:
+- ✅ Deleted 40+ temporary diagnostic scripts (check_*.py, fix_*.py, etc.)
+- ✅ Deleted 30+ root-level reports (VNEXT_*.md, PHASE_*.md, etc.)
+- ✅ Moved historical docs to `docs/vnext/`
+- ✅ Root is now clean and production-like
+
+---
+
+## 🧪 Testing
+
+**Local Test Database**:
+```bash
+# Setup (once)
+createdb deltacrown_test
+export DATABASE_URL_TEST='postgresql://localhost:5432/deltacrown_test'
+
+# Run tests
+pytest
+
+# Tests will automatically refuse to run on Neon
+```
+
+**Test Protection**:
+- `tests/conftest.py` enforces `DATABASE_URL_TEST` must be local
+- Blocks `neon.tech`, requires `localhost` or `127.0.0.1` or `postgres:`
+- Clear error message if misconfigured
+
+---
+
+## 🚀 Deployment
+
+**Production Checklist**:
+1. Set `DATABASE_URL` to production Neon connection string
+2. Run `python manage.py migrate`
+3. Run seed commands in order (games → schemas → configs)
+4. Create superuser: `python manage.py createsuperuser`
+5. Collect static files: `python manage.py collectstatic --noinput`
+6. Run server: `gunicorn deltacrown.wsgi:application`
+
+**Environment Variables**:
+```bash
+DATABASE_URL=postgresql://...neon.tech.../deltacrown?sslmode=require
+SECRET_KEY=...
+DEBUG=False
+ALLOWED_HOSTS=deltacrown.com,www.deltacrown.com
+```
+
+---
+
+## 💡 Key Principles
+
+1. **DATABASE_URL for everything** (except tests)
+2. **DATABASE_URL_TEST for tests** (local only, enforced)
+3. **No migration guard** (Neon is dev database)
+4. **All seed commands are idempotent**
+5. **Seed order matters** (games → schemas → configs → user data)
+6. **Tests refuse to run remotely** (safety)
+7. **Clean repository** (no temporary scripts in root)
+
+---
+
+## 1. System Architecture Overview
 
 DeltaCrown is a full-stack esports tournament platform built as a Django monolith with a service-oriented architecture. The platform supports the complete lifecycle of competitive gaming: player registration, team management, tournament organization, match execution, result verification, ranking calculation, payment processing, and community engagement.
 
