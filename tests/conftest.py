@@ -52,7 +52,7 @@ def enforce_test_database():
         )
     
     # Check if docker DB is accessible
-    if 'localhost:54329' in db_url:
+    if 'localhost:5433' in db_url:
         import psycopg2
         try:
             conn = psycopg2.connect(db_url)

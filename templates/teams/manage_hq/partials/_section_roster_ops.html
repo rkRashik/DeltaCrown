@@ -1,0 +1,70 @@
+<section id="roster" class="hq-section">
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-base font-bold">Roster Operations</h2>
+                <p class="text-sm text-muted mt-1">{{ members.count|default:"0" }} active members</p>
+            </div>
+            {% if can_manage_roster %}
+            <a href="{% url 'teams:invite_member' team.slug %}" 
+               class="rounded-xl px-4 py-2 text-sm font-medium border"
+               style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.06)); border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5 inline mr-1.5"></i>Invite
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="space-y-2">
+            {% for membership in members %}
+            <div class="rounded-xl border border-line bg-white/5 p-3 flex items-center gap-3">
+                <div class="h-10 w-10 rounded-lg border border-white/15 bg-white/5 grid place-items-center">
+                    {% if membership.profile.avatar %}
+                    <img src="{{ membership.profile.avatar.url }}" alt="{{ membership.profile.user.username }}" class="w-full h-full object-cover rounded-lg">
+                    {% else %}
+                    <span class="font-bold">{{ membership.profile.user.username|slice:":1"|upper }}</span>
+                    {% endif %}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-semibold text-sm">{{ membership.profile.user.username }}</div>
+                    <div class="text-xs text-muted">{{ membership.get_role_display }}</div>
+                </div>
+                {% if can_manage_roster and membership.role != 'OWNER' %}
+                <div class="flex items-center gap-2">
+                    <span class="text-xs px-2 py-1 rounded-lg border border-line bg-white/5">
+                        {{ membership.get_status_display }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="rounded-xl border border-line bg-white/5 p-4 text-center">
+                <p class="text-sm text-muted">No members found</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if pending_invites %}
+        <div class="mt-6">
+            <h3 class="text-sm font-bold mb-3">Pending Invitations ({{ pending_invites.count }})</h3>
+            <div class="space-y-2">
+                {% for invite in pending_invites %}
+                <div class="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3 flex items-center justify-between">
+                    <div>
+                        <div class="font-semibold text-sm">{{ invite.invited_user.user.username }}</div>
+                        <div class="text-xs text-muted">Invited {{ invite.created_at|timesince }} ago</div>
+                    </div>
+                    {% if can_manage_roster %}
+                    <form method="post" action="{% url 'teams:cancel_invite' team.slug invite.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="text-xs px-3 py-1 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition">
+                            Cancel
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>

@@ -164,8 +164,8 @@ def _get_featured_teams(game_id=None, limit=12):
         return cached_teams
     
     try:
-        # Phase 8 Correction: Teams can be independent OR org-owned
-        # Filter by status=ACTIVE and visibility=PUBLIC
+        # Phase 16 Fix: Show ALL PUBLIC ACTIVE teams (even brand new, even unranked)
+        # No dependency on rankings or snapshots - teams appear immediately after creation
         teams_qs = Team.objects.filter(
             status=TeamStatus.ACTIVE,
             visibility='PUBLIC'  # No enum yet, use string
@@ -177,8 +177,8 @@ def _get_featured_teams(game_id=None, limit=12):
             'vnext_memberships__user'  # vNext uses vnext_memberships related name
         )
         
-        # Order by created_at as fallback (no ranking required)
-        # This ensures teams show even without competition snapshots
+        # Order by created_at DESC (newest first)
+        # Ensures brand new teams appear at top
         teams_qs = teams_qs.order_by('-created_at')
         
         # Apply game filter if specified
@@ -187,12 +187,8 @@ def _get_featured_teams(game_id=None, limit=12):
         
         teams = list(teams_qs[:limit])
         
-        # CRITICAL: Only cache non-empty results
-        # Empty results cached for only 10 seconds to allow quick refresh
-        if teams:
-            cache.set(cache_key, teams, 120)  # 2 minutes for real data
-        else:
-            cache.set(cache_key, teams, 10)  # 10 seconds for empty state
+        # Phase 16: Cache for 10 seconds only (prevent stale empty lists after team creation)
+        cache.set(cache_key, teams, 10)
         
         return teams
     except ProgrammingError as e:

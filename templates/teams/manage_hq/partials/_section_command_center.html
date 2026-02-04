@@ -1,0 +1,29 @@
+<section id="command" class="hq-section is-active">
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold">Command Center</h2>
+        <p class="text-sm text-muted mt-1">Team overview dashboard</p>
+        <div class="mt-4 rounded-2xl border border-line bg-white/5 p-4">
+            <div class="grid gap-3">
+                <div>
+                    <label class="text-xs text-muted block mb-1">Team Status</label>
+                    <div class="text-sm font-semibold">{{ team.get_status_display|default:"Active" }}</div>
+                </div>
+                <div>
+                    <label class="text-xs text-muted block mb-1">Roster Size</label>
+                    <div class="text-sm font-semibold">{{ members.count|default:"0" }} members</div>
+                </div>
+                {% if pending_invites %}
+                <div>
+                    <label class="text-xs text-muted block mb-1">Pending Invites</label>
+                    <div class="text-sm font-semibold">{{ pending_invites.count }} waiting</div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="mt-3 pt-3 border-t border-line">
+                <p class="text-xs text-muted">
+                    📊 Coming soon: Today board, alerts, recent activity
+                </p>
+            </div>
+        </div>
+    </div>
+</section>

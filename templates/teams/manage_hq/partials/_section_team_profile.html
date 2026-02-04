@@ -1,0 +1,40 @@
+<section id="profile" class="hq-section">
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold">Team Profile</h2>
+        <p class="text-sm text-muted mt-1">Public identity editor</p>
+        <div class="mt-4 rounded-2xl border border-line bg-white/5 p-4">
+            <div class="grid gap-3">
+                <div>
+                    <label class="text-xs text-muted block mb-1">Team Name</label>
+                    <div class="text-sm font-semibold">{{ team.name }}</div>
+                </div>
+                <div>
+                    <label class="text-xs text-muted block mb-1">Tag</label>
+                    <div class="text-sm font-semibold">{{ team.tag|default:"—" }}</div>
+                </div>
+                <div>
+                    <label class="text-xs text-muted block mb-1">Game (Locked)</label>
+                    <div class="text-sm font-semibold">{{ team.game.display_name|default:"Not set" }}</div>
+                    <p class="text-xs text-muted mt-1">Game cannot be changed after team creation</p>
+                </div>
+                <div>
+                    <label class="text-xs text-muted block mb-1">Region</label>
+                    <div class="text-sm font-semibold">{{ team.region|default:"Not set" }}</div>
+                </div>
+                <div>
+                    <label class="text-xs text-muted block mb-1">Description</label>
+                    <div class="text-sm">{{ team.description|default:"No description yet"|truncatewords:30 }}</div>
+                </div>
+            </div>
+            {% if is_owner %}
+            <div class="mt-4 pt-4 border-t border-line">
+                <a href="{% url 'teams:update_info' team.slug %}" 
+                   class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium border border-line bg-white/5 hover:bg-white/10 transition">
+                    <i data-lucide="edit" class="w-3.5 h-3.5"></i>
+                    Edit Profile
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>

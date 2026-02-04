@@ -1108,7 +1108,7 @@ def manage_team_view(request, slug: str):
         "can_accept_members": team.can_accept_members,
     }
 
-    return render(request, "teams/manage.html", context)
+    return render(request, "teams/manage_hq.html", context)
 
 
 # -------------------------

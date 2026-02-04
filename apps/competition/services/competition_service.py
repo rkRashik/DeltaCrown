@@ -98,16 +98,16 @@ class CompetitionService:
         if cached:
             return cached
         
-        # Phase 14: Start from ALL PUBLIC ACTIVE teams (not just snapshot table)
+        # Phase 16: Start from ALL PUBLIC ACTIVE teams (not just snapshot table)
         # LEFT JOIN ranking snapshots to get score/tier/rank or default to 0/UNRANKED/NULL
+        # This ensures brand new teams with 0 points appear in rankings
         
-        # Subquery to get global snapshot data (OneToOne field - no order_by needed)
         # TeamGlobalRankingSnapshot fields: global_score, global_tier, global_rank, games_played
         queryset = Team.objects.filter(
             status=TeamStatus.ACTIVE,
             visibility='PUBLIC'
-        ).select_related('organization', 'global_ranking_snapshot').annotate(
-            # Coalesce snapshot fields to defaults (snapshot may not exist)
+        ).select_related('organization').annotate(
+            # Coalesce snapshot fields to defaults (snapshot may not exist for new teams)
             display_score=Coalesce('global_ranking_snapshot__global_score', Value(0)),
             display_tier=Coalesce('global_ranking_snapshot__global_tier', Value('UNRANKED')),
             display_rank=Coalesce('global_ranking_snapshot__global_rank', Value(None, output_field=IntegerField())),

@@ -1,0 +1,188 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{{ team.name|default:"Team" }} — Team HQ</title>
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            /* Team colors */
+            --team-primary: {{ team.primary_color|default:"#7c3aed" }};
+            --team-accent: {{ team.accent_color|default:"#22c55e" }};
+
+            /* Base surface */
+            --bg0: #070a12;
+            --bg1: #0b1020;
+            --card: rgba(255, 255, 255, .06);
+            --card2: rgba(255, 255, 255, .085);
+            --line: rgba(255, 255, 255, .12);
+            --txt: rgba(255, 255, 255, .92);
+            --muted: rgba(255, 255, 255, .62);
+            --shadow: 0 18px 60px rgba(0, 0, 0, .55);
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, .18) transparent;
+        }
+
+        *::-webkit-scrollbar {
+            height: 10px;
+            width: 10px;
+        }
+
+        *::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, .14);
+            border-radius: 999px;
+        }
+
+        *::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        body {
+            background:
+                radial-gradient(900px 600px at 12% 8%, color-mix(in oklab, var(--team-primary) 32%, transparent), transparent 55%),
+                radial-gradient(800px 560px at 86% 18%, color-mix(in oklab, var(--team-accent) 22%, transparent), transparent 55%),
+                radial-gradient(900px 680px at 50% 92%, rgba(59, 130, 246, .14), transparent 60%),
+                linear-gradient(180deg, var(--bg0), var(--bg1));
+            color: var(--txt);
+        }
+
+        .bg-card {
+            background: var(--card);
+        }
+
+        .bg-card2 {
+            background: var(--card2);
+        }
+
+        .border-line {
+            border-color: var(--line);
+        }
+
+        .text-muted {
+            color: var(--muted);
+        }
+
+        .shadow-soft {
+            box-shadow: var(--shadow);
+        }
+
+        .hq-section {
+            display: none;
+        }
+
+        .hq-section.is-active {
+            display: block;
+        }
+
+        .nav-item[aria-current="page"] {
+            background: linear-gradient(135deg,
+                    color-mix(in oklab, var(--team-primary) 28%, rgba(255, 255, 255, .06)),
+                    rgba(255, 255, 255, .05));
+            border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255, 255, 255, .14));
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <div id="scrim" class="fixed inset-0 bg-black/60 hidden z-40"></div>
+
+    <div class="min-h-screen grid lg:grid-cols-[320px_1fr]">
+        {% include "teams/manage_hq/partials/_sidebar.html" %}
+        
+        <main class="min-h-screen lg:pl-0">
+            {% include "teams/manage_hq/partials/_topbar.html" %}
+            
+            <div class="mx-3 lg:mx-6 mt-4 lg:mt-6 pb-24">
+                <div class="mt-5 space-y-4">
+                    {% block content %}
+                    {% endblock %}
+                </div>
+            </div>
+        </main>
+    </div>
+
+    {% include "teams/manage_hq/partials/_mobile_nav.html" %}
+
+    <script>
+        lucide.createIcons();
+
+        const sidebar = document.getElementById('sidebar');
+        const scrim = document.getElementById('scrim');
+        const openSidebarBtn = document.getElementById('openSidebar');
+        const closeSidebarBtn = document.getElementById('closeSidebar');
+        const pageTitle = document.getElementById('pageTitle');
+        const pageSub = document.getElementById('pageSub');
+
+        const ROUTES = {
+            command: { title: "Command Center", sub: "Real-time team overview" },
+            roster: { title: "Roster Ops", sub: "Players & staff management" },
+            profile: { title: "Team Profile", sub: "Public identity editor" },
+            settings: { title: "Settings & Security", sub: "Privacy and permissions" }
+        };
+
+        function openSidebar() {
+            sidebar.classList.remove('-translate-x-[110%]');
+            scrim.classList.remove('hidden');
+        }
+        
+        function closeSidebar() {
+            sidebar.classList.add('-translate-x-[110%]');
+            scrim.classList.add('hidden');
+        }
+
+        function setActiveRoute(route) {
+            document.querySelectorAll('.hq-section').forEach(sec => {
+                sec.classList.toggle('is-active', sec.id === route);
+            });
+
+            document.querySelectorAll('.nav-item').forEach(a => {
+                const isActive = a.dataset.route === route;
+                if (isActive) a.setAttribute('aria-current', 'page');
+                else a.removeAttribute('aria-current');
+            });
+
+            const meta = ROUTES[route] || ROUTES.command;
+            if (pageTitle) pageTitle.textContent = meta.title;
+            if (pageSub) pageSub.textContent = meta.sub;
+
+            if (location.hash.replace('#', '') !== route) {
+                history.replaceState(null, '', '#' + route);
+            }
+
+            if (window.matchMedia('(max-width: 1023px)').matches) {
+                closeSidebar();
+            }
+        }
+
+        document.querySelectorAll('.nav-item').forEach(a => {
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                setActiveRoute(a.dataset.route);
+            });
+        });
+
+        openSidebarBtn?.addEventListener('click', openSidebar);
+        closeSidebarBtn?.addEventListener('click', closeSidebar);
+        scrim?.addEventListener('click', closeSidebar);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeSidebar();
+        });
+
+        const initialRoute = (location.hash || '#command').replace('#', '');
+        setActiveRoute(document.getElementById(initialRoute) ? initialRoute : 'command');
+    </script>
+</body>
+</html>
