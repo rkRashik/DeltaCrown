@@ -232,10 +232,15 @@ def create_organization(request: Request) -> Response:
             }
         )
         
+        # Generate canonical URL for redirect
+        org_url = f"/orgs/{org.slug}/"
+        
         return Response(
             {
+                'ok': True,
                 'organization_id': org.id,
                 'organization_slug': org.slug,
+                'organization_url': org_url,
             },
             status=status.HTTP_201_CREATED
         )
@@ -673,21 +678,20 @@ def create_team(request: Request) -> Response:
     try:
         with transaction.atomic():
             # Create team (model save handles slug generation)
-            # vNext Team model fields: game_id (Integer), status, owner FK, organization FK
+            # vNext Team model fields: game_id (Integer), status, created_by FK, organization FK
             team_data = {
                 'name': validated_data['name'],
                 'game_id': validated_data.get('game_id'),  # IntegerField
                 'region': validated_data.get('region', ''),
                 'status': 'ACTIVE',  # vNext uses status choices instead of is_active
                 'visibility': 'PUBLIC',
+                'created_by': request.user,
             }
             
-            # Set owner or organization FK (one or the other, not both)
+            # Set organization FK or leave as independent team
             if organization_id:
                 team_data['organization_id'] = organization_id
-                team_data['owner'] = None
             else:
-                team_data['owner'] = request.user
                 team_data['organization'] = None
             
             # Add optional fields if provided
@@ -714,6 +718,11 @@ def create_team(request: Request) -> Response:
             # Save again if files were added
             if validated_data.get('logo') or validated_data.get('banner'):
                 team.save()
+            
+            # Invalidate hub cache after team creation (Phase 15 Group C fix)
+            from django.core.cache import cache
+            cache.delete_pattern('hub:featured_teams:*')
+            cache.delete_pattern('hero_carousel_*')
             
             # Create owner membership for independent teams
             if not organization_id:
@@ -803,6 +812,10 @@ def create_team(request: Request) -> Response:
                         'user_id': request.user.id,
                     }
                 )
+            
+            # Invalidate hub cache to show newly created team
+            from apps.organizations.services.hub_cache import invalidate_hub_cache
+            invalidate_hub_cache(game_id=team.game_id)
         
         logger.info(
             f"Team created: {team.slug} (ID: {team.id}) by user {request.user.id}",
@@ -857,10 +870,10 @@ def create_team(request: Request) -> Response:
         error_message = str(e).lower()
         
         # Determine constraint type from error message
-        if 'team_has_organization_xor_owner' in error_message:
+        if 'team_has_organization_xor_creator' in error_message or 'team_has_organization_xor_owner' in error_message:
             error_code = 'xor_constraint_violation'
-            user_message = 'A team must have either an organization or an owner, but not both.'
-            safe_message = 'Invalid team ownership configuration.'
+            user_message = 'Team ownership configuration error.'
+            safe_message = 'Invalid team creation request.'
             status_code = status.HTTP_400_BAD_REQUEST
         elif 'unique_tag_per_game' in error_message:
             error_code = 'tag_already_exists'

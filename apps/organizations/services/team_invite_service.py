@@ -185,10 +185,10 @@ class TeamInviteService:
         for invite in membership_invites_qs:
             game_name = game_lookup.get(invite.team_id, "Unknown Game")
             
-            # Get inviter name (team owner or org name)
+            # Get inviter name (team creator or org name)
             inviter_name = None
-            if invite.team.owner:
-                inviter_name = invite.team.owner.username
+            if invite.team.created_by:
+                inviter_name = invite.team.created_by.username
             elif invite.team.organization:
                 inviter_name = f"{invite.team.organization.name} (Org)"
             

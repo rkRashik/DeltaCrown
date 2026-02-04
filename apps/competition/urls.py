@@ -28,4 +28,8 @@ urlpatterns = [
     # Leaderboards (Phase 3A-E)
     path('leaderboards/', leaderboards.leaderboard_global, name='leaderboard_global'),
     path('leaderboards/<str:game_id>/', leaderboards.leaderboard_game, name='leaderboard_game'),
+    
+    # Rankings URL aliases (for navigation compatibility)
+    path('rankings/', leaderboards.leaderboard_global, name='rankings_global'),
+    path('rankings/<str:game_id>/', leaderboards.leaderboard_game, name='rankings_game'),
 ]

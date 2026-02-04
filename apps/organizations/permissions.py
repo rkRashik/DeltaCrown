@@ -147,3 +147,112 @@ def get_permission_context(user: User, organization) -> dict:
         'can_modify_governance': can_modify_governance(role),
         'can_execute_terminal_actions': can_execute_terminal_actions(role),
     }
+
+
+# ============================================================================
+# PHASE 8: TEAM PERMISSION SYSTEM
+# ============================================================================
+
+def get_team_role(user: User, team) -> str:
+    """
+    Determine user's role within a team.
+    
+    Returns one of:
+    - 'CREATOR': User who created the team
+    - 'MANAGER': Team manager
+    - 'COACH': Team coach
+    - 'MEMBER': Team member
+    - 'NONE': Not a team member
+    """
+    if not user or not user.is_authenticated:
+        return 'NONE'
+    
+    # Check if user created the team
+    if hasattr(team, 'created_by') and team.created_by == user:
+        return 'CREATOR'
+    
+    # Check team membership
+    from apps.organizations.models import TeamMembership
+    membership = TeamMembership.objects.filter(
+        team=team,
+        user=user,
+        status='ACTIVE'
+    ).first()
+    
+    if membership:
+        return membership.role
+    
+    return 'NONE'
+
+
+def can_view_team(user: User, team) -> bool:
+    """
+    Check if user can view team.
+    
+    Public teams: Anyone
+    Private teams: Members only
+    Unlisted teams: Anyone with link
+    """
+    if user and user.is_authenticated and user.is_superuser:
+        return True
+    
+    if team.visibility == 'PUBLIC':
+        return True
+    
+    if team.visibility == 'UNLISTED':
+        return True
+    
+    # Private teams require membership
+    if user and user.is_authenticated:
+        team_role = get_team_role(user, team)
+        if team_role != 'NONE':
+            return True
+        
+        # Org members can view org teams
+        org_role = get_org_role(user, team.organization)
+        if org_role != 'NONE':
+            return True
+    
+    return False
+
+
+def can_manage_team(user: User, team) -> bool:
+    """
+    Check if user can manage team.
+    
+    Management hierarchy:
+    1. Org CEO (full control)
+    2. Org MANAGER (can manage all org teams)
+    3. Team Creator
+    4. Team Manager/Coach
+    """
+    if not user or not user.is_authenticated:
+        return False
+    
+    if user.is_superuser:
+        return True
+    
+    # Check org-level permissions
+    org_role = get_org_role(user, team.organization)
+    if org_role in ['CEO', 'MANAGER', 'ADMIN']:
+        return True
+    
+    # Check team-level permissions
+    team_role = get_team_role(user, team)
+    if team_role in ['CREATOR', 'MANAGER', 'COACH']:
+        return True
+    
+    return False
+
+
+def can_create_team_in_org(user: User, organization) -> bool:
+    """Check if user can create teams in organization."""
+    if not user or not user.is_authenticated:
+        return False
+    
+    if user.is_superuser:
+        return True
+    
+    role = get_org_role(user, organization)
+    return role in ['CEO', 'MANAGER', 'ADMIN']
+

@@ -44,6 +44,18 @@
         <i class="fa-solid fa-chevron-right text-gray-600 group-hover:text-cyan-400 transition-all group-hover:translate-x-1"></i>
       </a>
 
+      {% if ORG_APP_ENABLED %}
+      <a href="/teams/vnext/" class="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 group transition-all duration-200 border border-transparent hover:border-cyan-400/30">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400/20 to-cyan-600/10 text-cyan-400 flex items-center justify-center border border-cyan-400/30 shadow-lg shadow-cyan-400/20 group-hover:shadow-cyan-400/40 transition-shadow">
+          <i class="fa-solid fa-users text-xl"></i>
+        </div>
+        <div class="flex-1">
+          <span class="text-gray-100 font-semibold group-hover:text-white block text-lg">Teams</span>
+          <span class="text-sm text-gray-400">Esports teams & organizations</span>
+        </div>
+        <i class="fa-solid fa-chevron-right text-gray-600 group-hover:text-cyan-400 transition-all group-hover:translate-x-1"></i>
+      </a>
+      {% else %}
       <a href="/teams/" class="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 group transition-all duration-200 border border-transparent hover:border-cyan-400/30">
         <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400/20 to-cyan-600/10 text-cyan-400 flex items-center justify-center border border-cyan-400/30 shadow-lg shadow-cyan-400/20 group-hover:shadow-cyan-400/40 transition-shadow">
           <i class="fa-solid fa-users text-xl"></i>
@@ -54,6 +66,7 @@
         </div>
         <i class="fa-solid fa-chevron-right text-gray-600 group-hover:text-cyan-400 transition-all group-hover:translate-x-1"></i>
       </a>
+      {% endif %}
     </div>
 
     <!-- Footer -->
@@ -115,23 +128,29 @@
         <a href="/tournaments/" class="dc-nav-link">Tournaments</a>
       </div>
 
-      {% nav_active '/teams/' '/teams' as teams_active %}
-      <div class="dc-nav-item{% if teams_active %} active{% endif %} group cursor-pointer">
-        <a href="/teams/" class="dc-nav-link">Teams</a>
-      </div>
+      {% if ORG_APP_ENABLED %}
+        {% nav_active '/teams/vnext/' '/teams' '/orgs/' as teams_active %}
+        <div class="dc-nav-item{% if teams_active %} active{% endif %} group cursor-pointer">
+          <a href="/teams/vnext/" class="dc-nav-link">Teams</a>
+        </div>
+      {% else %}
+        {% nav_active '/teams/' '/teams' as teams_active %}
+        <div class="dc-nav-item{% if teams_active %} active{% endif %} group cursor-pointer">
+          <a href="/teams/" class="dc-nav-link">Teams</a>
+        </div>
+      {% endif %}
 
       {% if request.user.is_authenticated %}
         {% nav_active '/dashboard/' '/dashboard' as dashboard_active %}
         <div class="dc-nav-item{% if dashboard_active %} active{% endif %} group cursor-pointer">
           <a href="/dashboard/" class="dc-nav-link">Dashboard</a>
         </div>
-        
-        <!-- vNext Team & Org Beta -->
-        {% nav_active '/teams/vnext/' '/teams' as vnext_active %}
-        <div class="dc-nav-item{% if vnext_active %} active{% endif %} group cursor-pointer">
-          <a href="/teams/vnext/" class="dc-nav-link flex items-center gap-2">
-            Team & Org <span class="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full font-bold">BETA</span>
-          </a>
+      {% endif %}
+
+      {% if COMPETITION_APP_ENABLED %}
+        {% nav_active '/competition/' '/competition' as competition_active %}
+        <div class="dc-nav-item{% if competition_active %} active{% endif %} group cursor-pointer">
+          <a href="/competition/rankings/" class="dc-nav-link">Rankings</a>
         </div>
       {% endif %}
 
@@ -220,9 +239,15 @@
               <a href="/dashboard/" class="dc-dd-item">
                 <i class="fa-solid fa-chart-pie"></i> <span>Dashboard</span>
               </a>
-              <a href="/teams/" class="dc-dd-item">
-                <i class="fa-solid fa-users"></i> <span>My Teams</span>
+              {% if ORG_APP_ENABLED %}
+              <a href="/teams/vnext/" class="dc-dd-item">
+                <i class="fa-solid fa-users"></i> <span>Teams</span>
               </a>
+              {% elif LEGACY_TEAMS_ENABLED %}
+              <a href="/teams/" class="dc-dd-item">
+                <i class="fa-solid fa-users"></i> <span>Teams</span>
+              </a>
+              {% endif %}
               <div class="h-px bg-white/5 mx-4 my-1.5"></div>
               <a href="{% url 'user_profile:settings' %}" class="dc-dd-item">
                 <i class="fa-solid fa-sliders"></i> <span>Settings</span>
@@ -255,11 +280,19 @@
     <span class="text-[10px] {% if tournaments_active %}text-cyan-400{% else %}text-gray-500 group-hover:text-white{% endif %} font-medium tracking-wide">Tournament</span>
   </a>
   
-  {% nav_active '/teams/' '/teams' as teams_active %}
-  <a href="/teams/" class="flex flex-col items-center gap-1 p-2 flex-1 group">
-    <i class="fa-solid fa-users text-xl {% if teams_active %}text-cyan-400{% else %}text-gray-500 group-hover:text-white{% endif %} transition"></i>
-    <span class="text-[10px] {% if teams_active %}text-cyan-400{% else %}text-gray-500 group-hover:text-white{% endif %} tracking-wide">Team</span>
-  </a>
+  {% if ORG_APP_ENABLED %}
+    {% nav_active '/teams/vnext/' '/teams' '/orgs/' as teams_active %}
+    <a href="/teams/vnext/" class="flex flex-col items-center gap-1 p-2 flex-1 group">
+      <i class="fa-solid fa-users text-xl {% if teams_active %}text-cyan-400{% else %}text-gray-500 group-hover:text-white{% endif %} transition"></i>
+      <span class="text-[10px] {% if teams_active %}text-cyan-400{% else %}text-gray-500 group-hover:text-white{% endif %} tracking-wide">Teams</span>
+    </a>
+  {% else %}
+    {% nav_active '/teams/' '/teams' as teams_active %}
+    <a href="/teams/" class="flex flex-col items-center gap-1 p-2 flex-1 group">
+      <i class="fa-solid fa-users text-xl {% if teams_active %}text-cyan-400{% else %}text-gray-500 group-hover:text-white{% endif %} transition"></i>
+      <span class="text-[10px] {% if teams_active %}text-cyan-400{% else %}text-gray-500 group-hover:text-white{% endif %} tracking-wide">Team</span>
+    </a>
+  {% endif %}
   
   {% if request.user.is_authenticated %}
     {% nav_active '/dashboard/' '/dashboard' as dashboard_active %}

@@ -120,9 +120,20 @@ DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 # -----------------------------------------------------------------------------
 # Feature Flags
 # -----------------------------------------------------------------------------
-# Phase 3A-C0: Competition app gated behind feature flag to prevent runtime errors
+# vNext: Organizations & Competition Migration Flags
+# See docs/vnext/org-migration-plan.md for migration roadmap
+
+# Competition app: Gated behind feature flag to prevent runtime errors
 # when database schema not yet migrated. Set COMPETITION_APP_ENABLED=1 to enable.
 COMPETITION_APP_ENABLED = os.getenv("COMPETITION_APP_ENABLED", "0") == "1"
+
+# Organizations app: Enable new Organizations hub and team management
+# Default: True (new approach is default, legacy is fallback)
+ORG_APP_ENABLED = os.getenv("ORG_APP_ENABLED", "1") == "1"
+
+# Legacy Teams app: Keep legacy team views available as fallback
+# Default: True (for compatibility during migration)
+LEGACY_TEAMS_ENABLED = os.getenv("LEGACY_TEAMS_ENABLED", "1") == "1"
 
 # --- ALLOWED_HOSTS / CSRF (add your LAN IP here) ---
 ALLOWED_HOSTS = [

@@ -311,48 +311,45 @@ def _get_default_stats() -> Dict[str, Any]:
 
 
 def _build_stats_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
-    """Build stats from apps/competition/ ranking system (Phase 3A-D)."""
+    """Build stats from CompetitionService (Phase 10)."""
     if is_restricted:
         # Private team: hide stats for non-members
         return _get_default_stats()
     
-    # Phase 3A-D: Wire to competition app ranking snapshots
-    # Check if competition app is enabled
+    # Phase 10: Use CompetitionService for team rank
     if not getattr(settings, 'COMPETITION_APP_ENABLED', False):
         return _get_default_stats()
     
     try:
-        from apps.competition.models import TeamGlobalRankingSnapshot, TeamGameRankingSnapshot
+        from apps.competition.services import CompetitionService
         
-        # Get global ranking snapshot
-        try:
-            global_snapshot = TeamGlobalRankingSnapshot.objects.get(team=team)
-            
-            # Get game-specific snapshot if team has primary game
-            game_snapshot = None
-            if hasattr(team, 'game_id') and team.game_id:
-                game_snapshot = TeamGameRankingSnapshot.objects.filter(
-                    team=team,
-                    game_id=str(team.game_id)
-                ).first()
-            
-            # Build stats dict from snapshots
+        # Get team rank via service (supports both global and game-specific)
+        game_id = None
+        if hasattr(team, 'game_id') and team.game_id:
+            game_id = team.game_id
+        
+        rank_data = CompetitionService.get_team_rank(team.id, game_id=game_id)
+        
+        if rank_data and rank_data.get('has_ranking'):
             return {
-                'score': game_snapshot.score if game_snapshot else 0,
-                'tier': game_snapshot.tier if game_snapshot else 'UNRANKED',
-                'rank': game_snapshot.rank if game_snapshot else None,
-                'percentile': game_snapshot.percentile if game_snapshot else 0.0,
-                'global_score': global_snapshot.global_score,
-                'global_tier': global_snapshot.global_tier,
-                'verified_match_count': game_snapshot.verified_match_count if game_snapshot else 0,
-                'confidence_level': game_snapshot.confidence_level if game_snapshot else 'PROVISIONAL',
-                'breakdown': game_snapshot.breakdown if game_snapshot else {},
+                'score': rank_data.get('score', 0),
+                'tier': rank_data.get('tier', 'UNRANKED'),
+                'rank': rank_data.get('rank'),
+                'percentile': rank_data.get('percentile', 0.0),
+                'global_score': rank_data.get('global_score', 0),
+                'global_tier': rank_data.get('global_tier', 'UNRANKED'),
+                'verified_match_count': rank_data.get('verified_match_count', 0),
+                'confidence_level': rank_data.get('confidence_level', 'PROVISIONAL'),
+                'breakdown': rank_data.get('breakdown', {}),
             }
-        except TeamGlobalRankingSnapshot.DoesNotExist:
-            # No snapshot yet (team hasn't had rankings computed)
+        else:
+            # No ranking yet
             return _get_default_stats()
-    except ImportError:
-        # Competition app not available
+    except Exception as e:
+        # Competition service error - log and return defaults
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Error fetching team rank for {team.slug}: {e}")
         return _get_default_stats()
 
 

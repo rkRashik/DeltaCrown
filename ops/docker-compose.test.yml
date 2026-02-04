@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  postgres_test:
+    image: postgres:16-alpine
+    container_name: deltacrown_test_db
+    environment:
+      POSTGRES_DB: deltacrown_test
+      POSTGRES_USER: dcadmin
+      POSTGRES_PASSWORD: dcpass123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5433:5432"
+    volumes:
+      - test_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dcadmin -d deltacrown_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=100"
+      - "-c"
+      - "shared_buffers=128MB"
+
+volumes:
+  test_db_data:
+    name: deltacrown_test_db_data

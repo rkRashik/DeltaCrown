@@ -260,34 +260,48 @@
 <!-- Zenith Profile Wrapper for custom background -->
 <div class="profile-zenith-wrapper">
 
-    <header class="relative w-full h-[550px] lg:h-[650px] mb-8 group">
-        
-        <div class="absolute inset-0 w-full h-full overflow-hidden profile-cover-container">
+    <!-- Cover Photo Container - Modern 4:1 Ratio with Gradient Blend -->
+    <div class="relative w-full aspect-[4/1] mb-0">
+        <!-- Banner Image -->
+        <div class="absolute inset-0 w-full h-full overflow-hidden">
             {% if profile.banner_url %}
             <img src="{{ profile.banner_url }}" 
-                 class="w-full h-full object-cover object-center" alt="Cover">
+                 class="w-full h-full object-cover object-center transform transition-transform duration-700 group-hover:scale-105" alt="Cover">
+            {% else %}
+            <!-- Default gradient if no banner -->
+            <div class="w-full h-full bg-gradient-to-br from-z-purple/30 via-z-bg to-z-bg"></div>
             {% endif %}
-            <div class="profile-info-backdrop"></div>
         </div>
+        
+        <!-- Modern Gradient Blend Overlay - Fades banner into page body -->
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-z-bg pointer-events-none" style="background: linear-gradient(180deg, transparent 0%, transparent 60%, rgba(3, 0, 20, 0.4) 80%, #030014 100%);"></div>
+        
+        <!-- Subtle vignette for depth -->
+        <div class="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none"></div>
+    </div>
 
-        <div class="absolute bottom-0 left-0 w-full z-20 px-4 md:px-8 pb-8 profile-text-safe-zone">
-            <div class="max-w-[1600px] mx-auto flex flex-col md:flex-row items-end gap-8">
+    <!-- Profile Info - Dropped Below Banner (Modern Layout) -->
+    <header class="relative -mt-24 md:-mt-32 z-20 px-4 md:px-8 mb-8">
+        <div class="max-w-[1600px] mx-auto">
+            <div class="flex flex-col md:flex-row gap-6 md:gap-8">
                 
+                <!-- Avatar with modern overlap -->
                 <div class="relative shrink-0">
-                    <div class="w-36 h-36 md:w-44 md:h-44 rounded-3xl p-1 bg-gradient-to-br from-z-cyan via-z-purple to-z-red shadow-neon-cyan relative group">
+                    <div class="w-32 h-32 md:w-40 md:h-40 rounded-3xl p-1 bg-gradient-to-br from-z-cyan via-z-purple to-z-red shadow-neon-cyan relative group border-4 border-z-bg">
                         {% user_avatar_url profile_user as avatar_url %}
                         <img src="{{ avatar_url }}" 
                              class="w-full h-full object-cover rounded-2xl bg-z-bg" alt="{{ profile_user.username }}">
                         
-                        <div class="absolute -bottom-3 -right-3 bg-z-bg p-1 rounded-xl">
-                            <div class="bg-z-gold text-black font-black font-display text-sm px-3 py-1 rounded-lg border border-white/20 shadow-neon-gold">
+                        <div class="absolute -bottom-2 -right-2 bg-z-bg p-1 rounded-xl">
+                            <div class="bg-z-gold text-black font-black font-display text-xs md:text-sm px-2 md:px-3 py-1 rounded-lg border border-white/20 shadow-neon-gold">
                                 LVL {{ user_profile.level|default:"1" }}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex-1 mb-2">
+                <!-- User Info Section -->
+                <div class="flex-1 pt-2 md:pt-4">
                     <div class="flex items-center gap-3 mb-2">
                         {% if user_teams and user_teams.0 %}
                         <span class="bg-white/10 backdrop-blur text-white text-[10px] font-bold px-2 py-0.5 rounded border border-white/10 hover:bg-white/20 cursor-pointer transition">
@@ -302,30 +316,30 @@
                         {% endif %}
                     </div>
 
-                    <h1 class="text-5xl md:text-7xl font-display font-extrabold tracking-tight flex items-end gap-4 leading-none mb-2" style="color: #FFFFFF; text-shadow: 0 0 20px rgba(0, 240, 255, 0.3), 0 2px 8px rgba(0, 0, 0, 0.4);">
+                    <h1 class="text-4xl md:text-6xl font-display font-extrabold tracking-tight flex flex-wrap items-center gap-3 leading-tight mb-2" style="color: #FFFFFF; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);">
                         {{ profile.display_name|default:profile_user.username }}
-                        <span class="text-xl font-mono font-medium mb-2 tracking-wider" style="color: #00D9F5; text-shadow: 0 0 10px rgba(0, 217, 245, 0.4);">#{{ profile_user.username }}</span>
+                        <span class="text-lg md:text-xl font-mono font-medium tracking-wider" style="color: #00D9F5;">#{{ profile_user.username }}</span>
                     </h1>
 
                     {% if profile.bio %}
-                    <p class="text-base max-w-2xl font-normal leading-relaxed border-l-2 border-z-cyan/50 pl-4 my-4" style="color: #C9CED6; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); letter-spacing: 0.015em;">
+                    <p class="text-sm md:text-base max-w-2xl font-normal leading-relaxed border-l-2 border-z-cyan/50 pl-4 my-3" style="color: #C9CED6; letter-spacing: 0.015em;">
                         {{ profile.bio }}
                     </p>
                     {% endif %}
 
-                    <div class="flex flex-wrap items-center gap-8 mt-6">
+                    <div class="flex flex-wrap items-center gap-6 md:gap-8 mt-4">
                         <div onclick="openFollowersModal('{{ profile_user.username }}')" class="text-center group cursor-pointer">
-                            <div class="text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #00F0FF; text-shadow: 0 0 12px rgba(0, 240, 255, 0.4);">{{ user_stats.followers_count|default:0 }}</div>
+                            <div class="text-xl md:text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #00F0FF;">{{ user_stats.followers_count|default:0 }}</div>
                             <div class="text-[10px] uppercase tracking-widest font-semibold" style="color: #94A3B8;">Followers</div>
                         </div>
                         
                         <div onclick="openFollowingModal('{{ profile_user.username }}')" class="text-center group cursor-pointer">
-                            <div class="text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #A78BFA; text-shadow: 0 0 12px rgba(167, 139, 250, 0.4);">{{ user_stats.following_count|default:0 }}</div>
+                            <div class="text-xl md:text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #A78BFA;">{{ user_stats.following_count|default:0 }}</div>
                             <div class="text-[10px] uppercase tracking-widest font-semibold" style="color: #94A3B8;">Following</div>
                         </div>
                         
                         <div class="text-center group cursor-pointer">
-                            <div class="text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #FFD60A; text-shadow: 0 0 12px rgba(255, 214, 10, 0.4);">{{ user_stats.total_wins|default:0 }}</div>
+                            <div class="text-xl md:text-2xl font-bold group-hover:scale-110 transition-all duration-200" style="color: #FFD60A;">{{ user_stats.total_wins|default:0 }}</div>
                             <div class="text-[10px] uppercase tracking-widest font-semibold" style="color: #94A3B8;">Wins</div>
                         </div>
                         
@@ -340,40 +354,41 @@
                     </div>
                 </div>
 
-                <div class="hidden md:flex flex-col gap-3 shrink-0 mb-4">
+                <!-- Action Buttons - Now visible on all screens -->
+                <div class="flex flex-col md:flex-row lg:flex-col gap-3 shrink-0 pt-2 md:pt-4 w-full md:w-auto">
                     {% if relationship_ctx.show_edit_button %}
-                    <a href="{{ settings_url }}" class="bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2">
+                    <a href="{{ settings_url }}" class="bg-z-cyan text-black font-black font-display uppercase tracking-wider px-8 md:px-10 py-3 md:py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2 text-sm md:text-base">
                         <i class="fa-solid fa-pen"></i> Edit Profile
                     </a>
                     {% else %}
                         {% if relationship_ctx.can_follow %}
                             {% if relationship_ctx.follow_requested %}
-                            <button disabled data-follow-btn data-is-following="false" class="bg-gray-500/50 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl cursor-not-allowed flex items-center justify-center gap-2">
+                            <button disabled data-follow-btn data-is-following="false" class="bg-gray-500/50 text-white font-bold uppercase tracking-wider px-8 md:px-10 py-3 md:py-4 rounded-xl cursor-not-allowed flex items-center justify-center gap-2 text-sm md:text-base">
                                 <i class="fa-solid fa-clock"></i> Requested
                             </button>
                             {% else %}
-                            <button data-follow-btn data-is-following="false" class="bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2">
+                            <button data-follow-btn data-is-following="false" class="bg-z-cyan text-black font-black font-display uppercase tracking-wider px-8 md:px-10 py-3 md:py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2 text-sm md:text-base">
                                 <i class="fa-solid fa-user-plus"></i> {% if relationship_ctx.is_private_account %}Request Follow{% else %}Follow{% endif %}
                             </button>
                             {% endif %}
                         {% elif relationship_ctx.is_following %}
-                        <button data-follow-btn data-is-following="true" class="bg-white/10 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-2">
+                        <button data-follow-btn data-is-following="true" class="bg-white/10 text-white font-bold uppercase tracking-wider px-8 md:px-10 py-3 md:py-4 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-2 text-sm md:text-base">
                             <i class="fa-solid fa-user-check"></i> Following
                         </button>
                         {% endif %}
                         {% if relationship_ctx.can_recruit %}
-                        <button data-career-deep-link class="bg-z-purple/20 text-z-purple border border-z-purple/50 font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-z-purple hover:text-white transition flex items-center justify-center gap-2">
+                        <button data-career-deep-link class="bg-z-purple/20 text-z-purple border border-z-purple/50 font-black font-display uppercase tracking-wider px-8 md:px-10 py-3 md:py-4 rounded-xl hover:bg-z-purple hover:text-white transition flex items-center justify-center gap-2 text-sm md:text-base">
                             <i class="fa-solid fa-file-signature"></i> Recruit
                         </button>
                         {% endif %}
                     {% endif %}
                     <div class="flex gap-2">
                         {% if preferred_contact.href and not relationship_ctx.show_edit_button %}
-                        <a href="{{ preferred_contact.href }}" target="_blank" rel="noopener" class="flex-1 bg-z-purple/20 text-z-purple border border-z-purple/50 px-6 py-3 rounded-xl hover:bg-z-purple hover:text-white transition font-bold flex items-center justify-center gap-2">
+                        <a href="{{ preferred_contact.href }}" target="_blank" rel="noopener" class="flex-1 bg-z-purple/20 text-z-purple border border-z-purple/50 px-5 md:px-6 py-2.5 md:py-3 rounded-xl hover:bg-z-purple hover:text-white transition font-bold flex items-center justify-center gap-2 text-sm md:text-base">
                             <i class="{{ preferred_contact.icon }}"></i> Connect
                         </a>
                         {% endif %}
-                        <button class="bg-white/5 text-white border border-white/10 px-5 py-3 rounded-xl hover:bg-white/10 transition">
+                        <button class="bg-white/5 text-white border border-white/10 px-4 md:px-5 py-2.5 md:py-3 rounded-xl hover:bg-white/10 transition text-sm md:text-base">
                             <i class="fa-solid fa-share-nodes"></i>
                         </button>
                     </div>

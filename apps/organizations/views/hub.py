@@ -40,7 +40,7 @@ def _get_hero_carousel_context(request):
     
     Cache: 2 minutes per user (carousel data)
     """
-    from apps.teams.models import Team  # Legacy Team is authoritative
+    from apps.organizations.models import Team  # vNext Team is canonical
     from apps.organizations.models import Organization
     
     cache_key = f'hero_carousel_{request.user.id}'
@@ -86,23 +86,22 @@ def _get_hero_carousel_context(request):
     
     # Slide 2: User's team status
     try:
-        # Legacy Team: no 'status' field, no 'owner' FK
-        # Use is_active instead, memberships use 'profile' FK not 'user' FK
-        viewer_profile = getattr(request.user, 'userprofile', None) if request.user.is_authenticated and hasattr(request.user, 'userprofile') else None
-        
-        if viewer_profile:
+        # Phase 8 Correction: Teams can be independent OR org-owned
+        # Check user's team memberships or if they created teams
+        if request.user.is_authenticated:
+            from django.db.models import Q
             carousel_data['user_teams_count'] = Team.objects.filter(
-                memberships__profile=viewer_profile,
-                memberships__status='ACTIVE',
-                is_active=True
+                Q(memberships__user=request.user, memberships__status='ACTIVE') |
+                Q(created_by=request.user),
+                status='ACTIVE'
             ).distinct().count()
             
-            # Find user's primary team (first active membership)
+            # Find user's primary team (created team first, then first active membership)
             carousel_data['user_primary_team'] = Team.objects.filter(
-                memberships__profile=viewer_profile,
-                memberships__status='ACTIVE',
-                is_active=True
-            ).first()
+                Q(created_by=request.user) |
+                Q(memberships__user=request.user, memberships__status='ACTIVE'),
+                status='ACTIVE'
+            ).order_by('-created_by', 'memberships__joined_at').first()
     except Exception as e:
         logger.warning(f"Could not fetch user team data: {e}")
     
@@ -153,9 +152,10 @@ def _get_featured_teams(game_id=None, limit=12):
         List of Team objects with related data
     
     Cache: 2 minutes (key includes game_id)
+    NOTE: Empty results NOT cached to prevent stale empty states
     """
-    from apps.teams.models import Team  # Legacy Team is authoritative
-    from apps.organizations.utils import has_team_tag_columns
+    from apps.organizations.models import Team  # vNext Team is canonical
+    from apps.organizations.choices import TeamStatus
     
     cache_key = f'featured_teams_{game_id or "all"}_{limit}'
     cached_teams = cache.get(cache_key)
@@ -164,23 +164,22 @@ def _get_featured_teams(game_id=None, limit=12):
         return cached_teams
     
     try:
-        # Legacy Team: no 'status' field, no 'organization'/'owner' FKs
-        # Use is_active and is_public for filtering
+        # Phase 8 Correction: Teams can be independent OR org-owned
+        # Filter by status=ACTIVE and visibility=PUBLIC
         teams_qs = Team.objects.filter(
-            is_active=True,
-            is_public=True
+            status=TeamStatus.ACTIVE,
+            visibility='PUBLIC'  # No enum yet, use string
         ).select_related(
-            'ranking'
+            'organization',
+            'created_by'
+            # NOTE: game_id is IntegerField, not FK - cannot select_related
         ).prefetch_related(
-            'memberships__profile__user'  # memberships use profile FK
+            'vnext_memberships__user'  # vNext uses vnext_memberships related name
         )
         
-        # Only order by ranking if it exists
-        try:
-            teams_qs = teams_qs.order_by('-ranking__current_cp')
-        except ProgrammingError:
-            logger.warning("TeamRanking table may not exist, falling back to created_at order")
-            teams_qs = teams_qs.order_by('-created_at')
+        # Order by created_at as fallback (no ranking required)
+        # This ensures teams show even without competition snapshots
+        teams_qs = teams_qs.order_by('-created_at')
         
         # Apply game filter if specified
         if game_id:
@@ -188,8 +187,13 @@ def _get_featured_teams(game_id=None, limit=12):
         
         teams = list(teams_qs[:limit])
         
-        # Cache for 2 minutes
-        cache.set(cache_key, teams, 120)
+        # CRITICAL: Only cache non-empty results
+        # Empty results cached for only 10 seconds to allow quick refresh
+        if teams:
+            cache.set(cache_key, teams, 120)  # 2 minutes for real data
+        else:
+            cache.set(cache_key, teams, 10)  # 10 seconds for empty state
+        
         return teams
     except ProgrammingError as e:
         logger.warning(
@@ -274,7 +278,7 @@ def vnext_hub(request):
     Central landing page for vNext features with real-time data:
     - Hero carousel (top org, user status, recent tournament)
     - Featured teams grid
-    - Global leaderboard
+    - Global rankings preview (via CompetitionService)
     - Dynamic widgets (ticker, LFT, scrims) populated via API
     
     Feature Flag Protection:
@@ -292,6 +296,7 @@ def vnext_hub(request):
     force_legacy = getattr(settings, 'TEAM_VNEXT_FORCE_LEGACY', False)
     adapter_enabled = getattr(settings, 'TEAM_VNEXT_ADAPTER_ENABLED', False)
     routing_mode = getattr(settings, 'TEAM_VNEXT_ROUTING_MODE', 'legacy_only')
+    competition_enabled = getattr(settings, 'COMPETITION_APP_ENABLED', True)
     
     # If vNext disabled, redirect to legacy teams page
     if force_legacy or not adapter_enabled or routing_mode == 'legacy_only':
@@ -306,12 +311,13 @@ def vnext_hub(request):
     # Get selected game filter (slug or 'all')
     selected_game_slug = request.GET.get('game', 'all')
     selected_game_id = None
+    selected_game = None
     
     # Resolve game ID from slug
     if selected_game_slug and selected_game_slug != 'all':
         try:
-            game = Game.objects.get(slug=selected_game_slug, is_active=True)
-            selected_game_id = game.id
+            selected_game = Game.objects.get(slug=selected_game_slug, is_active=True)
+            selected_game_id = selected_game.id
         except Game.DoesNotExist:
             logger.warning(f"Invalid game slug in filter: {selected_game_slug}")
             selected_game_slug = 'all'
@@ -319,7 +325,35 @@ def vnext_hub(request):
     # Fetch data using helper functions (with caching)
     carousel_data = _get_hero_carousel_context(request)
     featured_teams = _get_featured_teams(game_id=selected_game_id, limit=12)
-    leaderboard_rows = _get_leaderboard(game_id=selected_game_id, limit=50)
+    
+    # Phase 10: Use CompetitionService for rankings preview
+    rankings_preview = []
+    user_highlights = None
+    if competition_enabled:
+        try:
+            from apps.competition.services import CompetitionService
+            
+            if selected_game_id:
+                # Per-game rankings
+                response = CompetitionService.get_game_rankings(
+                    game_id=selected_game_id,
+                    limit=5,
+                    verified_only=True
+                )
+                rankings_preview = response.entries
+            else:
+                # Global rankings
+                response = CompetitionService.get_global_rankings(
+                    limit=5,
+                    verified_only=True
+                )
+                rankings_preview = response.entries
+            
+            # Get user's team highlights if authenticated
+            if request.user.is_authenticated:
+                user_highlights = CompetitionService.get_user_team_highlights(request.user.id)
+        except Exception as e:
+            logger.warning(f"Could not fetch rankings preview: {e}")
     
     # Fetch available games for filter
     available_games = Game.objects.filter(is_active=True).order_by('display_name')
@@ -327,9 +361,12 @@ def vnext_hub(request):
     return render(request, 'organizations/hub/vnext_hub.html', {
         'page_title': 'Command Hub',
         'featured_teams': featured_teams,
-        'leaderboard_rows': leaderboard_rows,
+        'rankings_preview': rankings_preview,
+        'user_highlights': user_highlights,
         'available_games': available_games,
-        'selected_game': selected_game_slug,
+        'selected_game': selected_game,
+        'selected_game_slug': selected_game_slug,
+        'competition_enabled': competition_enabled,
         # Hero Carousel Data
         'top_organization': carousel_data['top_organization'],
         'user_teams_count': carousel_data['user_teams_count'],

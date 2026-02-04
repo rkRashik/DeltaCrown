@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ feature_name }} - Not Available{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Feature Not Available</h4>
+                </div>
+                <div class="card-body">
+                    <h5>{{ feature_name }}</h5>
+                    <p class="text-muted">
+                        The <strong>{{ feature_name }}</strong> feature is currently disabled on this server.
+                    </p>
+                    
+                    <hr>
+                    
+                    <h6>For Server Administrators:</h6>
+                    <p>
+                        To enable this feature, set the following environment variable:
+                    </p>
+                    <pre class="bg-light p-3 rounded"><code>{{ flag_name }}=1</code></pre>
+                    
+                    <p class="text-muted small">
+                        <i class="fas fa-info-circle"></i> 
+                        See <code>docs/vnext/org-migration-plan.md</code> for migration details.
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <a href="/" class="btn btn-primary">
+                        <i class="fas fa-home"></i> Return to Home
+                    </a>
+                    {% if legacy_url %}
+                    <a href="{{ legacy_url }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> View Legacy Leaderboards
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

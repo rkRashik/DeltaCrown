@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ organization.name }} | Management Console | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    body { background: #020204; color: #fff; }
+    .glass-panel {
+        background: rgba(8, 8, 16, 0.7);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="glass-panel rounded-2xl p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold">{{ organization.name }}</h1>
+                    <p class="text-sm text-gray-400 mt-1">Organization Management Console</p>
+                </div>
+                <a href="{% url 'organizations:org_detail' organization.slug %}" 
+                   class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition">
+                    View Public Profile
+                </a>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="glass-panel rounded-xl p-4">
+                <div class="text-sm text-gray-400 mb-1">Total Teams</div>
+                <div class="text-2xl font-bold">{{ teams_count }}</div>
+            </div>
+            <div class="glass-panel rounded-xl p-4">
+                <div class="text-sm text-gray-400 mb-1">Active Members</div>
+                <div class="text-2xl font-bold">{{ member_count|default:"0" }}</div>
+            </div>
+            <div class="glass-panel rounded-xl p-4">
+                <div class="text-sm text-gray-400 mb-1">Empire Score</div>
+                <div class="text-2xl font-bold text-yellow-400">{{ org_empire_score|default:"0" }}</div>
+            </div>
+            <div class="glass-panel rounded-xl p-4">
+                <div class="text-sm text-gray-400 mb-1">Status</div>
+                <div class="text-lg font-bold text-green-400">Active</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="glass-panel rounded-2xl p-2 mb-6">
+            <nav class="flex gap-2">
+                <button class="tab-btn active px-4 py-2 rounded-lg bg-white/10" data-tab="teams">
+                    Teams
+                </button>
+                <button class="tab-btn px-4 py-2 rounded-lg hover:bg-white/5" data-tab="members">
+                    Members
+                </button>
+                <button class="tab-btn px-4 py-2 rounded-lg hover:bg-white/5" data-tab="settings">
+                    Settings
+                </button>
+            </nav>
+        </div>
+
+        <!-- Teams Tab -->
+        <div id="teams" class="tab-content glass-panel rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">Organization Teams</h2>
+                <a href="{% url 'organizations:team_create' %}" 
+                   class="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:opacity-90 font-semibold">
+                    Create Team
+                </a>
+            </div>
+            
+            <div class="space-y-3">
+                {% for squad in squads %}
+                <div class="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/8 transition">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
+                            <span class="text-xl font-bold">{{ squad.team_name|slice:":1"|upper }}</span>
+                        </div>
+                        <div>
+                            <a href="{% url 'organizations:org_team_detail' organization.slug squad.team_slug %}" 
+                               class="font-bold text-lg hover:text-purple-400 transition">
+                                {{ squad.team_name }}
+                            </a>
+                            <div class="text-sm text-gray-400">{{ squad.game_label }}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        {% if squad.rank %}
+                        <div class="text-sm">
+                            <span class="text-gray-400">Rank:</span>
+                            <span class="text-yellow-400 font-bold">#{{ squad.rank }}</span>
+                        </div>
+                        {% endif %}
+                        <a href="{% url 'organizations:org_team_manage' organization.slug squad.team_slug %}" 
+                           class="px-3 py-1 rounded bg-white/5 hover:bg-white/10 text-sm font-semibold">
+                            Manage
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-gray-400 text-center py-8">No teams yet. Create your first team to get started.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Members Tab -->
+        <div id="members" class="tab-content hidden glass-panel rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">Organization Staff</h2>
+                <button onclick="showInviteOrgMember()" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10">
+                    Invite Member
+                </button>
+            </div>
+            
+            <div class="space-y-2">
+                {% for member in org_members %}
+                <div class="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
+                    <div class="flex items-center gap-3">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ member.user.username }}" 
+                             class="w-10 h-10 rounded-full">
+                        <div>
+                            <div class="font-semibold">{{ member.user.username }}</div>
+                            <div class="text-xs text-gray-400">{{ member.role }}</div>
+                        </div>
+                    </div>
+                    {% if member.role != 'CEO' %}
+                    <button onclick="removeOrgMember({{ member.id }}, '{{ member.user.username }}')" 
+                            class="text-red-400 hover:text-red-300 text-sm">
+                        Remove
+                    </button>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <p class="text-gray-400 text-center py-8">No staff members yet</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content hidden glass-panel rounded-2xl p-6">
+            <h2 class="text-xl font-bold mb-4">Organization Settings</h2>
+            <form method="post" action="{% url 'api:organization-update' organization.id %}">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Organization Name</label>
+                        <input type="text" name="name" value="{{ organization.name }}" 
+                               class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-white/30 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Manifesto</label>
+                        <textarea name="description" rows="4" 
+                                  class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-white/30 outline-none resize-none">{{ organization.description }}</textarea>
+                    </div>
+                    <button type="submit" class="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:opacity-90 font-semibold">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active', 'bg-white/10'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            btn.classList.add('active', 'bg-white/10');
+            document.getElementById(tab).classList.remove('hidden');
+        });
+    });
+    
+    // Get CSRF token
+    function getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+               document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    }
+    
+    // Invite org member
+    function showInviteOrgMember() {
+        const email = prompt('Enter email address or username to invite as staff:');
+        if (!email) return;
+        
+        fetch(`/api/vnext/organizations/{{ organization.slug }}/members/add/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                email_or_username: email,
+                role: 'MANAGER'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                alert('Staff member invited successfully!');
+                location.reload();
+            } else {
+                alert(data.safe_message || 'Failed to invite member');
+            }
+        })
+        .catch(err => {
+            console.error('Invite error:', err);
+            alert('Network error. Please try again.');
+        });
+    }
+    
+    // Remove org member
+    function removeOrgMember(memberId, username) {
+        if (!confirm(`Remove ${username} from organization staff? This action cannot be undone.`)) {
+            return;
+        }
+        
+        fetch(`/api/vnext/organizations/{{ organization.slug }}/members/${memberId}/remove/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                alert('Staff member removed successfully');
+                location.reload();
+            } else {
+                alert(data.safe_message || 'Failed to remove member');
+            }
+        })
+        .catch(err => {
+            console.error('Remove error:', err);
+            alert('Network error. Please try again.');
+        });
+    }
+</script>
+{% endblock %}

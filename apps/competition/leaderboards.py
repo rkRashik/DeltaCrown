@@ -1,17 +1,15 @@
-"""Leaderboard views for competition app (Phase 3A-E)."""
+"""Leaderboard views for competition app (Phase 9 - Service Layer)."""
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
-from django.db.models import Q
-from apps.competition.models import (
-    TeamGlobalRankingSnapshot,
-    TeamGameRankingSnapshot,
-    GameRankingConfig,
-)
+from apps.competition.models import GameRankingConfig
+from apps.competition.services.competition_service import CompetitionService
 
 
 def leaderboard_global(request):
     """
     Global leaderboard showing all teams ranked by global_score.
+    
+    Phase 9: Uses CompetitionService for data retrieval.
     
     Query params:
     - tier: Filter by tier (DIAMOND, PLATINUM, GOLD, SILVER, BRONZE, UNRANKED)
@@ -27,27 +25,29 @@ def leaderboard_global(request):
     tier_filter = request.GET.get('tier', '').upper()
     verified_only = request.GET.get('verified_only') == '1'
     
-    # Build queryset
-    queryset = TeamGlobalRankingSnapshot.objects.select_related('team').order_by('global_rank')
+    # Use service layer
+    response = CompetitionService.get_global_rankings(
+        tier=tier_filter if tier_filter else None,
+        verified_only=verified_only,
+        limit=100,
+        offset=0
+    )
     
-    if tier_filter and tier_filter in ['DIAMOND', 'PLATINUM', 'GOLD', 'SILVER', 'BRONZE', 'UNRANKED']:
-        queryset = queryset.filter(global_tier=tier_filter)
-    
-    if verified_only:
-        # Filter to teams that have at least one game snapshot with STABLE or ESTABLISHED confidence
-        queryset = queryset.filter(
-            team__game_ranking_snapshots__confidence_level__in=['STABLE', 'ESTABLISHED']
-        ).distinct()
-    
-    # Paginate or limit (first 100 for performance)
-    snapshots = queryset[:100]
+    # Get user's team highlights if authenticated
+    user_highlights = None
+    if request.user.is_authenticated:
+        user_highlights = CompetitionService.get_user_team_highlights(request.user.id)
     
     context = {
-        'snapshots': snapshots,
+        'rankings': response,
+        'entries': response.entries,
+        'total_count': response.total_count,
         'tier_filter': tier_filter,
         'verified_only': verified_only,
         'available_tiers': ['DIAMOND', 'PLATINUM', 'GOLD', 'SILVER', 'BRONZE', 'UNRANKED'],
         'is_global': True,
+        'user_highlights': user_highlights,
+        'query_count': response.query_count,
     }
     
     return render(request, 'competition/leaderboards/leaderboard_global.html', context)
@@ -56,6 +56,8 @@ def leaderboard_global(request):
 def leaderboard_game(request, game_id):
     """
     Per-game leaderboard showing teams ranked by game-specific score.
+    
+    Phase 9: Uses CompetitionService for data retrieval.
     
     Query params:
     - tier: Filter by tier
@@ -75,30 +77,32 @@ def leaderboard_game(request, game_id):
     tier_filter = request.GET.get('tier', '').upper()
     verified_only = request.GET.get('verified_only') == '1'
     
-    # Build queryset
-    queryset = TeamGameRankingSnapshot.objects.filter(
-        game_id=game_id
-    ).select_related('team').order_by('rank')
+    # Use service layer
+    response = CompetitionService.get_game_rankings(
+        game_id=game_id,
+        tier=tier_filter if tier_filter else None,
+        verified_only=verified_only,
+        limit=100,
+        offset=0
+    )
     
-    if tier_filter and tier_filter in ['DIAMOND', 'PLATINUM', 'GOLD', 'SILVER', 'BRONZE', 'UNRANKED']:
-        queryset = queryset.filter(tier=tier_filter)
-    
-    if verified_only:
-        queryset = queryset.filter(
-            Q(confidence_level='STABLE') | Q(confidence_level='ESTABLISHED')
-        )
-    
-    # Paginate or limit
-    snapshots = queryset[:100]
+    # Get user's team highlights if authenticated
+    user_highlights = None
+    if request.user.is_authenticated:
+        user_highlights = CompetitionService.get_user_team_highlights(request.user.id)
     
     context = {
-        'snapshots': snapshots,
+        'rankings': response,
+        'entries': response.entries,
+        'total_count': response.total_count,
         'game_config': game_config,
         'game_id': game_id,
         'tier_filter': tier_filter,
         'verified_only': verified_only,
         'available_tiers': ['DIAMOND', 'PLATINUM', 'GOLD', 'SILVER', 'BRONZE', 'UNRANKED'],
         'is_global': False,
+        'user_highlights': user_highlights,
+        'query_count': response.query_count,
     }
     
     return render(request, 'competition/leaderboards/leaderboard_game.html', context)

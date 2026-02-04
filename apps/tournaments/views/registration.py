@@ -228,9 +228,9 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
             teams_with_permissions = []
             for team in eligible_teams:
                 membership = TeamMembership.objects.get(team=team, user=user, is_deleted=False)
-                permission_label = 'Owner' if team.owner == user else membership.role.title()
+                permission_label = 'Owner' if team.created_by == user else membership.role.title()
                 can_register = (
-                    team.owner == user or
+                    team.created_by == user or
                     membership.role in ['manager', 'captain'] or
                     membership.can_register_tournaments
                 )
@@ -417,7 +417,7 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                     # Verify user has permission
                     membership = TeamMembership.objects.get(team=team, user=user, is_deleted=False)
                     can_register = (
-                        team.owner == user or
+                        team.created_by == user or
                         membership.role in ['manager', 'captain'] or
                         membership.can_register_tournaments
                     )

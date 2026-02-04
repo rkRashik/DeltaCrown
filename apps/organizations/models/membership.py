@@ -46,6 +46,14 @@ class TeamMembership(models.Model):
         help_text="User on the roster"
     )
     
+    # Game (denormalized for constraint enforcement)
+    # Automatically set from team.game_id on save
+    game_id = models.IntegerField(
+        db_index=True,
+        default=1,  # Temporary default for migration, will be auto-populated from team
+        help_text="Game ID (denormalized from team for constraint: one team per game per user)"
+    )
+    
     # Status
     status = models.CharField(
         max_length=20,
@@ -107,6 +115,12 @@ class TeamMembership(models.Model):
                 condition=Q(status=MembershipStatus.ACTIVE),
                 name='one_active_membership_per_user_team'
             ),
+            # ONE TEAM PER GAME PER USER (core platform rule)
+            models.UniqueConstraint(
+                fields=['user', 'game_id'],
+                condition=Q(status=MembershipStatus.ACTIVE),
+                name='one_active_team_per_game_per_user'
+            ),
             # Only one tournament captain per team
             models.UniqueConstraint(
                 fields=['team'],
@@ -118,6 +132,7 @@ class TeamMembership(models.Model):
         indexes = [
             models.Index(fields=['team', 'status'], name='membership_team_status_idx'),
             models.Index(fields=['user', 'status'], name='membership_user_status_idx'),
+            models.Index(fields=['user', 'game_id'], name='membership_user_game_idx'),
             models.Index(fields=['role'], name='membership_role_idx'),
             models.Index(fields=['is_tournament_captain'], name='membership_captain_idx'),
         ]
@@ -202,9 +217,18 @@ class TeamMembership(models.Model):
             bool: True if member can check in team for tournaments
         """
         return (
-            self.status == MembershipStatus.ACTIVE and
-            (
-                self.is_tournament_captain or
-                self.role in [MembershipRole.OWNER, MembershipRole.MANAGER]
-            )
+            (self.is_tournament_captain or 
+             self.role in [MembershipRole.OWNER, MembershipRole.MANAGER]) and
+            self.status == MembershipStatus.ACTIVE
         )
+    
+    def save(self, *args, **kwargs):
+        """
+        Override save to auto-populate game_id from team.
+        
+        This enables the one-team-per-game constraint.
+        """
+        if self.team_id and not self.game_id:
+            # Auto-populate game_id from team
+            self.game_id = self.team.game_id
+        super().save(*args, **kwargs)

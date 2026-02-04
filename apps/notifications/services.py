@@ -442,10 +442,10 @@ class NotificationService:
             from django.urls import reverse
             url = reverse('teams:team_detail', kwargs={'slug': invite.team.slug})
         
-        # Notify team owner and managers
+        # Notify team creator and managers
         recipients = []
-        if invite.team.owner:
-            recipients.append(invite.team.owner.user)
+        if invite.team.created_by:
+            recipients.append(invite.team.created_by)
         
         # Add team managers
         from apps.teams.models import TeamMembership

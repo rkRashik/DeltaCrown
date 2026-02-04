@@ -12,6 +12,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.utils import timezone
 from django.db.models import Q
 
+from django.conf import settings
 from apps.competition.models import MatchReport, GameRankingConfig
 from apps.competition.services import MatchReportService, VerificationService
 from apps.organizations.models import Team

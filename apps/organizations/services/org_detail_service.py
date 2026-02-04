@@ -31,10 +31,11 @@ def get_org_detail_context(org_slug, viewer):
             - organization: Organization instance
             - can_manage_org: Boolean permission
             - active_teams_count: Number of active teams
-            - squads: List of active teams with IGL/Manager info
+            - squads: List of active teams with IGL/Manager info and rankings
     """
+    from django.conf import settings
+    
     # Query organization with proper related data
-    # Note: Organization has NO teams relation yet (Option C - Legacy Team authoritative)
     try:
         organization = Organization.objects.select_related(
             'ceo'
@@ -47,22 +48,91 @@ def get_org_detail_context(org_slug, viewer):
     # Use centralized permission module
     permissions = get_permission_context(viewer, organization)
     
-    # TODO PHASE 6: Organizations do NOT own teams yet (Legacy Team is authoritative)
-    # organization.teams relation does not exist until migration complete
-    # Stubbing team list until org-team FK is activated
-    active_teams = []
-    active_teams_count = 0
+    # Phase 10: Fetch org teams with rankings from CompetitionService
+    from apps.organizations.models import Team
     
-    # TODO PHASE 6: Build squad data once org-team FK activated
-    # Currently stubbed - Organizations do not own teams yet
+    active_teams = Team.objects.filter(
+        organization=organization,
+        status='ACTIVE'
+    ).select_related('game', 'created_by').order_by('-created_at')[:20]
+    
+    active_teams_count = active_teams.count()
+    
+    # Build squad data with team ranks
     squads = []
+    competition_enabled = getattr(settings, 'COMPETITION_APP_ENABLED', True)
+    
+    if competition_enabled:
+        try:
+            from apps.competition.services import CompetitionService
+            
+            for team in active_teams:
+                # Get team rank
+                rank_data = CompetitionService.get_team_rank(team.id)
+                
+                squads.append({
+                    'team': team,
+                    'team_name': team.name,
+                    'team_slug': team.slug,
+                    'game_label': _safe_game_label(team),
+                    'rank': rank_data.get('rank') if rank_data else None,
+                    'tier': rank_data.get('tier', 'UNRANKED') if rank_data else 'UNRANKED',
+                    'score': rank_data.get('score', 0) if rank_data else 0,
+                })
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Could not fetch team ranks for org {org_slug}: {e}")
+            # Fallback: squads without ranks
+            for team in active_teams:
+                squads.append({
+                    'team': team,
+                    'team_name': team.name,
+                    'team_slug': team.slug,
+                    'game_label': _safe_game_label(team),
+                    'rank': None,
+                    'tier': 'UNRANKED',
+                    'score': 0,
+                })
+    else:
+        # Competition disabled: squads without ranks
+        for team in active_teams:
+            squads.append({
+                'team': team,
+                'team_name': team.name,
+                'team_slug': team.slug,
+                'game_label': _safe_game_label(team),
+                'rank': None,
+                'tier': 'UNRANKED',
+                'score': 0,
+            })
+    
+    # Get org empire score if competition enabled
+    org_empire_score = None
+    if competition_enabled:
+        try:
+            from apps.competition.services import CompetitionService
+            org_empire_score = CompetitionService.get_org_empire_score(organization.id)
+        except Exception:
+            pass
+    
+    # Fetch org staff members
+    from apps.organizations.models import OrganizationMembership
+    org_members = OrganizationMembership.objects.filter(
+        organization=organization
+    ).select_related('user').order_by('role', 'joined_at')
+    
+    member_count = org_members.count()
     
     return {
         'organization': organization,
-        'teams': [],  # TODO PHASE 6: Organization→Teams ownership deferred (Option C)
-        'teams_count': 0,  # TODO PHASE 6: Will populate after org-team FK activated
+        'teams': list(active_teams),
+        'teams_count': active_teams_count,
         'active_teams_count': active_teams_count,
         'squads': squads,
+        'org_empire_score': org_empire_score,
+        'org_members': list(org_members),
+        'member_count': member_count,
         # Empty placeholders for future wiring
         'activity_logs': [],
         'staff_members': [],

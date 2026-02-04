@@ -510,7 +510,7 @@ class TeamService:
         
         Performance Notes:
             - Target: <100ms (p95), ≤5 queries
-            - Uses select_related('organization', 'owner') for team
+            - Uses select_related('organization', 'created_by') for team
             - Uses prefetch_related('memberships__user') for members
         """
         from apps.organizations.models import Team
@@ -521,7 +521,7 @@ class TeamService:
         
         # Query team with related data (1-2 queries with prefetch)
         try:
-            queryset = Team.objects.select_related('organization', 'owner')
+            queryset = Team.objects.select_related('organization', 'created_by')
             if team_id:
                 team = queryset.get(id=team_id)
             else:
@@ -543,7 +543,7 @@ class TeamService:
             'is_organization_team': team.organization is not None,
             'organization_name': team.organization.name if team.organization else None,
             'organization_slug': team.organization.slug if team.organization else None,
-            'owner_username': team.owner.username if team.owner else None,
+            'creator_username': team.created_by.username if team.created_by else None,
             'created_at': team.created_at.isoformat(),
         }
         
@@ -618,7 +618,7 @@ class TeamService:
         with transaction.atomic():
             # Get team with organization (1 query with lock)
             try:
-                team = Team.objects.select_related('organization', 'owner').select_for_update().get(id=team_id)
+                team = Team.objects.select_related('organization', 'created_by').select_for_update().get(id=team_id)
             except Team.DoesNotExist:
                 raise NotFoundError("team", team_id)
             
@@ -936,7 +936,7 @@ class TeamService:
         with transaction.atomic():
             # Get team (1 query with lock)
             try:
-                team = Team.objects.select_related('organization', 'owner').select_for_update().get(id=team_id)
+                team = Team.objects.select_related('organization', 'created_by').select_for_update().get(id=team_id)
             except Team.DoesNotExist:
                 raise NotFoundError("team", team_id)
             

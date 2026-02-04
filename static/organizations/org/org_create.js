@@ -398,7 +398,7 @@ function submitOrganization() {
     .then(data => {
         if (data.ok) {
             // Success - redirect to organization page
-            window.location.href = data.data.organization_url;
+            window.location.href = data.organization_url;
         } else {
             // Handle field errors
             handleFieldErrors(data.field_errors || {});

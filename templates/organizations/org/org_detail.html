@@ -451,49 +451,51 @@
                                 <div class="absolute inset-0 bg-gradient-to-t from-delta-highlight to-transparent"></div>
 
                                 <div class="absolute -bottom-8 left-6 w-20 h-20 bg-delta-surface rounded-2xl border-4 border-delta-highlight shadow-2xl p-3 flex items-center justify-center z-10 group-hover:border-delta-electric transition-colors">
-                                    <span class="text-2xl font-tech font-bold text-white">{{ squad.game|slice:":2"|upper }}</span>
+                                    <span class="text-2xl font-tech font-bold text-white">{{ squad.game_label|slice:":2"|upper }}</span>
                                 </div>
                             </div>
 
                             <div class="pt-10 px-6 pb-6">
                                 <div class="flex justify-between items-start mb-4">
                                     <div>
-                                        <h3 class="text-2xl font-tech font-bold text-white uppercase tracking-wide group-hover:text-delta-electric transition-colors">{{ squad.name }}</h3>
-                                        <p class="text-xs text-slate-400 font-mono">{{ squad.game }} Division</p>
+                                        <a href="{% url 'organizations:org_team_detail' organization.slug squad.team_slug %}" 
+                                           class="text-2xl font-tech font-bold text-white uppercase tracking-wide group-hover:text-delta-electric transition-colors">
+                                            {{ squad.team_name }}
+                                        </a>
+                                        <p class="text-xs text-slate-400 font-mono">{{ squad.game_label }}</p>
                                     </div>
                                 </div>
 
-                                {% if squad.igl or squad.manager %}
+                                {% if squad.rank or squad.tier != 'UNRANKED' or squad.score %}
                                 <div class="grid grid-cols-2 gap-4 mb-4 border-t border-white/5 pt-4">
-                                    {% if squad.igl %}
+                                    {% if squad.rank %}
                                     <div class="bg-white/5 rounded-lg p-3 border border-white/5">
-                                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">IGL (Captain)</div>
-                                        <div class="flex items-center gap-2">
-                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ squad.igl }}" class="w-5 h-5 rounded bg-black">
-                                            <span class="text-xs font-bold text-white">{{ squad.igl }}</span>
-                                        </div>
+                                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">Global Rank</div>
+                                        <div class="text-sm font-bold text-delta-gold">#{{ squad.rank }}</div>
                                     </div>
                                     {% endif %}
-                                    {% if can_manage_org and squad.manager %}
-                                    <div class="bg-white/5 rounded-lg p-3 border border-white/5 role-owner-only">
-                                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">Manager</div>
-                                        <div class="flex items-center gap-2">
-                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ squad.manager }}" class="w-5 h-5 rounded bg-black">
-                                            <span class="text-xs font-bold text-white">{{ squad.manager }}</span>
-                                        </div>
+                                    {% if squad.tier != 'UNRANKED' %}
+                                    <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">Tier</div>
+                                        <div class="text-sm font-bold text-white">{{ squad.tier }}</div>
+                                    </div>
+                                    {% endif %}
+                                    {% if squad.score %}
+                                    <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                        <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">Crown Points</div>
+                                        <div class="text-sm font-bold text-delta-electric">{{ squad.score }}</div>
                                     </div>
                                     {% endif %}
                                 </div>
                                 {% endif %}
 
                                 <div class="flex items-center justify-between">
-                                    <div class="flex -space-x-3">
-                                        <img class="w-8 h-8 rounded-full border-2 border-delta-highlight" src="https://api.dicebear.com/7.x/avataaars/svg?seed=P{{ forloop.counter }}1" title="Player 1">
-                                        <img class="w-8 h-8 rounded-full border-2 border-delta-highlight" src="https://api.dicebear.com/7.x/avataaars/svg?seed=P{{ forloop.counter }}2" title="Player 2">
-                                        <img class="w-8 h-8 rounded-full border-2 border-delta-highlight" src="https://api.dicebear.com/7.x/avataaars/svg?seed=P{{ forloop.counter }}3" title="Player 3">
-                                        <div class="w-8 h-8 rounded-full border-2 border-delta-highlight bg-delta-surface text-[10px] flex items-center justify-center text-slate-400">+2</div>
+                                    <div class="text-xs text-slate-400">
+                                        <a href="{% url 'organizations:org_team_detail' organization.slug squad.team_slug %}" 
+                                           class="font-bold text-delta-electric uppercase hover:underline">
+                                            View Team →
+                                        </a>
                                     </div>
-                                    <button class="text-xs font-bold text-delta-electric uppercase hover:underline">View Roster</button>
                                 </div>
                             </div>
                         </div>

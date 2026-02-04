@@ -58,24 +58,27 @@ class Team(models.Model):
         help_text="Short team motto/slogan (e.g., 'Victory Through Strategy')"
     )
     
-    # Ownership (mutually exclusive: organization XOR owner)
+    # Ownership (Team can be independent OR org-owned)
     organization = models.ForeignKey(
         'Organization',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='teams',
         null=True,
         blank=True,
         db_index=True,
-        help_text="Owning organization (NULL if independent team)"
+        help_text="Owning organization (NULL for independent teams)"
     )
-    owner = models.ForeignKey(
+    # Creator/Owner - User who created/owns the team
+    # For independent teams: this is the owner
+    # For org teams: this is who created it (audit trail)
+    created_by = models.ForeignKey(
         User,
-        on_delete=models.PROTECT,
-        related_name='owned_teams',
+        on_delete=models.SET_NULL,
+        related_name='created_teams',
         null=True,
         blank=True,
         db_index=True,
-        help_text="Owner user (NULL if organization-owned team)"
+        help_text="User who created/owns this team"
     )
     
     # Game context
@@ -201,20 +204,6 @@ class Team(models.Model):
         ordering = ['-created_at']
         
         constraints = [
-            # Independent teams: One owner per game (can't own 2 Valorant teams)
-            models.UniqueConstraint(
-                fields=['owner', 'game_id'],
-                condition=Q(owner__isnull=False, status=TeamStatus.ACTIVE),
-                name='one_independent_team_per_game'
-            ),
-            # Must have either organization OR owner (not both, not neither)
-            models.CheckConstraint(
-                check=(
-                    Q(organization__isnull=False, owner__isnull=True) | 
-                    Q(organization__isnull=True, owner__isnull=False)
-                ),
-                name='team_has_organization_xor_owner'
-            ),
             # Tag uniqueness per game (case-sensitive at DB level, case-insensitive enforced in app)
             # Allows NULL tags (teams can exist without tags)
             models.UniqueConstraint(
@@ -229,8 +218,8 @@ class Team(models.Model):
             models.Index(fields=['game_id', 'region'], name='team_game_region_idx'),
             models.Index(fields=['organization'], name='team_org_idx'),
             models.Index(fields=['status'], name='team_status_idx'),
-            models.Index(fields=['owner', 'game_id'], name='team_owner_game_idx'),
             models.Index(fields=['game_id', 'tag'], name='team_game_tag_idx'),
+            models.Index(fields=['created_by'], name='team_created_by_idx'),
         ]
         
         verbose_name = 'Team'
@@ -240,7 +229,7 @@ class Team(models.Model):
         """Return team name for admin display."""
         if self.organization:
             return f"{self.organization.name} - {self.name}"
-        return self.name
+        return f"{self.name} (Independent)"
     
     def save(self, *args, **kwargs):
         """Auto-generate slug from name if not provided."""
@@ -262,17 +251,22 @@ class Team(models.Model):
         """
         Return canonical URL for team detail page.
         
-        Phase C+: All teams use simple /teams/<slug>/ route.
-        Organization-specific routing will be implemented in Phase D.
-        
-        Examples:
-        - Organization team: /teams/protocol-v/
-        - Independent team: /teams/my-team-slug/
+        Canonical URLs:
+        - Organization team: /orgs/<org_slug>/teams/<team_slug>/
+        - Independent team: /teams/<team_slug>/
         
         Returns:
             str: Absolute URL path
         """
-        return reverse('organizations:team_detail', kwargs={'team_slug': self.slug})
+        from django.urls import reverse
+        
+        if self.organization:
+            # Organization team - use org-scoped URL
+            return reverse('organizations:org_team_detail', 
+                         kwargs={'org_slug': self.organization.slug, 'team_slug': self.slug})
+        else:
+            # Independent team - use simple /teams/<slug>/ route
+            return reverse('organizations:team_detail', kwargs={'team_slug': self.slug})
     
     def is_organization_team(self):
         """
@@ -306,8 +300,9 @@ class Team(models.Model):
         """
         Check if user has management permissions for this team.
         
-        For organization teams: CEO or team Manager/Coach
-        For independent teams: Owner only
+        Permission hierarchy:
+        - Independent team: created_by user is owner (full control)
+        - Organization team: Org CEO → Org Manager → Team Manager/Coach
         
         Args:
             user: User instance to check permissions for
@@ -316,16 +311,27 @@ class Team(models.Model):
             bool: True if user can manage team settings
         """
         if self.organization:
-            # Organization team: CEO or Manager
+            # Organization team
+            # Check if user is Organization CEO
             if user == self.organization.ceo:
                 return True
             
-            # Check if user is Manager or Coach of this team
+            # Check if user is Organization Manager
+            from apps.organizations.models import OrganizationMembership
+            if OrganizationMembership.objects.filter(
+                organization=self.organization,
+                user=user,
+                role__in=['MANAGER', 'ADMIN'],
+                status='ACTIVE'
+            ).exists():
+                return True
+            
+            # Check if user is Team Manager or Coach
             return self.memberships.filter(
                 user=user,
                 status='ACTIVE',
                 role__in=['MANAGER', 'COACH']
             ).exists()
         else:
-            # Independent team: Owner only
-            return user == self.owner
+            # Independent team - only creator/owner can manage
+            return user == self.created_by

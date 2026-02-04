@@ -47,7 +47,7 @@ def game_leaderboard_view(request, game_slug):
         'page_title': f'{game.display_name} Leaderboard',
     }
     
-    return render(request, 'teams/rankings/game_leaderboard.html', context)
+    return render(request, 'teams/_legacy/rankings/game_leaderboard.html', context)
 
 
 def global_leaderboard_view(request):
@@ -86,7 +86,7 @@ def global_leaderboard_view(request):
         'games': games,
     }
     
-    return render(request, 'teams/rankings/global_leaderboard.html', context)
+    return render(request, 'teams/_legacy/rankings/global_leaderboard.html', context)
 
 
 def get_division_info(elo_rating):

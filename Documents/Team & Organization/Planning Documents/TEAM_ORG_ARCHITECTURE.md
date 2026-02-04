@@ -1,17 +1,19 @@
 # 🏗️ Team & Organization System vNext — Architecture Specification
 
-**Document Version:** 1.2  
-**Effective Date:** January 25, 2026  
+**Document Version:** 1.3 ⚠️ **CORRECTED ARCHITECTURE**  
+**Effective Date:** January 31, 2026  
 **Owner:** Engineering Architecture Team  
 **Status:** Implementation Blueprint  
 **Parent Documents:**  
-- [TEAM_ORG_VNEXT_MASTER_PLAN.md](./TEAM_ORG_VNEXT_MASTER_PLAN.md)
+- [TEAM_ORG_VNEXT_MASTER_PLAN.md](./TEAM_ORG_VNEXT_MASTER_PLAN.md) v1.3
+- [PLANNING_REALIGNMENT_SUMMARY.md](./PLANNING_REALIGNMENT_SUMMARY.md) ⚠️ **PHASE 8 CORRECTION**
 - [TEAM_ORG_COMPATIBILITY_CONTRACT.md](./TEAM_ORG_COMPATIBILITY_CONTRACT.md)  
 - [TEAM_ORG_ENGINEERING_STANDARDS.md](./TEAM_ORG_ENGINEERING_STANDARDS.md) ⚠️ **MANDATORY COMPLIANCE**
 - [TEAM_ORG_PERFORMANCE_CONTRACT.md](./TEAM_ORG_PERFORMANCE_CONTRACT.md) ⚠️ **BINDING REQUIREMENTS**
 
 **Changelog:**
-- v1.2 (Jan 25, 2026): Added Database Strategy Hard Rules, performance contract reference, explicit legacy table prohibition
+- v1.3 (Jan 31, 2026): **CRITICAL CORRECTION** - Removed org-mandatory constraints, added dual ownership architecture (Phase 8 realignment)
+- v1.2 (Jan 25, 2026): Added Database Strategy Hard Rules (SUPERSEDED by v1.3 corrections)
 - v1.1 (Jan 25, 2026): Added Engineering Standards & Frontend Architecture section, updated module structure for Tailwind + Vanilla JS, added frontend directory conventions
 - v1.0 (Jan 25, 2026): Initial architecture specification
 
@@ -154,13 +156,80 @@
 
 ---
 
-## 2. Database Strategy (Hard Rules)
+## 2. Database Strategy (Core Principles)
 
-### 2.1 NON-NEGOTIABLE DATABASE CONSTRAINTS
+⚠️ **CORRECTED v1.3**: This section was updated to reflect **teams-first, organizations-optional** architecture per Phase 8 correction.
 
-**CRITICAL:** These rules prevent catastrophic data corruption and ensure clean separation during parallel build.
+### 2.1 ARCHITECTURAL FOUNDATION: Dual Ownership Model
 
-#### **HARD RULE 1: COMPLETELY NEW DATABASE TABLES**
+**THE REALITY:**
+
+Teams can exist in **two modes**:
+
+1. **Independent Teams** (90% of use cases):
+   - **Database**: `Team.organization = NULL`
+   - **Ownership**: User is Owner + Manager (`created_by` field)
+   - **Constraints**: ONE per game per user (WHERE status=ACTIVE AND organization IS NULL)
+   - **URL**: `/teams/<slug>/` (canonical)
+   - **Wallet**: Personal (100% prize money)
+
+2. **Organization Teams** (10% of use cases):
+   - **Database**: `Team.organization = FK(Organization)`
+   - **Ownership**: Organization is Owner, User is Manager (via TeamMembership)
+   - **Constraints**: MULTIPLE per game allowed (Academy divisions)
+   - **URL**: `/orgs/<org_slug>/teams/<team_slug>/` (canonical)
+   - **Wallet**: Master Wallet (smart splits)
+
+**Schema Implementation:**
+
+```python
+class Team(models.Model):
+    """
+    Competitive unit that participates in tournaments.
+    Can be independent (user-owned) OR org-owned.
+    """
+    # Identity
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(unique=True)
+    game_id = models.IntegerField()  # FK to Game
+    
+    # CRITICAL: Dual ownership model
+    organization = models.ForeignKey(
+        'Organization',
+        null=True,        # ← NULLABLE (independent teams have NULL)
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='teams'
+    )
+    created_by = models.ForeignKey(
+        'User',
+        on_delete=models.PROTECT,  # Creator preserved
+        related_name='created_teams'
+    )
+    
+    # Status
+    status = models.CharField(choices=Status.choices, default='ACTIVE')
+    
+    class Meta:
+        constraints = [
+            # Independent teams: ONE per game per user
+            models.UniqueConstraint(
+                fields=['created_by', 'game_id'],
+                condition=models.Q(status='ACTIVE') & models.Q(organization__isnull=True),
+                name='one_independent_team_per_game'
+            ),
+        ]
+```
+
+**Why This Architecture:**
+- **Business Reality**: 90% of users are casual players (independent teams)
+- **Platform Narrative**: "Grassroots to Glory" requires independent team support
+- **Natural Progression**: Independent team → Build reputation → Get acquired by org
+- **No Artificial Complexity**: Avoid fake "hidden orgs" for casual players
+
+---
+
+### 2.2 DATABASE SEPARATION: NEW TABLES REQUIRED
 
 **MUST:**
 - `apps/organizations` (vNext) uses **COMPLETELY NEW** database tables with `organizations_*` prefix

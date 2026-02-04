@@ -102,14 +102,16 @@ def ticker_feed(request):
             recent_teams = Team.objects.filter(
                 created_at__gte=cutoff_date,
                 status='ACTIVE'
-            ).select_related('owner').order_by('-created_at')[:5]
+            ).select_related('created_by').order_by('-created_at')[:5]
             
             for team in recent_teams:
+                # Use created_by (vNext canonical) instead of deprecated owner field
+                founder_name = team.created_by.username if team.created_by else "Unknown"
                 items.append({
                     'type': 'team_created',
                     'timestamp': team.created_at.isoformat(),
                     'title': f"New squad formed: {team.name}",
-                    'subtitle': f"Founded by {team.owner.username}" if team.owner else "New competitive team",
+                    'subtitle': f"Founded by {founder_name}",
                     'team_slug': team.slug,
                     'team_url': team.get_absolute_url(),
                 })

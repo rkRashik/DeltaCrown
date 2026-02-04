@@ -1,16 +1,18 @@
 # 📋 Team & Organization System vNext — Master Plan
 
-**Document Version:** 1.2  
-**Effective Date:** January 25, 2026  
+**Document Version:** 1.3 ⚠️ **CORRECTED ARCHITECTURE**  
+**Effective Date:** January 31, 2026  
 **Owner:** Product Architecture Team  
 **Status:** Authoritative Specification  
 **Related Documents:**  
 - [TEAM_ORG_ENGINEERING_STANDARDS.md](./TEAM_ORG_ENGINEERING_STANDARDS.md) ⚠️ **MANDATORY**
 - [TEAM_ORG_PERFORMANCE_CONTRACT.md](./TEAM_ORG_PERFORMANCE_CONTRACT.md) ⚠️ **BINDING REQUIREMENTS**
 - [TEAM_ORG_VNEXT_TRACKER.md](../Execution/TEAM_ORG_VNEXT_TRACKER.md) ⚠️ **EXECUTION TRACKER**
+- [PLANNING_REALIGNMENT_SUMMARY.md](./PLANNING_REALIGNMENT_SUMMARY.md) ⚠️ **PHASE 8 CORRECTION**
 
 **Changelog:**
-- v1.2 (Jan 25, 2026): Added Database Strategy Hard Rules, performance contract reference, explicit legacy table constraints
+- v1.3 (Jan 31, 2026): **CRITICAL CORRECTION** - Removed org-mandatory assumptions, restored teams-first architecture (Phase 8 realignment)
+- v1.2 (Jan 25, 2026): Added Database Strategy Hard Rules (SUPERSEDED by v1.3 corrections)
 - v1.1 (Jan 25, 2026): Added Quality Gates section per phase, engineering standards compliance requirements
 - v1.0 (Jan 24, 2026): Initial master plan
 
@@ -70,13 +72,63 @@ The existing `apps/teams` application suffers from critical architectural issues
 
 ---
 
-## 2. Database Strategy & Constraints (Hard Rules)
+## 2. Database Strategy & Constraints (Core Principles)
 
-### 2.1 NON-NEGOTIABLE DATABASE SEPARATION
+### 2.1 ARCHITECTURAL REALITY: Dual Ownership Model
 
-**CRITICAL:** These constraints prevent accidental legacy table modifications that would cascade failures across the platform.
+⚠️ **CRITICAL CORRECTION (v1.3)**: This section was updated to reflect **teams-first, organizations-optional** architecture per Phase 8 correction.
 
-#### **CONSTRAINT 1: COMPLETELY NEW TABLES REQUIRED**
+#### **CORE PRINCIPLE 1: Teams Can Be Independent OR Org-Owned**
+
+**THE REALITY:**
+- **Independent Teams**: Created by users, stand-alone competitive units (organization=NULL)
+  - **Constraint**: ONE per game per user (if status=ACTIVE)
+  - **Ownership**: User is Owner/Manager
+  - **URL**: `/teams/<slug>/` (canonical)
+  - **Wallet**: Personal (100% prize money)
+
+- **Organization Teams**: Created under orgs, professional divisions (organization=FK)
+  - **Constraint**: MULTIPLE per game allowed (Academy teams, etc.)
+  - **Ownership**: Organization is Owner, User is Manager
+  - **URL**: `/orgs/<org_slug>/teams/<team_slug>/` (canonical)
+  - **Wallet**: Master Wallet (smart splits)
+
+**Database Implementation:**
+```python
+class Team(models.Model):
+    # Identity
+    name = CharField(max_length=100)
+    slug = SlugField(unique=True)
+    game_id = IntegerField()  # FK to Game
+    
+    # CRITICAL: Dual ownership model
+    organization = ForeignKey(
+        Organization,
+        null=True,        # ← NULLABLE (independent teams have NULL)
+        blank=True,
+        on_delete=SET_NULL,
+        related_name="teams"
+    )
+    created_by = ForeignKey(User, on_delete=PROTECT)  # Creator/founder
+    
+    # Constraint: ONE independent team per game per user
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=['created_by', 'game_id'],
+                condition=Q(status='ACTIVE') & Q(organization__isnull=True),
+                name='one_independent_team_per_game'
+            ),
+        ]
+```
+
+**Why This Architecture:**
+1. **90% of users** are casual players (independent teams)
+2. **10% are professional** orgs (multi-team management)
+3. **Natural upgrade path**: Independent team → Acquired by org later
+4. **Platform narrative**: "Grassroots to Glory" requires independent team support
+
+#### **CORE PRINCIPLE 2: COMPLETELY NEW TABLES REQUIRED**
 
 **MUST:**
 - `apps/organizations` (vNext) uses **COMPLETELY NEW** database tables
@@ -200,31 +252,38 @@ class TeamMigrationMap(models.Model):
 
 ### 3.1 Design Principles
 
-1. **Managers Manage, Players Play**  
+1. **Teams-First, Organizations-Optional** ⚠️ **CORRECTED v1.3**
+   - **Independent Teams**: Standalone competitive units (90% of use cases)
+   - **Organization Teams**: Professional divisions under business entities (10% of use cases)
+   - **Natural Progression**: Independent team → Compete → Build reputation → Get acquired by org
+
+2. **Managers Manage, Players Play**  
    - Non-combat roles (Owner, CEO, Manager, Coach) do NOT require Game Passports.
    - Only Players occupying active roster slots need verified Game IDs.
 
-2. **Frictionless Creation**  
+3. **Frictionless Creation**  
    - Team creation in under 30 seconds.
    - Minimal mandatory fields (Name + Game).
    - Progressive disclosure: Show simple options first, advanced features later.
+   - **Organization linking is OPTIONAL** (toggle switch during creation).
 
-3. **Professional Ecosystem Support**  
+4. **Professional Ecosystem Support**  
    - Organizations as first-class citizens, not afterthoughts.
    - Sub-brand strategy: Teams keep unique identities while inheriting Org benefits.
    - Real esports workflows: Acquisitions, contracts, revenue splits.
 
-4. **Play-to-Earn-Access Model**  
+5. **Play-to-Earn-Access Model**  
    - Rankings are currency: High rank = Free tournament entry + Direct Invites.
    - Replace "pay-to-play" with "play-to-earn-status."
 
-5. **Multi-Game Flexibility**  
+6. **Multi-Game Flexibility**  
    - Support both team games (5v5 Valorant) and solo games (1v1 eFootball).
    - Per-game roster management (one person can be in Valorant team AND eFootball team).
 
 ### 3.2 Success Metrics
 
 - **Onboarding:** 90% of new teams complete creation flow without support tickets.
+- **Casual Accessibility:** 80%+ of teams are independent (serving grassroots players).
 - **Professional Adoption:** 50+ verified Organizations within 6 months.
 - **Tournament Integration:** Zero registration failures due to team schema issues.
 - **Performance:** All team list pages load in <200ms (no N+1 queries).
@@ -235,6 +294,28 @@ class TeamMigrationMap(models.Model):
 ## 4. Domain Definitions
 
 ### 4.1 Core Entities
+
+#### **Independent Team (The Grassroots Unit)** ⚠️ **ADDED v1.3**
+
+**Definition:** A standalone competitive team created and owned by a single user (typically casual players or friends).
+
+**Examples:**
+- Dhaka Killers (friends playing for fun)
+- Null Boyz (semi-pro squad)
+- Solo Pro (1v1 eFootball player)
+
+**Properties:**
+- **Ownership**: User is Owner + Manager
+- **Wallet**: Personal (100% prize money to creator)
+- **Constraints**: ONE per game per user (prevents farming)
+- **URL**: `/teams/<slug>/`
+- **Database**: `Team.organization = NULL`
+
+**Lifecycle**:
+1. User creates independent team (30 seconds)
+2. Competes in tournaments, builds reputation
+3. May receive acquisition offer from org
+4. If accepted, becomes Organization Team
 
 #### **Organization (The Brand)**
 
@@ -402,18 +483,30 @@ class TeamMigrationMap(models.Model):
 
 ### 6.1 Creation Flow (Fast-Track: <30 Seconds)
 
+⚠️ **UPDATED v1.3**: Clarified independent vs organization team creation paths.
+
 #### **Step 1: Identity (Mandatory)**
 
 **Fields:**
 - **Team Name** (unique within game context)
 - **Game Selection** (grid view: Valorant, CS2, Dota 2, MLBB, PUBG, Free Fire, eFootball, FC26, CODM)
-- **Organization Link** (toggle switch):
-  - **OFF** (default): Creates Independent Team
+- **Organization Link** (toggle switch - **OPTIONAL**):
+  - **OFF** (default): Creates **Independent Team** (organization=NULL)
   - **ON**: Dropdown to select User's owned Organizations
 
-**Validation:**
-- Independent Team: Check if User already owns a team for selected game → Block if exists.
-- Org Team: Check if Org already has a team for selected game → Warn (suggest "Academy" suffix) but allow.
+**Validation Logic**:
+
+**If Independent Team (Toggle OFF)**:
+- Check: Does User already own an **independent** team for selected game?
+  - Query: `Team.objects.filter(created_by=user, game_id=game, organization__isnull=True, status=ACTIVE)`
+  - **If EXISTS**: BLOCK creation. Error: *"You already have an independent team for this game. Join an Organization to create additional teams."*
+  - **If NOT EXISTS**: ALLOW creation.
+
+**If Organization Team (Toggle ON)**:
+- Check: Does selected Org already have a team for this game?
+  - Query: `Team.objects.filter(organization=org, game_id=game, status=ACTIVE)`
+  - **If EXISTS**: WARN (but allow): *"This organization already has a Valorant team. Consider naming this 'Academy' or 'Black' division."*
+  - **If NOT EXISTS**: ALLOW creation.
 
 **System Action:**
 - Generate unique slug from team name.
@@ -446,18 +539,40 @@ class TeamMigrationMap(models.Model):
 
 **Action:** User clicks **"Create Team"**.
 
-**System Operations:**
-1. Create `Team` record (status: ACTIVE).
-2. Create `TeamMembership` record (User as OWNER/MANAGER with ACTIVE status).
-3. Initialize `TeamGameRanking` (CP: 0, Tier: UNRANKED).
-4. If Organization team: Inherit verification status from Org.
-5. Send notification to Manager (if different from creator).
-6. Initialize empty Tournament Operations Center settings.
+**System Operations**:
 
-**Redirect:** Team Dashboard with empty state prompts:
-- "Profile Strength: 30% Complete"
-- Primary CTA: "Your Roster is Empty. Start Scouting!"
-- Secondary prompts: Upload logo, fill TOC settings.
+**For Independent Teams (organization=NULL)**:
+1. Create `Team` record:
+   - `organization` = NULL
+   - `created_by` = User
+   - `status` = ACTIVE
+2. Create `TeamMembership` record:
+   - User as OWNER (role=OWNER, status=ACTIVE)
+   - No separate Manager needed (Owner IS Manager for independent teams)
+3. Initialize `TeamGameRanking` (CP: 0, Tier: UNRANKED)
+4. **Wallet**: Link to User's personal wallet
+5. **URL**: `/teams/<slug>/` (canonical)
+
+**For Organization Teams (organization=FK)**:
+1. Create `Team` record:
+   - `organization` = FK to selected Org
+   - `created_by` = User (historical record)
+   - `status` = ACTIVE
+2. Create `TeamMembership` records:
+   - User as MANAGER (role=MANAGER, status=ACTIVE)
+   - Org CEO automatically added as OWNER
+3. Initialize `TeamGameRanking` (CP: 0, Tier: UNRANKED)
+4. **Inherit verification status** from Organization
+5. **Wallet**: Link to Organization Master Wallet
+6. **URL**: `/orgs/<org_slug>/teams/<team_slug>/` (canonical)
+
+**Common Post-Creation**:
+- Send notification to Manager (if different from creator).
+- Initialize empty Tournament Operations Center settings.
+- Redirect to Team Dashboard with empty state prompts:
+  - "Profile Strength: 30% Complete"
+  - Primary CTA: "Your Roster is Empty. Start Scouting!"
+  - Secondary prompts: Upload logo, fill TOC settings.
 
 ### 6.2 Acquisition Protocol (Org Acquires Independent Team)
 

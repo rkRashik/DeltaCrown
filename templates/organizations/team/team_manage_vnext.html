@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Team HQ | {{ team.name }} | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+    :root {
+        --team-primary: {{ team.primary_color|default:"#7c3aed" }};
+        --team-accent: {{ team.accent_color|default:"#22c55e" }};
+        --bg0: #070a12;
+        --bg1: #0b1020;
+    }
+    
+    body {
+        background: radial-gradient(900px 600px at 12% 8%, color-mix(in oklab, var(--team-primary) 32%, transparent), transparent 55%),
+                    radial-gradient(800px 560px at 86% 18%, color-mix(in oklab, var(--team-accent) 22%, transparent), transparent 55%),
+                    linear-gradient(180deg, var(--bg0), var(--bg1));
+        color: #fff;
+    }
+    
+    .glass-panel {
+        background: rgba(8, 8, 16, 0.7);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="glass-panel rounded-2xl p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold">{{ team.name }}</h1>
+                    <p class="text-sm text-gray-400 mt-1">Team Management Console</p>
+                </div>
+                <div class="flex gap-2">
+                    <a href="{% if team.organization %}{% url 'organizations:org_team_detail' team.organization.slug team.slug %}{% else %}{% url 'organizations:team_detail' team.slug %}{% endif %}" 
+                       class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition">
+                        View Public Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="glass-panel rounded-2xl p-2 mb-6">
+            <nav class="flex gap-2">
+                <button class="tab-btn active px-4 py-2 rounded-lg bg-white/10" data-tab="settings">
+                    Settings
+                </button>
+                <button class="tab-btn px-4 py-2 rounded-lg hover:bg-white/5" data-tab="members">
+                    Members
+                </button>
+                <button class="tab-btn px-4 py-2 rounded-lg hover:bg-white/5" data-tab="branding">
+                    Branding
+                </button>
+            </nav>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="settings" class="tab-content glass-panel rounded-2xl p-6">
+            <h2 class="text-xl font-bold mb-4">Team Settings</h2>
+            <form method="post" action="{% url 'organizations_api:team_update_settings' team.slug %}">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Team Name</label>
+                        <input type="text" name="name" value="{{ team.name }}" 
+                               class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-white/30 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Description</label>
+                        <textarea name="description" rows="4" 
+                                  class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-white/30 outline-none resize-none">{{ team.description }}</textarea>
+                    </div>
+                    <button type="submit" class="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:opacity-90 font-semibold">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div id="members" class="tab-content hidden glass-panel rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">Team Members</h2>
+                {% if can_manage %}
+                <button onclick="showInviteMember()" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10">
+                    Invite Member
+                </button>
+                {% endif %}
+            </div>
+            
+            <div class="space-y-2">
+                {% for member in team_data.members %}
+                <div class="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
+                    <div class="flex items-center gap-3">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ member.user.username }}" 
+                             class="w-10 h-10 rounded-full">
+                        <div>
+                            <div class="font-semibold">{{ member.user.username }}</div>
+                            <div class="text-xs text-gray-400">{{ member.role }}</div>
+                        </div>
+                    </div>
+                    {% if can_manage and member.role != 'OWNER' %}
+                    <button onclick="removeMember({{ member.id }}, '{{ member.user.username }}')" 
+                            class="text-red-400 hover:text-red-300 text-sm">
+                        Remove
+                    </button>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <p class="text-gray-400 text-center py-8">No members yet</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div id="branding" class="tab-content hidden glass-panel rounded-2xl p-6">
+            <h2 class="text-xl font-bold mb-4">Team Branding</h2>
+            <p class="text-gray-400 mb-4">Customize your team's visual identity</p>
+            
+            <form method="post" action="{% url 'organizations_api:team_update_settings' team.slug %}">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Team Logo URL</label>
+                        <input type="url" name="logo_url" value="{{ team.logo_url|default:'' }}" placeholder="https://..."
+                               class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white">
+                        <p class="text-xs text-gray-400 mt-1">Enter a URL to your team logo image</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Primary Color</label>
+                        <input type="color" name="primary_color" value="{{ team.primary_color|default:'#7c3aed' }}"
+                               class="w-20 h-10 rounded-lg border border-white/10">
+                    </div>
+                    <button type="submit" class="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:opacity-90 font-semibold">
+                        Save Branding
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active', 'bg-white/10'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            btn.classList.add('active', 'bg-white/10');
+            document.getElementById(tab).classList.remove('hidden');
+        });
+    });
+    
+    // Initialize Lucide icons
+    lucide.createIcons();
+    
+    // Get CSRF token
+    function getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+               document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    }
+    
+    // Invite member modal
+    function showInviteMember() {
+        const email = prompt('Enter email address or username to invite:');
+        if (!email) return;
+        
+        fetch(`/api/vnext/teams/{{ team.slug }}/members/add/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                email_or_username: email,
+                role: 'PLAYER'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                alert('Member invited successfully!');
+                location.reload();
+            } else {
+                alert(data.safe_message || 'Failed to invite member');
+            }
+        })
+        .catch(err => {
+            console.error('Invite error:', err);
+            alert('Network error. Please try again.');
+        });
+    }
+    
+    // Remove member with confirmation
+    function removeMember(memberId, username) {
+        if (!confirm(`Remove ${username} from the team? This action cannot be undone.`)) {
+            return;
+        }
+        
+        fetch(`/api/vnext/teams/{{ team.slug }}/members/${memberId}/remove/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                alert('Member removed successfully');
+                location.reload();
+            } else {
+                alert(data.safe_message || 'Failed to remove member');
+            }
+        })
+        .catch(err => {
+            console.error('Remove error:', err);
+            alert('Network error. Please try again.');
+        });
+    }
+</script>
+{% endblock %}

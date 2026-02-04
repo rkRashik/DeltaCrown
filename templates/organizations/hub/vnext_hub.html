@@ -193,18 +193,18 @@
         </div>
     </div>
 
-    <header class="relative pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-[1700px] mx-auto z-10">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+    <header class="relative pt-16 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
 
             <div class="lg:col-span-7 relative">
                 <div class="absolute -left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-delta-electric via-delta-violet to-transparent opacity-30 hidden xl:block"></div>
 
-                <h1 class="text-6xl md:text-8xl font-cyber font-black uppercase text-white leading-[0.9] tracking-tight mb-8 drop-shadow-2xl">
+                <h1 class="text-5xl md:text-7xl lg:text-6xl xl:text-7xl font-cyber font-black uppercase text-white leading-[0.9] tracking-tight mb-6 drop-shadow-2xl">
                     Manage Your <br/>
                     <span class="text-gradient-animated">Esports Dynasty</span>
                 </h1>
 
-                <p class="text-lg md:text-xl font-ui text-slate-400 max-w-xl leading-relaxed mb-12 flex items-center gap-4">
+                <p class="text-base md:text-lg font-ui text-slate-400 max-w-xl leading-relaxed mb-10 flex items-center gap-4">
                     Access global rankings, manage rosters, negotiate transfers, and track organization value in real-time. The command deck is yours.
                     <a href="#about-section" class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-delta-electric hover:bg-white/10 hover:scale-110 transition-all" title="Learn More about Team Hub">
                         <i class="fas fa-arrow-right -rotate-45"></i>
@@ -227,7 +227,7 @@
                 </div>
             </div>
 
-            <div class="lg:col-span-5 w-full h-[400px] relative perspective-1000 group">
+            <div class="lg:col-span-5 w-full h-[320px] relative perspective-1000 group">
                 <div class="absolute -inset-1 bg-gradient-to-br from-delta-gold via-delta-violet to-delta-electric rounded-2xl blur-2xl opacity-20 group-hover:opacity-40 transition duration-1000"></div>
 
                 <div class="relative w-full h-full glass-panel rounded-3xl overflow-hidden border border-white/10 shadow-2xl" id="heroCarousel">
@@ -423,7 +423,7 @@
         </div>
     </section>
 
-<main class="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
             <div class="col-span-12 lg:col-span-9 space-y-20">
@@ -456,46 +456,24 @@
                         {% for team in featured_teams %}
                         <div class="group relative glass-panel rounded-2xl overflow-hidden hover:border-delta-electric/50 transition-all duration-300 hover:-translate-y-2">
                             <div class="h-36 bg-slate-800 relative overflow-hidden">
-                                {% if team.banner %}
-                                <img src="{{ team.banner.url }}" class="w-full h-full object-cover opacity-50 group-hover:scale-105 transition duration-700" alt="{{ team.name }} banner">
+                                {% if team.banner_url %}
+                                <img src="{{ team.banner_url }}" class="w-full h-full object-cover opacity-50 group-hover:scale-105 transition duration-700" alt="{{ team.name }} banner">
                                 {% else %}
                                 <div class="w-full h-full bg-gradient-to-br from-delta-panel to-delta-card"></div>
                                 {% endif %}
                                 <div class="absolute inset-0 bg-gradient-to-t from-delta-panel to-transparent"></div>
-                                {% if team.ranking and team.ranking.tier %}
-                                <div class="absolute top-4 right-4 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 shadow-lg">
-                                    {% if team.ranking.tier == 'CROWN' %}
-                                    <div class="w-2 h-2 rounded-full bg-delta-gold animate-pulse"></div>
-                                    <span class="text-[10px] font-bold text-white uppercase tracking-wider">CROWN TIER</span>
-                                    {% elif team.ranking.tier == 'ASCENDANT' %}
-                                    <div class="w-2 h-2 rounded-full bg-delta-electric animate-pulse"></div>
-                                    <span class="text-[10px] font-bold text-white uppercase tracking-wider">ASCENDANT</span>
-                                    {% elif team.ranking.tier == 'DIAMOND' %}
-                                    <div class="w-2 h-2 rounded-full bg-delta-violet animate-pulse"></div>
-                                    <span class="text-[10px] font-bold text-white uppercase tracking-wider">DIAMOND</span>
-                                    {% else %}
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ team.ranking.tier }}</span>
-                                    {% endif %}
-                                </div>
-                                {% endif %}
                             </div>
                             <div class="px-6 pb-6 -mt-12 relative z-10">
                                 <div class="flex items-end justify-between">
                                     <div class="w-24 h-24 bg-delta-panel rounded-2xl border-4 border-delta-panel p-1 shadow-2xl group-hover:border-delta-electric transition-colors">
-                                        {% if team.logo %}
-                                        <img src="{{ team.logo.url }}" class="w-full h-full rounded-xl object-cover" alt="{{ team.name }} logo">
+                                        {% if team.logo_url %}
+                                        <img src="{{ team.logo_url }}" class="w-full h-full rounded-xl object-cover" alt="{{ team.name }} logo">
                                         {% else %}
                                         <div class="w-full h-full rounded-xl bg-gradient-to-br from-delta-electric to-delta-violet flex items-center justify-center shadow-inner">
                                             <span class="font-cyber font-bold text-white text-sm tracking-widest">{{ team.name|slice:":3"|upper }}</span>
                                         </div>
                                         {% endif %}
                                     </div>
-                                    {% if team.ranking %}
-                                    <div class="mb-1 text-right">
-                                        <div class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Global Rank</div>
-                                        <div class="text-3xl font-stats font-bold text-white leading-none">#{{ team.ranking.global_rank|default:"--" }}</div>
-                                    </div>
-                                    {% endif %}
                                 </div>
                                 <div class="mt-5">
                                     <div class="flex justify-between items-start">
@@ -506,38 +484,28 @@
                                                 <span class="text-delta-violet font-bold">{{ team.organization.name }}</span>
                                                 <span class="w-1 h-1 bg-slate-600 rounded-full"></span>
                                                 {% endif %}
-                                                {% if team.region %}
-                                                <span class="text-white">{{ team.region }}</span>
-                                                <span class="w-1 h-1 bg-slate-600 rounded-full"></span>
-                                                {% endif %}
-                                                {% if team.ranking.tier %}
-                                                <span class="text-delta-electric font-bold">{{ team.ranking.tier }}</span>
-                                                {% endif %}
+                                                <span class="text-white">{{ team.game.name|default:"Unknown Game" }}</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div class="grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-white/5">
                                         <div class="text-center">
-                                            <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">CP</div>
-                                            <div class="font-stats text-xl text-white">{{ team.ranking.current_cp|default:0|intcomma }}</div>
+                                            <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Status</div>
+                                            <div class="font-stats text-xl text-white">{{ team.status }}</div>
                                         </div>
                                         <div class="text-center border-l border-white/5">
-                                            <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Tier</div>
-                                            <div class="font-stats text-xl text-delta-success">{{ team.ranking.tier|default:"--" }}</div>
+                                            <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Type</div>
+                                            <div class="font-stats text-xl text-delta-success">{% if team.organization %}ORG{% else %}IND{% endif %}</div>
                                         </div>
                                         <div class="text-center border-l border-white/5">
-                                            <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Streak</div>
-                                            {% if team.ranking.is_hot_streak %}
-                                            <div class="font-stats text-xl text-delta-gold">🔥{{ team.ranking.streak_count|default:0 }}</div>
-                                            {% else %}
-                                            <div class="font-stats text-xl text-slate-500">{{ team.ranking.streak_count|default:0 }}</div>
-                                            {% endif %}
+                                            <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Visibility</div>
+                                            <div class="font-stats text-xl text-slate-500">{{ team.visibility }}</div>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="absolute inset-0 bg-delta-panel/95 backdrop-blur-[2px] flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 z-20 rounded-2xl gap-3">
-                                    <a href="{{ team.get_absolute_url }}" class="px-8 py-3 bg-white text-delta-panel font-cyber font-bold uppercase text-xs tracking-wider clip-cyber-btn hover:scale-105 transition-transform hover:bg-delta-electric">View Profile</a>
+                                    <a href="{% url 'organizations:team_detail' team.slug %}" class="px-8 py-3 bg-white text-delta-panel font-cyber font-bold uppercase text-xs tracking-wider clip-cyber-btn hover:scale-105 transition-transform hover:bg-delta-electric">View Profile</a>
                                     <span class="text-[9px] text-slate-500 uppercase tracking-widest">Click to scout</span>
                                 </div>
                             </div>
@@ -579,86 +547,64 @@
                                 <thead class="bg-delta-panel border-b border-white/10">
                                     <tr>
                                         <th class="p-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-cyber">Rank</th>
-                                        <th class="p-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-cyber">Trend</th>
                                         <th class="p-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-cyber">Team Unit</th>
-                                        <th class="p-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-cyber">Game</th>
-                                        <th class="p-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-cyber">Win Rate</th>
-                                        <th class="p-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-cyber">Form</th>
-                                        <th class="p-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-cyber text-right">Crown Points</th>
+                                        <th class="p-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-cyber">Tier</th>
+                                        <th class="p-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-cyber text-right">Score</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-white/5 font-ui text-sm text-slate-300">
-                                    {% for ranking in leaderboard_rows %}
-                                    <tr class="group hover:bg-{% if forloop.counter == 1 %}delta-gold{% elif forloop.counter <= 3 %}delta-electric{% else %}white{% endif %}/5 transition-colors">
-                                        <td class="p-5 font-stats font-bold text-2xl {% if forloop.counter == 1 %}text-delta-gold{% elif forloop.counter <= 3 %}text-delta-electric{% else %}text-white{% endif %}">
-                                            #{{ forloop.counter }}
-                                        </td>
-                                        <td class="p-5 text-xs">
-                                            {% if ranking.previous_rank %}
-                                                {% if ranking.global_rank < ranking.previous_rank %}
-                                                <i class="fas fa-caret-up text-delta-success"></i>
-                                                {% elif ranking.global_rank > ranking.previous_rank %}
-                                                <i class="fas fa-caret-down text-delta-danger"></i>
-                                                {% else %}
-                                                <i class="fas fa-minus text-slate-500"></i>
-                                                {% endif %}
-                                            {% else %}
-                                            <i class="fas fa-minus text-slate-500"></i>
-                                            {% endif %}
-                                        </td>
-                                        <td class="p-5 font-bold text-white flex items-center gap-4">
-                                            {% if ranking.team.logo %}
-                                            <img src="{{ ranking.team.logo.url }}" class="w-8 h-8 rounded-lg object-cover shadow-lg" alt="{{ ranking.team.name }}">
-                                            {% else %}
-                                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-delta-electric to-delta-violet flex items-center justify-center text-[10px] font-cyber font-bold text-white shadow-lg">
-                                                {{ ranking.team.name|slice:":3"|upper }}
-                                            </div>
-                                            {% endif %}
-                                            <div>
-                                                <div>{{ ranking.team.name }}</div>
-                                                {% if ranking.team.organization %}
-                                                <div class="text-[10px] text-delta-violet font-normal">{{ ranking.team.organization.name }}</div>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                        <td class="p-5 text-xs font-bold text-slate-400 uppercase tracking-wide">
-                                            {% if ranking.team.game_id %}
-                                            <!-- Game name from ID - TODO: add game relationship -->
-                                            Game #{{ ranking.team.game_id }}
-                                            {% else %}
-                                            --
-                                            {% endif %}
-                                        </td>
-                                        <td class="p-5 font-stats text-xl {% if ranking.win_rate >= 70 %}text-delta-success{% elif ranking.win_rate >= 50 %}text-white{% else %}text-slate-500{% endif %}">
-                                            {{ ranking.win_rate|default:"--" }}{% if ranking.win_rate %}%{% endif %}
-                                        </td>
-                                        <td class="p-5">
-                                            <div class="flex gap-1.5">
-                                                {% if ranking.is_hot_streak %}
-                                                    {% for i in "12345"|slice:":5" %}
-                                                    <div class="w-1.5 h-1.5 rounded-full bg-delta-success"></div>
-                                                    {% endfor %}
-                                                {% else %}
-                                                    {% for i in "12345"|slice:":3" %}
-                                                    <div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
-                                                    {% endfor %}
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                        <td class="p-5 font-stats font-bold text-2xl text-white text-right">
-                                            {{ ranking.current_cp|intcomma }}
-                                        </td>
-                                    </tr>
-                                    {% empty %}
+                                    {% if competition_enabled %}
+                                        {% for entry in rankings_preview %}
+                                        <tr class="group hover:bg-{% if entry.rank == 1 %}delta-gold{% elif entry.rank <= 3 %}delta-electric{% else %}white{% endif %}/5 transition-colors">
+                                            <td class="p-5 font-stats font-bold text-2xl {% if entry.rank == 1 %}text-delta-gold{% elif entry.rank <= 3 %}text-delta-electric{% else %}text-white{% endif %}">
+                                                #{{ entry.rank }}
+                                            </td>
+                                            <td class="p-5 font-bold text-white flex items-center gap-4">
+                                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-delta-electric to-delta-violet flex items-center justify-center text-[10px] font-cyber font-bold text-white shadow-lg">
+                                                    {{ entry.team_name|slice:":3"|upper }}
+                                                </div>
+                                                <div>
+                                                    <div>{{ entry.team_name }}</div>
+                                                    {% if entry.organization_name %}
+                                                    <div class="text-[10px] text-delta-violet font-normal">{{ entry.organization_name }}</div>
+                                                    {% else %}
+                                                    <div class="text-[10px] text-delta-electric font-normal">Independent</div>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                            <td class="p-5">
+                                                <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider
+                                                    {% if entry.tier == 'ELITE' %}bg-delta-gold/20 text-delta-gold border border-delta-gold/30
+                                                    {% elif entry.tier == 'DIAMOND' %}bg-delta-electric/20 text-delta-electric border border-delta-electric/30
+                                                    {% elif entry.tier == 'PLATINUM' %}bg-delta-violet/20 text-delta-violet border border-delta-violet/30
+                                                    {% else %}bg-slate-600/20 text-slate-400 border border-slate-600/30{% endif %}">
+                                                    {{ entry.tier }}
+                                                </span>
+                                            </td>
+                                            <td class="p-5 font-stats font-bold text-2xl text-white text-right">
+                                                {{ entry.score|floatformat:0 }}
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="4" class="p-10 text-center">
+                                                <div class="text-slate-500">
+                                                    <i class="fas fa-trophy text-3xl mb-3 opacity-20"></i>
+                                                    <div class="font-cyber text-sm uppercase tracking-wider">No Rankings Available</div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
                                     <tr>
-                                        <td colspan="7" class="p-10 text-center">
+                                        <td colspan="4" class="p-10 text-center">
                                             <div class="text-slate-500">
                                                 <i class="fas fa-trophy text-3xl mb-3 opacity-20"></i>
-                                                <div class="font-cyber text-sm uppercase tracking-wider">No Rankings Available</div>
+                                                <div class="font-cyber text-sm uppercase tracking-wider">Competition System Disabled</div>
                                             </div>
                                         </td>
                                     </tr>
-                                    {% endfor %}
+                                    {% endif %}
                                 </tbody>
                             </table>
                         </div>
@@ -778,7 +724,9 @@
                     <h4 class="font-cyber font-bold text-white uppercase tracking-wider text-sm mb-6 border-b-2 border-delta-electric/30 pb-2 inline-block">Platform</h4>
                     <ul class="space-y-4 text-sm text-slate-400 font-ui">
                         <li><a href="{% url 'organizations:org_directory' %}" class="hover:text-delta-electric transition-colors flex items-center gap-2"><i class="fas fa-chevron-right text-[8px] text-delta-electric"></i> View Organizations</a></li>
+                        {% if COMPETITION_APP_ENABLED %}
                         <li><a href="{% url 'competition:ranking_about' %}" class="hover:text-delta-electric transition-colors flex items-center gap-2"><i class="fas fa-chevron-right text-[8px] text-delta-electric"></i> Rankings Policy</a></li>
+                        {% endif %}
                         <li><a href="#" class="hover:text-delta-electric transition-colors flex items-center gap-2"><i class="fas fa-chevron-right text-[8px] text-delta-electric"></i> Verified Status</a></li>
                         <li><a href="#" class="hover:text-delta-electric transition-colors flex items-center gap-2"><i class="fas fa-chevron-right text-[8px] text-delta-electric"></i> Scout Radar</a></li>
                     </ul>

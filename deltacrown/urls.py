@@ -92,7 +92,14 @@ urlpatterns = [
     # Tournament system - Admin only (frontend moved to legacy November 2, 2025)
     # URL namespace kept active for admin panel functionality
     path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),
+    
+    # vNext Migration: Legacy Teams Routing Layer
+    # Redirects /teams/ to Organizations when ORG_APP_ENABLED=True
+    # See docs/vnext/org-migration-plan.md
+    # Note: Organizations app already handles /teams/create/, /teams/<slug>/ at root level
+    # This only handles explicit /teams/ namespace URLs (legacy bookmarks, external links)
     path("teams/", include(("apps.teams.urls", "teams"), namespace="teams")),
+    
     path("", include(("apps.games.urls", "games"), namespace="games")),
     
     # API endpoints

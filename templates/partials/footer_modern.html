@@ -125,18 +125,32 @@
                             <span class="w-1 h-1 rounded-full bg-gray-600 group-hover:bg-dc-cyan group-hover:w-2 transition-all"></span>
                             Tournaments
                         </a>
+                        {% if ORG_APP_ENABLED %}
+                        <a href="/orgs/" class="group flex items-center gap-2 text-gray-400 hover:text-dc-cyan transition-colors text-sm">
+                            <span class="w-1 h-1 rounded-full bg-gray-600 group-hover:bg-dc-cyan group-hover:w-2 transition-all"></span>
+                            Organizations
+                        </a>
+                        {% else %}
                         <a href="/teams/" class="group flex items-center gap-2 text-gray-400 hover:text-dc-cyan transition-colors text-sm">
                             <span class="w-1 h-1 rounded-full bg-gray-600 group-hover:bg-dc-cyan group-hover:w-2 transition-all"></span>
                             Teams
                         </a>
+                        {% endif %}
                         <a href="/watch/" class="group flex items-center gap-2 text-gray-400 hover:text-dc-purple transition-colors text-sm">
                             <span class="w-1 h-1 rounded-full bg-gray-600 group-hover:bg-dc-purple group-hover:w-2 transition-all"></span>
                             Watch Arena
                         </a>
+                        {% if COMPETITION_APP_ENABLED %}
+                        <a href="{% url 'competition:rankings_global' %}" class="group flex items-center gap-2 text-gray-400 hover:text-dc-gold transition-colors text-sm">
+                            <span class="w-1 h-1 rounded-full bg-gray-600 group-hover:bg-dc-gold group-hover:w-2 transition-all"></span>
+                            Rankings
+                        </a>
+                        {% else %}
                         <a href="/leaderboards/" class="group flex items-center gap-2 text-gray-400 hover:text-dc-gold transition-colors text-sm">
                             <span class="w-1 h-1 rounded-full bg-gray-600 group-hover:bg-dc-gold group-hover:w-2 transition-all"></span>
                             Leaderboards
                         </a>
+                        {% endif %}
                         <a href="/community/" class="group flex items-center gap-2 text-gray-400 hover:text-dc-cyan transition-colors text-sm">
                             <span class="w-1 h-1 rounded-full bg-gray-600 group-hover:bg-dc-cyan group-hover:w-2 transition-all"></span>
                             Community

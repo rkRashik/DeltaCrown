@@ -1,29 +1,21 @@
 """
-Test settings for DeltaCrown using Neon Postgres test database.
+Test settings for DeltaCrown using local Postgres test database.
 
-IMPORTANT: This module requires DATABASE_URL_TEST environment variable.
-Never run tests against production database.
+IMPORTANT: Defaults to dockerized PostgreSQL on port 5433 if DATABASE_URL_TEST not set.
+Never run tests against production database or SQLite (incompatible with Postgres-specific features).
 """
 
 import os
 import sys
 from .settings import *
 
-# Safety check: Require explicit test database URL
+# Default to docker test DB if not explicitly set (Phase 15 fix)
 DATABASE_URL_TEST = os.getenv('DATABASE_URL_TEST')
 
 if not DATABASE_URL_TEST:
-    raise RuntimeError(
-        "\n"
-        "=" * 70 + "\n"
-        "ERROR: DATABASE_URL_TEST environment variable is required for tests.\n"
-        "=" * 70 + "\n\n"
-        "To run tests, you must set DATABASE_URL_TEST to a dedicated test database.\n"
-        "Example:\n"
-        "  export DATABASE_URL_TEST='postgresql://user:pass@host/testdb'\n\n"
-        "NEVER point DATABASE_URL_TEST to your production database.\n"
-        "Use a dedicated Neon test database or separate test instance.\n"
-    )
+    DATABASE_URL_TEST = 'postgresql://dcadmin:dcpass123@localhost:5433/deltacrown_test'
+    os.environ['DATABASE_URL_TEST'] = DATABASE_URL_TEST
+    # Note: conftest.py will show user-friendly message about docker compose
 
 # Safety check: Prevent using production DATABASE_URL
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -45,12 +37,28 @@ DATABASES = {
     'default': dj_database_url.parse(DATABASE_URL_TEST, conn_max_age=0)
 }
 
-# Ensure we're using PostgreSQL
+# Ensure we're using PostgreSQL (SQLite not supported)
 if DATABASES['default']['ENGINE'] != 'django.db.backends.postgresql':
     raise RuntimeError(
         f"Invalid database engine: {DATABASES['default']['ENGINE']}\n"
-        "Tests require PostgreSQL. Check your DATABASE_URL_TEST format."
+        "Tests require PostgreSQL only. SQLite is not supported due to Postgres-specific features.\n"
+        "Check your DATABASE_URL_TEST format: postgresql://user:pass@localhost:5432/dbname"
     )
+
+# Safety check: Refuse remote databases for tests (local only)
+# Allow localhost on any port (e.g., 5432, 54329 for Docker)
+db_host = DATABASES['default'].get('HOST', '')
+if db_host and db_host not in ['localhost', '127.0.0.1', '::1', '']:
+    # Block remote hosts like neon.tech, aws.com, etc.
+    if any(domain in db_host for domain in ['neon.tech', 'aws.', 'azure.', 'gcp.', 'supabase.', 'heroku.']):
+        raise RuntimeError(
+            "\n"
+            "=" * 70 + "\n"
+            f"FATAL: Remote database host '{db_host}' not allowed for tests\n"
+            "=" * 70 + "\n\n"
+            "Tests must use LOCAL database only (localhost/127.0.0.1).\n"
+            "Never run tests against remote databases (Neon, AWS, etc).\n"
+        )
 
 # Safety check: Database name must contain "test"
 db_name = DATABASES['default']['NAME']

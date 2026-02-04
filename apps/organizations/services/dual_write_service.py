@@ -79,7 +79,7 @@ class DualWriteSyncService:
             return {'success': True, 'skipped': True, 'reason': 'disabled'}
         
         try:
-            vnext_team = VNextTeam.objects.select_related('owner').get(id=vnext_team_id)
+            vnext_team = VNextTeam.objects.select_related('created_by').get(id=vnext_team_id)
         except VNextTeam.DoesNotExist:
             logger.error(f"sync_team_created: vNext team {vnext_team_id} not found")
             return {'success': False, 'error': 'vnext_team_not_found'}

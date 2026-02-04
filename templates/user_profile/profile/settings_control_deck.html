@@ -334,7 +334,7 @@
                     </div>
 
                     <div class="glass-panel p-1 mb-8 group overflow-hidden">
-                        <div class="relative h-40 md:h-56 bg-gray-800 rounded-t-[18px] overflow-hidden">
+                        <div class="relative aspect-[4/1] bg-gray-800 rounded-t-[18px] overflow-hidden">
                             <img id="banner-preview-img" src="{% if user_profile.banner %}{{ user_profile.banner.url }}{% else %}data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='480'%3E%3Crect fill='%231f2937' width='1920' height='480'/%3E%3C/svg%3E{% endif %}" class="w-full h-full object-cover {% if user_profile.banner %}opacity-60{% else %}opacity-20{% endif %}" data-preview="banner">
                             <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition cursor-pointer" onclick="document.getElementById('banner-upload').click()">
                                 <span class="bg-black/60 text-white px-5 py-2 rounded-full text-xs font-bold border border-white/20 hover:bg-white hover:text-black transition flex items-center gap-2">

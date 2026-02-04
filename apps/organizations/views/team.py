@@ -146,7 +146,7 @@ def team_create(request):
 
 
 @login_required
-def team_manage(request, team_slug):
+def team_manage(request, team_slug, org_slug=None):
     """
     Team management UI with roster operations (P3-T6).
     
@@ -162,21 +162,87 @@ def team_manage(request, team_slug):
     - Independent team: OWNER or MANAGER can manage
     - Org-owned team: Org CEO/MANAGER or team OWNER/MANAGER can manage
     
+    URL Patterns:
+    - Canonical: /orgs/<org_slug>/teams/<team_slug>/manage/ (when team has org)
+    - Alias: /teams/<team_slug>/manage/ (redirects to canonical if org exists)
+    
     Args:
         team_slug: Team URL slug
+        org_slug: Organization slug (optional, validates team belongs to org)
     
     Returns:
         - 200: Renders team_manage.html (Tailwind UI)
-        - 404: Team not found
-        - 302: Redirects if error
+        - 302: Redirects to canonical URL if accessed via alias
+        - 404: Team not found or org_slug mismatch
     """
     import json
     from apps.organizations.services.team_service import TeamService
     from apps.organizations.services.exceptions import NotFoundError
     from apps.organizations.models import Team, TeamMembership, OrganizationMembership
     from apps.organizations.choices import MembershipRole, MembershipStatus
+    from django.http import Http404
     
     try:
+        # Get team object for validation and permission check
+        team = Team.objects.select_related('organization').get(slug=team_slug)
+        
+        # Handle URL routing based on team type
+        if team.organization:
+            # Organization team - validate org_slug
+            if org_slug:
+                if team.organization.slug != org_slug:
+                    raise Http404(f"Team '{team_slug}' does not belong to organization '{org_slug}'")
+            else:
+                # No org_slug provided - redirect to canonical org URL
+                return redirect('organizations:org_team_manage', 
+                              org_slug=team.organization.slug, 
+                              team_slug=team_slug)
+        else:
+            # Independent team
+            if org_slug:
+                # Independent team accessed via org URL - 404
+                raise Http404(f"Team '{team_slug}' is an independent team, not part of organization '{org_slug}'")
+            # Continue normally for independent team
+        
+        # PERMISSION CHECK: Must be owner/creator, manager, or org admin
+        has_permission = False
+        
+        # Check if user created/owns the team
+        if team.created_by == request.user:
+            has_permission = True
+        
+        # For org teams, check org-level permissions
+        if team.organization and not has_permission:
+            org_membership = OrganizationMembership.objects.filter(
+                organization=team.organization,
+                user=request.user,
+                role__in=['CEO', 'MANAGER', 'ADMIN'],
+                status='ACTIVE'
+            ).first()
+            if org_membership:
+                has_permission = True
+        
+        # Check team-level permissions
+        if not has_permission:
+            team_membership = TeamMembership.objects.filter(
+                team=team,
+                user=request.user,
+                role__in=['MANAGER', 'COACH'],
+                status='ACTIVE'
+            ).first()
+            if team_membership:
+                has_permission = True
+        
+        # Deny access if no permission
+        if not has_permission and not request.user.is_superuser:
+            messages.error(request, "You don't have permission to manage this team.")
+            if team.organization:
+                return redirect('organizations:org_team_detail', 
+                              org_slug=team.organization.slug, 
+                              team_slug=team_slug)
+            else:
+                return redirect('organizations:team_detail', team_slug=team_slug)
+        
         # Get team data
         team_data = TeamService.get_team_detail(
             team_slug=team_slug,
@@ -184,44 +250,8 @@ def team_manage(request, team_slug):
             include_invites=True
         )
         
-        # Determine if user can manage team
-        can_manage = False
-        
-        # Get team object for permission check
-        team = Team.objects.select_related('organization').get(slug=team_slug)
-        
-        if team.organization:
-            # Org-owned team: Check if user is org CEO or MANAGER
-            org_membership = OrganizationMembership.objects.filter(
-                organization=team.organization,
-                user=request.user,
-                role__in=['CEO', 'MANAGER']
-            ).first()
-            
-            if org_membership:
-                can_manage = True
-            else:
-                # Also check if user is team OWNER or MANAGER
-                team_membership = TeamMembership.objects.filter(
-                    team=team,
-                    user=request.user,
-                    status=MembershipStatus.ACTIVE,
-                    role__in=[MembershipRole.OWNER, MembershipRole.MANAGER]
-                ).first()
-                
-                if team_membership:
-                    can_manage = True
-        else:
-            # Independent team: Check if user is OWNER or MANAGER
-            team_membership = TeamMembership.objects.filter(
-                team=team,
-                user=request.user,
-                status=MembershipStatus.ACTIVE,
-                role__in=[MembershipRole.OWNER, MembershipRole.MANAGER]
-            ).first()
-            
-            if team_membership:
-                can_manage = True
+        # can_manage already determined above by permission check
+        can_manage = has_permission
         
         logger.info(
             f"Team management accessed: {team_slug}",
@@ -233,18 +263,34 @@ def team_manage(request, team_slug):
             }
         )
         
-        return render(request, 'organizations/team/team_manage.html', {
-            'team': team_data['team'],
-            'team_data': json.dumps(team_data),
+        # HQ Template Context (minimal stubs for Phase 14)
+        # Template is self-contained, provide safe defaults
+        context = {
+            'team': team_data.get('team', {}),
+            'team_data': team_data,
             'can_manage': can_manage,
-        })
+            'page_title': f"{team_data.get('team', {}).get('name', 'Team')} - HQ",
+            # Stubs for HQ template sections (prevent crashes)
+            'roster': team_data.get('members', []),
+            'pending_invites': team_data.get('invites', []),
+            'stats': {},
+            'recent_matches': [],
+            'upcoming_events': [],
+            'team_achievements': [],
+            'training_sessions': [],
+            'media_gallery': [],
+            'settings': {},
+            'org_context': {'is_org_admin': False},
+        }
+        
+        return render(request, 'organizations/team/team_manage.html', context)
     
     except NotFoundError:
         messages.error(request, f'Team "{team_slug}" not found.')
         return redirect('/teams/')
 
 
-def team_detail(request, team_slug):
+def team_detail(request, team_slug, org_slug=None):
     """
     Public team detail display page (P4-T1).
     
@@ -260,18 +306,46 @@ def team_detail(request, team_slug):
     - Respects team privacy (public vs private)
     - Respects organization visibility settings
     
+    URL Patterns:
+    - Canonical: /orgs/<org_slug>/teams/<team_slug>/ (when team has organization)
+    - Alias: /teams/<team_slug>/ (redirects to canonical if org exists)
+    
     Args:
         team_slug: Team URL slug
+        org_slug: Organization slug (optional, validates team belongs to org)
     
     Returns:
         - 200: Renders team_detail.html (public display)
+        - 302: Redirects to canonical URL if accessed via alias
         - 403: Private team, user not a member
-        - 404: Team not found
+        - 404: Team not found or org_slug mismatch
     """
     from apps.organizations.services.team_detail_context import get_team_detail_context
     from apps.organizations.models import Team
+    from django.http import Http404
     
     try:
+        # Get team to validate org_slug and determine canonical URL
+        team = Team.objects.select_related('organization').get(slug=team_slug)
+        
+        # Handle URL routing based on team type
+        if team.organization:
+            # Organization team - validate org_slug
+            if org_slug:
+                if team.organization.slug != org_slug:
+                    raise Http404(f"Team '{team_slug}' does not belong to organization '{org_slug}'")
+            else:
+                # No org_slug - redirect to canonical org URL
+                return redirect('organizations:org_team_detail', 
+                              org_slug=team.organization.slug, 
+                              team_slug=team_slug)
+        else:
+            # Independent team
+            if org_slug:
+                # Independent team accessed via org URL - 404
+                raise Http404(f"Team '{team_slug}' is an independent team, not part of organization '{org_slug}'")
+            # Continue normally for independent team
+        
         # Build complete context using new contract-based builder
         context = get_team_detail_context(
             team_slug=team_slug,

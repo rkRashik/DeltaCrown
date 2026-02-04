@@ -30,24 +30,40 @@ User = get_user_model()
 def enforce_test_database():
     """
     Enforce use of DATABASE_URL_TEST for all pytest runs.
+    Defaults to dockerized PostgreSQL on port 54329.
     Prevents tests from running on Neon or any remote database.
+    Requires local PostgreSQL (SQLite not supported).
     """
     db_url = os.getenv('DATABASE_URL_TEST')
     
+    # Default to docker test DB if not set
     if not db_url:
-        pytest.exit(
-            "\n❌ DATABASE_URL_TEST not set. Tests require local postgres.\n"
-            "   Example: export DATABASE_URL_TEST='postgresql://localhost:5432/deltacrown_test'\n",
-            returncode=1
-        )
+        db_url = 'postgresql://dcadmin:dcpass123@localhost:5433/deltacrown_test'
+        os.environ['DATABASE_URL_TEST'] = db_url
+        print(f"\n💡 DATABASE_URL_TEST not set - using docker default: {db_url}")
+        print("   Run: docker compose -f ops/docker-compose.test.yml up -d\n")
     
     # Refuse to run on Neon or any non-local database
-    if 'neon.tech' in db_url or not any(host in db_url for host in ['localhost', '127.0.0.1', 'postgres:']):
+    if 'neon.tech' in db_url or ('postgresql://' in db_url and not any(host in db_url for host in ['localhost', '127.0.0.1', '::1'])):
         pytest.exit(
             f"\n❌ Tests cannot run on remote database: {db_url}\n"
             "   DATABASE_URL_TEST must point to localhost postgres.\n",
             returncode=1
         )
+    
+    # Check if docker DB is accessible
+    if 'localhost:54329' in db_url:
+        import psycopg2
+        try:
+            conn = psycopg2.connect(db_url)
+            conn.close()
+        except psycopg2.OperationalError:
+            pytest.exit(
+                "\n❌ Cannot connect to docker test database\n"
+                "   Run: docker compose -f ops/docker-compose.test.yml up -d\n"
+                "   Then: pytest\n",
+                returncode=1
+            )
     
     yield
 
@@ -55,14 +71,21 @@ def enforce_test_database():
 @pytest.fixture(scope='session', autouse=True)
 def setup_test_schema(django_db_setup, django_db_blocker):
     """
-    Create test schema if it doesn't exist (no CREATEDB privilege needed).
+    Create test schema if using PostgreSQL (no CREATEDB privilege needed).
     Schema isolation allows tests to run in production DB without conflicts.
+    Skips for SQLite (doesn't support schemas).
     """
+    if connection.vendor != 'postgresql':
+        # SQLite doesn't support schemas
+        yield
+        return
+        
     with django_db_blocker.unblock():
         with connection.cursor() as cursor:
             # Create schema if it doesn't exist (allowed without CREATEDB)
             cursor.execute("CREATE SCHEMA IF NOT EXISTS test_schema")
             # Set search_path for this connection
+            cursor.execute("SET search_path TO test_schema, public")
             cursor.execute("SET search_path TO test_schema, public")
     yield
     # Cleanup: Drop schema after all tests (optional, commented out for --reuse-db)

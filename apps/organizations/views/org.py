@@ -185,9 +185,9 @@ def org_hub(request, org_slug):
 
 
 @login_required
-def org_control_plane(request, org_slug):
+def org_manage(request, org_slug):
     """
-    Organization Control Plane - centralized management interface.
+    Organization management interface - centralized control panel.
     
     Access Control (via centralized permissions module):
     - Organization CEO (owner)
@@ -196,8 +196,46 @@ def org_control_plane(request, org_slug):
     
     Returns:
     - 403 if user lacks permission
-    - Control plane interface if authorized
+    - Management interface if authorized
     """
+    from apps.organizations.services.org_detail_service import get_org_detail_context
+    from django.shortcuts import get_object_or_404
+    from apps.organizations.models import Organization
+    from django.http import HttpResponseForbidden
+    
+    organization = get_object_or_404(Organization, slug=org_slug)
+    
+    # Get permission context
+    context = get_org_detail_context(
+        org_slug=org_slug,
+        viewer=request.user
+    )
+    
+    # Permission check: must be able to manage
+    if not context['can_manage_org'] and not request.user.is_staff:
+        return HttpResponseForbidden("You don't have permission to manage this organization.")
+    
+    logger.info(
+        f"Organization manage accessed: {org_slug}",
+        extra={
+            'event_type': 'org_manage_accessed',
+            'user_id': request.user.id,
+            'org_slug': org_slug,
+            'can_manage': context['can_manage_org'],
+        }
+    )
+    
+    return render(request, 'organizations/org/org_manage.html', context)
+
+
+@login_required
+def org_control_plane(request, org_slug):
+    """
+    Organization Control Plane - legacy alias for org_manage.
+    
+    Redirects to org_manage for consistency.
+    """
+    return redirect('organizations:org_manage', org_slug=org_slug)
     # Load organization
     organization = get_object_or_404(Organization, slug=org_slug)
     

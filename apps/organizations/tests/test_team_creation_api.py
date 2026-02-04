@@ -102,7 +102,7 @@ class TestTeamCreationAPI:
         # Verify team saved to database
         team = Team.objects.get(id=response.data['team_id'])
         assert team.name == 'Test Squad Alpha'
-        assert team.owner == user
+        assert team.created_by == user
         assert team.organization is None
         assert team.primary_color == '#FF5733'
         assert team.accent_color == '#C70039'
@@ -132,7 +132,7 @@ class TestTeamCreationAPI:
         # Verify team saved with organization FK
         team = Team.objects.get(id=response.data['team_id'])
         assert team.organization == organization
-        assert team.owner is None
+        assert team.created_by == user  # Org teams have creator, not owner
     
     def test_create_team_duplicate_tag_returns_409(self, api_client, user, game):
         """Test duplicate team tag returns 409 Conflict."""
@@ -144,7 +144,7 @@ class TestTeamCreationAPI:
             name='First Team Alpha',
             tag='TSM',
             organization=None,
-            owner=first_user,
+            created_by=first_user,
             game_id=game.id
         )
         
@@ -179,7 +179,7 @@ class TestTeamCreationAPI:
         TeamFactory.create(
             name='First Team Delta',
             organization=None,
-            owner=user,
+            created_by=user,
             game_id=game.id,
             status='ACTIVE'
         )

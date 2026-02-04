@@ -1,7 +1,7 @@
 """
 Django Admin configuration for vNext Organizations and Teams.
 
-COMPATIBILITY: vNext-only. Does NOT affect legacy team system.
+COMPATIBILITY: vNext-only. Uses canonical vNext Team model (organizations_team).
 QUERY OPTIMIZATION: Uses select_related and raw_id_fields to prevent N+1 queries.
 """
 
@@ -15,12 +15,25 @@ from apps.organizations.models import (
     OrganizationProfile,
     OrganizationMembership,
     OrganizationRanking,
-    # Team,  # DISABLED: Using legacy teams.Team
+    Team,  # vNext canonical Team model
     TeamMembership,
     TeamRanking,
     TeamActivityLog,
 )
-from apps.teams.models import Team  # Use legacy Team model
+
+
+class TeamInline(admin.TabularInline):
+    """Inline display of Teams owned by Organization."""
+    model = Team
+    extra = 0
+    fields = ['name', 'slug', 'game_id', 'region', 'status']
+    readonly_fields = ['slug']
+    can_delete = False
+    show_change_link = True
+    
+    def has_add_permission(self, request, obj=None):
+        """Teams should be created via UI."""
+        return False
 
 
 class OrganizationAdminForm(forms.ModelForm):
@@ -86,7 +99,7 @@ class OrganizationAdmin(admin.ModelAdmin):
     autocomplete_fields = ['ceo']
     ordering = ['-created_at']
     readonly_fields = ['public_id', 'uuid', 'id', 'created_at', 'updated_at', 'member_count', 'team_count']
-    inlines = [OrganizationProfileInline]
+    inlines = [OrganizationProfileInline, TeamInline]
     
     fieldsets = (
         ('Identity', {
@@ -203,38 +216,59 @@ class OrganizationRankingAdmin(admin.ModelAdmin):
     organization_link.admin_order_field = 'organization__name'
 
 
-# DISABLED: Team admin registered in apps.teams.admin (using legacy model)
-# @admin.register(Team)
-# class TeamAdmin(admin.ModelAdmin):
-#     """Admin interface for vNext Teams."""
-#     
-#     list_display = ['name', 'slug', 'game_id', 'region', 'owner_link', 'organization_link', 'status', 'created_at']
-#     search_fields = ['name', 'slug', 'owner__username', 'organization__name']
-#     list_filter = ['region', 'status', 'created_at']
-#     raw_id_fields = ['owner', 'organization']
-#     ordering = ['-created_at']
-#     readonly_fields = ['created_at', 'updated_at']
-#     
-#     fieldsets = (
-#         ('Basic Information', {
-#             'fields': ('name', 'slug', 'owner', 'organization', 'game_id', 'region', 'description')
-#         }),
-#         ('Branding', {
-#             'fields': ('logo', 'banner')
-#         }),
-#         ('Tournament Operations', {
-#             'fields': ('preferred_server', 'emergency_contact_discord', 'emergency_contact_phone'),
-#             'classes': ('collapse',),
-#         }),
-#         ('Status', {
-#             'fields': ('status', 'is_temporary', 'created_at', 'updated_at')
-#         }),
-#     )
-#     
-#     def get_queryset(self, request):
-#         """Optimize queries with select_related."""
-#         return super().get_queryset(request).select_related('owner', 'organization')
-#     
+# ENABLED: Team admin (vNext canonical model)
+@admin.register(Team)
+class TeamAdmin(admin.ModelAdmin):
+    """Admin interface for vNext Teams."""
+    
+    list_display = ['name', 'slug', 'game_id_display', 'region', 'created_by_link', 'organization_link', 'status', 'created_at']
+    search_fields = ['name', 'slug', 'created_by__username', 'organization__name']
+    list_filter = ['region', 'status', 'created_at']
+    raw_id_fields = ['created_by', 'organization']
+    ordering = ['-created_at']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'created_by', 'organization', 'game_id', 'region', 'description')
+        }),
+        ('Branding', {
+            'fields': ('logo', 'banner', 'primary_color', 'accent_color')
+        }),
+        ('Tournament Operations', {
+            'fields': ('preferred_server', 'emergency_contact_discord', 'emergency_contact_phone'),
+            'classes': ('collapse',),
+        }),
+        ('Status', {
+            'fields': ('status', 'is_temporary', 'created_at', 'updated_at')
+        }),
+    )
+    
+    def get_queryset(self, request):
+        """Optimize queries with select_related."""
+        return super().get_queryset(request).select_related('created_by', 'organization')
+    
+    def created_by_link(self, obj):
+        """Display creator with link to user admin."""
+        if obj.created_by:
+            return format_html('<a href="/admin/auth/user/{}/change/">{}</a>', obj.created_by.id, obj.created_by.username)
+        return '-'
+    created_by_link.short_description = 'Created By'
+    created_by_link.admin_order_field = 'created_by__username'
+    
+    def organization_link(self, obj):
+        """Display organization with link."""
+        if obj.organization:
+            return format_html('<a href="/admin/organizations/organization/{}/change/">{}</a>', obj.organization.id, obj.organization.name)
+        return 'Independent'
+    organization_link.short_description = 'Organization'
+    organization_link.admin_order_field = 'organization__name'
+    
+    def game_id_display(self, obj):
+        """Display game ID with formatting."""
+        return f"Game #{obj.game_id}" if obj.game_id else '-'
+    game_id_display.short_description = 'Game'
+    game_id_display.admin_order_field = 'game_id'
 #     def owner_link(self, obj):
 #         """Display owner with link to user admin."""
 #         if obj.owner:
@@ -499,21 +533,21 @@ class TeamRankingAdmin(admin.ModelAdmin):
 
 
 # =============================================================================
-# TEAM ADMIN PROXY (OPTION C: Legacy Team displayed in Organizations admin)
+# TEAM ADMIN PROXY (vNext Team displayed in Organizations admin)
 # =============================================================================
 
 class TeamAdminProxy(Team):
     """
-    Proxy model for Legacy Team to appear in Organizations admin.
+    Proxy model for vNext Team to appear in Organizations admin.
     
-    Purpose: Display Legacy Teams under "Organizations (vNext)" admin category
-    without creating a new model or migration. Uses the authoritative Legacy Team
-    model from apps.teams.models.Team.
+    Purpose: Display vNext Teams (organizations_team table) under "Organizations (vNext)" admin category
+    without duplicating admin registration. Uses the canonical vNext Team model.
     
-    Architecture Note (OPTION C):
-    - Legacy Team is the ONLY authoritative team model
+    Architecture Note:
+    - vNext Team (organizations_team) is the canonical team model
     - This proxy just changes admin display location
     - No schema changes, no new table
+    - Legacy teams (teams_team) are deprecated
     """
     class Meta:
         proxy = True
@@ -524,23 +558,42 @@ class TeamAdminProxy(Team):
 @admin.register(TeamAdminProxy)
 class TeamAdminProxyAdmin(admin.ModelAdmin):
     """
-    Admin interface for Legacy Teams displayed in Organizations section.
+    Admin interface for vNext Teams displayed in Organizations section.
     
-    Shows minimal, safe fields that exist on Legacy Team model.
-    Avoids any invalid relations to Organization (which doesn't own teams yet).
+    Shows fields from vNext Team model (organizations_team table).
+    This is the canonical team model going forward.
+    
+    Phase 7: Correct field mappings, proper ownership display.
     """
-    list_display = ['name', 'slug', 'game', 'region', 'is_active', 'is_public', 'created_at']
+    list_display = ['name', 'slug', 'game_display', 'region', 'status', 'team_type_display', 'created_by_display', 'created_at']
     search_fields = ['name', 'slug', 'tag']
-    list_filter = ['region', 'is_active', 'is_public', 'created_at']
+    list_filter = ['region', 'status', 'visibility', 'created_at', 'organization']
     ordering = ['-created_at']
     readonly_fields = ['created_at', 'updated_at', 'slug']
+    raw_id_fields = ['created_by', 'organization']
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'slug', 'tag', 'tagline', 'game', 'region')
+            'fields': ('name', 'slug', 'tag', 'tagline', 'game_id', 'region', 'description')
         }),
-        ('Status', {
-            'fields': ('is_active', 'is_public', 'is_featured')
+        ('Ownership', {
+            'fields': ('organization', 'created_by'),
+            'description': 'Organization-owned OR independent team (created_by is owner for independent teams)'
+        }),
+        ('Branding', {
+            'fields': ('logo', 'banner', 'primary_color', 'accent_color'),
+            'classes': ('collapse',)
+        }),
+        ('Status & Visibility', {
+            'fields': ('status', 'visibility', 'is_temporary')
+        }),
+        ('Tournament Operations', {
+            'fields': ('preferred_server', 'emergency_contact_discord', 'emergency_contact_phone'),
+            'classes': ('collapse',)
+        }),
+        ('Social Media', {
+            'fields': ('twitter_url', 'instagram_url', 'youtube_url', 'twitch_url'),
+            'classes': ('collapse',)
         }),
         ('Metadata', {
             'fields': ('created_at', 'updated_at'),
@@ -548,11 +601,42 @@ class TeamAdminProxyAdmin(admin.ModelAdmin):
         }),
     )
     
+    def get_queryset(self, request):
+        """Optimize queries with select_related."""
+        return super().get_queryset(request).select_related('created_by', 'organization')
+    
+    def game_display(self, obj):
+        """Display game name from ID."""
+        try:
+            from apps.games.models import Game
+            game = Game.objects.filter(id=obj.game_id).first()
+            return game.display_name if game else f'Game #{obj.game_id}'
+        except Exception:
+            return f'Game #{obj.game_id}'
+    game_display.short_description = 'Game'
+    game_display.admin_order_field = 'game_id'
+    
+    def created_by_display(self, obj):
+        """Display creator/owner with link."""
+        if obj.created_by:
+            return format_html('<a href="/admin/auth/user/{}/change/">{}</a>', obj.created_by.id, obj.created_by.username)
+        return '-'
+    created_by_display.short_description = 'Created By'
+    created_by_display.admin_order_field = 'created_by__username'
+    
+    def team_type_display(self, obj):
+        """Display whether team is independent or org-owned."""
+        if obj.organization:
+            return format_html('<a href="/admin/organizations/organization/{}/change/">{}</a>', obj.organization.id, obj.organization.name)
+        return 'Independent'
+    team_type_display.short_description = 'Type'
+    team_type_display.admin_order_field = 'organization__name'
+    
     def has_add_permission(self, request):
-        """Disable creating teams from this proxy admin."""
+        """Teams should be created via UI, not admin."""
         return False
     
     def has_delete_permission(self, request, obj=None):
-        """Disable deleting teams from this proxy admin."""
-        return False
+        """Restrict team deletion to prevent data loss."""
+        return request.user.is_superuser
 

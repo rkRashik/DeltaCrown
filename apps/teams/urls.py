@@ -44,8 +44,8 @@ from .views.player_views import (
     team_room_view,
 )
 
-# Rankings views
-from .views.rankings import (
+# Rankings views (archived - used only when COMPETITION_APP_ENABLED=0)
+from .views._legacy.rankings import (
     game_leaderboard_view,
     global_leaderboard_view,
 )
@@ -221,27 +221,100 @@ HAS_DRF = True
 
 app_name = "teams"
 
+# Phase 5 Migration: Redirect handler for legacy teams when ORG_APP_ENABLED
+from django.conf import settings
+from django.shortcuts import redirect
+
+def _teams_index_redirect(request):
+    """
+    Phase 6: Strict redirect/lockdown for /teams/ index.
+    - ORG_APP_ENABLED=1 → redirect to /orgs/
+    - ORG_APP_ENABLED=0 + LEGACY_TEAMS_ENABLED=1 → show legacy teams list
+    - LEGACY_TEAMS_ENABLED=0 → 404 (legacy locked down)
+    """
+    if getattr(settings, 'ORG_APP_ENABLED', False):
+        return redirect('organizations:org_directory')
+    
+    # Check if legacy teams are allowed as fallback
+    if not getattr(settings, 'LEGACY_TEAMS_ENABLED', False):
+        from django.http import Http404
+        raise Http404("Legacy Teams has been disabled. Use Organizations app.")
+    
+    # Fallback to legacy teams list view
+    return team_list(request)
+
+def _teams_rankings_redirect(request, game_slug=None):
+    """
+    Phase 6: Strict redirect/lockdown for /teams/rankings/.
+    - COMPETITION_APP_ENABLED=1 → redirect to /competition/rankings/
+    - COMPETITION_APP_ENABLED=0 + LEGACY_TEAMS_ENABLED=1 → show legacy leaderboards
+    - Both disabled → 404 (legacy rankings locked down)
+    """
+    if getattr(settings, 'COMPETITION_APP_ENABLED', False):
+        if game_slug:
+            return redirect('competition:rankings_game', game_id=game_slug)
+        return redirect('competition:rankings_global')
+    
+    # Check if legacy rankings are allowed as fallback
+    if not getattr(settings, 'LEGACY_TEAMS_ENABLED', False):
+        from django.http import Http404
+        raise Http404("Legacy Leaderboards disabled. Use Competition app.")
+    
+    # Fallback to legacy rankings view
+    if game_slug:
+        return game_leaderboard_view(request, game_slug)
+    return global_leaderboard_view(request)
+
+def _teams_hub_redirect(request):
+    """
+    Phase 6: Canonical Teams Hub routing.
+    - ORG_APP_ENABLED=1 → redirect to Organizations vnext_hub
+    - ORG_APP_ENABLED=0 + LEGACY_TEAMS_ENABLED=1 → show legacy teams hub
+    - LEGACY_TEAMS_ENABLED=0 → 404
+    """
+    if getattr(settings, 'ORG_APP_ENABLED', False):
+        return redirect('organizations:vnext_hub')
+    
+    # Check if legacy teams hub is allowed as fallback
+    if not getattr(settings, 'LEGACY_TEAMS_ENABLED', False):
+        from django.http import Http404
+        raise Http404("Legacy Teams has been disabled. Use Organizations app.")
+    
+    # Fallback to legacy teams hub
+    return team_hub(request)
+
 urlpatterns = [
+    # Phase 6: Canonical Teams Hub - Routes to Organizations vnext_hub when ORG_APP_ENABLED=1
+    path("vnext/", _teams_hub_redirect, name="teams_hub"),
+    
+    # Phase 5: Legacy Teams Migration - Conditional Redirect
+    # When ORG_APP_ENABLED=True, /teams/ redirects to /orgs/
+    # This makes Organizations the canonical owner, legacy teams is fallback only
+    path("", _teams_index_redirect, name="index"),
+    path("", _teams_index_redirect, name="hub"),
+    
     # Team Management Console (Admin/Staff only)
     path("management/", team_management_console, name="management_console"),
     
-    # Team List - Now the main landing page (removed hub redirect)
-    path("", team_list, name="index"),
-    path("", team_list, name="hub"),
+    # Legacy teams list views (only used when ORG_APP_ENABLED=False)
     path("list/", team_list, name="list"),
     # Backwards-compatibility alias: 'teams:browse' used across multiple templates
     path('browse/', team_list, name='browse'),
     
-    # Rankings and leaderboards
-    path("rankings/", global_leaderboard_view, name="rankings"),  # Global leaderboard
-    path("rankings/", global_leaderboard_view, name="global_rankings"),  # Alias
-    path("rankings/<slug:game_slug>/", game_leaderboard_view, name="game_rankings"),  # Per-game
+    # Phase 5: Legacy Rankings Migration - Conditional Redirect
+    # When COMPETITION_APP_ENABLED=True, /teams/rankings/ redirects to /competition/rankings/
+    # This makes Competition the canonical owner of rankings/leaderboards
+    path("rankings/", _teams_rankings_redirect, name="rankings"),
+    path("rankings/", _teams_rankings_redirect, name="global_rankings"),
+    path("rankings/<slug:game_slug>/", _teams_rankings_redirect, name="game_rankings"),
     
     # About Teams Information Page
     path("about/", about_teams, name="about"),
     
-    # Team Creation
-    path("create/", team_create_view, name="create"),
+    # Team Creation - Redirects to Organizations canonical route when ORG_APP_ENABLED
+    # Legacy /teams/create/ is deprecated - use /teams/create/ (handled by Organizations app)
+    # This redirect ensures any hardcoded /teams/create/ links route to canonical UI
+    path("create/", lambda request: redirect('organizations:team_create') if getattr(settings, 'ORG_APP_ENABLED', False) else team_create_view(request), name="create"),
     path("setup/<slug:slug>/", team_setup_view, name="setup"),  # Post-creation setup
     path("<slug:slug>/update-settings/", update_team_settings, name="update_settings"),  # Settings update
     path("create/resume/", create_team_resume_view, name="create_team_resume"),
