@@ -46,12 +46,18 @@ class TeamMembership(models.Model):
         help_text="User on the roster"
     )
     
-    # Game (denormalized for constraint enforcement)
-    # Automatically set from team.game_id on save
+    # Denormalized fields for constraint enforcement
+    # Automatically set from team on save
     game_id = models.IntegerField(
         db_index=True,
         default=1,  # Temporary default for migration, will be auto-populated from team
         help_text="Game ID (denormalized from team for constraint: one team per game per user)"
+    )
+    organization_id = models.IntegerField(
+        db_index=True,
+        null=True,
+        blank=True,
+        help_text="Organization ID (denormalized from team for constraint: distinguish org vs independent teams)"
     )
     
     # Status
@@ -115,11 +121,13 @@ class TeamMembership(models.Model):
                 condition=Q(status=MembershipStatus.ACTIVE),
                 name='one_active_membership_per_user_team'
             ),
-            # ONE TEAM PER GAME PER USER (core platform rule)
+            # ONE INDEPENDENT TEAM PER GAME PER USER (core platform rule)
+            # Only applies to independent teams (organization_id IS NULL)
+            # Organization teams can have multiple members for same game
             models.UniqueConstraint(
                 fields=['user', 'game_id'],
-                condition=Q(status=MembershipStatus.ACTIVE),
-                name='one_active_team_per_game_per_user'
+                condition=Q(status=MembershipStatus.ACTIVE, organization_id__isnull=True),
+                name='one_active_independent_team_per_game_per_user'
             ),
             # Only one tournament captain per team
             models.UniqueConstraint(
@@ -224,11 +232,15 @@ class TeamMembership(models.Model):
     
     def save(self, *args, **kwargs):
         """
-        Override save to auto-populate game_id from team.
+        Override save to auto-populate denormalized fields from team.
         
-        This enables the one-team-per-game constraint.
+        - game_id: Enables one-independent-team-per-game constraint
+        - organization_id: Distinguishes independent vs org teams
         """
-        if self.team_id and not self.game_id:
-            # Auto-populate game_id from team
-            self.game_id = self.team.game_id
+        if self.team_id:
+            # Auto-populate game_id and organization_id from team
+            if not self.game_id:
+                self.game_id = self.team.game_id
+            # Always sync organization_id (could change if team transferred)
+            self.organization_id = self.team.organization_id
         super().save(*args, **kwargs)

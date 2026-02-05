@@ -398,7 +398,16 @@ function submitOrganization() {
     .then(data => {
         if (data.ok) {
             // Success - redirect to organization page
-            window.location.href = data.organization_url;
+            // API returns data nested under 'data' key
+            const orgUrl = data.data?.organization_url || data.organization_url;
+            if (orgUrl) {
+                window.location.href = orgUrl;
+            } else {
+                console.error('No organization_url in response:', data);
+                alert('Organization created but redirect URL not found. Please check your organizations.');
+                submitBtn.innerHTML = originalHTML;
+                submitBtn.disabled = false;
+            }
         } else {
             // Handle field errors
             handleFieldErrors(data.field_errors || {});

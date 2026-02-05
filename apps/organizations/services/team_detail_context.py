@@ -181,12 +181,35 @@ def _build_viewer_context(viewer: Optional[User], role: str) -> Dict[str, Any]:
 
 
 def _build_permissions(team: Team, viewer: Optional[User], role: str) -> Dict[str, bool]:
-    """Build permissions flags using TeamMembership.get_permission_list()."""
-    from apps.organizations.models import TeamMembership
+    """Build permissions flags using TeamMembership.get_permission_list() and Organization CEO check."""
+    from apps.organizations.models import TeamMembership, Organization
     from apps.organizations.choices import MembershipStatus
     
     # Use schema-resilient visibility check
     can_view_private = _check_team_accessibility(team, viewer)
+    
+    # CRITICAL FIX: Check if viewer is Organization CEO (has all permissions)
+    is_org_ceo = False
+    if viewer and viewer.is_authenticated and team.organization_id:
+        try:
+            org = Organization.objects.get(id=team.organization_id)
+            if org.ceo_id == viewer.id:
+                is_org_ceo = True
+        except Organization.DoesNotExist:
+            pass
+    
+    # Organization CEO has all permissions even without explicit membership
+    if is_org_ceo:
+        return {
+            'can_view_private': True,
+            'can_edit_team': True,
+            'can_manage_roster': True,
+            'can_invite': True,
+            'can_view_operations': True,
+            'can_view_financial': True,
+            'can_report_matches': True,
+            'is_member': True,  # CEO is implicitly a member
+        }
     
     # Get actual permissions from membership
     if viewer and viewer.is_authenticated:
@@ -209,6 +232,7 @@ def _build_permissions(team: Team, viewer: Optional[User], role: str) -> Dict[st
                 'can_view_operations': has_all or role in ('OWNER', 'STAFF', 'MEMBER'),
                 'can_view_financial': has_all or role == 'OWNER',
                 'can_report_matches': can_report_matches,
+                'is_member': True,
             }
     
     # Anonymous or non-member: no permissions
@@ -220,6 +244,7 @@ def _build_permissions(team: Team, viewer: Optional[User], role: str) -> Dict[st
         'can_view_operations': False,
         'can_view_financial': False,
         'can_report_matches': False,
+        'is_member': False,
     }
 
 

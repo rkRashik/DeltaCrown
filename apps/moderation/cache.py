@@ -100,14 +100,10 @@ def invalidate_user_sanctions(user_id: int) -> None:
     # In production, consider using cache tags or Redis SCAN for pattern deletion
     # For now, we invalidate known patterns on specific operations
     
-    # Attempt pattern-based deletion if Redis backend supports it
-    try:
-        pattern = f"moderation:user:{user_id}:tournament:*:sanctions"
-        if hasattr(cache, 'delete_pattern'):
-            deleted = cache.delete_pattern(pattern)
-            logger.info(f"Cache INVALIDATE pattern {pattern}: {deleted} keys deleted")
-    except Exception as e:
-        logger.warning(f"Pattern deletion failed (not supported by cache backend): {e}")
+    # Attempt pattern-based deletion using safe helper
+    from apps.organizations.services.cache_invalidation import safe_cache_delete_pattern
+    pattern = f"moderation:user:{user_id}:tournament:*:sanctions"
+    safe_cache_delete_pattern(pattern)
 
 
 def invalidate_tournament_sanctions(user_id: int, tournament_id: int) -> None:

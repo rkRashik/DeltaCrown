@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="200" height="200" fill="none">
+  <defs>
+    <linearGradient id="neonFluid" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7c3aed" /> <stop offset="50%" style="stop-color:#2563eb" /> <stop offset="100%" style="stop-color:#06b6d4" /> </linearGradient>
+
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g transform="translate(60, 65)">
+
+    <g opacity="0.7">
+      <circle cx="-28" cy="-15" r="8" fill="url(#neonFluid)" />
+      <path d="M-28 0 C-38 0 -45 10 -45 25 C-45 35 -35 45 -15 45 L0 45 L-10 25 C-15 15 -20 0 -28 0 Z"
+            fill="url(#neonFluid)" />
+    </g>
+
+    <g opacity="0.7">
+      <circle cx="28" cy="-15" r="8" fill="url(#neonFluid)" />
+      <path d="M28 0 C38 0 45 10 45 25 C45 35 35 45 15 45 L0 45 L10 25 C15 15 20 0 28 0 Z"
+            fill="url(#neonFluid)" />
+    </g>
+
+    <g filter="url(#softGlow)">
+      <circle cx="0" cy="-25" r="10" fill="url(#neonFluid)" />
+      <path d="M0 -5 C-12 -5 -18 10 -18 30 C-18 42 -10 45 0 45 C10 45 18 42 18 30 C18 10 12 -5 0 -5 Z"
+            fill="url(#neonFluid)" />
+    </g>
+
+  </g>
+</svg>

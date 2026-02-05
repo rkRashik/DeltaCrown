@@ -333,6 +333,17 @@
     position: relative;
     overflow: hidden;
   }
+
+  /* Ensure team logo fills the frame (no "floating icon" look) */
+  .dc-team-logo {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    border-radius: 1.55rem;
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 28px var(--team-glow));
+  }
   .logo-slab__inner::after{
     content:"";
     position:absolute; inset:-60%;

@@ -51,10 +51,11 @@ def get_org_detail_context(org_slug, viewer):
     # Phase 10: Fetch org teams with rankings from CompetitionService
     from apps.organizations.models import Team
     
+    # Note: Team has game_id (IntegerField), not a ForeignKey, so we can't select_related('game')
     active_teams = Team.objects.filter(
         organization=organization,
         status='ACTIVE'
-    ).select_related('game', 'created_by').order_by('-created_at')[:20]
+    ).select_related('created_by').order_by('-created_at')[:20]
     
     active_teams_count = active_teams.count()
     

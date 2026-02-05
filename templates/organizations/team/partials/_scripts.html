@@ -3,15 +3,17 @@
 
         // 1. STICKY NAV GLASSPHILLIC EFFECT
         const nav = document.getElementById("dc-subnav");
-        window.addEventListener("scroll", () => {
-          if (window.scrollY > 400) {
-            nav.classList.add("bg-[#000]/90", "backdrop-blur-xl", "shadow-2xl");
-            nav.classList.remove("bg-[#000]/80", "backdrop-blur-md");
-          } else {
-            nav.classList.remove("bg-[#000]/90", "backdrop-blur-xl", "shadow-2xl");
-            nav.classList.add("bg-[#000]/80", "backdrop-blur-md");
-          }
-        });
+        if (nav) {
+          window.addEventListener("scroll", () => {
+            if (window.scrollY > 400) {
+              nav.classList.add("bg-[#000]/90", "backdrop-blur-xl", "shadow-2xl");
+              nav.classList.remove("bg-[#000]/80", "backdrop-blur-md");
+            } else {
+              nav.classList.remove("bg-[#000]/90", "backdrop-blur-xl", "shadow-2xl");
+              nav.classList.add("bg-[#000]/80", "backdrop-blur-md");
+            }
+          });
+        }
 
         // 2. SCROLLSPY (Highlight Nav Items on Scroll)
         const sections = document.querySelectorAll("section[id]");

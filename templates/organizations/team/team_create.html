@@ -1,3 +1,4 @@
+{# TEAM_CREATE_TEMPLATE_SIG=vNext-2026-02-05-A #}
 {% extends "base.html" %}
 {% load static %}
 
@@ -35,7 +36,6 @@
                     }
                 },
                 backgroundImage: {
-                    'noise': "url('https://grainy-gradients.vercel.app/noise.svg')",
                     'cyber-grid': "linear-gradient(rgba(108, 0, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(108, 0, 255, 0.05) 1px, transparent 1px)",
                     'crown-gradient': 'linear-gradient(135deg, #FFD700 0%, #6C00FF 50%, #00E5FF 100%)',
                     'card-hover': 'linear-gradient(180deg, rgba(108, 0, 255, 0.05) 0%, rgba(0, 229, 255, 0.05) 100%)',
@@ -149,7 +149,7 @@
             </div>
 
             <div class="mb-2">
-                <button class="flex items-center gap-3 px-6 py-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 hover:border-delta-electric/50 transition-all group">
+                <button type="button" class="flex items-center gap-3 px-6 py-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 hover:border-delta-electric/50 transition-all group" data-action="open-help">
                     <div class="w-8 h-8 rounded-full bg-delta-electric/10 flex items-center justify-center text-delta-electric group-hover:scale-110 transition-transform">
                         <i class="fas fa-book-open"></i>
                     </div>
@@ -165,25 +165,44 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
 
         <div class="lg:col-span-8">
+            
+            <!-- Warning Banner: User Already Owns Team (shown dynamically) -->
+            <div id="existingTeamWarning" class="hidden mb-8 p-6 bg-yellow-500/10 border-2 border-yellow-500/30 rounded-xl">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-yellow-400 text-2xl"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-yellow-400 mb-2">You Already Own a Team for This Game</h3>
+                        <p class="text-slate-300 mb-4" id="existingTeamMessage">
+                            You can only own one active independent team per game. Manage your existing team or disband it to create a new one.
+                        </p>
+                        <a href="#" id="existingTeamLink" class="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 rounded-lg text-yellow-300 font-bold transition-all">
+                            <i class="fas fa-arrow-right"></i>
+                            <span>Manage Existing Team</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
 
             <div class="mb-10">
                 <div class="flex items-center justify-between relative">
                     <div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-white/5 rounded-full -z-10"></div>
                     <div class="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-crown-gradient rounded-full -z-10 transition-all duration-500 shadow-glow-violet" style="width: 25%" id="progressBar"></div>
 
-                    <div class="step-indicator active flex flex-col items-center gap-3 cursor-pointer" onclick="goToStep(1)">
+                    <div class="step-indicator active flex flex-col items-center gap-3 cursor-pointer">
                         <div class="w-12 h-12 rounded-full bg-delta-surface text-delta-electric flex items-center justify-center font-bold font-cyber border-2 border-delta-electric shadow-glow-electric transition-all">1</div>
                         <span class="text-[10px] font-bold uppercase text-delta-electric tracking-widest">Combat Zone</span>
                     </div>
-                    <div class="step-indicator flex flex-col items-center gap-3 opacity-40 cursor-pointer hover:opacity-70 transition-opacity" onclick="goToStep(2)">
+                    <div class="step-indicator flex flex-col items-center gap-3 opacity-40 cursor-pointer hover:opacity-70 transition-opacity">
                         <div class="w-12 h-12 rounded-full bg-delta-surface text-slate-400 flex items-center justify-center font-bold font-cyber border-2 border-white/10">2</div>
                         <span class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Identity</span>
                     </div>
-                    <div class="step-indicator flex flex-col items-center gap-3 opacity-40 cursor-pointer hover:opacity-70 transition-opacity" onclick="goToStep(3)">
+                    <div class="step-indicator flex flex-col items-center gap-3 opacity-40 cursor-pointer hover:opacity-70 transition-opacity">
                         <div class="w-12 h-12 rounded-full bg-delta-surface text-slate-400 flex items-center justify-center font-bold font-cyber border-2 border-white/10">3</div>
                         <span class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Roster</span>
                     </div>
-                    <div class="step-indicator flex flex-col items-center gap-3 opacity-40 cursor-pointer hover:opacity-70 transition-opacity" onclick="goToStep(4)">
+                    <div class="step-indicator flex flex-col items-center gap-3 opacity-40 cursor-pointer hover:opacity-70 transition-opacity">
                         <div class="w-12 h-12 rounded-full bg-delta-surface text-slate-400 flex items-center justify-center font-bold font-cyber border-2 border-white/10">4</div>
                         <span class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Launch</span>
                     </div>
@@ -205,7 +224,7 @@
                     <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                         {% for game in games %}
                         <label class="cursor-pointer group relative">
-                            <input type="radio" name="game" value="{{ game.slug }}" class="game-radio hidden" onchange="validateStep(1); updatePreview()">
+                            <input type="radio" name="game" value="{{ game.slug }}" class="game-radio hidden">
                             <div class="relative h-36 rounded-2xl bg-delta-surface border border-white/5 hover:border-delta-electric/50 transition-all overflow-hidden flex flex-col items-center justify-center gap-3 group-hover:-translate-y-1">
                                 <div class="check-icon absolute top-3 right-3 w-6 h-6 bg-delta-electric rounded-full flex items-center justify-center text-delta-base text-xs opacity-0 transform scale-0 transition-all duration-300 z-20 font-bold"><i class="fas fa-check"></i></div>
                                 <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 z-10 group-hover:bg-delta-electric/10 transition-colors">
@@ -228,7 +247,7 @@
                     </div>
 
                     <div class="mt-10 flex justify-end">
-                        <button type="button" onclick="nextStep(2)" class="btn-primary px-10 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 group">
+                        <button type="button" id="btnDefineIdentity" data-action="next" data-step="2" class="btn-primary px-10 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 group">
                             Define Identity <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
                         </button>
                     </div>
@@ -246,7 +265,7 @@
                             <label class="block text-xs font-bold text-delta-electric uppercase tracking-widest mb-4">Command Structure <span class="text-delta-danger">*</span></label>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <label class="cursor-pointer group">
-                                    <input type="radio" name="org_status" value="independent" class="peer hidden" checked onchange="toggleOrgPanel(false); updatePreview()">
+                                    <input type="radio" name="org_status" value="independent" class="peer hidden" checked>
                                     <div class="h-full p-6 bg-delta-surface border-2 border-white/10 rounded-xl hover:border-delta-electric/50 peer-checked:border-delta-electric peer-checked:bg-delta-electric/5 transition-all flex flex-col gap-3 relative overflow-hidden">
                                         <div class="absolute top-0 right-0 p-2 opacity-0 peer-checked:opacity-100 transition-opacity">
                                             <i class="fas fa-check-circle text-delta-electric text-xl"></i>
@@ -262,7 +281,7 @@
                                 </label>
 
                                 <label class="cursor-pointer group">
-                                    <input type="radio" name="org_status" value="organization" class="peer hidden" onchange="toggleOrgPanel(true); updatePreview()">
+                                    <input type="radio" name="org_status" value="organization" class="peer hidden">
                                     <div class="h-full p-6 bg-delta-surface border-2 border-white/10 rounded-xl hover:border-delta-gold/50 peer-checked:border-delta-gold peer-checked:bg-delta-gold/5 transition-all flex flex-col gap-3 relative overflow-hidden">
                                         <div class="absolute top-0 right-0 p-2 opacity-0 peer-checked:opacity-100 transition-opacity">
                                             <i class="fas fa-check-circle text-delta-gold text-xl"></i>
@@ -287,7 +306,7 @@
                                 <div class="relative z-10">
                                     <label class="block text-xs font-bold text-delta-gold uppercase tracking-widest mb-2">Select Parent Organization</label>
                                     <div class="relative">
-                                        <select id="orgSelect" class="w-full bg-black/80 border border-delta-gold/30 rounded-lg py-3 pl-4 pr-10 text-sm text-white focus:outline-none focus:border-delta-gold appearance-none cursor-pointer hover:bg-black/60 transition-colors" onchange="updatePreview()">
+                                        <select id="orgSelect" class="w-full bg-black/80 border border-delta-gold/30 rounded-lg py-3 pl-4 pr-10 text-sm text-white focus:outline-none focus:border-delta-gold appearance-none cursor-pointer hover:bg-black/60 transition-colors">
                                             {% if user_organizations %}
                                                 <option value="" disabled selected>Choose from your organizations...</option>
                                                 {% for org in user_organizations %}
@@ -304,7 +323,7 @@
                                 </div>
                                 <div class="relative z-10 pt-2 border-t border-white/5">
                                     <label class="flex items-center gap-3 cursor-pointer">
-                                        <input type="checkbox" id="inheritBranding" class="w-4 h-4 rounded border-delta-gold/50 bg-black text-delta-gold focus:ring-0" onchange="toggleBrandingStep(this.checked)">
+                                        <input type="checkbox" id="inheritBranding" class="w-4 h-4 rounded border-delta-gold/50 bg-black text-delta-gold focus:ring-0">
                                         <span class="text-sm text-slate-300">Inherit Organization Branding (Logo & Banner)</span>
                                     </label>
                                 </div>
@@ -315,7 +334,7 @@
                             <div class="group">
                                 <label class="block text-xs font-bold text-white uppercase tracking-widest mb-2">Squad Name <span class="text-delta-danger">*</span></label>
                                 <div class="relative">
-                                    <input type="text" id="inputName" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 pr-12 text-white font-ui focus:outline-none focus:border-delta-electric focus:shadow-glow-electric transition-all placeholder-slate-600" placeholder="e.g. Protocol V" oninput="validateField(this); updatePreview()" onblur="validateField(this)">
+                                    <input type="text" id="inputName" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 pr-12 text-white font-ui focus:outline-none focus:border-delta-electric focus:shadow-glow-electric transition-all placeholder-slate-600" placeholder="e.g. Protocol V">
                                     <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 status-icon transition-colors duration-300">
                                         <i class="fas fa-asterisk text-[10px]"></i>
                                     </div>
@@ -330,13 +349,13 @@
                                 <div class="md:col-span-1">
                                     <label class="block text-xs font-bold text-white uppercase tracking-widest mb-2">Tag <span class="text-delta-danger">*</span></label>
                                     <div class="relative">
-                                        <input type="text" id="inputTag" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 text-white font-cyber uppercase tracking-widest focus:outline-none focus:border-delta-gold focus:shadow-glow-gold transition-all placeholder-slate-600" placeholder="PRV" maxlength="5" oninput="validateField(this); updatePreview()">
+                                        <input type="text" id="inputTag" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 text-white font-cyber uppercase tracking-widest focus:outline-none focus:border-delta-gold focus:shadow-glow-gold transition-all placeholder-slate-600" placeholder="PRV" maxlength="5">
                                     </div>
-                                    <p class="text-[10px] text-slate-400 mt-2">Max 5 chars.</p>
+                                    <p id="tagValidationMsg" class="text-[10px] text-slate-400 mt-2">Max 5 chars.</p>
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="block text-xs font-bold text-slate-300 uppercase tracking-widest mb-2">Motto (Optional)</label>
-                                    <input type="text" id="inputTagline" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 text-slate-300 font-ui focus:outline-none focus:border-delta-violet transition-all placeholder-slate-600" placeholder="e.g. Silence is Golden" oninput="updatePreview()">
+                                    <input type="text" id="inputTagline" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-4 text-slate-300 font-ui focus:outline-none focus:border-delta-violet transition-all placeholder-slate-600" placeholder="e.g. Silence is Golden">
                                 </div>
                             </div>
 
@@ -348,10 +367,10 @@
                     </div>
 
                     <div class="mt-10 flex justify-between">
-                        <button type="button" onclick="prevStep(1)" class="px-6 py-3 text-slate-400 hover:text-white font-cyber font-bold uppercase text-xs tracking-wider transition-colors flex items-center gap-2">
+                        <button type="button" data-action="prev" data-step="1" class="px-6 py-3 text-slate-400 hover:text-white font-cyber font-bold uppercase text-xs tracking-wider transition-colors flex items-center gap-2">
                             <i class="fas fa-arrow-left"></i> Back
                         </button>
-                        <button type="button" onclick="nextStep(3)" class="btn-primary px-10 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 group">
+                        <button type="button" data-action="next" data-step="3" class="btn-primary px-10 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 group">
                             Next: Operations <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
                         </button>
                     </div>
@@ -369,7 +388,7 @@
                             <label class="block text-xs font-bold text-delta-electric uppercase tracking-widest mb-4">Regional Identity (Smart Detect)</label>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="p-4 bg-delta-surface border border-delta-electric/30 rounded-xl flex items-center gap-4 relative overflow-hidden group hover:bg-delta-electric/5 transition-colors cursor-pointer ring-2 ring-transparent hover:ring-delta-electric/50" onclick="selectRegion('BD', 'Bangladesh')">
+                                <div class="p-4 bg-delta-surface border border-delta-electric/30 rounded-xl flex items-center gap-4 relative overflow-hidden group hover:bg-delta-electric/5 transition-colors cursor-pointer ring-2 ring-transparent hover:ring-delta-electric/50" data-region-code="BD" data-region-name="Bangladesh">
                                     <div class="w-12 h-8 rounded overflow-hidden border border-white/10 shadow-lg">
                                         <img src="https://flagcdn.com/w160/bd.png" class="w-full h-full object-cover">
                                     </div>
@@ -385,7 +404,7 @@
                                 <div class="relative">
                                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Or Choose Manual Location</label>
                                     <div class="relative">
-                                        <select id="manualRegion" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-12 pr-10 text-white font-ui focus:outline-none focus:border-delta-electric appearance-none cursor-pointer" onchange="updatePreview()">
+                                        <select id="manualRegion" class="w-full bg-delta-surface border border-white/10 rounded-xl py-4 pl-12 pr-10 text-white font-ui focus:outline-none focus:border-delta-electric appearance-none cursor-pointer">
                                             <option value="" disabled selected>Select Country...</option>
                                             {% for country in countries %}
                                             <option value="{{ country.code }}">{{ country.name }}</option>
@@ -402,7 +421,7 @@
                             <label class="block text-xs font-bold text-white uppercase tracking-widest mb-4">Command Authority</label>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <label class="cursor-pointer group">
-                                    <input type="radio" name="manager_mode" value="self" class="peer hidden" checked onchange="toggleManagerInvite(false)">
+                                    <input type="radio" name="manager_mode" value="self" class="peer hidden" checked>
                                     <div class="p-4 bg-delta-surface border border-white/10 rounded-xl peer-checked:border-delta-violet peer-checked:bg-delta-violet/5 hover:border-white/30 transition-all flex gap-3 items-start h-full">
                                         <div class="mt-1 w-5 h-5 rounded-full border border-white/20 peer-checked:bg-delta-violet peer-checked:border-delta-violet flex items-center justify-center shrink-0">
                                             <div class="w-2 h-2 bg-white rounded-full opacity-0 peer-checked:opacity-100"></div>
@@ -415,7 +434,7 @@
                                 </label>
 
                                 <label class="cursor-pointer group">
-                                    <input type="radio" name="manager_mode" value="invite" class="peer hidden" onchange="toggleManagerInvite(true)">
+                                    <input type="radio" name="manager_mode" value="invite" class="peer hidden">
                                     <div class="p-4 bg-delta-surface border border-white/10 rounded-xl peer-checked:border-delta-violet peer-checked:bg-delta-violet/5 hover:border-white/30 transition-all flex gap-3 items-start h-full">
                                         <div class="mt-1 w-5 h-5 rounded-full border border-white/20 peer-checked:bg-delta-violet peer-checked:border-delta-violet flex items-center justify-center shrink-0">
                                             <div class="w-2 h-2 bg-white rounded-full opacity-0 peer-checked:opacity-100"></div>
@@ -441,7 +460,7 @@
                             <label class="flex items-center justify-between cursor-pointer mb-2">
                                 <span class="text-sm font-bold text-white uppercase tracking-wider">Recruit Members Now?</span>
                                 <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
-                                    <input type="checkbox" name="recruit_now" id="toggleRecruitInvite" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer peer checked:right-0 checked:border-delta-electric" onchange="document.getElementById('memberInviteArea').classList.toggle('hidden')"/>
+                                    <input type="checkbox" name="recruit_now" id="toggleRecruitInvite" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer peer checked:right-0 checked:border-delta-electric"/>
                                     <label for="toggleRecruitInvite" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-800 cursor-pointer peer-checked:bg-delta-electric/50"></label>
                                 </div>
                             </label>
@@ -461,10 +480,10 @@
                     </div>
 
                     <div class="mt-10 flex justify-between">
-                        <button type="button" onclick="prevStep(2)" class="px-6 py-3 text-slate-400 hover:text-white font-cyber font-bold uppercase text-xs tracking-wider transition-colors flex items-center gap-2">
+                        <button type="button" data-action="prev" data-step="2" class="px-6 py-3 text-slate-400 hover:text-white font-cyber font-bold uppercase text-xs tracking-wider transition-colors flex items-center gap-2">
                             <i class="fas fa-arrow-left"></i> Back
                         </button>
-                        <button type="button" onclick="nextStep(4)" class="btn-primary px-10 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 group">
+                        <button type="button" data-action="next" data-step="4" class="btn-primary px-10 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 group">
                             Next: Branding <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
                         </button>
                     </div>
@@ -496,8 +515,8 @@
                                     <i class="fas fa-image text-2xl text-slate-600 group-hover:text-white transition-colors z-0"></i>
                                 </div>
                                 <div class="flex-1">
-                                    <div class="w-full h-24 rounded-xl bg-delta-base border border-white/10 hover:border-delta-gold/50 transition-colors flex flex-col items-center justify-center cursor-pointer relative group" onclick="document.getElementById('logoUpload').click()">
-                                        <input type="file" id="logoUpload" class="hidden" accept="image/*" onchange="previewImage(this, 'previewLogoImg')">
+                                    <div class="w-full h-24 rounded-xl bg-delta-base border border-white/10 hover:border-delta-gold/50 transition-colors flex flex-col items-center justify-center cursor-pointer relative group" data-action="trigger-upload" data-target-upload="logoUpload">
+                                        <input type="file" id="logoUpload" class="hidden" accept="image/*">
                                         <span class="text-xs font-bold text-delta-gold uppercase mb-1 group-hover:scale-105 transition-transform">Click to Upload Logo</span>
                                         <span class="text-[10px] text-slate-500">Max 2MB (JPG, PNG)</span>
                                     </div>
@@ -512,8 +531,8 @@
                                 </label>
                                 <span class="text-[10px] text-slate-400 bg-white/5 px-2 py-1 rounded">1920x400px Recommended</span>
                             </div>
-                            <div class="w-full h-48 rounded-xl bg-delta-base border-2 border-dashed border-white/10 hover:border-delta-violet transition-colors flex flex-col items-center justify-center cursor-pointer relative overflow-hidden group" onclick="document.getElementById('bannerUpload').click()">
-                                <input type="file" id="bannerUpload" class="hidden" accept="image/*" onchange="previewImage(this, 'previewBannerImg')">
+                            <div class="w-full h-48 rounded-xl bg-delta-base border-2 border-dashed border-white/10 hover:border-delta-violet transition-colors flex flex-col items-center justify-center cursor-pointer relative overflow-hidden group" data-action="trigger-upload" data-target-upload="bannerUpload">
+                                <input type="file" id="bannerUpload" class="hidden" accept="image/*">
 
                                 <div class="z-10 flex flex-col items-center text-slate-500 group-hover:text-delta-violet transition-colors">
                                     <i class="fas fa-cloud-upload-alt text-4xl mb-3"></i>
@@ -537,15 +556,15 @@
                                 <div>
                                     <label class="block text-xs text-slate-400 mb-2">Primary Color</label>
                                     <div class="flex gap-2 items-center">
-                                        <input type="color" id="primaryColorPicker" value="#3B82F6" class="h-12 w-16 rounded-lg border border-white/20 bg-black cursor-pointer" onchange="updateColorInput('primary')">
-                                        <input type="text" id="primaryColorInput" value="#3B82F6" maxlength="7" class="flex-1 bg-delta-surface border border-white/10 rounded-lg py-3 px-4 text-sm text-white font-mono focus:outline-none focus:border-delta-electric" onchange="updateColorPicker('primary')" placeholder="#3B82F6">
+                                        <input type="color" id="primaryColorPicker" value="#3B82F6" class="h-12 w-16 rounded-lg border border-white/20 bg-black cursor-pointer">
+                                        <input type="text" id="primaryColorInput" value="#3B82F6" maxlength="7" class="flex-1 bg-delta-surface border border-white/10 rounded-lg py-3 px-4 text-sm text-white font-mono focus:outline-none focus:border-delta-electric" placeholder="#3B82F6">
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-xs text-slate-400 mb-2">Accent Color</label>
                                     <div class="flex gap-2 items-center">
-                                        <input type="color" id="accentColorPicker" value="#10B981" class="h-12 w-16 rounded-lg border border-white/20 bg-black cursor-pointer" onchange="updateColorInput('accent')">
-                                        <input type="text" id="accentColorInput" value="#10B981" maxlength="7" class="flex-1 bg-delta-surface border border-white/10 rounded-lg py-3 px-4 text-sm text-white font-mono focus:outline-none focus:border-delta-electric" onchange="updateColorPicker('accent')" placeholder="#10B981">
+                                        <input type="color" id="accentColorPicker" value="#10B981" class="h-12 w-16 rounded-lg border border-white/20 bg-black cursor-pointer">
+                                        <input type="text" id="accentColorInput" value="#10B981" maxlength="7" class="flex-1 bg-delta-surface border border-white/10 rounded-lg py-3 px-4 text-sm text-white font-mono focus:outline-none focus:border-delta-electric" placeholder="#10B981">
                                     </div>
                                 </div>
                             </div>
@@ -553,10 +572,10 @@
                     </div>
 
                     <div class="mt-10 flex justify-between">
-                        <button type="button" onclick="prevStep(3)" class="px-6 py-3 text-slate-400 hover:text-white font-cyber font-bold uppercase text-xs tracking-wider transition-colors flex items-center gap-2">
+                        <button type="button" data-action="prev" data-step="3" class="px-6 py-3 text-slate-400 hover:text-white font-cyber font-bold uppercase text-xs tracking-wider transition-colors flex items-center gap-2">
                             <i class="fas fa-arrow-left"></i> Back
                         </button>
-                        <button type="button" onclick="nextStep(5)" class="btn-primary px-10 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 group">
+                        <button type="button" data-action="next" data-step="5" class="btn-primary px-10 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 group">
                             Final Review <i class="fas fa-check-circle group-hover:scale-110 transition-transform"></i>
                         </button>
                     </div>
@@ -628,10 +647,10 @@
                     </label>
 
                     <div class="mt-10 flex justify-between items-center">
-                        <button type="button" onclick="prevStep(4)" class="px-6 py-3 text-slate-400 hover:text-white font-cyber font-bold uppercase text-xs tracking-wider transition-colors flex items-center gap-2">
+                        <button type="button" data-action="prev" data-step="4" class="px-6 py-3 text-slate-400 hover:text-white font-cyber font-bold uppercase text-xs tracking-wider transition-colors flex items-center gap-2">
                             <i class="fas fa-arrow-left"></i> Back
                         </button>
-                        <button type="submit" onclick="submitTeam(event)" class="btn-primary px-12 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 hover:brightness-110 transition-all transform hover:scale-105">
+                        <button type="submit" class="btn-primary px-12 py-4 font-cyber font-bold uppercase text-sm tracking-widest shadow-glow-electric flex items-center gap-3 hover:brightness-110 transition-all transform hover:scale-105">
                             Establish Team <i class="fas fa-rocket"></i>
                         </button>
                     </div>
@@ -711,10 +730,270 @@
     </div>
 </div>
 
+<!-- Help Modal -->
+<div id="helpModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" data-action="close-help-backdrop">
+    <div class="relative bg-delta-surface border border-white/10 rounded-2xl p-8 max-w-2xl w-full shadow-2xl" data-modal-content>
+        <button type="button" data-action="close-help" class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <div class="mb-6">
+            <h3 class="text-2xl font-bold text-white font-cyber mb-2">Team Creation Guidelines</h3>
+            <p class="text-sm text-slate-400">Follow these guidelines to create a successful competitive team</p>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="flex gap-3 items-start">
+                <div class="w-8 h-8 rounded-full bg-delta-electric/10 flex items-center justify-center text-delta-electric shrink-0 mt-0.5">
+                    <i class="fas fa-gamepad"></i>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-1">Choose Your Game</h4>
+                    <p class="text-sm text-slate-400">Select the game your team will compete in. You can only have one active team per game.</p>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 items-start">
+                <div class="w-8 h-8 rounded-full bg-delta-violet/10 flex items-center justify-center text-delta-violet shrink-0 mt-0.5">
+                    <i class="fas fa-signature"></i>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-1">Name & Tag</h4>
+                    <p class="text-sm text-slate-400">Pick a unique team name and 2-4 letter tag. These identify your team in tournaments and leaderboards.</p>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 items-start">
+                <div class="w-8 h-8 rounded-full bg-delta-gold/10 flex items-center justify-center text-delta-gold shrink-0 mt-0.5">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-1">Independent vs Organization</h4>
+                    <p class="text-sm text-slate-400">Independent teams have full control. Organization-owned teams get verified status and sponsor benefits.</p>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 items-start">
+                <div class="w-8 h-8 rounded-full bg-delta-success/10 flex items-center justify-center text-delta-success shrink-0 mt-0.5">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-1">Build Your Roster</h4>
+                    <p class="text-sm text-slate-400">After creation, invite players from the Team Manage page. Assign roles: Manager, Coach, Player, Substitute.</p>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 items-start">
+                <div class="w-8 h-8 rounded-full bg-delta-danger/10 flex items-center justify-center text-delta-danger shrink-0 mt-0.5">
+                    <i class="fas fa-palette"></i>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-1">Branding & Identity</h4>
+                    <p class="text-sm text-slate-400">Upload your team logo and banner. Choose colors that represent your team's identity and style.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-8 pt-6 border-t border-white/10">
+            <button type="button" data-action="close-help" class="w-full px-6 py-3 rounded-lg bg-crown-gradient text-black font-bold hover:shadow-glow-gold transition-all">
+                Got it, let's create!
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
-    // --- 0. CSRF TOKEN HELPER ---
+/**
+ * Team Creation App - Clean Module Implementation
+ * 
+ * Architecture:
+ * - Single source of truth state object
+ * - AbortController for race-condition-free validation
+ * - Event-driven with addEventListener (no inline handlers)
+ * - Debounced validation with request tracking
+ * - Clear separation: validation → state → UI update
+ * 
+ * @version 3.0.0 - Complete rewrite
+ * @date 2026-02-05
+ */
+(function() {
+    'use strict';
+    
+    // AUDIT SIGNATURE
+    const SCRIPT_SIG = 'vNext-2026-02-05-A';
+    const TEMPLATE_SIG = 'vNext-2026-02-05-A';
+    
+    console.log(`[TEAM_CREATE_BOOT] SIG=${SCRIPT_SIG} TEMPLATE=${TEMPLATE_SIG} INIT=starting`);
+    
+    // ========================================================================
+    // RUNTIME TRUTH OVERLAY (DEBUG MODE)
+    // ========================================================================
+    
+    const debugOverlay = {
+        enabled: false,
+        element: null,
+        data: {
+            templateSig: TEMPLATE_SIG,
+            scriptSig: SCRIPT_SIG,
+            initialized: false,
+            listenersAttached: 0,
+            validationState: {},
+            lastResponses: {},
+            lastError: null,
+            currentGame: null,
+            currentMode: 'independent',
+            currentOrgId: null
+        },
+        
+        init() {
+            // Check if debug mode enabled
+            const urlParams = new URLSearchParams(window.location.search);
+            const isDjangoDebug = document.body.dataset.debug === 'true';
+            this.enabled = urlParams.has('debug') || isDjangoDebug;
+            
+            if (!this.enabled) return;
+            
+            // Create overlay element
+            const overlay = document.createElement('div');
+            overlay.id = 'teamCreateDebugOverlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                width: 400px;
+                max-height: 90vh;
+                overflow-y: auto;
+                background: rgba(0, 0, 0, 0.95);
+                border: 2px solid #00E5FF;
+                border-radius: 8px;
+                padding: 12px;
+                font-family: monospace;
+                font-size: 11px;
+                color: #00FF00;
+                z-index: 99999;
+                box-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+            `;
+            overlay.innerHTML = '<div id="overlayContent">Initializing...</div>';
+            document.body.appendChild(overlay);
+            this.element = overlay;
+            
+            this.update();
+            console.log('[OVERLAY] Debug overlay initialized');
+        },
+        
+        update() {
+            if (!this.enabled || !this.element) return;
+            
+            const content = document.getElementById('overlayContent');
+            if (!content) return;
+            
+            content.innerHTML = `
+                <div style="color:#FFD700;font-weight:bold;margin-bottom:8px;border-bottom:1px solid #FFD700;padding-bottom:4px;">
+                    🔍 TEAM CREATE RUNTIME TRUTH
+                </div>
+                <div style="margin-bottom:6px;">
+                    <span style="color:#00E5FF;">Template:</span> ${this.data.templateSig}<br>
+                    <span style="color:#00E5FF;">Script:</span> ${this.data.scriptSig}<br>
+                    <span style="color:#00E5FF;">Initialized:</span> ${this.data.initialized ? '✅' : '❌'}<br>
+                    <span style="color:#00E5FF;">Listeners:</span> ${this.data.listenersAttached}
+                </div>
+                <div style="margin-bottom:6px;border-top:1px solid #444;padding-top:4px;">
+                    <span style="color:#6C00FF;">Game:</span> ${this.data.currentGame || 'none'}<br>
+                    <span style="color:#6C00FF;">Mode:</span> ${this.data.currentMode}<br>
+                    <span style="color:#6C00FF;">Org ID:</span> ${this.data.currentOrgId || 'none'}
+                </div>
+                <div style="margin-bottom:6px;border-top:1px solid #444;padding-top:4px;">
+                    <div style="color:#FFD700;font-weight:bold;">Validation State:</div>
+                    <div style="margin-left:8px;font-size:10px;">
+                        ${JSON.stringify(this.data.validationState, null, 2).replace(/\n/g, '<br>').replace(/ /g, '&nbsp;')}
+                    </div>
+                </div>
+                <div style="margin-bottom:6px;border-top:1px solid #444;padding-top:4px;">
+                    <div style="color:#FFD700;font-weight:bold;">Last Responses:</div>
+                    <div style="margin-left:8px;font-size:10px;max-height:200px;overflow-y:auto;">
+                        ${Object.entries(this.data.lastResponses).map(([key, val]) => 
+                            `<div style="margin:4px 0;"><span style="color:#00E5FF;">${key}:</span><br>${val}</div>`
+                        ).join('')}
+                    </div>
+                </div>
+                ${this.data.lastError ? `
+                <div style="margin-bottom:6px;border-top:1px solid #FF0055;padding-top:4px;">
+                    <div style="color:#FF0055;font-weight:bold;">Last Error:</div>
+                    <div style="margin-left:8px;font-size:10px;color:#FF0055;">
+                        ${this.data.lastError}
+                    </div>
+                </div>
+                ` : ''}
+            `;
+        },
+        
+        logResponse(endpoint, status, data) {
+            const preview = typeof data === 'string' ? data.slice(0, 200) : JSON.stringify(data).slice(0, 200);
+            this.data.lastResponses[endpoint] = `[${status}] ${preview}`;
+            this.update();
+        },
+        
+        logError(error) {
+            this.data.lastError = String(error).slice(0, 300);
+            this.update();
+        },
+        
+        updateValidation(field, state) {
+            this.data.validationState[field] = state;
+            this.update();
+        }
+    };
+    
+    // Global error trap
+    window.addEventListener('error', (event) => {
+        console.error('[TEAM_CREATE_ERROR]', event.error);
+        debugOverlay.logError(`${event.message} at ${event.filename}:${event.lineno}`);
+    });
+    
+    window.addEventListener('unhandledrejection', (event) => {
+        console.error('[TEAM_CREATE_UNHANDLED_REJECTION]', event.reason);
+        debugOverlay.logError(`Unhandled Promise: ${event.reason}`);
+    });
+    
+    // ========================================================================
+    // STATE MANAGEMENT
+    // ========================================================================
+    
+    const state = {
+        // Wizard navigation
+        currentStep: 1,
+        totalSteps: 5,
+        
+        // Validation state
+        validation: {
+            game: { valid: false, message: '' },
+            name: { valid: false, checking: false, message: '', abortController: null },
+            tag: { valid: false, checking: false, message: '', abortController: null },
+            ownership: { blocked: false, existingTeam: null, reasonCode: null, reasonMessage: null }
+        },
+        
+        // Form data cache
+        formData: {
+            game: null,
+            mode: 'independent',
+            organizationId: null,
+            name: '',
+            tag: ''
+        },
+        
+        // Request tracking to prevent stale responses
+        requestCounters: {
+            name: 0,
+            tag: 0,
+            ownership: 0
+        }
+    };
+    
+    // ========================================================================
+    // UTILITY FUNCTIONS
+    // ========================================================================
+    
     function getCsrfToken() {
-        // Extract CSRF token from cookie (standard Django pattern)
         const name = 'csrftoken';
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -730,382 +1009,812 @@
         return cookieValue;
     }
     
-    // --- 1. WIZARD NAVIGATION ---
-    let currentStep = 1;
-    const totalSteps = 5;
-
-    function goToStep(step) {
-        if (step > currentStep && !validateStep(currentStep)) return;
-
+    // ========================================================================
+    // SCHEMA NORMALIZATION (Phase A - MANDATORY)
+    // ========================================================================
+    
+    /**
+     * Normalize backend validation responses that may use different schemas:
+     * Schema1: { ok: true, available: true/false, field_errors: {...}, message?: "..." }
+     * Schema2: { exists: true/false, error?: "...", field_errors?: {...} }
+     * 
+     * @param {Object} data - Raw backend response
+     * @returns {Object} - { available: boolean|null, fieldErrors: Object, message: string }
+     */
+    function normalizeAvailabilityResponse(data) {
+        const result = {
+            available: null,
+            fieldErrors: {},
+            message: ''
+        };
+        
+        // Extract field errors (handle both formats)
+        result.fieldErrors = data.field_errors || data.fieldErrors || {};
+        
+        // Determine availability
+        if (typeof data.available === 'boolean') {
+            // Schema1: explicit available field
+            result.available = data.available;
+        } else if (typeof data.exists === 'boolean') {
+            // Schema2: exists field (inverted logic)
+            result.available = !data.exists;
+        } else if (data.ok === false && Object.keys(result.fieldErrors).length > 0) {
+            // Has errors, so not available
+            result.available = false;
+        } else if (data.ok === true && Object.keys(result.fieldErrors).length === 0) {
+            // No errors and ok=true, assume available
+            result.available = true;
+        }
+        // Else: available remains null (unknown/invalid schema)
+        
+        // Extract message
+        result.message = data.message || data.safe_message || data.error || '';
+        
+        console.log('[TeamCreate] Schema normalized:', { input: data, output: result });
+        return result;
+    }
+    
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // ========================================================================
+    // WIZARD NAVIGATION
+    // ========================================================================
+    
+    function goToStep(stepNumber) {
+        if (stepNumber < 1 || stepNumber > state.totalSteps) return;
+        if (stepNumber > state.currentStep && !validateCurrentStep()) return;
+        
+        // Hide all steps
         document.querySelectorAll('.step-content').forEach(el => {
             el.classList.remove('active');
-            setTimeout(() => el.classList.add('hidden'), 300);
             el.classList.add('hidden');
         });
-
-        const target = document.getElementById(`step${step}`);
-        target.classList.remove('hidden');
-        setTimeout(() => target.classList.add('active'), 10);
-
-        const indicators = document.querySelectorAll('.step-indicator');
-        indicators.forEach((ind, index) => {
-            if (index + 1 === step) {
-                ind.classList.add('active');
-                ind.style.opacity = '1';
-                ind.querySelector('div').classList.remove('bg-delta-surface', 'border-white/10');
-                ind.querySelector('div').classList.add('bg-delta-surface', 'border-delta-electric', 'shadow-glow-electric', 'text-delta-electric');
-            } else if (index + 1 < step) {
-                ind.classList.remove('active');
-                ind.style.opacity = '1';
-                ind.querySelector('div').classList.add('bg-delta-electric', 'text-black', 'border-delta-electric');
-                ind.querySelector('div').innerHTML = '<i class="fas fa-check"></i>';
-            } else {
-                ind.classList.remove('active');
-                ind.style.opacity = '0.4';
-                ind.querySelector('div').classList.remove('bg-delta-electric', 'text-black');
-                ind.querySelector('div').innerHTML = index + 1;
-            }
-        });
-
-        const progress = ((step - 1) / (totalSteps - 1)) * 100;
-        document.getElementById('progressBar').style.width = `${progress}%`;
-
-        currentStep = step;
-    }
-
-    function nextStep(step) {
-        if (validateStep(step - 1)) {
-            goToStep(step);
-        }
-    }
-
-    function prevStep(step) {
-        goToStep(step);
-    }
-
-    // --- 2. VALIDATION LOGIC ---
-    function validateStep(step) {
-        let isValid = true;
-        if (step === 1) { // Game Selection
-            const game = document.querySelector('input[name="game"]:checked');
-            const error = document.getElementById('gameError');
-            if (!game) { error.classList.remove('hidden'); isValid = false; }
-            else { error.classList.add('hidden'); }
-        } else if (step === 2) { // Identity
-            const name = document.getElementById('inputName');
-            const tag = document.getElementById('inputTag');
-            if (name.value.length < 3) { name.classList.add('border-delta-danger'); isValid = false; }
-            if (tag.value.length < 2) { tag.classList.add('border-delta-danger'); isValid = false; }
-        }
-        return isValid;
-    }
-
-    function validateField(input) {
-        if (input.value.length < 3 && input.id !== 'inputTag') {
-            input.classList.add('border-delta-danger', 'ring-1', 'ring-delta-danger');
-            input.classList.remove('border-white/10', 'focus:border-delta-electric');
-        } else if (input.id === 'inputTag' && input.value.length < 2) {
-            input.classList.add('border-delta-danger', 'ring-1', 'ring-delta-danger');
-        } else {
-            input.classList.remove('border-delta-danger', 'ring-1', 'ring-delta-danger');
-            input.classList.add('border-delta-success');
+        
+        // Show target step
+        const targetStep = document.getElementById(`step${stepNumber}`);
+        if (targetStep) {
+            targetStep.classList.remove('hidden');
+            setTimeout(() => targetStep.classList.add('active'), 10);
         }
         
-        // Phase B: Wire AJAX validation for name/tag fields
-        if (input.id === 'inputName') {
-            validateTeamName();
-        } else if (input.id === 'inputTag') {
-            validateTeamTag();
+        // Update step indicators
+        document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
+            const stepNum = index + 1;
+            const circle = indicator.querySelector('div');
+            
+            if (stepNum === stepNumber) {
+                // Current step
+                indicator.classList.add('active');
+                indicator.style.opacity = '1';
+                circle.classList.remove('bg-delta-surface', 'border-white/10', 'bg-delta-electric', 'text-black');
+                circle.classList.add('bg-delta-surface', 'border-delta-electric', 'shadow-glow-electric', 'text-delta-electric');
+                circle.textContent = stepNum;
+            } else if (stepNum < stepNumber) {
+                // Completed step
+                indicator.classList.remove('active');
+                indicator.style.opacity = '1';
+                circle.classList.remove('bg-delta-surface', 'border-white/10', 'text-delta-electric');
+                circle.classList.add('bg-delta-electric', 'text-black', 'border-delta-electric');
+                circle.innerHTML = '<i class="fas fa-check"></i>';
+            } else {
+                // Future step
+                indicator.classList.remove('active');
+                indicator.style.opacity = '0.4';
+                circle.classList.remove('bg-delta-electric', 'text-black', 'border-delta-electric', 'shadow-glow-electric');
+                circle.classList.add('bg-delta-surface', 'border-white/10');
+                circle.textContent = stepNum;
+            }
+        });
+        
+        // Update progress bar
+        const progress = ((stepNumber - 1) / (state.totalSteps - 1)) * 100;
+        const progressBar = document.getElementById('progressBar');
+        if (progressBar) {
+            progressBar.style.width = `${progress}%`;
+        }
+        
+        state.currentStep = stepNumber;
+    }
+    
+    // ========================================================================
+    // DOM VALIDATION & ERROR DISPLAY
+    // ========================================================================
+    
+    // Check critical elements exist before attaching handlers
+    function validateDOMElements() {
+        const criticalElements = [
+            { id: 'btnDefineIdentity', desc: 'Define Identity button' },
+            { id: 'step1', desc: 'Step 1 container' },
+            { id: 'step2', desc: 'Step 2 container' },
+            { id: 'step3', desc: 'Step 3 container' },
+            { id: 'step4', desc: 'Step 4 container' },
+            { id: 'step5', desc: 'Step 5 container' },
+            { id: 'inputName', desc: 'Team name input' },
+            { id: 'inputTag', desc: 'Team tag input' }
+        ];
+        
+        const missing = criticalElements.filter(el => !document.getElementById(el.id));
+        
+        if (missing.length > 0) {
+            const missingList = missing.map(el => `${el.desc} (#${el.id})`).join(', ');
+            showWizardError(`DOM VALIDATION FAILED: Missing critical elements: ${missingList}`);
+            return false;
+        }
+        
+        console.log('[TeamCreate] DOM validation passed - all critical elements found');
+        return true;
+    }
+    
+    // Always-visible error display
+    function showWizardError(message) {
+        console.error(`[TeamCreate FATAL] ${message}`);
+        
+        // Create fixed error banner at top of viewport
+        let errorBanner = document.getElementById('wizardErrorBanner');
+        if (!errorBanner) {
+            errorBanner = document.createElement('div');
+            errorBanner.id = 'wizardErrorBanner';
+            errorBanner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#FF0055;color:#fff;padding:16px;text-align:center;font-weight:bold;box-shadow:0 4px 6px rgba(0,0,0,0.3);';
+            document.body.insertBefore(errorBanner, document.body.firstChild);
+        }
+        
+        errorBanner.textContent = `🚨 TEAM WIZARD ERROR: ${message}`;
+        errorBanner.classList.remove('hidden');
+        
+        // Also log to debug overlay if present
+        if (window.TeamCreateDebug && window.TeamCreateDebug.logError) {
+            window.TeamCreateDebug.logError(message);
         }
     }
     
-    // Phase B: Debounced name validation
-    let nameValidationTimeout = null;
+    function validateCurrentStep() {
+        if (state.currentStep === 1) {
+            // Game selection
+            return state.validation.game.valid;
+        }
+        if (state.currentStep === 2) {
+            // Identity (name + tag)
+            return state.validation.name.valid && state.validation.tag.valid;
+        }
+        // Other steps don't have validation requirements for navigation
+        return true;
+    }
+    
+    // ========================================================================
+    // VALIDATION FUNCTIONS
+    // ========================================================================
+    
+    async function validateGameSelection() {
+        const gameRadio = document.querySelector('input[name="game"]:checked');
+        const errorEl = document.getElementById('gameError');
+        
+        if (!gameRadio) {
+            state.validation.game.valid = false;
+            state.validation.game.message = 'Please select a game.';
+            if (errorEl) errorEl.classList.remove('hidden');
+            updateSubmitButton();
+            return false;
+        }
+        
+        state.validation.game.valid = true;
+        state.validation.game.message = '';
+        state.formData.game = gameRadio.value;
+        if (errorEl) errorEl.classList.add('hidden');
+        
+        // Trigger ownership check when game changes
+        await checkOwnership();
+        
+        updateSubmitButton();
+        return true;
+    }
+    
+    async function checkOwnership() {
+        console.log('[TeamCreate] checkOwnership() called');
+        
+        // Increment request counter
+        const requestId = ++state.requestCounters.ownership;
+        
+        const game = state.formData.game;
+        const mode = state.formData.mode;
+        
+        if (!game) {
+            console.log('[TeamCreate] No game selected, skipping ownership check');
+            state.validation.ownership.blocked = false;
+            state.validation.ownership.existingTeam = null;
+            hideOwnershipWarning();
+            updateSubmitButton();
+            return;
+        }
+        
+        if (mode !== 'independent') {
+            console.log('[TeamCreate] Mode is organization, skipping ownership check');
+            state.validation.ownership.blocked = false;
+            state.validation.ownership.existingTeam = null;
+            hideOwnershipWarning();
+            updateSubmitButton();
+            return;
+        }
+        
+        try {
+            const params = new URLSearchParams({ game_slug: game, mode });
+            const url = `/api/vnext/teams/ownership-check/?${params}`;
+            console.log('[TeamCreate] Ownership check URL:', url);
+            
+            const response = await fetch(url);
+            
+            console.log('[TeamCreate] Ownership check HTTP status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Ignore stale responses
+            if (requestId !== state.requestCounters.ownership) {
+                console.log('[TeamCreate] Ignoring stale ownership response');
+                return;
+            }
+            
+            console.log('[TeamCreate] Ownership check response:', data);
+            
+            // Phase C: Check for existing team and block independent mode
+            if (data.has_team && data.team) {
+                console.warn('[TeamCreate] 🚨 User already owns team:', data.team.name);
+                state.validation.ownership.blocked = true;
+                state.validation.ownership.existingTeam = data.team;
+                state.validation.ownership.reasonCode = data.reason_code || 'one_team_per_game';
+                state.validation.ownership.reasonMessage = data.reason_message || 'You can only own one active independent team per game.';
+                
+                // Show warning banner + disable independent mode
+                showOwnershipWarning(data.team, state.validation.ownership.reasonMessage);
+                disableIndependentMode(data.team);
+            } else {
+                console.log('[TeamCreate] ✅ No existing team');
+                state.validation.ownership.blocked = false;
+                state.validation.ownership.existingTeam = null;
+                state.validation.ownership.reasonCode = null;
+                state.validation.ownership.reasonMessage = null;
+                
+                hideOwnershipWarning();
+                enableIndependentMode();
+            }
+            
+            updateSubmitButton();
+        } catch (error) {
+            console.error('[TeamCreate] Ownership check failed:', error);
+            // On error, don't block submission (fail open)
+            state.validation.ownership.blocked = false;
+            hideOwnershipWarning();
+            enableIndependentMode();
+            updateSubmitButton();
+        }
+    }
+    
+    function showOwnershipWarning(team, reasonMessage) {
+        const warning = document.getElementById('existingTeamWarning');
+        const message = document.getElementById('existingTeamMessage');
+        const link = document.getElementById('existingTeamLink');
+        
+        if (warning && message && link) {
+            const msg = reasonMessage || 'You can only own one active independent team per game.';
+            message.textContent = `You already own "${team.name}" for this game. ${msg}`;
+            link.href = team.url;
+            link.textContent = `Manage "${team.name}"`;
+            warning.classList.remove('hidden');
+        }
+    }
+    
+    function hideOwnershipWarning() {
+        const warning = document.getElementById('existingTeamWarning');
+        if (warning) {
+            warning.classList.add('hidden');
+        }
+    }
+    
+    // Phase C: Disable independent mode when user already has team
+    function disableIndependentMode(existingTeam) {
+        const independentRadio = document.querySelector('input[name="org_status"][value="independent"]');
+        const orgRadio = document.querySelector('input[name="org_status"][value="organization"]');
+        
+        if (independentRadio) {
+            independentRadio.disabled = true;
+            
+            // Add visual indicator
+            const label = independentRadio.closest('label');
+            if (label) {
+                label.style.opacity = '0.5';
+                label.style.cursor = 'not-allowed';
+                label.title = `You already own "${existingTeam.name}" for this game`;
+            }
+            
+            // If currently selected, switch to organization mode
+            if (independentRadio.checked && orgRadio) {
+                orgRadio.checked = true;
+                state.formData.mode = 'organization';
+                // Trigger mode change handler
+                const event = new Event('change', { bubbles: true });
+                orgRadio.dispatchEvent(event);
+            }
+        }
+        
+        console.log('[TeamCreate] Independent mode disabled');
+    }
+    
+    function enableIndependentMode() {
+        const independentRadio = document.querySelector('input[name="org_status"][value="independent"]');
+        
+        if (independentRadio) {
+            independentRadio.disabled = false;
+            
+            // Remove visual indicator
+            const label = independentRadio.closest('label');
+            if (label) {
+                label.style.opacity = '1';
+                label.style.cursor = 'pointer';
+                label.title = '';
+            }
+        }
+        
+        console.log('[TeamCreate] Independent mode enabled');
+    }
+    
     async function validateTeamName() {
-        clearTimeout(nameValidationTimeout);
+        console.log('[TeamCreate] validateTeamName() called');
+        
         const input = document.getElementById('inputName');
         const msgSpan = document.getElementById('nameValidationMsg');
         const name = input.value.trim();
         
+        // Update state
+        state.formData.name = name;
+        
+        // Length validation
         if (name.length < 3) {
-            msgSpan.textContent = 'Must be at least 3 characters.';
-            msgSpan.className = 'text-delta-danger font-bold';
+            state.validation.name.valid = false;
+            state.validation.name.checking = false;
+            state.validation.name.message = 'Must be at least 3 characters.';
+            if (msgSpan) {
+                msgSpan.textContent = 'Must be at least 3 characters.';
+                msgSpan.className = 'text-delta-danger font-bold mt-1';
+            }
+            updateSubmitButton();
             return;
         }
         
-        nameValidationTimeout = setTimeout(async () => {
-            const game = document.querySelector('input[name="game"]:checked')?.value;
-            if (!game) {
+        // Game must be selected first
+        if (!state.formData.game) {
+            state.validation.name.valid = false;
+            state.validation.name.checking = false;
+            state.validation.name.message = 'Please select a game first.';
+            if (msgSpan) {
                 msgSpan.textContent = 'Please select a game first.';
-                msgSpan.className = 'text-slate-400';
-                return;
+                msgSpan.className = 'text-delta-danger font-bold mt-1';
             }
-            
-            const mode = document.querySelector('input[name="org_status"]:checked')?.value || 'independent';
-            const orgId = mode === 'organization' ? document.getElementById('orgSelect')?.value : null;
-            
-            try {
-                const params = new URLSearchParams({ name, game_slug: game, mode });
-                if (orgId) params.append('org_id', orgId);
-                
-                const response = await fetch(`/api/vnext/teams/validate-name/?${params}`);
-                const data = await response.json();
-                
-                if (data.ok && data.available) {
-                    msgSpan.textContent = '✓ Name is available!';
-                    msgSpan.className = 'text-delta-success font-bold';
-                    input.classList.remove('border-delta-danger');
-                    input.classList.add('border-delta-success');
-                } else {
-                    const error = data.field_errors?.name || 'Name not available.';
-                    msgSpan.textContent = error;
-                    msgSpan.className = 'text-delta-danger font-bold';
-                    input.classList.add('border-delta-danger');
-                }
-            } catch (error) {
-                msgSpan.textContent = 'Validation error. Please try again.';
-                msgSpan.className = 'text-delta-danger';
-            }
-        }, 300);
-    }
-    
-    // Phase B: Debounced tag validation
-    let tagValidationTimeout = null;
-    async function validateTeamTag() {
-        clearTimeout(tagValidationTimeout);
-        const input = document.getElementById('inputTag');
-        const tag = input.value.trim().toUpperCase();
-        
-        if (tag.length < 2) {
-            return; // Skip validation until minimum length
+            updateSubmitButton();
+            return;
         }
         
-        tagValidationTimeout = setTimeout(async () => {
-            const game = document.querySelector('input[name="game"]:checked')?.value;
-            if (!game) return;
-            
-            const mode = document.querySelector('input[name="org_status"]:checked')?.value || 'independent';
-            const orgId = mode === 'organization' ? document.getElementById('orgSelect')?.value : null;
-            
-            try {
-                const params = new URLSearchParams({ tag, game_slug: game, mode });
-                if (orgId) params.append('org_id', orgId);
-                
-                const response = await fetch(`/api/vnext/teams/validate-tag/?${params}`);
-                const data = await response.json();
-                
-                if (data.ok && data.available) {
-                    input.classList.remove('border-delta-danger');
-                    input.classList.add('border-delta-success');
-                } else {
-                    input.classList.add('border-delta-danger');
-                }
-            } catch (error) {
-                console.error('Tag validation error:', error);
-            }
-        }, 300);
-    }
-
-    // --- 3. ORG & STRUCTURE LOGIC ---
-    function toggleOrgPanel(isOrg) {
-        const panel = document.getElementById('orgSelectorPanel');
-        const tipText = document.getElementById('previewTipText');
-
-        if (isOrg) {
-            panel.classList.remove('hidden');
-            tipText.textContent = "Great choice! Your team will inherit the Organization's verified status and sponsor slots.";
-        } else {
-            panel.classList.add('hidden');
-            tipText.textContent = "Independent teams have full control but must earn their own verification status.";
-            document.getElementById('inheritBranding').checked = false;
-            toggleBrandingStep(false);
-        }
-    }
-
-    function toggleBrandingStep(isInherited) {
-        const uploadSection = document.getElementById('brandingUploadSection');
-        const msg = document.getElementById('brandingInheritMsg');
-        if (isInherited) {
-            uploadSection.classList.add('hidden');
-            msg.classList.remove('hidden');
-        } else {
-            uploadSection.classList.remove('hidden');
-            msg.classList.add('hidden');
-        }
-        updatePreview();
-    }
-
-    function toggleManagerInvite(isInvite) {
-        const field = document.getElementById('managerInviteField');
-        if(isInvite) {
-            field.classList.remove('hidden');
-        } else {
-            field.classList.add('hidden');
-        }
-    }
-
-    // --- 4. LIVE PREVIEW LOGIC ---
-    function updatePreview() {
-        // Game
-        const game = document.querySelector('input[name="game"]:checked');
-        if(game) {
-            const gameName = game.nextElementSibling.querySelector('span').innerText;
-            document.getElementById('previewGameBadge').textContent = gameName;
-            document.getElementById('summaryGame').textContent = gameName;
-        }
-
-        // Identity
-        const name = document.getElementById('inputName').value;
-        document.getElementById('previewNameText').textContent = name || "Team Name";
-        document.getElementById('summaryName').textContent = name || "Pending...";
-        document.getElementById('nameCount').textContent = `${name.length}/20`;
-
-        const tag = document.getElementById('inputTag').value;
-        document.getElementById('previewTagPlaceholder').textContent = tag || "TAG";
-
-        const tagline = document.getElementById('inputTagline').value;
-        document.getElementById('previewTaglineText').textContent = tagline ? `"${tagline}"` : '"Motto goes here..."';
-
-        // Region (Smart Detect + Manual)
-        const manualRegionSelect = document.getElementById('manualRegion');
-        let regionName = "Bangladesh"; // Default from smart detect
-        if (manualRegionSelect && manualRegionSelect.value) {
-            regionName = manualRegionSelect.options[manualRegionSelect.selectedIndex].text;
-        }
-
-        document.getElementById('previewRegionText').innerHTML = `<i class="fas fa-globe"></i> ${regionName}`;
-        document.getElementById('summaryRegion').textContent = regionName;
-
-        // Org Logic
-        const isOrg = document.querySelector('input[name="org_status"]:checked').value === 'organization';
-        const orgSelect = document.getElementById('orgSelect');
-        const previewOrgBadge = document.getElementById('previewOrgBadge');
-
-        if (isOrg && orgSelect.value) {
-            previewOrgBadge.classList.remove('hidden');
-            document.getElementById('previewOrgName').textContent = orgSelect.value;
-            document.getElementById('summaryType').textContent = "Division of " + orgSelect.value;
-            document.getElementById('summaryOrgName').textContent = "Owner: " + orgSelect.value;
-        } else {
-            previewOrgBadge.classList.add('hidden');
-            document.getElementById('summaryType').textContent = "Independent Unit";
-            document.getElementById('summaryOrgName').textContent = "Owner: You";
-        }
-    }
-
-    function selectRegion(code, name) {
-        document.getElementById('manualRegion').value = "";
-        document.getElementById('previewRegionText').innerHTML = `<i class="fas fa-globe"></i> ${name}`;
-        document.getElementById('summaryRegion').textContent = name;
-    }
-
-    // --- 5. IMAGE PREVIEW WITH VALIDATION ---
-    function previewImage(input, targetId) {
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-            
-            // Validate file type
-            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-            if (!validTypes.includes(file.type)) {
-                alert('Please select a valid image file (JPEG, PNG, or WebP)');
-                input.value = '';
-                return;
-            }
-            
-            // Validate file size (max 5MB)
-            const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-            if (file.size > maxSize) {
-                alert('Image file size must be less than 5MB');
-                input.value = '';
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.getElementById(targetId);
-                img.src = e.target.result;
-                img.classList.remove('hidden');
-
-                if(targetId === 'previewLogoImg') {
-                    document.getElementById('realLogoPreview').src = e.target.result;
-                    document.getElementById('realLogoPreview').classList.remove('hidden');
-                    document.getElementById('previewTagPlaceholder').classList.add('hidden');
-                } else if (targetId === 'previewBannerImg') {
-                    document.getElementById('realBannerPreview').src = e.target.result;
-                    document.getElementById('realBannerPreview').classList.remove('hidden');
-                    document.getElementById('bannerOverlay').classList.remove('hidden');
-                }
-            }
-            reader.onerror = function() {
-                alert('Failed to read image file. Please try again.');
-                input.value = '';
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-
-    // Color picker sync functions
-    function updateColorInput(type) {
-        const picker = document.getElementById(`${type}ColorPicker`);
-        const input = document.getElementById(`${type}ColorInput`);
-        input.value = picker.value.toUpperCase();
-    }
-
-    function updateColorPicker(type) {
-        const picker = document.getElementById(`${type}ColorPicker`);
-        const input = document.getElementById(`${type}ColorInput`);
-        const value = input.value.trim();
-        
-        // Validate hex color format
-        if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-            picker.value = value;
-        } else {
-            // Invalid format, revert to picker value
-            input.value = picker.value.toUpperCase();
-        }
-    }
-
-    async function submitTeam(event) {
-        event.preventDefault();
-        
-        // Check terms acceptance
-        if(!document.getElementById('termsCheck').checked) {
-            alert("You must accept the terms.");
-            return false;
+        // Cancel previous request
+        if (state.validation.name.abortController) {
+            state.validation.name.abortController.abort();
         }
         
-        const btn = document.querySelector('button[type="submit"]');
-        const ogContent = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Establishing Link...';
-        btn.disabled = true;
+        // Create new abort controller
+        state.validation.name.abortController = new AbortController();
+        const requestId = ++state.requestCounters.name;
+        
+        // Show checking state
+        state.validation.name.checking = true;
+        if (msgSpan) {
+            msgSpan.textContent = 'Checking availability...';
+            msgSpan.className = 'text-slate-400 font-bold mt-1';
+        }
+        updateSubmitButton();
         
         try {
-            // Phase B: Gather form data
+            const params = new URLSearchParams({
+                name,
+                game_slug: state.formData.game,
+                mode: state.formData.mode
+            });
+            
+            // Add org_id if in organization mode
+            if (state.formData.mode === 'organization' && state.formData.organizationId) {
+                params.append('org_id', state.formData.organizationId);
+            }
+            
+            const url = `/api/vnext/teams/validate-name/?${params}`;
+            console.log('[TeamCreate] Name validation URL:', url);
+            
+            const response = await fetch(url, {
+                signal: state.validation.name.abortController.signal
+            });
+            
+            // Log response status before parsing
+            console.log('[TeamCreate] Name validation HTTP status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const responseText = await response.text();
+            console.log('[TeamCreate] Name validation raw response (first 200 chars):', responseText.substring(0, 200));
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('[TeamCreate] Failed to parse name validation JSON:', parseError);
+                throw new Error('Invalid JSON response');
+            }
+            
+            // Ignore stale responses
+            if (requestId !== state.requestCounters.name) {
+                console.log('[TeamCreate] Ignoring stale name validation response');
+                return;
+            }
+            
+            console.log('[TeamCreate] Name validation response:', data);
+            
+            // Use schema normalizer (Phase A)
+            const normalized = normalizeAvailabilityResponse(data);
+            
+            if (normalized.available === true) {
+                // Name is available
+                state.validation.name.valid = true;
+                state.validation.name.message = '✓ Name is available!';
+                if (msgSpan) {
+                    msgSpan.textContent = '✓ Name is available!';
+                    msgSpan.className = 'text-delta-success font-bold mt-1';
+                }
+                input.classList.remove('border-delta-danger');
+                input.classList.add('border-delta-success');
+            } else if (normalized.available === false) {
+                // Name not available
+                const errorMsg = normalized.fieldErrors.name || normalized.message || 'Name not available.';
+                state.validation.name.valid = false;
+                state.validation.name.message = errorMsg;
+                if (msgSpan) {
+                    msgSpan.textContent = errorMsg;
+                    msgSpan.className = 'text-delta-danger font-bold mt-1';
+                    
+                    // Show link to existing team if provided
+                    if (data.existing_team) {
+                        msgSpan.innerHTML = `${errorMsg} <a href="${data.existing_team.url}" class="underline hover:text-delta-electric">Manage "${data.existing_team.name}"</a>`;
+                    }
+                }
+                input.classList.remove('border-delta-success');
+                input.classList.add('border-delta-danger');
+            } else {
+                // Unable to determine availability (null)
+                state.validation.name.valid = false;
+                state.validation.name.message = 'Unable to validate name. Please try again.';
+                if (msgSpan) {
+                    msgSpan.textContent = 'Unable to validate name. Please try again.';
+                    msgSpan.className = 'text-delta-danger font-bold mt-1';
+                }
+                input.classList.remove('border-delta-success', 'border-delta-danger');
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('[TeamCreate] Name validation aborted');
+                return;
+            }
+            console.error('[TeamCreate] Name validation error:', error);
+            
+            // Show specific error message
+            let errorMsg = 'Validation error. Please try again.';
+            if (error.message.startsWith('HTTP ')) {
+                errorMsg = `Name validation failed (${error.message}).`;
+            } else if (error.message === 'Invalid JSON response') {
+                errorMsg = 'Name validation failed (invalid JSON).';
+            }
+            
+            state.validation.name.valid = false;
+            state.validation.name.message = errorMsg;
+            if (msgSpan) {
+                msgSpan.textContent = errorMsg;
+                msgSpan.className = 'text-delta-danger mt-1';
+            }
+        } finally {
+            state.validation.name.checking = false;
+            updateSubmitButton();
+        }
+    }
+    
+    async function validateTeamTag() {
+        console.log('[TeamCreate] validateTeamTag() called');
+        
+        const input = document.getElementById('inputTag');
+        const msgSpan = document.getElementById('tagValidationMsg');
+        const tag = input.value.trim().toUpperCase();
+        
+        // Update state
+        state.formData.tag = tag;
+        
+        // Length validation
+        if (tag.length < 2) {
+            state.validation.tag.valid = false;
+            state.validation.tag.checking = false;
+            state.validation.tag.message = 'Min 2 chars.';
+            if (msgSpan) {
+                msgSpan.textContent = 'Min 2 chars.';
+                msgSpan.className = 'text-[10px] text-slate-400 mt-2';
+            }
+            updateSubmitButton();
+            return;
+        }
+        
+        // Game must be selected first
+        if (!state.formData.game) {
+            state.validation.tag.valid = false;
+            state.validation.tag.checking = false;
+            state.validation.tag.message = 'Please select a game first.';
+            if (msgSpan) {
+                msgSpan.textContent = 'Select game first.';
+                msgSpan.className = 'text-[10px] text-delta-danger mt-2';
+            }
+            updateSubmitButton();
+            return;
+        }
+        
+        // Cancel previous request
+        if (state.validation.tag.abortController) {
+            state.validation.tag.abortController.abort();
+        }
+        
+        // Create new abort controller
+        state.validation.tag.abortController = new AbortController();
+        const requestId = ++state.requestCounters.tag;
+        
+        // Show checking state
+        state.validation.tag.checking = true;
+        if (msgSpan) {
+            msgSpan.textContent = 'Checking...';
+            msgSpan.className = 'text-[10px] text-slate-400 font-bold mt-2';
+        }
+        updateSubmitButton();
+        
+        try {
+            // Ensure tag is trimmed and uppercased consistently
+            const normalizedTag = tag.trim().toUpperCase();
+            
+            const params = new URLSearchParams({
+                tag: normalizedTag,
+                game_slug: state.formData.game,
+                mode: state.formData.mode
+            });
+            
+            // Add org_id if in organization mode
+            if (state.formData.mode === 'organization' && state.formData.organizationId) {
+                params.append('org_id', state.formData.organizationId);
+            }
+            
+            const url = `/api/vnext/teams/validate-tag/?${params}`;
+            console.log('[TeamCreate] Tag validation URL:', url);
+            
+            const response = await fetch(url, {
+                signal: state.validation.tag.abortController.signal
+            });
+            
+            // Phase B: Log status + first 200 chars of response BEFORE JSON parse
+            console.log('[TeamCreate] Tag validation HTTP status:', response.status);
+            
+            if (!response.ok) {
+                // Phase B: Show inline error with HTTP status
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const responseText = await response.text();
+            console.log('[TeamCreate] Tag validation raw response (first 200 chars):', responseText.substring(0, 200));
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                // Phase B: Show inline error for invalid JSON
+                console.error('[TeamCreate] Failed to parse tag validation JSON:', parseError);
+                throw new Error('Invalid JSON response');
+            }
+            
+            // Ignore stale responses
+            if (requestId !== state.requestCounters.tag) {
+                console.log('[TeamCreate] Ignoring stale tag validation response');
+                return;
+            }
+            
+            console.log('[TeamCreate] Tag validation response:', data);
+            
+            // Use schema normalizer (Phase A)
+            const normalized = normalizeAvailabilityResponse(data);
+            
+            if (normalized.available === true) {
+                // Tag is available
+                state.validation.tag.valid = true;
+                state.validation.tag.message = '✓ Available!';
+                if (msgSpan) {
+                    msgSpan.textContent = '✓ Available!';
+                    msgSpan.className = 'text-[10px] text-delta-success font-bold mt-2';
+                }
+                input.classList.remove('border-delta-danger');
+                input.classList.add('border-delta-success');
+            } else if (normalized.available === false) {
+                // Tag not available
+                const errorMsg = normalized.fieldErrors.tag || normalized.message || 'Tag taken.';
+                state.validation.tag.valid = false;
+                state.validation.tag.message = errorMsg;
+                if (msgSpan) {
+                    msgSpan.textContent = errorMsg;
+                    msgSpan.className = 'text-[10px] text-delta-danger font-bold mt-2';
+                }
+                input.classList.remove('border-delta-success');
+                input.classList.add('border-delta-danger');
+            } else {
+                // Phase A: available=null means unknown/invalid schema
+                state.validation.tag.valid = false;
+                state.validation.tag.message = 'Unable to validate tag.';
+                if (msgSpan) {
+                    msgSpan.textContent = 'Unable to validate team tag. Please try again.';
+                    msgSpan.className = 'text-[10px] text-delta-danger font-bold mt-2';
+                }
+                input.classList.remove('border-delta-success', 'border-delta-danger');
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('[TeamCreate] Tag validation aborted');
+                return;
+            }
+            console.error('[TeamCreate] Tag validation error:', error);
+            
+            // Phase B: Show specific error messages
+            let errorMsg = 'Validation error.';
+            if (error.message.startsWith('HTTP ')) {
+                errorMsg = `Tag validation failed (${error.message}).`;
+            } else if (error.message === 'Invalid JSON response') {
+                errorMsg = 'Tag validation failed (invalid JSON).';
+            }
+            
+            state.validation.tag.valid = false;
+            state.validation.tag.message = errorMsg;
+            if (msgSpan) {
+                msgSpan.textContent = errorMsg;
+                msgSpan.className = 'text-[10px] text-delta-danger mt-2';
+            }
+        } finally {
+            state.validation.tag.checking = false;
+            updateSubmitButton();
+        }
+    }
+    
+    // Debounced versions
+    const debouncedValidateName = debounce(validateTeamName, 350);
+    const debouncedValidateTag = debounce(validateTeamTag, 350);
+    
+    // ========================================================================
+    // UI UPDATE FUNCTIONS
+    // ========================================================================
+    
+    function updateSubmitButton() {
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (!submitBtn) return;
+        
+        const isValid = 
+            state.validation.game.valid &&
+            state.validation.name.valid &&
+            state.validation.tag.valid &&
+            !state.validation.ownership.blocked &&
+            !state.validation.name.checking &&
+            !state.validation.tag.checking;
+        
+        submitBtn.disabled = !isValid;
+        
+        if (!isValid) {
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            submitBtn.classList.remove('hover:brightness-110', 'transform', 'hover:scale-105');
+        } else {
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            submitBtn.classList.add('hover:brightness-110', 'transform', 'hover:scale-105');
+        }
+        
+        // Update hint text
+        let hintText = submitBtn.querySelector('.hint-text');
+        if (!hintText) {
+            hintText = document.createElement('span');
+            hintText.className = 'hint-text text-xs text-slate-500 ml-2';
+            submitBtn.appendChild(hintText);
+        }
+        
+        if (state.validation.ownership.blocked) {
+            hintText.textContent = '(Team limit reached)';
+            hintText.className = 'hint-text text-xs text-delta-danger ml-2';
+        } else if (state.validation.name.checking || state.validation.tag.checking) {
+            hintText.textContent = '(Validating...)';
+            hintText.className = 'hint-text text-xs text-slate-400 ml-2';
+        } else if (isValid) {
+            hintText.textContent = '✓ Ready to launch';
+            hintText.className = 'hint-text text-xs text-delta-success ml-2';
+        } else {
+            hintText.textContent = '(Complete all fields)';
+            hintText.className = 'hint-text text-xs text-slate-500 ml-2';
+        }
+    }
+    
+    function updatePreview() {
+        // Preview panel update logic (unchanged from original)
+        const previewName = document.getElementById('previewName');
+        const previewTag = document.getElementById('previewTag');
+        const previewTagline = document.getElementById('previewTagline');
+        
+        if (previewName) {
+            const name = document.getElementById('inputName')?.value || 'Your Team Name';
+            previewName.textContent = name;
+        }
+        
+        if (previewTag) {
+            const tag = document.getElementById('inputTag')?.value.toUpperCase() || 'TAG';
+            previewTag.textContent = `[${tag}]`;
+        }
+        
+        if (previewTagline) {
+            const tagline = document.getElementById('inputTagline')?.value || 'Your team tagline';
+            previewTagline.textContent = tagline;
+        }
+    }
+    
+    // ========================================================================
+    // FORM SUBMISSION
+    // ========================================================================
+    
+    async function handleSubmit(event) {
+        event.preventDefault();
+        console.log('[TeamCreate] handleSubmit() called');
+        
+        // Pre-submit validation gate
+        if (state.validation.ownership.blocked) {
+            alert('You already own an active team for this game. Please manage your existing team instead.');
+            return;
+        }
+        
+        if (!state.validation.game.valid || !state.validation.name.valid || !state.validation.tag.valid) {
+            alert('Please complete all required fields and ensure they are valid.');
+            return;
+        }
+        
+        const submitBtn = event.target.querySelector('button[type="submit"]') || event.submitter;
+        const originalContent = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+        submitBtn.disabled = true;
+        
+        try {
+            // Gather form data
             const formData = new FormData();
             
-            // B3.1: Basic fields
             const name = document.getElementById('inputName').value.trim();
             const tag = document.getElementById('inputTag').value.trim().toUpperCase();
             const tagline = document.getElementById('inputTagline')?.value.trim() || '';
             const description = document.getElementById('inputDesc')?.value.trim() || '';
             const game = document.querySelector('input[name="game"]:checked')?.value;
-            const mode = document.querySelector('input[name="org_status"]:checked')?.value;
-            
-            if (!name || !game) {
-                alert('Please fill in all required fields.');
-                btn.innerHTML = ogContent;
-                btn.disabled = false;
-                return false;
-            }
+            const mode = document.querySelector('input[name="org_status"]:checked')?.value || 'independent';
             
             formData.append('name', name);
             formData.append('tag', tag);
             formData.append('tagline', tagline);
             formData.append('description', description);
             formData.append('game_slug', game);
-            formData.append('mode', mode || 'independent');
+            formData.append('mode', mode);
             
-            // B3.2: Organization (if selected)
+            // Organization data
             if (mode === 'organization') {
                 const orgId = document.getElementById('orgSelect')?.value;
                 if (orgId) formData.append('organization_id', orgId);
@@ -1114,33 +1823,29 @@
                 formData.append('inherit_branding', inheritBranding ? 'true' : 'false');
             }
             
-            // B3.3: Region/Location
+            // Region
             const manualRegion = document.getElementById('manualRegion')?.value;
-            if (manualRegion) {
-                formData.append('region', manualRegion);
-            }
+            if (manualRegion) formData.append('region', manualRegion);
             
-            // B3.4: Command authority
-            const managerMode = document.querySelector('input[name="manager_mode"]:checked')?.value;
-            if (managerMode === 'invite') {
-                const managerEmail = document.getElementById('managerInvite')?.value.trim();
-                if (managerEmail) formData.append('manager_email', managerEmail);
-            }
+            // Manager invite
+            const managerEmail = document.getElementById('managerEmail')?.value.trim();
+            if (managerEmail) formData.append('manager_email', managerEmail);
             
-            // B3.5: File uploads (logo, banner)
+            // Files
             const logoFile = document.getElementById('logoUpload')?.files[0];
             if (logoFile) formData.append('logo', logoFile);
             
             const bannerFile = document.getElementById('bannerUpload')?.files[0];
             if (bannerFile) formData.append('banner', bannerFile);
             
-            // B3.6: Team colors
-            const primaryColor = document.getElementById('primaryColorInput')?.value.trim();
-            const accentColor = document.getElementById('accentColorInput')?.value.trim();
+            // Colors
+            const primaryColor = document.getElementById('primaryColorInput')?.value;
             if (primaryColor) formData.append('primary_color', primaryColor);
+            
+            const accentColor = document.getElementById('accentColorInput')?.value;
             if (accentColor) formData.append('accent_color', accentColor);
             
-            // B3.7: POST to backend
+            // Submit
             const response = await fetch('/api/vnext/teams/create/', {
                 method: 'POST',
                 headers: {
@@ -1151,93 +1856,425 @@
             
             const data = await response.json();
             
-            // B3.7: Handle success
             if (response.ok && data.ok) {
-                // Show success message and redirect
-                btn.innerHTML = '<i class="fas fa-check"></i> Success!';
-                setTimeout(() => {
-                    if (data.team_url) {
-                        window.location.href = data.team_url;
-                    } else {
-                        window.location.href = '/organizations/hub/';
-                    }
-                }, 800);
+                // Success
+                console.log('[TeamCreate] ✅ Team created successfully:', data);
+                window.location.href = data.team_url;
             } else {
-                // B3.8: Handle errors with step navigation
-                btn.innerHTML = ogContent;
-                btn.disabled = false;
+                // Error
+                console.error('[TeamCreate] ❌ Team creation failed:', data);
                 
-                const errorMsg = data.safe_message || 'Failed to create team. Please check your inputs.';
-                
-                // Map field errors to wizard steps
-                let errorStep = null;
+                // Show field-specific errors
                 if (data.field_errors) {
-                    // Step 1: Game selection
-                    if (data.field_errors.game || data.field_errors.game_slug) {
-                        errorStep = 1;
-                    }
-                    // Step 2: Name, tag, tagline
-                    else if (data.field_errors.name || data.field_errors.tag || data.field_errors.tagline) {
-                        errorStep = 2;
-                    }
-                    // Step 3: Region, organization
-                    else if (data.field_errors.region || data.field_errors.organization_id) {
-                        errorStep = 3;
-                    }
-                    // Step 4: Manager invite
-                    else if (data.field_errors.manager_email) {
-                        errorStep = 4;
-                    }
-                    // Step 5: Branding (logo, banner, description)
-                    else if (data.field_errors.logo || data.field_errors.banner || data.field_errors.description) {
-                        errorStep = 5;
-                    }
-                    
-                    // Navigate to error step if found
-                    if (errorStep && errorStep !== currentStep) {
-                        currentStep = errorStep;
-                        updateWizard();
-                        
-                        // Scroll to first error field after a brief delay
-                        setTimeout(() => {
-                            const firstErrorField = document.querySelector('.text-delta-danger');
-                            if (firstErrorField) {
-                                firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }
-                        }, 300);
-                    }
-                    
-                    // Display field-specific errors
                     if (data.field_errors.name) {
                         const nameMsg = document.getElementById('nameValidationMsg');
                         if (nameMsg) {
-                            nameMsg.textContent = data.field_errors.name;
+                            nameMsg.textContent = Array.isArray(data.field_errors.name) ? data.field_errors.name[0] : data.field_errors.name;
                             nameMsg.className = 'text-delta-danger font-bold mt-1';
                         }
+                        goToStep(2); // Navigate to identity step
                     }
                     if (data.field_errors.tag) {
                         const tagMsg = document.getElementById('tagValidationMsg');
                         if (tagMsg) {
-                            tagMsg.textContent = data.field_errors.tag;
-                            tagMsg.className = 'text-delta-danger font-bold mt-1';
+                            tagMsg.textContent = Array.isArray(data.field_errors.tag) ? data.field_errors.tag[0] : data.field_errors.tag;
+                            tagMsg.className = 'text-[10px] text-delta-danger font-bold mt-2';
                         }
-                    }
-                    if (data.field_errors.manager_email) {
-                        alert(`Manager invite error: ${data.field_errors.manager_email}`);
+                        goToStep(2);
                     }
                 }
                 
-                // Show general error message
+                // Show general error
+                const errorMsg = data.safe_message || data.message || 'Team creation failed. Please try again.';
                 alert(errorMsg);
+                
+                submitBtn.innerHTML = originalContent;
+                submitBtn.disabled = false;
             }
         } catch (error) {
-            console.error('Submit error:', error);
-            btn.innerHTML = ogContent;
-            btn.disabled = false;
+            console.error('[TeamCreate] Network error:', error);
             alert('Network error. Please check your connection and try again.');
+            submitBtn.innerHTML = originalContent;
+            submitBtn.disabled = false;
+        }
+    }
+    
+    // ========================================================================
+    // HELPER MODAL
+    // ========================================================================
+    
+    function openHelpModal() {
+        const modal = document.getElementById('helpModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    function closeHelpModal() {
+        const modal = document.getElementById('helpModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    // ========================================================================
+    // ADDITIONAL UI FUNCTIONS
+    // ========================================================================
+    
+    function toggleOrgPanel(show) {
+        const orgPanel = document.getElementById('orgSelectorPanel');
+        if (orgPanel) {
+            orgPanel.classList.toggle('hidden', !show);
         }
         
-        return false;
+        // Update mode in state
+        state.formData.mode = show ? 'organization' : 'independent';
+        
+        // Recheck ownership when mode changes
+        checkOwnership();
+        
+        // Revalidate name and tag (different rules for org vs independent)
+        if (state.formData.name.length >= 3) debouncedValidateName();
+        if (state.formData.tag.length >= 2) debouncedValidateTag();
     }
+    
+    function toggleBrandingStep(inherit) {
+        const brandingSection = document.getElementById('brandingCustomSection');
+        if (brandingSection) {
+            brandingSection.classList.toggle('hidden', inherit);
+        }
+    }
+    
+    function toggleManagerInvite(show) {
+        const invitePanel = document.getElementById('managerInvitePanel');
+        if (invitePanel) {
+            invitePanel.classList.toggle('hidden', !show);
+        }
+    }
+    
+    function selectRegion(code, name) {
+        const manualRegion = document.getElementById('manualRegion');
+        if (manualRegion) {
+            manualRegion.value = code;
+            updatePreview();
+        }
+    }
+    
+    function previewImage(input, previewId) {
+        const preview = document.getElementById(previewId);
+        if (input.files && input.files[0] && preview) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    
+    function updateColorInput(type) {
+        const picker = document.getElementById(`${type}ColorPicker`);
+        const input = document.getElementById(`${type}ColorInput`);
+        if (picker && input) {
+            input.value = picker.value;
+        }
+    }
+    
+    function updateColorPicker(type) {
+        const picker = document.getElementById(`${type}ColorPicker`);
+        const input = document.getElementById(`${type}ColorInput`);
+        if (picker && input && /^#[0-9A-F]{6}$/i.test(input.value)) {
+            picker.value = input.value;
+        }
+    }
+    
+    // ========================================================================
+    // INITIALIZATION
+    // ========================================================================
+    
+    function initializeApp() {
+        console.log('[TeamCreate] Initializing app...');
+        
+        // VALIDATE DOM ELEMENTS EXIST
+        if (!validateDOMElements()) {
+            console.error('[TeamCreate] FATAL: DOM validation failed, cannot initialize');
+            return;
+        }
+        
+        // Initialize submit button state
+        updateSubmitButton();
+        
+        // Attach event listeners
+        attachEventListeners();
+        
+        console.log('[TeamCreate] ✅ App initialized successfully');
+    }
+    
+    function attachEventListeners() {
+        // Game selection
+        document.querySelectorAll('input[name="game"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                validateGameSelection();
+                updatePreview();
+                
+                // Re-validate name and tag when game changes (critical for duplicate checking)
+                const nameInput = document.getElementById('inputName');
+                if (nameInput && nameInput.value.trim().length >= 3) {
+                    debouncedValidateName();
+                }
+                const tagInput = document.getElementById('inputTag');
+                if (tagInput && tagInput.value.trim().length >= 2) {
+                    debouncedValidateTag();
+                }
+            });
+        });
+        
+        // Mode selection (independent vs organization)
+        document.querySelectorAll('input[name="org_status"]').forEach(radio => {
+            radio.addEventListener('change', async () => {
+                const isOrg = radio.value === 'organization';
+                
+                // Update state
+                state.formData.mode = radio.value;
+                
+                // Show/hide org panel
+                toggleOrgPanel(isOrg);
+                updatePreview();
+                
+                // Trigger ownership check (Phase C)
+                await checkOwnership();
+            });
+        });
+        
+        // Organization selection
+        const orgSelect = document.getElementById('orgSelect');
+        if (orgSelect) {
+            orgSelect.addEventListener('change', () => {
+                // Update state with selected org ID
+                state.formData.organizationId = orgSelect.value || null;
+                updatePreview();
+            });
+        }
+        
+        // Inherit branding checkbox
+        const inheritBranding = document.getElementById('inheritBranding');
+        if (inheritBranding) {
+            inheritBranding.addEventListener('change', (e) => {
+                toggleBrandingStep(e.target.checked);
+            });
+        }
+        
+        // Team name input
+        const nameInput = document.getElementById('inputName');
+        if (nameInput) {
+            nameInput.addEventListener('input', () => {
+                updatePreview();
+                debouncedValidateName();
+            });
+        }
+        
+        // Team tag input
+        const tagInput = document.getElementById('inputTag');
+        if (tagInput) {
+            tagInput.addEventListener('input', () => {
+                updatePreview();
+                debouncedValidateTag();
+            });
+        }
+        
+        // Tagline input
+        const taglineInput = document.getElementById('inputTagline');
+        if (taglineInput) {
+            taglineInput.addEventListener('input', updatePreview);
+        }
+        
+        // Region selection
+        const manualRegion = document.getElementById('manualRegion');
+        if (manualRegion) {
+            manualRegion.addEventListener('change', updatePreview);
+        }
+        
+        // Manager mode selection
+        document.querySelectorAll('input[name="manager_mode"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const isInvite = radio.value === 'invite';
+                toggleManagerInvite(isInvite);
+            });
+        });
+        
+        // Recruit members toggle
+        const toggleRecruitInvite = document.getElementById('toggleRecruitInvite');
+        if (toggleRecruitInvite) {
+            toggleRecruitInvite.addEventListener('change', (e) => {
+                const memberInviteArea = document.getElementById('memberInviteArea');
+                if (memberInviteArea) {
+                    if (e.target.checked) {
+                        memberInviteArea.classList.remove('hidden');
+                    } else {
+                        memberInviteArea.classList.add('hidden');
+                    }
+                }
+            });
+        }
+        
+        // File uploads
+        const logoUpload = document.getElementById('logoUpload');
+        if (logoUpload) {
+            logoUpload.addEventListener('change', () => previewImage(logoUpload, 'previewLogoImg'));
+        }
+        
+        const bannerUpload = document.getElementById('bannerUpload');
+        if (bannerUpload) {
+            bannerUpload.addEventListener('change', () => previewImage(bannerUpload, 'previewBannerImg'));
+        }
+        
+        // Color pickers
+        const primaryPicker = document.getElementById('primaryColorPicker');
+        if (primaryPicker) {
+            primaryPicker.addEventListener('change', () => updateColorInput('primary'));
+        }
+        
+        const primaryInput = document.getElementById('primaryColorInput');
+        if (primaryInput) {
+            primaryInput.addEventListener('change', () => updateColorPicker('primary'));
+        }
+        
+        const accentPicker = document.getElementById('accentColorPicker');
+        if (accentPicker) {
+            accentPicker.addEventListener('change', () => updateColorInput('accent'));
+        }
+        
+        const accentInput = document.getElementById('accentColorInput');
+        if (accentInput) {
+            accentInput.addEventListener('change', () => updateColorPicker('accent'));
+        }
+        
+        // Navigation buttons
+        document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
+            indicator.addEventListener('click', () => goToStep(index + 1));
+        });
+        
+        // EXPLICIT DEFINE IDENTITY BUTTON HANDLER
+        const btnDefineIdentity = document.getElementById('btnDefineIdentity');
+        if (btnDefineIdentity) {
+            btnDefineIdentity.addEventListener('click', () => {
+                console.log('[TeamCreate] Define Identity clicked');
+                
+                // Validate game selection
+                const selectedGame = document.querySelector('input[name="game"]:checked');
+                if (!selectedGame) {
+                    // Show inline error
+                    const gameError = document.getElementById('gameError');
+                    if (gameError) {
+                        gameError.classList.remove('hidden');
+                        gameError.textContent = '⚠️ Please select a game to continue';
+                        gameError.style.color = '#FF0055';
+                    }
+                    
+                    // Focus first game radio
+                    const firstGame = document.querySelector('input[name="game"]');
+                    if (firstGame) {
+                        firstGame.focus();
+                        firstGame.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    
+                    console.warn('[TeamCreate] Define Identity blocked - no game selected');
+                    return;
+                }
+                
+                // Hide error and proceed
+                const gameError = document.getElementById('gameError');
+                if (gameError) gameError.classList.add('hidden');
+                
+                console.log('[TeamCreate] Define Identity proceeding to step 2');
+                goToStep(2);
+            });
+        } else {
+            showWizardError('Define Identity button (#btnDefineIdentity) not found in DOM');
+        }
+        
+        // Generic next/prev handlers for other steps
+        document.querySelectorAll('[data-action="next"]').forEach(btn => {
+            if (btn.id === 'btnDefineIdentity') return; // Skip, already handled above
+            
+            const targetStep = parseInt(btn.dataset.step);
+            if (targetStep) {
+                btn.addEventListener('click', () => {
+                    if (validateCurrentStep()) {
+                        goToStep(targetStep);
+                    }
+                });
+            }
+        });
+        
+        document.querySelectorAll('[data-action="prev"]').forEach(btn => {
+            const targetStep = parseInt(btn.dataset.step);
+            if (targetStep) {
+                btn.addEventListener('click', () => goToStep(targetStep));
+            }
+        });
+        
+        // Region quick-select cards
+        document.querySelectorAll('[data-region-code]').forEach(card => {
+            card.addEventListener('click', () => {
+                const code = card.dataset.regionCode;
+                const name = card.dataset.regionName;
+                selectRegion(code, name);
+            });
+        });
+        
+        // Form submission
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', handleSubmit);
+        }
+        
+        // Help modal
+        document.querySelectorAll('[data-action="open-help"]').forEach(btn => {
+            btn.addEventListener('click', openHelpModal);
+        });
+        
+        document.querySelectorAll('[data-action="close-help"]').forEach(btn => {
+            btn.addEventListener('click', closeHelpModal);
+        });
+        
+        const helpModal = document.getElementById('helpModal');
+        if (helpModal) {
+            helpModal.addEventListener('click', (e) => {
+                if (e.target.id === 'helpModal') {
+                    closeHelpModal();
+                }
+            });
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeHelpModal();
+            }
+        });
+        
+        // File upload triggers
+        document.querySelectorAll('[data-action="trigger-upload"]').forEach(el => {
+            el.addEventListener('click', () => {
+                const targetId = el.dataset.targetUpload;
+                const target = document.getElementById(targetId);
+                if (target) target.click();
+            });
+        });
+    }
+    
+    // Start app when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+        initializeApp();
+    }
+    
+})();
 </script>
 {% endblock %}

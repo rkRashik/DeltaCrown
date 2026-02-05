@@ -132,9 +132,12 @@ def team_create(request):
     games = GameService.list_active_games()
     
     # B1.2: Get user's organizations (where they have CEO or MANAGER role)
+    # The owner (ceo field) has all powers by default and doesn't need explicit membership
+    # Staff members need explicit CEO or MANAGER role assignments
+    from django.db.models import Q
     user_organizations = Organization.objects.filter(
-        staff_memberships__user=request.user,
-        staff_memberships__role__in=['CEO', 'MANAGER']
+        Q(ceo=request.user) |  # Owner has all powers
+        Q(staff_memberships__user=request.user, staff_memberships__role__in=['CEO', 'MANAGER'])
     ).select_related('ceo').distinct().order_by('name')
     
     return render(request, 'organizations/team/team_create.html', {
@@ -283,7 +286,7 @@ def team_manage(request, team_slug, org_slug=None):
             'org_context': {'is_org_admin': False},
         }
         
-        return render(request, 'organizations/team/team_manage.html', context)
+        return render(request, 'organizations/team/team_manage_hq.html', context)
     
     except NotFoundError:
         messages.error(request, f'Team "{team_slug}" not found.')

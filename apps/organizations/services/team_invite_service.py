@@ -12,8 +12,8 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from dataclasses import dataclass
 
-from apps.organizations.models import Team, TeamMembership, TeamInvite
-from apps.organizations.choices import MembershipStatus
+from apps.organizations.models import Team, TeamMembership, TeamInvite, TeamMembershipEvent
+from apps.organizations.choices import MembershipStatus, MembershipEventType
 
 User = get_user_model()
 
@@ -147,7 +147,6 @@ class TeamInviteService:
             status=MembershipStatus.INVITED
         ).select_related(
             'team',
-            'team__owner',
             'team__organization'
         )
         
@@ -157,7 +156,6 @@ class TeamInviteService:
             status='PENDING'
         ).select_related(
             'team',
-            'team__owner',
             'inviter'
         )
         
@@ -281,6 +279,18 @@ class TeamInviteService:
         membership.status = MembershipStatus.ACTIVE
         membership.save(update_fields=['status'])
         
+        # Create JOINED event for audit trail
+        TeamMembershipEvent.objects.create(
+            membership=membership,
+            team=team,
+            user=membership.user,
+            actor=membership.user,  # User accepted their own invite
+            event_type=MembershipEventType.JOINED,
+            new_role=membership.role,
+            new_status=MembershipStatus.ACTIVE,
+            metadata={'invite_accepted': True, 'invite_type': 'membership'},
+        )
+        
         # Return team details
         team = membership.team
         team_url = team.get_absolute_url()
@@ -401,13 +411,37 @@ class TeamInviteService:
                 existing_membership.status = MembershipStatus.ACTIVE
                 existing_membership.role = invite.role
                 existing_membership.save(update_fields=['status', 'role'])
+                
+                # Create JOINED event for reactivation
+                TeamMembershipEvent.objects.create(
+                    membership=existing_membership,
+                    team=invite.team,
+                    user=user,
+                    actor=user,
+                    event_type=MembershipEventType.JOINED,
+                    new_role=invite.role,
+                    new_status=MembershipStatus.ACTIVE,
+                    metadata={'invite_accepted': True, 'invite_type': 'email', 'reactivated': True},
+                )
         else:
             # Create new membership
-            TeamMembership.objects.create(
+            membership = TeamMembership.objects.create(
                 team=invite.team,
                 user=user,
                 role=invite.role,
                 status=MembershipStatus.ACTIVE
+            )
+            
+            # Create JOINED event for new membership
+            TeamMembershipEvent.objects.create(
+                membership=membership,
+                team=invite.team,
+                user=user,
+                actor=user,
+                event_type=MembershipEventType.JOINED,
+                new_role=invite.role,
+                new_status=MembershipStatus.ACTIVE,
+                metadata={'invite_accepted': True, 'invite_type': 'email'},
             )
         
         # Mark invite accepted

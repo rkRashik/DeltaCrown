@@ -157,6 +157,57 @@ async function followUser(username, button) {
         } else {
             throw new Error(data.error || 'Failed to follow user');
         }
+    } catch (error) {
+        console.error('Follow error:', error);
+        showToast(error.message || 'Failed to follow user', 'error');
+        button.innerHTML = originalHTML;
+        button.disabled = false;
+    }
+}
+
+async function cancelFollowRequest(username, button) {
+    if (!confirm('Cancel follow request?')) {
+        return;
+    }
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Canceling...';
+    
+    try {
+        const response = await fetch(`/api/profile/${username}/cancel-follow-request/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            const isPrivate = button.dataset.isPrivate === 'true';
+            button.className = 'bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2';
+            button.innerHTML = isPrivate ? '<i class="fa-solid fa-lock"></i> Request Follow' : '<i class="fa-solid fa-user-plus"></i> Follow';
+            button.dataset.isFollowing = 'false';
+            button.dataset.state = 'none';
+            button.disabled = false;
+            
+            showToast('Follow request canceled', 'info');
+            console.log('Cancel request successful:', data);
+        } else {
+            throw new Error(data.error || 'Failed to cancel request');
+        }
+    } catch (error) {
+        console.error('Cancel request error:', error);
+        showToast(error.message || 'Failed to cancel request', 'error');
+        button.className = 'bg-yellow-500/30 text-yellow-200 font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-yellow-500/50 transition flex items-center justify-center gap-2';
+        button.innerHTML = '<i class="fa-solid fa-clock"></i> Requested';
+        button.disabled = false;
+    }
+}
+
+async function unfollowUser(username, button) {
     if (!confirm('Unfollow this user?')) {
         return;
     }
@@ -209,56 +260,6 @@ function showToast(message, type = 'info') {
         window.toastManager.show(message, type);
     } else {
         console.log(`[Toast ${type}]:`, message);
-            
-            showToast('Follow request canceled', 'info');
-            console.log('Cancel request successful:', data);
-        } else {
-            throw new Error(data.error || 'Failed to cancel request');
-        }
-    } catch (error) {
-        console.error('Cancel request error:', error);
-        showToast(error.message || 'Failed to cancel request', 'error');
-        button.className = 'bg-yellow-500/30 text-yellow-200 font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-yellow-500/50 transition flex items-center justify-center gap-2';
-        button.innerHTML = '<i class="fa-solid fa-clock"></i> Requested';
-        button.disabled = false;
-    }
-}
-
-async function unfollowUser(username, button) {
-    button.disabled = true;
-    button.textContent = 'Unfollowing...';
-    
-    try {
-        const response = await fetch(`/api/profile/${username}/unfollow/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-                'Content-Type': 'application/json'
-            },
-            credentials: 'same-origin'
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            button.className = 'bg-z-cyan text-black font-black font-display uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-white hover:scale-105 transition shadow-neon-cyan flex items-center justify-center gap-2';
-            button.innerHTML = '<i class="fa-solid fa-user-plus"></i> Follow';
-            button.dataset.isFollowing = 'false';
-            button.disabled = false;
-            
-            // Update follower count live
-            updateFollowerCount(-1);
-            
-            console.log('Unfollow successful:', data);
-        } else {
-            throw new Error(data.error || 'Failed to unfollow user');
-        }
-    } catch (error) {
-        console.error('Unfollow error:', error);
-        alert(error.message);
-        button.className = 'bg-white/10 text-white font-bold uppercase tracking-wider px-10 py-4 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-2';
-        button.innerHTML = '<i class="fa-solid fa-user-check"></i> Following';
-        button.disabled = false;
     }
 }
 

@@ -25,6 +25,7 @@ Security:
 
 from typing import Any, Dict
 import logging
+import uuid
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -32,6 +33,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction, IntegrityError
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
+from django.utils import timezone
 from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
@@ -54,8 +56,14 @@ from apps.organizations.services.exceptions import (
     ConflictError,
     TeamValidationError,
 )
-from apps.organizations.models import Organization, OrganizationMembership, Team
-from apps.organizations.choices import MembershipRole, MembershipStatus
+from apps.organizations.models import (
+    Organization,
+    OrganizationMembership,
+    Team,
+    TeamMembership,
+    TeamMembershipEvent,
+)
+from apps.organizations.choices import MembershipRole, MembershipStatus, MembershipEventType
 from apps.games.models import Game
 from apps.organizations.api.serializers import (
     CreateOrganizationSerializer,
@@ -63,6 +71,40 @@ from apps.organizations.api.serializers import (
 )
 
 User = get_user_model()
+
+
+def _extract_constraint_name(exc: Exception) -> str | None:
+    """
+    Extract PostgreSQL/SQLite constraint name from IntegrityError.
+    
+    For Postgres: exc.__cause__ contains psycopg error with diag.constraint_name
+    For SQLite: parse message for "UNIQUE constraint failed: table.column"
+    
+    Returns:
+        Constraint name string or None if not found
+    """
+    # Try Postgres psycopg diagnostics
+    cause = getattr(exc, "__cause__", None)
+    if cause:
+        diag = getattr(cause, "diag", None)
+        if diag:
+            constraint_name = getattr(diag, "constraint_name", None)
+            if constraint_name:
+                return constraint_name
+    
+    # Try parsing SQLite error message
+    msg = str(cause or exc)
+    if "UNIQUE constraint failed:" in msg:
+        # Extract: "UNIQUE constraint failed: organizations_team.slug"
+        parts = msg.split("UNIQUE constraint failed:")
+        if len(parts) > 1:
+            constraint_part = parts[1].strip()
+            if "." in constraint_part:
+                # Return just the column name
+                return constraint_part.split(".")[-1].strip()
+    
+    return None
+
 
 # CRITICAL SAFETY CHECK: Ensure we're using vNext Team, not legacy
 # vNext Team uses organizations_team table, has game_id (IntegerField FK)
@@ -332,6 +374,7 @@ def validate_team_name(request: Request) -> Response:
         if not name or not game_slug:
             return Response({
                 'ok': False,
+                'available': False,
                 'field_errors': {'name': 'Name and game are required.'}
             })
         
@@ -350,34 +393,127 @@ def validate_team_name(request: Request) -> Response:
             logger.warning(f"validate_team_name: Game not found for slug={game_slug}")
             return Response({
                 'ok': False,
+                'available': False,
                 'field_errors': {'game': 'Invalid game selected.'}
             })
         
+        # Normalize name for comparison: uppercase + remove all spaces
+        # This prevents similar names like "Test Team", "testteam", "TEST TEAM", "T E S T T E A M"
+        normalized_name = name.upper().replace(' ', '')
+        logger.info(f"validate_team_name: Normalized name '{name}' to '{normalized_name}' for comparison")
+        
         # Check uniqueness: vNext Team uses game_id (IntegerField FK)
-        # Scope by mode: independent (org IS NULL) or organization (org = org_id)
-        query = VNextTeam.objects.filter(name__iexact=name, game_id=game.id)
-        logger.info(f"validate_team_name: Initial query filter: name__iexact={name}, game_id={game.id}")
+        # Use custom filter with normalization to check all existing teams
+        from django.db.models import Q
+        from django.db.models.functions import Upper, Replace
         
-        if mode == 'independent':
-            query = query.filter(organization__isnull=True)
-            logger.info("validate_team_name: Filtered for independent (organization__isnull=True)")
-        elif mode == 'organization' and org_id:
-            try:
-                query = query.filter(organization_id=int(org_id))
-                logger.info(f"validate_team_name: Filtered for organization_id={org_id}")
-            except (ValueError, TypeError) as e:
-                logger.warning(f"validate_team_name: Invalid org_id={org_id}: {e}")
-                pass  # Invalid org_id, check globally
+        # CRITICAL: Check ALL teams for this game regardless of mode
+        # Team names must be unique across independent and organization teams
+        query = VNextTeam.objects.filter(game_id=game.id)
+        logger.info(f"validate_team_name: Checking ALL teams for game_id={game.id} (both independent and organization)")
+        logger.info(f"validate_team_name: Current request mode={mode}, org_id={org_id}")
         
-        exists = query.exists()
-        logger.info(f"validate_team_name: Query exists={exists}, SQL={query.query}")
+        # Check if any team has the same normalized name
+        exists = False
+        matching_team_name = None
+        matching_team_mode = None
+        teams_checked = []
+        
+        for team in query:
+            team_normalized = team.name.upper().replace(' ', '')
+            team_mode = 'independent' if team.organization_id is None else 'organization'
+            team_org_name = team.organization.name if team.organization_id else 'Independent'
+            teams_checked.append(f"{team.name} ({team_mode}) -> {team_normalized}")
+            logger.info(f"validate_team_name: Comparing '{normalized_name}' with '{team_normalized}' (original: '{team.name}', mode: {team_mode}, org: {team_org_name})")
+            if team_normalized == normalized_name:
+                exists = True
+                matching_team_name = team.name
+                matching_team_mode = team_mode
+                logger.info(f"validate_team_name: ❌ DUPLICATE FOUND - '{team.name}' ({team_mode}) normalizes to '{team_normalized}'")
+                break
+        
+        logger.info(f"validate_team_name: Checked {len(teams_checked)} teams: {teams_checked}")
+        logger.info(f"validate_team_name: Duplicate exists={exists}, matching_team={matching_team_name}, matching_mode={matching_team_mode}")
         
         if exists:
+            mode_description = 'independent' if matching_team_mode == 'independent' else 'organization'
             return Response({
                 'ok': False,
                 'available': False,
                 'field_errors': {'name': 'A team with this name already exists in this game.'}
+            }, headers={
+                'X-TeamsVNext-Sig': 'api-2026-02-05-A',
+                'X-TeamsVNext-Endpoint': 'validate-name',
+                'X-TeamsVNext-TraceId': str(uuid.uuid4())[:8]
             })
+        
+        # CRITICAL: Check one_active_team_per_game_per_user constraint for independent teams
+        if mode == 'independent':
+            from apps.organizations.models import TeamMembership
+            from apps.organizations.choices import MembershipStatus
+            
+            # Check if user already owns an active team for this game
+            # IMPORTANT: Only check ACTIVE teams (not DISBANDED, DELETED, etc.)
+            existing_membership = TeamMembership.objects.filter(
+                user=request.user,
+                team__game_id=game.id,
+                team__organization__isnull=True,  # Independent teams only
+                team__status='ACTIVE',  # Only ACTIVE teams count
+                status=MembershipStatus.ACTIVE  # Only ACTIVE memberships
+            ).select_related('team').first()
+            
+            if existing_membership:
+                existing_team = existing_membership.team
+                logger.warning(
+                    f"validate_team_name: User {request.user.id} already owns active independent team "
+                    f"'{existing_team.name}' (id={existing_team.id}, slug={existing_team.slug}, status={existing_team.status}) "
+                    f"for game {game.id}"
+                )
+                return Response({
+                    'ok': False,
+                    'available': False,
+                    'field_errors': {
+                        'name': f"You already own an active team for this game. Please manage your existing team '{existing_team.name}' instead."
+                    },
+                    'existing_team': {
+                        'name': existing_team.name,
+                        'slug': existing_team.slug,
+                        'url': f'/teams/{existing_team.slug}/'
+                    }
+                })
+        
+        # CRITICAL: Check one_team_per_org_per_game constraint for organization teams
+        elif mode == 'organization' and org_id:
+            try:
+                org_id_int = int(org_id)
+                # Check if organization already has a team for this game
+                existing_org_team = VNextTeam.objects.filter(
+                    organization_id=org_id_int,
+                    game_id=game.id,
+                    status='ACTIVE'  # Only ACTIVE teams count
+                ).first()
+                
+                if existing_org_team:
+                    org_name = existing_org_team.organization.name if existing_org_team.organization else "this organization"
+                    logger.warning(
+                        f"validate_team_name: Organization {org_id_int} already has active team "
+                        f"'{existing_org_team.name}' (id={existing_org_team.id}, slug={existing_org_team.slug}) "
+                        f"for game {game.id}"
+                    )
+                    return Response({
+                        'ok': False,
+                        'available': False,
+                        'field_errors': {
+                            'name': f"{org_name} already has an active team for this game. Multiple divisions per game are not yet supported."
+                        },
+                        'existing_team': {
+                            'name': existing_org_team.name,
+                            'slug': existing_org_team.slug,
+                            'url': f'/orgs/{existing_org_team.organization.slug}/teams/{existing_org_team.slug}/' if existing_org_team.organization else f'/teams/{existing_org_team.slug}/'
+                        }
+                    })
+            except (ValueError, TypeError):
+                pass  # Invalid org_id, proceed
         
         return Response({
             'ok': True,
@@ -486,11 +622,19 @@ def validate_team_tag(request: Request) -> Response:
                 'ok': False,
                 'available': False,
                 'field_errors': {'tag': 'This tag is already taken in this game.'}
+            }, headers={
+                'X-TeamsVNext-Sig': 'api-2026-02-05-A',
+                'X-TeamsVNext-Endpoint': 'validate-tag',
+                'X-TeamsVNext-TraceId': str(uuid.uuid4())[:8]
             })
         
         return Response({
             'ok': True,
             'available': True
+        }, headers={
+            'X-TeamsVNext-Sig': 'api-2026-02-05-A',
+            'X-TeamsVNext-Endpoint': 'validate-tag',
+            'X-TeamsVNext-TraceId': str(uuid.uuid4())[:8]
         })
     
     except Exception as e:
@@ -505,6 +649,159 @@ def validate_team_tag(request: Request) -> Response:
                 'error_code': 'validation_error',
                 'message': f'Validation failed: {str(e)}',
                 'safe_message': 'Unable to validate team tag. Please try again.',
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_team_ownership(request: Request) -> Response:
+    """
+    Check if user already owns an active independent team for a given game.
+    
+    GET /api/vnext/teams/ownership-check/?game_slug=<slug>&mode=<independent|organization>
+    
+    Response (no existing team):
+        {
+            "ok": true,
+            "has_team": false
+        }
+    
+    Response (existing team):
+        {
+            "ok": true,
+            "has_team": true,
+            "team": {
+                "id": 123,
+                "name": "My Team",
+                "slug": "my-team",
+                "url": "/teams/my-team/"
+            }
+        }
+    """
+    try:
+        from apps.organizations.models import Team as VNextTeam, TeamMembership
+        from apps.organizations.choices import MembershipStatus
+        from apps.games.models import Game
+        
+        game_slug = request.query_params.get('game_slug', '').strip()
+        mode = request.query_params.get('mode', 'independent').strip()
+        
+        # Only check for independent teams
+        if mode != 'independent':
+            return Response({
+                'ok': True,
+                'has_team': False
+            })
+        
+        # Validate game
+        if not game_slug:
+            return Response({
+                'ok': False,
+                'error_code': 'missing_game',
+                'message': 'game_slug parameter is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            game = Game.objects.get(slug=game_slug, is_active=True)
+            logger.info(f"check_team_ownership: Found game id={game.id} for slug={game_slug}")
+        except Game.DoesNotExist:
+            logger.warning(f"check_team_ownership: Game not found for slug={game_slug}")
+            return Response({
+                'ok': False,
+                'error_code': 'invalid_game',
+                'message': f'Game not found: {game_slug}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.exception(f"check_team_ownership: Error loading game: {e}")
+            return Response({
+                'ok': False,
+                'error_code': 'game_lookup_error',
+                'message': str(e),
+                'safe_message': 'Unable to validate game. Please try again.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Check if user already owns an active independent team for this game
+        # Query breakdown:
+        # 1. User is a member
+        # 2. Team belongs to the selected game
+        # 3. Team is independent (no org)
+        # 4. Team is ACTIVE (not disbanded/deleted)
+        # 5. Membership is ACTIVE
+        # 6. Role is OWNER or MANAGER
+        
+        logger.info(
+            f"check_team_ownership: Checking for user_id={request.user.id}, "
+            f"game_id={game.id}, mode={mode}"
+        )
+        
+        existing_membership = TeamMembership.objects.filter(
+            user=request.user,
+            team__game_id=game.id,
+            team__organization__isnull=True,  # Independent teams only
+            team__status='ACTIVE',
+            status='ACTIVE',  # Use string value instead of enum
+            role__in=['OWNER', 'MANAGER']  # Only owners/managers count as "owning"
+        ).select_related('team').first()
+        
+        logger.info(
+            f"check_team_ownership: Query result: "
+            f"existing_membership={'found' if existing_membership else 'none'}"
+        )
+        
+        if existing_membership:
+            team = existing_membership.team
+            
+            # Defensive: ensure team has required fields
+            try:
+                team_data = {
+                    'id': team.id,
+                    'name': team.name,
+                    'slug': team.slug,
+                    'url': f'/teams/{team.slug}/'
+                }
+            except AttributeError as e:
+                logger.error(f"check_team_ownership: Team missing required field: {e}")
+                team_data = {
+                    'id': getattr(team, 'id', None),
+                    'name': getattr(team, 'name', 'Unknown'),
+                    'slug': getattr(team, 'slug', 'unknown'),
+                    'url': '/teams/'
+                }
+            
+            return Response({
+                'ok': True,
+                'has_team': True,
+                'team': team_data,
+                'reason_code': 'one_team_per_game',
+                'reason_message': 'You can only own one active independent team per game.'
+            }, headers={
+                'X-TeamsVNext-Sig': 'api-2026-02-05-A',
+                'X-TeamsVNext-Endpoint': 'ownership-check',
+                'X-TeamsVNext-TraceId': str(uuid.uuid4())[:8]
+            })
+        
+        return Response({
+            'ok': True,
+            'has_team': False
+        }, headers={
+            'X-TeamsVNext-Sig': 'api-2026-02-05-A',
+            'X-TeamsVNext-Endpoint': 'ownership-check',
+            'X-TeamsVNext-TraceId': str(uuid.uuid4())[:8]
+        })
+    
+    except Exception as e:
+        logger.exception(
+            f"check_team_ownership FAILED: game_slug={request.query_params.get('game_slug')}, "
+            f"user_id={request.user.id}, exception_type={type(e).__name__}"
+        )
+        return Response(
+            {
+                'ok': False,
+                'error_code': 'internal_error',
+                'message': str(e),
+                'safe_message': 'Unable to check team ownership. Please try again.'
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
@@ -674,6 +971,99 @@ def create_team(request: Request) -> Response:
                 status=status.HTTP_404_NOT_FOUND
             )
     
+    # PRE-CHECK: For independent teams, verify user doesn't already own a team for this game
+    # This prevents IntegrityError and provides better UX than constraint violation
+    if not organization_id and game_id:
+        logger.info(
+            f"create_team: Pre-checking team limit for user_id={request.user.id}, game_id={game_id}"
+        )
+        
+        existing_team = TeamMembership.objects.filter(
+            user=request.user,
+            team__game_id=game_id,
+            team__organization__isnull=True,  # Independent teams only
+            team__status='ACTIVE',
+            status='ACTIVE',
+            role__in=['OWNER', 'MANAGER']  # Either role counts as "owning"
+        ).select_related('team').first()
+        
+        if existing_team:
+            logger.warning(
+                f"create_team: User {request.user.id} already owns team '{existing_team.team.name}' (id={existing_team.team.id}) for game {game_id}",
+                extra={
+                    'event_type': 'team_limit_pre_check_failed',
+                    'user_id': request.user.id,
+                    'game_id': game_id,
+                    'existing_team_id': existing_team.team.id,
+                    'existing_team_name': existing_team.team.name
+                }
+            )
+            return Response(
+                {
+                    'ok': False,
+                    'error_code': 'team_limit_reached',
+                    'message': f'You already own "{existing_team.team.name}" for this game.',
+                    'safe_message': 'You can only own one active independent team per game.',
+                    'field_errors': {
+                        'name': f'You already own "{existing_team.team.name}" for this game. Please manage your existing team instead.'
+                    },
+                    'existing_team': {
+                        'id': existing_team.team.id,
+                        'name': existing_team.team.name,
+                        'slug': existing_team.team.slug,
+                        'url': f'/teams/{existing_team.team.slug}/'
+                    }
+                },
+                status=status.HTTP_409_CONFLICT
+            )
+    
+    # Import Team model for duplicate name checking
+    from apps.organizations.models import Team
+    
+    # PRE-CHECK: Verify no team with same normalized name exists for this game
+    # Normalize: uppercase + remove all spaces to prevent similar names
+    # CRITICAL: Check ALL teams (both independent and organization) to prevent duplicates
+    name = validated_data['name']
+    normalized_name = name.upper().replace(' ', '')
+    logger.info(f"create_team: Checking for duplicate normalized name '{normalized_name}' (original: '{name}')")
+    logger.info(f"create_team: Checking ALL teams for game_id={game_id} (both independent and organization)")
+    
+    # Query ALL teams for this game (regardless of mode)
+    existing_teams_query = Team.objects.filter(game_id=game_id)
+    
+    # Check if any team has the same normalized name
+    for existing_team in existing_teams_query:
+        existing_normalized = existing_team.name.upper().replace(' ', '')
+        existing_mode = 'independent' if existing_team.organization_id is None else 'organization'
+        logger.info(f"create_team: Comparing '{normalized_name}' with '{existing_normalized}' (team: '{existing_team.name}', mode: {existing_mode})")
+        
+        if existing_normalized == normalized_name:
+            logger.warning(
+                f"create_team: ❌ DUPLICATE FOUND - '{name}' matches '{existing_team.name}' ({existing_mode})",
+                extra={
+                    'event_type': 'duplicate_normalized_name',
+                    'user_id': request.user.id,
+                    'game_id': game_id,
+                    'requested_name': name,
+                    'normalized': normalized_name,
+                    'existing_team_name': existing_team.name,
+                    'existing_team_id': existing_team.id,
+                    'existing_team_mode': existing_mode
+                }
+            )
+            return Response(
+                {
+                    'ok': False,
+                    'error_code': 'name_too_similar',
+                    'message': f'A team with a similar name "{existing_team.name}" already exists.',
+                    'safe_message': 'This team name is too similar to an existing team.',
+                    'field_errors': {
+                        'name': f'A team with a similar name already exists for this game. Please choose a different name.'
+                    }
+                },
+                status=status.HTTP_409_CONFLICT
+            )
+    
     # Create team via service layer
     try:
         with transaction.atomic():
@@ -719,19 +1109,26 @@ def create_team(request: Request) -> Response:
             if validated_data.get('logo') or validated_data.get('banner'):
                 team.save()
             
-            # Invalidate hub cache after team creation (Phase 15 Group C fix)
-            from django.core.cache import cache
-            cache.delete_pattern('hub:featured_teams:*')
-            cache.delete_pattern('hero_carousel_*')
-            
-            # Create owner membership for independent teams
+            # Create creator membership for independent teams
             if not organization_id:
-                from apps.organizations.models import TeamMembership
-                TeamMembership.objects.create(
+                membership = TeamMembership.objects.create(
                     team=team,
                     user=request.user,
-                    role=MembershipRole.OWNER,
-                    status=MembershipStatus.ACTIVE,
+                    role='OWNER',  # Use OWNER for independent team creator
+                    status='ACTIVE',
+                    joined_at=timezone.now(),
+                )
+                
+                # Create JOINED event for ledger (Foundation requirement)
+                TeamMembershipEvent.objects.create(
+                    membership=membership,
+                    team=team,
+                    user=request.user,
+                    actor=request.user,
+                    event_type=MembershipEventType.JOINED,
+                    new_role='OWNER',
+                    new_status='ACTIVE',
+                    metadata={'source': 'team_creation', 'is_creator': True},
                 )
             
             # Handle manager invite if provided
@@ -813,9 +1210,22 @@ def create_team(request: Request) -> Response:
                     }
                 )
             
-            # Invalidate hub cache to show newly created team
-            from apps.organizations.services.hub_cache import invalidate_hub_cache
-            invalidate_hub_cache(game_id=team.game_id)
+            # Schedule cache invalidation AFTER commit to prevent crashes from breaking transaction
+            def _invalidate_caches():
+                try:
+                    from apps.organizations.services.cache_invalidation import invalidate_vnext_hub_cache
+                    from apps.organizations.services.hub_cache import invalidate_hub_cache
+                    invalidate_vnext_hub_cache()
+                    invalidate_hub_cache(game_id=team.game_id)
+                except Exception as cache_error:
+                    logger.error(
+                        f"Cache invalidation failed for team {team.id}: {cache_error}",
+                        extra={'event_type': 'cache_invalidation_failed', 'team_id': team.id},
+                        exc_info=True
+                    )
+                    # Don't re-raise - cache failures should never break team creation
+            
+            transaction.on_commit(_invalidate_caches)
         
         logger.info(
             f"Team created: {team.slug} (ID: {team.id}) by user {request.user.id}",
@@ -844,12 +1254,22 @@ def create_team(request: Request) -> Response:
         # Handle known service errors with appropriate status codes
         status_code = status.HTTP_409_CONFLICT if isinstance(e, ConflictError) else status.HTTP_400_BAD_REQUEST
         
+        # Map conflict errors to field-level errors for better UX
+        field_errors = {}
+        if isinstance(e, ConflictError):
+            # ConflictError typically means name/tag already taken or team limit reached
+            if 'name' in str(e).lower() or 'already owns' in str(e).lower():
+                field_errors['name'] = e.safe_message
+            elif 'tag' in str(e).lower():
+                field_errors['tag'] = e.safe_message
+        
         return Response(
             {
                 'ok': False,
                 'error_code': e.error_code,
                 'message': str(e),
                 'safe_message': e.safe_message,
+                'field_errors': field_errors,
             },
             status=status_code
         )
@@ -866,44 +1286,63 @@ def create_team(request: Request) -> Response:
         )
     
     except IntegrityError as e:
-        # Handle database constraint violations with user-friendly messages
+        # Extract constraint name for precise error mapping
+        constraint_name = _extract_constraint_name(e)
         error_message = str(e).lower()
         
-        # Determine constraint type from error message
-        if 'team_has_organization_xor_creator' in error_message or 'team_has_organization_xor_owner' in error_message:
+        # Initialize field_errors dict
+        field_errors = {}
+        error_code = 'database_constraint_violation'
+        safe_message = 'Team creation failed due to a conflict. Please adjust the highlighted fields.'
+        status_code = status.HTTP_409_CONFLICT
+        
+        # Map constraint to specific field errors
+        if constraint_name == 'unique_tag_per_game' or 'unique_tag_per_game' in error_message:
+            error_code = 'tag_already_exists'
+            field_errors['tag'] = [f"The tag '{validated_data.get('tag', '')}' is already taken for this game."]
+            safe_message = 'This team tag is already in use for this game.'
+        
+        elif constraint_name == 'slug' or 'organizations_team.slug' in error_message or (
+            'slug' in error_message and 'unique' in error_message
+        ):
+            error_code = 'slug_conflict'
+            # Slug conflicts are derived from name, so show error on name field
+            field_errors['name'] = [f"The name '{validated_data.get('name', '')}' is too similar to an existing team. Please choose a different name."]
+            safe_message = 'This team name is too similar to an existing team.'
+        
+        elif 'team_has_organization_xor_creator' in error_message or 'team_has_organization_xor_owner' in error_message:
             error_code = 'xor_constraint_violation'
-            user_message = 'Team ownership configuration error.'
+            field_errors['non_field_errors'] = ['Team ownership configuration error: must have either organization or creator, not both.']
             safe_message = 'Invalid team creation request.'
             status_code = status.HTTP_400_BAD_REQUEST
-        elif 'unique_tag_per_game' in error_message:
-            error_code = 'tag_already_exists'
-            user_message = f"The tag '{validated_data.get('tag')}' is already taken for this game."
-            safe_message = 'This team tag is already in use.'
-            status_code = status.HTTP_409_CONFLICT
-        elif 'one_independent_team_per_game' in error_message:
+        
+        elif (constraint_name == 'one_active_independent_team_per_game_per_user' or 
+              constraint_name == 'one_active_team_per_game_per_user' or  # Legacy name
+              'one_active_team_per_game_per_user' in error_message or 
+              'one_active_independent_team_per_game_per_user' in error_message or
+              'one_independent_team_per_game' in error_message):
             error_code = 'team_limit_reached'
-            user_message = f"You already own an active team for this game."
-            safe_message = 'You can only own one team per game.'
-            status_code = status.HTTP_409_CONFLICT
-        elif 'slug' in error_message or 'unique' in error_message:
-            error_code = 'team_name_conflict'
-            user_message = f"The name '{validated_data.get('name')}' is too similar to an existing team."
-            safe_message = 'This team name is already taken or too similar to another team.'
-            status_code = status.HTTP_409_CONFLICT
+            field_errors['non_field_errors'] = ['You already own an active independent team for this game.']
+            safe_message = 'You can only own one active independent team per game.'
+        
         else:
             # Generic integrity error
-            error_code = 'database_constraint_violation'
-            user_message = 'Team creation failed due to a database constraint.'
+            field_errors['non_field_errors'] = ['Team creation failed due to a database constraint.']
             safe_message = 'Failed to create team. Please check your inputs.'
-            status_code = status.HTTP_409_CONFLICT
         
+        # Enhanced logging with constraint details
         logger.warning(
             f"IntegrityError during team creation for user {request.user.id}",
             extra={
                 'event_type': 'integrity_error_handled',
                 'user_id': request.user.id,
                 'organization_id': organization_id,
+                'constraint_name': constraint_name,
                 'constraint_violated': error_code,
+                'attempted_name': validated_data.get('name'),
+                'attempted_tag': validated_data.get('tag'),
+                'attempted_slug': validated_data.get('slug'),
+                'game_id': validated_data.get('game_id'),
                 'error_message': str(e),
             }
         )
@@ -912,8 +1351,8 @@ def create_team(request: Request) -> Response:
             {
                 'ok': False,
                 'error_code': error_code,
-                'message': user_message,
                 'safe_message': safe_message,
+                'field_errors': field_errors,
             },
             status=status_code
         )

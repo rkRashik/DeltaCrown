@@ -745,7 +745,7 @@ class TeamService:
             # Get membership with team and organization (1 query with lock)
             try:
                 membership = TeamMembership.objects.select_related(
-                    'team__organization', 'team__owner', 'user'
+                    'team__organization', 'user'
                 ).select_for_update().get(id=membership_id)
             except TeamMembership.DoesNotExist:
                 raise NotFoundError("membership", membership_id)
@@ -850,7 +850,7 @@ class TeamService:
             # Get membership (1 query with lock)
             try:
                 membership = TeamMembership.objects.select_related(
-                    'team__organization', 'team__owner', 'user'
+                    'team__organization', 'user'
                 ).select_for_update().get(id=membership_id)
             except TeamMembership.DoesNotExist:
                 raise NotFoundError("membership", membership_id)

@@ -28,6 +28,7 @@ Endpoints:
 
 from django.urls import path
 from apps.organizations.api import views, hub_endpoints
+from apps.organizations.api.views import team_manage, user_history
 
 app_name = 'organizations_api'
 
@@ -41,6 +42,7 @@ urlpatterns = [
     # Team creation
     path('teams/validate-name/', views.validate_team_name, name='validate_team_name'),
     path('teams/validate-tag/', views.validate_team_tag, name='validate_team_tag'),
+    path('teams/ownership-check/', views.check_team_ownership, name='check_team_ownership'),
     path('teams/create/', views.create_team, name='create_team'),
     
     # Organization management (P3-T5)
@@ -50,12 +52,16 @@ urlpatterns = [
     path('orgs/<str:org_slug>/members/<int:member_id>/remove/', views.remove_organization_member, name='remove_member'),
     path('orgs/<str:org_slug>/settings/', views.update_organization_settings, name='update_settings'),
     
-    # Team membership management (P3-T6)
-    path('teams/<str:team_slug>/detail/', views.get_team_detail, name='team_detail'),
-    path('teams/<str:team_slug>/members/add/', views.add_team_member, name='team_add_member'),
-    path('teams/<str:team_slug>/members/<int:member_id>/role/', views.update_member_role, name='team_update_role'),
-    path('teams/<str:team_slug>/members/<int:member_id>/remove/', views.remove_team_member, name='team_remove_member'),
-    path('teams/<str:team_slug>/settings/', views.update_team_settings, name='team_update_settings'),
+    # Team Manage HQ (Journey 3 - Backend)
+    path('teams/<str:slug>/detail/', team_manage.team_detail, name='team_manage_detail'),
+    path('teams/<str:slug>/members/add/', team_manage.add_member, name='team_manage_add_member'),
+    path('teams/<str:slug>/members/<int:membership_id>/role/', team_manage.change_role, name='team_manage_change_role'),
+    path('teams/<str:slug>/members/<int:membership_id>/remove/', team_manage.remove_member, name='team_manage_remove_member'),
+    path('teams/<str:slug>/members/<int:membership_id>/status/', team_manage.change_member_status, name='team_manage_change_status'),
+    path('teams/<str:slug>/settings/', team_manage.update_settings, name='team_manage_update_settings'),
+    
+    # User team history (Profile journey, audits)
+    path('users/<int:user_id>/team-history/', user_history.user_team_history, name='user_team_history'),
     
     # Phase D: Team invite management
     path('teams/invites/', views.list_team_invites, name='list_invites'),

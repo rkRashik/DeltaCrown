@@ -240,8 +240,8 @@ class CompetitionService:
         if verified_only:
             queryset = queryset.filter(snapshot_confidence__in=['STABLE', 'ESTABLISHED'])
         
-        # Order by: score DESC, created_at DESC
-        queryset = queryset.order_by('-display_score', '-created_at')
+        # Order by: score DESC, created_at DESC, name ASC (final tie-breaker)
+        queryset = queryset.order_by('-display_score', '-created_at', 'name')
         
         # Count total
         total_count = queryset.count()
@@ -484,12 +484,13 @@ class CompetitionService:
         Invalidate cached ranking data for a team.
         Called after match verification or tournament completion.
         """
+        from apps.organizations.services.cache_invalidation import safe_cache_delete_pattern
         # Invalidate all cache keys for this team
-        cache.delete_pattern(f'competition:team_rank:{team_id}:*')
+        safe_cache_delete_pattern(f'competition:team_rank:{team_id}:*')
         
         # Invalidate global/game rankings that might include this team
-        cache.delete_pattern('competition:global_rankings:*')
-        cache.delete_pattern('competition:game_rankings:*')
+        safe_cache_delete_pattern('competition:global_rankings:*')
+        safe_cache_delete_pattern('competition:game_rankings:*')
     
     @staticmethod
     def invalidate_org_cache(org_id: int):

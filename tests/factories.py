@@ -8,8 +8,8 @@ Provides consistent, reusable factories for creating test data:
 """
 
 from django.contrib.auth import get_user_model
-from apps.organizations.models import Team, TeamMembership
-from apps.organizations.choices import TeamStatus
+from apps.organizations.models import Team, TeamMembership, TeamMembershipEvent
+from apps.organizations.choices import TeamStatus, MembershipRole, MembershipStatus, MembershipEventType
 from apps.games.models import Game
 
 User = get_user_model()
@@ -70,8 +70,21 @@ def create_independent_team(name, creator, game_id=1, **kwargs):
     membership = TeamMembership.objects.create(
         team=team,
         user=creator,
-        role='captain',
-        status='active'
+        role=MembershipRole.MANAGER,
+        status=MembershipStatus.ACTIVE,
+        game_id=game_id,
+    )
+    
+    # Create JOINED event (append-only ledger)
+    TeamMembershipEvent.objects.create(
+        membership=membership,
+        team=team,
+        user=creator,
+        actor=creator,
+        event_type=MembershipEventType.JOINED,
+        new_role=MembershipRole.MANAGER,
+        new_status=MembershipStatus.ACTIVE,
+        metadata={'team_creation': True},
     )
     
     return team, membership
@@ -109,8 +122,21 @@ def create_org_team(name, creator, organization, game_id=1, **kwargs):
     membership = TeamMembership.objects.create(
         team=team,
         user=creator,
-        role='captain',
-        status='active'
+        role=MembershipRole.MANAGER,
+        status=MembershipStatus.ACTIVE,
+        game_id=game_id,
+    )
+    
+    # Create JOINED event (append-only ledger)
+    TeamMembershipEvent.objects.create(
+        membership=membership,
+        team=team,
+        user=creator,
+        actor=creator,
+        event_type=MembershipEventType.JOINED,
+        new_role=MembershipRole.MANAGER,
+        new_status=MembershipStatus.ACTIVE,
+        metadata={'team_creation': True, 'organization_team': True},
     )
     
     return team, membership

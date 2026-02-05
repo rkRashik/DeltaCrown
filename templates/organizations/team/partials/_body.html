@@ -2,7 +2,6 @@
 {% load humanize %}
 
 <div class="fixed inset-0 z-0 pointer-events-none">
-  <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04]"></div>
   <div class="absolute -top-40 -right-40 w-[800px] h-[800px] rounded-full blur-[200px] opacity-10" style="background: var(--team-primary)"></div>
   <div class="absolute -bottom-56 -left-56 w-[900px] h-[900px] rounded-full blur-[220px] opacity-[0.06]" style="background: var(--team-primary)"></div>
 </div>
@@ -12,7 +11,11 @@
   <header class="relative mb-12 md:mb-16">
     <div class="relative w-full h-[320px] sm:h-[360px] md:h-[420px] overflow-hidden">
       <div class="absolute inset-0">
-        <img id="dc-hero-banner" src="{{ team.banner_url|safe_img_url }}" alt="{{ team.name }} banner" class="w-full h-full object-cover hero-mask opacity-80 scale-105" />
+        {% if team.banner_url %}
+          <img id="dc-hero-banner" src="{{ team.banner_url|safe_img_url }}" alt="{{ team.name }} banner" class="w-full h-full object-cover hero-mask opacity-80 scale-105" onerror="this.onerror=null; this.src='{% static 'img/teams/default-banner.svg' %}';" />
+        {% else %}
+          <img id="dc-hero-banner" src="{% static 'img/teams/default-banner.svg' %}" alt="{{ team.name }} banner" class="w-full h-full object-cover hero-mask opacity-80 scale-105" />
+        {% endif %}
       </div>
       <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
       <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
@@ -25,7 +28,11 @@
         <div class="relative shrink-0">
           <div class="logo-slab">
             <div class="logo-slab__inner">
-              <img src="{{ team.logo_url|safe_img_url }}" alt="{{ team.name }} logo" class="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-[0_0_28px_var(--team-glow)]" />
+              {% if team.logo_url %}
+                <img src="{{ team.logo_url|safe_img_url }}" alt="{{ team.name }} logo" class="dc-team-logo" onerror="this.onerror=null; this.src='{% static 'img/teams/default-logo.svg' %}';" />
+              {% else %}
+                <img src="{% static 'img/teams/default-logo.svg' %}" alt="{{ team.name }} logo" class="dc-team-logo" />
+              {% endif %}
             </div>
           </div>
         </div>
@@ -33,7 +40,7 @@
         <!-- Team Info -->
         <div class="flex-1 min-w-0">
           <div class="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
-            <h1 class="text-3xl sm:text-4xl md:text-5xl font-display font-bold uppercase tracking-tight leading-none text-white break-words">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-display font-bold tracking-tight leading-none text-white break-words">
               {{ team.name|default:"Unknown Team" }}
             </h1>
 

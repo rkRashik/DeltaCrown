@@ -1,0 +1,2963 @@
+<!-- =========================
+PART 1 / DeltaCrown Team HQ (Template)
+Stack: HTML5 + Tailwind (CDN) + Vanilla JS + Lucide Icons (CDN)
+Includes:
+- Modern responsive layout (desktop sidebar + mobile drawer)
+- Final menu architecture (Command Center, Roster Ops, Competition Hub, Training Lab, Community & Media, Team Profile, Settings & Security)
+- Optional Organization Console (role-gated: Org Admin only)
+- Team Color system (primary/accent defaults) using CSS variables
+- Bottom-right Demo Controller (Role + Game + Team Colors) as popover
+- Section placeholders for PART 2 to fill
+
+➡️ Paste PART 2 below the bottom marker.
+========================= -->
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DeltaCrown — Team HQ</title>
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            /* Team colors (demo-changeable) */
+            --team-primary: #7c3aed;
+            /* default violet */
+            --team-accent: #22c55e;
+            /* default green */
+
+            /* Base surface */
+            --bg0: #070a12;
+            --bg1: #0b1020;
+            --card: rgba(255, 255, 255, .06);
+            --card2: rgba(255, 255, 255, .085);
+            --line: rgba(255, 255, 255, .12);
+            --txt: rgba(255, 255, 255, .92);
+            --muted: rgba(255, 255, 255, .62);
+            --shadow: 0 18px 60px rgba(0, 0, 0, .55);
+        }
+
+        /* Nicer scrollbars (optional) */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, .18) transparent;
+        }
+
+        *::-webkit-scrollbar {
+            height: 10px;
+            width: 10px;
+        }
+
+        *::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, .14);
+            border-radius: 999px;
+        }
+
+        *::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        /* Soft glassy background */
+        body {
+            background:
+                radial-gradient(900px 600px at 12% 8%, color-mix(in oklab, var(--team-primary) 32%, transparent), transparent 55%),
+                radial-gradient(800px 560px at 86% 18%, color-mix(in oklab, var(--team-accent) 22%, transparent), transparent 55%),
+                radial-gradient(900px 680px at 50% 92%, rgba(59, 130, 246, .14), transparent 60%),
+                linear-gradient(180deg, var(--bg0), var(--bg1));
+            color: var(--txt);
+        }
+
+        /* Utility for CSS var colors with Tailwind arbitrary color syntax */
+        .bg-card {
+            background: var(--card);
+        }
+
+        .bg-card2 {
+            background: var(--card2);
+        }
+
+        .border-line {
+            border-color: var(--line);
+        }
+
+        .text-muted {
+            color: var(--muted);
+        }
+
+        .shadow-soft {
+            box-shadow: var(--shadow);
+        }
+
+        /* Modal/Drawer Framework */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+
+        .modal-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-container {
+            position: fixed;
+            inset: 0;
+            z-index: 51;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-container.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border: 1px solid var(--line);
+            border-radius: 1.5rem;
+            backdrop-filter: blur(24px);
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.95);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-container.active .modal-content {
+            transform: scale(1);
+        }
+
+        /* Drawer variant (mobile) */
+        @media (max-width: 768px) {
+            .modal-container {
+                align-items: flex-end;
+                padding: 0;
+            }
+
+            .modal-content {
+                max-width: 100%;
+                border-radius: 1.5rem 1.5rem 0 0;
+                max-height: 85vh;
+                transform: translateY(100%);
+            }
+
+            .modal-container.active .modal-content {
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--line);
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        /* Simple section router behavior */
+        .hq-section {
+            display: none;
+        }
+
+        .hq-section.is-active {
+            display: block;
+        }
+
+        /* Active nav pill */
+        .nav-item[aria-current="page"] {
+            background: linear-gradient(135deg,
+                    color-mix(in oklab, var(--team-primary) 28%, rgba(255, 255, 255, .06)),
+                    rgba(255, 255, 255, .05));
+            border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255, 255, 255, .14));
+        }
+
+        /* Demo controller popover animation */
+        .pop {
+            transform-origin: bottom right;
+        }
+
+        .pop[data-open="true"] {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .pop[data-open="false"] {
+            transform: translateY(10px) scale(.98);
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <!-- Mobile scrim -->
+    <div id="scrim" class="fixed inset-0 bg-black/60 hidden z-40"></div>
+
+    <div class="min-h-screen grid lg:grid-cols-[320px_1fr]">
+        <!-- =========================
+    SIDEBAR
+    ========================== -->
+        <aside id="sidebar" class="fixed lg:sticky top-0 left-0 z-50 lg:z-auto
+             h-screen w-[86vw] max-w-[360px] lg:w-auto
+             -translate-x-[110%] lg:translate-x-0 transition-transform duration-200
+             border-r border-line bg-white/5 backdrop-blur-xl" aria-label="Team HQ navigation">
+
+            <div class="p-4 h-full flex flex-col gap-3 overflow-hidden">
+                <!-- Brand / Team switcher header -->
+                <div class="rounded-2xl border border-line bg-card shadow-soft p-3">
+                    <div class="flex items-center gap-3">
+                        <div class="h-11 w-11 rounded-2xl grid place-items-center"
+                            style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 80%, #000), rgba(255,255,255,.06)); border:1px solid rgba(255,255,255,.14)">
+                            <span class="font-black tracking-tight">HQ</span>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <div class="font-semibold truncate">Team HQ</div>
+                                <span id="gameChip"
+                                    class="text-[11px] px-2 py-[2px] rounded-full border border-line bg-white/5 text-white/80">
+                                    🎯 VALORANT
+                                </span>
+                            </div>
+                            <div class="text-xs text-muted truncate">
+                                <span id="roleChip">👑 Owner</span> • Management Console
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick actions -->
+                    <div class="grid grid-cols-2 gap-2 mt-3">
+                        <button id="qaInvite"
+                            class="rounded-xl border border-line bg-white/5 hover:bg-white/10 transition px-3 py-2 text-xs flex items-center justify-center gap-2">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i> Invite
+                        </button>
+                        <button id="qaAnnounce"
+                            class="rounded-xl border border-line bg-white/5 hover:bg-white/10 transition px-3 py-2 text-xs flex items-center justify-center gap-2">
+                            <i data-lucide="megaphone" class="w-4 h-4"></i> Post
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Nav -->
+                <nav class="flex-1 overflow-auto pr-1 pb-3">
+                    <!-- Group: Core -->
+                    <div class="mt-2">
+                        <div
+                            class="px-2 py-2 text-[11px] tracking-[.18em] uppercase text-white/50 flex items-center justify-between">
+                            <span>Core</span>
+                            <span
+                                class="text-[10px] px-2 py-[2px] rounded-full border border-line bg-white/5">LIVE</span>
+                        </div>
+
+                        <div class="space-y-1">
+                            <a class="nav-item flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-line transition"
+                                href="#command" data-route="command" aria-current="page">
+                                <span class="h-8 w-8 rounded-xl grid place-items-center bg-white/5 border border-line">
+                                    <i data-lucide="radar" class="w-4 h-4"></i>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-medium truncate">Command Center</div>
+                                    <div class="text-[12px] text-muted truncate">Today, alerts, quick actions</div>
+                                </div>
+                            </a>
+
+                            <a class="nav-item flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-line transition"
+                                href="#roster" data-route="roster">
+                                <span class="h-8 w-8 rounded-xl grid place-items-center bg-white/5 border border-line">
+                                    <i data-lucide="users" class="w-4 h-4"></i>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-medium truncate">Roster Ops</div>
+                                    <div class="text-[12px] text-muted truncate">Players, staff, roles, locks</div>
+                                </div>
+                            </a>
+
+                            <a class="nav-item flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-line transition"
+                                href="#competition" data-route="competition">
+                                <span class="h-8 w-8 rounded-xl grid place-items-center bg-white/5 border border-line">
+                                    <i data-lucide="trophy" class="w-4 h-4"></i>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-medium truncate">Competition Hub</div>
+                                    <div class="text-[12px] text-muted truncate">Tournaments, matches, disputes</div>
+                                </div>
+                            </a>
+
+                            <a class="nav-item flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-line transition"
+                                href="#training" data-route="training">
+                                <span class="h-8 w-8 rounded-xl grid place-items-center bg-white/5 border border-line">
+                                    <i data-lucide="brain" class="w-4 h-4"></i>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-medium truncate">Training Lab</div>
+                                    <div class="text-[12px] text-muted truncate">Practice, scrims, VOD, bounties</div>
+                                </div>
+                            </a>
+
+                            <a class="nav-item flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-line transition"
+                                href="#community" data-route="community">
+                                <span class="h-8 w-8 rounded-xl grid place-items-center bg-white/5 border border-line">
+                                    <i data-lucide="message-square" class="w-4 h-4"></i>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-medium truncate">Community & Media</div>
+                                    <div class="text-[12px] text-muted truncate">Community app + content</div>
+                                </div>
+                            </a>
+
+                            <a class="nav-item flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-line transition"
+                                href="#profile" data-route="profile">
+                                <span class="h-8 w-8 rounded-xl grid place-items-center bg-white/5 border border-line">
+                                    <i data-lucide="palette" class="w-4 h-4"></i>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-medium truncate">Team Profile</div>
+                                    <div class="text-[12px] text-muted truncate">Public identity & modules</div>
+                                </div>
+                            </a>
+
+                            <a class="nav-item flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-line transition"
+                                href="#settings" data-route="settings">
+                                <span class="h-8 w-8 rounded-xl grid place-items-center bg-white/5 border border-line">
+                                    <i data-lucide="shield" class="w-4 h-4"></i>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-medium truncate">Settings & Security</div>
+                                    <div class="text-[12px] text-muted truncate">Privacy, notifications, access</div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Group: Organization (role-gated) -->
+                    <div class="mt-4" id="orgMenuGroup" hidden>
+                        <div class="px-2 py-2 text-[11px] tracking-[.18em] uppercase text-white/50">
+                            Organization
+                        </div>
+                        <div class="space-y-1">
+                            <a class="nav-item flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-line transition"
+                                href="#org" data-route="org">
+                                <span class="h-8 w-8 rounded-xl grid place-items-center bg-white/5 border border-line">
+                                    <i data-lucide="building-2" class="w-4 h-4"></i>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-medium truncate">Organization Console</div>
+                                    <div class="text-[12px] text-muted truncate">Org-level governance</div>
+                                </div>
+                                <span
+                                    class="text-[10px] px-2 py-[2px] rounded-full border border-line bg-white/5 text-white/75">
+                                    Org Admin
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar footer -->
+                    <div
+                        class="mt-4 p-3 rounded-2xl border border-line bg-gradient-to-br from-white/5 to-white/[0.02] text-xs">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="shield-check" class="w-4 h-4 text-white/60"></i>
+                            <span class="font-semibold text-white/75">Secure & Verified</span>
+                        </div>
+                        <div class="text-white/50 leading-relaxed">
+                            All actions are logged and permission-gated for team integrity.
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- Mobile close button (only visible on mobile) -->
+                <button id="closeSidebar"
+                    class="lg:hidden rounded-xl border border-line bg-white/5 hover:bg-white/10 transition px-3 py-2 text-sm flex items-center justify-center gap-2">
+                    <i data-lucide="x" class="w-4 h-4"></i> Close
+                </button>
+            </div>
+        </aside>
+
+        <!-- =========================
+    MAIN
+    ========================== -->
+        <main class="min-h-screen lg:pl-0">
+            <!-- Topbar -->
+            <header class="sticky top-0 z-30">
+                <div
+                    class="mx-3 lg:mx-6 mt-3 lg:mt-5 rounded-2xl border border-line bg-white/5 backdrop-blur-xl shadow-soft">
+                    <div class="p-3 lg:p-4 flex items-center gap-3">
+                        <!-- Mobile menu -->
+                        <button id="openSidebar"
+                            class="lg:hidden h-9 w-9 rounded-xl border border-line bg-white/5 hover:bg-white/10 transition grid place-items-center">
+                            <i data-lucide="menu" class="w-4 h-4"></i>
+                        </button>
+
+                        <!-- Page Title (Compact) -->
+                        <div class="hidden lg:block">
+                            <h1 class="text-sm font-bold tracking-tight" id="pageTitle">Command Center</h1>
+                            <p class="text-xs text-muted mt-0.5" id="pageSub">Dashboard overview</p>
+                        </div>
+
+                        <!-- Search (Context-Aware) -->
+                        <div class="flex-1 relative group">
+                            <div
+                                class="flex items-center gap-2 rounded-xl border border-line bg-black/30 px-3 py-2 group-focus-within:border-white/25 group-focus-within:bg-black/40 transition-all">
+                                <i data-lucide="search" class="w-4 h-4 text-white/50"></i>
+                                <input id="hqSearch"
+                                    class="w-full bg-transparent outline-none text-sm placeholder:text-white/40"
+                                    placeholder="Search in Command Center..." type="search" />
+                                <kbd
+                                    class="hidden sm:inline-block px-2 py-0.5 text-[10px] rounded border border-white/10 bg-white/5 text-white/40 font-mono">⌘K</kbd>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex items-center gap-2">
+                            <button id="btnNotifications"
+                                class="hidden sm:grid h-9 w-9 rounded-xl border border-line bg-white/5 hover:bg-white/10 transition place-items-center relative"
+                                title="Notifications">
+                                <i data-lucide="bell" class="w-4 h-4"></i>
+                                <span
+                                    class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 border border-white/20 text-[10px] font-bold grid place-items-center">3</span>
+                            </button>
+                            <button id="btnPrimary"
+                                class="hidden md:block rounded-xl px-4 py-2 text-sm font-medium border" style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.06));
+                           border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));">
+                                <i data-lucide="zap" class="w-3.5 h-3.5 inline mr-1.5"></i>Quick Action
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content container -->
+            <div class="mx-3 lg:mx-6 mt-4 lg:mt-6 pb-24">
+                <!-- Router sections (PART 2 will flesh these out) -->
+                <div class="mt-5 space-y-4">
+                    <!-- Command Center -->
+                    <section id="command" class="hq-section is-active">
+                        <div class="space-y-4">
+                            <!-- Today Board -->
+                            <div class="relative rounded-3xl border border-line backdrop-blur-xl overflow-hidden group">
+                                <!-- Ghost icon watermark -->
+                                <div class="absolute top-0 right-0 w-64 h-64 opacity-[0.02] pointer-events-none">
+                                    <i data-lucide="command" class="w-full h-full"></i>
+                                </div>
+
+                                <div style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 12%, rgba(0,0,0,.4)), rgba(255,255,255,.04));"
+                                    class="p-5 lg:p-6">
+                                    <div class="flex items-center justify-between mb-5">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15"
+                                                style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, #000), rgba(255,255,255,.06));">
+                                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-base font-bold">Today Board</h2>
+                                                <p class="text-xs text-muted">Next up for your team</p>
+                                            </div>
+                                        </div>
+                                        <span
+                                            class="text-xs px-3 py-1 rounded-full border border-white/15 bg-white/5">Live</span>
+                                    </div>
+
+                                    <!-- Event Cards -->
+                                    <div class="grid lg:grid-cols-3 gap-4">
+                                        <!-- Next Match -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4 relative">
+                                            <div class="absolute top-0 right-0 w-20 h-20 opacity-[0.03]">
+                                                <i data-lucide="trophy" class="w-full h-full"></i>
+                                            </div>
+                                            <div class="flex items-center justify-between mb-3">
+                                                <span
+                                                    class="text-xs px-2 py-1 rounded-full border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 font-medium">Match</span>
+                                                <span class="text-xs text-muted">in 2 hours</span>
+                                            </div>
+                                            <div class="font-bold text-sm mb-1">VCT Qualifier Finals</div>
+                                            <div class="text-xs text-muted mb-3">vs Team Liquid • Best of 3</div>
+                                            <div class="flex items-center gap-2">
+                                                <button class="flex-1 rounded-xl px-3 py-2 text-xs font-medium border"
+                                                    style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.06)); border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));">
+                                                    <i data-lucide="log-in" class="w-3 h-3 inline mr-1"></i>Check In
+                                                </button>
+                                                <button
+                                                    class="h-9 w-9 rounded-xl border border-line bg-white/5 hover:bg-white/10 transition grid place-items-center">
+                                                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Next Scrim -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <span
+                                                    class="text-xs px-2 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 font-medium">Scrim</span>
+                                                <span class="text-xs text-muted">Tomorrow 4PM</span>
+                                            </div>
+                                            <div class="font-bold text-sm mb-1">Practice vs Sentinels</div>
+                                            <div class="text-xs text-muted mb-3">Haven, Bind, Ascent</div>
+                                            <button
+                                                class="w-full rounded-xl px-3 py-2 text-xs border border-line bg-white/5 hover:bg-white/10 transition">
+                                                View Details
+                                            </button>
+                                        </div>
+
+                                        <!-- Next Practice -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <span
+                                                    class="text-xs px-2 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-400 font-medium">Practice</span>
+                                                <span class="text-xs text-muted">Today 8PM</span>
+                                            </div>
+                                            <div class="font-bold text-sm mb-1">Team Strategy Review</div>
+                                            <div class="text-xs text-muted mb-3">VOD analysis + map practice</div>
+                                            <button
+                                                class="w-full rounded-xl px-3 py-2 text-xs border border-line bg-white/5 hover:bg-white/10 transition">
+                                                Join Session
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Actions (Role-Gated) -->
+                            <div
+                                class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5 lg:p-6 relative overflow-hidden">
+                                <div class="absolute bottom-0 left-0 w-64 h-64 opacity-[0.02] pointer-events-none">
+                                    <i data-lucide="zap" class="w-full h-full"></i>
+                                </div>
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15"
+                                            style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-accent) 60%, #000), rgba(255,255,255,.06));">
+                                            <i data-lucide="zap" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-base font-bold">Quick Actions</h2>
+                                            <p class="text-xs text-muted">Common tasks at your fingertips</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                    <button
+                                        class="action-card rounded-2xl border border-line bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all p-4 text-left group"
+                                        data-role-gate="STAFF+">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <div
+                                                class="h-10 w-10 rounded-xl border border-white/10 bg-white/5 grid place-items-center group-hover:scale-110 transition-transform">
+                                                <i data-lucide="user-plus" class="w-5 h-5 text-white/70"></i>
+                                            </div>
+                                        </div>
+                                        <div class="font-semibold text-sm">Invite Member</div>
+                                        <div class="text-xs text-muted mt-1">Add players or staff</div>
+                                    </button>
+
+                                    <button
+                                        class="action-card rounded-2xl border border-line bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all p-4 text-left group"
+                                        data-role-gate="STAFF+">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <div
+                                                class="h-10 w-10 rounded-xl border border-white/10 bg-white/5 grid place-items-center group-hover:scale-110 transition-transform">
+                                                <i data-lucide="megaphone" class="w-5 h-5 text-white/70"></i>
+                                            </div>
+                                        </div>
+                                        <div class="font-semibold text-sm">Post Announcement</div>
+                                        <div class="text-xs text-muted mt-1">Share team updates</div>
+                                    </button>
+
+                                    <button
+                                        class="action-card rounded-2xl border border-line bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all p-4 text-left group"
+                                        data-role-gate="STAFF+">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <div
+                                                class="h-10 w-10 rounded-xl border border-white/10 bg-white/5 grid place-items-center group-hover:scale-110 transition-transform">
+                                                <i data-lucide="trophy" class="w-5 h-5 text-white/70"></i>
+                                            </div>
+                                        </div>
+                                        <div class="font-semibold text-sm">Register Tournament</div>
+                                        <div class="text-xs text-muted mt-1">Quick tournament entry</div>
+                                    </button>
+
+                                    <button
+                                        class="action-card rounded-2xl border border-line bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all p-4 text-left group"
+                                        data-role-gate="STAFF+">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <div
+                                                class="h-10 w-10 rounded-xl border border-white/10 bg-white/5 grid place-items-center group-hover:scale-110 transition-transform">
+                                                <i data-lucide="calendar-plus" class="w-5 h-5 text-white/70"></i>
+                                            </div>
+                                        </div>
+                                        <div class="font-semibold text-sm">Schedule Practice</div>
+                                        <div class="text-xs text-muted mt-1">Create training session</div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Alerts & Readiness + Recent Activity Grid -->
+                            <div class="grid lg:grid-cols-2 gap-4">
+                                <!-- Alerts -->
+                                <div
+                                    class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                    <div class="flex items-center gap-3 mb-4">
+                                        <div class="h-11 w-11 rounded-2xl grid place-items-center border border-yellow-500/30"
+                                            style="background: linear-gradient(135deg, #f59e0b, #f97316);">
+                                            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-base font-bold">Alerts</h2>
+                                            <p class="text-xs text-muted">Needs attention</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <div
+                                            class="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3 flex items-start gap-3">
+                                            <i data-lucide="user-x"
+                                                class="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0"></i>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-semibold text-yellow-400">Missing Passport Data
+                                                </div>
+                                                <div class="text-xs text-white/70 mt-1">2 players need Game Passport
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            class="rounded-xl border border-green-500/20 bg-green-500/5 p-3 flex items-start gap-3">
+                                            <i data-lucide="mail"
+                                                class="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0"></i>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-semibold text-green-400">3 Pending Requests
+                                                </div>
+                                                <div class="text-xs text-white/70 mt-1">New join applications</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Recent Activity -->
+                                <div
+                                    class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
+                                                <i data-lucide="clock" class="w-5 h-5"></i>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-base font-bold">Recent Activity</h2>
+                                                <p class="text-xs text-muted">Team actions</p>
+                                            </div>
+                                        </div>
+                                        <button class="text-xs text-muted hover:text-white transition">View All</button>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <div
+                                            class="rounded-xl border border-line bg-white/5 p-3 flex items-start gap-3">
+                                            <div
+                                                class="h-8 w-8 rounded-lg grid place-items-center border border-line bg-white/5 flex-shrink-0">
+                                                <i data-lucide="user-plus" class="w-4 h-4"></i>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-semibold">TenZ accepted invite</div>
+                                                <div class="text-xs text-muted mt-1">Added as Duelist • 2h ago</div>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            class="rounded-xl border border-line bg-white/5 p-3 flex items-start gap-3">
+                                            <div
+                                                class="h-8 w-8 rounded-lg grid place-items-center border border-line bg-white/5 flex-shrink-0">
+                                                <i data-lucide="trophy" class="w-4 h-4"></i>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-semibold">VCT Qualifier registered</div>
+                                                <div class="text-xs text-muted mt-1">By Owner • 5h ago</div>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            class="rounded-xl border border-line bg-white/5 p-3 flex items-start gap-3">
+                                            <div
+                                                class="h-8 w-8 rounded-lg grid place-items-center border border-line bg-white/5 flex-shrink-0">
+                                                <i data-lucide="edit" class="w-4 h-4"></i>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-semibold">Updated team logo</div>
+                                                <div class="text-xs text-muted mt-1">By Manager • 1d ago</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Roster Ops -->
+                    <section id="roster" class="hq-section">
+                        <div class="space-y-4">
+                            <!-- Active Roster -->
+                            <div class="relative rounded-3xl border border-line backdrop-blur-xl overflow-hidden">
+                                <!-- Ghost icon -->
+                                <div class="absolute top-0 right-0 w-64 h-64 opacity-[0.02] pointer-events-none">
+                                    <i data-lucide="users" class="w-full h-full"></i>
+                                </div>
+
+                                <div style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 12%, rgba(0,0,0,.4)), rgba(255,255,255,.04));"
+                                    class="p-5 lg:p-6">
+                                    <div class="flex items-center justify-between mb-5">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15"
+                                                style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, #000), rgba(255,255,255,.06));">
+                                                <i data-lucide="users" class="w-5 h-5"></i>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-base font-bold">Active Roster</h2>
+                                                <p class="text-xs text-muted">5 Starters • 2 Subs • 3 Staff</p>
+                                            </div>
+                                        </div>
+                                        <button class="rounded-xl px-4 py-2 text-sm font-medium border"
+                                            style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.06)); border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));"
+                                            data-role-gate="STAFF+">
+                                            <i data-lucide="user-plus" class="w-3.5 h-3.5 inline mr-1.5"></i>Invite
+                                        </button>
+                                    </div>
+
+                                    <!-- Player Cards Grid -->
+                                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        <!-- Player Card 1 -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4 relative group hover:border-white/25 transition-all">
+                                            <div class="absolute top-2 right-2 flex items-center gap-1">
+                                                <span class="h-2 w-2 rounded-full bg-green-500"></span>
+                                            </div>
+                                            <div class="flex items-center gap-3 mb-3">
+                                                <div class="h-12 w-12 rounded-xl border-2"
+                                                    style="border-color: var(--team-primary); background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));">
+                                                    <div
+                                                        class="h-full w-full rounded-xl grid place-items-center text-lg font-bold">
+                                                        T</div>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="font-bold text-sm truncate">TenZ</div>
+                                                    <div class="text-xs text-muted truncate">Tyson Ngo</div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2 mb-3">
+                                                <span
+                                                    class="text-xs px-2 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-400 font-medium">Duelist</span>
+                                                <span
+                                                    class="text-xs px-2 py-1 rounded-full border border-green-500/30 bg-green-500/10 text-green-400 font-medium">Starter</span>
+                                            </div>
+                                            <div class="flex items-center justify-between text-xs">
+                                                <div class="flex items-center gap-1 text-green-400">
+                                                    <i data-lucide="check-circle-2" class="w-3 h-3"></i>
+                                                    <span>Passport OK</span>
+                                                </div>
+                                                <button class="text-muted hover:text-white transition">
+                                                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Player Card 2 -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4 relative group hover:border-white/25 transition-all">
+                                            <div class="absolute top-2 right-2 flex items-center gap-1">
+                                                <span class="h-2 w-2 rounded-full bg-green-500"></span>
+                                            </div>
+                                            <div class="flex items-center gap-3 mb-3">
+                                                <div class="h-12 w-12 rounded-xl border-2"
+                                                    style="border-color: var(--team-primary); background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));">
+                                                    <div
+                                                        class="h-full w-full rounded-xl grid place-items-center text-lg font-bold">
+                                                        Z</div>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="font-bold text-sm truncate">Zekken</div>
+                                                    <div class="text-xs text-muted truncate">Zachary Patrone</div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2 mb-3">
+                                                <span
+                                                    class="text-xs px-2 py-1 rounded-full border border-pink-500/30 bg-pink-500/10 text-pink-400 font-medium">Flex</span>
+                                                <span
+                                                    class="text-xs px-2 py-1 rounded-full border border-green-500/30 bg-green-500/10 text-green-400 font-medium">Starter</span>
+                                            </div>
+                                            <div class="flex items-center justify-between text-xs">
+                                                <div class="flex items-center gap-1 text-yellow-400">
+                                                    <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                                                    <span>Missing IGN</span>
+                                                </div>
+                                                <button class="text-muted hover:text-white transition">
+                                                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Player Card 3 (Sub) -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4 relative group hover:border-white/25 transition-all">
+                                            <div class="absolute top-2 right-2 flex items-center gap-1">
+                                                <span class="h-2 w-2 rounded-full bg-gray-400"></span>
+                                            </div>
+                                            <div class="flex items-center gap-3 mb-3">
+                                                <div class="h-12 w-12 rounded-xl border-2"
+                                                    style="border-color: var(--team-accent); background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));">
+                                                    <div
+                                                        class="h-full w-full rounded-xl grid place-items-center text-lg font-bold">
+                                                        S</div>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="font-bold text-sm truncate">SicK</div>
+                                                    <div class="text-xs text-muted truncate">Hunter Mims</div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2 mb-3">
+                                                <span
+                                                    class="text-xs px-2 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 font-medium">Controller</span>
+                                                <span
+                                                    class="text-xs px-2 py-1 rounded-full border border-white/20 bg-white/5 text-white/60 font-medium">Sub</span>
+                                            </div>
+                                            <div class="flex items-center justify-between text-xs">
+                                                <div class="flex items-center gap-1 text-green-400">
+                                                    <i data-lucide="check-circle-2" class="w-3 h-3"></i>
+                                                    <span>Passport OK</span>
+                                                </div>
+                                                <button class="text-muted hover:text-white transition">
+                                                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Staff Card -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4 relative group hover:border-white/25 transition-all">
+                                            <div class="absolute top-2 right-2">
+                                                <i data-lucide="shield" class="w-3 h-3 text-white/40"></i>
+                                            </div>
+                                            <div class="flex items-center gap-3 mb-3">
+                                                <div
+                                                    class="h-12 w-12 rounded-xl border border-white/15 bg-gradient-to-br from-orange-500/20 to-red-500/20">
+                                                    <div
+                                                        class="h-full w-full rounded-xl grid place-items-center text-lg font-bold">
+                                                        C</div>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="font-bold text-sm truncate">Chet</div>
+                                                    <div class="text-xs text-muted truncate">Head Coach</div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2 mb-3">
+                                                <span
+                                                    class="text-xs px-2 py-1 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-400 font-medium">Staff</span>
+                                                <span
+                                                    class="text-xs px-2 py-1 rounded-full border border-white/20 bg-white/5 text-white/60 font-medium">Manager</span>
+                                            </div>
+                                            <div class="flex items-center justify-between text-xs">
+                                                <div class="text-muted">Added 3 months ago</div>
+                                                <button class="text-muted hover:text-white transition">
+                                                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Add Member Card -->
+                                        <div class="rounded-2xl border-2 border-dashed border-white/15 bg-white/5 p-4 hover:border-white/30 hover:bg-white/10 transition-all cursor-pointer group"
+                                            data-role-gate="STAFF+">
+                                            <div
+                                                class="h-full flex flex-col items-center justify-center gap-2 text-center py-4">
+                                                <div
+                                                    class="h-12 w-12 rounded-xl border border-white/20 bg-white/5 grid place-items-center group-hover:scale-110 transition-transform">
+                                                    <i data-lucide="user-plus" class="w-6 h-6 text-white/60"></i>
+                                                </div>
+                                                <div class="font-semibold text-sm">Add Member</div>
+                                                <div class="text-xs text-muted">Invite player or staff</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Invites & Requests + Roster Lock -->
+                            <div class="grid lg:grid-cols-2 gap-4">
+                                <!-- Invites & Join Requests -->
+                                <div
+                                    class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-11 w-11 rounded-2xl grid place-items-center border border-green-500/30"
+                                                style="background: linear-gradient(135deg, #10b981, #059669);">
+                                                <i data-lucide="mail" class="w-5 h-5"></i>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-base font-bold">Pending Actions</h2>
+                                                <p class="text-xs text-muted">2 Invites • 3 Join Requests</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <!-- Pending Invite -->
+                                        <div class="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3">
+                                            <div class="flex items-center gap-3">
+                                                <div
+                                                    class="h-10 w-10 rounded-lg border border-white/15 bg-white/5 grid place-items-center flex-shrink-0">
+                                                    <i data-lucide="send" class="w-4 h-4 text-blue-400"></i>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="text-sm font-semibold">Invite Sent: ShahZaM</div>
+                                                    <div class="text-xs text-muted mt-0.5">IGL/Sentinel • Sent 2 days
+                                                        ago</div>
+                                                </div>
+                                                <button
+                                                    class="text-xs px-3 py-1 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition">
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Join Request -->
+                                        <div class="rounded-xl border border-green-500/20 bg-green-500/5 p-3">
+                                            <div class="flex items-center gap-3 mb-2">
+                                                <div
+                                                    class="h-10 w-10 rounded-lg border border-white/15 bg-white/5 grid place-items-center flex-shrink-0">
+                                                    <i data-lucide="user-check" class="w-4 h-4 text-green-400"></i>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="text-sm font-semibold">dapr wants to join</div>
+                                                    <div class="text-xs text-muted mt-0.5">Sentinel • Applied 1 hour ago
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2 ml-13">
+                                                <button class="flex-1 rounded-lg px-3 py-1.5 text-xs font-medium border"
+                                                    style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.06)); border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));"
+                                                    data-role-gate="STAFF+">
+                                                    Accept
+                                                </button>
+                                                <button
+                                                    class="flex-1 rounded-lg px-3 py-1.5 text-xs border border-line bg-white/5 hover:bg-white/10 transition">
+                                                    Decline
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            class="w-full text-xs text-muted hover:text-white transition text-center py-2">
+                                            View All (5) →
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Roster Lock Center -->
+                                <div
+                                    class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                    <div class="flex items-center gap-3 mb-4">
+                                        <div class="h-11 w-11 rounded-2xl grid place-items-center border border-yellow-500/30"
+                                            style="background: linear-gradient(135deg, #f59e0b, #f97316);">
+                                            <i data-lucide="lock" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-base font-bold">Roster Lock</h2>
+                                            <p class="text-xs text-muted">Tournament restrictions</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        <div class="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3">
+                                            <div class="flex items-start gap-2 mb-2">
+                                                <i data-lucide="alert-triangle"
+                                                    class="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0"></i>
+                                                <div class="flex-1">
+                                                    <div class="text-sm font-semibold text-yellow-400">VCT Qualifier
+                                                    </div>
+                                                    <div class="text-xs text-white/70 mt-1">Locked until Feb 15, 2026
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="text-xs text-white/60">Cannot modify roster during tournament
+                                            </div>
+                                        </div>
+
+                                        <div class="rounded-xl border border-line bg-white/5 p-3">
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span class="text-sm font-semibold">Roster Flexibility</span>
+                                                <span class="text-xs text-green-400">OK</span>
+                                            </div>
+                                            <div class="text-xs text-muted">Can add subs for other events</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Competition Hub -->
+                    <section id="competition" class="hq-section">
+                        <div class="space-y-4">
+                            <!-- Tournament Operations -->
+                            <div class="relative rounded-3xl border border-line backdrop-blur-xl overflow-hidden">
+                                <div class="absolute top-0 right-0 w-64 h-64 opacity-[0.02] pointer-events-none">
+                                    <i data-lucide="trophy" class="w-full h-full"></i>
+                                </div>
+
+                                <div style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 12%, rgba(0,0,0,.4)), rgba(255,255,255,.04));"
+                                    class="p-5 lg:p-6">
+                                    <div class="flex items-center justify-between mb-5">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15"
+                                                style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, #000), rgba(255,255,255,.06));">
+                                                <i data-lucide="trophy" class="w-5 h-5"></i>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-base font-bold">Active Tournaments</h2>
+                                                <p class="text-xs text-muted">2 ongoing • 1 upcoming</p>
+                                            </div>
+                                        </div>
+                                        <button class="rounded-xl px-4 py-2 text-sm font-medium border"
+                                            style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.06)); border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));"
+                                            data-role-gate="STAFF+">
+                                            <i data-lucide="plus-circle" class="w-3.5 h-3.5 inline mr-1.5"></i>Register
+                                        </button>
+                                    </div>
+
+                                    <!-- Tournament Cards -->
+                                    <div class="grid lg:grid-cols-2 gap-4">
+                                        <!-- Active Tournament 1 -->
+                                        <div
+                                            class="rounded-2xl border border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-orange-500/5 backdrop-blur-sm p-4">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <div class="flex items-center gap-2">
+                                                    <div
+                                                        class="h-10 w-10 rounded-lg bg-gradient-to-br from-yellow-500 to-orange-500 grid place-items-center">
+                                                        <i data-lucide="flame" class="w-5 h-5"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="font-bold text-sm">VCT Qualifier</div>
+                                                        <div class="text-xs text-muted">VALORANT • Best of 5</div>
+                                                    </div>
+                                                </div>
+                                                <span
+                                                    class="text-xs px-2 py-1 rounded-full border border-yellow-500/30 bg-yellow-500/20 text-yellow-300 font-medium animate-pulse">Live</span>
+                                            </div>
+                                            <div class="space-y-2 mb-4">
+                                                <div class="flex items-center justify-between text-xs">
+                                                    <span class="text-muted">Next Match</span>
+                                                    <span class="font-semibold">in 2 hours</span>
+                                                </div>
+                                                <div class="flex items-center justify-between text-xs">
+                                                    <span class="text-muted">Current Round</span>
+                                                    <span class="font-semibold">Quarter Finals</span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                class="w-full rounded-xl px-3 py-2 text-sm font-medium border border-yellow-500/40 bg-yellow-500/10 hover:bg-yellow-500/20 transition">
+                                                <i data-lucide="log-in" class="w-3.5 h-3.5 inline mr-1.5"></i>Check In
+                                                Now
+                                            </button>
+                                        </div>
+
+                                        <!-- Active Tournament 2 -->
+                                        <div
+                                            class="rounded-2xl border border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-indigo-500/5 backdrop-blur-sm p-4">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <div class="flex items-center gap-2">
+                                                    <div
+                                                        class="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 grid place-items-center">
+                                                        <i data-lucide="shield" class="w-5 h-5"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="font-bold text-sm">ESL Pro League</div>
+                                                        <div class="text-xs text-muted">CS2 • Swiss Format</div>
+                                                    </div>
+                                                </div>
+                                                <span
+                                                    class="text-xs px-2 py-1 rounded-full border border-green-500/30 bg-green-500/20 text-green-300 font-medium">Checked
+                                                    In</span>
+                                            </div>
+                                            <div class="space-y-2 mb-4">
+                                                <div class="flex items-center justify-between text-xs">
+                                                    <span class="text-muted">Match Day</span>
+                                                    <span class="font-semibold">Tomorrow 3PM EST</span>
+                                                </div>
+                                                <div class="flex items-center justify-between text-xs">
+                                                    <span class="text-muted">Record</span>
+                                                    <span class="font-semibold">2-1</span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                class="w-full rounded-xl px-3 py-2 text-sm border border-line bg-white/5 hover:bg-white/10 transition">
+                                                View Bracket
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Upcoming Matches + Recent Results -->
+                            <div class="grid lg:grid-cols-2 gap-4">
+                                <!-- Upcoming Matches -->
+                                <div
+                                    class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                    <div class="flex items-center gap-3 mb-4">
+                                        <div
+                                            class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
+                                            <i data-lucide="calendar" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-base font-bold">Match Center</h2>
+                                            <p class="text-xs text-muted">Next 3 matches</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <!-- Match 1 -->
+                                        <div class="rounded-xl border border-line bg-white/5 p-3">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span
+                                                    class="text-xs px-2 py-0.5 rounded border border-red-500/30 bg-red-500/10 text-red-400 font-medium">in
+                                                    2h</span>
+                                                <span class="text-xs text-muted">VCT Qualifier • BO3</span>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="h-8 w-8 rounded-lg border"
+                                                        style="border-color: var(--team-primary); background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));">
+                                                        <div
+                                                            class="h-full w-full rounded-lg grid place-items-center text-xs font-bold">
+                                                            DC</div>
+                                                    </div>
+                                                    <span class="font-semibold text-sm">DeltaCrown</span>
+                                                </div>
+                                                <span class="text-xs text-muted">vs</span>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="font-semibold text-sm">Team Liquid</span>
+                                                    <div
+                                                        class="h-8 w-8 rounded-lg border border-white/20 bg-white/5 grid place-items-center text-xs font-bold">
+                                                        TL</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Match 2 -->
+                                        <div class="rounded-xl border border-line bg-white/5 p-3">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span
+                                                    class="text-xs px-2 py-0.5 rounded border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 font-medium">Tomorrow</span>
+                                                <span class="text-xs text-muted">ESL Pro • Swiss</span>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="h-8 w-8 rounded-lg border"
+                                                        style="border-color: var(--team-primary); background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));">
+                                                        <div
+                                                            class="h-full w-full rounded-lg grid place-items-center text-xs font-bold">
+                                                            DC</div>
+                                                    </div>
+                                                    <span class="font-semibold text-sm">DeltaCrown</span>
+                                                </div>
+                                                <span class="text-xs text-muted">vs</span>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="font-semibold text-sm">FaZe Clan</span>
+                                                    <div
+                                                        class="h-8 w-8 rounded-lg border border-white/20 bg-white/5 grid place-items-center text-xs font-bold">
+                                                        FZ</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            class="w-full text-xs text-muted hover:text-white transition text-center py-2">
+                                            View Full Schedule →
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Recent Results -->
+                                <div
+                                    class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                    <div class="flex items-center gap-3 mb-4">
+                                        <div
+                                            class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
+                                            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-base font-bold">Recent Results</h2>
+                                            <p class="text-xs text-muted">Last 3 matches</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <!-- Result 1 - Win -->
+                                        <div class="rounded-xl border border-green-500/20 bg-green-500/5 p-3">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span
+                                                    class="text-xs px-2 py-0.5 rounded border border-green-500/30 bg-green-500/20 text-green-300 font-bold">WIN</span>
+                                                <span class="text-xs text-muted">2 days ago • ESL Pro</span>
+                                            </div>
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span class="font-semibold text-sm">DeltaCrown</span>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-lg font-bold text-green-400">2</span>
+                                                    <span class="text-xs text-muted">-</span>
+                                                    <span class="text-lg font-bold text-white/40">0</span>
+                                                </div>
+                                                <span class="text-sm text-white/60">Cloud9</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Result 2 - Win -->
+                                        <div class="rounded-xl border border-green-500/20 bg-green-500/5 p-3">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span
+                                                    class="text-xs px-2 py-0.5 rounded border border-green-500/30 bg-green-500/20 text-green-300 font-bold">WIN</span>
+                                                <span class="text-xs text-muted">4 days ago • VCT</span>
+                                            </div>
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span class="font-semibold text-sm">DeltaCrown</span>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-lg font-bold text-green-400">2</span>
+                                                    <span class="text-xs text-muted">-</span>
+                                                    <span class="text-lg font-bold text-white/40">1</span>
+                                                </div>
+                                                <span class="text-sm text-white/60">Sentinels</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Result 3 - Loss -->
+                                        <div class="rounded-xl border border-red-500/20 bg-red-500/5 p-3">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span
+                                                    class="text-xs px-2 py-0.5 rounded border border-red-500/30 bg-red-500/20 text-red-300 font-bold">LOSS</span>
+                                                <span class="text-xs text-muted">1 week ago • VCT</span>
+                                            </div>
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span class="font-semibold text-sm">DeltaCrown</span>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-lg font-bold text-white/40">1</span>
+                                                    <span class="text-xs text-muted">-</span>
+                                                    <span class="text-lg font-bold text-red-400">2</span>
+                                                </div>
+                                                <span class="text-sm text-white/60">LOUD</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Training Lab -->
+                    <section id="training" class="hq-section">
+                        <div class="space-y-4">
+                            <!-- Practice Schedule -->
+                            <div class="relative rounded-3xl border border-line backdrop-blur-xl overflow-hidden">
+                                <div class="absolute top-0 right-0 w-64 h-64 opacity-[0.02] pointer-events-none">
+                                    <i data-lucide="calendar-clock" class="w-full h-full"></i>
+                                </div>
+
+                                <div style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 12%, rgba(0,0,0,.4)), rgba(255,255,255,.04));"
+                                    class="p-5 lg:p-6">
+                                    <div class="flex items-center justify-between mb-5">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15"
+                                                style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, #000), rgba(255,255,255,.06));">
+                                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-base font-bold">Practice Schedule</h2>
+                                                <p class="text-xs text-muted">Upcoming sessions this week</p>
+                                            </div>
+                                        </div>
+                                        <button class="rounded-xl px-4 py-2 text-sm font-medium border"
+                                            style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.06)); border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));"
+                                            data-role-gate="STAFF+">
+                                            <i data-lucide="plus" class="w-3.5 h-3.5 inline mr-1.5"></i>Schedule
+                                        </button>
+                                    </div>
+
+                                    <div class="grid lg:grid-cols-3 gap-3">
+                                        <!-- Practice 1 -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="flex items-start justify-between mb-3">
+                                                <div>
+                                                    <div
+                                                        class="text-xs px-2 py-0.5 rounded border border-blue-500/30 bg-blue-500/10 text-blue-400 inline-block mb-2">
+                                                        Today 6PM</div>
+                                                    <div class="font-bold text-sm">Team Scrim</div>
+                                                    <div class="text-xs text-muted mt-1">vs FaZe Clan</div>
+                                                </div>
+                                                <i data-lucide="swords" class="w-4 h-4 text-blue-400"></i>
+                                            </div>
+                                            <div class="text-xs text-muted">Duration: 2 hours</div>
+                                        </div>
+
+                                        <!-- Practice 2 -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="flex items-start justify-between mb-3">
+                                                <div>
+                                                    <div
+                                                        class="text-xs px-2 py-0.5 rounded border border-purple-500/30 bg-purple-500/10 text-purple-400 inline-block mb-2">
+                                                        Tomorrow 4PM</div>
+                                                    <div class="font-bold text-sm">VOD Review</div>
+                                                    <div class="text-xs text-muted mt-1">VCT Match Analysis</div>
+                                                </div>
+                                                <i data-lucide="video" class="w-4 h-4 text-purple-400"></i>
+                                            </div>
+                                            <div class="text-xs text-muted">Duration: 1.5 hours</div>
+                                        </div>
+
+                                        <!-- Practice 3 -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="flex items-start justify-between mb-3">
+                                                <div>
+                                                    <div
+                                                        class="text-xs px-2 py-0.5 rounded border border-green-500/30 bg-green-500/10 text-green-400 inline-block mb-2">
+                                                        Sat 2PM</div>
+                                                    <div class="font-bold text-sm">Strategy Session</div>
+                                                    <div class="text-xs text-muted mt-1">Map Pool Review</div>
+                                                </div>
+                                                <i data-lucide="map" class="w-4 h-4 text-green-400"></i>
+                                            </div>
+                                            <div class="text-xs text-muted">Duration: 3 hours</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- VOD Library + Performance -->
+                            <div class="grid lg:grid-cols-2 gap-4">
+                                <!-- VOD Review Library -->
+                                <div
+                                    class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                    <div class="flex items-center gap-3 mb-4">
+                                        <div
+                                            class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
+                                            <i data-lucide="video" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-base font-bold">VOD Library</h2>
+                                            <p class="text-xs text-muted">Recent recordings</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <!-- VOD 1 -->
+                                        <div
+                                            class="rounded-xl border border-line bg-white/5 p-3 hover:bg-white/10 transition cursor-pointer">
+                                            <div class="flex items-start gap-3">
+                                                <div
+                                                    class="h-12 w-20 rounded bg-gradient-to-br from-purple-500/20 to-blue-500/20 grid place-items-center flex-shrink-0">
+                                                    <i data-lucide="play-circle" class="w-6 h-6"></i>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="font-semibold text-sm truncate">VCT Qualifier Match
+                                                    </div>
+                                                    <div class="text-xs text-muted">vs Team Liquid • Haven</div>
+                                                    <div class="text-xs text-muted mt-1">42:15 • 2 days ago</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- VOD 2 -->
+                                        <div
+                                            class="rounded-xl border border-line bg-white/5 p-3 hover:bg-white/10 transition cursor-pointer">
+                                            <div class="flex items-start gap-3">
+                                                <div
+                                                    class="h-12 w-20 rounded bg-gradient-to-br from-green-500/20 to-emerald-500/20 grid place-items-center flex-shrink-0">
+                                                    <i data-lucide="play-circle" class="w-6 h-6"></i>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="font-semibold text-sm truncate">Strategy Breakdown</div>
+                                                    <div class="text-xs text-muted">Ascent Attack Setups</div>
+                                                    <div class="text-xs text-muted mt-1">28:30 • 5 days ago</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            class="w-full text-xs text-muted hover:text-white transition text-center py-2">
+                                            View All VODs →
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Performance Metrics -->
+                                <div
+                                    class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                    <div class="flex items-center gap-3 mb-4">
+                                        <div
+                                            class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
+                                            <i data-lucide="trending-up" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-base font-bold">Performance</h2>
+                                            <p class="text-xs text-muted">Last 30 days</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        <!-- Metric 1 -->
+                                        <div class="rounded-xl border border-green-500/20 bg-green-500/5 p-3">
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span class="text-sm font-semibold">Win Rate</span>
+                                                <span class="text-lg font-bold text-green-400">67%</span>
+                                            </div>
+                                            <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                <div class="h-full bg-gradient-to-r from-green-500 to-emerald-500"
+                                                    style="width: 67%"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Metric 2 -->
+                                        <div class="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3">
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span class="text-sm font-semibold">Practice Hours</span>
+                                                <span class="text-lg font-bold text-blue-400">42</span>
+                                            </div>
+                                            <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                <div class="h-full bg-gradient-to-r from-blue-500 to-cyan-500"
+                                                    style="width: 84%"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Metric 3 -->
+                                        <div class="rounded-xl border border-purple-500/20 bg-purple-500/5 p-3">
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span class="text-sm font-semibold">VODs Reviewed</span>
+                                                <span class="text-lg font-bold text-purple-400">12</span>
+                                            </div>
+                                            <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                                                    style="width: 60%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Team Profile -->
+                    <section id="profile" class="hq-section">
+                        <div class="space-y-4">
+                            <!-- Brand Identity -->
+                            <div class="relative rounded-3xl border border-line backdrop-blur-xl overflow-hidden">
+                                <div class="absolute top-0 right-0 w-64 h-64 opacity-[0.02] pointer-events-none">
+                                    <i data-lucide="palette" class="w-full h-full"></i>
+                                </div>
+
+                                <div style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 12%, rgba(0,0,0,.4)), rgba(255,255,255,.04));"
+                                    class="p-5 lg:p-6">
+                                    <div class="flex items-center justify-between mb-5">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15"
+                                                style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, #000), rgba(255,255,255,.06));">
+                                                <i data-lucide="palette" class="w-5 h-5"></i>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-base font-bold">Brand Identity</h2>
+                                                <p class="text-xs text-muted">Logo, colors, and visual identity</p>
+                                            </div>
+                                        </div>
+                                        <span class="text-xs px-3 py-1 rounded-full border border-white/15 bg-white/5"
+                                            data-role-gate="STAFF+">Editable</span>
+                                    </div>
+
+                                    <div class="grid lg:grid-cols-2 gap-4">
+                                        <!-- Logo Upload -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <span class="font-semibold text-sm">Team Logo</span>
+                                                <span class="text-xs text-muted">512×512px</span>
+                                            </div>
+                                            <div
+                                                class="mb-3 aspect-square w-28 mx-auto rounded-xl border-2 border-dashed border-white/20 bg-white/5 grid place-items-center">
+                                                <div class="h-20 w-20 rounded-lg border"
+                                                    style="border-color: var(--team-primary); background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));">
+                                                    <div
+                                                        class="h-full w-full rounded-lg grid place-items-center text-2xl font-bold">
+                                                        DC</div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                class="w-full rounded-xl px-3 py-2 text-xs border border-line bg-white/5 hover:bg-white/10 transition"
+                                                data-role-gate="STAFF+">
+                                                <i data-lucide="upload" class="w-3 h-3 inline mr-1"></i>Upload Logo
+                                            </button>
+                                        </div>
+
+                                        <!-- Team Colors -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="font-semibold text-sm mb-3">Team Colors</div>
+                                            <div class="space-y-2.5">
+                                                <div>
+                                                    <label class="text-xs text-muted block mb-1.5">Primary</label>
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="h-9 w-9 rounded-lg border border-white/20"
+                                                            style="background: var(--team-primary);"></div>
+                                                        <input type="text" value="#8b5cf6"
+                                                            class="flex-1 px-2.5 py-1.5 rounded-lg border border-line bg-black/30 text-xs"
+                                                            data-role-gate="STAFF+" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="text-xs text-muted block mb-1.5">Accent</label>
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="h-9 w-9 rounded-lg border border-white/20"
+                                                            style="background: var(--team-accent);"></div>
+                                                        <input type="text" value="#3b82f6"
+                                                            class="flex-1 px-2.5 py-1.5 rounded-lg border border-line bg-black/30 text-xs"
+                                                            data-role-gate="STAFF+" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Banner -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <span class="font-semibold text-sm">Profile Banner</span>
+                                                <span class="text-xs text-muted">1920×400px</span>
+                                            </div>
+                                            <div
+                                                class="mb-3 aspect-[4.8/1] rounded-xl border border-dashed border-white/20 bg-gradient-to-br from-white/5 to-transparent grid place-items-center">
+                                                <div class="text-xs text-muted">Banner Preview</div>
+                                            </div>
+                                            <button
+                                                class="w-full rounded-xl px-3 py-2 text-xs border border-line bg-white/5 hover:bg-white/10 transition"
+                                                data-role-gate="STAFF+">
+                                                <i data-lucide="upload" class="w-3 h-3 inline mr-1"></i>Upload Banner
+                                            </button>
+                                        </div>
+
+                                        <!-- Region & Tags -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="font-semibold text-sm mb-3">Region & Tags</div>
+                                            <div class="space-y-2.5">
+                                                <div>
+                                                    <label class="text-xs text-muted block mb-1.5">Region</label>
+                                                    <select
+                                                        class="w-full px-2.5 py-1.5 rounded-lg border border-line bg-black/30 text-xs"
+                                                        data-role-gate="STAFF+">
+                                                        <option>North America</option>
+                                                        <option>Europe</option>
+                                                        <option>Asia-Pacific</option>
+                                                        <option>Latin America</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="text-xs text-muted block mb-1.5">Level</label>
+                                                    <div class="flex flex-wrap gap-1.5">
+                                                        <span
+                                                            class="text-xs px-2 py-0.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-400">Pro</span>
+                                                        <span
+                                                            class="text-xs px-2 py-0.5 rounded-full border border-white/20 bg-white/5 text-white/60">Competitive</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- About Section -->
+                            <div
+                                class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div
+                                        class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
+                                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h2 class="text-base font-bold">About</h2>
+                                        <p class="text-xs text-muted">Team motto and mission</p>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="text-xs text-muted block mb-1">Team Motto</label>
+                                        <input type="text" placeholder="e.g., Victory Through Strategy"
+                                            class="w-full px-3 py-2 rounded-lg border border-line bg-black/30 text-sm"
+                                            data-role-gate="STAFF+" />
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-muted block mb-1">Mission Statement</label>
+                                        <textarea rows="3" placeholder="Describe your team's goals and values..."
+                                            class="w-full px-3 py-2 rounded-lg border border-line bg-black/30 text-sm resize-none"
+                                            data-role-gate="STAFF+"></textarea>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button class="rounded-xl px-4 py-2 text-sm font-medium border"
+                                            style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.16)); border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));"
+                                            data-role-gate="STAFF+">
+                                            Save Changes
+                                        </button>
+                                        <button
+                                            class="rounded-xl px-4 py-2 text-sm border border-line bg-white/5 hover:bg-white/10 transition">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Community & Media -->
+                    <section id="community" class="hq-section">
+                        <div class="space-y-4">
+                            <!-- Team Announcements -->
+                            <div class="relative rounded-3xl border border-line backdrop-blur-xl overflow-hidden">
+                                <div class="absolute top-0 right-0 w-64 h-64 opacity-[0.02] pointer-events-none">
+                                    <i data-lucide="megaphone" class="w-full h-full"></i>
+                                </div>
+
+                                <div style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 12%, rgba(0,0,0,.4)), rgba(255,255,255,.04));"
+                                    class="p-5 lg:p-6">
+                                    <div class="flex items-center justify-between mb-5">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15"
+                                                style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, #000), rgba(255,255,255,.06));">
+                                                <i data-lucide="megaphone" class="w-5 h-5"></i>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-base font-bold">Team Announcements</h2>
+                                                <p class="text-xs text-muted">Latest updates</p>
+                                            </div>
+                                        </div>
+                                        <button class="rounded-xl px-4 py-2 text-sm font-medium border"
+                                            style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.06)); border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));"
+                                            data-role-gate="STAFF+">
+                                            <i data-lucide="plus" class="w-3.5 h-3.5 inline mr-1.5"></i>Post
+                                        </button>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        <!-- Announcement 1 -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="flex items-start gap-3">
+                                                <div class="h-10 w-10 rounded-full border"
+                                                    style="border-color: var(--team-primary); background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));">
+                                                    <div
+                                                        class="h-full w-full rounded-full grid place-items-center text-sm font-bold">
+                                                        JD</div>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <div class="flex items-center justify-between mb-1">
+                                                        <div class="font-semibold text-sm">John Doe</div>
+                                                        <span class="text-xs text-muted">2 hours ago</span>
+                                                    </div>
+                                                    <p class="text-sm text-white/90 mb-2">Great practice today! Everyone
+                                                        showed up ready. Let's keep this momentum going into tomorrow's
+                                                        match. 💪</p>
+                                                    <div class="flex items-center gap-3 text-xs text-muted">
+                                                        <button class="hover:text-white transition">👍 12</button>
+                                                        <button class="hover:text-white transition">💬 5</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Announcement 2 -->
+                                        <div
+                                            class="rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="flex items-start gap-3">
+                                                <div
+                                                    class="h-10 w-10 rounded-full border border-blue-500/30 bg-blue-500/20 grid place-items-center">
+                                                    <i data-lucide="info" class="w-5 h-5 text-blue-400"></i>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <div class="flex items-center justify-between mb-1">
+                                                        <div class="font-semibold text-sm text-blue-400">System Notice
+                                                        </div>
+                                                        <span class="text-xs text-muted">1 day ago</span>
+                                                    </div>
+                                                    <p class="text-sm text-white/90">Tournament registration deadline is
+                                                        Feb 15. Make sure all players have completed passport
+                                                        verification.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Media Gallery + Social Links -->
+                            <div class="grid lg:grid-cols-2 gap-4">
+                                <!-- Media Gallery -->
+                                <div
+                                    class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
+                                                <i data-lucide="image" class="w-5 h-5"></i>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-base font-bold">Media Gallery</h2>
+                                                <p class="text-xs text-muted">Recent uploads</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <!-- Media 1 -->
+                                        <div
+                                            class="aspect-square rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-white/10 hover:scale-105 transition cursor-pointer grid place-items-center">
+                                            <i data-lucide="image" class="w-8 h-8 text-white/40"></i>
+                                        </div>
+                                        <!-- Media 2 -->
+                                        <div
+                                            class="aspect-square rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-white/10 hover:scale-105 transition cursor-pointer grid place-items-center">
+                                            <i data-lucide="image" class="w-8 h-8 text-white/40"></i>
+                                        </div>
+                                        <!-- Media 3 -->
+                                        <div
+                                            class="aspect-square rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-white/10 hover:scale-105 transition cursor-pointer grid place-items-center">
+                                            <i data-lucide="video" class="w-8 h-8 text-white/40"></i>
+                                        </div>
+                                        <!--Media 4 -->
+                                        <div
+                                            class="aspect-square rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-white/10 hover:scale-105 transition cursor-pointer grid place-items-center">
+                                            <i data-lucide="image" class="w-8 h-8 text-white/40"></i>
+                                        </div>
+                                        <!-- Media 5 -->
+                                        <div
+                                            class="aspect-square rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-white/10 hover:scale-105 transition cursor-pointer grid place-items-center">
+                                            <i data-lucide="image" class="w-8 h-8 text-white/40"></i>
+                                        </div>
+                                        <!-- Upload Button -->
+                                        <button
+                                            class="aspect-square rounded-xl border-2 border-dashed border-white/20 bg-white/5 hover:bg-white/10 transition grid place-items-center"
+                                            data-role-gate="STAFF+">
+                                            <i data-lucide="plus" class="w-8 h-8 text-white/40"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Social Links -->
+                                <div
+                                    class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                    <div class="flex items-center gap-3 mb-4">
+                                        <div
+                                            class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
+                                            <i data-lucide="link" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-base font-bold">Social Links</h2>
+                                            <p class="text-xs text-muted">Team presence</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <!-- Twitter -->
+                                        <div
+                                            class="rounded-xl border border-white/15 bg-white/5 p-3 flex items-center justify-between hover:bg-white/10 transition">
+                                            <div class="flex items-center gap-2">
+                                                <div class="h-8 w-8 rounded-lg bg-blue-500/20 grid place-items-center">
+                                                    <i data-lucide="twitter" class="w-4 h-4 text-blue-400"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm font-semibold">Twitter</div>
+                                                    <div class="text-xs text-muted">@DeltaCrownGG</div>
+                                                </div>
+                                            </div>
+                                            <button class="text-xs text-muted hover:text-white"
+                                                data-role-gate="STAFF+">Edit</button>
+                                        </div>
+
+                                        <!-- Twitch -->
+                                        <div
+                                            class="rounded-xl border border-white/15 bg-white/5 p-3 flex items-center justify-between hover:bg-white/10 transition">
+                                            <div class="flex items-center gap-2">
+                                                <div
+                                                    class="h-8 w-8 rounded-lg bg-purple-500/20 grid place-items-center">
+                                                    <i data-lucide="twitch" class="w-4 h-4 text-purple-400"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm font-semibold">Twitch</div>
+                                                    <div class="text-xs text-muted">twitch.tv/deltacrown</div>
+                                                </div>
+                                            </div>
+                                            <button class="text-xs text-muted hover:text-white"
+                                                data-role-gate="STAFF+">Edit</button>
+                                        </div>
+
+                                        <!-- Discord -->
+                                        <div
+                                            class="rounded-xl border border-white/15 bg-white/5 p-3 flex items-center justify-between hover:bg-white/10 transition">
+                                            <div class="flex items-center gap-2">
+                                                <div
+                                                    class="h-8 w-8 rounded-lg bg-indigo-500/20 grid place-items-center">
+                                                    <i data-lucide="message-circle" class="w-4 h-4 text-indigo-400"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm font-semibold">Discord</div>
+                                                    <div class="text-xs text-muted">discord.gg/deltacrown</div>
+                                                </div>
+                                            </div>
+                                            <button class="text-xs text-muted hover:text-white"
+                                                data-role-gate="STAFF+">Edit</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Team Profile -->
+                    <section id="profile" class="hq-section">
+                        <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+                            <h2 class="text-base font-bold tracking-tight">Team Profile</h2>
+                            <p class="text-sm text-muted mt-1">Public identity editor: logo, banner, mission,
+                                style/pace/focus, socials, modules.</p>
+                            <div class="mt-4 rounded-2xl border border-line bg-white/5 p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="font-semibold text-sm">Locked Field: Game</div>
+                                    <span
+                                        class="text-[11px] px-2 py-[2px] rounded-full border border-line bg-white/5 text-white/75">Immutable</span>
+                                </div>
+                                <p class="text-xs text-muted mt-1">Game is visible but cannot be changed after team
+                                    creation.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Settings & Security -->
+                    <section id="settings" class="hq-section">
+                        <div class="space-y-4">
+                            <!-- Privacy Settings -->
+                            <div class="relative rounded-3xl border border-line backdrop-blur-xl overflow-hidden">
+                                <div class="absolute top-0 right-0 w-64 h-64 opacity-[0.02] pointer-events-none">
+                                    <i data-lucide="shield" class="w-full h-full"></i>
+                                </div>
+
+                                <div style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 12%, rgba(0,0,0,.4)), rgba(255,255,255,.04));"
+                                    class="p-5 lg:p-6">
+                                    <div class="flex items-center justify-between mb-5">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15"
+                                                style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, #000), rgba(255,255,255,.06));">
+                                                <i data-lucide="lock" class="w-5 h-5"></i>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-base font-bold">Privacy & Permissions</h2>
+                                                <p class="text-xs text-muted">Control who can see your team</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        <!-- Toggle Setting 1 -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4 flex items-center justify-between">
+                                            <div>
+                                                <div class="font-semibold text-sm">Public Profile</div>
+                                                <div class="text-xs text-muted mt-1">Allow others to view your team
+                                                    profile</div>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer"
+                                                data-role-gate="OWNER+">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div
+                                                    class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500">
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        <!-- Toggle Setting 2 -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4 flex items-center justify-between">
+                                            <div>
+                                                <div class="font-semibold text-sm">Allow Join Requests</div>
+                                                <div class="text-xs text-muted mt-1">Let players request to join your
+                                                    team</div>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer"
+                                                data-role-gate="STAFF+">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div
+                                                    class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500">
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        <!-- Toggle Setting 3 -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4 flex items-center justify-between">
+                                            <div>
+                                                <div class="font-semibold text-sm">Show Match History</div>
+                                                <div class="text-xs text-muted mt-1">Display past match results publicly
+                                                </div>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer"
+                                                data-role-gate="STAFF+">
+                                                <input type="checkbox" class="sr-only peer">
+                                                <div
+                                                    class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500">
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        <!-- Toggle Setting 4 -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4 flex items-center justify-between">
+                                            <div>
+                                                <div class="font-semibold text-sm">Display Roster</div>
+                                                <div class="text-xs text-muted mt-1">Show team members on public profile
+                                                </div>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer"
+                                                data-role-gate="STAFF+">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div
+                                                    class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500">
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Audit Log -->
+                            <div
+                                class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
+                                            <i data-lucide="file-text" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-base font-bold">Audit Log</h2>
+                                            <p class="text-xs text-muted">Recent activity</p>
+                                        </div>
+                                    </div>
+                                    <button class="text-xs text-muted hover:text-white transition"
+                                        data-role-gate="OWNER+">View All →</button>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="rounded-xl border border-line bg-white/5 p-3">
+                                        <div class="flex items-start gap-3">
+                                            <div
+                                                class="h-8 w-8 rounded-lg bg-green-500/20 grid place-items-center flex-shrink-0">
+                                                <i data-lucide="user-plus" class="w-4 h-4 text-green-400"></i>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-semibold">Member Invited</div>
+                                                <div class="text-xs text-muted mt-0.5">John Doe invited TenZ as Player
+                                                </div>
+                                                <div class="text-xs text-muted mt-1">2 hours ago</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="rounded-xl border border-line bg-white/5 p-3">
+                                        <div class="flex items-start gap-3">
+                                            <div
+                                                class="h-8 w-8 rounded-lg bg-blue-500/20 grid place-items-center flex-shrink-0">
+                                                <i data-lucide="shield" class="w-4 h-4 text-blue-400"></i>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-semibold">Role Changed</div>
+                                                <div class="text-xs text-muted mt-0.5">Alice promoted to Coach by Owner
+                                                </div>
+                                                <div class="text-xs text-muted mt-1">5 hours ago</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="rounded-xl border border-line bg-white/5 p-3">
+                                        <div class="flex items-start gap-3">
+                                            <div
+                                                class="h-8 w-8 rounded-lg bg-purple-500/20 grid place-items-center flex-shrink-0">
+                                                <i data-lucide="trophy" class="w-4 h-4 text-purple-400"></i>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-semibold">Tournament Registered</div>
+                                                <div class="text-xs text-muted mt-0.5">VCT Qualifier registration
+                                                    submitted</div>
+                                                <div class="text-xs text-muted mt-1">1 day ago</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Notifications + Danger Zone Grid -->
+                            <div class="grid lg:grid-cols-2 gap-4">
+                                <!-- Notifications -->
+                                <div
+                                    class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                    <div class="flex items-center gap-3 mb-4">
+                                        <div
+                                            class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
+                                            <i data-lucide="bell" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-base font-bold">Notifications</h2>
+                                            <p class="text-xs text-muted">Manage alerts</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm">Match Reminders</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div
+                                                    class="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500">
+                                                </div>
+                                            </label>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm">Roster Changes</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div
+                                                    class="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500">
+                                                </div>
+                                            </label>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm">Join Requests</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer">
+                                                <div
+                                                    class="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500">
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Danger Zone -->
+                                <div
+                                    class="rounded-3xl border border-red-500/30 bg-gradient-to-br from-red-500/10 to-red-500/5 backdrop-blur-xl p-5">
+                                    <div class="flex items-center gap-3 mb-4">
+                                        <div
+                                            class="h-11 w-11 rounded-2xl grid place-items-center border border-red-500/30 bg-red-500/10">
+                                            <i data-lucide="alert-octagon" class="w-5 h-5 text-red-400"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-base font-bold text-red-400">Danger Zone</h2>
+                                            <p class="text-xs text-red-300/60">Irreversible actions</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <button
+                                            class="w-full rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition px-4 py-2.5 text-left"
+                                            data-role-gate="OWNER">
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <div class="text-sm font-semibold text-red-400">Transfer Ownership
+                                                    </div>
+                                                    <div class="text-xs text-red-300/60 mt-0.5">Give team to another
+                                                        member</div>
+                                                </div>
+                                                <i data-lucide="arrow-right" class="w-4 h-4 text-red-400"></i>
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            class="w-full rounded-xl border border-red-500/40 bg-red-500/15 hover:bg-red-500/25 transition px-4 py-2.5 text-left"
+                                            data-role-gate="OWNER">
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <div class="text-sm font-semibold text-red-400">Delete Team</div>
+                                                    <div class="text-xs text-red-300/60 mt-0.5">Permanently remove team
+                                                    </div>
+                                                </div>
+                                                <i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Organization Console (role-gated) -->
+                    <section id="org" class="hq-section">
+                        <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+                            <h2 class="text-base font-bold tracking-tight">Organization Console</h2>
+                            <p class="text-sm text-muted mt-1">Org-level controls (only visible for Org Admin in demo).
+                            </p>
+                            <div class="mt-4 rounded-2xl border border-line bg-white/5 p-4">
+                                <p class="text-xs text-muted">PART 2 will add org overview, cross-team staff,
+                                    verification, compliance.</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- =========================
+  MODAL/DRAWER FRAMEWORK
+  ========================== -->
+    <!-- Modal Backdrop -->
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+
+    <!-- Modal Container -->
+    <div class="modal-container" id="modalContainer">
+        <div class="modal-content">
+            <!-- Header -->
+            <div class="modal-header">
+                <div>
+                    <h2 class="text-lg font-bold" id="modalTitle">Modal Title</h2>
+                    <p class="text-xs text-muted mt-1" id="modalSubtitle">Modal description</p>
+                </div>
+                <button id="modalClose"
+                    class="h-8 w-8 rounded-lg border border-line bg-white/5 hover:bg-white/10 transition grid place-items-center">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic content injected here -->
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer" id="modalFooter">
+                <button class="px-4 py-2 rounded-xl border border-line bg-white/5 hover:bg-white/10 transition text-sm"
+                    id="modalCancel">
+                    Cancel
+                </button>
+                <button
+                    class="px-4 py-2 rounded-xl border border-line bg-gradient-to-r from-purple-500 to-blue-500 hover:opacity-90 transition text-sm font-semibold"
+                    id="modalConfirm">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================
+  SCRIPTS (router + API integration)
+  ========================== -->
+    <script>
+        // Lucide
+        lucide.createIcons();
+
+        // Elements
+        const sidebar = document.getElementById('sidebar');
+        const scrim = document.getElementById('scrim');
+        const openSidebarBtn = document.getElementById('openSidebar');
+        const closeSidebarBtn = document.getElementById('closeSidebar');
+
+        const pageTitle = document.getElementById('pageTitle');
+        const pageSub = document.getElementById('pageSub');
+
+        const roleChip = document.getElementById('roleChip');
+        const gameChip = document.getElementById('gameChip');
+        const orgMenuGroup = document.getElementById('orgMenuGroup');
+
+        const qaInvite = document.getElementById('qaInvite');
+        const qaAnnounce = document.getElementById('qaAnnounce');
+
+        // Route metadata (with search placeholders)
+        const ROUTES = {
+            command: { title: "Command Center", sub: "Real-time team overview and quick actions", search: "Search events, alerts, actions..." },
+            roster: { title: "Roster Ops", sub: "Players & staff, invites, tryouts, roles, locks", search: "Search members, staff, roles..." },
+            competition: { title: "Competition Hub", sub: "Tournaments, matches, results, disputes, evidence", search: "Search tournaments, matches..." },
+            training: { title: "Training Lab", sub: "Practice, scrims, VOD review, challenges & bounties", search: "Search practices, scrims, VODs..." },
+            community: { title: "Community & Media", sub: "Community app spaces, posts, highlights, library", search: "Search posts, highlights, media..." },
+            profile: { title: "Team Profile", sub: "Public identity editor & module layout controls", search: "Search profile settings..." },
+            settings: { title: "Settings & Security", sub: "Privacy, notifications, access control, audits", search: "Search settings, permissions..." },
+            org: { title: "Organization Console", sub: "Org-level governance & verification", search: "Search org teams, staff..." }
+        };
+
+        const hqSearchInput = document.getElementById('hqSearch');
+
+        // Helpers
+        function openSidebar() {
+            sidebar.classList.remove('-translate-x-[110%]');
+            scrim.classList.remove('hidden');
+        }
+        function closeSidebar() {
+            sidebar.classList.add('-translate-x-[110%]');
+            scrim.classList.add('hidden');
+        }
+
+        function setActiveRoute(route) {
+            // Switch sections
+            document.querySelectorAll('.hq-section').forEach(sec => {
+                sec.classList.toggle('is-active', sec.id === route);
+            });
+
+            // Switch nav highlight
+            document.querySelectorAll('.nav-item').forEach(a => {
+                const isActive = a.dataset.route === route;
+                if (isActive) a.setAttribute('aria-current', 'page');
+                else a.removeAttribute('aria-current');
+            });
+
+            // Set header text
+            const meta = ROUTES[route] || ROUTES.command;
+            pageTitle.textContent = meta.title;
+            pageSub.textContent = meta.sub;
+
+            // Update search placeholder (context-aware)
+            if (hqSearchInput) {
+                hqSearchInput.placeholder = meta.search || 'Search...';
+            }
+
+            // Hash
+            if (location.hash.replace('#', '') !== route) {
+                history.replaceState(null, '', '#' + route);
+            }
+
+            // Close on mobile
+            if (window.matchMedia('(max-width: 1023px)').matches) {
+                closeSidebar();
+            }
+        }
+
+        // Nav click wiring
+        document.querySelectorAll('.nav-item').forEach(a => {
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                const route = a.dataset.route;
+                setActiveRoute(route);
+            });
+        });
+
+        // Mobile menu buttons
+        openSidebarBtn?.addEventListener('click', openSidebar);
+        closeSidebarBtn?.addEventListener('click', closeSidebar);
+        scrim?.addEventListener('click', closeSidebar);
+
+        // Quick actions route
+        qaInvite?.addEventListener('click', () => setActiveRoute('roster'));
+        qaAnnounce?.addEventListener('click', () => setActiveRoute('community'));
+
+        // Close sidebar on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeSidebar();
+            }
+        });
+
+        // Role gating (UI preview)
+        // Role hierarchy for permission checking
+        const ROLE_HIERARCHY = {
+            'MEMBER': 0,
+            'STAFF': 1,
+            'OWNER': 2,
+            'ORG_ADMIN': 3
+        };
+
+        // Check if active role meets permission requirement
+        function hasPermission(activeRole, requiredPermission) {
+            if (!requiredPermission) return true;
+
+            if (requiredPermission.endsWith('+')) {
+                // "STAFF+" means STAFF or higher
+                const minRole = requiredPermission.slice(0, -1);
+                return ROLE_HIERARCHY[activeRole] >= ROLE_HIERARCHY[minRole];
+            } else {
+                // Exact match required
+                return activeRole === requiredPermission;
+            }
+        }
+
+        // Apply role-based visibility to all gated elements
+        function applyRoleGating(activeRole) {
+            document.querySelectorAll('[data-role-gate]').forEach(el => {
+                const required = el.dataset.roleGate;
+                const visible = hasPermission(activeRole, required);
+
+                if (!visible) {
+                    el.style.display = 'none';
+                    el.setAttribute('data-locked-reason', `Requires ${required} permission`);
+                    el.setAttribute('title', `Requires ${required} permission`);
+                } else {
+                    el.style.display = '';
+                    el.removeAttribute('data-locked-reason');
+                    el.removeAttribute('title');
+                }
+            });
+        }
+
+        function applyRole(role) {
+            const map = {
+                MEMBER: "👤 Member",
+                STAFF: "👔 Staff",
+                OWNER: "👑 Owner",
+                ORG_ADMIN: "🏢 Org Admin"
+            };
+            roleChip.textContent = map[role] || "👤 Member";
+
+            // Org menu only for ORG_ADMIN
+            const showOrg = role === "ORG_ADMIN";
+            orgMenuGroup.hidden = !showOrg;
+
+            // If current route is org but role not org admin, bounce to command
+            const current = location.hash.replace('#', '') || 'command';
+            if (!showOrg && current === 'org') {
+                setActiveRoute('command');
+            }
+
+            // Apply role-based visibility
+            applyRoleGating(role);
+        }
+
+        // Security & Abuse Prevention
+        const SECURITY = {
+            inviteRateLimit: {
+                maxInvites: 10, // max invites per hour
+                window: 60 * 60 * 1000, // 1 hour in ms
+                invites: [] // timestamp array
+            },
+
+            // Check if invite action is allowed (rate limiting)
+            canInvite: function () {
+                const now = Date.now();
+                // Remove old invites outside window
+                this.inviteRateLimit.invites = this.inviteRateLimit.invites.filter(
+                    time => now - time < this.inviteRateLimit.window
+                );
+
+                if (this.inviteRateLimit.invites.length >= this.inviteRateLimit.maxInvites) {
+                    console.warn('Invite rate limit exceeded');
+                    return false;
+                }
+
+                return true;
+            },
+
+            // Record invite action
+            recordInvite: function () {
+                this.inviteRateLimit.invites.push(Date.now());
+            },
+
+            // Check role escalation protection
+            canGrantRole: function (granterRole, targetRole) {
+                const granterLevel = ROLE_HIERARCHY[granterRole] || 0;
+                const targetLevel = ROLE_HIERARCHY[targetRole] || 0;
+
+                // Cannot grant role equal or higher than own
+                if (targetLevel >= granterLevel) {
+                    console.warn(`Role escalation blocked: ${granterRole} cannot grant ${targetRole}`);
+                    return false;
+                }
+
+                // Only Owner can grant Owner
+                if (targetRole === 'OWNER' && granterRole !== 'OWNER') {
+                    console.warn('Only Owner can grant Owner role');
+                    return false;
+                }
+
+                return true;
+            },
+
+            // Log audit event (placeholder - would send to backend)
+            logAudit: function (action, details) {
+                const entry = {
+                    timestamp: new Date().toISOString(),
+                    action: action,
+                    details: details,
+                    user: roleChip.textContent // current user role
+                };
+                console.log('[AUDIT]', entry);
+                // In production: send to backend API
+                return entry;
+            }
+        };
+
+        // Modal/Drawer Framework
+        const modalBackdrop = document.getElementById('modalBackdrop');
+        const modalContainer = document.getElementById('modalContainer');
+        const modalClose = document.getElementById('modalClose');
+        const modalCancel = document.getElementById('modalCancel');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalSubtitle = document.getElementById('modalSubtitle');
+        const modalBody = document.getElementById('modalBody');
+        const modalFooter = document.getElementById('modalFooter');
+        const modalConfirm = document.getElementById('modalConfirm');
+
+        const MODAL = {
+            // Open modal
+            open: function (options = {}) {
+                modalBackdrop.classList.add('active');
+                modalContainer.classList.add('active');
+                document.body.style.overflow = 'hidden';
+
+                if (options.title) modalTitle.textContent = options.title;
+                if (options.subtitle) modalSubtitle.textContent = options.subtitle;
+                if (options.body) modalBody.innerHTML = options.body;
+                if (options.confirmText) modalConfirm.textContent = options.confirmText;
+                if (options.onConfirm) {
+                    modalConfirm.onclick = () => {
+                        options.onConfirm();
+                        this.close();
+                    };
+                }
+            },
+
+            // Close modal
+            close: function () {
+                modalBackdrop.classList.remove('active');
+                modalContainer.classList.remove('active');
+                document.body.style.overflow = '';
+            },
+
+            // Quick helpers
+            showInvite: function () {
+                const currentUserRole = roleChip.textContent.includes('Owner') ? TEAM_ROLES.OWNER :
+                    roleChip.textContent.includes('Manager') ? TEAM_ROLES.MANAGER : TEAM_ROLES.MEMBER;
+
+                // Generate role options based on RBAC
+                const roleOptions = Object.entries(ROLE_TEMPLATES)
+                    .filter(([role]) => {
+                        // Can only invite roles below your level
+                        if (currentUserRole === TEAM_ROLES.OWNER) return true;
+                        if (currentUserRole === TEAM_ROLES.MANAGER) return role !== TEAM_ROLES.OWNER;
+                        return false;
+                    })
+                    .map(([role, template]) => `<option value="${role}">${template.label}</option>`)
+                    .join('');
+
+                this.open({
+                    title: 'Invite Member',
+                    subtitle: 'Send invitation to join team',
+                    body: `
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-sm font-semibold block mb-2">Email or Username</label>
+                                <input type="text" id="inviteInput" placeholder="player@example.com or @username"
+                                    class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition" />
+                            </div>
+                            <div>
+                                <label class="text-sm font-semibold block mb-2">Invite as Role</label>
+                                <select id="inviteRole" class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition">
+                                    ${roleOptions}
+                                </select>
+                                <p class="text-xs text-muted mt-2" id="rolePermissionHint">Select a role to see permissions</p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-semibold block mb-2">Personal Message (optional)</label>
+                                <textarea id="inviteMessage" rows="3" placeholder="Join our team for VCT qualifiers!"
+                                    class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition resize-none"></textarea>
+                            </div>
+                        </div>
+                    `,
+                    confirmText: 'Send Invite',
+                    onConfirm: () => {
+                        const email = document.getElementById('inviteInput')?.value;
+                        const role = document.getElementById('inviteRole')?.value;
+                        const message = document.getElementById('inviteMessage')?.value;
+
+                        if (!email) {
+                            alert('Please enter an email or username');
+                            return;
+                        }
+
+                        if (SECURITY.canInvite()) {
+                            SECURITY.recordInvite();
+                            SECURITY.logAudit('invite_sent', { email, role, message });
+                            console.log('Invite sent to:', email, 'as', role);
+                            alert(`Invite sent to ${email} as ${ROLE_TEMPLATES[role]?.label}!`);
+                        } else {
+                            alert('Invite rate limit exceeded (10/hour). Please try again later.');
+                        }
+                    }
+                });
+
+                // Update permission hint on role change
+                setTimeout(() => {
+                    const roleSelect = document.getElementById('inviteRole');
+                    const hintEl = document.getElementById('rolePermissionHint');
+                    roleSelect?.addEventListener('change', (e) => {
+                        const selectedRole = e.target.value;
+                        const template = ROLE_TEMPLATES[selectedRole];
+                        if (template && hintEl) {
+                            hintEl.textContent = `${template.permissions.length} permissions: ${template.label}`;
+                        }
+                    });
+                }, 100);
+            },
+
+            showMemberProfile: function (memberData) {
+                const readiness = ELIGIBILITY.checkPlayer(memberData);
+                const missingFields = readiness.missing.length > 0
+                    ? `<div class="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-3 mt-3">
+                        <div class="text-sm font-semibold text-yellow-400">Missing Fields</div>
+                        <div class="text-xs text-yellow-300/80 mt-1">${readiness.missing.join(', ')}</div>
+                    </div>`
+                    : '';
+
+                this.open({
+                    title: memberData.name || 'Member Profile',
+                    subtitle: `${memberData.role || 'Member'} • ${readiness.readiness}% Ready`,
+                    body: `
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <div class="text-xs text-muted">In-Game Name</div>
+                                    <div class="text-sm font-semibold mt-1">${memberData.ign || '—'}</div>
+                                </div>
+                                <div>
+                                    <div class="text-xs text-muted">Region</div>
+                                    <div class="text-sm font-semibold mt-1">${memberData.region || '—'}</div>
+                                </div>
+                                <div>
+                                    <div class="text-xs text-muted">Rank</div>
+                                    <div class="text-sm font-semibold mt-1">${memberData.rank || '—'}</div>
+                                </div>
+                                <div>
+                                    <div class="text-xs text-muted">Game ID</div>
+                                    <div class="text-sm font-semibold mt-1">${memberData.gameId || '—'}</div>
+                                </div>
+                            </div>
+                            ${missingFields}
+                            <div class="rounded-xl border border-line bg-white/5 p-3">
+                                <div class="text-xs text-muted">Tournament Readiness</div>
+                                <div class="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-purple-500 to-blue-500"
+                                        style="width: ${readiness.readiness}%"></div>
+                                </div>
+                                <div class="text-xs text-muted mt-1">${readiness.readiness}% Complete</div>
+                            </div>
+                        </div>
+                    `,
+                    confirmText: 'Close',
+                    onConfirm: () => { }
+                });
+
+                // Hide cancel button for profile view
+                setTimeout(() => {
+                    const cancelBtn = document.getElementById('modalCancel');
+                    if (cancelBtn) cancelBtn.style.display = 'none';
+                }, 50);
+            },
+
+            showRoleChange: function (memberName, currentRole) {
+                const userRole = roleChip.textContent.includes('Owner') ? TEAM_ROLES.OWNER : TEAM_ROLES.MANAGER;
+
+                const roleOptions = Object.entries(ROLE_TEMPLATES)
+                    .filter(([role]) => {
+                        // Can only assign roles you can grant
+                        return SECURITY.canGrantRole(userRole, role);
+                    })
+                    .map(([role, template]) =>
+                        `<option value="${role}" ${role === currentRole ? 'selected' : ''}>${template.label}</option>`)
+                    .join('');
+
+                this.open({
+                    title: 'Change Role',
+                    subtitle: `Update ${memberName}'s team role`,
+                    body: `
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-sm font-semibold block mb-2">New Role</label>
+                                <select id="newRoleSelect" class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition">
+                                    ${roleOptions}
+                                </select>
+                                <p class="text-xs text-muted mt-2" id="roleChangeHint">Role change will update permissions immediately</p>
+                            </div>
+                            <div class="rounded-xl border border-line bg-white/5 p-3">
+                                <div class="text-xs font-semibold mb-2">Current Role</div>
+                                <div class="text-sm">${ROLE_TEMPLATES[currentRole]?.label || currentRole}</div>
+                            </div>
+                        </div>
+                    `,
+                    confirmText: 'Update Role',
+                    onConfirm: () => {
+                        const newRole = document.getElementById('newRoleSelect')?.value;
+                        if (newRole && newRole !== currentRole) {
+                            SECURITY.logAudit('role_changed', { member: memberName, from: currentRole, to: newRole });
+                            console.log(`Role changed: ${memberName} from ${currentRole} to ${newRole}`);
+                            alert(`${memberName}'s role updated to ${ROLE_TEMPLATES[newRole]?.label}!`);
+                        }
+                    }
+                });
+            },
+
+            showRemoveMember: function (memberName) {
+                this.open({
+                    title: 'Remove Member',
+                    subtitle: `Remove ${memberName} from team`,
+                    body: `
+                        <div class="space-y-4">
+                            <div class="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
+                                <div class="flex items-start gap-3">
+                                    <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5"></i>
+                                    <div>
+                                        <div class="text-sm font-semibold text-yellow-400">Warning</div>
+                                        <div class="text-xs text-yellow-300/80 mt-1">
+                                            This will remove ${memberName} from the team roster. They will lose access to team resources and communications.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-sm font-semibold block mb-2">Reason (optional)</label>
+                                <textarea id="removeReason" rows="2" placeholder="Inactive, voluntary leave, etc."
+                                    class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition resize-none"></textarea>
+                            </div>
+                        </div>
+                    `,
+                    confirmText: 'Remove Member',
+                    onConfirm: () => {
+                        const reason = document.getElementById('removeReason')?.value || 'No reason provided';
+                        SECURITY.logAudit('member_removed', { member: memberName, reason });
+                        console.log(`Member removed: ${memberName}. Reason: ${reason}`);
+                        alert(`${memberName} has been removed from the team.`);
+                    }
+                });
+
+                // Make confirm button red
+                setTimeout(() => {
+                    const confirmBtn = document.getElementById('modalConfirm');
+                    if (confirmBtn) {
+                        confirmBtn.className = 'px-4 py-2 rounded-xl border border-red-500/30 bg-gradient-to-r from-red-500/80 to-red-600/80 hover:opacity-90 transition text-sm font-semibold';
+                    }
+                }, 50);
+            }
+        };
+
+        // Close modal handlers
+        modalClose?.addEventListener('click', () => MODAL.close());
+        modalCancel?.addEventListener('click', () => MODAL.close());
+        modalBackdrop?.addEventListener('click', () => MODAL.close());
+
+        // Escape key to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                MODAL.close();
+                closeSidebar();
+                closeDemo();
+            }
+        });
+
+        // =========================
+        // RBAC SCHEMA & ROLE TEMPLATES
+        // =========================
+        const TEAM_ROLES = {
+            OWNER: 'OWNER', MANAGER: 'MANAGER', COACH: 'COACH', ANALYST: 'ANALYST',
+            PLAYER: 'PLAYER', SUB: 'SUB', STAFF: 'STAFF', MEMBER: 'MEMBER'
+        };
+
+        const PERMISSIONS = {
+            ROSTER_INVITE: 'roster.invite', ROSTER_REMOVE: 'roster.remove',
+            ROSTER_ROLE_CHANGE: 'roster.role_change', ROSTER_BENCH: 'roster.bench', ROSTER_VIEW: 'roster.view',
+            COMPETITION_REGISTER: 'competition.register', COMPETITION_CHECKIN: 'competition.checkin',
+            COMPETITION_REPORT: 'competition.report', COMPETITION_DISPUTE: 'competition.dispute', COMPETITION_VIEW: 'competition.view',
+            CONTENT_POST: 'content.post', CONTENT_PIN: 'content.pin', CONTENT_MODERATE: 'content.moderate',
+            CONTENT_UPLOAD: 'content.upload', CONTENT_VIEW: 'content.view',
+            PROFILE_EDIT_IDENTITY: 'profile.edit_identity', PROFILE_EDIT_MODULES: 'profile.edit_modules',
+            PROFILE_EDIT_BRANDING: 'profile.edit_branding', PROFILE_VIEW: 'profile.view',
+            SETTINGS_PRIVACY: 'settings.privacy', SETTINGS_NOTIFICATIONS: 'settings.notifications',
+            SETTINGS_INTEGRATIONS: 'settings.integrations', SETTINGS_DANGER: 'settings.danger',
+            AUDIT_VIEW: 'audit.view', AUDIT_EXPORT: 'audit.export'
+        };
+
+        const ROLE_TEMPLATES = {
+            [TEAM_ROLES.OWNER]: { label: '👑 Owner', permissions: Object.values(PERMISSIONS) },
+            [TEAM_ROLES.MANAGER]: {
+                label: '💼 Manager',
+                permissions: [
+                    PERMISSIONS.ROSTER_INVITE, PERMISSIONS.ROSTER_REMOVE, PERMISSIONS.ROSTER_ROLE_CHANGE,
+                    PERMISSIONS.ROSTER_BENCH, PERMISSIONS.ROSTER_VIEW, PERMISSIONS.COMPETITION_REGISTER,
+                    PERMISSIONS.COMPETITION_CHECKIN, PERMISSIONS.COMPETITION_REPORT, PERMISSIONS.COMPETITION_DISPUTE,
+                    PERMISSIONS.COMPETITION_VIEW, PERMISSIONS.CONTENT_POST, PERMISSIONS.CONTENT_PIN,
+                    PERMISSIONS.CONTENT_MODERATE, PERMISSIONS.CONTENT_UPLOAD, PERMISSIONS.CONTENT_VIEW,
+                    PERMISSIONS.PROFILE_EDIT_IDENTITY, PERMISSIONS.PROFILE_EDIT_MODULES, PERMISSIONS.PROFILE_VIEW,
+                    PERMISSIONS.SETTINGS_PRIVACY, PERMISSIONS.SETTINGS_NOTIFICATIONS, PERMISSIONS.AUDIT_VIEW
+                ]
+            },
+            [TEAM_ROLES.COACH]: {
+                label: '👔 Coach',
+                permissions: [PERMISSIONS.ROSTER_VIEW, PERMISSIONS.COMPETITION_CHECKIN, PERMISSIONS.COMPETITION_VIEW,
+                PERMISSIONS.CONTENT_POST, PERMISSIONS.CONTENT_UPLOAD, PERMISSIONS.CONTENT_VIEW, PERMISSIONS.PROFILE_VIEW]
+            },
+            [TEAM_ROLES.ANALYST]: {
+                label: '📊 Analyst',
+                permissions: [PERMISSIONS.ROSTER_VIEW, PERMISSIONS.COMPETITION_VIEW, PERMISSIONS.CONTENT_UPLOAD,
+                PERMISSIONS.CONTENT_VIEW, PERMISSIONS.PROFILE_VIEW]
+            },
+            [TEAM_ROLES.PLAYER]: {
+                label: '🎮 Player',
+                permissions: [PERMISSIONS.ROSTER_VIEW, PERMISSIONS.COMPETITION_CHECKIN, PERMISSIONS.COMPETITION_VIEW,
+                PERMISSIONS.CONTENT_VIEW, PERMISSIONS.PROFILE_VIEW]
+            },
+            [TEAM_ROLES.SUB]: {
+                label: '🔄 Substitute',
+                permissions: [PERMISSIONS.ROSTER_VIEW, PERMISSIONS.COMPETITION_VIEW, PERMISSIONS.CONTENT_VIEW, PERMISSIONS.PROFILE_VIEW]
+            },
+            [TEAM_ROLES.STAFF]: {
+                label: '👥 Staff',
+                permissions: [PERMISSIONS.ROSTER_VIEW, PERMISSIONS.COMPETITION_VIEW, PERMISSIONS.CONTENT_POST,
+                PERMISSIONS.CONTENT_VIEW, PERMISSIONS.PROFILE_VIEW]
+            },
+            [TEAM_ROLES.MEMBER]: {
+                label: '👤 Member',
+                permissions: [PERMISSIONS.ROSTER_VIEW, PERMISSIONS.COMPETITION_VIEW, PERMISSIONS.CONTENT_VIEW, PERMISSIONS.PROFILE_VIEW]
+            }
+        };
+
+        const RBAC = {
+            hasPermission: (role, permission) => {
+                const template = ROLE_TEMPLATES[role];
+                return template ? template.permissions.includes(permission) : false;
+            },
+            canPerform: (userRole, action) => RBAC.hasPermission(userRole, action),
+            getRoleInfo: (role) => ROLE_TEMPLATES[role] || null
+        };
+
+        // =========================
+        // ROSTER LOCK & ELIGIBILITY ENGINE
+        // =========================
+        const ROSTER_LOCK = {
+            // Lock types
+            LOCK_TYPES: {
+                NONE: 'NONE',              // No lock
+                REGISTRATION: 'REGISTRATION', // Locked during tournament registration
+                MATCH: 'MATCH',            // Locked during active match
+                PERMANENT: 'PERMANENT'      // Permanently locked (e.g., historical data)
+            },
+
+            // Current lock state (demo)
+            currentLock: {
+                type: 'NONE',
+                tournamentId: null,
+                matchId: null,
+                lockedAt: null,
+                lockedBy: null
+            },
+
+            // Check if roster is locked
+            isLocked: function () {
+                return this.currentLock.type !== this.LOCK_TYPES.NONE;
+            },
+
+            // Lock roster for tournament
+            lockForTournament: function (tournamentId, userId) {
+                if (this.isLocked()) {
+                    console.warn('Roster already locked');
+                    return false;
+                }
+                this.currentLock = {
+                    type: this.LOCK_TYPES.REGISTRATION,
+                    tournamentId: tournamentId,
+                    matchId: null,
+                    lockedAt: new Date().toISOString(),
+                    lockedBy: userId
+                };
+                SECURITY.logAudit('roster_locked', { tournamentId, type: 'REGISTRATION' });
+                return true;
+            },
+
+            // Unlock roster
+            unlock: function (userId) {
+                if (!this.isLocked()) return false;
+                const prevLock = { ...this.currentLock };
+                this.currentLock = {
+                    type: this.LOCK_TYPES.NONE,
+                    tournamentId: null,
+                    matchId: null,
+                    lockedAt: null,
+                    lockedBy: null
+                };
+                SECURITY.logAudit('roster_unlocked', { previousLock: prevLock });
+                return true;
+            },
+
+            // Check if action is allowed
+            canModify: function (action) {
+                if (!this.isLocked()) return true;
+
+                // During registration lock, some actions may be restricted
+                if (this.currentLock.type === this.LOCK_TYPES.REGISTRATION) {
+                    const allowedDuringReg = ['view', 'checkin'];
+                    return allowedDuringReg.includes(action);
+                }
+
+                // During match lock, no modifications allowed
+                if (this.currentLock.type === this.LOCK_TYPES.MATCH) {
+                    return action === 'view';
+                }
+
+                return false;
+            }
+        };
+
+        // Eligibility checker for tournament registration
+        const ELIGIBILITY = {
+            // Required fields for tournament registration
+            REQUIRED_FIELDS: {
+                player: ['ign', 'region', 'rank', 'gameId'],
+                team: ['name', 'tag', 'region', 'logo']
+            },
+
+            // Check player eligibility
+            checkPlayer: function (playerData) {
+                const missing = [];
+                this.REQUIRED_FIELDS.player.forEach(field => {
+                    if (!playerData[field]) missing.push(field);
+                });
+                return {
+                    eligible: missing.length === 0,
+                    missing: missing,
+                    readiness: missing.length === 0 ? 100 : Math.round((1 - missing.length / this.REQUIRED_FIELDS.player.length) * 100)
+                };
+            },
+
+            // Check team eligibility
+            checkTeam: function (teamData) {
+                const missing = [];
+                this.REQUIRED_FIELDS.team.forEach(field => {
+                    if (!teamData[field]) missing.push(field);
+                });
+                return {
+                    eligible: missing.length === 0,
+                    missing: missing,
+                    readiness: missing.length === 0 ? 100 : Math.round((1 - missing.length / this.REQUIRED_FIELDS.team.length) * 100)
+                };
+            },
+
+            // Check full roster eligibility
+            checkRoster: function (roster, minPlayers = 5) {
+                const results = roster.map(player => this.checkPlayer(player));
+                const eligible = results.filter(r => r.eligible).length;
+                const totalReadiness = results.reduce((sum, r) => sum + r.readiness, 0) / results.length;
+
+                return {
+                    eligible: eligible >= minPlayers,
+                    eligibleCount: eligible,
+                    totalCount: roster.length,
+                    minRequired: minPlayers,
+                    readiness: Math.round(totalReadiness),
+                    playerResults: results
+                };
+            }
+        };
+
+        // Game label chip (demo)
+        function applyGame(game) {
+            const map = {
+                VALORANT: "🎯 VALORANT",
+                CS2: "🔫 CS2",
+                DOTA2: "🛡️ Dota 2",
+                MLBB: "📱 MLBB",
+                PUBG_MOBILE: "🎮 PUBG Mobile",
+                FREE_FIRE: "🔥 Free Fire",
+                COD_MOBILE: "💣 COD Mobile",
+                EA_FC_26: "⚽ EA FC 26",
+                EFOOTBALL_2026: "⚽ eFootball 2026",
+                R6_SIEGE: "🏰 R6 Siege",
+                ROCKET_LEAGUE: "🚗 Rocket League"
+            };
+            gameChip.textContent = map[game] || "🎯 VALORANT";
+        }
+
+        // Color helpers
+        function isHex(s) {
+            return /^#([0-9a-fA-F]{6})$/.test((s || '').trim());
+        }
+        function setColors(primary, accent) {
+            if (isHex(primary)) document.documentElement.style.setProperty('--team-primary', primary);
+            if (isHex(accent)) document.documentElement.style.setProperty('--team-accent', accent);
+        }
+
+        // Sync color inputs
+        function syncPrimary(val) {
+            if (isHex(val)) {
+                demoPrimary.value = val;
+                demoPrimaryHex.value = val;
+                setColors(val, demoAccent.value);
+            }
+        }
+        function syncAccent(val) {
+            if (isHex(val)) {
+                demoAccent.value = val;
+                demoAccentHex.value = val;
+                setColors(demoPrimary.value, val);
+            }
+        }
+
+        demoPrimary?.addEventListener('input', e => syncPrimary(e.target.value));
+        demoAccent?.addEventListener('input', e => syncAccent(e.target.value));
+
+        demoPrimaryHex?.addEventListener('input', e => {
+            const v = e.target.value.trim();
+            if (isHex(v)) syncPrimary(v);
+        });
+        demoAccentHex?.addEventListener('input', e => {
+            const v = e.target.value.trim();
+            if (isHex(v)) syncAccent(v);
+        });
+
+        demoResetColors?.addEventListener('click', () => {
+            syncPrimary('#7c3aed');
+            syncAccent('#22c55e');
+        });
+
+        demoRole?.addEventListener('change', (e) => applyRole(e.target.value));
+        demoGame?.addEventListener('change', (e) => applyGame(e.target.value));
+
+        // Initial route + initial demo values
+        const initialRoute = (location.hash || '#command').replace('#', '');
+        setActiveRoute(document.getElementById(initialRoute) ? initialRoute : 'command');
+
+        applyRole(demoRole?.value || 'MANAGER');
+        applyGame(demoGame?.value || 'VALORANT');
+        setColors(demoPrimary?.value || '#7c3aed', demoAccent?.value || '#22c55e');
+    </script>
+
+    <!-- Journey 3 API Wiring -->
+    {% include 'organizations/team/partials/_team_manage_hq_scripts.html' %}
+
+</body>
+
+</html>

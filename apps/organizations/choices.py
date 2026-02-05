@@ -38,6 +38,25 @@ class MembershipStatus(models.TextChoices):
     SUSPENDED = 'SUSPENDED', 'Suspended'
 
 
+class MembershipEventType(models.TextChoices):
+    """
+    Team membership event types for append-only audit ledger.
+    
+    JOINED: User joined team roster
+    ROLE_CHANGED: Organizational role updated
+    LEFT: User voluntarily left team
+    REMOVED: User removed by manager/creator
+    STATUS_CHANGED: Status updated (suspended, banned, etc.)
+    NOTE: Administrative note (optional)
+    """
+    JOINED = 'JOINED', 'Joined Team'
+    ROLE_CHANGED = 'ROLE_CHANGED', 'Role Changed'
+    LEFT = 'LEFT', 'Left Team'
+    REMOVED = 'REMOVED', 'Removed from Team'
+    STATUS_CHANGED = 'STATUS_CHANGED', 'Status Changed'
+    NOTE = 'NOTE', 'Administrative Note'
+
+
 class MembershipRole(models.TextChoices):
     """
     Organizational role within a team.

@@ -3116,6 +3116,265 @@ Includes:
         applyRole(demoRole?.value || 'OWNER');
         applyGame(demoGame?.value || 'VALORANT');
         setColors(demoPrimary?.value || '#7c3aed', demoAccent?.value || '#22c55e');
+
+        // ========================================
+        // JOURNEY 3 — Team Manage HQ API Wiring
+        // ========================================
+        
+        // Get team slug from URL (assumes URL pattern: /organizations/teams/<slug>/manage/)
+        const currentPath = window.location.pathname;
+        const teamSlugMatch = currentPath.match(/\/teams\/([^\/]+)\/manage\//);
+        const teamSlug = teamSlugMatch ? teamSlugMatch[1] : null;
+
+        let teamData = null;
+        let membersData = [];
+        let userPermissions = {};
+
+        // Bootstrap: Load team data on page load
+        async function bootstrapTeamData() {
+            if (!teamSlug) {
+                console.error('Team slug not found in URL');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/vnext/teams/${teamSlug}/detail/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                teamData = data.team;
+                membersData = data.members;
+                userPermissions = data.permissions;
+
+                // Update UI with real data
+                updateTeamHeader();
+                updateMembersList();
+                updateCommandCenter();
+
+                console.log('Team data loaded:', data);
+            } catch (error) {
+                console.error('Failed to load team data:', error);
+            }
+        }
+
+        // Update team header (sidebar team name display)
+        function updateTeamHeader() {
+            if (!teamData) return;
+            
+            // Update team name display in sidebar
+            const teamNameDisplay = document.querySelector('.font-semibold.truncate');
+            if (teamNameDisplay && teamNameDisplay.textContent === 'Team HQ') {
+                teamNameDisplay.textContent = teamData.name || 'Team HQ';
+            }
+        }
+
+        // Update members count in Command Center
+        function updateCommandCenter() {
+            if (!teamData) return;
+            
+            // Update any display showing member count
+            console.log('Team:', teamData.name);
+            console.log('Members:', teamData.member_count);
+            console.log('Created:', teamData.created_at);
+            console.log('Ranking:', teamData.ranking || 'Unranked');
+        }
+
+        // Update members list in Roster section
+        function updateMembersList() {
+            if (!membersData) return;
+            
+            console.log('Members list:', membersData);
+            // Note: Full roster UI update will be implemented in roster section
+        }
+
+        // Add member action
+        async function addTeamMember(identifier, role = 'PLAYER') {
+            if (!userPermissions.can_manage) {
+                alert('You do not have permission to add members');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('identifier', identifier);
+                formData.append('role', role);
+
+                const response = await fetch(`/api/vnext/teams/${teamSlug}/members/add/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: formData,
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to add member');
+                }
+
+                const data = await response.json();
+                console.log('Member added:', data.member);
+                
+                // Reload team data
+                await bootstrapTeamData();
+                
+                return data;
+            } catch (error) {
+                console.error('Failed to add member:', error);
+                alert(error.message);
+                throw error;
+            }
+        }
+
+        // Change member role
+        async function changeTeamMemberRole(membershipId, newRole) {
+            if (!userPermissions.can_manage) {
+                alert('You do not have permission to change roles');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('role', newRole);
+
+                const response = await fetch(`/api/vnext/teams/${teamSlug}/members/${membershipId}/role/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: formData,
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to change role');
+                }
+
+                const data = await response.json();
+                console.log('Role changed:', data.member);
+                
+                // Reload team data
+                await bootstrapTeamData();
+                
+                return data;
+            } catch (error) {
+                console.error('Failed to change role:', error);
+                alert(error.message);
+                throw error;
+            }
+        }
+
+        // Remove member
+        async function removeTeamMember(membershipId) {
+            try {
+                const response = await fetch(`/api/vnext/teams/${teamSlug}/members/${membershipId}/remove/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to remove member');
+                }
+
+                const data = await response.json();
+                console.log('Member removed:', data.removed);
+                
+                // Reload team data
+                await bootstrapTeamData();
+                
+                return data;
+            } catch (error) {
+                console.error('Failed to remove member:', error);
+                alert(error.message);
+                throw error;
+            }
+        }
+
+        // Update team settings
+        async function updateTeamSettings(settings) {
+            if (!userPermissions.can_manage) {
+                alert('You do not have permission to update settings');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                for (const [key, value] of Object.entries(settings)) {
+                    formData.append(key, value);
+                }
+
+                const response = await fetch(`/api/vnext/teams/${teamSlug}/settings/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: formData,
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to update settings');
+                }
+
+                const data = await response.json();
+                console.log('Settings updated:', data.message);
+                
+                return data;
+            } catch (error) {
+                console.error('Failed to update settings:', error);
+                alert(error.message);
+                throw error;
+            }
+        }
+
+        // CSRF token helper
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Make functions globally accessible for button onclick handlers
+        window.addTeamMember = addTeamMember;
+        window.changeTeamMemberRole = changeTeamMemberRole;
+        window.removeTeamMember = removeTeamMember;
+        window.updateTeamSettings = updateTeamSettings;
+
+        // Bootstrap data on page load
+        if (teamSlug) {
+            bootstrapTeamData();
+        } else {
+            console.warn('Team slug not found in URL - API wiring disabled');
+        }
     </script>
 
 

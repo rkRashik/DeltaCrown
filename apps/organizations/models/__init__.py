@@ -21,6 +21,7 @@ from .organization import Organization, OrganizationMembership
 from .organization_profile import OrganizationProfile
 from .team import Team  # vNext Team model (Phase 5 - write-enabled)
 from .membership import TeamMembership
+from .membership_event import TeamMembershipEvent
 from .team_invite import TeamInvite
 from .ranking import TeamRanking, OrganizationRanking
 from .migration import TeamMigrationMap
@@ -35,6 +36,7 @@ __all__ = [
     # Team models
     'Team',  # Re-exported from apps.teams.models (legacy)
     'TeamMembership',
+    'TeamMembershipEvent',
     'TeamInvite',
     
     # Ranking models

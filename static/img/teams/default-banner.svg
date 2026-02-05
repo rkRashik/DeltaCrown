@@ -1,0 +1,27 @@
+<svg width="1920" height="420" viewBox="0 0 1920 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient Background -->
+  <defs>
+    <linearGradient id="bannerGrad" x1="0" y1="0" x2="1920" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0A0A0F"/>
+      <stop offset="50%" stop-color="#1A1A2E"/>
+      <stop offset="100%" stop-color="#0F0F1E"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  
+  <!-- Base -->
+  <rect width="1920" height="420" fill="url(#bannerGrad)"/>
+  <rect width="1920" height="420" fill="url(#grid)"/>
+  
+  <!-- Geometric Accents -->
+  <circle cx="150" cy="210" r="120" fill="rgba(124, 58, 237, 0.08)" filter="blur(60px)"/>
+  <circle cx="1770" cy="210" r="140" fill="rgba(59, 130, 246, 0.08)" filter="blur(80px)"/>
+  
+  <!-- DeltaCrown Branding -->
+  <g opacity="0.15">
+    <text x="960" y="240" font-family="Arial, sans-serif" font-size="72" font-weight="900" fill="white" text-anchor="middle">DELTACROWN</text>
+    <text x="960" y="280" font-family="Arial, sans-serif" font-size="20" font-weight="300" fill="rgba(255,255,255,0.6)" text-anchor="middle" letter-spacing="8">ESPORTS PLATFORM</text>
+  </g>
+</svg>

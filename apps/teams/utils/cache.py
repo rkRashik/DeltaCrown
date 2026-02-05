@@ -116,15 +116,10 @@ def invalidate_team_cache(team_id=None, slug=None):
     # Always invalidate leaderboards when team changes
     patterns_to_delete.append("leaderboard:*")
     
-    # Delete matching keys
+    # Delete matching keys using safe helper
+    from apps.organizations.services.cache_invalidation import safe_cache_delete_pattern
     for pattern in patterns_to_delete:
-        try:
-            cache.delete_pattern(pattern)
-            logger.info(f"Invalidated cache pattern: {pattern}")
-        except AttributeError:
-            # Fallback if delete_pattern not available
-            cache.delete(pattern.replace('*', ''))
-            logger.warning(f"Cache pattern deletion not supported, deleted single key: {pattern}")
+        safe_cache_delete_pattern(pattern)
 
 
 def invalidate_user_cache(user_id):
@@ -137,11 +132,9 @@ def invalidate_user_cache(user_id):
         f"user:notifications:{user_id}",
     ]
     
+    from apps.organizations.services.cache_invalidation import safe_cache_delete_pattern
     for pattern in patterns:
-        try:
-            cache.delete_pattern(pattern)
-        except AttributeError:
-            cache.delete(pattern)
+        safe_cache_delete_pattern(pattern)
 
 
 def warm_cache_for_team(team):
