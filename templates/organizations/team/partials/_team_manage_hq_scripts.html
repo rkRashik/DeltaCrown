@@ -3,231 +3,513 @@
     // ========================================
     // JOURNEY 3 — Team Manage HQ API Wiring
     // ========================================
-    
-    // Get team slug from URL (assumes URL pattern: /organizations/teams/<slug>/manage/)
-    const currentPath = window.location.pathname;
-    const teamSlugMatch = currentPath.match(/\/teams\/([^\/]+)\/manage\//);
-    const teamSlug = teamSlugMatch ? teamSlugMatch[1] : null;
+
+    const hqBootstrapEl = document.getElementById('hqBootstrap');
+
+    function parseTeamSlugFromPath(pathname) {
+        // Supports:
+        // - /teams/<team_slug>/manage/
+        // - /orgs/<org_slug>/teams/<team_slug>/manage/
+        if (!pathname) return null;
+        const parts = pathname.split('/').filter(Boolean);
+        const teamsIndex = parts.indexOf('teams');
+        if (teamsIndex === -1) return null;
+        return parts[teamsIndex + 1] || null;
+    }
+
+    const teamSlug = hqBootstrapEl?.dataset?.teamSlug || parseTeamSlugFromPath(window.location.pathname);
 
     let teamData = null;
     let membersData = [];
     let userPermissions = {};
 
-    // Bootstrap: Load team data on page load
-    async function bootstrapTeamData() {
-        if (!teamSlug) {
-            console.error('Team slug not found in URL');
+    const globalMessageEl = document.getElementById('hqGlobalMessage');
+    const rosterMessageEl = document.getElementById('hqRosterMessage');
+    const rosterSummaryEl = document.getElementById('hqRosterSummary');
+    const membersGridEl = document.getElementById('hqMembersGrid');
+    const inviteBtnEl = document.getElementById('hqInviteBtn');
+    const addMemberCardEl = document.getElementById('hqAddMemberCard');
+
+    const teamNameEl = document.getElementById('hqTeamName');
+    const gameChipEl = document.getElementById('gameChip');
+
+    const editSettingsBtnEl = document.getElementById('hqEditSettingsBtn');
+
+    function setBanner(el, message, kind = 'info') {
+        if (!el) return;
+        if (!message) {
+            el.classList.add('hidden');
+            el.textContent = '';
             return;
         }
 
-        try {
-            const response = await fetch(`/api/vnext/teams/${teamSlug}/detail/`, {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'same-origin',
-            });
+        const palette = {
+            info: 'border-blue-500/20 bg-blue-500/5 text-blue-200',
+            success: 'border-green-500/20 bg-green-500/5 text-green-200',
+            error: 'border-red-500/20 bg-red-500/5 text-red-200',
+            warn: 'border-yellow-500/20 bg-yellow-500/5 text-yellow-200',
+        };
 
-            if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
-            }
+        el.className = el.className
+            .replace(/border-(blue|green|red|yellow)-500\/20\s+bg-(blue|green|red|yellow)-500\/5\s+text-(blue|green|red|yellow)-200/g, '')
+            .trim();
 
-            const data = await response.json();
-            teamData = data.team;
-            membersData = data.members;
-            userPermissions = data.permissions;
-
-            // Update UI with real data
-            updateTeamHeader();
-            updateMembersList();
-            updateCommandCenter();
-
-            console.log('Team data loaded:', data);
-        } catch (error) {
-            console.error('Failed to load team data:', error);
-        }
+        el.classList.remove('hidden');
+        el.classList.add('rounded-2xl', 'border', ...palette[kind].split(' '));
+        el.textContent = message;
     }
 
-    // Update team header (sidebar team name display)
+    function roleLabel(role) {
+        const map = {
+            PLAYER: 'Player',
+            COACH: 'Coach',
+            MANAGER: 'Manager',
+        };
+        return map[role] || role || 'Member';
+    }
+
+    function rolePillClass(role) {
+        if (role === 'MANAGER') return 'border-orange-500/30 bg-orange-500/10 text-orange-400';
+        if (role === 'COACH') return 'border-blue-500/30 bg-blue-500/10 text-blue-400';
+        return 'border-green-500/30 bg-green-500/10 text-green-400';
+    }
+
+    function escapeHtml(str) {
+        return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function renderMemberCard(member) {
+        const username = escapeHtml(member.username || 'Unknown');
+        const email = escapeHtml(member.email || '');
+        const role = member.role || 'PLAYER';
+        const letter = escapeHtml((member.username || 'U')[0]?.toUpperCase() || 'U');
+
+        const canManage = !!userPermissions?.can_manage;
+        const actionsButton = canManage
+            ? `
+                <button type="button" class="text-muted hover:text-white transition" data-member-action="menu" data-membership-id="${member.id}">
+                    <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                </button>
+            `
+            : '';
+
+        return `
+            <div class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4 relative group hover:border-white/25 transition-all">
+                <div class="absolute top-2 right-2 flex items-center gap-1">
+                    <span class="h-2 w-2 rounded-full bg-green-500"></span>
+                </div>
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="h-12 w-12 rounded-xl border-2" style="border-color: var(--team-primary); background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));">
+                        <div class="h-full w-full rounded-xl grid place-items-center text-lg font-bold">${letter}</div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold text-sm truncate">${username}</div>
+                        <div class="text-xs text-muted truncate">${email}</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-xs px-2 py-1 rounded-full border ${rolePillClass(role)} font-medium">${escapeHtml(roleLabel(role))}</span>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-1 text-green-400">
+                        <i data-lucide="check-circle-2" class="w-3 h-3"></i>
+                        <span>Active</span>
+                    </div>
+                    ${actionsButton}
+                </div>
+            </div>
+        `;
+    }
+
+    function updateRosterSummary() {
+        if (!rosterSummaryEl) return;
+        const total = Array.isArray(membersData) ? membersData.length : 0;
+        const counts = { MANAGER: 0, COACH: 0, PLAYER: 0 };
+        for (const m of membersData || []) {
+            if (m?.role && counts[m.role] !== undefined) counts[m.role] += 1;
+        }
+        rosterSummaryEl.textContent = `${total} Members • ${counts.MANAGER} Managers • ${counts.COACH} Coaches • ${counts.PLAYER} Players`;
+    }
+
+    function updateMembersList() {
+        if (!membersGridEl) return;
+        if (!Array.isArray(membersData)) {
+            membersGridEl.innerHTML = '';
+            return;
+        }
+
+        membersGridEl.innerHTML = membersData.map(renderMemberCard).join('');
+
+        // Re-render lucide icons in injected markup
+        try {
+            lucide?.createIcons?.();
+        } catch (_) { }
+    }
+
     function updateTeamHeader() {
         if (!teamData) return;
-        
-        // Update team name display in sidebar
-        const teamNameDisplay = document.querySelector('.font-semibold.truncate');
-        if (teamNameDisplay && teamNameDisplay.textContent === 'Team HQ') {
-            teamNameDisplay.textContent = teamData.name || 'Team HQ';
+
+        if (teamNameEl) {
+            teamNameEl.textContent = teamData.name || 'Team HQ';
+        }
+
+        // We only have game_id from this endpoint; keep existing chip if unknown.
+        if (gameChipEl && teamData.game_id) {
+            gameChipEl.textContent = `🎮 Game ${teamData.game_id}`;
         }
     }
 
-    // Update members count in Command Center
-    function updateCommandCenter() {
-        if (!teamData) return;
-        
-        // Update any display showing member count
-        console.log('Team:', teamData.name);
-        console.log('Members:', teamData.member_count);
-        console.log('Created:', teamData.created_at);
-        console.log('Ranking:', teamData.ranking || 'Unranked');
+    function applyPermissionsToTemplate() {
+        const canManage = !!userPermissions?.can_manage;
+
+        // Override the demo role gating to match real permission state
+        try {
+            if (typeof window.applyRole === 'function') {
+                window.applyRole(canManage ? 'STAFF' : 'MEMBER');
+            } else if (typeof applyRole === 'function') {
+                applyRole(canManage ? 'STAFF' : 'MEMBER');
+            }
+        } catch (_) { }
     }
 
-    // Update members list in Roster section
-    function updateMembersList() {
-        if (!membersData) return;
-        
-        console.log('Members list:', membersData);
-        // Note: Full roster UI update will be implemented in roster section
+    async function apiGetTeamDetail() {
+        const response = await fetch(`/api/vnext/teams/${teamSlug}/detail/`, {
+            method: 'GET',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            const msg = payload?.error || `Failed to load team detail (${response.status})`;
+            throw new Error(msg);
+        }
+        return payload;
     }
 
-    // Add member action
+    async function bootstrapTeamData() {
+        if (!teamSlug) {
+            setBanner(globalMessageEl, 'Team slug not found in URL. Manage wiring disabled.', 'error');
+            return;
+        }
+
+        setBanner(globalMessageEl, null);
+        setBanner(rosterMessageEl, null);
+
+        try {
+            const data = await apiGetTeamDetail();
+            teamData = data.team || null;
+            membersData = Array.isArray(data.members) ? data.members : [];
+            userPermissions = data.permissions || {};
+
+            applyPermissionsToTemplate();
+            updateTeamHeader();
+            updateRosterSummary();
+            updateMembersList();
+        } catch (error) {
+            console.error('Failed to load team data:', error);
+            setBanner(globalMessageEl, error?.message || 'Failed to load team data', 'error');
+        }
+    }
+
     async function addTeamMember(identifier, role = 'PLAYER') {
-        if (!userPermissions.can_manage) {
-            alert('You do not have permission to add members');
-            return;
+        if (!userPermissions?.can_manage) {
+            throw new Error('You do not have permission to manage this team');
         }
 
-        try {
-            const formData = new FormData();
-            formData.append('identifier', identifier);
-            formData.append('role', role);
+        const formData = new FormData();
+        formData.append('identifier', identifier);
+        formData.append('role', role);
 
-            const response = await fetch(`/api/vnext/teams/${teamSlug}/members/add/`, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: formData,
-                credentials: 'same-origin',
-            });
+        const response = await fetch(`/api/vnext/teams/${teamSlug}/members/add/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: formData,
+            credentials: 'same-origin',
+        });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to add member');
-            }
-
-            const data = await response.json();
-            console.log('Member added:', data.member);
-            
-            // Reload team data
-            await bootstrapTeamData();
-            
-            return data;
-        } catch (error) {
-            console.error('Failed to add member:', error);
-            alert(error.message);
-            throw error;
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(payload?.error || 'Failed to add member');
         }
+
+        await bootstrapTeamData();
+        return payload;
     }
 
-    // Change member role
     async function changeTeamMemberRole(membershipId, newRole) {
-        if (!userPermissions.can_manage) {
-            alert('You do not have permission to change roles');
-            return;
+        if (!userPermissions?.can_manage) {
+            throw new Error('You do not have permission to manage this team');
         }
 
-        try {
-            const formData = new FormData();
-            formData.append('role', newRole);
+        const formData = new FormData();
+        formData.append('role', newRole);
 
-            const response = await fetch(`/api/vnext/teams/${teamSlug}/members/${membershipId}/role/`, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: formData,
-                credentials: 'same-origin',
-            });
+        const response = await fetch(`/api/vnext/teams/${teamSlug}/members/${membershipId}/role/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: formData,
+            credentials: 'same-origin',
+        });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to change role');
-            }
-
-            const data = await response.json();
-            console.log('Role changed:', data.member);
-            
-            // Reload team data
-            await bootstrapTeamData();
-            
-            return data;
-        } catch (error) {
-            console.error('Failed to change role:', error);
-            alert(error.message);
-            throw error;
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(payload?.error || 'Failed to change role');
         }
+
+        await bootstrapTeamData();
+        return payload;
     }
 
-    // Remove member
     async function removeTeamMember(membershipId) {
-        try {
-            const response = await fetch(`/api/vnext/teams/${teamSlug}/members/${membershipId}/remove/`, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                credentials: 'same-origin',
-            });
+        const response = await fetch(`/api/vnext/teams/${teamSlug}/members/${membershipId}/remove/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            credentials: 'same-origin',
+        });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to remove member');
-            }
-
-            const data = await response.json();
-            console.log('Member removed:', data.removed);
-            
-            // Reload team data
-            await bootstrapTeamData();
-            
-            return data;
-        } catch (error) {
-            console.error('Failed to remove member:', error);
-            alert(error.message);
-            throw error;
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(payload?.error || 'Failed to remove member');
         }
+
+        await bootstrapTeamData();
+        return payload;
     }
 
-    // Update team settings
     async function updateTeamSettings(settings) {
-        if (!userPermissions.can_manage) {
-            alert('You do not have permission to update settings');
+        if (!userPermissions?.can_manage) {
+            throw new Error('You do not have permission to manage this team');
+        }
+
+        const formData = new FormData();
+        for (const [key, value] of Object.entries(settings || {})) {
+            formData.append(key, value);
+        }
+
+        const response = await fetch(`/api/vnext/teams/${teamSlug}/settings/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: formData,
+            credentials: 'same-origin',
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(payload?.error || 'Failed to update settings');
+        }
+
+        return payload;
+    }
+
+    function openModalWithAsyncConfirm({ title, subtitle, bodyHtml, confirmText, onConfirm }) {
+        if (typeof MODAL?.open !== 'function') {
+            console.warn('MODAL framework not available');
             return;
         }
 
-        try {
-            const formData = new FormData();
-            for (const [key, value] of Object.entries(settings)) {
-                formData.append(key, value);
-            }
+        MODAL.open({
+            title,
+            subtitle,
+            body: bodyHtml,
+            confirmText: confirmText || 'Confirm',
+        });
 
-            const response = await fetch(`/api/vnext/teams/${teamSlug}/settings/`, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: formData,
-                credentials: 'same-origin',
-            });
+        // Ensure lucide icons render inside modal body
+        try { lucide?.createIcons?.(); } catch (_) { }
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to update settings');
-            }
+        const modalConfirmBtn = document.getElementById('modalConfirm');
+        const modalErrorEl = document.getElementById('hqModalError');
 
-            const data = await response.json();
-            console.log('Settings updated:', data.message);
-            
-            return data;
-        } catch (error) {
-            console.error('Failed to update settings:', error);
-            alert(error.message);
-            throw error;
+        if (modalConfirmBtn) {
+            modalConfirmBtn.onclick = async () => {
+                setBanner(modalErrorEl, null);
+                modalConfirmBtn.disabled = true;
+                const originalText = modalConfirmBtn.textContent;
+                modalConfirmBtn.textContent = 'Working…';
+
+                try {
+                    await onConfirm?.();
+                    MODAL.close();
+                } catch (err) {
+                    setBanner(modalErrorEl, err?.message || 'Action failed', 'error');
+                } finally {
+                    modalConfirmBtn.disabled = false;
+                    modalConfirmBtn.textContent = originalText;
+                }
+            };
         }
+    }
+
+    function showAddMemberModal() {
+        if (!userPermissions?.can_manage) {
+            setBanner(rosterMessageEl, 'You do not have permission to manage this team.', 'error');
+            return;
+        }
+
+        openModalWithAsyncConfirm({
+            title: 'Add Member',
+            subtitle: 'Add an existing user by email or username',
+            confirmText: 'Add',
+            bodyHtml: `
+                <div class="space-y-4">
+                    <div id="hqModalError" class="hidden rounded-xl border border-line bg-white/5 p-3 text-sm"></div>
+                    <div>
+                        <label class="text-sm font-semibold block mb-2">Email or Username</label>
+                        <input type="text" id="hqAddMemberIdentifier" placeholder="player@example.com or username"
+                            class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition" />
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold block mb-2">Role</label>
+                        <select id="hqAddMemberRole" class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition">
+                            <option value="PLAYER">Player</option>
+                            <option value="COACH">Coach</option>
+                            <option value="MANAGER">Manager</option>
+                        </select>
+                        <p class="text-xs text-muted mt-2">OWNER is not assignable in vNext.</p>
+                    </div>
+                </div>
+            `,
+            onConfirm: async () => {
+                const identifier = document.getElementById('hqAddMemberIdentifier')?.value?.trim();
+                const role = document.getElementById('hqAddMemberRole')?.value || 'PLAYER';
+                if (!identifier) throw new Error('Please enter an email or username');
+
+                await addTeamMember(identifier, role);
+                setBanner(rosterMessageEl, `Added ${identifier} as ${roleLabel(role)}.`, 'success');
+            },
+        });
+    }
+
+    function showMemberActionsModal(membershipId) {
+        const member = (membersData || []).find(m => String(m.id) === String(membershipId));
+        if (!member) return;
+
+        openModalWithAsyncConfirm({
+            title: `Manage: ${member.username}`,
+            subtitle: 'Change role or remove from team',
+            confirmText: 'Save',
+            bodyHtml: `
+                <div class="space-y-4">
+                    <div id="hqModalError" class="hidden rounded-xl border border-line bg-white/5 p-3 text-sm"></div>
+                    <div class="rounded-2xl border border-line bg-white/5 p-3">
+                        <div class="text-sm font-semibold">${escapeHtml(member.username)}</div>
+                        <div class="text-xs text-muted">${escapeHtml(member.email || '')}</div>
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold block mb-2">Role</label>
+                        <select id="hqMemberNewRole" class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition">
+                            <option value="PLAYER" ${member.role === 'PLAYER' ? 'selected' : ''}>Player</option>
+                            <option value="COACH" ${member.role === 'COACH' ? 'selected' : ''}>Coach</option>
+                            <option value="MANAGER" ${member.role === 'MANAGER' ? 'selected' : ''}>Manager</option>
+                        </select>
+                    </div>
+                    <div class="rounded-2xl border border-red-500/30 bg-red-500/10 p-3">
+                        <div class="text-sm font-semibold text-red-300">Remove member</div>
+                        <p class="text-xs text-red-200/70 mt-1">This will deactivate their membership.</p>
+                        <button type="button" id="hqRemoveMemberBtn" class="mt-3 w-full rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition px-4 py-2 text-sm font-semibold">Remove</button>
+                    </div>
+                </div>
+            `,
+            onConfirm: async () => {
+                const newRole = document.getElementById('hqMemberNewRole')?.value;
+                if (!newRole) throw new Error('Select a role');
+                if (newRole !== member.role) {
+                    await changeTeamMemberRole(member.id, newRole);
+                    setBanner(rosterMessageEl, `Updated ${member.username} to ${roleLabel(newRole)}.`, 'success');
+                } else {
+                    setBanner(rosterMessageEl, 'No role changes made.', 'info');
+                }
+            },
+        });
+
+        // Wire remove button separately (different confirm semantics)
+        setTimeout(() => {
+            const removeBtn = document.getElementById('hqRemoveMemberBtn');
+            removeBtn?.addEventListener('click', async () => {
+                try {
+                    await removeTeamMember(member.id);
+                    MODAL.close();
+                    setBanner(rosterMessageEl, `Removed ${member.username} from team.`, 'success');
+                } catch (err) {
+                    const modalErrorEl = document.getElementById('hqModalError');
+                    setBanner(modalErrorEl, err?.message || 'Failed to remove member', 'error');
+                }
+            });
+        }, 0);
+    }
+
+    function showSettingsModal(prefill = {}) {
+        if (!userPermissions?.can_manage) {
+            setBanner(globalMessageEl, 'You do not have permission to manage this team.', 'error');
+            return;
+        }
+
+        const twitterEl = document.getElementById('hqTwitterValue');
+        const discordEl = document.getElementById('hqDiscordValue');
+        const websiteEl = document.getElementById('hqWebsiteValue');
+
+        const current = {
+            twitter: (prefill.twitter ?? twitterEl?.textContent ?? '').trim(),
+            discord: (prefill.discord ?? discordEl?.textContent ?? '').trim(),
+            website: (prefill.website ?? websiteEl?.textContent ?? '').trim(),
+        };
+
+        openModalWithAsyncConfirm({
+            title: 'Team Settings',
+            subtitle: 'Update socials and public-facing metadata',
+            confirmText: 'Save',
+            bodyHtml: `
+                <div class="space-y-4">
+                    <div id="hqModalError" class="hidden rounded-xl border border-line bg-white/5 p-3 text-sm"></div>
+                    <div>
+                        <label class="text-sm font-semibold block mb-2">Twitter</label>
+                        <input type="text" id="hqSettingsTwitter" value="${escapeHtml(current.twitter === '—' ? '' : current.twitter)}" placeholder="@yourteam"
+                            class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition" />
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold block mb-2">Discord</label>
+                        <input type="text" id="hqSettingsDiscord" value="${escapeHtml(current.discord === '—' ? '' : current.discord)}" placeholder="discord.gg/yourteam"
+                            class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition" />
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold block mb-2">Website</label>
+                        <input type="text" id="hqSettingsWebsite" value="${escapeHtml(current.website === '—' ? '' : current.website)}" placeholder="https://yourteam.gg"
+                            class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition" />
+                    </div>
+                </div>
+            `,
+            onConfirm: async () => {
+                const twitter = document.getElementById('hqSettingsTwitter')?.value?.trim() || '';
+                const discord = document.getElementById('hqSettingsDiscord')?.value?.trim() || '';
+                const website = document.getElementById('hqSettingsWebsite')?.value?.trim() || '';
+
+                await updateTeamSettings({ twitter, discord, website });
+
+                if (twitterEl) twitterEl.textContent = twitter || '—';
+                if (discordEl) discordEl.textContent = discord || '—';
+                if (websiteEl) websiteEl.textContent = website || '—';
+
+                setBanner(globalMessageEl, 'Team settings updated.', 'success');
+            },
+        });
     }
 
     // CSRF token helper
@@ -252,10 +534,33 @@
     window.removeTeamMember = removeTeamMember;
     window.updateTeamSettings = updateTeamSettings;
 
+    // UI event wiring
+    inviteBtnEl?.addEventListener('click', () => showAddMemberModal());
+    addMemberCardEl?.addEventListener('click', () => showAddMemberModal());
+
+    // Member action buttons (event delegation)
+    membersGridEl?.addEventListener('click', (e) => {
+        const btn = e.target?.closest?.('[data-member-action="menu"]');
+        if (!btn) return;
+        const membershipId = btn.getAttribute('data-membership-id');
+        if (!membershipId) return;
+        showMemberActionsModal(membershipId);
+    });
+
+    // Settings wiring
+    editSettingsBtnEl?.addEventListener('click', () => showSettingsModal());
+    document.querySelectorAll('[data-settings-edit]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const key = btn.getAttribute('data-settings-edit');
+            const prefill = {};
+            if (key === 'twitter') prefill.twitter = document.getElementById('hqTwitterValue')?.textContent?.trim() || '';
+            if (key === 'discord') prefill.discord = document.getElementById('hqDiscordValue')?.textContent?.trim() || '';
+            if (key === 'website') prefill.website = document.getElementById('hqWebsiteValue')?.textContent?.trim() || '';
+            showSettingsModal(prefill);
+        });
+    });
+
     // Bootstrap data on page load
-    if (teamSlug) {
-        bootstrapTeamData();
-    } else {
-        console.warn('Team slug not found in URL - API wiring disabled');
-    }
+    if (teamSlug) bootstrapTeamData();
+    else setBanner(globalMessageEl, 'Team slug not found in URL - API wiring disabled.', 'error');
 </script>

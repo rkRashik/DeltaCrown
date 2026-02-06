@@ -21,7 +21,6 @@ from apps.organizations.views import (
     org_create,
     org_control_plane,
     org_hub,
-    org_manage,
     org_directory,
 )
 
@@ -60,8 +59,7 @@ urlpatterns = [
     
     # UI views - Organization Control Plane
     # MUST come BEFORE <org_slug> catch-all detail page
-    path('orgs/<str:org_slug>/manage/', org_manage, name='org_manage'),
-    path('orgs/<str:org_slug>/control-plane/', org_control_plane, name='org_control_plane'),  # Legacy alias
+    path('orgs/<str:org_slug>/control-plane/', org_control_plane, name='org_control_plane'),
     
     # UI views - Organization-scoped team detail (CANONICAL)
     # MUST come BEFORE <org_slug> catch-all to avoid capturing team routes

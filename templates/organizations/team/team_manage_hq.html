@@ -228,6 +228,7 @@ Includes:
 </head>
 
 <body class="min-h-screen">
+    <div id="hqBootstrap" class="hidden" data-team-slug="{{ team.slug|default:'' }}" data-can-manage="{{ can_manage|yesno:'true,false' }}"></div>
     <!-- Mobile scrim -->
     <div id="scrim" class="fixed inset-0 bg-black/60 hidden z-40"></div>
 
@@ -250,7 +251,7 @@ Includes:
                         </div>
                         <div class="min-w-0">
                             <div class="flex items-center gap-2">
-                                <div class="font-semibold truncate">Team HQ</div>
+                                <div id="hqTeamName" class="font-semibold truncate">Team HQ</div>
                                 <span id="gameChip"
                                     class="text-[11px] px-2 py-[2px] rounded-full border border-line bg-white/5 text-white/80">
                                     🎯 VALORANT
@@ -465,6 +466,7 @@ Includes:
 
             <!-- Content container -->
             <div class="mx-3 lg:mx-6 mt-4 lg:mt-6 pb-24">
+                <div id="hqGlobalMessage" class="hidden mb-4 rounded-2xl border border-line bg-white/5 p-3 text-sm"></div>
                 <!-- Router sections (PART 2 will flesh these out) -->
                 <div class="mt-5 space-y-4">
                     <!-- Command Center -->
@@ -751,18 +753,20 @@ Includes:
                                             </div>
                                             <div>
                                                 <h2 class="text-base font-bold">Active Roster</h2>
-                                                <p class="text-xs text-muted">5 Starters • 2 Subs • 3 Staff</p>
+                                                <p id="hqRosterSummary" class="text-xs text-muted">Loading roster…</p>
                                             </div>
                                         </div>
-                                        <button class="rounded-xl px-4 py-2 text-sm font-medium border"
+                                        <button id="hqInviteBtn" type="button" class="rounded-xl px-4 py-2 text-sm font-medium border"
                                             style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.06)); border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));"
                                             data-role-gate="STAFF+">
                                             <i data-lucide="user-plus" class="w-3.5 h-3.5 inline mr-1.5"></i>Invite
                                         </button>
                                     </div>
 
+                                    <div id="hqRosterMessage" class="hidden mb-4 rounded-2xl border border-line bg-white/5 p-3 text-sm"></div>
+
                                     <!-- Player Cards Grid -->
-                                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    <div id="hqMembersGrid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
                                         <!-- Player Card 1 -->
                                         <div
                                             class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4 relative group hover:border-white/25 transition-all">
@@ -901,7 +905,7 @@ Includes:
                                         </div>
 
                                         <!-- Add Member Card -->
-                                        <div class="rounded-2xl border-2 border-dashed border-white/15 bg-white/5 p-4 hover:border-white/30 hover:bg-white/10 transition-all cursor-pointer group"
+                                        <div id="hqAddMemberCard" class="rounded-2xl border-2 border-dashed border-white/15 bg-white/5 p-4 hover:border-white/30 hover:bg-white/10 transition-all cursor-pointer group"
                                             data-role-gate="STAFF+">
                                             <div
                                                 class="h-full flex flex-col items-center justify-center gap-2 text-center py-4">
@@ -930,12 +934,12 @@ Includes:
                                             </div>
                                             <div>
                                                 <h2 class="text-base font-bold">Pending Actions</h2>
-                                                <p class="text-xs text-muted">2 Invites • 3 Join Requests</p>
+                                                <p id="hqPendingSummary" class="text-xs text-muted">Pending actions load on demand</p>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div class="space-y-2">
+                                    <div id="hqPendingList" class="space-y-2">
                                         <!-- Pending Invite -->
                                         <div class="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3">
                                             <div class="flex items-center gap-3">
@@ -1785,15 +1789,19 @@ Includes:
                                 <!-- Social Links -->
                                 <div
                                     class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
-                                    <div class="flex items-center gap-3 mb-4">
+                                    <div class="flex items-center justify-between gap-3 mb-4">
                                         <div
-                                            class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
-                                            <i data-lucide="link" class="w-5 h-5"></i>
+                                            class="flex items-center gap-3">
+                                            <div
+                                                class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
+                                                <i data-lucide="link" class="w-5 h-5"></i>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-base font-bold">Social Links</h2>
+                                                <p class="text-xs text-muted">Team presence</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h2 class="text-base font-bold">Social Links</h2>
-                                            <p class="text-xs text-muted">Team presence</p>
-                                        </div>
+                                        <button id="hqEditSettingsBtn" type="button" class="text-xs text-muted hover:text-white" data-role-gate="STAFF+">Edit</button>
                                     </div>
 
                                     <div class="space-y-2">
@@ -1806,11 +1814,11 @@ Includes:
                                                 </div>
                                                 <div>
                                                     <div class="text-sm font-semibold">Twitter</div>
-                                                    <div class="text-xs text-muted">@DeltaCrownGG</div>
+                                                    <div id="hqTwitterValue" class="text-xs text-muted">{{ team.twitter|default:'—' }}</div>
                                                 </div>
                                             </div>
                                             <button class="text-xs text-muted hover:text-white"
-                                                data-role-gate="STAFF+">Edit</button>
+                                                data-role-gate="STAFF+" data-settings-edit="twitter">Edit</button>
                                         </div>
 
                                         <!-- Twitch -->
@@ -1840,11 +1848,28 @@ Includes:
                                                 </div>
                                                 <div>
                                                     <div class="text-sm font-semibold">Discord</div>
-                                                    <div class="text-xs text-muted">discord.gg/deltacrown</div>
+                                                    <div id="hqDiscordValue" class="text-xs text-muted">{{ team.discord|default:'—' }}</div>
                                                 </div>
                                             </div>
                                             <button class="text-xs text-muted hover:text-white"
-                                                data-role-gate="STAFF+">Edit</button>
+                                                data-role-gate="STAFF+" data-settings-edit="discord">Edit</button>
+                                        </div>
+
+                                        <!-- Website -->
+                                        <div
+                                            class="rounded-xl border border-white/15 bg-white/5 p-3 flex items-center justify-between hover:bg-white/10 transition">
+                                            <div class="flex items-center gap-2">
+                                                <div
+                                                    class="h-8 w-8 rounded-lg bg-emerald-500/20 grid place-items-center">
+                                                    <i data-lucide="globe" class="w-4 h-4 text-emerald-400"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm font-semibold">Website</div>
+                                                    <div id="hqWebsiteValue" class="text-xs text-muted">{{ team.website|default:'—' }}</div>
+                                                </div>
+                                            </div>
+                                            <button class="text-xs text-muted hover:text-white"
+                                                data-role-gate="STAFF+" data-settings-edit="website">Edit</button>
                                         </div>
                                     </div>
                                 </div>

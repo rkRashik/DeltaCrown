@@ -1149,6 +1149,18 @@ def create_team(request: Request) -> Response:
                         status=MembershipStatus.INVITED,
                     )
                     invite_created = True
+
+                    # In-app notification (best effort)
+                    try:
+                        from apps.notifications.services import NotificationService
+                        NotificationService.notify_vnext_team_invite_sent(
+                            recipient_user=invited_user,
+                            team=team,
+                            inviter_user=request.user,
+                            role=str(MembershipRole.MANAGER),
+                        )
+                    except Exception:
+                        pass
                 except User.DoesNotExist:
                     # User doesn't exist - create invite record
                     TeamInvite.objects.create(
@@ -1171,6 +1183,157 @@ def create_team(request: Request) -> Response:
                         }
                     )
             
+            # Handle optional member invites (Recruit Members Now)
+            member_invite_summary = {
+                'created': 0,
+                'skipped': 0,
+                'errors': [],
+            }
+            member_invites = validated_data.get('member_invites') or []
+            if member_invites:
+                from apps.organizations.models import TeamInvite
+                from django.core.mail import send_mail
+                from django.urls import reverse
+
+                # Optional: resolve DeltaCrown public_id (DC-YY-NNNNNN)
+                try:
+                    from apps.user_profile.models_main import UserProfile
+                except Exception:
+                    UserProfile = None  # type: ignore[assignment]
+
+                invites_url = None
+                try:
+                    invites_url = request.build_absolute_uri(reverse('organizations:team_invites'))
+                except Exception:
+                    invites_url = None
+
+                already_invited_emails = set()
+                if manager_email and manager_email.strip():
+                    already_invited_emails.add(manager_email.strip().lower())
+
+                for target in member_invites:
+                    try:
+                        raw = str(target or '').strip()
+                        if not raw:
+                            continue
+
+                        invited_user = None
+                        invite_email = None
+
+                        if '@' in raw:
+                            invite_email = raw.strip().lower()
+                            invited_user = User.objects.filter(email__iexact=invite_email).first()
+                        else:
+                            # Try public_id lookup, then username
+                            if UserProfile is not None:
+                                profile = UserProfile.objects.select_related('user').filter(public_id__iexact=raw).first()
+                                if profile and getattr(profile, 'user', None):
+                                    invited_user = profile.user
+                            if invited_user is None:
+                                invited_user = User.objects.filter(username__iexact=raw).first()
+
+                            if invited_user is not None:
+                                invite_email = (invited_user.email or '').strip().lower() or None
+
+                        # De-dupe against manager_email and prior targets
+                        if invite_email and invite_email in already_invited_emails:
+                            member_invite_summary['skipped'] += 1
+                            continue
+
+                        if invited_user is not None:
+                            # Create membership invite if user isn't already on roster (or already invited)
+                            if TeamMembership.objects.filter(team=team, user=invited_user).exclude(status=MembershipStatus.INACTIVE).exists():
+                                member_invite_summary['skipped'] += 1
+                                continue
+
+                            TeamMembership.objects.create(
+                                team=team,
+                                user=invited_user,
+                                role=MembershipRole.PLAYER,
+                                status=MembershipStatus.INVITED,
+                            )
+                            invite_created = True
+                            member_invite_summary['created'] += 1
+
+                            # In-app notification (best effort)
+                            try:
+                                from apps.notifications.services import NotificationService
+                                NotificationService.notify_vnext_team_invite_sent(
+                                    recipient_user=invited_user,
+                                    team=team,
+                                    inviter_user=request.user,
+                                    role=str(MembershipRole.PLAYER),
+                                )
+                            except Exception:
+                                pass
+
+                        else:
+                            # Email-only invite requires an email
+                            if not invite_email:
+                                member_invite_summary['errors'].append({
+                                    'target': raw,
+                                    'error': 'Could not resolve to a user or email.',
+                                })
+                                continue
+
+                            if TeamInvite.objects.filter(team=team, invited_email__iexact=invite_email, status='PENDING').exists():
+                                member_invite_summary['skipped'] += 1
+                                already_invited_emails.add(invite_email)
+                                continue
+
+                            TeamInvite.objects.create(
+                                team=team,
+                                invited_email=invite_email,
+                                inviter=request.user,
+                                role=MembershipRole.PLAYER,
+                                status='PENDING',
+                            )
+                            invite_created = True
+                            member_invite_summary['created'] += 1
+
+                        # Best-effort email (won't block team creation)
+                        if invite_email:
+                            already_invited_emails.add(invite_email)
+                            try:
+                                subject = f"[DeltaCrown] Team invite: {team.name}"
+                                body = (
+                                    f"{request.user.username} invited you to join {team.name} on DeltaCrown as a PLAYER.\n\n"
+                                    + (f"Open your invites: {invites_url}\n\n" if invites_url else "")
+                                    + "If you don't have an account yet, sign up using this email to see and accept the invite."
+                                )
+                                send_mail(
+                                    subject,
+                                    body,
+                                    getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+                                    [invite_email],
+                                    fail_silently=True,
+                                )
+                            except Exception as mail_error:
+                                logger.warning(
+                                    f"Member invite email send failed for team {team.id}",
+                                    extra={
+                                        'event_type': 'member_invite_email_failed',
+                                        'team_id': team.id,
+                                        'invite_email': invite_email,
+                                        'error': str(mail_error),
+                                    }
+                                )
+
+                    except Exception as invite_error:
+                        member_invite_summary['errors'].append({
+                            'target': str(target),
+                            'error': str(invite_error),
+                        })
+                        logger.warning(
+                            f"Failed to process member invite for team {team.id}",
+                            extra={
+                                'event_type': 'member_invite_failed',
+                                'team_id': team.id,
+                                'target': str(target),
+                                'error': str(invite_error),
+                            }
+                        )
+
             # Get team URL using TeamService
             team_url = TeamService.get_team_url(team.id)
             
@@ -1246,6 +1409,7 @@ def create_team(request: Request) -> Response:
                 'team_slug': team.slug,
                 'team_url': team_url,
                 'invite_created': invite_created,
+                'member_invite_summary': member_invite_summary,
             },
             status=status.HTTP_201_CREATED
         )
@@ -3214,11 +3378,12 @@ def validate_organization_slug(request: Request) -> Response:
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def create_organization(request: Request) -> Response:
+def create_organization_multipart_legacy(request: Request) -> Response:
     """
-    Create a new organization.
+    Legacy: Create a new organization (multipart/form-data).
     
-    POST /api/vnext/organizations/create/
+    NOTE: This view is legacy and is not wired in vNext URLs.
+    Prefer the JSON-based `create_organization` view above.
     
     Request Body (multipart/form-data):
         - name (required): Organization name

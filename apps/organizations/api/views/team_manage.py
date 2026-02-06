@@ -87,13 +87,13 @@ def team_detail(request, slug):
     
     # Build members list
     members = []
-    for membership in team.vnext_memberships.select_related('user').order_by('-role', 'created_at'):
+    for membership in team.vnext_memberships.select_related('user').order_by('-role', '-joined_at'):
         members.append({
             'id': membership.id,
             'username': membership.user.username,
             'email': membership.user.email,
             'role': membership.role,
-            'joined_at': membership.created_at.isoformat() if membership.created_at else None,
+            'joined_at': membership.joined_at.isoformat() if membership.joined_at else None,
         })
     
     # Get ranking data (safe defaults: 0-point team rule)
@@ -242,7 +242,7 @@ def add_member(request, slug):
             'username': user.username,
             'email': user.email,
             'role': role,
-            'joined_at': membership.created_at.isoformat() if membership.created_at else None,
+            'joined_at': membership.joined_at.isoformat() if membership.joined_at else None,
         }
     })
 

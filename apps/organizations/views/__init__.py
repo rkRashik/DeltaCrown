@@ -18,7 +18,7 @@ Security:
 # Import public views for easy access
 from .hub import vnext_hub
 from .team import team_create, team_detail, team_invites, team_manage
-from .org import organization_detail, org_create, org_hub, org_manage, org_control_plane
+from .org import organization_detail, org_create, org_hub, org_control_plane
 from .org_directory import org_directory
 
 __all__ = [
@@ -30,7 +30,6 @@ __all__ = [
     'organization_detail',
     'org_create',
     'org_hub',
-    'org_manage',
     'org_control_plane',
     'org_directory',
 ]

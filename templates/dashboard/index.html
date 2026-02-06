@@ -102,7 +102,11 @@
           <i class="fas fa-envelope mr-2 text-accent"></i>
           Team Invites
         </h3>
-        <a href="{% url 'teams:my_invites' %}" class="text-sm text-accent hover:underline">View All</a>
+        {% if TEAM_VNEXT_ADAPTER_ENABLED and not TEAM_VNEXT_FORCE_LEGACY and TEAM_VNEXT_ROUTING_MODE != 'legacy_only' %}
+          <a href="{% url 'organizations:team_invites' %}" class="text-sm text-accent hover:underline">View All</a>
+        {% else %}
+          <a href="{% url 'teams:my_invites' %}" class="text-sm text-accent hover:underline">View All</a>
+        {% endif %}
       </div>
       {% if pending_invites %}
         <ul class="grid gap-3">

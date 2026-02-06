@@ -202,6 +202,13 @@ class CompetitionService:
         from django.db.models.functions import Coalesce
         from apps.organizations.choices import TeamStatus
         
+        # Convert game_id to integer (URL passes as string, but Team.game_id is IntegerField)
+        try:
+            game_id_int = int(game_id)
+        except (ValueError, TypeError):
+            # If game_id cannot be converted to int, return empty results
+            return RankingsResponse(entries=[], total_count=0, page=1, query_count=1)
+        
         # Build cache key
         cache_key = f'competition:game_rankings:{game_id}:{tier}:{verified_only}:{limit}:{offset}'
         cached = cache.get(cache_key)
@@ -214,13 +221,13 @@ class CompetitionService:
         # Subquery to get game-specific snapshot
         game_snapshot_subq = TeamGameRankingSnapshot.objects.filter(
             team=OuterRef('pk'),
-            game_id=game_id
+            game_id=game_id_int
         ).order_by('-snapshot_date')[:1]
         
         queryset = Team.objects.filter(
             status=TeamStatus.ACTIVE,
             visibility='PUBLIC',
-            game_id=game_id  # Filter by game
+            game_id=game_id_int  # Filter by game (use integer)
         ).annotate(
             # Annotate snapshot fields
             snapshot_score=Subquery(game_snapshot_subq.values('score')[:1], output_field=IntegerField()),

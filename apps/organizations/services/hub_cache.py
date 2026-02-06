@@ -26,17 +26,20 @@ def invalidate_hub_cache(game_id=None):
     keys_to_delete = []
     
     # Featured teams caches
+    # ALWAYS invalidate "all games" cache since team affects global view
+    keys_to_delete.append(f'featured_teams_all_12')
+    
     if game_id:
+        # Also invalidate game-specific cache
         keys_to_delete.append(f'featured_teams_{game_id}_12')
-    else:
-        # Invalidate "all games" cache
-        keys_to_delete.append(f'featured_teams_all_12')
     
     # Leaderboard caches
+    # ALWAYS invalidate "all games" cache
+    keys_to_delete.append(f'hub_leaderboard_all_50')
+    
     if game_id:
+        # Also invalidate game-specific cache
         keys_to_delete.append(f'hub_leaderboard_{game_id}_50')
-    else:
-        keys_to_delete.append(f'hub_leaderboard_all_50')
     
     # Hero carousel cache (per-user, but invalidate pattern)
     # Note: Hero carousel is user-specific, so we can't easily invalidate all users

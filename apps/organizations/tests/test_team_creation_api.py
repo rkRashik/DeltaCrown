@@ -387,3 +387,39 @@ class TestTeamCreationAPI:
         assert invite.team_id == team_id
         assert invite.team.__class__.__name__ == 'Team'
         assert invite.team._meta.db_table == 'organizations_team'
+
+    def test_create_team_with_member_invites_creates_invited_membership_and_email_invite(self, api_client, user, game):
+        """Recruit Members Now: existing user becomes INVITED membership; email-only becomes TeamInvite."""
+        api_client.force_authenticate(user=user)
+
+        invited_user = UserFactory.create(username='invited_user', email='invited@example.com')
+
+        payload = {
+            'name': 'Roster Invite Team',
+            'game_id': game.id,
+            'region': 'NA',
+            'member_invites': ['invited@example.com', 'newplayer@example.com'],
+        }
+
+        response = api_client.post(
+            '/api/vnext/teams/create/',
+            data=payload,
+            format='json'
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        team_id = response.data['team_id']
+
+        assert TeamMembership.objects.filter(
+            team_id=team_id,
+            user=invited_user,
+            role='PLAYER',
+            status='INVITED',
+        ).exists()
+
+        assert TeamInvite.objects.filter(
+            team_id=team_id,
+            invited_email__iexact='newplayer@example.com',
+            role='PLAYER',
+            status='PENDING',
+        ).exists()

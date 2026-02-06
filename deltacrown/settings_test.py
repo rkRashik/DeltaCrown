@@ -87,12 +87,19 @@ LOGGING = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'level': 'WARNING',
+            'level': 'DEBUG',  # Changed to DEBUG to see hub logs
         },
     },
     'root': {
         'handlers': ['console'],
-        'level': 'WARNING',
+        'level': 'DEBUG',  # Changed to DEBUG
+    },
+    'loggers': {
+        'apps.organizations.views.hub': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
 
@@ -122,6 +129,14 @@ DEBUG = False
 ALLOWED_HOSTS = ['*']
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
+
+# Enable vNext features for testing (Phase 16+)
+TEAM_VNEXT_ADAPTER_ENABLED = True
+TEAM_VNEXT_FORCE_LEGACY = False
+TEAM_VNEXT_ROUTING_MODE = 'auto'
+ORG_APP_ENABLED = True
+LEGACY_TEAMS_ENABLED = True  # Keep both available
+COMPETITION_APP_ENABLED = True
 
 # Print confirmation (helps catch accidental production DB usage)
 print(f"\n{'=' * 70}")

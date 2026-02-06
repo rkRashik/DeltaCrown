@@ -23,6 +23,10 @@ def get_org_role(user: User, organization) -> str:
     This is the single source of truth for role determination.
     All views must use this function instead of duplicating logic.
     """
+    # Handle anonymous users
+    if user is None or not user.is_authenticated:
+        return 'NONE'
+    
     # Platform staff bypass all org-level checks
     if user.is_staff:
         return 'STAFF'

@@ -36,6 +36,7 @@ class OrganizationBrandingSerializer(serializers.Serializer):
     )
     secondary_color = serializers.CharField(required=False, allow_blank=True, max_length=7)
     tagline = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    description = serializers.CharField(required=False, allow_blank=True, max_length=500)
     website_url = serializers.URLField(required=False, allow_blank=True, max_length=500)
     
     def validate_primary_color(self, value: str) -> str:
@@ -269,6 +270,11 @@ class CreateTeamSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Email of user to invite as MANAGER (optional)"
     )
+    member_invites = serializers.JSONField(
+        required=False,
+        allow_null=True,
+        help_text="Optional list of players to invite (email or DeltaCrown public_id/username)"
+    )
     branding = TeamBrandingSerializer(required=False, allow_null=True)
     
     def validate_name(self, value: str) -> str:
@@ -287,6 +293,8 @@ class CreateTeamSerializer(serializers.Serializer):
     def validate(self, data):
         """Cross-field validation - convert game_slug to game_id for vNext Team."""
         from apps.games.models import Game
+        from django.core.validators import validate_email
+        from django.core.exceptions import ValidationError as DjangoValidationError
         
         game_slug = data.get('game_slug')
         game_id = data.get('game_id')
@@ -308,5 +316,59 @@ class CreateTeamSerializer(serializers.Serializer):
                 raise serializers.ValidationError({
                     'game_slug': 'Invalid game selected.'
                 })
+
+        # Normalize and validate optional member invites payload
+        raw_invites = data.get('member_invites')
+        if raw_invites in (None, '', []):
+            data['member_invites'] = []
+            return data
+
+        if not isinstance(raw_invites, list):
+            raise serializers.ValidationError({
+                'member_invites': 'member_invites must be a JSON list.'
+            })
+
+        cleaned: list[str] = []
+        seen: set[str] = set()
+        for item in raw_invites:
+            if item is None:
+                continue
+            value = str(item).strip()
+            if not value:
+                continue
+
+            # Basic bounds to prevent abuse
+            if len(value) > 150:
+                raise serializers.ValidationError({
+                    'member_invites': 'Invite entries must be 150 characters or less.'
+                })
+
+            dedupe_key = value.lower()
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+
+            if '@' in value:
+                try:
+                    validate_email(value)
+                except DjangoValidationError:
+                    raise serializers.ValidationError({
+                        'member_invites': f"Invalid email invite: {value}"
+                    })
+                cleaned.append(value.lower())
+            else:
+                # Allow public_id (DC-YY-NNNNNN) or username-like tokens
+                if len(value) > 64:
+                    raise serializers.ValidationError({
+                        'member_invites': 'Non-email invite identifiers must be 64 characters or less.'
+                    })
+                cleaned.append(value)
+
+        if len(cleaned) > 10:
+            raise serializers.ValidationError({
+                'member_invites': 'You can invite up to 10 members during team creation.'
+            })
+
+        data['member_invites'] = cleaned
         
         return data

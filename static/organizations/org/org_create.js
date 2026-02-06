@@ -340,7 +340,7 @@ function handleSubmit(e) {
 
     const termsCheck = document.getElementById('termsCheck');
     if (!termsCheck || !termsCheck.checked) {
-        alert('You must sign the ratification agreement.');
+        showSubmitError('You must sign the ratification agreement.');
         return;
     }
 
@@ -367,17 +367,46 @@ function handleSubmit(e) {
     }
 }
 
+function showSubmitError(message) {
+    const submitBtn = document.getElementById('submitBtn');
+    if (!submitBtn) {
+        console.error(message);
+        return;
+    }
+
+    let el = document.getElementById('orgSubmitError');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'orgSubmitError';
+        el.className = 'mt-4 p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-300 font-mono';
+        submitBtn.parentElement?.appendChild(el);
+    }
+
+    el.textContent = message;
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function clearSubmitError() {
+    const el = document.getElementById('orgSubmitError');
+    if (el) el.remove();
+}
+
 // Phase B: Real submission function (placeholder)
 function submitOrganization() {
-    const form = document.getElementById('orgForm');
-    const formData = new FormData(form);
+    clearSubmitError();
 
-    // Add logo and banner files
-    const logoFile = document.getElementById('orgLogoUpload')?.files[0];
-    const bannerFile = document.getElementById('orgBannerUpload')?.files[0];
-    
-    if (logoFile) formData.append('logo', logoFile);
-    if (bannerFile) formData.append('banner', bannerFile);
+    const name = document.getElementById('orgName')?.value?.trim() || '';
+    const slug = document.getElementById('orgSlug')?.value?.trim() || '';
+    const description = document.getElementById('orgManifesto')?.value?.trim() || '';
+    const primaryColor = document.getElementById('customColor')?.value?.trim() || '';
+
+    const payload = { name };
+    if (slug) payload.slug = slug;
+
+    const branding = {};
+    if (description) branding.description = description;
+    if (primaryColor) branding.primary_color = primaryColor;
+    if (Object.keys(branding).length > 0) payload.branding = branding;
 
     const config = getConfig();
     const createUrl = config.createUrl || '/api/vnext/organizations/create/';
@@ -390,35 +419,72 @@ function submitOrganization() {
     fetch(createUrl, {
         method: 'POST',
         headers: {
-            'X-CSRFToken': getCsrfToken()
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCsrfToken(),
         },
-        body: formData
+        credentials: 'same-origin',
+        body: JSON.stringify(payload)
     })
-    .then(response => response.json())
+    .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw { response, data };
+        }
+        return data;
+    })
     .then(data => {
         if (data.ok) {
-            // Success - redirect to organization page
-            // API returns data nested under 'data' key
-            const orgUrl = data.data?.organization_url || data.organization_url;
+            const orgUrl = data.organization_url;
             if (orgUrl) {
                 window.location.href = orgUrl;
-            } else {
-                console.error('No organization_url in response:', data);
-                alert('Organization created but redirect URL not found. Please check your organizations.');
-                submitBtn.innerHTML = originalHTML;
-                submitBtn.disabled = false;
+                return;
             }
-        } else {
-            // Handle field errors
-            handleFieldErrors(data.field_errors || {});
-            alert(data.safe_message || 'Failed to create organization');
-            submitBtn.innerHTML = originalHTML;
-            submitBtn.disabled = false;
         }
+
+        console.error('Unexpected success payload:', data);
+        showSubmitError('Organization created but redirect URL not found.');
+        submitBtn.innerHTML = originalHTML;
+        submitBtn.disabled = false;
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Network error. Please try again.');
+        const data = error?.data || {};
+        const errorCode = data?.error_code;
+
+        // DRF serializer errors
+        const details = data?.details;
+        if (details && typeof details === 'object') {
+            const flattenErrors = (obj, prefix = '') => {
+                const out = {};
+                for (const [key, value] of Object.entries(obj)) {
+                    const fullKey = prefix ? `${prefix}.${key}` : key;
+                    if (Array.isArray(value)) {
+                        out[fullKey] = value[0] || 'Invalid value';
+                    } else if (value && typeof value === 'object') {
+                        Object.assign(out, flattenErrors(value, fullKey));
+                    } else if (typeof value === 'string') {
+                        out[fullKey] = value;
+                    }
+                }
+                return out;
+            };
+
+            handleFieldErrors(flattenErrors(details));
+            showSubmitError(data?.safe_message || data?.message || 'Please fix the highlighted fields.');
+        } else if (errorCode) {
+            // Service-layer errors
+            showSubmitError(data?.safe_message || data?.message || 'Failed to create organization.');
+            // Best-effort field highlight
+            if (errorCode === 'NAME_CONFLICT' || errorCode === 'organization_already_exists') {
+                handleFieldErrors({ name: data?.safe_message || 'Organization name already exists.' });
+            }
+            if (errorCode === 'SLUG_CONFLICT' || errorCode === 'slug_already_exists') {
+                handleFieldErrors({ slug: data?.safe_message || 'Slug already exists.' });
+            }
+        } else {
+            console.error('Error:', error);
+            showSubmitError('Network or server error. Please try again.');
+        }
         submitBtn.innerHTML = originalHTML;
         submitBtn.disabled = false;
     });
@@ -431,6 +497,7 @@ function handleFieldErrors(errors) {
         'badge': 1,
         'slug': 1,
         'description': 1,
+        'branding.description': 1,
         'founded_year': 1,
         'organization_type': 2,
         'hq_city': 2,
@@ -447,6 +514,7 @@ function handleFieldErrors(errors) {
         'logo': 4,
         'banner': 4,
         'brand_color': 4,
+        'branding.primary_color': 4,
     };
     
     // Find the earliest step with an error
@@ -470,7 +538,9 @@ function handleFieldErrors(errors) {
         else if (fieldName === 'badge') fieldId = 'orgTicker';
         else if (fieldName === 'slug') fieldId = 'orgSlug';
         else if (fieldName === 'description') fieldId = 'orgManifesto';
+        else if (fieldName === 'branding.description') fieldId = 'orgManifesto';
         else if (fieldName === 'founded_year') fieldId = 'orgEst';
+        else if (fieldName === 'branding.primary_color') fieldId = 'customColor';
         
         const field = document.getElementById(fieldId) || document.querySelector(`[name="${fieldName}"]`);
         if (!field) continue;

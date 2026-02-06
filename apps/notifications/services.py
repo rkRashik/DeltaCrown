@@ -415,6 +415,35 @@ class NotificationService:
             body=body,
             url=url
         )
+
+    @staticmethod
+    def notify_vnext_team_invite_sent(*, recipient_user, team, inviter_user=None, role: str = 'PLAYER'):
+        """Notify user when they receive a vNext team invite (organizations.TeamMembership INVITED).
+
+        This avoids the legacy teams.TeamInvite dependency and works for vNext membership invites.
+        """
+        from django.urls import reverse
+
+        if not recipient_user:
+            return None
+
+        inviter_name = getattr(inviter_user, 'username', None) or 'A team captain'
+        title = f"Team Invite: {getattr(team, 'name', 'a team')}"
+        body = f"{inviter_name} invited you to join {getattr(team, 'name', 'a team')} as {role}."
+
+        try:
+            url = reverse('organizations:team_invites')
+        except Exception:
+            # Fallback to legacy invites page if needed
+            url = reverse('teams:my_invites')
+
+        return NotificationService._send_notification_multi_channel(
+            users=[recipient_user],
+            notification_type='invite_sent',
+            title=title,
+            body=body,
+            url=url,
+        )
     
     @staticmethod
     def notify_invite_accepted(invite):

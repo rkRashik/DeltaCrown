@@ -107,6 +107,7 @@ def cleanup_test_data(db):
     from apps.user_profile.models import UserProfile
     from apps.accounts.models import User
     from apps.economy.models import DeltaCrownWallet, DeltaCrownTransaction
+    from apps.organizations.models import Team, Organization, OrganizationMembership
     
     # Delete in correct order (respect foreign keys)
     UserActivity.objects.all().delete()
@@ -114,6 +115,10 @@ def cleanup_test_data(db):
     DeltaCrownTransaction.objects.all().delete()
     DeltaCrownWallet.objects.all().delete()
     UserProfile.objects.all().delete()
+    Team.objects.all().delete()
+    OrganizationMembership.objects.all().delete()
+    # Delete organizations BEFORE users (Organization.ceo FK has on_delete=PROTECT)
+    Organization.objects.all().delete()
     User.objects.all().delete()
 
 

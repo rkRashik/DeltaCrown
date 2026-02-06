@@ -91,7 +91,7 @@ def _get_hero_carousel_context(request):
         if request.user.is_authenticated:
             from django.db.models import Q
             carousel_data['user_teams_count'] = Team.objects.filter(
-                Q(memberships__user=request.user, memberships__status='ACTIVE') |
+                Q(vnext_memberships__user=request.user, vnext_memberships__status='ACTIVE') |
                 Q(created_by=request.user),
                 status='ACTIVE'
             ).distinct().count()
@@ -99,28 +99,32 @@ def _get_hero_carousel_context(request):
             # Find user's primary team (created team first, then first active membership)
             carousel_data['user_primary_team'] = Team.objects.filter(
                 Q(created_by=request.user) |
-                Q(memberships__user=request.user, memberships__status='ACTIVE'),
+                Q(vnext_memberships__user=request.user, vnext_memberships__status='ACTIVE'),
                 status='ACTIVE'
-            ).order_by('-created_by', 'memberships__joined_at').first()
+            ).order_by('-created_by', 'vnext_memberships__joined_at').first()
     except Exception as e:
         logger.warning(f"Could not fetch user team data: {e}")
     
     # Slide 3: Most recent tournament winner
+    # DISABLED 2026-02-06: Tournament model does not have winner_team field
+    # This query was causing FieldError exceptions. Tournament results need proper relationship.
+    # TODO: Implement proper tournament result integration with vNext teams
     try:
-        from apps.tournaments.models import Tournament
-        recent_tournament = Tournament.objects.filter(
-            status__in=['COMPLETED', 'FINALIZED'],
-            winner_team__isnull=False
-        ).select_related('winner_team', 'winner_team__organization').order_by('-end_date').first()
-        
-        if recent_tournament and recent_tournament.winner_team:
-            carousel_data['recent_tournament_winner'] = {
-                'team_name': recent_tournament.winner_team.name,
-                'team_slug': recent_tournament.winner_team.slug,
-                'tournament_name': recent_tournament.name,
-                'tournament_id': recent_tournament.id,
-                'end_date': recent_tournament.end_date,
-            }
+        pass  # Disabled - see comment above
+        # from apps.tournaments.models import Tournament
+        # recent_tournament = Tournament.objects.filter(
+        #     status__in=['COMPLETED', 'FINALIZED'],
+        #     winner_team__isnull=False
+        # ).select_related('winner_team', 'winner_team__organization').order_by('-end_date').first()
+        # 
+        # if recent_tournament and recent_tournament.winner_team:
+        #     carousel_data['recent_tournament_winner'] = {
+        #         'team_name': recent_tournament.winner_team.name,
+        #         'team_slug': recent_tournament.winner_team.slug,
+        #         'tournament_name': recent_tournament.name,
+        #         'tournament_id': recent_tournament.id,
+        #         'end_date': recent_tournament.end_date,
+        #     }
     except Exception as e:
         logger.warning(f"Could not fetch recent tournament winner: {e}")
     
@@ -177,6 +181,10 @@ def _get_featured_teams(game_id=None, limit=12):
             'vnext_memberships__user'  # vNext uses vnext_memberships related name
         )
         
+        # Debug logging
+        logger.debug(f"[HUB] Querying teams: game_id={game_id}, limit={limit}")
+        logger.debug(f"[HUB] Initial queryset count: {teams_qs.count()}")
+        
         # Order by created_at DESC (newest first)
         # Ensures brand new teams appear at top
         teams_qs = teams_qs.order_by('-created_at')
@@ -184,8 +192,10 @@ def _get_featured_teams(game_id=None, limit=12):
         # Apply game filter if specified
         if game_id:
             teams_qs = teams_qs.filter(game_id=game_id)
+            logger.debug(f"[HUB] After game_id filter: {teams_qs.count()} teams")
         
         teams = list(teams_qs[:limit])
+        logger.debug(f"[HUB] Returning {len(teams)} teams")
         
         # Phase 16: Cache for 10 seconds only (prevent stale empty lists after team creation)
         cache.set(cache_key, teams, 10)

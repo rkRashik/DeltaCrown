@@ -185,9 +185,9 @@ def org_hub(request, org_slug):
 
 
 @login_required
-def org_manage(request, org_slug):
+def org_control_plane(request, org_slug):
     """
-    Organization management interface - centralized control panel.
+    Organization Control Plane - centralized management interface.
     
     Access Control (via centralized permissions module):
     - Organization CEO (owner)
@@ -196,7 +196,7 @@ def org_manage(request, org_slug):
     
     Returns:
     - 403 if user lacks permission
-    - Management interface if authorized
+    - Control plane interface if authorized
     """
     from apps.organizations.services.org_detail_service import get_org_detail_context
     from django.shortcuts import get_object_or_404
@@ -213,66 +213,17 @@ def org_manage(request, org_slug):
     
     # Permission check: must be able to manage
     if not context['can_manage_org'] and not request.user.is_staff:
-        return HttpResponseForbidden("You don't have permission to manage this organization.")
+        return HttpResponseForbidden("You don't have permission to access the Control Plane for this organization.")
     
     logger.info(
-        f"Organization manage accessed: {org_slug}",
+        f"Organization control plane accessed: {org_slug}",
         extra={
-            'event_type': 'org_manage_accessed',
+            'event_type': 'org_control_plane_accessed',
             'user_id': request.user.id,
             'org_slug': org_slug,
             'can_manage': context['can_manage_org'],
         }
     )
-    
-    return render(request, 'organizations/org/org_manage.html', context)
-
-
-@login_required
-def org_control_plane(request, org_slug):
-    """
-    Organization Control Plane - legacy alias for org_manage.
-    
-    Redirects to org_manage for consistency.
-    """
-    return redirect('organizations:org_manage', org_slug=org_slug)
-    # Load organization
-    organization = get_object_or_404(Organization, slug=org_slug)
-    
-    # Get role and permissions from centralized module
-    role = get_org_role(request.user, organization)
-    has_access = can_access_control_plane(role)
-    
-    if not has_access:
-        logger.warning(
-            f"Unauthorized control plane access attempt",
-            extra={
-                'event_type': 'control_plane_unauthorized',
-                'user_id': request.user.id,
-                'org_slug': org_slug,
-                'organization_id': organization.id,
-                'viewer_role': role,
-            }
-        )
-        return HttpResponseForbidden(
-            "You do not have permission to access the Control Plane for this organization."
-        )
-    
-    # Log authorized access
-    logger.info(
-        f"Control plane accessed",
-        extra={
-            'event_type': 'control_plane_access',
-            'user_id': request.user.id,
-            'org_slug': org_slug,
-            'organization_id': organization.id,
-            'viewer_role': role,
-        }
-    )
-    
-    # Build context with permissions
-    context = get_permission_context(request.user, organization)
-    context['organization'] = organization
     
     return render(request, 'organizations/org/org_control_plane.html', context)
 

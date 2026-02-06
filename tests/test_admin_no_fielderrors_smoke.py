@@ -37,8 +37,8 @@ class TestAdminNoFieldErrors:
         from tests.factories import create_independent_team
         
         # Create a team
-        creator = User.objects.create_user(username='creator', password='pass')
-        team = create_independent_team(creator, 'Admin Test Team', 'admin-test')
+        creator = User.objects.create_user(username='creator', email='creator@example.com', password='pass')
+        team, _ = create_independent_team('Admin Test Team', creator, game_id=1)
         
         client.force_login(admin_user)
         
@@ -75,12 +75,12 @@ class TestAdminNoFieldErrors:
         from apps.organizations.models import Organization
         
         # Create an organization
-        creator = User.objects.create_user(username='org_creator', password='pass')
+        creator = User.objects.create_user(username='org_creator', email='org_creator@example.com', password='pass')
         org = Organization.objects.create(
             name='Admin Test Org',
             slug='admin-test-org',
             badge='ATO',
-            created_by=creator
+            ceo=creator
         )
         
         client.force_login(admin_user)

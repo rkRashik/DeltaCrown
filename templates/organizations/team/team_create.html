@@ -467,13 +467,14 @@
                             <p class="text-xs text-slate-500 mb-3">Send invites to players immediately after creation.</p>
 
                             <div id="memberInviteArea" class="hidden space-y-2">
-                                <div class="flex gap-2">
-                                    <input type="text" class="flex-1 bg-black/50 border border-white/10 rounded-lg py-2 px-3 text-xs text-white" placeholder="Player Email or DeltaID">
-                                    <button type="button" class="bg-white/10 hover:bg-white/20 text-white rounded-lg px-3 py-1 text-xs font-bold transition"><i class="fas fa-plus"></i></button>
+                                <div class="text-[10px] text-slate-500">Enter email(s) or DeltaCrown ID (e.g. DC-25-000042). Separate multiple with commas.</div>
+                                <div class="flex gap-2 member-invite-row">
+                                    <input type="text" class="member-invite-input flex-1 bg-black/50 border border-white/10 rounded-lg py-2 px-3 text-xs text-white" placeholder="Player Email or DeltaCrown ID">
+                                    <button type="button" class="member-invite-add bg-white/10 hover:bg-white/20 text-white rounded-lg px-3 py-1 text-xs font-bold transition" title="Add another invite"><i class="fas fa-plus"></i></button>
                                 </div>
-                                <div class="flex gap-2">
-                                    <input type="text" class="flex-1 bg-black/50 border border-white/10 rounded-lg py-2 px-3 text-xs text-white" placeholder="Player Email or DeltaID">
-                                    <button type="button" class="bg-white/10 hover:bg-white/20 text-white rounded-lg px-3 py-1 text-xs font-bold transition"><i class="fas fa-plus"></i></button>
+                                <div class="flex gap-2 member-invite-row">
+                                    <input type="text" class="member-invite-input flex-1 bg-black/50 border border-white/10 rounded-lg py-2 px-3 text-xs text-white" placeholder="Player Email or DeltaCrown ID">
+                                    <button type="button" class="member-invite-add bg-white/10 hover:bg-white/20 text-white rounded-lg px-3 py-1 text-xs font-bold transition" title="Add another invite"><i class="fas fa-plus"></i></button>
                                 </div>
                             </div>
                         </div>
@@ -1775,6 +1776,53 @@
     // ========================================================================
     // FORM SUBMISSION
     // ========================================================================
+
+    function showToast(message, variant = 'info', timeoutMs = 1400) {
+        const colors = {
+            info: 'border-white/10 bg-black/70 text-white',
+            success: 'border-delta-electric/30 bg-black/70 text-white',
+            warning: 'border-yellow-500/30 bg-black/70 text-white',
+            danger: 'border-delta-danger/30 bg-black/70 text-white',
+        };
+
+        const toast = document.createElement('div');
+        toast.className = `fixed top-6 right-6 z-[9999] max-w-md px-4 py-3 rounded-xl border shadow-2xl backdrop-blur ${colors[variant] || colors.info}`;
+        toast.innerHTML = `<div class="flex items-start gap-3"><i class="fas fa-bell mt-1 text-delta-electric"></i><div class="text-sm">${message}</div></div>`;
+        document.body.appendChild(toast);
+
+        window.setTimeout(() => {
+            toast.style.transition = 'opacity 250ms ease, transform 250ms ease';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-6px)';
+            window.setTimeout(() => toast.remove(), 260);
+        }, timeoutMs);
+    }
+
+    function collectMemberInvites() {
+        const area = document.getElementById('memberInviteArea');
+        if (!area) return [];
+
+        const invites = [];
+        const seen = new Set();
+        const inputs = area.querySelectorAll('input.member-invite-input');
+
+        inputs.forEach((input) => {
+            const raw = (input.value || '').trim();
+            if (!raw) return;
+
+            // Allow comma-separated values in a single field
+            raw.split(',').forEach((part) => {
+                const value = (part || '').trim();
+                if (!value) return;
+                const key = value.toLowerCase();
+                if (seen.has(key)) return;
+                seen.add(key);
+                invites.push(value);
+            });
+        });
+
+        return invites;
+    }
     
     async function handleSubmit(event) {
         event.preventDefault();
@@ -1830,6 +1878,15 @@
             // Manager invite
             const managerEmail = document.getElementById('managerEmail')?.value.trim();
             if (managerEmail) formData.append('manager_email', managerEmail);
+
+            // Recruit members now (optional)
+            const recruitNow = document.getElementById('toggleRecruitInvite')?.checked;
+            if (recruitNow) {
+                const memberInvites = collectMemberInvites();
+                if (memberInvites.length > 0) {
+                    formData.append('member_invites', JSON.stringify(memberInvites));
+                }
+            }
             
             // Files
             const logoFile = document.getElementById('logoUpload')?.files[0];
@@ -1859,7 +1916,24 @@
             if (response.ok && data.ok) {
                 // Success
                 console.log('[TeamCreate] ✅ Team created successfully:', data);
-                window.location.href = data.team_url;
+                const summary = data.member_invite_summary;
+                if (summary && (summary.created || summary.skipped || (summary.errors && summary.errors.length))) {
+                    const created = summary.created || 0;
+                    const skipped = summary.skipped || 0;
+                    const errors = (summary.errors && summary.errors.length) ? summary.errors.length : 0;
+
+                    let msg = `Team created. Invites: ${created} sent`;
+                    if (skipped) msg += `, ${skipped} skipped`;
+                    if (errors) msg += `, ${errors} failed`;
+                    msg += '.';
+
+                    showToast(msg, errors ? 'warning' : 'success', 1400);
+                    window.setTimeout(() => {
+                        window.location.href = data.team_url;
+                    }, 900);
+                } else {
+                    window.location.href = data.team_url;
+                }
             } else {
                 // Error
                 console.error('[TeamCreate] ❌ Team creation failed:', data);
@@ -2118,6 +2192,31 @@
                         memberInviteArea.classList.add('hidden');
                     }
                 }
+            });
+        }
+
+        // Recruit members: add-row buttons
+        const memberInviteArea = document.getElementById('memberInviteArea');
+        if (memberInviteArea) {
+            memberInviteArea.addEventListener('click', (e) => {
+                const addBtn = e.target.closest('.member-invite-add');
+                if (!addBtn) return;
+
+                const rows = memberInviteArea.querySelectorAll('.member-invite-row');
+                if (rows.length >= 10) {
+                    alert('You can invite up to 10 members during team creation.');
+                    return;
+                }
+
+                const row = addBtn.closest('.member-invite-row');
+                if (!row) return;
+
+                const clone = row.cloneNode(true);
+                const input = clone.querySelector('input.member-invite-input');
+                if (input) input.value = '';
+
+                memberInviteArea.appendChild(clone);
+                if (input) input.focus();
             });
         }
         

@@ -25,7 +25,7 @@
                     <h1 class="text-3xl font-bold">{{ organization.name }}</h1>
                     <p class="text-sm text-gray-400 mt-1">Organization Management Console</p>
                 </div>
-                <a href="{% url 'organizations:org_detail' organization.slug %}" 
+                <a href="{% url 'organizations:organization_detail' organization.slug %}" 
                    class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition">
                     View Public Profile
                 </a>
@@ -147,20 +147,23 @@
         <!-- Settings Tab -->
         <div id="settings" class="tab-content hidden glass-panel rounded-2xl p-6">
             <h2 class="text-xl font-bold mb-4">Organization Settings</h2>
-            <form method="post" action="{% url 'api:organization-update' organization.id %}">
+            <!-- TODO: Implement organization settings update endpoint -->
+            <form method="post" action="#">
                 {% csrf_token %}
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-semibold mb-2">Organization Name</label>
                         <input type="text" name="name" value="{{ organization.name }}" 
-                               class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-white/30 outline-none">
+                               class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-white/30 outline-none" 
+                               readonly title="Settings update not yet implemented">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold mb-2">Manifesto</label>
                         <textarea name="description" rows="4" 
-                                  class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-white/30 outline-none resize-none">{{ organization.description }}</textarea>
+                                  class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-white/30 outline-none resize-none" 
+                                  readonly title="Settings update not yet implemented">{{ organization.description }}</textarea>
                     </div>
-                    <button type="submit" class="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:opacity-90 font-semibold">
+                    <button type="submit" class="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:opacity-90 font-semibold" disabled title="Settings update not yet implemented">
                         Save Changes
                     </button>
                 </div>
