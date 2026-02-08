@@ -1019,10 +1019,10 @@ create_team_view = _legacy_create_team_view
 @login_required
 @require_http_methods(["GET", "POST"])
 def manage_team_view(request, slug: str):
-    """Comprehensive team management view for team captains."""
+    """Comprehensive team management view for team captains/admins."""
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
-    
+
     # Get membership for permission checking
     try:
         membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
@@ -1033,79 +1033,80 @@ def manage_team_view(request, slug: str):
         messages.error(request, "You must be a team member to manage this team.")
         return redirect("teams:detail", slug=team.slug)
 
-    # Handle form submissions
-    if request.method == "POST":
-        form_type = request.POST.get("form_type")
-        
-        if form_type == "edit_team":
-            form = TeamEditForm(request.POST, request.FILES, instance=team, user=request.user)
-            if form.is_valid():
-                form.save()
-                messages.success(request, "Team information updated successfully!")
-                return redirect("teams:manage", slug=team.slug)
-            else:
-                messages.error(request, "Please correct the errors in the team information form.")
-                
-        elif form_type == "invite_member":
-            invite_form = TeamInviteForm(request.POST, team=team, sender=request.user)
-            if invite_form.is_valid():
-                invite_form.save()
-                messages.success(request, f"Invitation sent successfully!")
-                return redirect("teams:manage", slug=team.slug)
-            else:
-                messages.error(request, "Please correct the errors in the invitation form.")
-                
-        elif form_type == "manage_members":
-            member_form = TeamMemberManagementForm(request.POST, team=team, user=request.user)
-            if member_form.is_valid():
-                member_form.save()
-                messages.success(request, "Member management action completed successfully!")
-                return redirect("teams:manage", slug=team.slug)
-            else:
-                messages.error(request, "Please correct the errors in the member management form.")
-                
-        elif form_type == "team_settings":
-            settings_form = TeamSettingsForm(request.POST, instance=team, user=request.user)
-            if settings_form.is_valid():
-                settings_form.save()
-                messages.success(request, "Team settings updated successfully!")
-                return redirect("teams:manage", slug=team.slug)
-            else:
-                messages.error(request, "Please correct the errors in the settings form.")
-    
-    # Initialize forms for GET request
-    edit_form = TeamEditForm(instance=team, user=request.user)
-    invite_form = TeamInviteForm(team=team, sender=request.user)
-    member_form = TeamMemberManagementForm(team=team, user=request.user)
-    settings_form = TeamSettingsForm(instance=team, user=request.user)
-    
-    # Get team data
-    pending_invites = team.invites.filter(status="PENDING").select_related("invited_user__user")
-    members = team.memberships.filter(status="ACTIVE").select_related("user__user")
-    
+    # Prepare comprehensive context for all 4 manage sections
+    members = (
+        team.memberships
+        .filter(status="ACTIVE")
+        .select_related("profile__user")
+        .order_by("-role", "-is_captain", "joined_at")
+    )
+    pending_invites = (
+        team.invites
+        .filter(status="PENDING")
+        .select_related("invited_user__user", "inviter__user")
+        .order_by("-created_at")
+    )
+
+    # Join requests (optional model)
+    join_requests = []
+    join_request_count = 0
+    try:
+        from ..models.join_request import TeamJoinRequest
+        join_requests = list(
+            TeamJoinRequest.objects.filter(team=team, status="PENDING")
+            .select_related("applicant__user")
+            .order_by("-created_at")[:20]
+        )
+        join_request_count = len(join_requests)
+    except Exception:
+        pass
+
+    # Permission summary for the template
+    perms = TeamPermissions.get_permission_summary(membership)
+
+    # Available role choices (for dropdowns)
+    role_choices = [
+        {"value": c[0], "label": c[1]}
+        for c in TeamMembership.Role.choices
+        if c[0] not in ("CAPTAIN",)  # Deprecated legacy role
+    ]
+
+    # Region choices for dropdown
+    from ..forms import REGION_CHOICES
+    region_choices = [{"value": v, "label": l} for v, l in REGION_CHOICES if v]
+
     context = {
         "team": team,
-        "edit_form": edit_form,
-        "invite_form": invite_form,
-        "member_form": member_form,
-        "settings_form": settings_form,
-        "pending_invites": pending_invites,
         "members": members,
-        # Permission flags for frontend
+        "pending_invites": pending_invites,
+        "join_requests": join_requests,
+        "join_request_count": join_request_count,
+        # Current user context
         "user_membership": membership,
-        "can_assign_managers": TeamPermissions.can_assign_managers(membership),
-        "can_assign_captain_title": TeamPermissions.can_assign_captain_title(membership),
-        "can_assign_coach": TeamPermissions.can_assign_coach(membership),
-        "can_change_player_role": TeamPermissions.can_change_player_role(membership),
-        "can_manage_roster": TeamPermissions.can_manage_roster(membership),
+        "permissions": perms,
+        # Convenience permission flags used by templates
+        "can_manage_roster": perms["can_manage_roster"],
+        "can_edit_team_profile": perms["can_edit_team_profile"],
+        "can_assign_managers": perms["can_assign_managers"],
+        "can_assign_captain_title": perms["can_assign_captain_title"],
+        "can_assign_coach": perms["can_assign_coach"],
+        "can_change_player_role": perms["can_change_player_role"],
+        "can_register_tournaments": perms["can_register_tournaments"],
+        "can_delete_team": perms["can_delete_team"],
+        "can_transfer_ownership": perms["can_transfer_ownership"],
         "is_owner": membership.role == TeamMembership.Role.OWNER,
-        "is_manager": membership.role == TeamMembership.Role.MANAGER,
-        # Roster limits (game-specific)
+        "is_admin": TeamPermissions.is_admin(membership),
+        # Roster info
         "roster_limits": team.roster_limits,
         "max_roster_size": team.max_roster_size,
         "min_roster_size": team.min_roster_size,
         "current_roster_size": members.count(),
         "can_accept_members": team.can_accept_members,
+        # Dropdown data
+        "role_choices": role_choices,
+        "region_choices": region_choices,
+        # Game display
+        "game_display": _get_game_display_name(team.game),
     }
 
     return render(request, "teams/manage_hq.html", context)

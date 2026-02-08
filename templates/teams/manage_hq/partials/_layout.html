@@ -5,6 +5,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="csrf-token" content="{{ csrf_token }}" />
     <title>{{ team.name|default:"Team" }} — Team HQ</title>
 
     <!-- Tailwind CDN -->
@@ -92,6 +93,21 @@
                     rgba(255, 255, 255, .05));
             border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255, 255, 255, .14));
         }
+
+        /* Safe area for mobile bottom nav */
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+
+        /* Mobile-first responsive helpers */
+        @media (max-width: 639px) {
+            .rounded-3xl { border-radius: 1.25rem; }
+        }
+
+        /* xs breakpoint for very small screens */
+        @media (min-width: 400px) {
+            .xs\:inline { display: inline; }
+        }
     </style>
 </head>
 
@@ -104,7 +120,7 @@
         <main class="min-h-screen lg:pl-0">
             {% include "teams/manage_hq/partials/_topbar.html" %}
             
-            <div class="mx-3 lg:mx-6 mt-4 lg:mt-6 pb-24">
+            <div class="mx-3 lg:mx-6 mt-4 lg:mt-6 pb-20 lg:pb-24">
                 <div class="mt-5 space-y-4">
                     {% block content %}
                     {% endblock %}
@@ -126,10 +142,15 @@
         const pageSub = document.getElementById('pageSub');
 
         const ROUTES = {
-            command: { title: "Command Center", sub: "Real-time team overview" },
-            roster: { title: "Roster Ops", sub: "Players & staff management" },
-            profile: { title: "Team Profile", sub: "Public identity editor" },
-            settings: { title: "Settings & Security", sub: "Privacy and permissions" }
+            command:     { title: "Command Center",      sub: "Real-time team overview" },
+            roster:      { title: "Roster Ops",          sub: "Players & staff management" },
+            competition: { title: "Competition Hub",     sub: "Tournaments & matches" },
+            training:    { title: "Training Lab",        sub: "Practice & scrims" },
+            community:   { title: "Community & Media",   sub: "Announcements & content" },
+            profile:     { title: "Team Profile",        sub: "Public identity editor" },
+            settings:    { title: "Settings & Security", sub: "Visibility & danger zone" },
+            treasury:    { title: "Treasury & Economy",  sub: "Prizes, fees & wallet" },
+            history:     { title: "History & Archive",   sub: "Activity log & timeline" },
         };
 
         function openSidebar() {
@@ -157,6 +178,13 @@
             if (pageTitle) pageTitle.textContent = meta.title;
             if (pageSub) pageSub.textContent = meta.sub;
 
+            // Update breadcrumb
+            const bc = document.getElementById('breadcrumbSection');
+            if (bc) bc.textContent = meta.title;
+
+            // Update dynamic topbar quick actions
+            updateTopbarActions(route);
+
             if (location.hash.replace('#', '') !== route) {
                 history.replaceState(null, '', '#' + route);
             }
@@ -164,6 +192,57 @@
             if (window.matchMedia('(max-width: 1023px)').matches) {
                 closeSidebar();
             }
+
+            // Update mobile nav active state
+            document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+                btn.classList.toggle('text-white', btn.dataset.route === route);
+                btn.classList.toggle('text-white/40', btn.dataset.route !== route);
+            });
+        }
+
+        // Dynamic quick actions per section
+        const TOPBAR_ACTIONS = {
+            command: [
+                { label: 'Invite Player', icon: 'user-plus', onclick: "ManageHQ.openInviteModal()", color: 'cyan' },
+            ],
+            roster: [
+                { label: 'Invite', icon: 'user-plus', onclick: "ManageHQ.openInviteModal()", color: 'blue' },
+            ],
+            competition: [
+                { label: 'Find Tournament', icon: 'trophy', onclick: "setActiveRoute('competition')", color: 'amber' },
+            ],
+            training: [
+                { label: 'New Session', icon: 'calendar-plus', onclick: "ManageHQ.Training.openScheduleModal()", color: 'cyan' },
+                { label: 'Post LFG', icon: 'radar', onclick: "ManageHQ.Training.openScrimModal()", color: 'emerald' },
+                { label: 'Add VOD', icon: 'video', onclick: "ManageHQ.Training.openVodModal()", color: 'purple' },
+            ],
+            community: [
+                { label: 'New Post', icon: 'pen-line', onclick: "ManageHQ.Community.openPostModal()", color: 'pink' },
+                { label: 'Upload', icon: 'image-plus', onclick: "ManageHQ.Community.openMediaUpload()", color: 'violet' },
+                { label: 'Highlight', icon: 'play', onclick: "ManageHQ.Community.openHighlightModal()", color: 'rose' },
+            ],
+            profile: [
+                { label: 'View Public', icon: 'external-link', onclick: "window.open('/teams/{{ team.slug|escapejs }}/', '_blank')", color: 'white' },
+            ],
+            settings: [],
+            treasury: [],
+            history: [],
+        };
+
+        function updateTopbarActions(route) {
+            const container = document.getElementById('topbarActions');
+            if (!container) return;
+            const actions = TOPBAR_ACTIONS[route] || [];
+            if (!actions.length) { container.classList.add('hidden'); return; }
+            container.classList.remove('hidden');
+            container.innerHTML = actions.map(a => `
+                <button onclick="${a.onclick}"
+                    class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold bg-${a.color}-500/15 text-${a.color}-400 border border-${a.color}-500/20 hover:bg-${a.color}-500/25 transition whitespace-nowrap">
+                    <i data-lucide="${a.icon}" class="w-3 h-3"></i>
+                    <span class="hidden md:inline">${a.label}</span>
+                </button>
+            `).join('');
+            if (window.lucide) lucide.createIcons({ nodes: [container] });
         }
 
         document.querySelectorAll('.nav-item').forEach(a => {
@@ -184,5 +263,15 @@
         const initialRoute = (location.hash || '#command').replace('#', '');
         setActiveRoute(document.getElementById(initialRoute) ? initialRoute : 'command');
     </script>
+
+    <!-- Manage HQ config & controller -->
+    <script>
+        window.MANAGE_HQ = {
+            slug: "{{ team.slug|escapejs }}",
+            csrfToken: "{{ csrf_token }}",
+            teamName: "{{ team.name|escapejs }}",
+        };
+    </script>
+    <script src="{% static 'teams/js/team-manage-hq.js' %}"></script>
 </body>
 </html>

@@ -1,138 +1,181 @@
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
+    /**
+     * Team Detail Page — Client-Side Controller
+     * Phase 3 Production Build
+     *
+     * Modules:
+     *   1. Body Data-Attribute Injection (role, theme, game)
+     *   2. Sticky Nav Glass Effect
+     *   3. Scrollspy (IntersectionObserver)
+     *   4. Match Filter Tabs
+     *   5. Lazy Image Loading
+     *   6. Scroll-In Animations
+     *   7. Sticky Sidebar Positioning
+     */
+    document.addEventListener("DOMContentLoaded", () => {
 
-        // 1. STICKY NAV GLASSPHILLIC EFFECT
-        const nav = document.getElementById("dc-subnav");
-        if (nav) {
-          window.addEventListener("scroll", () => {
-            if (window.scrollY > 400) {
-              nav.classList.add("bg-[#000]/90", "backdrop-blur-xl", "shadow-2xl");
-              nav.classList.remove("bg-[#000]/80", "backdrop-blur-md");
-            } else {
-              nav.classList.remove("bg-[#000]/90", "backdrop-blur-xl", "shadow-2xl");
-              nav.classList.add("bg-[#000]/80", "backdrop-blur-md");
-            }
-          });
-        }
+      // ─── 1. BODY DATA-ATTRIBUTES ───────────────────────────
+      // Inject role/theme/game from Django context via data-bootstrap
+      const bootstrapEl = document.getElementById("dc-detail-bootstrap");
+      if (bootstrapEl) {
+        const { role, theme, game } = bootstrapEl.dataset;
+        if (role)  document.body.setAttribute("data-role", role);
+        if (theme) document.body.setAttribute("data-theme", theme);
+        if (game)  document.body.setAttribute("data-game", game);
+      }
 
-        // 2. SCROLLSPY (Highlight Nav Items on Scroll)
-        const sections = document.querySelectorAll("section[id]");
-        const navLinks = document.querySelectorAll("#dc-subnav a");
+      // ─── 2. STICKY NAV GLASS ──────────────────────────────
+      const nav = document.getElementById("dc-subnav");
+      if (nav) {
+        let lastScroll = 0;
+        window.addEventListener("scroll", () => {
+          const scrollY = window.scrollY;
+          if (scrollY > 400) {
+            nav.classList.add("bg-[#000]/90", "backdrop-blur-xl", "shadow-2xl");
+            nav.classList.remove("bg-[#000]/80", "backdrop-blur-md");
+          } else {
+            nav.classList.remove("bg-[#000]/90", "backdrop-blur-xl", "shadow-2xl");
+            nav.classList.add("bg-[#000]/80", "backdrop-blur-md");
+          }
+          lastScroll = scrollY;
+        }, { passive: true });
+      }
 
-        function highlightNav() {
-          let scrollY = window.scrollY;
-          sections.forEach(current => {
-            const sectionHeight = current.offsetHeight;
-            const sectionTop = current.offsetTop - 150; // Offset for header
-            const sectionId = current.getAttribute("id");
+      // ─── 3. SCROLLSPY ─────────────────────────────────────
+      const sections = document.querySelectorAll("section[id]");
+      const navLinks = document.querySelectorAll("#dc-subnav .nav-link");
 
-            if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
+      if (sections.length && navLinks.length) {
+        const observerOptions = {
+          root: null,
+          rootMargin: "-20% 0px -60% 0px",
+          threshold: 0
+        };
+
+        const scrollspyObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const sectionId = entry.target.getAttribute("id");
               navLinks.forEach(link => {
-                link.classList.remove("text-[var(--team-primary)]");
-                link.classList.add("text-slate-500");
-                // Reset underlines (rough implementation for demo)
-                const span = link.querySelector("span");
-                if(span) span.style.display = "none";
+                const linkTarget = link.getAttribute("data-nav");
+                const underline = link.querySelector(".nav-underline");
 
-                // Active state
-                if (link.textContent.trim().toLowerCase() === sectionId.replace("tab-", "")) {
+                if (linkTarget === sectionId) {
                   link.classList.add("text-[var(--team-primary)]");
                   link.classList.remove("text-slate-500");
-                  if(span) span.style.display = "block";
+                  if (underline) underline.style.display = "block";
+                  // Also create dynamic underline if not exists
+                  if (!underline) {
+                    const span = document.createElement("span");
+                    span.className = "nav-underline absolute bottom-0 left-0 w-full h-0.5 bg-[var(--team-primary)] shadow-[0_0_10px_var(--team-primary)]";
+                    link.appendChild(span);
+                  }
+                } else {
+                  link.classList.remove("text-[var(--team-primary)]");
+                  link.classList.add("text-slate-500");
+                  if (underline) underline.style.display = "none";
                 }
               });
             }
           });
-        }
-        window.addEventListener("scroll", highlightNav);
+        }, observerOptions);
 
-        // 3. MATCH FILTERS (Simple Client-Side Logic)
-        const filterBtns = document.querySelectorAll("#tab-matches button");
-        // This is a visual demo logic - in production, this would filter the DOM nodes
-        filterBtns.forEach(btn => {
-          btn.addEventListener("click", () => {
-            filterBtns.forEach(b => {
-              b.classList.remove("bg-white/10", "text-white");
-              b.classList.add("text-slate-500", "hover:bg-white/5");
-            });
-            btn.classList.remove("text-slate-500", "hover:bg-white/5");
-            btn.classList.add("bg-white/10", "text-white");
+        sections.forEach(section => scrollspyObserver.observe(section));
+
+        // Smooth scroll on nav click
+        navLinks.forEach(link => {
+          link.addEventListener("click", (e) => {
+            e.preventDefault();
+            const targetId = link.getAttribute("href")?.replace("#", "");
+            const target = targetId && document.getElementById(targetId);
+            if (target) {
+              const offset = nav ? nav.offsetHeight + 20 : 80;
+              const top = target.getBoundingClientRect().top + window.scrollY - offset;
+              window.scrollTo({ top, behavior: "smooth" });
+            }
           });
         });
+      }
 
-        // 4. LAZY LOADING FOR IMAGES
-        const lazyImages = document.querySelectorAll('.lazy-media');
+      // ─── 4. MATCH FILTER TABS ─────────────────────────────
+      const filterBtns = document.querySelectorAll(".match-filter-btn");
+      filterBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          filterBtns.forEach(b => {
+            b.classList.remove("bg-white/10", "text-white");
+            b.classList.add("text-slate-500", "hover:bg-white/5");
+          });
+          btn.classList.remove("text-slate-500", "hover:bg-white/5");
+          btn.classList.add("bg-white/10", "text-white");
+          // Future: filter match cards by btn.dataset.filter
+        });
+      });
+
+      // ─── 5. LAZY IMAGE LOADING ────────────────────────────
+      const lazyImages = document.querySelectorAll(".lazy-media");
+      if (lazyImages.length) {
         const imageObserver = new IntersectionObserver((entries, observer) => {
           entries.forEach(entry => {
             if (entry.isIntersecting) {
-              const img = entry.target;
-              img.classList.add('loaded');
-              observer.unobserve(img);
+              entry.target.classList.add("loaded");
+              observer.unobserve(entry.target);
             }
           });
-        }, {
-          rootMargin: '50px' // Start loading 50px before image enters viewport
-        });
+        }, { rootMargin: "100px" });
 
         lazyImages.forEach(img => {
-          img.classList.remove('loaded'); // Start with blur
+          img.classList.remove("loaded");
           imageObserver.observe(img);
         });
+      }
 
-        // 5. SCROLL ANIMATIONS - Fade in elements as they appear
-        const animatedElements = document.querySelectorAll('section');
-        const scrollObserver = new IntersectionObserver((entries) => {
+      // ─── 6. SCROLL-IN ANIMATIONS ─────────────────────────
+      const animatedSections = document.querySelectorAll("section.transition-smooth");
+      if (animatedSections.length) {
+        const scrollAnimObserver = new IntersectionObserver((entries) => {
           entries.forEach(entry => {
             if (entry.isIntersecting) {
-              entry.target.style.opacity = '0';
-              entry.target.style.transform = 'translateY(20px)';
+              entry.target.style.opacity = "0";
+              entry.target.style.transform = "translateY(20px)";
               requestAnimationFrame(() => {
-                entry.target.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
+                entry.target.style.transition = "opacity 0.6s ease, transform 0.6s ease";
+                entry.target.style.opacity = "1";
+                entry.target.style.transform = "translateY(0)";
               });
-              scrollObserver.unobserve(entry.target);
+              scrollAnimObserver.unobserve(entry.target);
             }
           });
-        }, {
-          threshold: 0.1
-        });
+        }, { threshold: 0.08 });
 
-        animatedElements.forEach(el => scrollObserver.observe(el));
+        animatedSections.forEach(el => scrollAnimObserver.observe(el));
+      }
 
-        // 6. SMART GRID POSITIONING - Auto-adjust sidebar to fill gaps
-        function adjustSidebarPosition() {
-          const mainContent = document.querySelector('.lg\\:col-span-8');
-          const sidebar = document.querySelector('.lg\\:col-span-4');
-          
-          if (!mainContent || !sidebar || window.innerWidth < 1024) return;
-          
-          const mainHeight = mainContent.offsetHeight;
-          const sidebarHeight = sidebar.offsetHeight;
-          
-          // If sidebar is shorter than main content, make it sticky
-          if (sidebarHeight < mainHeight) {
-            sidebar.style.position = 'sticky';
-            sidebar.style.top = '80px';
-            sidebar.style.alignSelf = 'start';
+      // ─── 7. STICKY SIDEBAR ────────────────────────────────
+      function adjustSidebar() {
+        const mainCol = document.getElementById("dc-main-col");
+        const sidebar = document.getElementById("dc-sidebar");
+        if (!mainCol || !sidebar || window.innerWidth < 1024) {
+          if (sidebar) {
+            sidebar.style.position = "";
+            sidebar.style.top = "";
+            sidebar.style.alignSelf = "";
           }
+          return;
         }
-        
-        // Run on load and resize
-        adjustSidebarPosition();
-        window.addEventListener('resize', adjustSidebarPosition);
+        const mainH = mainCol.offsetHeight;
+        const sideH = sidebar.offsetHeight;
+        if (sideH < mainH) {
+          sidebar.style.position = "sticky";
+          sidebar.style.top = "80px";
+          sidebar.style.alignSelf = "start";
+        } else {
+          sidebar.style.position = "";
+          sidebar.style.top = "";
+          sidebar.style.alignSelf = "";
+        }
+      }
+      adjustSidebar();
+      window.addEventListener("resize", adjustSidebar, { passive: true });
 
-        // 7. SKELETON LOADER SIMULATION (for demo - remove in production)
-        // In production, this would be controlled by actual data loading states
-        setTimeout(() => {
-          document.querySelectorAll('.skeleton-card').forEach(card => {
-            card.classList.add('transition-smooth');
-            card.style.opacity = '0';
-            setTimeout(() => card.remove(), 300);
-          });
-        }, 1000);
-
-      });
+    });
     </script>
-
-  </div>

@@ -1,5 +1,31 @@
 {% load static nav_extras dc_avatar notifications_nav %}
 
+<!-- INLINE STYLES FOR MOBILE DRAWER (Forcing Fix) -->
+<style>
+  #dc-mobile-drawer.open {
+    transform: translateX(0) !important;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+  }
+
+  #dc-mobile-backdrop {
+    display: block;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    visibility: hidden;
+  }
+
+  #dc-mobile-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+  }
+
+  #dc-mobile-backdrop.hidden {
+    display: none !important;
+  }
+</style>
+
 <!-- ============================================
      DELTACROWN PRIMARY NAVIGATION SYSTEM
      Modern 2026 Esports-Grade Design
@@ -126,8 +152,9 @@
       {% endwith %}
     </a>
     {% endif %}
-    <button id="dc-mobile-menu-toggle"
-      class="w-9 h-9 rounded-full flex items-center justify-center text-white active:bg-white/10">
+    <button id="dc-mobile-menu-toggle" onclick="window.dcNav.openMenu()"
+      class="w-9 h-9 rounded-full flex items-center justify-center text-white active:bg-white/10 transition-colors"
+      aria-label="Open menu">
       <i class="fa-solid fa-bars text-xl"></i>
     </button>
   </div>
@@ -153,20 +180,20 @@
     <!-- Center: Navigation Links -->
     <nav class="flex items-center gap-4 md:gap-5 h-full justify-self-center" aria-label="Primary navigation">
       {% nav_active '/tournaments/' '/tournaments' as tournaments_active %}
-      <div class="dc-nav-item{% if tournaments_active %} active{% endif %} group cursor-pointer">
+      <div class="dc-nav-item{% if tournaments_active %} active{% endif %} group">
         <a href="/tournaments/" class="dc-nav-link" {% if tournaments_active %}aria-current="page" {% endif %}
           aria-label="Tournaments">Tournaments</a>
       </div>
 
       {% if ORG_APP_ENABLED %}
       {% nav_active '/teams/vnext/' '/teams' '/orgs/' as teams_active %}
-      <div class="dc-nav-item{% if teams_active %} active{% endif %} group cursor-pointer">
+      <div class="dc-nav-item{% if teams_active %} active{% endif %} group">
         <a href="/teams/vnext/" class="dc-nav-link" {% if teams_active %}aria-current="page" {% endif %}
           aria-label="Teams">Teams</a>
       </div>
       {% else %}
       {% nav_active '/teams/' '/teams' as teams_active %}
-      <div class="dc-nav-item{% if teams_active %} active{% endif %} group cursor-pointer">
+      <div class="dc-nav-item{% if teams_active %} active{% endif %} group">
         <a href="/teams/" class="dc-nav-link" {% if teams_active %}aria-current="page" {% endif %}
           aria-label="Teams">Teams</a>
       </div>
@@ -174,7 +201,7 @@
 
       {% if request.user.is_authenticated %}
       {% nav_active '/dashboard/' '/dashboard' as dashboard_active %}
-      <div class="dc-nav-item{% if dashboard_active %} active{% endif %} group cursor-pointer">
+      <div class="dc-nav-item{% if dashboard_active %} active{% endif %} group">
         <a href="/dashboard/" class="dc-nav-link" {% if dashboard_active %}aria-current="page" {% endif %}
           aria-label="Dashboard">Dashboard</a>
       </div>
@@ -182,20 +209,20 @@
 
       {% if COMPETITION_APP_ENABLED %}
       {% nav_active '/competition/' '/competition' as competition_active %}
-      <div class="dc-nav-item{% if competition_active %} active{% endif %} group cursor-pointer">
+      <div class="dc-nav-item{% if competition_active %} active{% endif %} group">
         <a href="/competition/rankings/" class="dc-nav-link" {% if competition_active %}aria-current="page" {% endif %}
           aria-label="Rankings">Rankings</a>
       </div>
       {% endif %}
 
       {% nav_active '/community/' '/community' as community_active %}
-      <div class="dc-nav-item{% if community_active %} active{% endif %} group cursor-pointer">
+      <div class="dc-nav-item{% if community_active %} active{% endif %} group">
         <a href="/community/" class="dc-nav-link" {% if community_active %}aria-current="page" {% endif %}
           aria-label="Community">Community</a>
       </div>
 
       {% nav_active '/watch/' '/arena' as arena_active %}
-      <div class="dc-nav-item{% if arena_active %} active{% endif %} group cursor-pointer">
+      <div class="dc-nav-item{% if arena_active %} active{% endif %} group">
         <a href="/watch/" class="dc-nav-link flex items-center gap-2" {% if arena_active %}aria-current="page" {% endif
           %} aria-label="Arena (Live)">
           Arena <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" aria-hidden="true"></span>
@@ -203,7 +230,7 @@
       </div>
 
       {% nav_active '/crownstore/' '/crownstore' as store_active %}
-      <div class="dc-nav-item{% if store_active %} active{% endif %} group cursor-pointer">
+      <div class="dc-nav-item{% if store_active %} active{% endif %} group">
         <a href="/crownstore/" class="dc-nav-link text-yellow-400/90 hover:text-white transition-colors" {% if
           store_active %}aria-current="page" {% endif %} aria-label="Crown Store">Store</a>
       </div>
@@ -400,7 +427,8 @@
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-xl font-bold text-white">Menu</h2>
       <button id="dc-mobile-drawer-close" onclick="window.dcNav.closeMenu()"
-        class="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10">
+        class="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+        aria-label="Close menu">
         <i class="fa-solid fa-xmark text-xl"></i>
       </button>
     </div>
@@ -442,7 +470,6 @@
           {% endif %}
         </a>
 
-        <!-- vNext Team & Org Beta (Mobile Drawer) -->
 
 
         <a href="/notifications/"
@@ -635,4 +662,42 @@
   {% if request.user.is_authenticated %}
   startNavNotificationPolling();
   {% endif %}
+
+  // === FORCE MOBILE MENU LOGIC (Inline) ===
+  (function () {
+    window.dcNav = window.dcNav || {};
+
+    window.dcNav.closeMenu = function () {
+      const drawer = document.getElementById('dc-mobile-drawer');
+      const backdrop = document.getElementById('dc-mobile-backdrop');
+      if (drawer) drawer.classList.remove('open');
+      if (backdrop) {
+        backdrop.classList.remove('visible');
+        setTimeout(() => backdrop.classList.add('hidden'), 300);
+      }
+      document.body.style.overflow = '';
+    };
+
+    window.dcNav.openMenu = function () {
+      const drawer = document.getElementById('dc-mobile-drawer');
+      const backdrop = document.getElementById('dc-mobile-backdrop');
+      if (drawer) drawer.classList.add('open');
+      if (backdrop) {
+        backdrop.classList.remove('hidden');
+        // Force reflow
+        void backdrop.offsetWidth;
+        backdrop.classList.add('visible');
+      }
+      document.body.style.overflow = 'hidden';
+    };
+
+    // Re-bind events explicitly
+    const closeBtn = document.getElementById('dc-mobile-drawer-close');
+    if (closeBtn) {
+      closeBtn.onclick = function (e) {
+        e.preventDefault();
+        window.dcNav.closeMenu();
+      };
+    }
+  })();
 </script>

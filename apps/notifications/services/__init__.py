@@ -17,6 +17,7 @@ spec.loader.exec_module(services_module)
 
 notify = services_module.notify
 emit = services_module.emit
+NotificationService = services_module.NotificationService
 
 # Import webhook services from this package
 from .webhook_service import (
@@ -28,6 +29,7 @@ from .webhook_service import (
 __all__ = [
     'notify',
     'emit',
+    'NotificationService',
     'WebhookService',
     'get_webhook_service',
     'deliver_webhook',

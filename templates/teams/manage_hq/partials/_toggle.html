@@ -1,0 +1,18 @@
+{% comment %}
+Reusable toggle switch — included by _section_settings.html.
+Expected context: field (str), label (str), desc (str), checked (bool).
+{% endcomment %}
+<label class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10 hover:border-white/15 transition cursor-pointer group">
+    <div class="pr-4">
+        <p class="text-sm font-medium group-hover:text-white transition">{{ label }}</p>
+        <p class="text-xs text-white/40">{{ desc }}</p>
+    </div>
+    <div class="relative shrink-0">
+        <input type="checkbox" data-setting-toggle="{{ field }}"
+               {% if checked %}checked{% endif %}
+               onchange="ManageHQ.toggleSetting('{{ field }}', this.checked)"
+               class="sr-only peer">
+        <div class="w-10 h-5 rounded-full bg-white/15 peer-checked:bg-emerald-500/80 transition-colors"></div>
+        <div class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></div>
+    </div>
+</label>

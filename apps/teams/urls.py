@@ -191,6 +191,21 @@ from .views.ajax import (
 # Import Team Management Console
 from .views.manage_console import team_management_console
 
+# Manage HQ API endpoints (powers the /manage/ console)
+from .views.manage_api import (
+    manage_overview,
+    manage_update_profile,
+    manage_upload_media,
+    manage_update_settings,
+    manage_invite_member,
+    manage_get_join_requests,
+    manage_handle_join_request,
+    manage_update_member_role,
+    manage_remove_member,
+    manage_cancel_invite,
+    manage_activity,
+)
+
 # Import API views for new REST endpoints (optional - requires DRF)
 try:
     from rest_framework.routers import DefaultRouter
@@ -362,6 +377,19 @@ urlpatterns = [
     path("<slug:slug>/update-roster-order/", update_roster_order, name="update_roster_order"),
     path("<slug:slug>/resend-invite/<int:invite_id>/", resend_invite, name="resend_invite"),
     
+    # Manage HQ API endpoints
+    path("api/<slug:slug>/manage/overview/", manage_overview, name="api_manage_overview"),
+    path("api/<slug:slug>/manage/profile/", manage_update_profile, name="api_manage_update_profile"),
+    path("api/<slug:slug>/manage/media/", manage_upload_media, name="api_manage_upload_media"),
+    path("api/<slug:slug>/manage/settings/", manage_update_settings, name="api_manage_update_settings"),
+    path("api/<slug:slug>/manage/invite/", manage_invite_member, name="api_manage_invite"),
+    path("api/<slug:slug>/manage/join-requests/", manage_get_join_requests, name="api_manage_join_requests"),
+    path("api/<slug:slug>/manage/join-requests/<int:request_id>/handle/", manage_handle_join_request, name="api_manage_handle_join_request"),
+    path("api/<slug:slug>/manage/members/<int:membership_id>/role/", manage_update_member_role, name="api_manage_update_member_role"),
+    path("api/<slug:slug>/manage/members/<int:membership_id>/remove/", manage_remove_member, name="api_manage_remove_member"),
+    path("api/<slug:slug>/manage/invites/<int:invite_id>/cancel/", manage_cancel_invite, name="api_manage_cancel_invite"),
+    path("api/<slug:slug>/manage/activity/", manage_activity, name="api_manage_activity"),
+
     # Dashboard API endpoints
     path("api/<slug:slug>/pending-items/", get_pending_items, name="api_pending_items"),
     path("api/<slug:slug>/recent-activity/", get_recent_activity, name="api_recent_activity"),

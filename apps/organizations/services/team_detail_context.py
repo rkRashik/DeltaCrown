@@ -51,7 +51,7 @@ def get_team_detail_context(
     # Note: vNext Team model has organization FK (nullable), game_id FK (not CharField)
     # Phase 3A-A: Legacy TeamRanking removed. Ranking data now from apps/competition/
     try:
-        team = Team.objects.get(slug=team_slug)
+        team = Team.objects.select_related('organization', 'organization__ranking').get(slug=team_slug)
     except Team.DoesNotExist:
         raise
     
@@ -149,12 +149,24 @@ def _build_organization_context(team: Team) -> Optional[Dict[str, Any]]:
             if org is None:
                 return None
             
+            # Empire Score from OrganizationRanking (Phase 4)
+            ranking = getattr(org, 'ranking', None)
+            empire_score = getattr(ranking, 'empire_score', 0) if ranking else 0
+            global_rank = getattr(ranking, 'global_rank', None) if ranking else None
+            
             return {
                 'name': getattr(org, 'name', ''),
                 'slug': getattr(org, 'slug', ''),
                 'logo_url': _safe_image_url(getattr(org, 'logo', None), FALLBACK_URLS['org_logo']),
+                'badge_url': _safe_image_url(getattr(org, 'badge', None), ''),
                 'url': f'/orgs/{getattr(org, "slug", "")}/' if getattr(org, 'slug', '') else '',
+                'hub_url': f'/orgs/{getattr(org, "slug", "")}/hub/' if getattr(org, 'slug', '') else '',
+                'control_plane_url': f'/orgs/{getattr(org, "slug", "")}/control-plane/' if getattr(org, 'slug', '') else '',
                 'type': getattr(org, 'type', 'esports'),
+                'is_verified': getattr(org, 'is_verified', False),
+                'enforce_brand': getattr(org, 'enforce_brand', False),
+                'empire_score': empire_score,
+                'global_rank': global_rank,
             }
         return None
     except AttributeError:
@@ -192,10 +204,10 @@ def _build_permissions(team: Team, viewer: Optional[User], role: str) -> Dict[st
     is_org_ceo = False
     if viewer and viewer.is_authenticated and team.organization_id:
         try:
-            org = Organization.objects.get(id=team.organization_id)
-            if org.ceo_id == viewer.id:
+            org = team.organization  # Already loaded via select_related — no extra query
+            if org and org.ceo_id == viewer.id:
                 is_org_ceo = True
-        except Organization.DoesNotExist:
+        except Exception:
             pass
     
     # Organization CEO has all permissions even without explicit membership
@@ -229,7 +241,7 @@ def _build_permissions(team: Team, viewer: Optional[User], role: str) -> Dict[st
                 'can_edit_team': has_all or 'edit_team' in perms,
                 'can_manage_roster': has_all or 'edit_roster' in perms,
                 'can_invite': has_all or 'edit_roster' in perms,
-                'can_view_operations': has_all or role in ('OWNER', 'STAFF', 'MEMBER'),
+                'can_view_operations': has_all or role in ('OWNER', 'MANAGER', 'COACH'),
                 'can_view_financial': has_all or role == 'OWNER',
                 'can_report_matches': can_report_matches,
                 'is_member': True,
@@ -292,7 +304,7 @@ def _build_roster_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
         
         # Fetch active memberships with user data (use vnext_memberships related name)
         memberships = team.vnext_memberships.select_related(
-            'user'  # vNext FK to User
+            'user', 'user__profile'  # vNext FK to User + profile for avatar
         ).filter(
             status=MembershipStatus.ACTIVE
         ).order_by('-joined_at')[:20]  # Limit to 20
@@ -664,7 +676,7 @@ def _is_team_member_or_staff(team: Team, viewer: Optional[User]) -> bool:
         return False
     
     role = _get_viewer_role(team, viewer)
-    return role in ('OWNER', 'STAFF', 'MEMBER')
+    return role in ('OWNER', 'MANAGER', 'COACH', 'PLAYER', 'MEMBER')
 
 
 def _get_user_avatar(user: User) -> str:
@@ -696,7 +708,7 @@ def _safe_date(value) -> Optional[str]:
         if hasattr(value, 'isoformat'):
             return value.isoformat()
         return str(value)
-    except:
+    except Exception:
         return None
 
 

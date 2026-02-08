@@ -12,17 +12,12 @@ Includes:
 ➡️ Paste PART 2 below the bottom marker.
 ========================= -->
 
-<!doctype html>
-<html lang="en">
+{% extends "base.html" %}
+{% load static %}
 
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>DeltaCrown — Team HQ</title>
+{% block title %}{{ team.name }} - Team HQ | DeltaCrown{% endblock %}
 
-    <!-- Tailwind CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
+{% block extra_head %}
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -225,56 +220,68 @@ Includes:
             pointer-events: none;
         }
     </style>
-</head>
+{% endblock %}
 
-<body class="min-h-screen">
-    <div id="hqBootstrap" class="hidden" data-team-slug="{{ team.slug|default:'' }}" data-can-manage="{{ can_manage|yesno:'true,false' }}"></div>
-    <!-- Mobile scrim -->
-    <div id="scrim" class="fixed inset-0 bg-black/60 hidden z-40"></div>
+{% block content %}
+{% csrf_token %}
+<!-- TEMPLATE VERSION: 3.0 - COMPLETE REDESIGN: Team Profile (Brand Identity + About only), Social Links moved to Community & Media, Tournament Ops moved to Competition Hub -->
+<!-- DEBUG: game_name={{ game_name|default:'NOT_SET' }}, team.name={{ team.name }}, user={{ request.user.username }} -->
+<!-- Team HQ Bootstrap Data -->
+<div id="hqBootstrap" class="hidden" 
+    data-team-slug="{{ team.slug }}" 
+    data-team-name="{{ team.name }}"
+    data-game-name="{{ game_name|default:'UNKNOWN' }}"
+    data-team-primary="{{ team.primary_color|default:'#7c3aed' }}"
+    data-team-accent="{{ team.accent_color|default:'#22c55e' }}"
+    data-can-manage="{{ can_manage|yesno:'true,false' }}"></div>
 
-    <div class="min-h-screen grid lg:grid-cols-[320px_1fr]">
-        <!-- =========================
+<!-- Mobile scrim -->
+<div id="scrim" class="fixed inset-0 bg-black/60 hidden z-40"></div>
+
+<!-- Main Layout Grid: Sidebar + Content (no padding, starts at top) -->
+<div class="min-h-screen grid lg:grid-cols-[320px_1fr]">
+    <!-- =========================
     SIDEBAR
     ========================== -->
-        <aside id="sidebar" class="fixed lg:sticky top-0 left-0 z-50 lg:z-auto
-             h-screen w-[86vw] max-w-[360px] lg:w-auto
-             -translate-x-[110%] lg:translate-x-0 transition-transform duration-200
-             border-r border-line bg-white/5 backdrop-blur-xl" aria-label="Team HQ navigation">
+    <aside id="sidebar" class="fixed lg:sticky top-20 left-0 z-40 lg:z-auto
+         h-[calc(100vh-5rem)] w-[86vw] max-w-[360px] lg:w-auto
+         -translate-x-[110%] lg:translate-x-0 transition-transform duration-200
+         border-r border-line bg-white/5 backdrop-blur-xl" aria-label="Team HQ navigation">
 
-            <div class="p-4 h-full flex flex-col gap-3 overflow-hidden">
-                <!-- Brand / Team switcher header -->
-                <div class="rounded-2xl border border-line bg-card shadow-soft p-3">
-                    <div class="flex items-center gap-3">
-                        <div class="h-11 w-11 rounded-2xl grid place-items-center"
-                            style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 80%, #000), rgba(255,255,255,.06)); border:1px solid rgba(255,255,255,.14)">
-                            <span class="font-black tracking-tight">HQ</span>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2">
-                                <div id="hqTeamName" class="font-semibold truncate">Team HQ</div>
-                                <span id="gameChip"
-                                    class="text-[11px] px-2 py-[2px] rounded-full border border-line bg-white/5 text-white/80">
-                                    🎯 VALORANT
-                                </span>
-                            </div>
-                            <div class="text-xs text-muted truncate">
-                                <span id="roleChip">👑 Owner</span> • Management Console
-                            </div>
-                        </div>
+        <div class="p-4 h-full flex flex-col gap-3 overflow-hidden">
+            <!-- Brand / Team switcher header -->
+            <div class="rounded-2xl border border-line bg-card shadow-soft p-3">
+                <div class="flex items-center gap-3">
+                    <div class="h-11 w-11 rounded-2xl grid place-items-center"
+                        style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 80%, #000), rgba(255,255,255,.06)); border:1px solid rgba(255,255,255,.14)">
+                        <span class="font-black tracking-tight">HQ</span>
                     </div>
-
-                    <!-- Quick actions -->
-                    <div class="grid grid-cols-2 gap-2 mt-3">
-                        <button id="qaInvite"
-                            class="rounded-xl border border-line bg-white/5 hover:bg-white/10 transition px-3 py-2 text-xs flex items-center justify-center gap-2">
-                            <i data-lucide="user-plus" class="w-4 h-4"></i> Invite
-                        </button>
-                        <button id="qaAnnounce"
-                            class="rounded-xl border border-line bg-white/5 hover:bg-white/10 transition px-3 py-2 text-xs flex items-center justify-center gap-2">
-                            <i data-lucide="megaphone" class="w-4 h-4"></i> Post
-                        </button>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <div id="hqTeamName" class="font-semibold truncate">{{ team.name }}</div>
+                            <span id="gameChip"
+                                class="text-[11px] px-2 py-[2px] rounded-full border border-line bg-white/5 text-white/80">
+                                🎯 <span id="gameChipText">{{ game_name|default:"Loading..." }}</span>
+                            </span>
+                        </div>
+                        <div class="text-xs text-muted truncate">
+                            <span id="roleChip">{{ request.user.username|default:"User" }}</span> • Team Manager
+                        </div>
                     </div>
                 </div>
+
+                <!-- Quick actions -->
+                <div class="grid grid-cols-2 gap-2 mt-3">
+                    <button id="qaInvite"
+                        class="rounded-xl border border-line bg-white/5 hover:bg-white/10 transition px-3 py-2 text-xs flex items-center justify-center gap-2">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i> Invite
+                    </button>
+                    <button id="qaAnnounce"
+                        class="rounded-xl border border-line bg-white/5 hover:bg-white/10 transition px-3 py-2 text-xs flex items-center justify-center gap-2">
+                        <i data-lucide="megaphone" class="w-4 h-4"></i> Post
+                    </button>
+                </div>
+            </div>
 
                 <!-- Nav -->
                 <nav class="flex-1 overflow-auto pr-1 pb-3">
@@ -390,17 +397,6 @@ Includes:
                         </div>
                     </div>
 
-                    <!-- Sidebar footer -->
-                    <div
-                        class="mt-4 p-3 rounded-2xl border border-line bg-gradient-to-br from-white/5 to-white/[0.02] text-xs">
-                        <div class="flex items-center gap-2 mb-2">
-                            <i data-lucide="shield-check" class="w-4 h-4 text-white/60"></i>
-                            <span class="font-semibold text-white/75">Secure & Verified</span>
-                        </div>
-                        <div class="text-white/50 leading-relaxed">
-                            All actions are logged and permission-gated for team integrity.
-                        </div>
-                    </div>
                 </nav>
 
                 <!-- Mobile close button (only visible on mobile) -->
@@ -411,61 +407,22 @@ Includes:
             </div>
         </aside>
 
-        <!-- =========================
+    <!-- =========================
     MAIN
     ========================== -->
-        <main class="min-h-screen lg:pl-0">
-            <!-- Topbar -->
-            <header class="sticky top-0 z-30">
-                <div
-                    class="mx-3 lg:mx-6 mt-3 lg:mt-5 rounded-2xl border border-line bg-white/5 backdrop-blur-xl shadow-soft">
-                    <div class="p-3 lg:p-4 flex items-center gap-3">
-                        <!-- Mobile menu -->
-                        <button id="openSidebar"
-                            class="lg:hidden h-9 w-9 rounded-xl border border-line bg-white/5 hover:bg-white/10 transition grid place-items-center">
-                            <i data-lucide="menu" class="w-4 h-4"></i>
-                        </button>
+    <main class="min-h-screen lg:pl-0 bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950">
+        
+        <!-- Mobile menu button (only visible on mobile) -->
+        <div class="lg:hidden fixed top-20 left-4 z-30">
+            <button id="openSidebar"
+                class="h-10 w-10 rounded-xl border border-line bg-white/5 hover:bg-white/10 transition grid place-items-center backdrop-blur-xl">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+        </div>
 
-                        <!-- Page Title (Compact) -->
-                        <div class="hidden lg:block">
-                            <h1 class="text-sm font-bold tracking-tight" id="pageTitle">Command Center</h1>
-                            <p class="text-xs text-muted mt-0.5" id="pageSub">Dashboard overview</p>
-                        </div>
-
-                        <!-- Search (Context-Aware) -->
-                        <div class="flex-1 relative group">
-                            <div
-                                class="flex items-center gap-2 rounded-xl border border-line bg-black/30 px-3 py-2 group-focus-within:border-white/25 group-focus-within:bg-black/40 transition-all">
-                                <i data-lucide="search" class="w-4 h-4 text-white/50"></i>
-                                <input id="hqSearch"
-                                    class="w-full bg-transparent outline-none text-sm placeholder:text-white/40"
-                                    placeholder="Search in Command Center..." type="search" />
-                                <kbd
-                                    class="hidden sm:inline-block px-2 py-0.5 text-[10px] rounded border border-white/10 bg-white/5 text-white/40 font-mono">⌘K</kbd>
-                            </div>
-                        </div>
-
-                        <!-- Actions -->
-                        <div class="flex items-center gap-2">
-                            <button id="btnNotifications"
-                                class="hidden sm:grid h-9 w-9 rounded-xl border border-line bg-white/5 hover:bg-white/10 transition place-items-center relative"
-                                title="Notifications">
-                                <i data-lucide="bell" class="w-4 h-4"></i>
-                                <span
-                                    class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 border border-white/20 text-[10px] font-bold grid place-items-center">3</span>
-                            </button>
-                            <button id="btnPrimary"
-                                class="hidden md:block rounded-xl px-4 py-2 text-sm font-medium border" style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.06));
-                           border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));">
-                                <i data-lucide="zap" class="w-3.5 h-3.5 inline mr-1.5"></i>Quick Action
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Content container -->
-            <div class="mx-3 lg:mx-6 mt-4 lg:mt-6 pb-24">
+        <!-- Content Sections -->
+        <!-- Content container -->
+        <div class="mx-3 lg:mx-6 pb-24">
                 <div id="hqGlobalMessage" class="hidden mb-4 rounded-2xl border border-line bg-white/5 p-3 text-sm"></div>
                 <!-- Router sections (PART 2 will flesh these out) -->
                 <div class="mt-5 space-y-4">
@@ -1287,6 +1244,62 @@ Includes:
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Tournament Operations Settings -->
+                            <div class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5 lg:p-6">
+                                <div class="flex items-center justify-between mb-5">
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
+                                            <i data-lucide="settings" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-base font-bold">Tournament Operations</h2>
+                                            <p class="text-xs text-muted">Server preferences and emergency contacts</p>
+                                        </div>
+                                    </div>
+                                    <button id="hqSaveTournamentOps" type="button" class="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition"
+                                        data-role-gate="MANAGER+">
+                                        <i data-lucide="save" class="w-3.5 h-3.5 inline mr-1"></i>
+                                        Save
+                                    </button>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <!-- Preferred Server -->
+                                    <div>
+                                        <label class="block text-sm font-medium mb-2">Preferred Server</label>
+                                        <input type="text" id="compPreferredServer" value="{{ team.preferred_server }}"
+                                            class="w-full bg-white/5 border border-line rounded-xl px-4 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary"
+                                            placeholder="e.g., Singapore, Mumbai" maxlength="50" data-role-gate="MANAGER+">
+                                        <p class="text-xs text-muted mt-1">Game server preference for tournaments</p>
+                                    </div>
+
+                                    <!-- Emergency Contact Discord -->
+                                    <div>
+                                        <label class="block text-sm font-medium mb-2">
+                                            <i data-lucide="message-circle" class="w-4 h-4 inline mr-1"></i>
+                                            Emergency Contact (Discord)
+                                        </label>
+                                        <input type="text" id="compEmergencyDiscord" value="{{ team.emergency_contact_discord }}"
+                                            class="w-full bg-white/5 border border-line rounded-xl px-4 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary"
+                                            placeholder="username#1234" maxlength="50" data-role-gate="MANAGER+">
+                                        <p class="text-xs text-muted mt-1">Discord handle for tournament emergencies</p>
+                                    </div>
+
+                                    <!-- Emergency Contact Phone -->
+                                    <div>
+                                        <label class="block text-sm font-medium mb-2">
+                                            <i data-lucide="phone" class="w-4 h-4 inline mr-1"></i>
+                                            Emergency Contact (Phone)
+                                        </label>
+                                        <input type="tel" id="compEmergencyPhone" value="{{ team.emergency_contact_phone }}"
+                                            class="w-full bg-white/5 border border-line rounded-xl px-4 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary"
+                                            placeholder="+880 1XXX XXXXXX" maxlength="20" data-role-gate="MANAGER+">
+                                        <p class="text-xs text-muted mt-1">Phone number for tournament emergencies</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </section>
 
@@ -1484,175 +1497,6 @@ Includes:
                         </div>
                     </section>
 
-                    <!-- Team Profile -->
-                    <section id="profile" class="hq-section">
-                        <div class="space-y-4">
-                            <!-- Brand Identity -->
-                            <div class="relative rounded-3xl border border-line backdrop-blur-xl overflow-hidden">
-                                <div class="absolute top-0 right-0 w-64 h-64 opacity-[0.02] pointer-events-none">
-                                    <i data-lucide="palette" class="w-full h-full"></i>
-                                </div>
-
-                                <div style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 12%, rgba(0,0,0,.4)), rgba(255,255,255,.04));"
-                                    class="p-5 lg:p-6">
-                                    <div class="flex items-center justify-between mb-5">
-                                        <div class="flex items-center gap-3">
-                                            <div class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15"
-                                                style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, #000), rgba(255,255,255,.06));">
-                                                <i data-lucide="palette" class="w-5 h-5"></i>
-                                            </div>
-                                            <div>
-                                                <h2 class="text-base font-bold">Brand Identity</h2>
-                                                <p class="text-xs text-muted">Logo, colors, and visual identity</p>
-                                            </div>
-                                        </div>
-                                        <span class="text-xs px-3 py-1 rounded-full border border-white/15 bg-white/5"
-                                            data-role-gate="STAFF+">Editable</span>
-                                    </div>
-
-                                    <div class="grid lg:grid-cols-2 gap-4">
-                                        <!-- Logo Upload -->
-                                        <div
-                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
-                                            <div class="flex items-center justify-between mb-3">
-                                                <span class="font-semibold text-sm">Team Logo</span>
-                                                <span class="text-xs text-muted">512×512px</span>
-                                            </div>
-                                            <div
-                                                class="mb-3 aspect-square w-28 mx-auto rounded-xl border-2 border-dashed border-white/20 bg-white/5 grid place-items-center">
-                                                <div class="h-20 w-20 rounded-lg border"
-                                                    style="border-color: var(--team-primary); background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));">
-                                                    <div
-                                                        class="h-full w-full rounded-lg grid place-items-center text-2xl font-bold">
-                                                        DC</div>
-                                                </div>
-                                            </div>
-                                            <button
-                                                class="w-full rounded-xl px-3 py-2 text-xs border border-line bg-white/5 hover:bg-white/10 transition"
-                                                data-role-gate="STAFF+">
-                                                <i data-lucide="upload" class="w-3 h-3 inline mr-1"></i>Upload Logo
-                                            </button>
-                                        </div>
-
-                                        <!-- Team Colors -->
-                                        <div
-                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
-                                            <div class="font-semibold text-sm mb-3">Team Colors</div>
-                                            <div class="space-y-2.5">
-                                                <div>
-                                                    <label class="text-xs text-muted block mb-1.5">Primary</label>
-                                                    <div class="flex items-center gap-2">
-                                                        <div class="h-9 w-9 rounded-lg border border-white/20"
-                                                            style="background: var(--team-primary);"></div>
-                                                        <input type="text" value="#8b5cf6"
-                                                            class="flex-1 px-2.5 py-1.5 rounded-lg border border-line bg-black/30 text-xs"
-                                                            data-role-gate="STAFF+" />
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label class="text-xs text-muted block mb-1.5">Accent</label>
-                                                    <div class="flex items-center gap-2">
-                                                        <div class="h-9 w-9 rounded-lg border border-white/20"
-                                                            style="background: var(--team-accent);"></div>
-                                                        <input type="text" value="#3b82f6"
-                                                            class="flex-1 px-2.5 py-1.5 rounded-lg border border-line bg-black/30 text-xs"
-                                                            data-role-gate="STAFF+" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Banner -->
-                                        <div
-                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
-                                            <div class="flex items-center justify-between mb-3">
-                                                <span class="font-semibold text-sm">Profile Banner</span>
-                                                <span class="text-xs text-muted">1920×400px</span>
-                                            </div>
-                                            <div
-                                                class="mb-3 aspect-[4.8/1] rounded-xl border border-dashed border-white/20 bg-gradient-to-br from-white/5 to-transparent grid place-items-center">
-                                                <div class="text-xs text-muted">Banner Preview</div>
-                                            </div>
-                                            <button
-                                                class="w-full rounded-xl px-3 py-2 text-xs border border-line bg-white/5 hover:bg-white/10 transition"
-                                                data-role-gate="STAFF+">
-                                                <i data-lucide="upload" class="w-3 h-3 inline mr-1"></i>Upload Banner
-                                            </button>
-                                        </div>
-
-                                        <!-- Region & Tags -->
-                                        <div
-                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
-                                            <div class="font-semibold text-sm mb-3">Region & Tags</div>
-                                            <div class="space-y-2.5">
-                                                <div>
-                                                    <label class="text-xs text-muted block mb-1.5">Region</label>
-                                                    <select
-                                                        class="w-full px-2.5 py-1.5 rounded-lg border border-line bg-black/30 text-xs"
-                                                        data-role-gate="STAFF+">
-                                                        <option>North America</option>
-                                                        <option>Europe</option>
-                                                        <option>Asia-Pacific</option>
-                                                        <option>Latin America</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label class="text-xs text-muted block mb-1.5">Level</label>
-                                                    <div class="flex flex-wrap gap-1.5">
-                                                        <span
-                                                            class="text-xs px-2 py-0.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-400">Pro</span>
-                                                        <span
-                                                            class="text-xs px-2 py-0.5 rounded-full border border-white/20 bg-white/5 text-white/60">Competitive</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- About Section -->
-                            <div
-                                class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
-                                <div class="flex items-center gap-3 mb-4">
-                                    <div
-                                        class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
-                                        <i data-lucide="file-text" class="w-5 h-5"></i>
-                                    </div>
-                                    <div>
-                                        <h2 class="text-base font-bold">About</h2>
-                                        <p class="text-xs text-muted">Team motto and mission</p>
-                                    </div>
-                                </div>
-
-                                <div class="space-y-3">
-                                    <div>
-                                        <label class="text-xs text-muted block mb-1">Team Motto</label>
-                                        <input type="text" placeholder="e.g., Victory Through Strategy"
-                                            class="w-full px-3 py-2 rounded-lg border border-line bg-black/30 text-sm"
-                                            data-role-gate="STAFF+" />
-                                    </div>
-                                    <div>
-                                        <label class="text-xs text-muted block mb-1">Mission Statement</label>
-                                        <textarea rows="3" placeholder="Describe your team's goals and values..."
-                                            class="w-full px-3 py-2 rounded-lg border border-line bg-black/30 text-sm resize-none"
-                                            data-role-gate="STAFF+"></textarea>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <button class="rounded-xl px-4 py-2 text-sm font-medium border"
-                                            style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.16)); border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));"
-                                            data-role-gate="STAFF+">
-                                            Save Changes
-                                        </button>
-                                        <button
-                                            class="rounded-xl px-4 py-2 text-sm border border-line bg-white/5 hover:bg-white/10 transition">
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
                     <!-- Community & Media -->
                     <section id="community" class="hq-section">
                         <div class="space-y-4">
@@ -1675,7 +1519,7 @@ Includes:
                                                 <p class="text-xs text-muted">Latest updates</p>
                                             </div>
                                         </div>
-                                        <button class="rounded-xl px-4 py-2 text-sm font-medium border"
+                                        <button type="button" id="hqPostAnnouncementBtn" class="rounded-xl px-4 py-2 text-sm font-medium border"
                                             style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.06)); border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));"
                                             data-role-gate="STAFF+">
                                             <i data-lucide="plus" class="w-3.5 h-3.5 inline mr-1.5"></i>Post
@@ -1778,11 +1622,12 @@ Includes:
                                             <i data-lucide="image" class="w-8 h-8 text-white/40"></i>
                                         </div>
                                         <!-- Upload Button -->
-                                        <button
+                                        <button type="button" id="hqUploadMediaBtn"
                                             class="aspect-square rounded-xl border-2 border-dashed border-white/20 bg-white/5 hover:bg-white/10 transition grid place-items-center"
                                             data-role-gate="STAFF+">
                                             <i data-lucide="plus" class="w-8 h-8 text-white/40"></i>
                                         </button>
+                                        <input type="file" id="hqMediaUploadInput" accept="image/*,video/*" multiple class="hidden">
                                     </div>
                                 </div>
 
@@ -1801,7 +1646,9 @@ Includes:
                                                 <p class="text-xs text-muted">Team presence</p>
                                             </div>
                                         </div>
-                                        <button id="hqEditSettingsBtn" type="button" class="text-xs text-muted hover:text-white" data-role-gate="STAFF+">Edit</button>
+                                        <button type="button" id="hqEditSocialLinksBtn" class="text-xs text-muted hover:text-white transition" data-role-gate="STAFF+">
+                                            <i data-lucide="edit-2" class="w-3.5 h-3.5 inline mr-1"></i>Edit
+                                        </button>
                                     </div>
 
                                     <div class="space-y-2">
@@ -1812,13 +1659,42 @@ Includes:
                                                 <div class="h-8 w-8 rounded-lg bg-blue-500/20 grid place-items-center">
                                                     <i data-lucide="twitter" class="w-4 h-4 text-blue-400"></i>
                                                 </div>
-                                                <div>
-                                                    <div class="text-sm font-semibold">Twitter</div>
-                                                    <div id="hqTwitterValue" class="text-xs text-muted">{{ team.twitter|default:'—' }}</div>
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="text-sm font-semibold">Twitter / X</div>
+                                                    <div class="text-xs text-muted truncate">{{ team.twitter_url|default:'Not set' }}</div>
                                                 </div>
                                             </div>
-                                            <button class="text-xs text-muted hover:text-white"
-                                                data-role-gate="STAFF+" data-settings-edit="twitter">Edit</button>
+                                            <i data-lucide="external-link" class="w-4 h-4 text-muted"></i>
+                                        </div>
+
+                                        <!-- Instagram -->
+                                        <div
+                                            class="rounded-xl border border-white/15 bg-white/5 p-3 flex items-center justify-between hover:bg-white/10 transition">
+                                            <div class="flex items-center gap-2">
+                                                <div class="h-8 w-8 rounded-lg bg-pink-500/20 grid place-items-center">
+                                                    <i data-lucide="instagram" class="w-4 h-4 text-pink-400"></i>
+                                                </div>
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="text-sm font-semibold">Instagram</div>
+                                                    <div class="text-xs text-muted truncate">{{ team.instagram_url|default:'Not set' }}</div>
+                                                </div>
+                                            </div>
+                                            <i data-lucide="external-link" class="w-4 h-4 text-muted"></i>
+                                        </div>
+
+                                        <!-- YouTube -->
+                                        <div
+                                            class="rounded-xl border border-white/15 bg-white/5 p-3 flex items-center justify-between hover:bg-white/10 transition">
+                                            <div class="flex items-center gap-2">
+                                                <div class="h-8 w-8 rounded-lg bg-red-500/20 grid place-items-center">
+                                                    <i data-lucide="youtube" class="w-4 h-4 text-red-400"></i>
+                                                </div>
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="text-sm font-semibold">YouTube</div>
+                                                    <div class="text-xs text-muted truncate">{{ team.youtube_url|default:'Not set' }}</div>
+                                                </div>
+                                            </div>
+                                            <i data-lucide="external-link" class="w-4 h-4 text-muted"></i>
                                         </div>
 
                                         <!-- Twitch -->
@@ -1829,47 +1705,12 @@ Includes:
                                                     class="h-8 w-8 rounded-lg bg-purple-500/20 grid place-items-center">
                                                     <i data-lucide="twitch" class="w-4 h-4 text-purple-400"></i>
                                                 </div>
-                                                <div>
+                                                <div class="min-w-0 flex-1">
                                                     <div class="text-sm font-semibold">Twitch</div>
-                                                    <div class="text-xs text-muted">twitch.tv/deltacrown</div>
+                                                    <div class="text-xs text-muted truncate">{{ team.twitch_url|default:'Not set' }}</div>
                                                 </div>
                                             </div>
-                                            <button class="text-xs text-muted hover:text-white"
-                                                data-role-gate="STAFF+">Edit</button>
-                                        </div>
-
-                                        <!-- Discord -->
-                                        <div
-                                            class="rounded-xl border border-white/15 bg-white/5 p-3 flex items-center justify-between hover:bg-white/10 transition">
-                                            <div class="flex items-center gap-2">
-                                                <div
-                                                    class="h-8 w-8 rounded-lg bg-indigo-500/20 grid place-items-center">
-                                                    <i data-lucide="message-circle" class="w-4 h-4 text-indigo-400"></i>
-                                                </div>
-                                                <div>
-                                                    <div class="text-sm font-semibold">Discord</div>
-                                                    <div id="hqDiscordValue" class="text-xs text-muted">{{ team.discord|default:'—' }}</div>
-                                                </div>
-                                            </div>
-                                            <button class="text-xs text-muted hover:text-white"
-                                                data-role-gate="STAFF+" data-settings-edit="discord">Edit</button>
-                                        </div>
-
-                                        <!-- Website -->
-                                        <div
-                                            class="rounded-xl border border-white/15 bg-white/5 p-3 flex items-center justify-between hover:bg-white/10 transition">
-                                            <div class="flex items-center gap-2">
-                                                <div
-                                                    class="h-8 w-8 rounded-lg bg-emerald-500/20 grid place-items-center">
-                                                    <i data-lucide="globe" class="w-4 h-4 text-emerald-400"></i>
-                                                </div>
-                                                <div>
-                                                    <div class="text-sm font-semibold">Website</div>
-                                                    <div id="hqWebsiteValue" class="text-xs text-muted">{{ team.website|default:'—' }}</div>
-                                                </div>
-                                            </div>
-                                            <button class="text-xs text-muted hover:text-white"
-                                                data-role-gate="STAFF+" data-settings-edit="website">Edit</button>
+                                            <i data-lucide="external-link" class="w-4 h-4 text-muted"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -1879,18 +1720,229 @@ Includes:
 
                     <!-- Team Profile -->
                     <section id="profile" class="hq-section">
-                        <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
-                            <h2 class="text-base font-bold tracking-tight">Team Profile</h2>
-                            <p class="text-sm text-muted mt-1">Public identity editor: logo, banner, mission,
-                                style/pace/focus, socials, modules.</p>
-                            <div class="mt-4 rounded-2xl border border-line bg-white/5 p-4">
-                                <div class="flex items-center justify-between">
-                                    <div class="font-semibold text-sm">Locked Field: Game</div>
-                                    <span
-                                        class="text-[11px] px-2 py-[2px] rounded-full border border-line bg-white/5 text-white/75">Immutable</span>
+                        <div class="space-y-4">
+                            <!-- Banner Message -->
+                            <div id="hqProfileMessage" class="hidden rounded-2xl border p-4 text-sm"></div>
+
+                            <!-- Brand Identity -->
+                            <div class="relative rounded-3xl border border-line backdrop-blur-xl overflow-hidden">
+                                <div class="absolute top-0 right-0 w-64 h-64 opacity-[0.02] pointer-events-none">
+                                    <i data-lucide="palette" class="w-full h-full"></i>
                                 </div>
-                                <p class="text-xs text-muted mt-1">Game is visible but cannot be changed after team
-                                    creation.</p>
+
+                                <div style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 12%, rgba(0,0,0,.4)), rgba(255,255,255,.04));"
+                                    class="p-5 lg:p-6">
+                                    <div class="flex items-center justify-between mb-5">
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15"
+                                                style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, #000), rgba(255,255,255,.06));">
+                                                <i data-lucide="palette" class="w-5 h-5"></i>
+                                            </div>
+                                            <div>
+                                                <h2 class="text-base font-bold">Brand Identity</h2>
+                                                <p class="text-xs text-muted">Logo, colors, and visual identity</p>
+                                            </div>
+                                        </div>
+                                        <button type="button" id="hqSaveBrandingBtn" class="rounded-xl px-4 py-2 text-sm font-medium border"
+                                            style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.16)); border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));"
+                                            data-role-gate="STAFF+">
+                                            <i data-lucide="save" class="w-3.5 h-3.5 inline mr-1"></i>Save Branding
+                                        </button>
+                                    </div>
+
+                                    <div class="grid lg:grid-cols-2 gap-4">
+                                        <!-- Logo Upload -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <span class="font-semibold text-sm">Team Logo</span>
+                                                <span class="text-xs text-muted">512×512px</span>
+                                            </div>
+                                            <div
+                                                class="mb-3 aspect-square w-28 mx-auto rounded-xl border-2 border-dashed border-white/20 bg-white/5 grid place-items-center">
+                                                {% if team.logo %}
+                                                <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="h-full w-full rounded-xl object-cover">
+                                                {% else %}
+                                                <div class="h-20 w-20 rounded-lg border"
+                                                    style="border-color: var(--team-primary); background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));">
+                                                    <div
+                                                        class="h-full w-full rounded-lg grid place-items-center text-2xl font-bold">
+                                                        {{ team.tag|default:"DC" }}</div>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <input type="file" id="profileLogoInput" accept="image/png,image/jpeg,image/jpg" class="hidden">
+                                            <button type="button" id="profileLogoBtn"
+                                                class="w-full rounded-xl px-3 py-2 text-xs border border-line bg-white/5 hover:bg-white/10 transition"
+                                                data-role-gate="STAFF+"
+                                                onclick="document.getElementById('profileLogoInput').click()">
+                                                <i data-lucide="upload" class="w-3 h-3 inline mr-1"></i>Upload Logo
+                                            </button>
+                                        </div>
+
+                                        <!-- Team Colors -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="font-semibold text-sm mb-3">Team Colors</div>
+                                            <div class="space-y-2.5">
+                                                <div>
+                                                    <label class="text-xs text-muted block mb-1.5">Primary</label>
+                                                    <div class="flex items-center gap-2">
+                                                        <input type="color" id="profilePrimaryColor" value="{{ team.primary_color|default:'#8b5cf6' }}"
+                                                            class="h-9 w-9 rounded-lg border border-white/20 cursor-pointer">
+                                                        <input type="text" id="profilePrimaryColorHex" value="{{ team.primary_color|default:'#8b5cf6' }}"
+                                                            class="flex-1 px-2.5 py-1.5 rounded-lg border border-line bg-black/30 text-xs font-mono"
+                                                            placeholder="#8b5cf6" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$"
+                                                            data-role-gate="STAFF+" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="text-xs text-muted block mb-1.5">Accent</label>
+                                                    <div class="flex items-center gap-2">
+                                                        <input type="color" id="profileAccentColor" value="{{ team.accent_color|default:'#3b82f6' }}"
+                                                            class="h-9 w-9 rounded-lg border border-white/20 cursor-pointer">
+                                                        <input type="text" id="profileAccentColorHex" value="{{ team.accent_color|default:'#3b82f6' }}"
+                                                            class="flex-1 px-2.5 py-1.5 rounded-lg border border-line bg-black/30 text-xs font-mono"
+                                                            placeholder="#3b82f6" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$"
+                                                            data-role-gate="STAFF+" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Banner -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <span class="font-semibold text-sm">Profile Banner</span>
+                                                <span class="text-xs text-muted">1920×400px</span>
+                                            </div>
+                                            <div
+                                                class="mb-3 aspect-[4.8/1] rounded-xl border border-dashed border-white/20 bg-gradient-to-br from-white/5 to-transparent grid place-items-center">
+                                                {% if team.banner %}
+                                                <img src="{{ team.banner.url }}" alt="{{ team.name }} banner" class="h-full w-full rounded-xl object-cover">
+                                                {% else %}
+                                                <div class="text-xs text-muted">Banner Preview</div>
+                                                {% endif %}
+                                            </div>
+                                            <input type="file" id="profileBannerInput" accept="image/png,image/jpeg,image/jpg" class="hidden">
+                                            <button type="button" id="profileBannerBtn"
+                                                class="w-full rounded-xl px-3 py-2 text-xs border border-line bg-white/5 hover:bg-white/10 transition"
+                                                data-role-gate="STAFF+"
+                                                onclick="document.getElementById('profileBannerInput').click()">
+                                                <i data-lucide="upload" class="w-3 h-3 inline mr-1"></i>Upload Banner
+                                            </button>
+                                        </div>
+
+                                        <!-- Region & Tags -->
+                                        <div
+                                            class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4">
+                                            <div class="font-semibold text-sm mb-3">Region & Tags</div>
+                                            <div class="space-y-2.5">
+                                                <div>
+                                                    <label class="text-xs text-muted block mb-1.5">Region</label>
+                                                    <select id="profileRegion"
+                                                        class="w-full px-2.5 py-1.5 rounded-lg border border-line bg-black/30 text-xs"
+                                                        data-role-gate="STAFF+">
+                                                        <option value="">Select Region</option>
+                                                        <option value="NA" {% if team.region == 'NA' %}selected{% endif %}>North America</option>
+                                                        <option value="SA" {% if team.region == 'SA' %}selected{% endif %}>South America</option>
+                                                        <option value="EU" {% if team.region == 'EU' %}selected{% endif %}>Europe</option>
+                                                        <option value="SEA" {% if team.region == 'SEA' %}selected{% endif %}>Southeast Asia</option>
+                                                        <option value="EA" {% if team.region == 'EA' %}selected{% endif %}>East Asia</option>
+                                                        <option value="OCE" {% if team.region == 'OCE' %}selected{% endif %}>Oceania</option>
+                                                        <option value="ME" {% if team.region == 'ME' %}selected{% endif %}>Middle East</option>
+                                                        <option value="AF" {% if team.region == 'AF' %}selected{% endif %}>Africa</option>
+                                                        <option value="SA-BD" {% if team.region == 'SA-BD' %}selected{% endif %}>Bangladesh</option>
+                                                        <option value="SA-IN" {% if team.region == 'SA-IN' %}selected{% endif %}>India</option>
+                                                        <option value="SA-PK" {% if team.region == 'SA-PK' %}selected{% endif %}>Pakistan</option>
+                                                    </select>
+                                                    <p class="text-[10px] text-muted mt-1">Home region (identity)</p>
+                                                </div>
+                                                <div>
+                                                    <label class="text-xs text-muted block mb-1.5">Game (Locked)</label>
+                                                    <div class="text-xs px-2.5 py-1.5 rounded-lg border border-line bg-black/50 text-white/50">
+                                                        {{ game_name|default:"Unknown Game" }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- About Section -->
+                            <div
+                                class="rounded-3xl border border-line bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="h-11 w-11 rounded-2xl grid place-items-center border border-white/15 bg-white/5">
+                                            <i data-lucide="file-text" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-base font-bold">About</h2>
+                                            <p class="text-xs text-muted">Team name, motto and mission</p>
+                                        </div>
+                                    </div>
+                                    <button type="button" id="hqEditAboutBtn" class="text-xs text-muted hover:text-white transition" data-role-gate="STAFF+">
+                                        <i data-lucide="edit-2" class="w-3.5 h-3.5 inline mr-1"></i>Edit
+                                    </button>
+                                </div>
+
+                                <!-- Read-only view -->
+                                <div id="aboutReadView" class="space-y-3">
+                                    <div>
+                                        <label class="text-xs text-muted block mb-1">Team Name</label>
+                                        <div class="text-sm px-3 py-2 rounded-lg border border-line bg-black/20">{{ team.name|default:"Not set" }}</div>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-muted block mb-1">Team Motto / Tagline</label>
+                                        <div class="text-sm px-3 py-2 rounded-lg border border-line bg-black/20">{{ team.tagline|default:"Not set" }}</div>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-muted block mb-1">Mission Statement</label>
+                                        <div class="text-sm px-3 py-2 rounded-lg border border-line bg-black/20 min-h-[76px]">{{ team.description|default:"Not set" }}</div>
+                                    </div>
+                                </div>
+
+                                <!-- Edit view (hidden by default) -->
+                                <div id="aboutEditView" class="space-y-3 hidden">
+                                    <div>
+                                        <label class="text-xs text-muted block mb-1">Team Name</label>
+                                        <input type="text" id="profileTeamName" value="{{ team.name }}"
+                                            placeholder="e.g., Delta Crown Esports"
+                                            class="w-full px-3 py-2 rounded-lg border border-line bg-black/30 text-sm"
+                                            maxlength="100" />
+                                        <p class="text-[10px] text-muted mt-1">Public display name (max 100 characters)</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-muted block mb-1">Team Motto / Tagline</label>
+                                        <input type="text" id="profileTagline" value="{{ team.tagline }}"
+                                            placeholder="e.g., Victory Through Strategy"
+                                            class="w-full px-3 py-2 rounded-lg border border-line bg-black/30 text-sm"
+                                            maxlength="100" />
+                                        <p class="text-[10px] text-muted mt-1">Short motto or slogan (max 100 characters)</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-muted block mb-1">Mission Statement</label>
+                                        <textarea rows="3" id="profileDescription"
+                                            placeholder="Describe your team's goals and values..."
+                                            class="w-full px-3 py-2 rounded-lg border border-line bg-black/30 text-sm resize-none">{{ team.description }}</textarea>
+                                        <p class="text-[10px] text-muted mt-1">Team bio shown on public profile</p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button id="hqSaveProfileBtn" type="button" class="rounded-xl px-4 py-2 text-sm font-medium border"
+                                            style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 60%, transparent), rgba(255,255,255,.16)); border-color: color-mix(in oklab, var(--team-primary) 38%, rgba(255,255,255,.16));">
+                                            <i data-lucide="save" class="w-3.5 h-3.5 inline mr-1"></i>
+                                            Save Changes
+                                        </button>
+                                        <button type="button" id="hqCancelAboutBtn"
+                                            class="rounded-xl px-4 py-2 text-sm border border-line bg-white/5 hover:bg-white/10 transition">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -2316,9 +2368,14 @@ Includes:
         // Role hierarchy for permission checking
         const ROLE_HIERARCHY = {
             'MEMBER': 0,
-            'STAFF': 1,
-            'OWNER': 2,
-            'ORG_ADMIN': 3
+            'PLAYER': 1,
+            'SUB': 1,
+            'ANALYST': 2,
+            'COACH': 3,
+            'STAFF': 4,
+            'MANAGER': 5,
+            'OWNER': 6,
+            'ORG_ADMIN': 7
         };
 
         // Check if active role meets permission requirement
@@ -2328,7 +2385,9 @@ Includes:
             if (requiredPermission.endsWith('+')) {
                 // "STAFF+" means STAFF or higher
                 const minRole = requiredPermission.slice(0, -1);
-                return ROLE_HIERARCHY[activeRole] >= ROLE_HIERARCHY[minRole];
+                const activeLevel = ROLE_HIERARCHY[activeRole] ?? 0;
+                const requiredLevel = ROLE_HIERARCHY[minRole] ?? 0;
+                return activeLevel >= requiredLevel;
             } else {
                 // Exact match required
                 return activeRole === requiredPermission;
@@ -2354,15 +2413,8 @@ Includes:
         }
 
         function applyRole(role) {
-            const map = {
-                MEMBER: "👤 Member",
-                STAFF: "👔 Staff",
-                OWNER: "👑 Owner",
-                ORG_ADMIN: "🏢 Org Admin"
-            };
-            roleChip.textContent = map[role] || "👤 Member";
-
-            // Org menu only for ORG_ADMIN
+            // Don't overwrite the roleChip - it should show username
+            // Just handle the org menu visibility
             const showOrg = role === "ORG_ADMIN";
             orgMenuGroup.hidden = !showOrg;
 
@@ -2911,19 +2963,22 @@ Includes:
         // Game label chip (demo)
         function applyGame(game) {
             const map = {
-                VALORANT: "🎯 VALORANT",
-                CS2: "🔫 CS2",
-                DOTA2: "🛡️ Dota 2",
-                MLBB: "📱 MLBB",
-                PUBG_MOBILE: "🎮 PUBG Mobile",
-                FREE_FIRE: "🔥 Free Fire",
-                COD_MOBILE: "💣 COD Mobile",
-                EA_FC_26: "⚽ EA FC 26",
-                EFOOTBALL_2026: "⚽ eFootball 2026",
-                R6_SIEGE: "🏰 R6 Siege",
-                ROCKET_LEAGUE: "🚗 Rocket League"
+                VALORANT: "VALORANT",
+                CS2: "CS2",
+                DOTA2: "Dota 2",
+                MLBB: "MLBB",
+                PUBG_MOBILE: "PUBG Mobile",
+                FREE_FIRE: "Free Fire",
+                COD_MOBILE: "COD Mobile",
+                EA_FC_26: "EA FC 26",
+                EFOOTBALL_2026: "eFootball 2026",
+                R6_SIEGE: "R6 Siege",
+                ROCKET_LEAGUE: "Rocket League"
             };
-            gameChip.textContent = map[game] || "🎯 VALORANT";
+            const chipTextEl = document.getElementById('gameChipText');
+            if (chipTextEl) {
+                chipTextEl.textContent = map[game] || game || "VALORANT";
+            }
         }
 
         // Color helpers
@@ -2935,54 +2990,60 @@ Includes:
             if (isHex(accent)) document.documentElement.style.setProperty('--team-accent', accent);
         }
 
-        // Sync color inputs
+        function getCssVar(name, fallback) {
+            const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+            return value || fallback;
+        }
+
+        // Sync color inputs (disabled - no demo controller)
         function syncPrimary(val) {
             if (isHex(val)) {
-                demoPrimary.value = val;
-                demoPrimaryHex.value = val;
-                setColors(val, demoAccent.value);
+                setColors(val, getCssVar('--team-accent', '#22c55e'));
             }
         }
         function syncAccent(val) {
             if (isHex(val)) {
-                demoAccent.value = val;
-                demoAccentHex.value = val;
-                setColors(demoPrimary.value, val);
+                setColors(getCssVar('--team-primary', '#7c3aed'), val);
             }
         }
-
-        demoPrimary?.addEventListener('input', e => syncPrimary(e.target.value));
-        demoAccent?.addEventListener('input', e => syncAccent(e.target.value));
-
-        demoPrimaryHex?.addEventListener('input', e => {
-            const v = e.target.value.trim();
-            if (isHex(v)) syncPrimary(v);
-        });
-        demoAccentHex?.addEventListener('input', e => {
-            const v = e.target.value.trim();
-            if (isHex(v)) syncAccent(v);
-        });
-
-        demoResetColors?.addEventListener('click', () => {
-            syncPrimary('#7c3aed');
-            syncAccent('#22c55e');
-        });
-
-        demoRole?.addEventListener('change', (e) => applyRole(e.target.value));
-        demoGame?.addEventListener('change', (e) => applyGame(e.target.value));
 
         // Initial route + initial demo values
         const initialRoute = (location.hash || '#command').replace('#', '');
         setActiveRoute(document.getElementById(initialRoute) ? initialRoute : 'command');
 
-        applyRole(demoRole?.value || 'MANAGER');
-        applyGame(demoGame?.value || 'VALORANT');
-        setColors(demoPrimary?.value || '#7c3aed', demoAccent?.value || '#22c55e');
+        // Use real data from bootstrap
+        const bootstrap = document.getElementById('hqBootstrap');
+        const teamName = bootstrap?.dataset.teamName || 'Team HQ';
+        const gameName = bootstrap?.dataset.gameName || 'Unknown Game';
+        const teamPrimary = bootstrap?.dataset.teamPrimary || '#7c3aed';
+        const teamAccent = bootstrap?.dataset.teamAccent || '#22c55e';
+        
+        console.log('Bootstrap data:', { teamName, gameName }); // Debug
+        
+        // Set team name
+        const teamNameEl = document.getElementById('hqTeamName');
+        if (teamNameEl) {
+            teamNameEl.textContent = teamName;
+        }
+        
+        // Set game chip text - update the inner span
+        const gameChipTextEl = document.getElementById('gameChipText');
+        if (gameChipTextEl) {
+            gameChipTextEl.textContent = gameName;
+            console.log('Game chip updated to:', gameName);
+        } else {
+            console.error('gameChipText element not found');
+        }
+        
+        // Set game chip (for styling)
+        applyGame(gameName);
+        
+        // Set default colors from team data
+        setColors(teamPrimary, teamAccent);
     </script>
 
     <!-- Journey 3 API Wiring -->
     {% include 'organizations/team/partials/_team_manage_hq_scripts.html' %}
 
-</body>
-
-</html>
+</div><!-- End main layout grid -->
+{% endblock %}

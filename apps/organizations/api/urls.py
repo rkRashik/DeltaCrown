@@ -59,6 +59,7 @@ urlpatterns = [
     path('teams/<str:slug>/members/<int:membership_id>/remove/', team_manage.remove_member, name='team_manage_remove_member'),
     path('teams/<str:slug>/members/<int:membership_id>/status/', team_manage.change_member_status, name='team_manage_change_status'),
     path('teams/<str:slug>/settings/', team_manage.update_settings, name='team_manage_update_settings'),
+    path('teams/<str:slug>/profile/', team_manage.update_profile, name='team_manage_update_profile'),
     
     # User team history (Profile journey, audits)
     path('users/<int:user_id>/team-history/', user_history.user_team_history, name='user_team_history'),

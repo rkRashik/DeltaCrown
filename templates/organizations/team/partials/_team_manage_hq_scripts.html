@@ -160,21 +160,31 @@
 
         // We only have game_id from this endpoint; keep existing chip if unknown.
         if (gameChipEl && teamData.game_id) {
-            gameChipEl.textContent = `🎮 Game ${teamData.game_id}`;
+            const chipText = gameChipEl.querySelector('#gameChipText') || gameChipEl;
+            chipText.textContent = `Game ${teamData.game_id}`;
         }
     }
 
     function applyPermissionsToTemplate() {
         const canManage = !!userPermissions?.can_manage;
+        const isCreator = !!userPermissions?.is_creator;
+
+        // Map real permissions to role hierarchy for UI gating
+        // OWNER gates should only open for creator; MANAGER for any manager
+        let effectiveRole = 'MEMBER';
+        if (canManage) effectiveRole = 'MANAGER';
+        if (isCreator) effectiveRole = 'OWNER';
 
         // Override the demo role gating to match real permission state
         try {
             if (typeof window.applyRole === 'function') {
-                window.applyRole(canManage ? 'STAFF' : 'MEMBER');
+                window.applyRole(effectiveRole);
             } else if (typeof applyRole === 'function') {
-                applyRole(canManage ? 'STAFF' : 'MEMBER');
+                applyRole(effectiveRole);
             }
-        } catch (_) { }
+        } catch (err) {
+            console.error('applyRole failed:', err);
+        }
     }
 
     async function apiGetTeamDetail() {
@@ -528,11 +538,421 @@
         return cookieValue;
     }
 
+    // ========================================
+    // TEAM PROFILE SAVE FUNCTIONALITY
+    // ========================================
+    async function saveTeamProfile() {
+        const profileMessageEl = document.getElementById('hqProfileMessage');
+        const saveBtn = document.getElementById('hqSaveProfileBtn');
+
+        try {
+            // Collect form data (Brand Identity + About only)
+            const formData = new FormData();
+            formData.append('name', document.getElementById('profileTeamName')?.value?.trim() || '');
+            formData.append('tagline', document.getElementById('profileTagline')?.value?.trim() || '');
+            formData.append('description', document.getElementById('profileDescription')?.value?.trim() || '');
+            formData.append('region', document.getElementById('profileRegion')?.value?.trim() || '');
+            formData.append('primary_color', document.getElementById('profilePrimaryColorHex')?.value?.trim() || '#8b5cf6');
+            formData.append('accent_color', document.getElementById('profileAccentColorHex')?.value?.trim() || '#3b82f6');
+
+            // Disable button during save
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 inline mr-1 animate-spin"></i> Saving...';
+
+            // Send request
+            const response = await fetch(`/api/vnext/teams/${teamSlug}/profile/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+                credentials: 'same-origin',
+            });
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(payload?.error || 'Failed to update team profile');
+            }
+
+            // Success
+            setBanner(profileMessageEl, 'Team profile updated successfully!', 'success');
+            
+            // Update team name in sidebar if changed
+            const newName = document.getElementById('profileTeamName')?.value?.trim();
+            if (newName && document.getElementById('hqTeamName')) {
+                document.getElementById('hqTeamName').textContent = newName;
+            }
+
+            // Reload to reflect changes
+            setTimeout(() => window.location.reload(), 1500);
+
+        } catch (error) {
+            setBanner(profileMessageEl, error.message || 'Failed to update team profile', 'error');
+        } finally {
+            // Re-enable button
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i data-lucide="save" class="w-3.5 h-3.5 inline mr-1"></i> Save Changes';
+            lucide.createIcons(); // Reinitialize icon
+        }
+    }
+
+    // Tournament Operations save function
+    async function saveTournamentOps() {
+        const saveBtn = document.getElementById('hqSaveTournamentOps');
+        
+        try {
+            // Collect tournament ops data
+            const formData = new FormData();
+            formData.append('preferred_server', document.getElementById('compPreferredServer')?.value?.trim() || '');
+            formData.append('emergency_contact_discord', document.getElementById('compEmergencyDiscord')?.value?.trim() || '');
+            formData.append('emergency_contact_phone', document.getElementById('compEmergencyPhone')?.value?.trim() || '');
+
+            // Disable button during save
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 inline mr-1 animate-spin"></i> Saving...';
+
+            // Send request
+            const response = await fetch(`/api/vnext/teams/${teamSlug}/profile/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+                credentials: 'same-origin',
+            });
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(payload?.error || 'Failed to update tournament operations');
+            }
+
+            // Success - show temporary success message
+            saveBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 inline mr-1"></i> Saved!';
+            saveBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+            saveBtn.classList.add('bg-green-500');
+            
+            setTimeout(() => {
+                saveBtn.innerHTML = '<i data-lucide="save" class="w-3.5 h-3.5 inline mr-1"></i> Save';
+                saveBtn.classList.remove('bg-green-500');
+                saveBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                saveBtn.disabled = false;
+                lucide.createIcons();
+            }, 2000);
+
+        } catch (error) {
+            alert(error.message || 'Failed to update tournament operations');
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i data-lucide="save" class="w-3.5 h-3.5 inline mr-1"></i> Save';
+            lucide.createIcons();
+        }
+    }
+
+    // Sync color picker and hex input
+    document.getElementById('profilePrimaryColor')?.addEventListener('input', (e) => {
+        document.getElementById('profilePrimaryColorHex').value = e.target.value;
+    });
+    document.getElementById('profilePrimaryColorHex')?.addEventListener('input', (e) => {
+        const val = e.target.value;
+        if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+            document.getElementById('profilePrimaryColor').value = val;
+        }
+    });
+    document.getElementById('profileAccentColor')?.addEventListener('input', (e) => {
+        document.getElementById('profileAccentColorHex').value = e.target.value;
+    });
+    document.getElementById('profileAccentColorHex')?.addEventListener('input', (e) => {
+        const val = e.target.value;
+        if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+            document.getElementById('profileAccentColor').value = val;
+        }
+    });
+
+    // Wire save buttons
+    document.getElementById('hqSaveProfileBtn')?.addEventListener('click', saveTeamProfile);
+    document.getElementById('hqSaveTournamentOps')?.addEventListener('click', saveTournamentOps);
+    document.getElementById('hqSaveBrandingBtn')?.addEventListener('click', async function() {
+        const btn = this;
+        const originalHTML = btn.innerHTML;
+        
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 inline mr-1 animate-spin"></i>Saving...';
+            
+            const formData = new FormData();
+            formData.append('primary_color', document.getElementById('profilePrimaryColorHex')?.value?.trim() || '#8b5cf6');
+            formData.append('accent_color', document.getElementById('profileAccentColorHex')?.value?.trim() || '#3b82f6');
+            formData.append('region', document.getElementById('profileRegion')?.value?.trim() || '');
+            
+            const response = await fetch(`/api/vnext/teams/${teamSlug}/profile/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+                credentials: 'same-origin',
+            });
+            
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || 'Failed to save branding');
+            }
+            
+            alert('Branding saved successfully!');
+            setTimeout(() => location.reload(), 500);
+        } catch (error) {
+            alert(error.message || 'Failed to save branding');
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            lucide?.createIcons();
+        }
+    });
+
+    // About section Edit/Cancel buttons
+    document.getElementById('hqEditAboutBtn')?.addEventListener('click', () => {
+        document.getElementById('aboutReadView').classList.add('hidden');
+        document.getElementById('aboutEditView').classList.remove('hidden');
+        document.getElementById('hqEditAboutBtn').classList.add('hidden');
+    });
+
+    document.getElementById('hqCancelAboutBtn')?.addEventListener('click', () => {
+        document.getElementById('aboutEditView').classList.add('hidden');
+        document.getElementById('aboutReadView').classList.remove('hidden');
+        document.getElementById('hqEditAboutBtn').classList.remove('hidden');
+        // Reset form values
+        location.reload();
+    });
+
+    // Logo upload handler
+    document.getElementById('profileLogoInput')?.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // Validate file size (max 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            alert('Logo file size must be less than 2MB');
+            e.target.value = '';
+            return;
+        }
+        
+        // Upload file
+        const formData = new FormData();
+        formData.append('logo', file);
+        
+        try {
+            const response = await fetch(`/api/vnext/teams/${teamSlug}/profile/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+                credentials: 'same-origin',
+            });
+            
+            if (!response.ok) throw new Error('Failed to upload logo');
+            
+            alert('Logo uploaded successfully!');
+            setTimeout(() => location.reload(), 500);
+        } catch (error) {
+            alert(error.message || 'Failed to upload logo');
+        }
+    });
+
+    // Banner upload handler
+    document.getElementById('profileBannerInput')?.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // Validate file size (max 3MB)
+        if (file.size > 3 * 1024 * 1024) {
+            alert('Banner file size must be less than 3MB');
+            e.target.value = '';
+            return;
+        }
+        
+        // Upload file
+        const formData = new FormData();
+        formData.append('banner', file);
+        
+        try {
+            const response = await fetch(`/api/vnext/teams/${teamSlug}/profile/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+                credentials: 'same-origin',
+            });
+            
+            if (!response.ok) throw new Error('Failed to upload banner');
+            
+            alert('Banner uploaded successfully!');
+            setTimeout(() => location.reload(), 500);
+        } catch (error) {
+            alert(error.message || 'Failed to upload banner');
+        }
+    });
+
+    // Social Links Edit button handler
+    document.getElementById('hqEditSocialLinksBtn')?.addEventListener('click', () => {
+        // Get current values from the display
+        const currentTwitter = document.querySelector('[href*="twitter.com"]')?.href || document.querySelector('[href*="x.com"]')?.href || '';
+        const currentInstagram = document.querySelector('[href*="instagram.com"]')?.href || '';
+        const currentYoutube = document.querySelector('[href*="youtube.com"]')?.href || '';
+        const currentTwitch = document.querySelector('[href*="twitch.tv"]')?.href || '';
+        
+        openModalWithAsyncConfirm({
+            title: 'Edit Social Links',
+            subtitle: 'Update your team\'s social media presence',
+            bodyHtml: `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            <i data-lucide="twitter" class="w-4 h-4 inline mr-1"></i>
+                            Twitter / X URL
+                        </label>
+                        <input type="url" id="modalTwitterUrl" value="${currentTwitter}"
+                            class="w-full bg-white/5 border border-line rounded-xl px-4 py-2.5 text-sm"
+                            placeholder="https://twitter.com/yourteam">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            <i data-lucide="instagram" class="w-4 h-4 inline mr-1"></i>
+                            Instagram URL
+                        </label>
+                        <input type="url" id="modalInstagramUrl" value="${currentInstagram}"
+                            class="w-full bg-white/5 border border-line rounded-xl px-4 py-2.5 text-sm"
+                            placeholder="https://instagram.com/yourteam">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            <i data-lucide="youtube" class="w-4 h-4 inline mr-1"></i>
+                            YouTube URL
+                        </label>
+                        <input type="url" id="modalYoutubeUrl" value="${currentYoutube}"
+                            class="w-full bg-white/5 border border-line rounded-xl px-4 py-2.5 text-sm"
+                            placeholder="https://youtube.com/@yourteam">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">
+                            <i data-lucide="twitch" class="w-4 h-4 inline mr-1"></i>
+                            Twitch URL
+                        </label>
+                        <input type="url" id="modalTwitchUrl" value="${currentTwitch}"
+                            class="w-full bg-white/5 border border-line rounded-xl px-4 py-2.5 text-sm"
+                            placeholder="https://twitch.tv/yourteam">
+                    </div>
+                </div>
+            `,
+            confirmText: 'Save Changes',
+            onConfirm: async () => {
+                const formData = new FormData();
+                formData.append('twitter_url', document.getElementById('modalTwitterUrl')?.value || '');
+                formData.append('instagram_url', document.getElementById('modalInstagramUrl')?.value || '');
+                formData.append('youtube_url', document.getElementById('modalYoutubeUrl')?.value || '');
+                formData.append('twitch_url', document.getElementById('modalTwitchUrl')?.value || '');
+
+                const response = await fetch(`/api/vnext/teams/${teamSlug}/profile/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: formData,
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) throw new Error('Failed to update social links');
+                
+                alert('Social links updated successfully!');
+                setTimeout(() => location.reload(), 500);
+            }
+        });
+    });
+
+    // Post Announcement button handler
+    document.getElementById('hqPostAnnouncementBtn')?.addEventListener('click', () => {
+        openModalWithAsyncConfirm({
+            title: 'Post Team Announcement',
+            subtitle: 'Share news and updates with your team',
+            bodyHtml: `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Announcement Message</label>
+                        <textarea id="modalAnnouncementMessage" rows="4"
+                            class="w-full bg-white/5 border border-line rounded-xl px-4 py-2.5 text-sm resize-none"
+                            placeholder="Share important updates, match schedules, practice times, etc."></textarea>
+                    </div>
+                    <div class="text-xs text-muted">
+                        <i data-lucide="info" class="w-3 h-3 inline mr-1"></i>
+                        This will be visible to all team members
+                    </div>
+                </div>
+            `,
+            confirmText: 'Post Announcement',
+            onConfirm: async () => {
+                const message = document.getElementById('modalAnnouncementMessage')?.value?.trim();
+                
+                if (!message) {
+                    throw new Error('Please enter a message');
+                }
+
+                // TODO: Replace with actual API endpoint when backend is ready
+                alert('Announcement posting feature coming soon! Message: ' + message);
+                // For now, just close the modal
+                // In production, this would POST to an announcements API endpoint
+            }
+        });
+    });
+
+    // Media Gallery Upload button handler
+    document.getElementById('hqUploadMediaBtn')?.addEventListener('click', () => {
+        document.getElementById('hqMediaUploadInput')?.click();
+    });
+
+    document.getElementById('hqMediaUploadInput')?.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+
+        // Validate files
+        const maxSize = 10 * 1024 * 1024; // 10MB per file
+        const invalidFiles = files.filter(f => f.size > maxSize);
+        
+        if (invalidFiles.length > 0) {
+            alert(`Some files exceed 10MB limit and will be skipped: ${invalidFiles.map(f => f.name).join(', ')}`);
+        }
+
+        const validFiles = files.filter(f => f.size <= maxSize);
+        
+        if (validFiles.length === 0) {
+            e.target.value = '';
+            return;
+        }
+
+        // TODO: Replace with actual API endpoint when backend is ready
+        alert(`Media upload feature coming soon! ${validFiles.length} file(s) selected:\n${validFiles.map(f => f.name).join('\n')}`);
+        e.target.value = '';
+        
+        // In production, this would:
+        // 1. Create FormData with all files
+        // 2. POST to media upload API endpoint
+        // 3. Show progress indicator
+        // 4. Reload page or update gallery on success
+    });
+
     // Make functions globally accessible for button onclick handlers
     window.addTeamMember = addTeamMember;
     window.changeTeamMemberRole = changeTeamMemberRole;
     window.removeTeamMember = removeTeamMember;
     window.updateTeamSettings = updateTeamSettings;
+    window.saveTeamProfile = saveTeamProfile;
+    window.saveTournamentOps = saveTournamentOps;
 
     // UI event wiring
     inviteBtnEl?.addEventListener('click', () => showAddMemberModal());

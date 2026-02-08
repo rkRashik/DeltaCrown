@@ -1,13 +1,20 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Protocol V | Team HQ | DeltaCrown{% endblock %}
+{% block title %}{{ page.title|default:"Team Detail | DeltaCrown" }}{% endblock %}
 
 {% block extra_css %}
   {% include "organizations/team/partials/_head_assets.html" %}
 {% endblock %}
 
 {% block content %}
+  {# Bootstrap element — JS reads data-* attrs to set body[data-role/theme/game] #}
+  <div id="dc-detail-bootstrap" class="hidden"
+       data-role="{{ viewer.role|default:'PUBLIC' }}"
+       data-theme="{{ ui.theme|default:'CROWN' }}"
+       data-game="{{ team.game.slug|default:'unknown' }}"
+       data-team-slug="{{ team.slug }}"></div>
+
   {% include "organizations/team/partials/_body.html" %}
 {% endblock %}
 

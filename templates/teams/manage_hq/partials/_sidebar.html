@@ -1,118 +1,217 @@
-<aside id="sidebar" class="fixed lg:sticky top-0 left-0 z-50 lg:z-auto
-     h-screen w-[86vw] max-w-[360px] lg:w-auto
-     -translate-x-[110%] lg:translate-x-0 transition-transform duration-200
-     border-r border-line bg-white/5 backdrop-blur-xl">
+{% load static %}
+{% comment %}
+Sidebar — Team branding, 9-section navigation with role gating, quick actions, roster snapshot.
+Drawer on mobile, fixed on desktop.
+{% endcomment %}
+<aside id="sidebar"
+    class="fixed inset-y-0 left-0 z-50 w-[320px] border-r border-line overflow-y-auto
+           -translate-x-[110%] lg:translate-x-0 lg:relative transition-transform duration-300
+           bg-gradient-to-b from-[var(--bg0)] via-[var(--bg1)] to-black/95">
 
-    <div class="p-4 h-full flex flex-col gap-3 overflow-hidden">
-        <!-- Team Header -->
-        <div class="rounded-2xl border border-line bg-card shadow-soft p-3">
-            <div class="flex items-center gap-3">
-                <div class="h-11 w-11 rounded-2xl grid place-items-center"
-                    style="background: linear-gradient(135deg, color-mix(in oklab, var(--team-primary) 80%, #000), rgba(255,255,255,.06)); border:1px solid rgba(255,255,255,.14)">
-                    {% if team.logo %}
-                    <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="w-full h-full object-cover rounded-2xl">
-                    {% else %}
-                    <span class="font-black tracking-tight">{{ team.tag|default:team.name|slice:":2"|upper }}</span>
-                    {% endif %}
-                </div>
-                <div class="min-w-0">
-                    <div class="flex items-center gap-2">
-                        <div class="font-semibold truncate">{{ team.name|default:"Team" }}</div>
-                        <span class="text-[11px] px-2 py-[2px] rounded-full border border-line bg-white/5 text-white/80">
-                            {{ team.game.display_name|default:"Game" }}
-                        </span>
-                    </div>
-                    <div class="text-xs text-muted truncate">
-                        <span>
-                            {% if user_membership.role == 'OWNER' %}
-                                👑 Owner
-                            {% elif user_membership.role == 'MANAGER' %}
-                                💼 Manager
-                            {% elif user_membership.role == 'COACH' %}
-                                👔 Coach
-                            {% else %}
-                                👤 Member
-                            {% endif %}
-                        </span> • Management Console
-                    </div>
-                </div>
-            </div>
+    {# Close button (mobile) #}
+    <button id="closeSidebar" aria-label="Close navigation menu"
+        class="absolute top-3 right-3 lg:hidden w-8 h-8 grid place-items-center rounded-xl bg-white/8 hover:bg-white/12 transition">
+        <i data-lucide="x" class="w-4 h-4"></i>
+    </button>
 
-            <!-- Quick actions -->
-            {% if can_manage_roster %}
-            <div class="grid grid-cols-2 gap-2 mt-3">
-                <button id="qaInvite"
-                    class="rounded-xl border border-line bg-white/5 hover:bg-white/10 transition px-3 py-2 text-xs flex items-center justify-center gap-2">
-                    <i data-lucide="user-plus" class="w-4 h-4"></i> Invite
-                </button>
-                <button id="qaAnnounce"
-                    class="rounded-xl border border-line bg-white/5 hover:bg-white/10 transition px-3 py-2 text-xs flex items-center justify-center gap-2">
-                    <i data-lucide="megaphone" class="w-4 h-4"></i> Post
-                </button>
+    {# ── Team Header ── #}
+    <div class="p-5 pt-6 pb-4 border-b border-line">
+        <a href="/teams/{{ team.slug }}/" class="group flex items-center gap-3">
+            <div class="h-12 w-12 rounded-2xl overflow-hidden border border-white/15 bg-white/10 grid place-items-center shrink-0"
+                 style="box-shadow:0 0 26px color-mix(in oklab,var(--team-primary) 38%,transparent)">
+                {% if team.logo %}
+                <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="w-full h-full object-cover">
+                {% else %}
+                <span class="text-lg font-black leading-none"
+                      style="color:var(--team-primary)">{{ team.tag|default:team.name|truncatechars:3 }}</span>
+                {% endif %}
             </div>
+            <div class="min-w-0">
+                <h1 class="text-sm font-bold truncate group-hover:text-white transition">{{ team.name }}</h1>
+                <p class="text-[11px] text-white/50 truncate">
+                    [{{ team.tag }}]  &middot;  {{ game_display }}
+                </p>
+            </div>
+        </a>
+        {% if team.organization %}
+        <div class="mt-2 flex items-center gap-2 px-1">
+            <div class="h-5 w-5 rounded bg-white/10 grid place-items-center overflow-hidden shrink-0">
+                {% if org_context.logo_url %}
+                <img src="{{ org_context.logo_url }}" alt="" class="w-full h-full object-cover">
+                {% else %}
+                <i data-lucide="building-2" class="w-3 h-3 text-white/40"></i>
+                {% endif %}
+            </div>
+            <span class="text-[10px] text-white/40 truncate">Part of <span class="text-white/60 font-medium">{{ team.organization.name }}</span></span>
+            {% if org_context.is_verified %}
+            <i data-lucide="badge-check" class="w-3.5 h-3.5 text-indigo-400 shrink-0" title="Verified Organization"></i>
             {% endif %}
         </div>
+        {% if org_context.empire_score %}
+        <div class="mt-1.5 flex items-center gap-1.5 px-1">
+            <i data-lucide="crown" class="w-3 h-3 text-amber-400"></i>
+            <span class="text-[10px] text-amber-400/80 font-semibold">Empire Score {{ org_context.empire_score }}</span>
+            {% if org_context.global_rank %}
+            <span class="text-[10px] text-white/30">#{{ org_context.global_rank }} Global</span>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if is_org_ceo or is_admin %}
+        <a href="{{ org_control_plane_url }}"
+           class="mt-2 flex items-center gap-2 px-2 py-1.5 rounded-lg bg-indigo-500/8 border border-indigo-500/15 hover:bg-indigo-500/15 transition group">
+            <i data-lucide="gauge" class="w-3 h-3 text-indigo-400"></i>
+            <span class="text-[10px] text-indigo-400 font-medium group-hover:text-indigo-300">Org Control Plane →</span>
+        </a>
+        {% endif %}
+        {% endif %}
+    </div>
 
-        <!-- Nav -->
-        <nav class="flex-1 overflow-auto pr-1 pb-3">
-            <div class="mt-2">
-                <div class="px-2 py-2 text-[11px] tracking-[.18em] uppercase text-white/50 flex items-center justify-between">
-                    <span>Core</span>
-                    <span class="text-[10px] px-2 py-[2px] rounded-full border border-line bg-white/5">LIVE</span>
-                </div>
+    {# ── Navigation ── #}
+    <nav class="p-3 space-y-0.5" aria-label="Team management navigation">
+        {# ── Operations ── #}
+        <p class="text-[10px] text-white/30 uppercase tracking-wider font-semibold px-3 pt-1 pb-1.5">Operations</p>
 
-                <div class="space-y-1">
-                    <a class="nav-item flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-line transition"
-                        href="#command" data-route="command" aria-current="page">
-                        <span class="h-8 w-8 rounded-xl grid place-items-center bg-white/5 border border-line">
-                            <i data-lucide="radar" class="w-4 h-4"></i>
-                        </span>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm font-medium truncate">Command Center</div>
-                            <div class="text-[12px] text-muted truncate">Today, alerts, actions</div>
-                        </div>
-                    </a>
-
-                    <a class="nav-item flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-line transition"
-                        href="#roster" data-route="roster">
-                        <span class="h-8 w-8 rounded-xl grid place-items-center bg-white/5 border border-line">
-                            <i data-lucide="users" class="w-4 h-4"></i>
-                        </span>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm font-medium truncate">Roster Ops</div>
-                            <div class="text-[12px] text-muted truncate">Players, staff, roles</div>
-                        </div>
-                    </a>
-
-                    <a class="nav-item flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-line transition"
-                        href="#profile" data-route="profile">
-                        <span class="h-8 w-8 rounded-xl grid place-items-center bg-white/5 border border-line">
-                            <i data-lucide="palette" class="w-4 h-4"></i>
-                        </span>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm font-medium truncate">Team Profile</div>
-                            <div class="text-[12px] text-muted truncate">Public identity</div>
-                        </div>
-                    </a>
-
-                    <a class="nav-item flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:bg-white/5 hover:border-line transition"
-                        href="#settings" data-route="settings">
-                        <span class="h-8 w-8 rounded-xl grid place-items-center bg-white/5 border border-line">
-                            <i data-lucide="shield" class="w-4 h-4"></i>
-                        </span>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm font-medium truncate">Settings & Security</div>
-                            <div class="text-[12px] text-muted truncate">Privacy, access</div>
-                        </div>
-                    </a>
-                </div>
+        <a data-route="command" href="#command"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 text-purple-400"></i>
             </div>
-        </nav>
+            <span>Command Center</span>
+        </a>
 
-        <!-- Mobile close -->
-        <button id="closeSidebar"
-            class="lg:hidden rounded-xl border border-line bg-white/5 hover:bg-white/10 transition px-3 py-2 text-sm flex items-center justify-center gap-2">
-            <i data-lucide="x" class="w-4 h-4"></i> Close
+        <a data-route="roster" href="#roster"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
+                <i data-lucide="users" class="w-4 h-4 text-cyan-400"></i>
+            </div>
+            <span>Roster Ops</span>
+        </a>
+
+        <a data-route="competition" href="#competition"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
+                <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+            </div>
+            <span>Competition Hub</span>
+        </a>
+
+        <a data-route="training" href="#training"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
+                <i data-lucide="crosshair" class="w-4 h-4 text-red-400"></i>
+            </div>
+            <span>Training Lab</span>
+        </a>
+
+        <a data-route="community" href="#community"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
+                <i data-lucide="message-square" class="w-4 h-4 text-pink-400"></i>
+            </div>
+            <span>Community</span>
+        </a>
+
+        {# ── Management (admin-only sections) ── #}
+        {% if is_admin %}
+        <p class="text-[10px] text-white/30 uppercase tracking-wider font-semibold px-3 pt-4 pb-1.5">Management</p>
+
+        <a data-route="profile" href="#profile"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
+                <i data-lucide="palette" class="w-4 h-4 text-emerald-400"></i>
+            </div>
+            <span>Team Profile</span>
+        </a>
+        {% endif %}
+
+        {% if is_owner %}
+        <a data-route="settings" href="#settings"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
+                <i data-lucide="settings" class="w-4 h-4 text-amber-400"></i>
+            </div>
+            <span>Settings</span>
+        </a>
+        {% endif %}
+
+        {# ── Intelligence ── #}
+        <p class="text-[10px] text-white/30 uppercase tracking-wider font-semibold px-3 pt-4 pb-1.5">Intelligence</p>
+
+        <a data-route="treasury" href="#treasury"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
+                <i data-lucide="wallet" class="w-4 h-4 text-yellow-400"></i>
+            </div>
+            <span>Treasury</span>
+        </a>
+
+        {% if is_admin %}
+        <a data-route="history" href="#history"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
+                <i data-lucide="scroll-text" class="w-4 h-4 text-slate-400"></i>
+            </div>
+            <span>History</span>
+        </a>
+        {% endif %}
+    </nav>
+
+    {# ── Quick Actions ── #}
+    <div class="px-3 py-4 border-t border-line mt-2">
+        <p class="text-[10px] text-white/30 uppercase tracking-wider font-semibold px-3 mb-2">Quick Actions</p>
+
+        {% if can_manage_roster %}
+        <button onclick="ManageHQ.openInviteModal()"
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/6 transition group">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-purple-500/15 border border-purple-500/25">
+                <i data-lucide="user-plus" class="w-4 h-4 text-purple-400"></i>
+            </div>
+            <span class="text-white/80 group-hover:text-white">Invite Player</span>
         </button>
+        {% endif %}
+
+        <a href="/teams/{{ team.slug }}/"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-white/6 transition group">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-blue-500/15 border border-blue-500/25">
+                <i data-lucide="external-link" class="w-4 h-4 text-blue-400"></i>
+            </div>
+            <span class="text-white/80 group-hover:text-white">View Public Page</span>
+        </a>
+    </div>
+
+    {# ── Roster Snapshot ── #}
+    <div class="px-3 py-4 border-t border-line">
+        <p class="text-[10px] text-white/30 uppercase tracking-wider font-semibold px-3 mb-2">Roster</p>
+        <div class="px-3 flex items-center gap-1">
+            <div class="flex -space-x-2">
+                {% for m in members|slice:":5" %}
+                <div class="h-7 w-7 rounded-full border-2 border-[var(--bg0)] bg-white/10 overflow-hidden grid place-items-center"
+                     title="{{ m.user.username }}">
+                    {% if m.user.profile.avatar %}
+                    <img src="{{ m.user.profile.avatar.url }}" alt="" class="w-full h-full object-cover">
+                    {% else %}
+                    <span class="text-[10px] font-bold">{{ m.user.username|make_list|first|upper }}</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <span class="text-xs text-white/40 ml-2">{{ current_roster_size }}/{{ max_roster_size }}</span>
+        </div>
+    </div>
+
+    {# ── Footer badge ── #}
+    <div class="mt-auto p-5 border-t border-line">
+        {% if is_org_ceo %}
+        <div class="flex items-center gap-2 mb-2">
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 font-semibold border border-indigo-500/25">
+                <i data-lucide="shield" class="w-3 h-3 inline-block -mt-0.5"></i>
+                Org Admin
+            </span>
+            <span class="text-[10px] text-white/30">Full owner-level access</span>
+        </div>
+        {% endif %}
+        <p class="text-[10px] text-white/30 leading-relaxed">
+            <span class="font-semibold text-white/40">Team HQ</span> &middot; DeltaCrown Platform
+        </p>
     </div>
 </aside>

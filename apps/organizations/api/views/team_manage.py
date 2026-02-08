@@ -14,9 +14,12 @@ All endpoints enforce permissions:
 - Organization admins can manage org-owned teams
 """
 
+import re
+
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.utils.text import slugify
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from django.utils import timezone
@@ -24,6 +27,7 @@ from django.utils import timezone
 from apps.organizations.models import Team, TeamMembership, TeamMembershipEvent
 from apps.organizations.choices import MembershipRole, MembershipStatus, TeamStatus, MembershipEventType
 from apps.accounts.models import User
+from apps.organizations.services.hub_cache import invalidate_hub_cache
 
 
 def _check_manage_permissions(team, user):
@@ -40,14 +44,18 @@ def _check_manage_permissions(team, user):
     if not user.is_authenticated:
         return False, "Authentication required"
     
+    # Superusers always have permission
+    if user.is_superuser:
+        return True, None
+    
     # Creator always has permission
     if team.created_by_id == user.id:
         return True, None
     
-    # Check team membership role (MANAGER only)
+    # Check team membership role (MANAGER or COACH)
     try:
         membership = team.vnext_memberships.get(user=user)
-        if membership.role == MembershipRole.MANAGER:
+        if membership.role in (MembershipRole.MANAGER, MembershipRole.COACH):
             return True, None
     except TeamMembership.DoesNotExist:
         pass
@@ -76,11 +84,12 @@ def team_detail(request, slug):
     """
     team = get_object_or_404(Team, slug=slug)
     
-    # Check membership (must be member to view)
-    if not team.vnext_memberships.filter(user=request.user).exists():
-        if team.created_by != request.user:
-            if not (team.organization and team.organization.admins.filter(id=request.user.id).exists()):
-                return JsonResponse({'error': 'You are not a member of this team'}, status=403)
+    # Check membership (must be member, creator, org admin, or superuser to view)
+    if not request.user.is_superuser:
+        if not team.vnext_memberships.filter(user=request.user).exists():
+            if team.created_by != request.user:
+                if not (team.organization and team.organization.admins.filter(id=request.user.id).exists()):
+                    return JsonResponse({'error': 'You are not a member of this team'}, status=403)
     
     # Check manage permissions
     can_manage, _ = _check_manage_permissions(team, request.user)
@@ -457,6 +466,147 @@ def update_settings(request, slug):
     return JsonResponse({
         'success': True,
         'message': 'Team settings updated',
+    })
+
+
+@require_http_methods(["POST"])
+@login_required
+@transaction.atomic
+def update_profile(request, slug):
+    """
+    POST /api/vnext/teams/<slug>/profile/
+    
+    Update comprehensive team profile (name, tagline, description, colors, socials, tournament ops).
+    
+    Optional params:
+    - name: string (max 100 chars)
+    - tagline: string (max 100 chars)
+    - description: text
+    - region: string (max 50 chars)
+    - primary_color: hex color (e.g., #3B82F6)
+    - accent_color: hex color (e.g., #10B981)
+    - twitter_url: URL
+    - instagram_url: URL
+    - youtube_url: URL
+    - twitch_url: URL
+    - preferred_server: string (max 50 chars)
+    - emergency_contact_discord: string (max 50 chars)
+    - emergency_contact_phone: string (max 20 chars)
+    
+    Enforces:
+    - Manage permissions (MANAGER+ role)
+    - Name uniqueness (slug will be regenerated if name changes)
+    - Hex color validation
+    """
+    team = get_object_or_404(Team, slug=slug)
+    
+    # Check permissions
+    has_permission, reason = _check_manage_permissions(team, request.user)
+    if not has_permission:
+        return JsonResponse({'error': reason}, status=403)
+    
+    # Parse params
+    name = request.POST.get('name', '').strip()
+    tagline = request.POST.get('tagline', '').strip()
+    description = request.POST.get('description', '').strip()
+    region = request.POST.get('region', '').strip()
+    primary_color = request.POST.get('primary_color', '').strip()
+    accent_color = request.POST.get('accent_color', '').strip()
+    twitter_url = request.POST.get('twitter_url', '').strip()
+    instagram_url = request.POST.get('instagram_url', '').strip()
+    youtube_url = request.POST.get('youtube_url', '').strip()
+    twitch_url = request.POST.get('twitch_url', '').strip()
+    preferred_server = request.POST.get('preferred_server', '').strip()
+    emergency_contact_discord = request.POST.get('emergency_contact_discord', '').strip()
+    emergency_contact_phone = request.POST.get('emergency_contact_phone', '').strip()
+    
+    # Handle file uploads
+    logo = request.FILES.get('logo')
+    banner = request.FILES.get('banner')
+    
+    # Validate lengths
+    if name and len(name) > 100:
+        return JsonResponse({'error': 'Team name must be 100 characters or less'}, status=400)
+    if tagline and len(tagline) > 100:
+        return JsonResponse({'error': 'Tagline must be 100 characters or less'}, status=400)
+    if region and len(region) > 50:
+        return JsonResponse({'error': 'Region must be 50 characters or less'}, status=400)
+    
+    # Validate hex colors
+    hex_pattern = re.compile(r'^#[0-9A-Fa-f]{6}$')
+    if primary_color and not hex_pattern.match(primary_color):
+        return JsonResponse({'error': 'Primary color must be in hex format (e.g., #3B82F6)'}, status=400)
+    if accent_color and not hex_pattern.match(accent_color):
+        return JsonResponse({'error': 'Accent color must be in hex format (e.g., #10B981)'}, status=400)
+    
+    # Update team fields - check if field is in POST data
+    if 'name' in request.POST:
+        name = request.POST.get('name', '').strip()
+        if name:  # Name must not be empty if provided
+            if name != team.name:
+                new_slug = slugify(name)
+                if Team.objects.filter(slug=new_slug).exclude(id=team.id).exists():
+                    return JsonResponse({'error': f'A team with the name "{name}" already exists'}, status=400)
+                team.name = name
+                team.slug = new_slug
+    
+    if 'tagline' in request.POST:
+        team.tagline = request.POST.get('tagline', '').strip()
+    
+    if 'description' in request.POST:
+        team.description = request.POST.get('description', '').strip()
+    
+    if 'region' in request.POST:
+        team.region = request.POST.get('region', '').strip()
+    
+    if 'primary_color' in request.POST:
+        primary_color = request.POST.get('primary_color', '').strip()
+        if primary_color:
+            team.primary_color = primary_color
+    
+    if 'accent_color' in request.POST:
+        accent_color = request.POST.get('accent_color', '').strip()
+        if accent_color:
+            team.accent_color = accent_color
+    
+    # Social links - allow empty to clear
+    if 'twitter_url' in request.POST:
+        team.twitter_url = request.POST.get('twitter_url', '').strip()
+    if 'instagram_url' in request.POST:
+        team.instagram_url = request.POST.get('instagram_url', '').strip()
+    if 'youtube_url' in request.POST:
+        team.youtube_url = request.POST.get('youtube_url', '').strip()
+    if 'twitch_url' in request.POST:
+        team.twitch_url = request.POST.get('twitch_url', '').strip()
+    
+    # Tournament ops
+    if 'preferred_server' in request.POST:
+        team.preferred_server = request.POST.get('preferred_server', '').strip()
+    if 'emergency_contact_discord' in request.POST:
+        team.emergency_contact_discord = request.POST.get('emergency_contact_discord', '').strip()
+    if 'emergency_contact_phone' in request.POST:
+        team.emergency_contact_phone = request.POST.get('emergency_contact_phone', '').strip()
+    
+    # Handle file uploads
+    if logo:
+        team.logo = logo
+    if banner:
+        team.banner = banner
+    
+    team.save()
+    
+    # Invalidate hub cache (branding changes may affect display)
+    # TODO: Implement when hub caching is ready
+    # invalidate_hub_cache(game_id=team.game_id)
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Team profile updated successfully',
+        'team': {
+            'name': team.name,
+            'slug': team.slug,
+            'tagline': team.tagline,
+        }
     })
 
 

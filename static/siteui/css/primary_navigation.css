@@ -58,7 +58,7 @@
 /* === NAVIGATION ITEMS === */
 .dc-nav-item {
   position: relative;
-  /* height: 100%; Removed to fix hit-area issue */
+  height: 100%;
   display: flex;
   align-items: center;
 }
@@ -445,4 +445,29 @@ button:focus:not(:focus-visible) {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
   }
+}
+
+/* === MOBILE DRAWER STATES === */
+#dc-mobile-drawer.open {
+  transform: translateX(0) !important;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+}
+
+#dc-mobile-backdrop {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  display: block;
+  /* Always display in DOM, handle visibility via opacity */
+  visibility: hidden;
+}
+
+#dc-mobile-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+#dc-mobile-backdrop.hidden {
+  display: none !important;
 }
