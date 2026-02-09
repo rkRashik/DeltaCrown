@@ -258,7 +258,7 @@ def profile_view(request, username=None):
     current_teams = []
     if profile:
         try:
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
             active_memberships = TeamMembership.objects.filter(
                 profile=profile,
                 status='ACTIVE'
@@ -614,9 +614,9 @@ def save_game_profiles(request):
     
     # Show results
     if errors:
-        messages.warning(request, f'⚠️ Saved with errors: {created_count} created, {updated_count} updated, {deleted_count} deleted. Errors: {"; ".join(errors)}')
+        messages.warning(request, f'âš ï¸ Saved with errors: {created_count} created, {updated_count} updated, {deleted_count} deleted. Errors: {"; ".join(errors)}')
     else:
-        messages.success(request, f'✅ Game profiles saved successfully! ({created_count} created, {updated_count} updated, {deleted_count} deleted)')
+        messages.success(request, f'âœ… Game profiles saved successfully! ({created_count} created, {updated_count} updated, {deleted_count} deleted)')
     
     return redirect('user_profile:settings')
 
@@ -1263,9 +1263,9 @@ def save_game_profiles_safe(request):
                 errors.append(f"Error deleting {passport.game}")
     
     if errors:
-        messages.warning(request, f'⚠️ Saved with errors: {created_count} created, {updated_count} updated, {deleted_count} deleted. Errors: {"; ".join(errors)}')
+        messages.warning(request, f'âš ï¸ Saved with errors: {created_count} created, {updated_count} updated, {deleted_count} deleted. Errors: {"; ".join(errors)}')
     else:
-        messages.success(request, f'✅ Game profiles saved successfully! ({created_count} created, {updated_count} updated, {deleted_count} deleted)')
+        messages.success(request, f'âœ… Game profiles saved successfully! ({created_count} created, {updated_count} updated, {deleted_count} deleted)')
     
     return redirect('user_profile:settings')
 

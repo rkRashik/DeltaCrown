@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.tournaments.models import Tournament
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.user_profile.models import UserProfile
 
 

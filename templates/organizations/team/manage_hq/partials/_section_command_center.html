@@ -1,0 +1,488 @@
+{% comment %}
+Command Center — Dashboard overview with live stats, health bar, alerts, activity feed.
+Section 7.1 of the Master Plan.
+{% endcomment %}
+<section id="command" class="hq-section is-active space-y-4" aria-label="Command Center">
+
+    {# ── Org Policy Banner (if org team) ── #}
+    {% if team.organization %}
+    <div class="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/8 via-indigo-500/3 to-transparent shadow-soft p-5 lg:p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="h-10 w-10 rounded-xl bg-indigo-500/15 grid place-items-center shrink-0">
+                {% if org_context.logo_url %}
+                <img src="{{ org_context.logo_url }}" alt="" class="w-full h-full rounded-xl object-cover">
+                {% else %}
+                <i data-lucide="building-2" class="w-5 h-5 text-indigo-400"></i>
+                {% endif %}
+            </div>
+            <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold flex items-center gap-1.5">
+                    Managed by {{ team.organization.name }}
+                    {% if org_context.is_verified %}
+                    <i data-lucide="badge-check" class="w-4 h-4 text-indigo-400" title="Verified"></i>
+                    {% endif %}
+                </p>
+                <p class="text-xs text-white/40">Organization policies may override local team settings</p>
+            </div>
+            {% if org_control_plane_url %}
+            <a href="{{ org_control_plane_url }}"
+               class="shrink-0 px-3 py-1.5 text-[10px] rounded-lg bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 transition font-semibold">
+                Control Plane →
+            </a>
+            {% endif %}
+        </div>
+
+        {# ── Inherited Policies List ── #}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {# Roster Lock Policy #}
+            <div class="flex items-center gap-2 p-2.5 rounded-xl bg-white/5">
+                {% if org_policies.roster_locked %}
+                <i data-lucide="lock" class="w-3.5 h-3.5 text-red-400 shrink-0"></i>
+                <span class="text-xs text-red-400/80">Roster Locked by Org</span>
+                {% else %}
+                <i data-lucide="unlock" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                <span class="text-xs text-white/50">Roster Open</span>
+                {% endif %}
+            </div>
+
+            {# Brand Enforcement #}
+            <div class="flex items-center gap-2 p-2.5 rounded-xl bg-white/5">
+                {% if org_policies.enforce_brand %}
+                <i data-lucide="palette" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                <span class="text-xs text-amber-400/80">Brand Inherited</span>
+                {% else %}
+                <i data-lucide="brush" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                <span class="text-xs text-white/50">Custom Branding</span>
+                {% endif %}
+            </div>
+
+            {# Revenue Split #}
+            <div class="flex items-center gap-2 p-2.5 rounded-xl bg-white/5">
+                {% if org_policies.revenue_split_config %}
+                <i data-lucide="split" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
+                <span class="text-xs text-blue-400/80">Revenue Split Active</span>
+                {% else %}
+                <i data-lucide="circle-dollar-sign" class="w-3.5 h-3.5 text-white/30 shrink-0"></i>
+                <span class="text-xs text-white/50">No Split Config</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Empire Score (if org has ranking) #}
+        {% if org_context.empire_score %}
+        <div class="mt-3 flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/15">
+            <i data-lucide="crown" class="w-4 h-4 text-amber-400 shrink-0"></i>
+            <div>
+                <span class="text-sm font-bold text-amber-400">{{ org_context.empire_score }}</span>
+                <span class="text-xs text-white/40 ml-1">Empire Score</span>
+            </div>
+            {% if org_context.global_rank %}
+            <span class="ml-auto text-xs text-white/40">#{{ org_context.global_rank }} <span class="text-white/25">Global</span></span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# ── Stats Grid ── #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="rounded-2xl border border-line bg-card p-4 text-center">
+            <div class="text-2xl font-black">{{ current_roster_size }}</div>
+            <div class="text-xs text-white/60 mt-1">Members</div>
+        </div>
+        <div class="rounded-2xl border border-line bg-card p-4 text-center">
+            <div class="text-2xl font-black">{{ pending_invites.count }}</div>
+            <div class="text-xs text-white/60 mt-1">Pending Invites</div>
+        </div>
+        <div class="rounded-2xl border border-line bg-card p-4 text-center">
+            <div class="text-2xl font-black">{{ join_request_count }}</div>
+            <div class="text-xs text-white/60 mt-1">Join Requests</div>
+        </div>
+        <div class="rounded-2xl border border-line bg-card p-4 text-center">
+            <div class="text-2xl font-black text-white/60">—</div>
+            <div class="text-xs text-white/60 mt-1">Tournaments</div>
+        </div>
+    </div>
+
+    {# ── Tournament Readiness Indicator (Green / Yellow / Red) ── #}
+    {% with ready_captain=has_captain ready_roster=current_roster_size|default:0 ready_logo=team.logo ready_region=team.region %}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-3 flex items-center gap-2">
+            <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+            Tournament Readiness
+            {% if ready_captain and current_roster_size >= min_roster_size and ready_logo and ready_region %}
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400">READY</span>
+            {% elif ready_captain or current_roster_size >= min_roster_size %}
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-400">PARTIAL</span>
+            {% else %}
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-red-500/15 text-red-400">NOT READY</span>
+            {% endif %}
+        </h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div class="flex items-center gap-2 p-2.5 rounded-xl {% if ready_captain %}bg-emerald-500/5 border border-emerald-500/15{% else %}bg-red-500/5 border border-red-500/15{% endif %}">
+                <i data-lucide="{% if ready_captain %}check-circle{% else %}alert-circle{% endif %}" class="w-4 h-4 {% if ready_captain %}text-emerald-400{% else %}text-red-400{% endif %} shrink-0"></i>
+                <span class="text-xs {% if ready_captain %}text-emerald-400{% else %}text-red-400{% endif %}">Captain</span>
+            </div>
+            <div class="flex items-center gap-2 p-2.5 rounded-xl {% if current_roster_size >= min_roster_size %}bg-emerald-500/5 border border-emerald-500/15{% else %}bg-red-500/5 border border-red-500/15{% endif %}">
+                <i data-lucide="{% if current_roster_size >= min_roster_size %}check-circle{% else %}alert-circle{% endif %}" class="w-4 h-4 {% if current_roster_size >= min_roster_size %}text-emerald-400{% else %}text-red-400{% endif %} shrink-0"></i>
+                <span class="text-xs {% if current_roster_size >= min_roster_size %}text-emerald-400{% else %}text-red-400{% endif %}">Roster ({{ current_roster_size }}/{{ min_roster_size }})</span>
+            </div>
+            <div class="flex items-center gap-2 p-2.5 rounded-xl {% if ready_logo %}bg-emerald-500/5 border border-emerald-500/15{% else %}bg-amber-500/5 border border-amber-500/15{% endif %}">
+                <i data-lucide="{% if ready_logo %}check-circle{% else %}circle{% endif %}" class="w-4 h-4 {% if ready_logo %}text-emerald-400{% else %}text-amber-400{% endif %} shrink-0"></i>
+                <span class="text-xs {% if ready_logo %}text-emerald-400{% else %}text-amber-400{% endif %}">Logo</span>
+            </div>
+            <div class="flex items-center gap-2 p-2.5 rounded-xl {% if ready_region %}bg-emerald-500/5 border border-emerald-500/15{% else %}bg-amber-500/5 border border-amber-500/15{% endif %}">
+                <i data-lucide="{% if ready_region %}check-circle{% else %}circle{% endif %}" class="w-4 h-4 {% if ready_region %}text-emerald-400{% else %}text-amber-400{% endif %} shrink-0"></i>
+                <span class="text-xs {% if ready_region %}text-emerald-400{% else %}text-amber-400{% endif %}">Region</span>
+            </div>
+        </div>
+    </div>
+    {% endwith %}
+
+    {# ── Team Health Bar (Dynamic & Smart) ── #}
+    {% with has_logo=team.logo has_banner=team.banner has_desc=team.description has_social=team.twitter_url|default:team.instagram_url|default:team.youtube_url|default:team.twitch_url has_region=team.region has_discord=team.discord_url %}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-3 flex items-center gap-2">
+            <i data-lucide="heart-pulse" class="w-4 h-4 text-rose-400"></i>
+            Team Health
+            <span id="health-grade" class="text-[10px] px-2 py-0.5 rounded-full font-bold ml-1"></span>
+        </h2>
+        <div class="space-y-2">
+            {# Progress bar #}
+            <div class="flex items-center justify-between text-xs text-white/50 mb-1">
+                <span>Overall readiness</span>
+                <span class="font-semibold text-white/80" id="health-pct"></span>
+            </div>
+            <div class="h-2.5 rounded-full bg-white/10 overflow-hidden">
+                <div id="health-bar" class="h-full rounded-full transition-all duration-700" style="width:0%"></div>
+            </div>
+
+            {# Smart Checklist — Profile, Roster, Competition, Comms #}
+            <div class="mt-4 space-y-1">
+                <p class="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-2">Profile</p>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                    <div class="flex items-center gap-2 text-xs p-1.5 rounded-lg {% if has_logo %}text-emerald-400 bg-emerald-500/5{% else %}text-white/30{% endif %}">
+                        <i data-lucide="{% if has_logo %}check-circle{% else %}circle{% endif %}" class="w-3.5 h-3.5 shrink-0"></i>
+                        Logo
+                    </div>
+                    <div class="flex items-center gap-2 text-xs p-1.5 rounded-lg {% if has_banner %}text-emerald-400 bg-emerald-500/5{% else %}text-white/30{% endif %}">
+                        <i data-lucide="{% if has_banner %}check-circle{% else %}circle{% endif %}" class="w-3.5 h-3.5 shrink-0"></i>
+                        Banner
+                    </div>
+                    <div class="flex items-center gap-2 text-xs p-1.5 rounded-lg {% if has_desc %}text-emerald-400 bg-emerald-500/5{% else %}text-white/30{% endif %}">
+                        <i data-lucide="{% if has_desc %}check-circle{% else %}circle{% endif %}" class="w-3.5 h-3.5 shrink-0"></i>
+                        Description
+                    </div>
+                    <div class="flex items-center gap-2 text-xs p-1.5 rounded-lg {% if has_social %}text-emerald-400 bg-emerald-500/5{% else %}text-white/30{% endif %}">
+                        <i data-lucide="{% if has_social %}check-circle{% else %}circle{% endif %}" class="w-3.5 h-3.5 shrink-0"></i>
+                        Social links
+                    </div>
+                    <div class="flex items-center gap-2 text-xs p-1.5 rounded-lg {% if has_region %}text-emerald-400 bg-emerald-500/5{% else %}text-white/30{% endif %}">
+                        <i data-lucide="{% if has_region %}check-circle{% else %}circle{% endif %}" class="w-3.5 h-3.5 shrink-0"></i>
+                        Region
+                    </div>
+                </div>
+
+                <p class="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-2 mt-3">Roster & Competition</p>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                    <div class="flex items-center gap-2 text-xs p-1.5 rounded-lg {% if current_roster_size >= min_roster_size %}text-emerald-400 bg-emerald-500/5{% else %}text-red-400 bg-red-500/5{% endif %}">
+                        <i data-lucide="{% if current_roster_size >= min_roster_size %}check-circle{% else %}alert-circle{% endif %}" class="w-3.5 h-3.5 shrink-0"></i>
+                        Min roster ({{ current_roster_size }}/{{ min_roster_size }})
+                    </div>
+                    <div class="flex items-center gap-2 text-xs p-1.5 rounded-lg {% if has_captain %}text-emerald-400 bg-emerald-500/5{% else %}text-amber-400 bg-amber-500/5{% endif %}">
+                        <i data-lucide="{% if has_captain %}check-circle{% else %}circle{% endif %}" class="w-3.5 h-3.5 shrink-0"></i>
+                        Captain ⭐
+                    </div>
+                    <div class="flex items-center gap-2 text-xs p-1.5 rounded-lg {% if has_staff %}text-emerald-400 bg-emerald-500/5{% else %}text-white/30{% endif %}">
+                        <i data-lucide="{% if has_staff %}check-circle{% else %}circle{% endif %}" class="w-3.5 h-3.5 shrink-0"></i>
+                        Staff/Coach
+                    </div>
+                </div>
+
+                <p class="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-2 mt-3">Communication</p>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                    <div class="flex items-center gap-2 text-xs p-1.5 rounded-lg {% if has_discord %}text-emerald-400 bg-emerald-500/5{% else %}text-red-400 bg-red-500/5{% endif %}">
+                        <i data-lucide="{% if has_discord %}check-circle{% else %}alert-circle{% endif %}" class="w-3.5 h-3.5 shrink-0"></i>
+                        Discord{% if not has_discord %} (required){% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function() {
+            var score = 0, total = 9, critical = 0;
+            // Profile (5 items)
+            if ({{ has_logo|yesno:"true,false" }}) score++;
+            if ({{ has_banner|yesno:"true,false" }}) score++;
+            if ({{ has_desc|yesno:"true,false" }}) score++;
+            if ({{ has_social|yesno:"true,false" }}) score++;
+            if ({{ has_region|yesno:"true,false" }}) score++;
+            // Roster & Competition (2 items + 1 bonus)
+            var rosterMet = {{ current_roster_size }} >= {{ min_roster_size }};
+            if (rosterMet) score++; else critical++;
+            if ({{ has_captain|yesno:"true,false" }}) score++; else critical++;
+            if ({{ has_staff|yesno:"true,false" }}) score++;
+            // Communication (1 item)
+            if ({{ has_discord|yesno:"true,false" }}) score++; else critical++;
+
+            var pct = Math.round((score / total) * 100);
+            var bar = document.getElementById('health-bar');
+            var txt = document.getElementById('health-pct');
+            var grade = document.getElementById('health-grade');
+
+            // Gradient colors based on score
+            var gradientClass, gradeText, gradeColorClass;
+            if (pct >= 90) { gradientClass = 'bg-gradient-to-r from-emerald-500 to-emerald-400'; gradeText = 'A+'; gradeColorClass = 'bg-emerald-500/15 text-emerald-400'; }
+            else if (pct >= 75) { gradientClass = 'bg-gradient-to-r from-emerald-500 to-lime-400'; gradeText = 'A'; gradeColorClass = 'bg-emerald-500/15 text-emerald-400'; }
+            else if (pct >= 60) { gradientClass = 'bg-gradient-to-r from-lime-500 to-yellow-400'; gradeText = 'B'; gradeColorClass = 'bg-lime-500/15 text-lime-400'; }
+            else if (pct >= 40) { gradientClass = 'bg-gradient-to-r from-amber-500 to-orange-400'; gradeText = 'C'; gradeColorClass = 'bg-amber-500/15 text-amber-400'; }
+            else { gradientClass = 'bg-gradient-to-r from-red-500 to-orange-500'; gradeText = 'D'; gradeColorClass = 'bg-red-500/15 text-red-400'; }
+            if (critical > 0 && pct > 40) { gradeText += ' ⚠'; }
+
+            if (bar) { bar.className = 'h-full rounded-full transition-all duration-700 ' + gradientClass; setTimeout(function() { bar.style.width = pct + '%'; }, 100); }
+            if (txt) txt.textContent = pct + '%';
+            if (grade) { grade.textContent = gradeText; grade.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold ml-1 ' + gradeColorClass; }
+        })();
+    </script>
+    {% endwith %}
+
+    {# ── Attention Required (Dynamic Smart Alerts) ── #}
+    {% if not team.logo or not team.banner or current_roster_size < min_roster_size or not has_captain or not team.discord_url or not team.region or not team.description %}
+    <div class="rounded-3xl border border-amber-500/20 bg-amber-500/5 shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-3 flex items-center gap-2 text-amber-400">
+            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+            Attention Required
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold" id="alert-count"></span>
+        </h2>
+        <div class="space-y-2" id="attention-alerts">
+            {# Critical issues (red) #}
+            {% if current_roster_size < min_roster_size %}
+            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-red-500/8 border border-red-500/15 text-sm" data-severity="critical">
+                <i data-lucide="alert-circle" class="w-4 h-4 text-red-400 shrink-0"></i>
+                <span class="flex-1 text-white/70">Roster below minimum (<strong class="text-red-400">{{ current_roster_size }}/{{ min_roster_size }}</strong>)</span>
+                <button onclick="ManageHQ.openInviteModal()" class="text-xs text-red-400 hover:underline shrink-0">Invite →</button>
+            </div>
+            {% endif %}
+            {% if not has_captain %}
+            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-red-500/8 border border-red-500/15 text-sm" data-severity="critical">
+                <i data-lucide="alert-circle" class="w-4 h-4 text-red-400 shrink-0"></i>
+                <span class="flex-1 text-white/70">No captain designated — tournament check-ins will fail</span>
+                <button onclick="window.location.hash='#roster'" class="text-xs text-red-400 hover:underline shrink-0">Fix →</button>
+            </div>
+            {% endif %}
+            {% if not team.discord_url %}
+            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-red-500/8 border border-red-500/15 text-sm" data-severity="critical">
+                <i data-lucide="alert-circle" class="w-4 h-4 text-red-400 shrink-0"></i>
+                <span class="flex-1 text-white/70">Discord server not linked — required for team comms</span>
+                <button onclick="setActiveRoute('profile')" class="text-xs text-red-400 hover:underline shrink-0">Set Up →</button>
+            </div>
+            {% endif %}
+
+            {# Warnings (amber) #}
+            {% if not team.logo %}
+            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 text-sm" data-severity="warning">
+                <i data-lucide="image" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <span class="flex-1 text-white/70">No team logo — required for tournaments</span>
+                <button onclick="setActiveRoute('profile')" class="text-xs text-amber-400 hover:underline shrink-0">Upload →</button>
+            </div>
+            {% endif %}
+            {% if not team.banner %}
+            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 text-sm" data-severity="warning">
+                <i data-lucide="panorama" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <span class="flex-1 text-white/70">No banner image — brands your team page</span>
+                <button onclick="setActiveRoute('profile')" class="text-xs text-amber-400 hover:underline shrink-0">Upload →</button>
+            </div>
+            {% endif %}
+            {% if not team.region %}
+            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 text-sm" data-severity="warning">
+                <i data-lucide="map-pin" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <span class="flex-1 text-white/70">Region not set — affects tournament eligibility</span>
+                <button onclick="setActiveRoute('settings')" class="text-xs text-amber-400 hover:underline shrink-0">Set →</button>
+            </div>
+            {% endif %}
+            {% if not team.description %}
+            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 text-sm" data-severity="warning">
+                <i data-lucide="file-text" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <span class="flex-1 text-white/70">No team description — helps attract recruits</span>
+                <button onclick="setActiveRoute('profile')" class="text-xs text-amber-400 hover:underline shrink-0">Add →</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        (function() {
+            var alerts = document.querySelectorAll('#attention-alerts > div');
+            var badge = document.getElementById('alert-count');
+            if (badge) badge.textContent = alerts.length;
+        })();
+    </script>
+    {% endif %}
+
+    {# ── Quick Action Bar ── #}
+    {% if can_manage_roster %}
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <button onclick="ManageHQ.openInviteModal()"
+            class="rounded-2xl border border-line bg-card hover:bg-card2 transition p-4 flex flex-col items-center gap-2 group cursor-pointer">
+            <div class="h-10 w-10 rounded-xl bg-emerald-500/15 text-emerald-400 grid place-items-center group-hover:scale-110 transition-transform">
+                <i data-lucide="user-plus" class="w-5 h-5"></i>
+            </div>
+            <span class="text-xs font-medium">Invite Player</span>
+        </button>
+        <a href="#" data-discord-chat="true" data-team-slug="{{ team.slug }}"
+            onclick="setActiveRoute('discord'); return false;"
+            class="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500/10 transition p-4 flex flex-col items-center gap-2 group cursor-pointer">
+            <div class="h-10 w-10 rounded-xl bg-indigo-500/15 text-indigo-400 grid place-items-center group-hover:scale-110 transition-transform">
+                <i data-lucide="message-circle" class="w-5 h-5"></i>
+            </div>
+            <span class="text-xs font-medium text-indigo-400">Discord</span>
+        </a>
+        <button onclick="setActiveRoute('roster')"
+            class="rounded-2xl border border-line bg-card hover:bg-card2 transition p-4 flex flex-col items-center gap-2 group cursor-pointer">
+            <div class="h-10 w-10 rounded-xl bg-blue-500/15 text-blue-400 grid place-items-center group-hover:scale-110 transition-transform">
+                <i data-lucide="users" class="w-5 h-5"></i>
+            </div>
+            <span class="text-xs font-medium">Manage Roster</span>
+        </button>
+        <button onclick="setActiveRoute('competition')"
+            class="rounded-2xl border border-line bg-card hover:bg-card2 transition p-4 flex flex-col items-center gap-2 group cursor-pointer">
+            <div class="h-10 w-10 rounded-xl bg-amber-500/15 text-amber-400 grid place-items-center group-hover:scale-110 transition-transform">
+                <i data-lucide="trophy" class="w-5 h-5"></i>
+            </div>
+            <span class="text-xs font-medium">Competitions</span>
+        </button>
+        <button onclick="setActiveRoute('profile')"
+            class="rounded-2xl border border-line bg-card hover:bg-card2 transition p-4 flex flex-col items-center gap-2 group cursor-pointer">
+            <div class="h-10 w-10 rounded-xl bg-purple-500/15 text-purple-400 grid place-items-center group-hover:scale-110 transition-transform">
+                <i data-lucide="palette" class="w-5 h-5"></i>
+            </div>
+            <span class="text-xs font-medium">Edit Profile</span>
+        </button>
+    </div>
+    {% endif %}
+
+    {# ── Pending Actions ── #}
+    {% if join_requests or pending_invites %}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold flex items-center gap-2">
+            <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i>
+            Pending Actions
+        </h2>
+
+        {% if join_requests %}
+        <div class="mt-4" data-jr-section>
+            <h3 class="text-sm font-semibold text-white/70 mb-2 flex items-center gap-2">
+                Join Requests
+                <span id="jr-count-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">{{ join_request_count }}</span>
+            </h3>
+            <div class="space-y-2">
+                {% for jr in join_requests %}
+                <div id="jr-{{ jr.id }}" class="rounded-xl border border-line bg-white/5 p-3 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="h-9 w-9 rounded-lg bg-white/10 grid place-items-center text-xs font-bold shrink-0">
+                            {% if jr.applicant.avatar %}
+                            <img src="{{ jr.applicant.avatar.url }}" alt="" class="w-full h-full object-cover rounded-lg">
+                            {% else %}
+                            {{ jr.applicant.user.username|slice:":1"|upper }}
+                            {% endif %}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold truncate">{{ jr.applicant.user.username }}</div>
+                            <div class="text-xs text-white/40 truncate">{{ jr.created_at|timesince }} ago{% if jr.message %} · "{{ jr.message|truncatewords:8 }}"{% endif %}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0 ml-2">
+                        <button onclick="ManageHQ.handleJoinRequest({{ jr.id }}, 'approve', this)"
+                            class="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition font-medium">
+                            Approve
+                        </button>
+                        <button onclick="ManageHQ.handleJoinRequest({{ jr.id }}, 'reject', this)"
+                            class="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition font-medium">
+                            Reject
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if pending_invites %}
+        <div class="mt-4" id="pending-invites-section">
+            <h3 class="text-sm font-semibold text-white/70 mb-2">Pending Invites ({{ pending_invites.count }})</h3>
+            <div class="space-y-1" id="pending-invites-list">
+                {% for invite in pending_invites|slice:":5" %}
+                <div id="invite-{{ invite.id }}" class="rounded-lg border border-line bg-white/5 p-2 px-3 flex items-center justify-between text-sm">
+                    <span>
+                        <span class="font-medium">{{ invite.invited_user.username|default:invite.invited_email }}</span>
+                        <span class="text-white/40 ml-1">{{ invite.created_at|timesince }} ago</span>
+                    </span>
+                    <button onclick="ManageHQ.cancelInvite({{ invite.id }}, this)"
+                        class="text-xs text-red-400 hover:text-red-300 transition">Cancel</button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# ── Team Overview ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-4">Team Overview</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
+            <div class="flex justify-between items-center py-2.5 border-b border-white/8">
+                <span class="text-sm text-white/50">Team Name</span>
+                <span class="text-sm font-semibold">{{ team.name }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2.5 border-b border-white/8">
+                <span class="text-sm text-white/50">Tag</span>
+                <span class="text-sm font-semibold">[{{ team.tag }}]</span>
+            </div>
+            <div class="flex justify-between items-center py-2.5 border-b border-white/8">
+                <span class="text-sm text-white/50">Game</span>
+                <span class="text-sm font-semibold">{{ game_display }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2.5 border-b border-white/8">
+                <span class="text-sm text-white/50">Region</span>
+                <span class="text-sm font-semibold">{{ team.region|default:"Not set" }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2.5 border-b border-white/8">
+                <span class="text-sm text-white/50">Status</span>
+                <span class="text-xs px-2.5 py-1 rounded-full font-medium {% if team.status == 'ACTIVE' %}bg-emerald-500/15 text-emerald-400{% else %}bg-red-500/15 text-red-400{% endif %}">
+                    {% if team.status == 'ACTIVE' %}Active{% else %}{{ team.status|title }}{% endif %}
+                </span>
+            </div>
+            <div class="flex justify-between items-center py-2.5 border-b border-white/8">
+                <span class="text-sm text-white/50">Visibility</span>
+                <span class="text-xs px-2.5 py-1 rounded-full font-medium bg-white/10 text-white/50">
+                    {{ team.visibility|default:"PUBLIC"|title }}
+                </span>
+            </div>
+            <div class="flex justify-between items-center py-2.5 border-b border-white/8">
+                <span class="text-sm text-white/50">Roster</span>
+                <span class="text-sm font-semibold">{{ current_roster_size }} / {{ max_roster_size }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2.5 border-b border-white/8">
+                <span class="text-sm text-white/50">Founded</span>
+                <span class="text-sm font-semibold">{{ team.created_at|date:"M d, Y" }}</span>
+            </div>
+        </div>
+    </div>
+
+    {# ── Recent Activity ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+            <i data-lucide="activity" class="w-4 h-4 text-blue-400"></i>
+            Recent Activity
+            <span class="text-[10px] text-white/30 font-normal ml-auto">Live Feed</span>
+        </h2>
+        <div id="activity-feed">
+            <div class="text-center py-6">
+                <div class="animate-spin h-5 w-5 border-2 border-white/20 border-t-teal-400 rounded-full mx-auto"></div>
+                <p class="text-xs text-white/30 mt-2">Loading activity…</p>
+            </div>
+        </div>
+    </div>
+
+</section>

@@ -3,7 +3,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
-from apps.teams.models import Team, TeamMembership, TeamInvite
+from apps.organizations.models import Team, TeamMembership, TeamInvite
 
 
 def _profile_for(user):
@@ -73,7 +73,7 @@ def test_invite_accept_sets_membership_active(django_user_model):
 
 @pytest.mark.django_db
 def test_invite_respects_roster_limit(django_user_model, settings):
-    from apps.teams.models import TEAM_MAX_ROSTER
+    from apps.organizations.models import TEAM_MAX_ROSTER
     cap_u = django_user_model.objects.create_user("cap5", "cap5@example.com", "pass")
     cap_p = _profile_for(cap_u)
     t = Team.objects.create(name="Roster", tag="RST", captain=cap_p)

@@ -19,7 +19,7 @@ from datetime import timedelta
 
 from apps.tournaments.models import Tournament, Registration
 from apps.tournaments.services import RegistrationService
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 from apps.user_profile.models import UserProfile
 
 User = get_user_model()

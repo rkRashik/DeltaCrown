@@ -378,10 +378,10 @@ def check_achievements_on_social_link(sender, instance, created, **kwargs):
         check_profile_achievements(instance.user)
 
 
-@receiver(post_save, sender='teams.TeamMembership')
+@receiver(post_save, sender='organizations.TeamMembership')
 def check_achievements_on_team_join(sender, instance, created, **kwargs):
     """Check social achievements when joining a team"""
-    if created and instance.status == 'active':
+    if created and instance.status == 'ACTIVE':
         from apps.user_profile.services.achievement_service import check_social_achievements
         check_social_achievements(instance.user)
 

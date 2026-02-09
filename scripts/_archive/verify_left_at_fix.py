@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'deltacrown.settings')
 django.setup()
 
-from apps.teams.models import TeamMembership
+from apps.organizations.models import TeamMembership
 from django.db import connection
 
 print("=" * 70)
@@ -25,18 +25,18 @@ cursor.execute("""
 """)
 result = cursor.fetchone()
 if result:
-    print(f"✓ Column exists: {result[0]} ({result[1]}, nullable={result[2]})")
+    print(f"âœ“ Column exists: {result[0]} ({result[1]}, nullable={result[2]})")
 else:
-    print("✗ Column missing")
+    print("âœ— Column missing")
     sys.exit(1)
 
 # Test 2: ORM can access the field
 try:
     # This will fail if column doesn't exist
     count = TeamMembership.objects.filter(left_at__isnull=True).count()
-    print(f"✓ ORM query successful: {count} memberships with left_at=NULL")
+    print(f"âœ“ ORM query successful: {count} memberships with left_at=NULL")
 except Exception as e:
-    print(f"✗ ORM query failed: {e}")
+    print(f"âœ— ORM query failed: {e}")
     sys.exit(1)
 
 # Test 3: Index exists
@@ -49,9 +49,9 @@ cursor.execute("""
 """)
 result = cursor.fetchone()
 if result:
-    print(f"✓ Index exists: {result[0]}")
+    print(f"âœ“ Index exists: {result[0]}")
 else:
-    print("✗ Index missing (non-critical)")
+    print("âœ— Index missing (non-critical)")
 
 print("\n" + "=" * 70)
 print("VERIFICATION: PASS")

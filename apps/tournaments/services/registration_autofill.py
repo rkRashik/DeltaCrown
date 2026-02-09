@@ -326,11 +326,11 @@ class RegistrationAutoFillService:
         
         # Captain Info
         try:
-            from apps.teams.models import TeamMember
-            captain = TeamMember.objects.filter(
+            from apps.organizations.models import TeamMembership
+            captain = TeamMembership.objects.filter(
                 team=team,
-                role='captain',
-                is_active=True
+                role='OWNER',
+                status='ACTIVE'
             ).first()
             
             if captain:
@@ -360,7 +360,7 @@ class RegistrationAutoFillService:
         
         # Roster (team members)
         try:
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
             members = TeamMembership.objects.filter(
                 team=team,
                 is_active=True

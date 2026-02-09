@@ -1010,40 +1010,39 @@ window.closeFollowingModal = function() {
 };
 
 // Followers/Following functions removed (2026-01-22) - using external follow-modal-system.js instead
+
+// Bounty Modal Functions
+window.openBountyModal = function(title, reward) {
+    const modal = document.getElementById('modal-bounty-challenge');
+    const modalContent = document.getElementById('modal-bounty-content');
     
-    // Bounty Modal Functions
-    window.openBountyModal = function(title, reward) {
-        const modal = document.getElementById('modal-bounty-challenge');
-        const modalContent = document.getElementById('modal-bounty-content');
-        
-        if (!modal || !modalContent) return;
-        
-        document.getElementById('modal-bounty-title').innerText = title || 'Contract';
-        document.getElementById('modal-bounty-reward').innerText = (reward || 0) + ' DC';
-        
-        modal.classList.remove('hidden');
-        // Slight delay for animation
-        setTimeout(() => {
-            modal.classList.remove('opacity-0');
-            modalContent.classList.remove('scale-95');
-            modalContent.classList.add('scale-100');
-        }, 10);
-    };
+    if (!modal || !modalContent) return;
     
-    window.closeBountyModal = function() {
-        const modal = document.getElementById('modal-bounty-challenge');
-        const modalContent = document.getElementById('modal-bounty-content');
-        
-        if (!modal || !modalContent) return;
-        
-        modal.classList.add('opacity-0');
-        modalContent.classList.add('scale-95');
-        modalContent.classList.remove('scale-100');
-        setTimeout(() => {
-            modal.classList.add('hidden');
-        }, 300);
-    };
-});
+    document.getElementById('modal-bounty-title').innerText = title || 'Contract';
+    document.getElementById('modal-bounty-reward').innerText = (reward || 0) + ' DC';
+    
+    modal.classList.remove('hidden');
+    // Slight delay for animation
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
+    }, 10);
+};
+
+window.closeBountyModal = function() {
+    const modal = document.getElementById('modal-bounty-challenge');
+    const modalContent = document.getElementById('modal-bounty-content');
+    
+    if (!modal || !modalContent) return;
+    
+    modal.classList.add('opacity-0');
+    modalContent.classList.add('scale-95');
+    modalContent.classList.remove('scale-100');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+};
 </script>
 
 <!-- Follow System V2 Modal HTML -->
@@ -1087,4 +1086,3 @@ window.closeFollowingModal = function() {
 <script src="{% static 'siteui/js/follow-modal-system.js' %}"></script>
 
 {% endblock %}
-T h u r s d a y ,   J a n u a r y   1 5 ,   2 0 2 6   1 : 0 0 : 2 5   P M 

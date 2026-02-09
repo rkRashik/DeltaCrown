@@ -125,7 +125,7 @@ class TournamentListView(ListView):
         if self.request.user.is_authenticated:
             from apps.tournaments.models import Registration
             from apps.user_profile.models import UserProfile
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
             
             # Get user's direct registrations
             user_registrations = Registration.objects.filter(
@@ -436,7 +436,7 @@ class TournamentDetailView(DetailView):
         - is_organizer: Whether user is organizer
         """
         from apps.tournaments.models import Registration
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         
         # Base queryset - only non-deleted, non-cancelled, non-rejected registrations
         registrations_qs = Registration.objects.filter(
@@ -458,20 +458,20 @@ class TournamentDetailView(DetailView):
                 # Get team data (Team model uses IntegerField for team_id)
                 try:
                     team = Team.objects.prefetch_related(
-                        'memberships__profile'
+                        'vnext_memberships__user__profile'
                     ).get(id=reg.team_id)
                 except Team.DoesNotExist:
                     continue
                 
                 # Build roster summary
-                active_members = team.memberships.filter(
+                active_members = team.vnext_memberships.filter(
                     status='ACTIVE'
-                ).select_related('profile', 'profile__user')
+                ).select_related('user', 'user__profile')
                 
                 roster_summary = []
                 for membership in active_members[:3]:  # Show first 3 members
                     roster_summary.append({
-                        'name': membership.profile.display_name or membership.profile.user.username,
+                        'name': membership.user.profile.display_name if hasattr(membership.user, 'profile') else membership.user.username,
                         'role': membership.get_role_display(),
                     })
                 
@@ -479,7 +479,7 @@ class TournamentDetailView(DetailView):
                 is_current_user_team = False
                 if user.is_authenticated:
                     is_current_user_team = active_members.filter(
-                        profile__user=user
+                        user=user
                     ).exists()
                     if is_current_user_team:
                         current_user_registration = reg
@@ -492,7 +492,7 @@ class TournamentDetailView(DetailView):
                     if ranking and ranking.final_total > 0:
                         # Calculate rank
                         teams_above = TeamRankingBreakdown.objects.filter(
-                            team__game=team.game,
+                            team__game_id=team.game_id,
                             final_total__gt=ranking.final_total
                         ).count()
                         team_rank = teams_above + 1
@@ -514,7 +514,7 @@ class TournamentDetailView(DetailView):
                     'rank': team_rank,
                     'roster_count': active_members.count(),
                     'roster_summary': roster_summary,
-                    'sub_label': f"{active_members.count()} players" + (f" · {team.region}" if team.region else ""),
+                    'sub_label': f"{active_members.count()} players" + (f" Â· {team.region}" if team.region else ""),
                     'status': reg.status,
                     'checked_in': reg.checked_in,
                     'registered_at': reg.registered_at,
@@ -553,7 +553,7 @@ class TournamentDetailView(DetailView):
                     'avatar': profile.avatar.url if profile and profile.avatar else None,
                     'game_id': game_id,
                     'region': region,
-                    'sub_label': "Solo player" + (f" · {region}" if region else ""),
+                    'sub_label': "Solo player" + (f" Â· {region}" if region else ""),
                     'status': reg.status,
                     'checked_in': reg.checked_in,
                     'registered_at': reg.registered_at,
@@ -589,7 +589,7 @@ class TournamentDetailView(DetailView):
         - matches: list of match dicts with UI-friendly attributes
         """
         from apps.tournaments.models import Match, Group
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         from django.utils import timezone
         
         # Fetch all matches for this tournament
@@ -680,7 +680,7 @@ class TournamentDetailView(DetailView):
             if phase == 'group_stage' and group_name:
                 stage_label = f"Group {group_name}"
                 if match.round_number:
-                    stage_label += f" – Round {match.round_number}"
+                    stage_label += f" â€“ Round {match.round_number}"
             elif phase == 'knockout_stage' and round_label:
                 stage_label = round_label
             elif match.round_number:
@@ -692,7 +692,7 @@ class TournamentDetailView(DetailView):
             # Format start time
             start_time_display = ''
             if match.scheduled_time:
-                start_time_display = match.scheduled_time.strftime('%b %d · %H:%M')
+                start_time_display = match.scheduled_time.strftime('%b %d Â· %H:%M')
             
             # Resolve participant names and logos
             p1_name = 'TBD'
@@ -917,7 +917,7 @@ class TournamentDetailView(DetailView):
             # Single-stage tournaments: Build simplified standings from matches or registrations
             # For now, use a basic aggregation from Registration model
             from apps.tournaments.models import Registration, Match
-            from apps.teams.models import Team
+            from apps.organizations.models import Team
             
             registrations = Registration.objects.filter(
                 tournament=tournament,

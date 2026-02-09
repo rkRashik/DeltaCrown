@@ -198,10 +198,10 @@ def delete_passport(request, passport_id):
         logger.info(f"Attempting to delete passport {passport_id} for user {request.user.id}, game: {game_slug}")
         
         # Check if user is in an active team using this game
-        from apps.teams.models import TeamMembership
+        from apps.organizations.models import TeamMembership
         active_team = TeamMembership.objects.filter(
-            profile__user=request.user,
-            team__game=game_slug,
+            user=request.user,
+            team__game_id=passport.game_id,
             status=TeamMembership.Status.ACTIVE
         ).select_related('team').first()
         

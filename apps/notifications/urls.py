@@ -17,6 +17,9 @@ urlpatterns = [
     # Follow request inline actions
     path("api/follow-request/<int:request_id>/accept/", views.accept_follow_request_inline, name="accept_follow_request_inline"),
     path("api/follow-request/<int:request_id>/reject/", views.reject_follow_request_inline, name="reject_follow_request_inline"),
+    # Team invite inline actions (from bell dropdown / dashboard)
+    path("api/team-invite/<int:invite_id>/accept/", views.accept_team_invite_inline, name="accept_team_invite_inline"),
+    path("api/team-invite/<int:invite_id>/decline/", views.decline_team_invite_inline, name="decline_team_invite_inline"),
     # SSE endpoint for live updates
     path("stream/", notification_stream, name="stream"),
 ]

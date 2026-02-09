@@ -549,8 +549,8 @@ class AboutSettingsForm(forms.ModelForm):
             'profile_story',
             'competitive_goal',  # UP.3 HOTFIX #3
             
-            # Primary Team & Game
-            'primary_team',
+            # Primary Game (primary_team EXCLUDED — FK still targets legacy
+            # teams.Team; handled via separate hidden field + JS instead)
             'primary_game',
             
             # Competitive DNA
@@ -585,6 +585,10 @@ class AboutSettingsForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # primary_team is excluded from Meta.fields (FK mismatch with
+        # legacy teams.Team), so no override needed here.
+
         # Set initial value for communication_languages from JSON field
         if self.instance and self.instance.pk:
             languages = self.instance.communication_languages
@@ -600,7 +604,7 @@ class AboutSettingsForm(forms.ModelForm):
                     self.initial['communication_languages'] = []
             else:
                 self.initial['communication_languages'] = []
-    
+
     def clean_communication_languages(self):
         """
         Phase 4C.3: MultipleChoiceField returns list of selected languages.
@@ -625,17 +629,9 @@ class AboutSettingsForm(forms.ModelForm):
         return goal
     
     def clean(self):
-        """UP.3 EXTENSION: Validate primary_team/game consistency"""
+        """UP.3 EXTENSION: Validate about tab fields."""
         cleaned_data = super().clean()
-        primary_team = cleaned_data.get('primary_team')
-        primary_game = cleaned_data.get('primary_game')
-        
-        # If team is set, game must match team's game
-        if primary_team and primary_game:
-            if hasattr(primary_team, 'game') and primary_team.game != primary_game:
-                self.add_error('primary_game', 
-                    f'Primary game must match your primary team\'s game ({primary_team.game.display_name if hasattr(primary_team, "game") else "team game"}). Clear your team selection to choose a different game.')
-        
+        # primary_team excluded from form — no cross-validation needed
         return cleaned_data
 
 

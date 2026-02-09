@@ -117,7 +117,7 @@ def is_team_match_participant(user: User, match) -> tuple[bool, Optional[str]]:
     Looks up tournament registration to verify team roster membership.
     """
     from apps.tournaments.models import Registration
-    from apps.teams.models import TeamMembership
+    from apps.organizations.models import TeamMembership
     
     # Get team IDs for this match
     # Note: For team matches, participant1_id and participant2_id are team IDs
@@ -165,7 +165,7 @@ def get_eligible_teammates(user: User, match) -> List[User]:
         return []
     
     # Get user's team in this match
-    from apps.teams.models import TeamMembership
+    from apps.organizations.models import TeamMembership
     
     team_a_id = match.participant1_id
     team_b_id = match.participant2_id
@@ -530,7 +530,7 @@ def get_match_participants(match) -> List[User]:
     
     if match.tournament.registration_type == 'team':
         # Team match: Get all team members
-        from apps.teams.models import TeamMembership
+        from apps.organizations.models import TeamMembership
         
         team_a_id = match.participant1_id
         team_b_id = match.participant2_id

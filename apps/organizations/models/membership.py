@@ -31,6 +31,35 @@ class TeamMembership(models.Model):
     
     Database Table: organizations_membership
     """
+
+    # ── Legacy compat aliases ──────────────────────────────────────
+    # So ``TeamMembership.Status.ACTIVE`` and ``TeamMembership.Role.OWNER``
+    # keep working across the entire codebase without touching 100+ files.
+
+    class Status:
+        """Compat bridge to MembershipStatus values."""
+        ACTIVE = 'ACTIVE'
+        INACTIVE = 'INACTIVE'
+        INVITED = 'INVITED'
+        SUSPENDED = 'SUSPENDED'
+        REMOVED = 'REMOVED'
+        PENDING = 'INVITED'  # Legacy alias → INVITED
+
+    class Role:
+        """Compat bridge to MembershipRole values."""
+        OWNER = 'OWNER'
+        MANAGER = 'MANAGER'
+        COACH = 'COACH'
+        PLAYER = 'PLAYER'
+        SUBSTITUTE = 'SUBSTITUTE'
+        ANALYST = 'ANALYST'
+        SCOUT = 'SCOUT'
+        # Legacy aliases
+        CAPTAIN = 'OWNER'            # Legacy captain → OWNER
+        SUB = 'SUBSTITUTE'           # Legacy sub → SUBSTITUTE
+        MEMBER = 'PLAYER'            # Legacy member → PLAYER
+        GENERAL_MANAGER = 'MANAGER'  # Legacy org role → MANAGER
+        TEAM_MANAGER = 'MANAGER'     # Legacy org role → MANAGER
     
     # Relationships
     team = models.ForeignKey(
@@ -88,10 +117,39 @@ class TeamMembership(models.Model):
         help_text="Game-specific tactical role (e.g., 'Duelist', 'IGL', 'AWPer')"
     )
     
+    # Roster identity (dedicated team profile overrides)
+    display_name = models.CharField(
+        max_length=80,
+        blank=True,
+        help_text="Custom display name for this team (overrides global display_name)"
+    )
+    roster_image = models.ImageField(
+        upload_to='roster_photos/',
+        blank=True,
+        null=True,
+        help_text="Dedicated roster photo for this team membership"
+    )
+    
     # Tournament captain designation
     is_tournament_captain = models.BooleanField(
         default=False,
         help_text="Designated captain for tournament admin duties (max 1 per team)"
+    )
+    
+    # Privacy settings
+    hide_ownership = models.BooleanField(
+        default=False,
+        help_text="Owner can hide ownership status from public team display"
+    )
+    
+    # Granular permission overrides
+    permissions = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=(
+            "Custom permission overrides per-member. Keys are permission strings, "
+            "values are booleans. True grants, False revokes. Merges with role defaults."
+        )
     )
     
     # Timestamps
@@ -153,17 +211,35 @@ class TeamMembership(models.Model):
         captain_badge = ' [C]' if self.is_tournament_captain else ''
         return f"{self.user.username} - {self.role} on {self.team.name}{captain_badge}"
     
+    # ── All available granular permissions ──
+    ALL_PERMISSIONS = [
+        'register_tournaments',
+        'edit_roster',
+        'edit_team',
+        'schedule_scrims',
+        'edit_toc',
+        'view_analytics',
+        'view_dashboard',
+        'view_player_stats',
+        'manage_bounties',
+        'manage_economy',
+        'manage_media',
+        'send_announcements',
+        'manage_discord',
+    ]
+    
     def get_permission_list(self):
         """
         Return list of permission strings for this membership.
         
-        Permissions are role-based and determine what actions
-        the user can perform on the team.
+        Merges role-based defaults with per-member overrides from
+        the ``permissions`` JSONField. Override ``True`` grants,
+        ``False`` revokes, absent keys fall back to role defaults.
         
         Returns:
-            list[str]: Permission strings (e.g., ['register_tournaments', 'edit_roster'])
+            list[str]: Active permission strings
         """
-        permissions = {
+        role_defaults = {
             MembershipRole.OWNER: ['ALL'],
             MembershipRole.MANAGER: [
                 'register_tournaments',
@@ -182,7 +258,27 @@ class TeamMembership(models.Model):
             MembershipRole.ANALYST: ['view_analytics'],
             MembershipRole.SCOUT: ['view_player_stats'],
         }
-        return permissions.get(self.role, [])
+        base = set(role_defaults.get(self.role, []))
+        
+        # Owners always have ALL — overrides don't apply
+        if 'ALL' in base:
+            return ['ALL']
+        
+        overrides = self.permissions or {}
+        for perm, granted in overrides.items():
+            if perm not in self.ALL_PERMISSIONS:
+                continue
+            if granted:
+                base.add(perm)
+            else:
+                base.discard(perm)
+        
+        return sorted(base)
+    
+    def has_permission(self, perm):
+        """Check if this member has a specific permission."""
+        perms = self.get_permission_list()
+        return 'ALL' in perms or perm in perms
     
     def can_manage_roster(self):
         """
@@ -244,3 +340,29 @@ class TeamMembership(models.Model):
             # Always sync organization_id (could change if team transferred)
             self.organization_id = self.team.organization_id
         super().save(*args, **kwargs)
+
+    # ─── Legacy Compatibility Properties ──────────────────────────────
+    # These bridge the API gap between legacy teams.TeamMembership (FK to
+    # UserProfile) and organizations.TeamMembership (FK to User).
+
+    @property
+    def profile(self):
+        """Legacy compat: return user's UserProfile.
+
+        Legacy code did ``membership.profile`` (FK → UserProfile).
+        vNext stores ``membership.user`` (FK → User).  This property
+        returns ``user.profile`` so migrated queries keep working.
+        """
+        try:
+            return self.user.profile
+        except Exception:
+            return None
+
+    @property
+    def is_captain(self):
+        """Legacy compat: alias for is_tournament_captain."""
+        return self.is_tournament_captain
+
+    @is_captain.setter
+    def is_captain(self, value):
+        self.is_tournament_captain = value

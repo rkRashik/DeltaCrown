@@ -86,7 +86,7 @@ class XPService:
         if leveled_up:
             profile.level = new_level
             logger.info(
-                f"User {user.username} leveled up: {old_level} → {new_level} "
+                f"User {user.username} leveled up: {old_level} â†’ {new_level} "
                 f"(+{amount} XP from {reason})"
             )
             
@@ -257,7 +257,7 @@ class XPService:
         
         if criteria_type == 'team_created':
             # Check if user is captain of any team
-            from apps.teams.models import Team
+            from apps.organizations.models import Team
             eligible = Team.objects.filter(captain=user).exists()
             return (eligible, {'type': 'team_created'})
         
@@ -358,7 +358,7 @@ def check_level_up(user):
         profile.level = correct_level
         profile.save(update_fields=['level', 'updated_at'])
         
-        logger.info(f"Corrected level for {user.username}: {old_level} → {correct_level}")
+        logger.info(f"Corrected level for {user.username}: {old_level} â†’ {correct_level}")
         
         # Check level badges
         XPService._check_level_badges(user, correct_level)

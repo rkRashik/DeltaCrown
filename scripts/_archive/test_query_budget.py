@@ -4,7 +4,7 @@ Manual Query Budget Verification for P4-T1.4 Task C
 Tests query count for team_detail_context.get_team_detail_context()
 in three scenarios: anonymous, authenticated non-member, authenticated member.
 
-Target: ≤6 queries per request
+Target: â‰¤6 queries per request
 """
 import os
 import django
@@ -17,7 +17,7 @@ from django.db import connection
 from django.contrib.auth import get_user_model
 
 from apps.organizations.services.team_detail_context import get_team_detail_context
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 from apps.organizations.models import Organization
 
 User = get_user_model()
@@ -53,7 +53,7 @@ def test_anonymous_viewer():
     # Find a team to test with
     team = Team.objects.first()
     if not team:
-        print("❌ No teams found in database")
+        print("âŒ No teams found in database")
         return
     
     print(f"Testing with team: {team.slug}")
@@ -62,13 +62,13 @@ def test_anonymous_viewer():
         context = get_team_detail_context(team_slug=team.slug, viewer=None)
     
     query_count = len(ctx.queries)
-    print(f"\n📊 Query Count: {query_count}")
+    print(f"\nðŸ“Š Query Count: {query_count}")
     print_queries(ctx.queries)
     
     if query_count <= 6:
-        print(f"\n✅ PASS: {query_count} queries (within budget of 6)")
+        print(f"\nâœ… PASS: {query_count} queries (within budget of 6)")
     else:
-        print(f"\n⚠️ FAIL: {query_count} queries (exceeds budget of 6)")
+        print(f"\nâš ï¸ FAIL: {query_count} queries (exceeds budget of 6)")
     
     return query_count
 
@@ -82,7 +82,7 @@ def test_authenticated_non_member():
     # Find a team and a user who is not a member
     team = Team.objects.first()
     if not team:
-        print("❌ No teams found in database")
+        print("âŒ No teams found in database")
         return
     
     # Get or create a test user
@@ -103,13 +103,13 @@ def test_authenticated_non_member():
         context = get_team_detail_context(team_slug=team.slug, viewer=user)
     
     query_count = len(ctx.queries)
-    print(f"\n📊 Query Count: {query_count}")
+    print(f"\nðŸ“Š Query Count: {query_count}")
     print_queries(ctx.queries)
     
     if query_count <= 6:
-        print(f"\n✅ PASS: {query_count} queries (within budget of 6)")
+        print(f"\nâœ… PASS: {query_count} queries (within budget of 6)")
     else:
-        print(f"\n⚠️ FAIL: {query_count} queries (exceeds budget of 6)")
+        print(f"\nâš ï¸ FAIL: {query_count} queries (exceeds budget of 6)")
     
     return query_count
 
@@ -123,7 +123,7 @@ def test_authenticated_member():
     # Find a team
     team = Team.objects.first()
     if not team:
-        print("❌ No teams found in database")
+        print("âŒ No teams found in database")
         return
     
     # Get or create a test user and make them a member
@@ -148,20 +148,20 @@ def test_authenticated_member():
         context = get_team_detail_context(team_slug=team.slug, viewer=user)
     
     query_count = len(ctx.queries)
-    print(f"\n📊 Query Count: {query_count}")
+    print(f"\nðŸ“Š Query Count: {query_count}")
     print_queries(ctx.queries)
     
     if query_count <= 6:
-        print(f"\n✅ PASS: {query_count} queries (within budget of 6)")
+        print(f"\nâœ… PASS: {query_count} queries (within budget of 6)")
     else:
-        print(f"\n⚠️ FAIL: {query_count} queries (exceeds budget of 6)")
+        print(f"\nâš ï¸ FAIL: {query_count} queries (exceeds budget of 6)")
     
     return query_count
 
 
 if __name__ == '__main__':
-    print("\n" + "🔍 P4-T1.4 TASK C: QUERY BUDGET VERIFICATION " + "\n")
-    print("Target: ≤6 queries per request")
+    print("\n" + "ðŸ” P4-T1.4 TASK C: QUERY BUDGET VERIFICATION " + "\n")
+    print("Target: â‰¤6 queries per request")
     print("Scenarios: Anonymous, Authenticated Non-Member, Authenticated Member")
     
     results = []
@@ -171,7 +171,7 @@ if __name__ == '__main__':
         results.append(('Non-Member', test_authenticated_non_member()))
         results.append(('Member', test_authenticated_member()))
     except Exception as e:
-        print(f"\n❌ Error during testing: {e}")
+        print(f"\nâŒ Error during testing: {e}")
         import traceback
         traceback.print_exc()
     
@@ -182,14 +182,14 @@ if __name__ == '__main__':
     
     all_passed = True
     for scenario, count in results:
-        status = "✅ PASS" if count <= 6 else "⚠️ FAIL"
+        status = "âœ… PASS" if count <= 6 else "âš ï¸ FAIL"
         print(f"{scenario:20s}: {count} queries {status}")
         if count > 6:
             all_passed = False
     
     print("\n" + "=" * 80)
     if all_passed:
-        print("✅ ALL TESTS PASSED - Query budget ≤6 for all scenarios")
+        print("âœ… ALL TESTS PASSED - Query budget â‰¤6 for all scenarios")
     else:
-        print("⚠️ SOME TESTS FAILED - Optimization needed")
+        print("âš ï¸ SOME TESTS FAILED - Optimization needed")
     print("=" * 80)

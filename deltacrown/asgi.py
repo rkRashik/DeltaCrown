@@ -25,7 +25,7 @@ django_asgi_app = get_asgi_application()
 
 # Import WebSocket routing and middleware after Django setup
 from apps.tournaments.realtime.routing import websocket_urlpatterns as tournament_ws_urls
-from apps.teams.realtime.routing import websocket_urlpatterns as team_ws_urls
+from apps.organizations.realtime.routing import websocket_urlpatterns as team_ws_urls
 from apps.tournaments.realtime.middleware import JWTAuthMiddleware
 from apps.tournaments.realtime.middleware_ratelimit import RateLimitMiddleware
 from django.conf import settings

@@ -58,8 +58,25 @@ urlpatterns = [
     path('teams/<str:slug>/members/<int:membership_id>/role/', team_manage.change_role, name='team_manage_change_role'),
     path('teams/<str:slug>/members/<int:membership_id>/remove/', team_manage.remove_member, name='team_manage_remove_member'),
     path('teams/<str:slug>/members/<int:membership_id>/status/', team_manage.change_member_status, name='team_manage_change_status'),
+    path('teams/<str:slug>/members/<int:membership_id>/roster-photo/', team_manage.upload_roster_photo, name='team_manage_roster_photo'),
     path('teams/<str:slug>/settings/', team_manage.update_settings, name='team_manage_update_settings'),
     path('teams/<str:slug>/profile/', team_manage.update_profile, name='team_manage_update_profile'),
+    path('teams/<str:slug>/owner-privacy/', team_manage.toggle_owner_privacy, name='team_manage_owner_privacy'),
+    path('teams/<str:slug>/roster/lock/', team_manage.toggle_roster_lock, name='team_manage_roster_lock'),
+    path('teams/<str:slug>/leave/', team_manage.leave_team, name='team_manage_leave'),
+    path('teams/<str:slug>/disband/', team_manage.disband_team, name='team_manage_disband'),
+    path('teams/<str:slug>/transfer-ownership/', team_manage.transfer_ownership, name='team_manage_transfer'),
+    path('teams/<str:slug>/invite-link/', team_manage.generate_invite_link, name='team_manage_invite_link'),
+    path('teams/<str:slug>/activity/', team_manage.activity_timeline, name='team_manage_activity'),
+    path('teams/<str:slug>/payment-methods/', team_manage.update_payment_methods, name='team_manage_payment_methods'),
+    
+    # Discord integration (Phase B)
+    path('teams/<str:slug>/discord/', team_manage.discord_config, name='team_discord_config'),
+    path('teams/<str:slug>/discord/save/', team_manage.discord_config_save, name='team_discord_config_save'),
+    path('teams/<str:slug>/discord/chat/', team_manage.discord_chat_messages, name='team_discord_chat'),
+    path('teams/<str:slug>/discord/chat/send/', team_manage.discord_chat_send, name='team_discord_chat_send'),
+    path('teams/<str:slug>/discord/voice/', team_manage.discord_voice_link, name='team_discord_voice'),
+    path('teams/<str:slug>/discord/test-webhook/', team_manage.discord_test_webhook, name='team_discord_test_webhook'),
     
     # User team history (Profile journey, audits)
     path('users/<int:user_id>/team-history/', user_history.user_team_history, name='user_team_history'),

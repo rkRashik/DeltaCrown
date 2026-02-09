@@ -32,11 +32,20 @@ from apps.organizations.models import (
     TeamMembership as VNextMembership,
     TeamMigrationMap,
 )
-from apps.teams.models import (
-    Team as LegacyTeam,
-    TeamMembership as LegacyMembership,
-    TeamRankingBreakdown as LegacyRanking,
-)
+
+# Legacy model imports for dual-write sync to teams_team table.
+# These resolve to the legacy teams app models (different db_table).
+# This entire service becomes a no-op once Phase B DB consolidation is done.
+try:
+    from apps.teams.models import (
+        Team as LegacyTeam,
+        TeamMembership as LegacyMembership,
+    )
+    from apps.teams.models import TeamRankingBreakdown as LegacyRanking
+except ImportError:
+    LegacyTeam = None
+    LegacyMembership = None
+    LegacyRanking = None
 from apps.teams.mixins import legacy_write_bypass
 
 User = get_user_model()
@@ -88,7 +97,7 @@ class DualWriteSyncService:
         existing_mapping = TeamMigrationMap.objects.filter(vnext_team_id=vnext_team_id).first()
         if existing_mapping:
             logger.info(
-                f"Team already synced: vNext {vnext_team_id} → Legacy {existing_mapping.legacy_team_id}",
+                f"Team already synced: vNext {vnext_team_id} â†’ Legacy {existing_mapping.legacy_team_id}",
                 extra={'vnext_team_id': vnext_team_id, 'legacy_team_id': existing_mapping.legacy_team_id}
             )
             return {
@@ -124,7 +133,7 @@ class DualWriteSyncService:
                     )
                     
                     logger.info(
-                        f"Team synced: vNext {vnext_team_id} → Legacy {legacy_team.id}",
+                        f"Team synced: vNext {vnext_team_id} â†’ Legacy {legacy_team.id}",
                         extra={
                             'vnext_team_id': vnext_team_id,
                             'legacy_team_id': legacy_team.id,
@@ -215,7 +224,7 @@ class DualWriteSyncService:
         try:
             with transaction.atomic():
                 with legacy_write_bypass(reason="dual_write_sync_membership_added"):
-                    # Map roles (vNext → Legacy)
+                    # Map roles (vNext â†’ Legacy)
                     legacy_role = self._map_role_vnext_to_legacy(vnext_membership.role)
                     
                     # Create legacy membership
@@ -227,7 +236,7 @@ class DualWriteSyncService:
                     )
                     
                     logger.info(
-                        f"Membership synced: vNext {vnext_membership_id} → Legacy {legacy_membership.id}",
+                        f"Membership synced: vNext {vnext_membership_id} â†’ Legacy {legacy_membership.id}",
                         extra={
                             'vnext_membership_id': vnext_membership_id,
                             'legacy_membership_id': legacy_membership.id,
@@ -470,7 +479,7 @@ class DualWriteSyncService:
                         legacy_ranking.save()
                     
                     logger.info(
-                        f"Ranking synced: vNext team {vnext_team_id} → Legacy ranking {legacy_ranking.team_id}",
+                        f"Ranking synced: vNext team {vnext_team_id} â†’ Legacy ranking {legacy_ranking.team_id}",
                         extra={'vnext_team_id': vnext_team_id, 'legacy_team_id': mapping.legacy_team_id}
                     )
                     

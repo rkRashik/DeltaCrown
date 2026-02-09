@@ -156,7 +156,7 @@ def create_ranking_snapshot(team, score=0, tier='UNRANKED', rank=None):
         TeamGlobalRankingSnapshot instance (if model exists)
     """
     try:
-        from apps.teams.models import TeamGlobalRankingSnapshot
+        from apps.organizations.models import TeamGlobalRankingSnapshot
         
         return TeamGlobalRankingSnapshot.objects.create(
             team=team,

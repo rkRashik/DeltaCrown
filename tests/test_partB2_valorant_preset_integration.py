@@ -6,8 +6,8 @@ from django.test import RequestFactory
 User = get_user_model()
 UserProfile = apps.get_model('user_profile', 'UserProfile')
 Tournament = apps.get_model('tournaments', 'Tournament')
-ValorantTeamPreset = apps.get_model('teams', 'ValorantTeamPreset')
-ValorantPlayerPreset = apps.get_model('teams', 'ValorantPlayerPreset')
+ValorantTeamPreset = apps.get_model('organizations', 'ValorantTeamPreset')
+ValorantPlayerPreset = apps.get_model('organizations', 'ValorantPlayerPreset')
 
 from apps.game_valorant.forms import ValorantTeamForm
 

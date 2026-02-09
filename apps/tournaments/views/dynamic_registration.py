@@ -56,7 +56,7 @@ class DynamicRegistrationView(LoginRequiredMixin, View):
         if tournament.participation_type in ['team', 'both']:
             team_id = request.GET.get('team_id')
             if team_id:
-                from apps.teams.models import Team
+                from apps.organizations.models import Team
                 team = Team.objects.filter(id=team_id).first()
         
         # Initialize form service

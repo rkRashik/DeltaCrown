@@ -452,8 +452,11 @@ class TeamGameRanking(models.Model):
     
     def update_division(self):
         """Update division based on current ELO rating."""
-        from apps.teams.constants import RankingConstants
-        for division, (min_elo, max_elo) in RankingConstants.DIVISION_THRESHOLDS.items():
+        DIVISION_THRESHOLDS = {
+            'BRONZE': (0, 999), 'SILVER': (1000, 1499), 'GOLD': (1500, 1999),
+            'PLATINUM': (2000, 2499), 'DIAMOND': (2500, 2999), 'MASTER': (3000, 9999),
+        }
+        for division, (min_elo, max_elo) in DIVISION_THRESHOLDS.items():
             if min_elo <= self.elo_rating <= max_elo:
                 self.division = division
                 break

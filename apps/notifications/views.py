@@ -140,6 +140,10 @@ def nav_preview(request):
             # Include follow_request_id for follow_request notifications
             if n.type == 'follow_request' and hasattr(n, 'action_object_id') and n.action_object_id:
                 item["follow_request_id"] = n.action_object_id
+            # Include invite_id for team invite notifications
+            if n.type == 'invite_sent' and hasattr(n, 'action_object_id') and n.action_object_id:
+                item["invite_id"] = n.action_object_id
+                item["action_type"] = getattr(n, 'action_type', '') or ''
             items.append(item)
         
         return JsonResponse({
@@ -274,3 +278,158 @@ def reject_follow_request_inline(request, request_id):
             "success": False,
             "error": str(e)
         }, status=500)
+
+
+# ---------------------------------------------------------------------------
+# Team Invite Accept / Decline (from notification bell or dashboard)
+# ---------------------------------------------------------------------------
+
+@require_POST
+@require_auth_json
+def accept_team_invite_inline(request, invite_id):
+    """
+    Accept a team invite directly from notification bell or dashboard.
+    POST /notifications/api/team-invite/<id>/accept/
+    
+    Creates a TeamMembership with ACTIVE status, marks invite as ACCEPTED,
+    and notifies the team owner.
+    """
+    from django.db import transaction
+    from django.utils import timezone as tz
+
+    try:
+        TeamInvite = apps.get_model("organizations", "TeamInvite")
+        TeamMembership = apps.get_model("organizations", "TeamMembership")
+
+        invite = get_object_or_404(TeamInvite, id=invite_id)
+
+        # Security: only the invited user can accept
+        user = _user(request.user)
+        if invite.invited_user_id != user.pk:
+            return JsonResponse({"success": False, "error": "Not authorized"}, status=403)
+
+        if invite.status != "PENDING":
+            return JsonResponse({"success": False, "error": "Invite is no longer pending."}, status=400)
+
+        if invite.expires_at and invite.expires_at < tz.now():
+            invite.status = "EXPIRED"
+            invite.save(update_fields=["status"])
+            return JsonResponse({"success": False, "error": "This invite has expired."}, status=400)
+
+        # Pre-flight: check if user already has an active independent team
+        # for this game (prevents constraint violation with clear message)
+        team = invite.team
+        if not team.organization_id:
+            existing = TeamMembership.objects.filter(
+                user=user,
+                game_id=team.game_id,
+                organization_id__isnull=True,
+                status="ACTIVE",
+            ).exclude(team=team).first()
+            if existing:
+                return JsonResponse({
+                    "success": False,
+                    "error": (
+                        f"You already have an active independent team "
+                        f"for this game ({existing.team.name}). "
+                        f"Leave that team first before accepting."
+                    ),
+                }, status=409)
+
+        with transaction.atomic():
+            # Mark invite accepted
+            invite.status = "ACCEPTED"
+            invite.responded_at = tz.now()
+            invite.save(update_fields=["status", "responded_at"])
+
+            # Create membership (or reactivate if previously removed)
+            # CRITICAL: must set game_id & organization_id for constraint enforcement
+            membership, created = TeamMembership.objects.get_or_create(
+                team=team,
+                user=user,
+                defaults={
+                    "role": invite.role,
+                    "status": "ACTIVE",
+                    "game_id": team.game_id,
+                    "organization_id": team.organization_id,
+                },
+            )
+            if not created:
+                membership.role = invite.role
+                membership.status = "ACTIVE"
+                membership.game_id = team.game_id
+                membership.organization_id = team.organization_id
+                membership.save(update_fields=["role", "status", "game_id", "organization_id"])
+
+            # Mark the related notification as read
+            Notification.objects.filter(
+                recipient=user,
+                action_object_id=invite_id,
+                action_type="team_invite",
+                is_read=False,
+            ).update(is_read=True)
+
+        # Notify team owner
+        try:
+            from apps.notifications.services import NotificationService
+            NotificationService._send_notification_multi_channel(
+                users=[team.created_by] if team.created_by else [],
+                notification_type="invite_accepted",
+                title=f"{user.username} joined your team!",
+                body=f"{user.username} accepted the invite to join {team.name} as {invite.role}.",
+                url=f"/teams/{team.slug}/",
+            )
+        except Exception:
+            pass
+
+        return JsonResponse({
+            "success": True,
+            "message": f"You joined {team.name}!",
+            "team_slug": team.slug,
+            "team_name": team.name,
+        })
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@require_POST
+@require_auth_json
+def decline_team_invite_inline(request, invite_id):
+    """
+    Decline a team invite directly from notification bell or dashboard.
+    POST /notifications/api/team-invite/<id>/decline/
+    """
+    from django.utils import timezone as tz
+
+    try:
+        TeamInvite = apps.get_model("organizations", "TeamInvite")
+
+        invite = get_object_or_404(TeamInvite, id=invite_id)
+
+        user = _user(request.user)
+        if invite.invited_user_id != user.pk:
+            return JsonResponse({"success": False, "error": "Not authorized"}, status=403)
+
+        if invite.status != "PENDING":
+            return JsonResponse({"success": False, "error": "Invite is no longer pending."}, status=400)
+
+        invite.status = "DECLINED"
+        invite.responded_at = tz.now()
+        invite.save(update_fields=["status", "responded_at"])
+
+        # Mark the related notification as read
+        Notification.objects.filter(
+            recipient=user,
+            action_object_id=invite_id,
+            action_type="team_invite",
+            is_read=False,
+        ).update(is_read=True)
+
+        return JsonResponse({
+            "success": True,
+            "message": "Invite declined.",
+        })
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)

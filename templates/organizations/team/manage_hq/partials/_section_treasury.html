@@ -1,0 +1,409 @@
+{% comment %}
+Treasury & Economy — Prize history, registration fees, wallet card, transaction log.
+Section 7.8 & 11.4 of the Master Plan. Phase 4 wired to DeltaCrownWallet context.
+Role Gating:
+  OWNER: Full view — wallet summary, prize history, transaction log, payout settings
+  MANAGER/ADMIN: Prize history, registration fees
+  COACH/PLAYER: Prize history (amounts only)
+{% endcomment %}
+<section id="treasury" class="hq-section space-y-4">
+
+    {# ── Header ── #}
+    <div class="mb-2">
+        <h2 class="text-lg font-bold flex items-center gap-2">
+            <i data-lucide="landmark" class="w-5 h-5 text-emerald-400"></i>
+            Treasury & Economy
+        </h2>
+        <p class="text-sm text-white/50 mt-0.5">Prize earnings, registration fees, and financial overview</p>
+    </div>
+
+    {# ── Prize Distribution Flow Info (Org teams) ── #}
+    {% if team.organization %}
+    <div class="rounded-2xl border border-blue-500/15 bg-blue-500/5 p-3.5 flex items-center gap-3">
+        <i data-lucide="info" class="w-4 h-4 text-blue-400 shrink-0"></i>
+        <p class="text-xs text-white/50">
+            Prize money for org teams flows to the <b class="text-white/70">Organization Master Wallet</b>.
+            The org CEO distributes funds to players.
+            {% if org_control_plane_url %}
+            <a href="{{ org_control_plane_url }}" class="text-blue-400 hover:underline">View in Control Plane →</a>
+            {% endif %}
+        </p>
+    </div>
+    {% elif is_owner %}
+    <div class="rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-3.5 flex items-center gap-3">
+        <i data-lucide="info" class="w-4 h-4  text-emerald-400 shrink-0"></i>
+        <p class="text-xs text-white/50">
+            As an independent team, prize money is deposited into the <b class="text-white/70">team owner's personal wallet</b>.
+            The owner distributes funds to teammates.
+        </p>
+    </div>
+    {% endif %}
+
+    {# ── Owner Wallet Card (OWNER only) ── #}
+    {% if is_owner %}
+    <div class="rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/8 to-transparent shadow-soft p-5 lg:p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <i data-lucide="wallet" class="w-4 h-4 text-emerald-400"></i>
+                {% if team.organization %}Org Master Wallet{% else %}Owner Wallet{% endif %}
+            </h3>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold uppercase">Owner Only</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="rounded-xl bg-white/5 border border-white/8 p-4 text-center">
+                <div class="text-2xl font-black text-emerald-400" id="wallet-balance">
+                    {% if wallet_context %}{{ wallet_context.balance }}{% else %}—{% endif %}
+                </div>
+                <div class="text-[10px] text-white/40 uppercase tracking-wide mt-1">Available Balance</div>
+            </div>
+            <div class="rounded-xl bg-white/5 border border-white/8 p-4 text-center">
+                <div class="text-2xl font-black text-amber-400" id="wallet-held">
+                    {% if wallet_context %}{{ wallet_context.held_balance }}{% else %}—{% endif %}
+                </div>
+                <div class="text-[10px] text-white/40 uppercase tracking-wide mt-1">Held / Pending</div>
+            </div>
+            <div class="rounded-xl bg-white/5 border border-white/8 p-4 text-center">
+                <div class="text-2xl font-black text-white/60" id="wallet-lifetime">
+                    {% if wallet_context %}{{ wallet_context.lifetime_earned }}{% else %}—{% endif %}
+                </div>
+                <div class="text-[10px] text-white/40 uppercase tracking-wide mt-1">Lifetime Earned</div>
+            </div>
+        </div>
+        {% if not wallet_context %}
+        <p class="text-xs text-white/30 mt-3 flex items-center gap-1.5">
+            <i data-lucide="info" class="w-3 h-3"></i>
+            No wallet data available. The economy module will populate this when active.
+        </p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# ── Prize History (visible to all roles) ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h3 class="text-base font-bold mb-3 flex items-center gap-2">
+            <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+            Prize History
+        </h3>
+        <div id="prize-history-list">
+            {# Table header #}
+            <div class="hidden sm:grid grid-cols-12 gap-2 text-[10px] text-white/30 uppercase tracking-wider font-semibold px-3 py-2 mb-1">
+                <div class="col-span-4">Tournament</div>
+                <div class="col-span-2">Placement</div>
+                <div class="col-span-2">Prize</div>
+                <div class="col-span-2">Date</div>
+                <div class="col-span-2">Status</div>
+            </div>
+            {# Empty state — will be populated via JS/API when data exists #}
+            <div class="rounded-xl border border-dashed border-white/15 bg-white/3 p-6 text-center" id="prize-empty-state">
+                <i data-lucide="coins" class="w-7 h-7 text-white/15 mx-auto mb-2"></i>
+                <p class="text-sm text-white/40">No prize earnings yet</p>
+                <p class="text-xs text-white/25 mt-1">Place in tournaments to start earning</p>
+            </div>
+        </div>
+    </div>
+
+    {# ── Registration Fee Log (OWNER + ADMIN) ── #}
+    {% if is_admin %}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h3 class="text-base font-bold mb-3 flex items-center gap-2">
+            <i data-lucide="receipt" class="w-4 h-4 text-blue-400"></i>
+            Registration Fees
+        </h3>
+        <p class="text-xs text-white/40 mb-3">Tournament entry fees paid by this team</p>
+        <div id="fee-log-list">
+            {# Table header #}
+            <div class="hidden sm:grid grid-cols-12 gap-2 text-[10px] text-white/30 uppercase tracking-wider font-semibold px-3 py-2 mb-1">
+                <div class="col-span-4">Tournament</div>
+                <div class="col-span-2">Fee Amount</div>
+                <div class="col-span-2">Method</div>
+                <div class="col-span-2">Date</div>
+                <div class="col-span-2">Status</div>
+            </div>
+            <div class="rounded-xl border border-dashed border-white/15 bg-white/3 p-6 text-center">
+                <i data-lucide="file-text" class="w-7 h-7 text-white/15 mx-auto mb-2"></i>
+                <p class="text-sm text-white/40">No registration fee history</p>
+                <p class="text-xs text-white/25 mt-1">Fees will appear here when team registers for tournaments</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Transaction Log (OWNER + ADMIN) ── #}
+    {% if is_admin %}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <i data-lucide="list" class="w-4 h-4 text-white/50"></i>
+                Transaction Log
+            </h3>
+            {% if is_owner %}
+            <div class="flex items-center gap-2">
+                <select id="tx-filter-type" class="text-xs bg-white/5 border border-white/15 rounded-lg px-2 py-1 focus:outline-none">
+                    <option value="all">All Types</option>
+                    <option value="credit">Credits</option>
+                    <option value="debit">Debits</option>
+                </select>
+            </div>
+            {% endif %}
+        </div>
+        <div id="transaction-log-list">
+            <div class="rounded-xl border border-dashed border-white/15 bg-white/3 p-6 text-center">
+                <i data-lucide="scroll-text" class="w-7 h-7 text-white/15 mx-auto mb-2"></i>
+                <p class="text-sm text-white/30">No transactions recorded</p>
+                <p class="text-xs text-white/20 mt-1">Tournament prizes, fees, and payouts appear here</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Payout Preferences (Coming Soon — OWNER only) ── #}
+    {% if is_owner %}
+    <div class="rounded-2xl border border-dashed border-white/15 bg-white/3 p-5 text-center">
+        <i data-lucide="settings" class="w-6 h-6 text-white/15 mx-auto mb-2"></i>
+        <h3 class="font-bold text-sm mb-1 text-white/50">Payout Preferences</h3>
+        <p class="text-xs text-white/30">Split ratios, auto-distribution rules, and payout settings coming soon.</p>
+    </div>
+    {% endif %}
+
+    {# ── Payment Methods (OWNER only — editable) ── #}
+    {% if is_owner %}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <i data-lucide="credit-card" class="w-4 h-4 text-purple-400"></i>
+                Payment Methods
+            </h3>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400 font-semibold uppercase">Owner Only</span>
+        </div>
+        <p class="text-xs text-white/40 mb-4">Manage your withdrawal and payout methods. These are tied to your personal wallet.</p>
+
+        <div class="space-y-3" id="payment-methods-list">
+
+            {# ── bKash ── #}
+            <div class="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition group">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-xl grid place-items-center bg-pink-500/15">
+                        <span class="text-lg">💳</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold">bKash</p>
+                        {% if payment_methods.bkash.active %}
+                        <p class="text-xs text-emerald-400" id="pm-bkash-display">{{ payment_methods.bkash.masked }}</p>
+                        {% else %}
+                        <p class="text-xs text-white/30" id="pm-bkash-display">Not configured</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if payment_methods.bkash.active %}
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium">Active</span>
+                    {% endif %}
+                    <button onclick="ManageHQ.editPaymentMethod('bkash','bKash Number','{{ payment_methods.bkash.number|default_if_none:"" }}')"
+                        class="px-3 py-1.5 text-xs rounded-lg border border-white/15 text-white/60 hover:bg-white/10 transition font-medium opacity-0 group-hover:opacity-100">
+                        <i data-lucide="pencil" class="w-3 h-3 inline mr-1"></i>Edit
+                    </button>
+                </div>
+            </div>
+
+            {# ── Nagad ── #}
+            <div class="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition group">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-xl grid place-items-center bg-orange-500/15">
+                        <span class="text-lg">💳</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold">Nagad</p>
+                        {% if payment_methods.nagad.active %}
+                        <p class="text-xs text-emerald-400" id="pm-nagad-display">{{ payment_methods.nagad.masked }}</p>
+                        {% else %}
+                        <p class="text-xs text-white/30" id="pm-nagad-display">Not configured</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if payment_methods.nagad.active %}
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium">Active</span>
+                    {% endif %}
+                    <button onclick="ManageHQ.editPaymentMethod('nagad','Nagad Number','{{ payment_methods.nagad.number|default_if_none:"" }}')"
+                        class="px-3 py-1.5 text-xs rounded-lg border border-white/15 text-white/60 hover:bg-white/10 transition font-medium opacity-0 group-hover:opacity-100">
+                        <i data-lucide="pencil" class="w-3 h-3 inline mr-1"></i>Edit
+                    </button>
+                </div>
+            </div>
+
+            {# ── Rocket ── #}
+            <div class="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition group">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-xl grid place-items-center bg-purple-500/15">
+                        <span class="text-lg">💳</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold">Rocket</p>
+                        {% if payment_methods.rocket.active %}
+                        <p class="text-xs text-emerald-400" id="pm-rocket-display">{{ payment_methods.rocket.masked }}</p>
+                        {% else %}
+                        <p class="text-xs text-white/30" id="pm-rocket-display">Not configured</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if payment_methods.rocket.active %}
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium">Active</span>
+                    {% endif %}
+                    <button onclick="ManageHQ.editPaymentMethod('rocket','Rocket Number','{{ payment_methods.rocket.number|default_if_none:"" }}')"
+                        class="px-3 py-1.5 text-xs rounded-lg border border-white/15 text-white/60 hover:bg-white/10 transition font-medium opacity-0 group-hover:opacity-100">
+                        <i data-lucide="pencil" class="w-3 h-3 inline mr-1"></i>Edit
+                    </button>
+                </div>
+            </div>
+
+            {# ── Bank Account ── #}
+            <div class="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition group">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-xl grid place-items-center bg-blue-500/15">
+                        <span class="text-lg">🏦</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold">Bank Account</p>
+                        {% if payment_methods.bank.active %}
+                        <p class="text-xs text-emerald-400" id="pm-bank-display">{{ payment_methods.bank.bank_name }} · {{ payment_methods.bank.masked_number }}</p>
+                        {% else %}
+                        <p class="text-xs text-white/30" id="pm-bank-display">Not configured</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if payment_methods.bank.active %}
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium">Active</span>
+                    {% endif %}
+                    <button onclick="ManageHQ.editBankAccount()"
+                        class="px-3 py-1.5 text-xs rounded-lg border border-white/15 text-white/60 hover:bg-white/10 transition font-medium opacity-0 group-hover:opacity-100">
+                        <i data-lucide="pencil" class="w-3 h-3 inline mr-1"></i>Edit
+                    </button>
+                </div>
+            </div>
+
+            {# ── DeltaCoin ── #}
+            <div class="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/10">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-xl grid place-items-center bg-amber-500/15">
+                        <span class="text-lg">🪙</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold">DeltaCoin</p>
+                        <p class="text-xs text-emerald-400">Always available</p>
+                    </div>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium">Built-in</span>
+            </div>
+        </div>
+
+        <p class="text-[10px] text-white/25 mt-3 flex items-center gap-1">
+            <i data-lucide="shield-check" class="w-3 h-3 shrink-0"></i>
+            Payment details are securely stored. Only you can see full numbers.
+        </p>
+    </div>
+    {% endif %}
+
+    {# ── Mobile Payment Edit Modal ── #}
+    <div id="modal-payment-method" class="hidden fixed inset-0 z-[900] items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+         onclick="if(event.target===this)ManageHQ.closeModal('modal-payment-method')">
+        <div class="bg-[#0c0c1c] border border-purple-500/25 rounded-3xl shadow-2xl max-w-sm w-full p-6" onclick="event.stopPropagation()">
+            <h3 class="text-lg font-bold text-purple-400 flex items-center gap-2 mb-4" id="pm-modal-title">
+                <i data-lucide="credit-card" class="w-5 h-5"></i>
+                Edit Payment Method
+            </h3>
+            <form id="pm-mobile-form" onsubmit="event.preventDefault();ManageHQ.savePaymentMethod()">
+                <input type="hidden" id="pm-method-key" value="">
+                <label class="block text-xs text-white/60 mb-1 font-medium" id="pm-field-label">Phone Number</label>
+                <input type="text" id="pm-mobile-input" maxlength="15" autocomplete="off"
+                    class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm text-white placeholder-white/30 focus:border-purple-500/50 focus:outline-none mb-1"
+                    placeholder="01XXXXXXXXX">
+                <p class="text-[10px] text-white/30 mb-4">Bangladeshi mobile number format (11 digits)</p>
+
+                <div class="flex justify-between items-center">
+                    <button type="button" id="pm-remove-btn" onclick="ManageHQ.removePaymentMethod()"
+                        class="hidden px-3 py-1.5 text-xs rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/15 transition font-medium">
+                        Remove
+                    </button>
+                    <div class="flex gap-2 ml-auto">
+                        <button type="button" onclick="ManageHQ.closeModal('modal-payment-method')"
+                            class="px-4 py-2 text-sm rounded-xl border border-white/10 text-white/60 hover:bg-white/5 transition">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                            class="px-4 py-2 text-sm rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium transition">
+                            Save
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# ── Bank Account Edit Modal ── #}
+    <div id="modal-bank-account" class="hidden fixed inset-0 z-[900] items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+         onclick="if(event.target===this)ManageHQ.closeModal('modal-bank-account')">
+        <div class="bg-[#0c0c1c] border border-blue-500/25 rounded-3xl shadow-2xl max-w-md w-full p-6" onclick="event.stopPropagation()">
+            <h3 class="text-lg font-bold text-blue-400 flex items-center gap-2 mb-4">
+                <i data-lucide="building-2" class="w-5 h-5"></i>
+                Bank Account Details
+            </h3>
+            <form id="pm-bank-form" onsubmit="event.preventDefault();ManageHQ.saveBankAccount()">
+                <div class="space-y-3 mb-4">
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1 font-medium">Account Holder Name</label>
+                        <input type="text" id="pm-bank-name" maxlength="100"
+                            value="{{ payment_methods.bank.account_name|default_if_none:'' }}"
+                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm text-white placeholder-white/30 focus:border-blue-500/50 focus:outline-none"
+                            placeholder="Full name as per bank">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1 font-medium">Account Number</label>
+                        <input type="text" id="pm-bank-number" maxlength="30"
+                            value="{{ payment_methods.bank.account_number|default_if_none:'' }}"
+                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm text-white placeholder-white/30 focus:border-blue-500/50 focus:outline-none"
+                            placeholder="Bank account number">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-white/60 mb-1 font-medium">Bank Name</label>
+                            <input type="text" id="pm-bank-institution" maxlength="100"
+                                value="{{ payment_methods.bank.bank_name|default_if_none:'' }}"
+                                class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm text-white placeholder-white/30 focus:border-blue-500/50 focus:outline-none"
+                                placeholder="e.g. Dutch-Bangla Bank">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-white/60 mb-1 font-medium">Branch</label>
+                            <input type="text" id="pm-bank-branch" maxlength="100"
+                                value="{{ payment_methods.bank.branch|default_if_none:'' }}"
+                                class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm text-white placeholder-white/30 focus:border-blue-500/50 focus:outline-none"
+                                placeholder="Branch name">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center">
+                    {% if payment_methods.bank.active %}
+                    <button type="button" onclick="ManageHQ.removeBankAccount()"
+                        class="px-3 py-1.5 text-xs rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/15 transition font-medium">
+                        Remove All
+                    </button>
+                    {% else %}
+                    <div></div>
+                    {% endif %}
+                    <div class="flex gap-2">
+                        <button type="button" onclick="ManageHQ.closeModal('modal-bank-account')"
+                            class="px-4 py-2 text-sm rounded-xl border border-white/10 text-white/60 hover:bg-white/5 transition">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                            class="px-4 py-2 text-sm rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition">
+                            Save
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</section>

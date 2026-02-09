@@ -1,0 +1,172 @@
+{% comment %}
+Discord Integration — Setup, Chat Lobby, Announcements, Voice Join.
+Bi-directional sync between DeltaCrown ↔ Discord.
+{% endcomment %}
+<section id="discord" class="hq-section space-y-4" aria-label="Discord Integration">
+
+    {# ── Discord Setup Card ── #}
+    {% if is_admin %}
+    <div class="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 shadow-soft p-4 sm:p-5 lg:p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286z"/>
+                </svg>
+                Discord Integration
+            </h3>
+            <div id="discordBotStatus" class="flex items-center gap-1.5 text-xs">
+                {% if team.discord_bot_active %}
+                <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-emerald-400 font-medium">Bot Connected</span>
+                {% else %}
+                <span class="h-2 w-2 rounded-full bg-white/20"></span>
+                <span class="text-white/40">Bot Offline</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <form id="discordConfigForm" class="space-y-4">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {# Server ID #}
+                <div>
+                    <label class="block text-xs text-white/50 mb-1.5 font-medium">Discord Server (Guild) ID</label>
+                    <input type="text" name="discord_guild_id"
+                           value="{{ team.discord_guild_id }}"
+                           placeholder="e.g. 123456789012345678"
+                           class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/25 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition">
+                </div>
+                {# Announcement Channel #}
+                <div>
+                    <label class="block text-xs text-white/50 mb-1.5 font-medium">Announcement Channel ID</label>
+                    <input type="text" name="discord_announcement_channel_id"
+                           value="{{ team.discord_announcement_channel_id }}"
+                           placeholder="Channel for team announcements"
+                           class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/25 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition">
+                </div>
+                {# Chat Channel #}
+                <div>
+                    <label class="block text-xs text-white/50 mb-1.5 font-medium">Chat Channel ID (Lobby)</label>
+                    <input type="text" name="discord_chat_channel_id"
+                           value="{{ team.discord_chat_channel_id }}"
+                           placeholder="Channel for real-time chat sync"
+                           class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/25 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition">
+                </div>
+                {# Voice Channel #}
+                <div>
+                    <label class="block text-xs text-white/50 mb-1.5 font-medium">Voice Channel ID</label>
+                    <input type="text" name="discord_voice_channel_id"
+                           value="{{ team.discord_voice_channel_id }}"
+                           placeholder="Voice channel for one-click join"
+                           class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/25 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {# Invite Link #}
+                <div>
+                    <label class="block text-xs text-white/50 mb-1.5 font-medium">Invite Link (discord.gg/…)</label>
+                    <input type="url" name="discord_url"
+                           value="{{ team.discord_url }}"
+                           placeholder="https://discord.gg/your-server"
+                           class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/25 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition">
+                </div>
+                {# Webhook URL #}
+                <div>
+                    <label class="block text-xs text-white/50 mb-1.5 font-medium">Webhook URL (optional fallback)</label>
+                    <input type="url" name="discord_webhook_url"
+                           value="{{ team.discord_webhook_url }}"
+                           placeholder="https://discord.com/api/webhooks/…"
+                           class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/25 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition">
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit"
+                        class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 transition">
+                    <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                    Save Discord Config
+                </button>
+                <span id="discordSaveStatus" class="text-xs text-white/40 hidden">Saved!</span>
+            </div>
+        </form>
+
+        <p class="text-[11px] text-white/30 mt-3 leading-relaxed">
+            Enter your Discord Server ID and channel IDs to enable bi-directional sync.
+            Right-click a channel/server in Discord → "Copy ID" (requires Developer Mode in Discord settings).
+        </p>
+    </div>
+    {% endif %}
+
+    {# ── Voice Join Button ── #}
+    {% if team.discord_voice_channel_id and team.discord_guild_id %}
+    <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-center gap-4">
+        <div class="h-12 w-12 rounded-xl bg-emerald-500/15 grid place-items-center shrink-0">
+            <i data-lucide="headphones" class="w-6 h-6 text-emerald-400"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+            <h4 class="text-sm font-bold text-emerald-300">Voice Channel</h4>
+            <p class="text-xs text-white/40 mt-0.5">Join your team's voice comms in Discord</p>
+        </div>
+        <a href="https://discord.com/channels/{{ team.discord_guild_id }}/{{ team.discord_voice_channel_id }}"
+           target="_blank" rel="noopener"
+           class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/30 transition shrink-0">
+            <i data-lucide="phone" class="w-4 h-4"></i>
+            Join Voice
+        </a>
+    </div>
+    {% endif %}
+
+    {# ── Chat Lobby ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft overflow-hidden">
+        <div class="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-line">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <i data-lucide="message-circle" class="w-4 h-4 text-indigo-400"></i>
+                Team Lobby
+            </h3>
+            <div class="flex items-center gap-2">
+                <span id="chatSyncIndicator" class="text-[10px] text-white/30 hidden">
+                    <i data-lucide="refresh-cw" class="w-3 h-3 inline-block animate-spin"></i>
+                    Syncing…
+                </span>
+                {% if team.discord_chat_channel_id %}
+                <span class="text-[10px] text-indigo-400/60 flex items-center gap-1">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.618-1.25.077.077 0 00-.079-.037A19.74 19.74 0 003.677 4.37a.07.07 0 00-.032.028C.533 9.046-.32 13.58.099 18.058a.082.082 0 00.031.056c2.053 1.508 4.041 2.423 5.993 3.03a.078.078 0 00.084-.028c.462-.63.873-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.11 13.11 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 01.078-.01c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 01.079.01c.12.099.245.197.372.291a.077.077 0 01-.006.128 12.3 12.3 0 01-1.873.891.076.076 0 00-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 00.084.028c1.961-.607 3.95-1.522 6.002-3.029a.077.077 0 00.031-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.029z"/></svg>
+                    Synced
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Messages area #}
+        <div id="chatMessages" class="h-80 overflow-y-auto px-4 sm:px-5 py-3 space-y-3 scroll-smooth"
+             data-team-slug="{{ team.slug }}">
+            <div class="flex items-center justify-center h-full">
+                <p class="text-sm text-white/30">
+                    {% if team.discord_chat_channel_id %}
+                    Loading messages…
+                    {% else %}
+                    Configure a chat channel above to enable the lobby.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        {# Input area #}
+        <div class="border-t border-line px-4 sm:px-5 py-3">
+            <form id="chatSendForm" class="flex items-center gap-2">
+                {% csrf_token %}
+                <input type="text" id="chatInput"
+                       placeholder="Type a message…"
+                       maxlength="2000"
+                       autocomplete="off"
+                       class="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/25 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition">
+                <button type="submit"
+                        class="h-9 w-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 grid place-items-center text-indigo-300 hover:bg-indigo-500/30 transition shrink-0">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+</section>

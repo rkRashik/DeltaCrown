@@ -26,6 +26,9 @@ from .team_invite import TeamInvite
 from .ranking import TeamRanking, OrganizationRanking
 from .migration import TeamMigrationMap
 from .activity import TeamActivityLog
+from .announcement import TeamAnnouncement
+from .team_media import TeamMedia, TeamHighlight
+from .discord_sync import DiscordChatMessage
 
 __all__ = [
     # Organization models
@@ -48,4 +51,12 @@ __all__ = [
     
     # Audit logging
     'TeamActivityLog',
+
+    # Community
+    'TeamAnnouncement',
+    'TeamMedia',
+    'TeamHighlight',
+
+    # Discord integration
+    'DiscordChatMessage',
 ]

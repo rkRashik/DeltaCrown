@@ -39,11 +39,11 @@ class RecruitEligibilityService:
         
         try:
             # Import here to avoid circular imports
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
             
             # Check if viewer is OWNER or MANAGER of any active team
             is_recruiter = TeamMembership.objects.filter(
-                profile__user=viewer_user,
+                user=viewer_user,
                 role__in=[TeamMembership.Role.OWNER, TeamMembership.Role.MANAGER],
                 status=TeamMembership.Status.ACTIVE
             ).exists()
@@ -74,10 +74,10 @@ class RecruitEligibilityService:
             return []
         
         try:
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
             
             recruiter_teams = TeamMembership.objects.filter(
-                profile__user=viewer_user,
+                user=viewer_user,
                 role__in=[TeamMembership.Role.OWNER, TeamMembership.Role.MANAGER],
                 status=TeamMembership.Status.ACTIVE
             ).select_related('team').values_list('team__name', 'team__slug')

@@ -1,4 +1,4 @@
-﻿from django.db import models
+from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.utils.text import slugify
@@ -269,7 +269,7 @@ class UserProfile(models.Model):
     
     # UP.3 Extension: Primary Team and Game
     primary_team = models.ForeignKey(
-        'teams.Team',
+        'organizations.Team',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -458,15 +458,36 @@ class UserProfile(models.Model):
                     "Must be DC-YY-NNNNNN (e.g., DC-25-000042)"
                 )
     
+    # ── Smart inference map: pronouns → gender ──
+    _PRONOUNS_GENDER_MAP = {
+        'he_him': 'male',
+        'she_her': 'female',
+        'she_they': 'female',
+        'he_they': 'male',
+    }
+
     def save(self, *args, **kwargs):
         """
-        Override save to auto-sync primary_game when primary_team is set.
-        UP.3 Extension: Ensure primary_game matches primary_team's game.
+        Override save to:
+        1. Auto-sync primary_game when primary_team is set.
+        2. Smart inference: fill gender from pronouns if gender is blank.
         """
         # Auto-sync primary_game from primary_team
         if self.primary_team and hasattr(self.primary_team, 'game'):
-            self.primary_game = self.primary_team.game
-        
+            game_val = self.primary_team.game
+            # organizations.Team.game is a CharField (slug) — resolve to Game FK
+            if game_val and isinstance(game_val, str):
+                from apps.games.models import Game
+                self.primary_game = Game.objects.filter(slug=game_val).first()
+            elif game_val:
+                self.primary_game = game_val
+
+        # Smart inference: pronouns → gender
+        if self.pronouns and not self.gender:
+            inferred = self._PRONOUNS_GENDER_MAP.get(self.pronouns)
+            if inferred:
+                self.gender = inferred
+
         super().save(*args, **kwargs)
     
     # ===== COMPUTED PROPERTIES =====
@@ -858,7 +879,7 @@ class UserProfile(models.Model):
     def team_memberships(self):
         """Get team memberships"""
         try:
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
             return TeamMembership.objects.filter(profile=self)
         except Exception:
             return self.user.objects.none()

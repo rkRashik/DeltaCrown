@@ -866,7 +866,7 @@ class TestBracketGenerationRankedSeeding:
     @pytest.fixture
     def ranked_teams(self, game):
         """Create 4 teams with distinct rankings."""
-        from apps.teams.models import Team, TeamRankingBreakdown
+        from apps.organizations.models import Team, TeamRankingBreakdown
         
         teams = []
         points_list = [1000, 700, 400, 100]
@@ -949,7 +949,7 @@ class TestBracketGenerationRankedSeeding:
         self, api_client, tournament, organizer
     ):
         """Test that missing rankings return 400 Bad Request, not 500."""
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         
         # Create team WITHOUT ranking breakdown
         unranked_team = Team.objects.create(

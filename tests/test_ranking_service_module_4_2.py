@@ -18,7 +18,7 @@ from django.contrib.auth import get_user_model
 from apps.tournaments.models import Tournament, Bracket, Game
 from apps.tournaments.services.bracket_service import BracketService
 from apps.tournaments.services.ranking_service import ranking_service
-from apps.teams.models import Team, TeamRankingBreakdown
+from apps.organizations.models import Team, TeamRankingBreakdown
 from apps.user_profile.models import UserProfile
 
 User = get_user_model()

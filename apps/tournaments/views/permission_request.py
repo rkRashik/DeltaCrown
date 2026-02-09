@@ -32,7 +32,7 @@ class RequestRegistrationPermissionView(LoginRequiredMixin, View):
             return redirect('tournaments:detail', slug=slug)
         
         try:
-            from apps.teams.models import Team, TeamMembership
+            from apps.organizations.models import Team, TeamMembership
             
             # Get team
             team = Team.objects.get(id=team_id)
@@ -40,8 +40,8 @@ class RequestRegistrationPermissionView(LoginRequiredMixin, View):
             # Verify user is actually a member
             membership = TeamMembership.objects.filter(
                 team=team,
-                profile__user=request.user,
-                status='active'
+                user=request.user,
+                status='ACTIVE'
             ).first()
             
             if not membership:
@@ -51,9 +51,9 @@ class RequestRegistrationPermissionView(LoginRequiredMixin, View):
             # Get team leaders (owner + managers)
             leaders = TeamMembership.objects.filter(
                 team=team,
-                status='active',
-                role__in=['owner', 'manager']
-            ).select_related('profile__user')
+                status='ACTIVE',
+                role__in=['OWNER', 'MANAGER']
+            ).select_related('user')
             
             if not leaders.exists():
                 messages.error(request, 'No team leaders found to send request to.')
@@ -65,7 +65,7 @@ class RequestRegistrationPermissionView(LoginRequiredMixin, View):
                 
                 for leader in leaders:
                     NotificationService.send_notification(
-                        user=leader.profile.user,
+                        user=leader.user,
                         notification_type='team_registration_permission_request',
                         title=f'Tournament Registration Request - {team.name}',
                         message=(
@@ -85,7 +85,7 @@ class RequestRegistrationPermissionView(LoginRequiredMixin, View):
                 
                 messages.success(
                     request,
-                    f'✅ Permission request sent to {leaders.count()} team leader(s)! '
+                    f'âœ… Permission request sent to {leaders.count()} team leader(s)! '
                     f'They will be notified about your request.'
                 )
                 

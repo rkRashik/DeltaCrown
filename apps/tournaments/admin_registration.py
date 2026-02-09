@@ -1,7 +1,7 @@
 """
 Django admin interfaces for Tournament Registration and Payment models.
 
-⚠️ LEGACY: This Django admin customization is DEPRECATED as of Phase 7, Epic 7.6.
+âš ï¸ LEGACY: This Django admin customization is DEPRECATED as of Phase 7, Epic 7.6.
 The new Smart Registration System (Phase 5) and Organizer Console (Phase 7) provide superior UX.
 
 This file is retained ONLY for:
@@ -63,7 +63,7 @@ class PaymentInline(admin.StackedInline):
             
             if obj.file_type == 'PDF':
                 return format_html(
-                    '<a href="{}" target="_blank">📄 View PDF</a>',
+                    '<a href="{}" target="_blank">ðŸ“„ View PDF</a>',
                     file_url
                 )
             else:  # IMAGE
@@ -160,7 +160,7 @@ class RegistrationAdmin(admin.ModelAdmin):
         """Display team name if it's a team registration."""
         if obj.team_id:
             try:
-                from apps.teams.models import Team
+                from apps.organizations.models import Team
                 team = Team.objects.get(id=obj.team_id)
                 return team.name
             except Team.DoesNotExist:
@@ -172,7 +172,7 @@ class RegistrationAdmin(admin.ModelAdmin):
         """Display captain name if it's a team registration."""
         if obj.team_id:
             try:
-                from apps.teams.models import Team
+                from apps.organizations.models import Team
                 team = Team.objects.get(id=obj.team_id)
                 if team.captain:
                     return team.captain.display_name or team.captain.user.username

@@ -539,7 +539,7 @@ Last Updated: 2026-01-19
             const cachedData = window.__careerCache[gameSlug];
             
             // Update UI immediately from cache
-            updateButtonState(buttonElement);
+            updateGameButtonState(buttonElement);
             renderCareerData(cachedData);
             
             // Mark as loaded
@@ -551,7 +551,7 @@ Last Updated: 2026-01-19
         contentArea.classList.add('career-loading');
         
         // 2. Update button active state immediately
-        updateButtonState(buttonElement);
+        updateGameButtonState(buttonElement);
         
         // 3. Auto-scroll active button into center view (SCALABILITY FIX)
         const scrollArea = document.getElementById('game-selector-scrollarea');
@@ -611,8 +611,8 @@ Last Updated: 2026-01-19
             });
     }
     
-    // Helper: Update button active state
-    function updateButtonState(buttonElement) {
+    // Helper: Update game selector button active state
+    function updateGameButtonState(buttonElement) {
         document.querySelectorAll('.game-btn').forEach(btn => {
             btn.classList.remove('active', 'bg-z-cyan', 'text-black', 'shadow-neon-cyan', 'border-z-cyan');
             btn.classList.add('text-gray-400');

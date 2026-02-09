@@ -18,7 +18,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db import transaction
 
 from apps.user_profile.models import ProfileShowcase, UserProfile, GameProfile
-from apps.teams.models import TeamMembership
+from apps.organizations.models import TeamMembership
 
 import logging
 
@@ -69,7 +69,7 @@ def get_showcase(request):
         if showcase.featured_team_id:
             try:
                 team_membership = TeamMembership.objects.select_related('team').get(
-                    profile=user_profile,
+                    user=user_profile.user,
                     team_id=showcase.featured_team_id,
                     status=TeamMembership.Status.ACTIVE
                 )
@@ -284,7 +284,7 @@ def set_featured_team(request):
         
         # Verify user is member of this team (IDOR protection)
         team_membership = TeamMembership.objects.filter(
-            profile=user_profile,
+            user=user_profile.user,
             team_id=team_id,
             status=TeamMembership.Status.ACTIVE
         ).select_related('team').first()
@@ -405,7 +405,7 @@ def add_showcase_highlight(request):
         "type": "tournament",  # tournament, achievement, milestone, custom
         "item_id": 789,
         "label": "Champions 2024 Winner",
-        "icon": "🏆",
+        "icon": "ðŸ†",
         "metadata": {"placement": 1, "prize": 50000}  # optional
     }
     """
@@ -416,7 +416,7 @@ def add_showcase_highlight(request):
         highlight_type = data.get('type')
         item_id = data.get('item_id')
         label = data.get('label')
-        icon = data.get('icon', '✨')
+        icon = data.get('icon', 'âœ¨')
         metadata = data.get('metadata', {})
         
         if not all([highlight_type, item_id, label]):

@@ -25,7 +25,7 @@ from django.utils import timezone
 
 from apps.leaderboards.models import LeaderboardEntry, LeaderboardSnapshot
 from apps.tournaments.models import Tournament, Match, Registration
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.accounts.models import User
 from apps.leaderboards.metrics import record_leaderboard_request
 

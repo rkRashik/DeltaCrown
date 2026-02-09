@@ -56,7 +56,7 @@ class TournamentLobbyView(LoginRequiredMixin, DetailView):
         
         # Check if user is registered participant
         # Allow access for pending, payment_submitted, and confirmed registrations
-        from apps.teams.models import TeamMembership
+        from apps.organizations.models import TeamMembership
         
         # First check for individual registration
         registration = Registration.objects.filter(
@@ -74,7 +74,7 @@ class TournamentLobbyView(LoginRequiredMixin, DetailView):
         if not registration:
             # Get team IDs where user is an active member
             user_team_ids = TeamMembership.objects.filter(
-                profile__user=request.user,
+                user=request.user,
                 status=TeamMembership.Status.ACTIVE
             ).values_list('team_id', flat=True)
             

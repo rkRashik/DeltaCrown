@@ -17,7 +17,7 @@ from apps.leaderboards.models import (
     LeaderboardEntry,
     Season,
 )
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.games.models import Game
 from apps.tournament_ops.adapters.analytics_adapter import AnalyticsAdapter
 from apps.tournament_ops.dtos.analytics import (

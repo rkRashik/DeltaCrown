@@ -25,7 +25,7 @@ class TestTeamRankingAdapter:
     @pytest.fixture
     def team(self):
         """Create test team."""
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         from django.contrib.auth import get_user_model
         
         User = get_user_model()
@@ -179,7 +179,7 @@ class TestTeamRankingAdapter:
     
     def test_get_rankings_by_game(self, adapter):
         """Test get_rankings_by_game returns teams ordered by ELO."""
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         from apps.leaderboards.models import TeamRanking
         from django.contrib.auth import get_user_model
         
@@ -223,7 +223,7 @@ class TestTeamRankingAdapter:
     
     def test_recalculate_ranks_for_game(self, adapter):
         """Test recalculate_ranks_for_game assigns ranks correctly."""
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         from apps.leaderboards.models import TeamRanking
         from django.contrib.auth import get_user_model
         

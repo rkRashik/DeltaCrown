@@ -14,7 +14,7 @@ Ensures consistent eligibility logic across all views and templates.
 from typing import Dict, Optional, Tuple
 from django.contrib.auth.models import User
 from apps.tournaments.models import Tournament, Registration
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 from apps.user_profile.models import UserProfile
 
 
@@ -88,9 +88,9 @@ class RegistrationEligibilityService:
                 user_profile = UserProfile.objects.filter(user=user).first()
                 if user_profile:
                     # Get all user's teams for this game
-                    from apps.teams.models import Team, TeamMembership
+                    from apps.organizations.models import Team, TeamMembership
                     user_team_ids = TeamMembership.objects.filter(
-                        profile=user_profile,
+                        user=user_profile.user,
                         status=TeamMembership.Status.ACTIVE
                     ).values_list('team_id', flat=True)
                     
@@ -205,10 +205,10 @@ class RegistrationEligibilityService:
             
             # Get user's teams for this game
             user_teams = Team.objects.filter(
-                game=tournament.game.slug,
-                memberships__profile=user_profile,
-                memberships__status=TeamMembership.Status.ACTIVE,
-                is_active=True
+                game_id=tournament.game_id,
+                vnext_memberships__user=user_profile.user,
+                vnext_memberships__status=TeamMembership.Status.ACTIVE,
+                status='ACTIVE'
             ).distinct()
             
             if not user_teams.exists():
@@ -227,7 +227,7 @@ class RegistrationEligibilityService:
             for team in user_teams:
                 membership = TeamMembership.objects.filter(
                     team=team,
-                    profile=user_profile,
+                    user=user_profile.user,
                     status=TeamMembership.Status.ACTIVE
                 ).first()
                 
@@ -236,7 +236,7 @@ class RegistrationEligibilityService:
                         TeamMembership.Role.OWNER,
                         TeamMembership.Role.MANAGER,
                         TeamMembership.Role.CAPTAIN
-                    ] or membership.can_register_tournaments
+                    ]
                 ):
                     can_register_team = True
                     team_with_permission = team

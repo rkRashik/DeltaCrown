@@ -7,7 +7,7 @@ and data correctness between legacy (apps.teams) and vNext (apps.organizations).
 Key Metrics:
 - Coverage %: How much legacy data is represented in vNext + mapped
 - Mapping completeness: TeamMigrationMap coverage and uniqueness
-- Consistency checks: Spot-verify fields across legacy ↔ vNext
+- Consistency checks: Spot-verify fields across legacy â†” vNext
 - Dual-write health: Detect missing legacy shadow rows after vNext writes
 
 Usage:
@@ -31,7 +31,7 @@ from apps.organizations.models import (
     TeamMigrationMap,
     TeamRanking as VNextRanking,
 )
-from apps.teams.models import (
+from apps.organizations.models import (
     Team as LegacyTeam,
     TeamMembership as LegacyMembership,
     TeamRankingBreakdown as LegacyRanking,
@@ -428,53 +428,53 @@ def _generate_recommendations(
     if coverage['mapping_percentage'] < 100:
         unmapped = coverage['unmapped_legacy_count']
         recommendations.append(
-            f"🔴 CRITICAL: {unmapped} legacy teams unmapped ({100 - coverage['mapping_percentage']:.1f}% missing). "
+            f"ðŸ”´ CRITICAL: {unmapped} legacy teams unmapped ({100 - coverage['mapping_percentage']:.1f}% missing). "
             f"Run migration scripts to achieve 100% coverage before Phase 6."
         )
     elif coverage['mapping_percentage'] == 100:
-        recommendations.append("✅ Coverage: 100% of legacy teams are mapped to vNext.")
+        recommendations.append("âœ… Coverage: 100% of legacy teams are mapped to vNext.")
     
     # Mapping health recommendations
     if mapping_health['duplicate_legacy_count'] > 0:
         recommendations.append(
-            f"🔴 CRITICAL: {mapping_health['duplicate_legacy_count']} duplicate legacy_team_id entries in TeamMigrationMap. "
+            f"ðŸ”´ CRITICAL: {mapping_health['duplicate_legacy_count']} duplicate legacy_team_id entries in TeamMigrationMap. "
             f"Clean up duplicates immediately."
         )
     
     if mapping_health['duplicate_vnext_count'] > 0:
         recommendations.append(
-            f"🔴 CRITICAL: {mapping_health['duplicate_vnext_count']} duplicate vnext_team_id entries in TeamMigrationMap. "
+            f"ðŸ”´ CRITICAL: {mapping_health['duplicate_vnext_count']} duplicate vnext_team_id entries in TeamMigrationMap. "
             f"Clean up duplicates immediately."
         )
     
     if mapping_health['orphan_count'] > 0:
         recommendations.append(
-            f"⚠️ WARNING: {mapping_health['orphan_count']} orphan mappings point to missing teams. "
+            f"âš ï¸ WARNING: {mapping_health['orphan_count']} orphan mappings point to missing teams. "
             f"Investigate and clean up orphan records."
         )
     
     # Consistency recommendations
     if consistency['name_mismatch_count'] > 0:
         recommendations.append(
-            f"⚠️ WARNING: {consistency['name_mismatch_count']} teams have name mismatches. "
+            f"âš ï¸ WARNING: {consistency['name_mismatch_count']} teams have name mismatches. "
             f"Review and sync team names."
         )
     
     if consistency['membership_count_mismatch_count'] > 0:
         recommendations.append(
-            f"⚠️ WARNING: {consistency['membership_count_mismatch_count']} teams have membership count mismatches. "
+            f"âš ï¸ WARNING: {consistency['membership_count_mismatch_count']} teams have membership count mismatches. "
             f"Re-run membership migration or check dual-write sync."
         )
     
     if consistency['ranking_mismatch_count'] > 0:
         recommendations.append(
-            f"ℹ️ INFO: {consistency['ranking_mismatch_count']} teams have ranking presence mismatches. "
+            f"â„¹ï¸ INFO: {consistency['ranking_mismatch_count']} teams have ranking presence mismatches. "
             f"Verify ranking migration completed successfully."
         )
     
     # Dual-write health recommendations
     if dual_write_health and dual_write_health['missing_legacy_count'] > 0:
-        severity_icon = "🔴 CRITICAL" if dual_write_health['severity'] == 'ERROR' else "⚠️ WARNING"
+        severity_icon = "ðŸ”´ CRITICAL" if dual_write_health['severity'] == 'ERROR' else "âš ï¸ WARNING"
         recommendations.append(
             f"{severity_icon}: {dual_write_health['missing_legacy_count']} recent vNext teams missing legacy shadow rows. "
             f"Dual-write sync may be failing. Check logs and re-run sync."
@@ -482,7 +482,7 @@ def _generate_recommendations(
     
     # Overall readiness
     if not recommendations:
-        recommendations.append("✅ All validation checks passed. Migration data is healthy and ready for Phase 6.")
+        recommendations.append("âœ… All validation checks passed. Migration data is healthy and ready for Phase 6.")
     
     return recommendations
 

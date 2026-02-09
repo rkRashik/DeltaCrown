@@ -27,7 +27,7 @@ class Registration(SoftDeleteModel, TimestampedModel):
     Participant registration for tournaments.
     
     Tracks user/team registrations with:
-    - Status workflow (pending → payment_submitted → confirmed)
+    - Status workflow (pending â†’ payment_submitted â†’ confirmed)
     - JSONB storage for flexible registration data
     - Check-in tracking for tournament day
     - Slot assignment for bracket generation
@@ -36,7 +36,7 @@ class Registration(SoftDeleteModel, TimestampedModel):
     Source: PART_3.1_DATABASE_DESIGN_ERD.md Section 4.1
     """
     
-    # Status choices (workflow: pending → payment_submitted → confirmed/rejected/cancelled)
+    # Status choices (workflow: pending â†’ payment_submitted â†’ confirmed/rejected/cancelled)
     # Phase 5: Added DRAFT, SUBMITTED, AUTO_APPROVED, NEEDS_REVIEW states
     DRAFT = 'draft'
     SUBMITTED = 'submitted'
@@ -220,7 +220,7 @@ class Registration(SoftDeleteModel, TimestampedModel):
     
     def __str__(self) -> str:
         participant = self.user.username if self.user else f"Team {self.team_id}"
-        return f"{participant} → {self.tournament.name} ({self.get_status_display()})"
+        return f"{participant} â†’ {self.tournament.name} ({self.get_status_display()})"
     
     def clean(self):
         """Validate registration before saving"""
@@ -295,7 +295,7 @@ class Registration(SoftDeleteModel, TimestampedModel):
     def team(self):
         """Get the Team object if this is a team registration."""
         if self.team_id:
-            from apps.teams.models import Team
+            from apps.organizations.models import Team
             try:
                 return Team.objects.get(id=self.team_id)
             except Team.DoesNotExist:
@@ -311,7 +311,7 @@ class Payment(models.Model):
     - Multiple payment methods (bKash, Nagad, Rocket, Bank, DeltaCoin)
     - Payment proof upload and storage
     - Admin verification workflow
-    - Status tracking (pending → submitted → verified/rejected)
+    - Status tracking (pending â†’ submitted â†’ verified/rejected)
     
     Source: PART_3.1_DATABASE_DESIGN_ERD.md Section 4.2
     """

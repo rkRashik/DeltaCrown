@@ -18,7 +18,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from apps.teams.models._legacy import Team, TeamMembership, TeamInvite, TEAM_MAX_ROSTER
+from apps.organizations.models import Team, TeamMembership, TeamInvite, TEAM_MAX_ROSTER
 from apps.user_profile.models import UserProfile
 
 User = get_user_model()

@@ -1,0 +1,538 @@
+{% load static %}
+{% comment %}
+Team Profile — Inline editing for team identity: name, tag, description, logo, banner, socials.
+All changes submit via AJAX — no page reload required.
+{% endcomment %}
+<section id="profile" class="hq-section space-y-4">
+
+    {# ── Brand Inheritance Banner (Org teams with enforce_brand) ── #}
+    {% if org_policies.enforce_brand %}
+    <div class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 flex items-center gap-3">
+        <div class="h-10 w-10 rounded-xl bg-amber-500/15 grid place-items-center shrink-0">
+            <i data-lucide="palette" class="w-5 h-5 text-amber-400"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-amber-400">Brand Inherited from {{ team.organization.name }}</p>
+            <p class="text-xs text-white/40">This team's logo and visual identity are enforced by the parent organization. Custom branding is disabled.</p>
+        </div>
+        {% if org_control_plane_url %}
+        <a href="{{ org_control_plane_url }}" class="shrink-0 text-xs text-amber-400 hover:text-amber-300 transition font-medium">
+            Manage →
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# ── Team Branding (Logo & Banner) ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+            <i data-lucide="image" class="w-4 h-4 text-purple-400"></i>
+            Team Branding
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {# Logo Upload #}
+            <div>
+                <label class="block text-xs text-white/60 mb-2 font-medium">Team Logo</label>
+                <div class="relative rounded-2xl border-2 border-dashed border-white/15 hover:border-white/25 transition bg-white/5 p-4 text-center group cursor-pointer"
+                     onclick="this.querySelector('input[type=file]').click()">
+                    <div class="h-24 w-24 mx-auto rounded-2xl overflow-hidden bg-white/10 grid place-items-center mb-3">
+                        {% if team.logo %}
+                        <img id="preview-logo" src="{{ team.logo.url }}" alt="Logo" class="w-full h-full object-cover">
+                        {% else %}
+                        <img id="preview-logo" src="" alt="" class="w-full h-full object-cover hidden">
+                        <i data-lucide="image-plus" class="w-8 h-8 text-white/30"></i>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-white/40 group-hover:text-white/60 transition">Click to upload logo (max 5MB)</p>
+                    <input type="file" accept="image/*" data-media-upload="logo" class="hidden"
+                           onchange="ManageHQ.uploadMedia(this)">
+                </div>
+            </div>
+
+            {# Banner Upload #}
+            <div>
+                <label class="block text-xs text-white/60 mb-2 font-medium">Team Banner / Cover</label>
+                <div class="relative rounded-2xl border-2 border-dashed border-white/15 hover:border-white/25 transition bg-white/5 p-4 text-center group cursor-pointer"
+                     onclick="this.querySelector('input[type=file]').click()">
+                    <div class="h-24 w-full rounded-xl overflow-hidden bg-white/10 grid place-items-center mb-3">
+                        {% if team.banner %}
+                        <img id="preview-banner" src="{{ team.banner.url }}" alt="Banner" class="w-full h-full object-cover">
+                        {% else %}
+                        <img id="preview-banner" src="" alt="" class="w-full h-full object-cover hidden">
+                        <i data-lucide="panorama" class="w-8 h-8 text-white/30"></i>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-white/40 group-hover:text-white/60 transition">Click to upload banner (max 10MB)</p>
+                    <input type="file" accept="image/*" data-media-upload="banner" class="hidden"
+                           onchange="ManageHQ.uploadMedia(this)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Mission & Identity ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+            <i data-lucide="target" class="w-4 h-4 text-amber-400"></i>
+            Mission & Identity
+        </h2>
+        <p class="text-xs text-white/40 mb-4">Define your team's purpose and story. This is displayed on your public team page.</p>
+
+        <form id="profile-mission-form" class="space-y-4">
+            <div>
+                <label for="profile-tagline" class="block text-xs text-white/60 mb-1.5 font-medium">Tagline / Motto</label>
+                <input id="profile-tagline" type="text" value="{{ team.tagline|default:""|escapejs }}" maxlength="200"
+                    placeholder="A short motto or battle cry…"
+                    class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+                <p class="text-xs text-white/25 mt-1">Shown beneath your team name on the detail page</p>
+            </div>
+
+            <div>
+                <label for="profile-description" class="block text-xs text-white/60 mb-1.5 font-medium">Team Description</label>
+                <textarea id="profile-description" rows="4" maxlength="1000"
+                    placeholder="Tell the world about your team — history, goals, playstyle…"
+                    class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition resize-none">{{ team.description|default:"" }}</textarea>
+                <p class="text-xs text-white/30 mt-1 text-right"><span id="desc-count">{{ team.description|default:""|length }}</span>/1000</p>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button id="profile-mission-submit" type="submit"
+                    class="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition"
+                    style="background:linear-gradient(135deg,color-mix(in oklab,var(--team-primary) 70%,transparent),rgba(255,255,255,.08))">
+                    Save Mission
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {# ── Team Information ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-1 flex items-center gap-2">
+            <i data-lucide="file-text" class="w-4 h-4 text-blue-400"></i>
+            Team Information
+        </h2>
+        <p class="text-xs text-white/40 mb-4">Identity fields lock for 30 days after each change. <a href="/support/contact/" class="text-blue-400 hover:underline">Contact support</a> for urgent changes.</p>
+
+        {% if in_active_tournament %}
+        <div class="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 mb-4 flex items-center gap-2">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 shrink-0"></i>
+            <p class="text-xs text-amber-400">Name &amp; tag are locked while your team is in an active tournament.</p>
+        </div>
+        {% endif %}
+
+        <form id="profile-info-form" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {# Team Name #}
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium flex items-center gap-1.5">
+                        Team Name
+                        {% if identity_locks.name.locked %}
+                        <span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 font-semibold inline-flex items-center gap-0.5">
+                            <i data-lucide="lock" class="w-2.5 h-2.5"></i>
+                            {{ identity_locks.name.days_left }}d left
+                        </span>
+                        {% else %}
+                        <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold inline-flex items-center gap-0.5">
+                            <i data-lucide="lock-open" class="w-2.5 h-2.5"></i> Editable
+                        </span>
+                        {% endif %}
+                    </label>
+                    {% if identity_locks.name.locked %}
+                    <div class="w-full px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/8 text-sm text-white/40 select-none flex items-center gap-2">
+                        <i data-lucide="lock" class="w-3.5 h-3.5 text-red-400/50 shrink-0"></i>
+                        <span>{{ team.name }}</span>
+                    </div>
+                    <p class="text-[10px] text-red-400/60 mt-1 flex items-center gap-1">
+                        <i data-lucide="clock" class="w-2.5 h-2.5"></i> {{ identity_locks.name.reason }}
+                    </p>
+                    {% else %}
+                    <input id="profile-name" type="text" value="{{ team.name|escapejs }}" maxlength="100"
+                        class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
+                    {% endif %}
+                </div>
+                {# Team Tag #}
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium flex items-center gap-1.5">
+                        Team Tag
+                        {% if identity_locks.tag.locked %}
+                        <span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 font-semibold inline-flex items-center gap-0.5">
+                            <i data-lucide="lock" class="w-2.5 h-2.5"></i>
+                            {{ identity_locks.tag.days_left }}d left
+                        </span>
+                        {% else %}
+                        <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold inline-flex items-center gap-0.5">
+                            <i data-lucide="lock-open" class="w-2.5 h-2.5"></i> Editable
+                        </span>
+                        {% endif %}
+                    </label>
+                    {% if identity_locks.tag.locked %}
+                    <div class="w-full px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/8 text-sm text-white/40 select-none flex items-center gap-2 uppercase">
+                        <i data-lucide="lock" class="w-3.5 h-3.5 text-red-400/50 shrink-0"></i>
+                        <span>{{ team.tag }}</span>
+                    </div>
+                    <p class="text-[10px] text-red-400/60 mt-1 flex items-center gap-1">
+                        <i data-lucide="clock" class="w-2.5 h-2.5"></i> {{ identity_locks.tag.reason }}
+                    </p>
+                    {% else %}
+                    <input id="profile-tag" type="text" value="{{ team.tag|escapejs }}" maxlength="10" style="text-transform:uppercase"
+                        class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {# Region #}
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium flex items-center gap-1.5">
+                        Region
+                        {% if identity_locks.region.locked %}
+                        <span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 font-semibold inline-flex items-center gap-0.5">
+                            <i data-lucide="lock" class="w-2.5 h-2.5"></i>
+                            {{ identity_locks.region.days_left }}d left
+                        </span>
+                        {% else %}
+                        <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold inline-flex items-center gap-0.5">
+                            <i data-lucide="lock-open" class="w-2.5 h-2.5"></i> Editable
+                        </span>
+                        {% endif %}
+                    </label>
+                    {% if identity_locks.region.locked %}
+                    <div class="w-full px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/8 text-sm text-white/40 select-none flex items-center gap-2">
+                        <i data-lucide="lock" class="w-3.5 h-3.5 text-red-400/50 shrink-0"></i>
+                        <span>{{ team.region|default:"Not set" }}</span>
+                    </div>
+                    <p class="text-[10px] text-red-400/60 mt-1 flex items-center gap-1">
+                        <i data-lucide="clock" class="w-2.5 h-2.5"></i> {{ identity_locks.region.reason }}
+                    </p>
+                    {% else %}
+                    <select id="profile-region"
+                        class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
+                        <option value="">Select Region</option>
+                        {% for rc in region_choices %}
+                        <option value="{{ rc.value }}" {% if team.region == rc.value %}selected{% endif %}>{{ rc.label }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+                </div>
+                {# Game (always locked) #}
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium flex items-center gap-1.5">
+                        Game
+                        <span class="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/40 font-semibold inline-flex items-center gap-0.5">
+                            <i data-lucide="lock" class="w-2.5 h-2.5"></i> Permanent
+                        </span>
+                    </label>
+                    <div class="w-full px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/8 text-sm text-white/40 select-none flex items-center gap-2">
+                        <i data-lucide="lock" class="w-3.5 h-3.5 text-white/20 shrink-0"></i>
+                        <span>{{ game_display }}</span>
+                    </div>
+                    <p class="text-[10px] text-white/30 mt-1">Game cannot be changed. <a href="/support/contact/" class="text-blue-400 hover:underline">Request change</a></p>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button id="profile-info-submit" type="submit"
+                    class="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition"
+                    style="background:linear-gradient(135deg,color-mix(in oklab,var(--team-primary) 70%,transparent),rgba(255,255,255,.08))">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {# ── Social Links ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+            <i data-lucide="link" class="w-4 h-4 text-cyan-400"></i>
+            Social Links
+        </h2>
+
+        <form id="profile-socials-form" class="space-y-3">
+            {# Twitter / X #}
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-lg bg-white/5 border border-white/10 grid place-items-center shrink-0">
+                    <i data-lucide="twitter" class="w-4 h-4 text-sky-400"></i>
+                </div>
+                <input id="social-twitter" type="url"
+                    value="{{ team.twitter_url|default:"" }}"
+                    placeholder="Twitter / X URL"
+                    class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+
+            {# Instagram #}
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-lg bg-white/5 border border-white/10 grid place-items-center shrink-0">
+                    <i data-lucide="instagram" class="w-4 h-4 text-pink-400"></i>
+                </div>
+                <input id="social-instagram" type="url"
+                    value="{{ team.instagram_url|default:"" }}"
+                    placeholder="Instagram URL"
+                    class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+
+            {# YouTube #}
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-lg bg-white/5 border border-white/10 grid place-items-center shrink-0">
+                    <i data-lucide="youtube" class="w-4 h-4 text-red-400"></i>
+                </div>
+                <input id="social-youtube" type="url"
+                    value="{{ team.youtube_url|default:"" }}"
+                    placeholder="YouTube URL"
+                    class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+
+            {# Twitch #}
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-lg bg-white/5 border border-white/10 grid place-items-center shrink-0">
+                    <i data-lucide="twitch" class="w-4 h-4 text-purple-400"></i>
+                </div>
+                <input id="social-twitch" type="url"
+                    value="{{ team.twitch_url|default:"" }}"
+                    placeholder="Twitch URL"
+                    class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+
+            {# Facebook #}
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-lg bg-white/5 border border-white/10 grid place-items-center shrink-0">
+                    <i data-lucide="facebook" class="w-4 h-4 text-blue-400"></i>
+                </div>
+                <input id="social-facebook" type="url"
+                    value="{{ team.facebook_url|default:"" }}"
+                    placeholder="Facebook URL"
+                    class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+
+            {# TikTok #}
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-lg bg-white/5 border border-white/10 grid place-items-center shrink-0">
+                    <svg class="w-4 h-4 text-white/70" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1 0-5.78 2.93 2.93 0 0 1 .88.13V9a6.34 6.34 0 1 0 5.45 6.28V9.4a8.16 8.16 0 0 0 3.77.92V6.69Z"/></svg>
+                </div>
+                <input id="social-tiktok" type="url"
+                    value="{{ team.tiktok_url|default:"" }}"
+                    placeholder="TikTok URL"
+                    class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+
+            {# Website #}
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-lg bg-white/5 border border-white/10 grid place-items-center shrink-0">
+                    <i data-lucide="globe" class="w-4 h-4 text-emerald-400"></i>
+                </div>
+                <input id="social-website" type="url"
+                    value="{{ team.website_url|default:"" }}"
+                    placeholder="Team Website URL"
+                    class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+
+            {# Discord Invite Link #}
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 grid place-items-center shrink-0">
+                    <svg class="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03Z"/></svg>
+                </div>
+                <input id="social-discord_url" type="url"
+                    value="{{ team.discord_url|default:"" }}"
+                    placeholder="Discord Invite Link (discord.gg/...)"
+                    class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+
+            {# Discord Webhook #}
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-lg bg-white/5 border border-white/10 grid place-items-center shrink-0">
+                    <i data-lucide="webhook" class="w-4 h-4 text-white/40"></i>
+                </div>
+                <input id="social-discord_webhook" type="url"
+                    value="{{ team.discord_webhook_url|default:"" }}"
+                    placeholder="Discord Webhook URL (for notifications)"
+                    class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+
+            {# WhatsApp Group #}
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 grid place-items-center shrink-0">
+                    <svg class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zm-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884zm8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.88 11.88 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+                </div>
+                <input id="social-whatsapp" type="url"
+                    value="{{ team.whatsapp_url|default:"" }}"
+                    placeholder="WhatsApp Group Link (chat.whatsapp.com/...)"
+                    class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+
+            {# Messenger Group #}
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-lg bg-blue-500/10 border border-blue-500/20 grid place-items-center shrink-0">
+                    <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.898 1.441 5.484 3.696 7.17V22l3.415-1.876c.91.252 1.876.389 2.889.389 5.523 0 10-4.145 10-9.243C22 6.145 17.523 2 12 2zm1.024 12.46-2.55-2.72-4.974 2.72 5.47-5.81 2.614 2.72 4.91-2.72-5.47 5.81z"/></svg>
+                </div>
+                <input id="social-messenger" type="url"
+                    value="{{ team.messenger_url|default:"" }}"
+                    placeholder="Messenger Group Link (m.me/...)"
+                    class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+
+            <div class="flex justify-end pt-3">
+                <button id="profile-socials-submit" type="submit"
+                    class="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 transition text-sm font-medium text-white">
+                    Save Links
+                </button>
+            </div>
+        </form>
+    </div>
+    {# ── Brand Colors ── #}
+    {% if not org_policies.enforce_brand %}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+            <i data-lucide="palette" class="w-4 h-4 text-pink-400"></i>
+            Brand Colors
+        </h2>
+        <p class="text-xs text-white/40 mb-4">Choose team colors used across the manage page, detail page, and tournament displays.</p>
+
+        <form id="profile-colors-form" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {# Primary Color #}
+                <div>
+                    <label for="color-primary" class="block text-xs text-white/60 mb-2 font-medium">Primary Color</label>
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <input type="color" id="color-primary" value="{{ team.primary_color|default:'#3B82F6' }}"
+                                class="w-12 h-12 rounded-xl border-2 border-white/15 cursor-pointer appearance-none bg-transparent [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border-0">
+                        </div>
+                        <div class="flex-1">
+                            <input type="text" id="color-primary-hex" value="{{ team.primary_color|default:'#3B82F6' }}" maxlength="7"
+                                pattern="^#[0-9A-Fa-f]{6}$"
+                                class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm font-mono focus:border-white/30 focus:outline-none transition uppercase">
+                            <p class="text-[10px] text-white/30 mt-1">Used for accents, buttons, badges</p>
+                        </div>
+                    </div>
+                </div>
+
+                {# Accent Color #}
+                <div>
+                    <label for="color-accent" class="block text-xs text-white/60 mb-2 font-medium">Accent Color</label>
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <input type="color" id="color-accent" value="{{ team.accent_color|default:'#10B981' }}"
+                                class="w-12 h-12 rounded-xl border-2 border-white/15 cursor-pointer appearance-none bg-transparent [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border-0">
+                        </div>
+                        <div class="flex-1">
+                            <input type="text" id="color-accent-hex" value="{{ team.accent_color|default:'#10B981' }}" maxlength="7"
+                                pattern="^#[0-9A-Fa-f]{6}$"
+                                class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm font-mono focus:border-white/30 focus:outline-none transition uppercase">
+                            <p class="text-[10px] text-white/30 mt-1">Used for gradients, secondary highlights</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Live Color Preview #}
+            <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <p class="text-[10px] text-white/40 uppercase tracking-wider font-semibold mb-3">Live Preview</p>
+                <div class="flex items-center gap-4 flex-wrap">
+                    <div id="color-preview-gradient" class="h-10 w-32 rounded-lg" style="background:linear-gradient(135deg,{{ team.primary_color|default:'#3B82F6' }},{{ team.accent_color|default:'#10B981' }})"></div>
+                    <div id="color-preview-badge" class="text-[11px] px-3 py-1.5 rounded-lg font-semibold" style="color:{{ team.primary_color|default:'#3B82F6' }};background:color-mix(in oklab,{{ team.primary_color|default:'#3B82F6' }} 15%,transparent);border:1px solid color-mix(in oklab,{{ team.primary_color|default:'#3B82F6' }} 30%,transparent)">
+                        {{ team.tag|default:"TAG" }}
+                    </div>
+                    <div id="color-preview-btn" class="text-[11px] px-4 py-1.5 rounded-lg font-medium text-white" style="background:{{ team.primary_color|default:'#3B82F6' }}">
+                        Sample Button
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button id="profile-colors-submit" type="submit"
+                    class="px-5 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-500 transition text-sm font-medium text-white">
+                    Save Colors
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+</section>
+
+<script>
+// Character counter for description
+document.addEventListener('DOMContentLoaded', function() {
+    const desc = document.getElementById('profile-description');
+    const counter = document.getElementById('desc-count');
+    if (desc && counter) {
+        desc.addEventListener('input', () => { counter.textContent = desc.value.length; });
+    }
+
+    // Sync color picker ↔ hex input, and update live preview
+    function syncColor(pickerId, hexId) {
+        const picker = document.getElementById(pickerId);
+        const hex = document.getElementById(hexId);
+        if (!picker || !hex) return;
+        picker.addEventListener('input', () => {
+            hex.value = picker.value.toUpperCase();
+            updateColorPreview();
+        });
+        hex.addEventListener('input', () => {
+            if (/^#[0-9A-Fa-f]{6}$/.test(hex.value)) {
+                picker.value = hex.value;
+                updateColorPreview();
+            }
+        });
+    }
+    syncColor('color-primary', 'color-primary-hex');
+    syncColor('color-accent', 'color-accent-hex');
+
+    function updateColorPreview() {
+        const p = document.getElementById('color-primary')?.value || '#3B82F6';
+        const a = document.getElementById('color-accent')?.value || '#10B981';
+        const gradient = document.getElementById('color-preview-gradient');
+        const badge = document.getElementById('color-preview-badge');
+        const btn = document.getElementById('color-preview-btn');
+        if (gradient) gradient.style.background = `linear-gradient(135deg,${p},${a})`;
+        if (badge) {
+            badge.style.color = p;
+            badge.style.background = `color-mix(in oklab,${p} 15%,transparent)`;
+            badge.style.borderColor = `color-mix(in oklab,${p} 30%,transparent)`;
+        }
+        if (btn) btn.style.background = p;
+        // Live-theme the entire manage page as colors are picked
+        document.documentElement.style.setProperty('--team-primary', p);
+        document.documentElement.style.setProperty('--team-accent', a);
+    }
+
+    // Mission form submit
+    const missionForm = document.getElementById('profile-mission-form');
+    if (missionForm) {
+        missionForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await ManageHQ.api('profile/', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        tagline: document.getElementById('profile-tagline')?.value || '',
+                        description: document.getElementById('profile-description')?.value || '',
+                    })
+                });
+                ManageHQ.toast('Mission updated!', 'success');
+            } catch (err) { ManageHQ.toast(err.message || 'Failed to save', 'error'); }
+        });
+    }
+
+    // Colors form submit
+    const colorsForm = document.getElementById('profile-colors-form');
+    if (colorsForm) {
+        colorsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await ManageHQ.api('profile/', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        primary_color: document.getElementById('color-primary')?.value || '#3B82F6',
+                        accent_color: document.getElementById('color-accent')?.value || '#10B981',
+                    })
+                });
+                // Live-update CSS vars across manage page
+                document.documentElement.style.setProperty('--team-primary', document.getElementById('color-primary')?.value);
+                document.documentElement.style.setProperty('--team-accent', document.getElementById('color-accent')?.value);
+                ManageHQ.toast('Brand colors updated!', 'success');
+            } catch (err) { ManageHQ.toast(err.message || 'Failed to save', 'error'); }
+        });
+    }
+});
+</script>

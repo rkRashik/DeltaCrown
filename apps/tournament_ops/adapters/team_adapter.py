@@ -90,11 +90,11 @@ class TeamAdapter(BaseAdapter):
     
     Implementation Note:
     - Phase 1, Epic 1.1: Create adapter skeleton (this file)
-    - Phase 1, Epic 1.3: Wire up DTOs ✓ (done)
+    - Phase 1, Epic 1.3: Wire up DTOs âœ“ (done)
     - Phase 1, Epic 1.4: Implement actual data fetching from teams domain
     - Phase 1, Epic 1.1: Add unit tests with mocked team service
     
-    Reference: CLEANUP_AND_TESTING_PART_6.md - §4.4 (Service-Based APIs)
+    Reference: CLEANUP_AND_TESTING_PART_6.md - Â§4.4 (Service-Based APIs)
     """
     
     def get_team(self, team_id: int) -> TeamDTO:
@@ -107,11 +107,11 @@ class TeamAdapter(BaseAdapter):
         Raises:
             TeamNotFoundError: If team does not exist
         """
-        from apps.teams.services.team_service import TeamService
+        from apps.organizations.services.compat import get_team_by_any_id
         from apps.tournament_ops.exceptions import TeamNotFoundError
         
         try:
-            team = TeamService.get_team_by_id(team_id)
+            team = get_team_by_any_id(team_id)
             if not team:
                 raise TeamNotFoundError(f"Team {team_id} not found")
             return TeamDTO.from_model(team)
@@ -206,7 +206,7 @@ class TeamAdapter(BaseAdapter):
         Simple health check - attempt to query teams service.
         """
         try:
-            from apps.teams.models._legacy import Team
+            from apps.organizations.models import Team
             # Simple DB connectivity check
             Team.objects.exists()
             return True

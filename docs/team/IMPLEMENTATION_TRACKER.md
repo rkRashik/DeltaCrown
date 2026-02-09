@@ -453,15 +453,127 @@ All audit calls wrapped in `try/except` — never block the primary operation.
 | **Phase 4:** Organization & Economy | ✅ | 1 | 8 |
 | **Phase 5:** Audit, Notifications & Polish | ✅ | 1 | 7 |
 | **Quality Gate:** Final Production Sweep | ✅ | 1 | 3 |
+| **Phase 6:** Smart Restrictions, Self-Edit, Payments & Sync | ✅ | 1 | 12 |
 
 ### Cumulative Stats
 
-- **Total files created/modified:** 32 (across all phases, some files modified in multiple phases)
+- **Total files created/modified:** 44 (across all phases, some files modified in multiple phases)
 - **Python lint errors:** 0
 - **Template tag mismatches:** 0
 - **N+1 queries fixed:** 7
 - **A11y issues fixed:** 12
-- **API endpoints:** 11 (all URL-wired, CSRF-protected)
-- **JS modules:** 8 (Modal, Command, Roster, Competition, Profile, Settings, History, Notifications)
+- **API endpoints:** 12 (all URL-wired, CSRF-protected)
+- **JS modules:** 10 (Modal, Command, Roster, Competition, Profile, Settings, History, Notifications, SelfEdit, Treasury)
 - **Manage HQ sections:** 9 (Command Center, Roster Ops, Competition Hub, Training Lab, Community, Profile, Settings, Treasury, History)
-- **Master plan sections covered:** 1-18 (complete)
+- **Migrations:** 23 (0001–0023)
+- **Service files created:** 2 (economy/utils.py, organizations/services/profile_sync.py)
+- **Master plan sections covered:** 1-18 (complete) + self-edit, change restrictions, payment methods, profile sync
+
+---
+
+## Phase 6: Smart Restrictions, Self-Edit, Payments & Profile Sync
+
+**Date:** Session continuation  
+**Focus:** Player self-service, change restrictions, payment methods, cross-app sync
+
+### 6.1 Template Comment Fix
+
+| Task | Status | Notes |
+|------|:------:|-------|
+| Replace `{# ══════ #}` decorative comments | ✅ | Replaced 2 blocks in `_section_roster_ops.html` with `{% comment %}{% endcomment %}` to prevent any frontend rendering |
+
+### 6.2 Owner Self-Edit
+
+| Task | Status | Notes |
+|------|:------:|-------|
+| Allow owner to edit own roster fields | ✅ | Template now shows edit (pencil) button on owner card; "remove" and "swap" buttons hidden for self |
+| API self-edit guard rewrite | ✅ | `change_role()` in `team_manage.py` rewritten: `ROSTER_SELF_FIELDS` whitelist for `player_role`, `roster_slot`, `display_name`; owner can edit own roster but NOT own org role; creator role change blocked (use Transfer Ownership) |
+| "You" label only on roster lock | ✅ | Owner card only shows "You" badge when `roster_locked`, otherwise shows self-edit button |
+
+### 6.3 Player Self-Edit (Non-Admin)
+
+| Task | Status | Notes |
+|------|:------:|-------|
+| Self-edit button on starter cards | ✅ | Members see pencil icon on own card with `onclick="ManageHQ.openSelfEditModal(...)"` |
+| Self-edit button on substitute cards | ✅ | Same treatment for substitute roster slot |
+| Self-edit modal | ✅ | Full modal: display_name field, player_role with datalist, roster photo upload w/ preview |
+| SelfEdit JS module | ✅ | New module in `team-manage-hq.js`: `open()`, `previewPhoto()`, `save()` (sends role change + uploads photo) |
+| API: non-admin self-edit | ✅ | Non-admin members can self-edit `ROSTER_SELF_FIELDS` only; stripped of any other fields before save |
+
+### 6.4 Game Roles Dropdown
+
+| Task | Status | Notes |
+|------|:------:|-------|
+| Load GameRole from DB | ✅ | `manage_team_view` queries `GameRole.objects.filter(game_id=team.game_id, is_active=True)` |
+| Context variable | ✅ | `game_roles` list of dicts with `id`, `role_name`, `role_code`, `icon`, `color` |
+| Server-side datalist | ✅ | `<datalist id="game-role-suggestions">` populated via `{% for gr in game_roles %}` |
+| Self-edit datalist | ✅ | Added second `<datalist id="self-edit-role-suggestions">` for the self-edit modal |
+
+### 6.5 Team Information Change Restrictions
+
+| Task | Status | Notes |
+|------|:------:|-------|
+| Model: change tracking fields | ✅ | Added `name_changed_at`, `tag_changed_at`, `region_changed_at` DateTimeField(null=True) on Team |
+| Migration 0023 | ✅ | `0023_add_team_change_tracking.py` — depends on 0022 |
+| Game permanently locked | ✅ | `update_profile()` rejects `game_id` changes with 400: "Game cannot be changed after team creation" |
+| 30-day cooldown | ✅ | Name, tag, region changes check `*_changed_at` — if <30 days ago, returns error with remaining days |
+| Tournament lock | ✅ | Checks `TournamentTeam.objects.filter(team=team, status__in=['REGISTERED','CHECKED_IN','IN_PROGRESS'])` — blocks name/tag/region changes |
+| Timestamp updates | ✅ | `name_changed_at`, `tag_changed_at`, `region_changed_at` set to `now()` when value actually changes |
+
+### 6.6 Brand Color Live Preview
+
+| Task | Status | Notes |
+|------|:------:|-------|
+| Page-wide CSS var update on picker | ✅ | `updateColorPreview()` now also sets `--team-primary` and `--team-accent` on `documentElement` for live page theming as user picks colors |
+| (Already existed) Color picker ↔ hex sync | ✅ | Syncs input[type=color] ↔ text hex input bidirectionally |
+| (Already existed) Form submit → CSS vars | ✅ | Colors form submit updates CSS vars + saves via API |
+
+### 6.7 Payment Methods (Treasury)
+
+| Task | Status | Notes |
+|------|:------:|-------|
+| Create `apps/economy/utils.py` | ✅ | `get_team_wallet_context(team)` → wallet balance dict; `get_owner_payment_methods(team)` → bKash/Nagad/Rocket/bank detail dicts with masking |
+| Wire wallet_context in view | ✅ | `manage_team_view` now calls utils, passes `wallet_context` + `payment_methods` to template |
+| Treasury template: editable payment methods | ✅ | Replaced static 5-icon grid with interactive cards: each shows masked number, active badge, hover-to-reveal edit button, DeltaCoin as "built-in" |
+| Mobile payment edit modal | ✅ | Modal with phone number input, BD format validation hint, save/remove buttons |
+| Bank account edit modal | ✅ | Modal with 4 fields: holder name, account number, bank name, branch |
+| API endpoint: `payment-methods/` | ✅ | POST endpoint in `team_manage.py`: handles bKash/Nagad/Rocket number CRUD + bank account CRUD; BD phone validation (01XXXXXXXXX) |
+| URL registration | ✅ | `teams/<slug>/payment-methods/` registered in `organizations/api/urls.py` |
+| Treasury JS module | ✅ | New `Treasury` module in `team-manage-hq.js`: 6 methods (editPaymentMethod, savePaymentMethod, removePaymentMethod, editBankAccount, saveBankAccount, removeBankAccount) |
+| Public API wiring | ✅ | All 6 Treasury methods exposed on `ManageHQ.*` |
+
+### 6.8 Profile ↔ Organization App Sync
+
+| Task | Status | Notes |
+|------|:------:|-------|
+| Create `profile_sync.py` service | ✅ | `apps/organizations/services/profile_sync.py` with `sync_primary_team(user)` and `get_unified_memberships(user_profile)` |
+| `sync_primary_team()` | ✅ | Uses `TeamMigrationMap` to resolve vNext → legacy team IDs; sets/clears `UserProfile.primary_team`; falls back to DualWriteService if no mapping |
+| `get_unified_memberships()` | ✅ | Merges legacy + vNext memberships, deduplicated by team slug, sorted by `joined_at` |
+| Hook: add_member | ✅ | `sync_primary_team(user)` called after new membership created |
+| Hook: remove_member | ✅ | `sync_primary_team(user)` called after member removed/kicked |
+| Hook: leave_team | ✅ | `sync_primary_team(request.user)` called after voluntary departure |
+| Hook: transfer_ownership | ✅ | `sync_primary_team()` called for both old and new owner |
+| Career context: vNext fallback | ✅ | `build_career_context()` in `career_context.py` now queries `organizations.TeamMembership` as fallback after legacy, with deduplication by team slug |
+
+### Phase 6 File Summary
+
+| File | Action | Lines Changed |
+|------|--------|:------------:|
+| `templates/teams/manage_hq/partials/_section_roster_ops.html` | Modified | ~60 |
+| `apps/organizations/api/views/team_manage.py` | Modified | ~180 |
+| `apps/teams/views/public.py` | Modified | ~30 |
+| `static/teams/js/team-manage-hq.js` | Modified | ~210 |
+| `apps/organizations/models/team.py` | Modified | ~12 |
+| `apps/organizations/migrations/0023_add_team_change_tracking.py` | Created | 23 |
+| `templates/teams/manage_hq/partials/_section_team_profile.html` | Modified | ~3 |
+| `templates/teams/manage_hq/partials/_section_treasury.html` | Modified | ~200 |
+| `apps/economy/utils.py` | Created | 108 |
+| `apps/organizations/api/urls.py` | Modified | 1 |
+| `apps/organizations/services/profile_sync.py` | Created | 218 |
+| `apps/user_profile/services/career_context.py` | Modified | ~65 |
+
+**New API Endpoints:** 1 (`payment-methods/`)  
+**New JS Modules:** 2 (SelfEdit, Treasury)  
+**New Migrations:** 1 (0023)  
+**New Service Files:** 2 (`economy/utils.py`, `organizations/services/profile_sync.py`)  
+**Total files created/modified this phase:** 12

@@ -267,7 +267,8 @@ class TournamentResult(TimestampedModel, SoftDeleteModel):
     def _award_ranking_points(self):
         """Award ranking points to teams based on tournament results."""
         try:
-            from apps.teams.services.game_ranking_service import game_ranking_service
+            # TODO: Migrate game_ranking_service to organizations app
+            from apps.organizations.services.ranking_service import game_ranking_service
             
             # Award points for winner
             if self.winner and hasattr(self.winner, 'team'):

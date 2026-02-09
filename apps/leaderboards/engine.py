@@ -9,7 +9,7 @@ High-performance in-memory ranking computation with:
 
 Architecture:
     1. Compute rankings from Match results + LeaderboardEntry snapshots
-    2. Track rank deltas (previous_rank → current_rank)
+    2. Track rank deltas (previous_rank â†’ current_rank)
     3. Cache full rankings + deltas separately
     4. Support partial updates (only affected participants after match/dispute)
 
@@ -42,7 +42,7 @@ from django.utils import timezone
 
 from apps.leaderboards.models import LeaderboardEntry, LeaderboardSnapshot
 from apps.tournaments.models import Tournament, Match, Registration
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.accounts.models import User
 from apps.leaderboards.metrics import record_leaderboard_request
 

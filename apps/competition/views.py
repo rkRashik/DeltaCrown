@@ -25,13 +25,13 @@ def match_report_form(request):
     """
     # Get user's teams (teams where user is OWNER or ADMIN)
     user_teams = Team.objects.filter(
-        memberships__user=request.user,
-        memberships__status='ACTIVE',
-        memberships__role__in=['OWNER', 'ADMIN']
+        vnext_memberships__user=request.user,
+        vnext_memberships__status='ACTIVE',
+        vnext_memberships__role__in=['OWNER', 'MANAGER']
     ).distinct()
     
     # Get all teams for opponent selection
-    all_teams = Team.objects.filter(is_active=True).order_by('name')
+    all_teams = Team.objects.filter(status='ACTIVE').order_by('name')
     
     # Get supported games
     games = GameRankingConfig.objects.all().order_by('game_id')

@@ -1,343 +1,655 @@
 {% extends "base.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Dashboard — DeltaCrown{% endblock %}
 
-{% block content %}
-<section class="container py-8">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="sec-h">Welcome{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}</h1>
-    <a href="{% url 'teams:create' %}" class="btn-primary">
-      <i class="fas fa-plus-circle mr-2"></i>Create Team
-    </a>
-  </div>
+{% block extra_css %}
+<style>
+  /* ─── BENTO DASHBOARD DESIGN SYSTEM ─── */
+  :root {
+    --b-surface: rgba(255,255,255,0.025);
+    --b-border: rgba(255,255,255,0.06);
+    --b-hover: rgba(255,255,255,0.08);
+    --b-radius: 1.25rem;
+  }
 
-  <!-- Check-in Reminders (FE-T-027: Dashboard Integration) -->
-  {% if checkin_reminders %}
-    {% for reminder in checkin_reminders %}
-      <div class="mb-6 p-4 rounded-xl bg-gradient-to-r from-accent/20 to-primary/20 border border-accent/30">
-        <div class="flex items-start gap-4">
-          <div class="w-12 h-12 rounded-lg bg-accent/30 flex items-center justify-center flex-shrink-0">
-            <i class="fas fa-clipboard-check text-accent text-xl"></i>
+  /* Bento tile base */
+  .bt {
+    background: var(--b-surface);
+    border: 1px solid var(--b-border);
+    border-radius: var(--b-radius);
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+    overflow: hidden;
+  }
+  .bt:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-2px); }
+
+  /* Glow accents */
+  .glow-cyan:hover   { box-shadow: 0 8px 32px rgba(6,182,212,0.08); }
+  .glow-amber:hover  { box-shadow: 0 8px 32px rgba(234,179,8,0.08); }
+  .glow-purple:hover { box-shadow: 0 8px 32px rgba(168,85,247,0.08); }
+  .glow-green:hover  { box-shadow: 0 8px 32px rgba(16,185,129,0.08); }
+  .glow-blue:hover   { box-shadow: 0 8px 32px rgba(59,130,246,0.08); }
+  .glow-rose:hover   { box-shadow: 0 8px 32px rgba(244,63,94,0.08); }
+  .glow-indigo:hover { box-shadow: 0 8px 32px rgba(99,102,241,0.08); }
+
+  /* Bento grid — 12-col asymmetric */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 1023px) {
+    .bento-grid { grid-template-columns: repeat(6, 1fr); }
+  }
+  @media (max-width: 639px) {
+    .bento-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  }
+
+  /* Span helpers */
+  .span-3 { grid-column: span 3; }
+  .span-4 { grid-column: span 4; }
+  .span-5 { grid-column: span 5; }
+  .span-6 { grid-column: span 6; }
+  .span-7 { grid-column: span 7; }
+  .span-8 { grid-column: span 8; }
+  .span-12 { grid-column: span 12; }
+  @media (max-width: 1023px) {
+    .span-3, .span-4, .span-5 { grid-column: span 3; }
+    .span-7, .span-8 { grid-column: span 6; }
+    .span-12 { grid-column: span 6; }
+  }
+  @media (max-width: 639px) {
+    .span-3, .span-4, .span-5, .span-6, .span-7, .span-8, .span-12 { grid-column: span 2; }
+    .stat-tile { grid-column: span 1; }
+  }
+
+  /* Tile label */
+  .tile-label {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  }
+  .tile-icon {
+    width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
+  }
+  .tile-title { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.65); letter-spacing: 0.01em; }
+
+  /* Stat mini tile */
+  .stat-tile .stat-value { font-size: 28px; font-weight: 900; color: #fff; line-height: 1; margin-bottom: 4px; }
+  .stat-tile .stat-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  /* Invite urgent card */
+  .invite-card {
+    background: linear-gradient(135deg, rgba(234,179,8,0.04) 0%, rgba(234,179,8,0.01) 100%);
+    border-color: rgba(234,179,8,0.15);
+  }
+  .invite-card:hover { border-color: rgba(234,179,8,0.3); }
+
+  /* Match result badges */
+  .badge-win  { background: rgba(16,185,129,0.15); color: #34d399; }
+  .badge-loss { background: rgba(239,68,68,0.15); color: #f87171; }
+  .badge-draw { background: rgba(234,179,8,0.15); color: #fbbf24; }
+
+  /* Quick action pill */
+  .qa-pill {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
+    border-radius: 10px; background: var(--b-surface); border: 1px solid var(--b-border);
+    transition: all 0.25s; text-decoration: none; font-size: 12px; font-weight: 600;
+    color: rgba(255,255,255,0.45); white-space: nowrap;
+  }
+  .qa-pill:hover { border-color: rgba(6,182,212,0.3); color: #06b6d4; background: rgba(6,182,212,0.05); transform: translateY(-1px); }
+
+  /* Scrollbar */
+  .dash-scroll::-webkit-scrollbar { width: 4px; }
+  .dash-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+  .dash-scroll::-webkit-scrollbar-track { background: transparent; }
+
+  /* Fade-in */
+  @keyframes bfade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .bf { animation: bfade 0.4s ease-out both; }
+  .bf1 { animation-delay: 30ms; } .bf2 { animation-delay: 60ms; }
+  .bf3 { animation-delay: 90ms; } .bf4 { animation-delay: 120ms; }
+  .bf5 { animation-delay: 150ms; } .bf6 { animation-delay: 180ms; }
+  .bf7 { animation-delay: 210ms; } .bf8 { animation-delay: 240ms; }
+
+  /* Empty state */
+  .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; min-height: 120px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-b from-[#020005] via-[#080818] to-[#020005]">
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+
+    {# ════════════════════ HEADER ════════════════════ #}
+    <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 bf">
+      <div class="flex items-center gap-4">
+        {% if profile.avatar_url %}
+          <img src="{{ profile.avatar_url }}" alt="" class="w-12 h-12 rounded-2xl object-cover border-2 border-white/10 shadow-lg">
+        {% else %}
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/30 grid place-items-center border-2 border-white/10">
+            <span class="text-lg font-bold text-cyan-300">{{ profile.display_name|truncatechars:1 }}</span>
           </div>
-          <div class="flex-1">
-            <h3 class="font-semibold text-lg mb-1">Check-in Required</h3>
-            <p class="text-muted text-sm mb-3">
-              <strong>{{ reminder.tournament.name }}</strong> starts {{ reminder.tournament.tournament_start|timeuntil }}. 
-              Check-in {% if reminder.tournament.checkin_opens %}opens {{ reminder.tournament.checkin_opens|timeuntil }}{% else %}is now open{% endif %}.
-            </p>
-            <div class="flex items-center gap-3">
-              {% if reminder.has_checked_in %}
-                <span class="text-sm px-3 py-1.5 rounded-full bg-green-600/20 text-green-400 flex items-center gap-2">
-                  <i class="fas fa-check-circle"></i>
-                  Checked In
-                </span>
-              {% else %}
-                <a href="{% url 'tournaments:detail' reminder.tournament.slug %}" class="btn-sm bg-accent hover:bg-accent/80 text-white">
-                  <i class="fas fa-clipboard-check mr-1"></i>Check In Now
-                </a>
-              {% endif %}
-              <a href="{% url 'tournaments:detail' reminder.tournament.slug %}" class="btn-sm btn-secondary">
-                View Tournament
-              </a>
+        {% endif %}
+        <div>
+          <h1 class="text-xl lg:text-2xl font-bold text-white tracking-tight">
+            Welcome back, <span class="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">{{ profile.display_name }}</span>
+          </h1>
+          <p class="text-xs text-white/25 mt-0.5">@{{ request.user.username }}</p>
+        </div>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <a href="/notifications/" class="qa-pill">
+          <i class="fa-regular fa-bell text-[10px]"></i>
+          {% if unread_notif_count > 0 %}
+            <span class="bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 min-w-[16px] text-center leading-[16px]">{{ unread_notif_count }}</span>
+          {% endif %}
+        </a>
+        <a href="/crownstore/" class="qa-pill"><i class="fa-solid fa-store text-[10px]"></i> Store</a>
+        <a href="{% url 'user_profile:settings' %}" class="qa-pill"><i class="fa-solid fa-gear text-[10px]"></i></a>
+      </div>
+    </header>
+
+    {# ════════════════════ PENDING INVITES BANNER ════════════════════ #}
+    {% if pending_invites %}
+    <div class="mb-5 bf bf1">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="tile-icon bg-amber-500/15"><i class="fa-solid fa-envelope-open-text text-amber-400 text-[10px]"></i></div>
+        <span class="tile-title text-amber-300">Pending Invites</span>
+        <span class="bg-amber-500/20 text-amber-300 text-[9px] font-bold rounded-full px-1.5 py-0.5">{{ invite_count }}</span>
+      </div>
+      <div class="flex gap-3 overflow-x-auto pb-2 dash-scroll">
+        {% for inv in pending_invites %}
+        <div id="dash-invite-{{ inv.id }}" class="bt invite-card p-4 min-w-[260px] max-w-[300px] flex-shrink-0">
+          <div class="flex items-center gap-3 mb-3">
+            {% if inv.team_logo %}
+              <img src="{{ inv.team_logo }}" alt="" class="w-10 h-10 rounded-xl object-cover border border-amber-500/20">
+            {% else %}
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 grid place-items-center border border-amber-500/20">
+                <i class="fa-solid fa-users text-amber-300 text-xs"></i>
+              </div>
+            {% endif %}
+            <div class="flex-1 min-w-0">
+              <a href="/teams/{{ inv.team_slug }}/" class="text-sm font-bold text-white hover:text-amber-300 transition truncate block">{{ inv.team_name }}</a>
+              <div class="text-[10px] text-white/35">
+                by <span class="text-amber-300/80">{{ inv.inviter }}</span> · <span class="text-cyan-400/60">{{ inv.role }}</span>
+              </div>
             </div>
           </div>
+          <div class="flex gap-2">
+            <button onclick="dashInvite({{ inv.id }},'accept')"
+                    class="flex-1 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 text-xs font-bold hover:bg-emerald-500/25 transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-check text-[10px]"></i> Accept
+            </button>
+            <button onclick="dashInvite({{ inv.id }},'decline')"
+                    class="flex-1 py-2 rounded-lg bg-white/5 border border-white/10 text-white/35 text-xs font-bold hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-xmark text-[10px]"></i> Decline
+            </button>
+          </div>
         </div>
+        {% endfor %}
       </div>
-    {% endfor %}
-  {% endif %}
+    </div>
+    {% endif %}
 
-  <div class="grid lg:grid-cols-3 gap-6 mt-2">
-    <!-- My Teams -->
-    <article class="glass p-6 rounded-2xl">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-semibold flex items-center">
-          <i class="fas fa-users mr-2 text-primary"></i>
-          My Teams
-        </h3>
-        <a href="{% url 'teams:hub' %}" class="text-sm text-primary hover:underline">View All</a>
+    {# ════════════════════ BENTO GRID ════════════════════ #}
+    <div class="bento-grid">
+
+      {# ── ROW 1: STAT TILES (4 mini stats) ── #}
+      <div class="span-3 bt p-5 stat-tile bf bf1 glow-cyan">
+        <div class="flex items-center justify-between mb-3">
+          <div class="tile-icon bg-cyan-500/10"><i class="fa-solid fa-users text-cyan-400 text-[11px]"></i></div>
+        </div>
+        <div class="stat-value">{{ team_count }}</div>
+        <div class="stat-label">Teams</div>
       </div>
-      {% if my_teams %}
-        <ul class="grid gap-3">
+
+      <div class="span-3 bt p-5 stat-tile bf bf2 glow-green">
+        <div class="flex items-center justify-between mb-3">
+          <div class="tile-icon bg-emerald-500/10"><i class="fa-solid fa-trophy text-emerald-400 text-[11px]"></i></div>
+        </div>
+        <div class="stat-value text-emerald-400">{{ match_stats.win_rate }}%</div>
+        <div class="stat-label">Win Rate</div>
+      </div>
+
+      <div class="span-3 bt p-5 stat-tile bf bf3 glow-purple">
+        <div class="flex items-center justify-between mb-3">
+          <div class="tile-icon bg-purple-500/10"><i class="fa-solid fa-crown text-purple-400 text-[11px]"></i></div>
+        </div>
+        <div class="stat-value">{{ tournament_count }}</div>
+        <div class="stat-label">Tournaments</div>
+      </div>
+
+      <div class="span-3 bt p-5 stat-tile bf bf4 glow-amber">
+        <div class="flex items-center justify-between mb-3">
+          <div class="tile-icon bg-amber-500/10"><i class="fa-solid fa-coins text-amber-400 text-[11px]"></i></div>
+        </div>
+        <div class="stat-value text-amber-400">{{ wallet.balance|floatformat:0 }}</div>
+        <div class="stat-label">DC Coins</div>
+      </div>
+
+      {# ── ROW 2: MY TEAMS (wide) + PROFILE CARD (narrow) ── #}
+      <div class="span-8 bt p-5 bf bf5 glow-cyan">
+        <div class="tile-label">
+          <div class="tile-icon bg-cyan-500/10"><i class="fa-solid fa-users text-cyan-400 text-[11px]"></i></div>
+          <span class="tile-title">My Teams</span>
+          <a href="/teams/vnext/" class="ml-auto text-[10px] text-cyan-400/50 hover:text-cyan-300 transition font-semibold">View All →</a>
+        </div>
+        {% if my_teams %}
+        <div class="grid sm:grid-cols-2 gap-2.5">
           {% for team in my_teams %}
-            <li class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition">
-              <div class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-primary to-accent">
-                {% if team.logo %}
-                  <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="w-full h-full object-cover">
-                {% else %}
-                  <div class="w-full h-full flex items-center justify-center text-white font-bold">
-                    {{ team.name|slice:":2"|upper }}
-                  </div>
-                {% endif %}
+          <a href="/teams/{{ team.slug }}/" class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] hover:border-cyan-500/20 transition-all group">
+            {% if team.logo_url %}
+              <img src="{{ team.logo_url }}" alt="" class="w-10 h-10 rounded-xl object-cover border border-white/10 group-hover:border-cyan-500/30 transition">
+            {% else %}
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/15 to-blue-600/15 grid place-items-center border border-white/10 group-hover:border-cyan-500/30 transition">
+                <span class="text-xs font-bold text-cyan-300">{{ team.name|truncatechars:2 }}</span>
               </div>
-              <div class="flex-1 min-w-0">
-                {% if team.slug %}
-                  <a href="{% url 'teams:detail' team.slug %}" class="link-nav font-medium block truncate">{{ team.name }}</a>
-                {% else %}
-                  <span class="font-medium block truncate opacity-60" title="Team pending setup">{{ team.name }}</span>
-                {% endif %}
-                <p class="text-xs text-muted">{{ team.game|default:"Multi-game" }}</p>
+            {% endif %}
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-bold text-white group-hover:text-cyan-300 transition truncate">
+                {{ team.name }}
+                {% if team.tag %}<span class="text-white/20 text-[10px] ml-0.5">[{{ team.tag }}]</span>{% endif %}
               </div>
-              <span class="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary">
-                {{ team.member_count|default:1 }}/{{ team.max_roster|default:5 }}
-              </span>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="text-center py-6">
-          <i class="fas fa-users text-4xl text-muted/30 mb-3"></i>
-          <p class="text-muted text-sm mb-3">You're not part of any teams yet.</p>
-          <a href="{% url 'teams:create' %}" class="btn-sm btn-primary">
-            <i class="fas fa-plus mr-1"></i>Create Your First Team
+              <div class="flex items-center gap-1.5 mt-0.5 text-[10px]">
+                <span class="text-cyan-400/50 font-semibold">{{ team.role }}</span>
+                {% if team.game_name %}<span class="text-white/10">·</span><span class="text-white/25">{{ team.game_name }}</span>{% endif %}
+                <span class="text-white/10">·</span>
+                <span class="text-white/20"><i class="fa-solid fa-users text-[8px]"></i> {{ team.member_count }}</span>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-[9px] text-white/10 group-hover:text-cyan-400/40 transition"></i>
           </a>
+          {% endfor %}
         </div>
-      {% endif %}
-    </article>
-
-    <!-- Team Invites -->
-    <article class="glass p-6 rounded-2xl">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-semibold flex items-center">
-          <i class="fas fa-envelope mr-2 text-accent"></i>
-          Team Invites
-        </h3>
-        {% if TEAM_VNEXT_ADAPTER_ENABLED and not TEAM_VNEXT_FORCE_LEGACY and TEAM_VNEXT_ROUTING_MODE != 'legacy_only' %}
-          <a href="{% url 'organizations:team_invites' %}" class="text-sm text-accent hover:underline">View All</a>
         {% else %}
-          <a href="{% url 'teams:my_invites' %}" class="text-sm text-accent hover:underline">View All</a>
+        <div class="empty">
+          <i class="fa-solid fa-users text-lg text-cyan-400/20 mb-2"></i>
+          <p class="text-white/35 text-sm font-semibold mb-1">No teams yet</p>
+          <p class="text-[10px] text-white/20 mb-3">Create or join a team to start competing.</p>
+          <a href="/teams/vnext/create/" class="qa-pill"><i class="fa-solid fa-plus text-[10px]"></i> Create Team</a>
+        </div>
         {% endif %}
       </div>
-      {% if pending_invites %}
-        <ul class="grid gap-3">
-          {% for invite in pending_invites %}
-            <li class="p-3 rounded-lg border border-accent/20 bg-accent/5">
-              <div class="flex items-center justify-between mb-2">
-                {% if invite.team.slug %}
-                  <a href="{% url 'teams:detail' invite.team.slug %}" class="link-nav font-medium">{{ invite.team.name }}</a>
-                {% else %}
-                  <span class="font-medium opacity-60" title="Team pending setup">{{ invite.team.name }}</span>
-                {% endif %}
-                <span class="text-xs text-muted">{{ invite.get_role_display|default:"Player" }}</span>
-              </div>
-              <p class="text-xs text-muted mb-2">
-                {% if invite.inviter %}
-                  Invited by {{ invite.inviter.display_name|default:invite.inviter.user.username }} • {{ invite.created_at|timesince }} ago
-                {% else %}
-                  Invited {{ invite.created_at|timesince }} ago
-                {% endif %}
-              </p>
-              <div class="flex gap-2">
-                <form method="post" action="{% url 'teams:accept_invite' invite.token %}" class="flex-1">
-                  {% csrf_token %}
-                  <button type="submit" class="w-full btn-sm bg-green-600 hover:bg-green-700 text-white">
-                    <i class="fas fa-check mr-1"></i>Accept
-                  </button>
-                </form>
-                <form method="post" action="{% url 'teams:decline_invite' invite.token %}">
-                  {% csrf_token %}
-                  <button type="submit" class="btn-sm bg-red-600/20 hover:bg-red-600/30 text-red-400">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </form>
-              </div>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="text-center py-6">
-          <i class="fas fa-envelope-open text-4xl text-muted/30 mb-3"></i>
-          <p class="text-muted text-sm">No pending invites.</p>
-        </div>
-      {% endif %}
-    </article>
 
-    <!-- Upcoming Matches -->
-    <article class="glass p-6 rounded-2xl">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-semibold flex items-center">
-          <i class="fas fa-calendar-alt mr-2 text-yellow-500"></i>
-          Upcoming Matches
-        </h3>
-        <a href="{% url 'dashboard:my_matches' %}" class="text-sm text-yellow-500 hover:underline">View All</a>
-      </div>
-      {% if matches %}
-        <ul class="grid gap-2 text-sm">
-          {% for m in matches %}
-            <li class="flex items-center justify-between p-2 rounded hover:bg-white/5">
-              <span class="flex-1 truncate">Match</span>
-              <span class="text-muted text-xs">{% if m.when %}{{ m.when|date:"M d, H:i" }}{% else %}TBA{% endif %}</span>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="text-center py-6">
-          <i class="fas fa-calendar-times text-4xl text-muted/30 mb-3"></i>
-          <p class="text-muted text-sm">No upcoming matches.</p>
+      <div class="span-4 bt p-5 bf bf5">
+        <div class="tile-label">
+          <div class="tile-icon bg-indigo-500/10"><i class="fa-solid fa-user text-indigo-400 text-[11px]"></i></div>
+          <span class="tile-title">Profile</span>
         </div>
-      {% endif %}
-    </article>
-  </div>
-
-  <!-- Second Row: Tournaments & Payouts -->
-  <div class="grid lg:grid-cols-2 gap-6 mt-6">
-    <!-- My Hosted Tournaments (FE-T-027: Organizer Dashboard Integration) -->
-    {% if hosted_tournaments %}
-    <article class="glass p-6 rounded-2xl border border-accent/30">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-semibold flex items-center">
-          <i class="fas fa-crown mr-2 text-accent"></i>
-          My Hosted Tournaments
-        </h3>
-        <a href="{% url 'tournaments:list' %}?organizer={{ request.user.username }}" class="text-sm text-accent hover:underline">View All</a>
+        <div class="flex items-center gap-3 mb-4">
+          {% if profile.avatar_url %}
+            <img src="{{ profile.avatar_url }}" alt="" class="w-14 h-14 rounded-2xl object-cover border border-white/10">
+          {% else %}
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/15 to-blue-600/15 grid place-items-center border border-white/10">
+              <span class="text-lg font-bold text-cyan-300">{{ profile.display_name|truncatechars:1 }}</span>
+            </div>
+          {% endif %}
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-bold text-white truncate">{{ profile.display_name }}</div>
+            <div class="text-[10px] text-white/25">@{{ request.user.username }}</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-center mb-3">
+          <div class="p-2.5 rounded-lg bg-white/[0.02]">
+            <div class="text-sm font-bold text-white">{{ team_count }}</div>
+            <div class="text-[9px] text-white/25 font-semibold">Teams</div>
+          </div>
+          <div class="p-2.5 rounded-lg bg-white/[0.02]">
+            <div class="text-sm font-bold text-white">{{ social_stats.followers }}</div>
+            <div class="text-[9px] text-white/25 font-semibold">Followers</div>
+          </div>
+          <div class="p-2.5 rounded-lg bg-white/[0.02]">
+            <div class="text-sm font-bold text-white">{{ social_stats.following }}</div>
+            <div class="text-[9px] text-white/25 font-semibold">Following</div>
+          </div>
+        </div>
+        {% if profile.lft_status %}
+        <div class="px-3 py-2 rounded-lg bg-emerald-500/8 border border-emerald-500/15 text-center">
+          <span class="text-[10px] text-emerald-400 font-bold"><i class="fa-solid fa-signal mr-1"></i> LFT: {{ profile.lft_status }}</span>
+        </div>
+        {% endif %}
+        <a href="{% url 'user_profile:public_profile' request.user.username %}"
+           class="mt-3 block w-full text-center py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] text-[11px] text-white/40 font-semibold hover:text-white hover:border-white/15 transition">
+          View Public Profile →
+        </a>
       </div>
-      <ul class="grid gap-3">
-        {% for tournament in hosted_tournaments %}
-          <li class="p-3 rounded-lg hover:bg-white/5 transition border border-accent/20">
-            <div class="flex items-center justify-between mb-2">
-              <a href="{% url 'tournaments:organizer_hub' tournament.slug 'overview' %}" class="link-nav font-medium truncate flex-1">
-                {{ tournament.name }}
-              </a>
-              <span class="text-xs px-2 py-1 rounded-full ml-2 flex-shrink-0
-                {% if tournament.status == 'LIVE' %}bg-green-600/20 text-green-400
-                {% elif tournament.status == 'UPCOMING' %}bg-blue-600/20 text-blue-400
-                {% elif tournament.status == 'COMPLETED' %}bg-gray-600/20 text-gray-400
-                {% else %}bg-yellow-600/20 text-yellow-400{% endif %}">
-                {{ tournament.get_status_display }}
-              </span>
+
+      {# ── ROW 3: MATCH RECORD (small) + RECENT MATCHES (medium) + WALLET (small) ── #}
+      <div class="span-3 bt p-5 bf bf6 glow-blue">
+        <div class="tile-label">
+          <div class="tile-icon bg-blue-500/10"><i class="fa-solid fa-gamepad text-blue-400 text-[11px]"></i></div>
+          <span class="tile-title">Record</span>
+        </div>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] text-white/30 font-semibold">Wins</span>
+            <span class="text-lg font-black text-emerald-400">{{ match_stats.wins }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] text-white/30 font-semibold">Losses</span>
+            <span class="text-lg font-black text-red-400">{{ match_stats.losses }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] text-white/30 font-semibold">Draws</span>
+            <span class="text-lg font-black text-amber-400">{{ match_stats.draws }}</span>
+          </div>
+          <div class="border-t border-white/5 pt-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] text-white/30 font-semibold">Total</span>
+              <span class="text-sm font-bold text-white">{{ match_stats.total }}</span>
             </div>
-            <div class="flex items-center gap-3 text-xs text-muted mb-2">
-              {% if tournament.game %}
-                <span class="px-2 py-0.5 rounded bg-accent/10 text-accent">{{ tournament.game.name }}</span>
-              {% endif %}
-              <span><i class="fas fa-users mr-1"></i>{{ tournament.registration_count|default:0 }} participants</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="span-5 bt p-5 bf bf6 glow-blue">
+        <div class="tile-label">
+          <div class="tile-icon bg-blue-500/10"><i class="fa-solid fa-swords text-blue-400 text-[11px]"></i></div>
+          <span class="tile-title">Recent Matches</span>
+          <a href="/competition/" class="ml-auto text-[10px] text-blue-400/50 hover:text-blue-300 transition font-semibold">All →</a>
+        </div>
+        {% if recent_matches %}
+        <div class="space-y-2 max-h-[200px] overflow-y-auto dash-scroll pr-1">
+          {% for m in recent_matches %}
+          <div class="flex items-center gap-2 p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.03]">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 text-xs">
+                <span class="font-bold text-white truncate">{{ m.team1_name }}</span>
+                {% if m.score_team1 is not None and m.score_team2 is not None %}
+                  <span class="text-white/50 font-mono text-[10px] px-1.5 py-0.5 rounded bg-white/5">{{ m.score_team1 }}-{{ m.score_team2 }}</span>
+                {% else %}
+                  <span class="text-white/15 text-[10px]">vs</span>
+                {% endif %}
+                <span class="font-bold text-white truncate">{{ m.team2_name }}</span>
+              </div>
+              <div class="flex items-center gap-1.5 mt-0.5 text-[9px] text-white/20">
+                {% if m.game_name %}<span>{{ m.game_name }}</span>{% endif %}
+                <span>{{ m.created_at|timesince }} ago</span>
+              </div>
             </div>
-            {% if tournament.pending_actions > 0 %}
-              <div class="flex items-center gap-2 text-xs bg-red-600/10 text-red-400 px-2 py-1 rounded">
-                <i class="fas fa-bell"></i>
-                <span>{{ tournament.pending_actions }} action{{ tournament.pending_actions|pluralize }} needed</span>
+            {% if m.result %}
+            <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase {% if m.result == 'WIN' %}badge-win{% elif m.result == 'LOSS' %}badge-loss{% else %}badge-draw{% endif %}">{{ m.result }}</span>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty" style="min-height:100px;">
+          <i class="fa-solid fa-gamepad text-base text-blue-400/20 mb-1.5"></i>
+          <p class="text-white/30 text-xs font-medium">No matches yet</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="span-4 bt p-5 bf bf6 glow-amber">
+        <div class="tile-label">
+          <div class="tile-icon bg-amber-500/10"><i class="fa-solid fa-wallet text-amber-400 text-[11px]"></i></div>
+          <span class="tile-title">Wallet</span>
+        </div>
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="text-2xl font-black text-white">{{ wallet.balance|floatformat:0 }} <span class="text-sm text-amber-400 font-bold">DC</span></div>
+            <div class="text-[9px] text-white/20">DeltaCrown Coins</div>
+          </div>
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500/15 to-orange-500/15 grid place-items-center">
+            <i class="fa-solid fa-coins text-amber-400 text-sm"></i>
+          </div>
+        </div>
+        {% if wallet.recent_txns %}
+        <div class="space-y-1.5 border-t border-white/5 pt-3">
+          {% for txn in wallet.recent_txns|slice:":3" %}
+          <div class="flex items-center justify-between text-[10px]">
+            <span class="text-white/30 truncate flex-1 mr-2">{{ txn.reason }}</span>
+            <span class="font-bold {% if txn.amount > 0 %}text-emerald-400{% else %}text-red-400{% endif %} flex-shrink-0">
+              {% if txn.amount > 0 %}+{% endif %}{{ txn.amount|floatformat:0 }}
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+
+      {# ── ROW 4: TOURNAMENTS (wide) + ORGANIZATIONS (medium) ── #}
+      <div class="span-7 bt p-5 bf bf7 glow-purple">
+        <div class="tile-label">
+          <div class="tile-icon bg-purple-500/10"><i class="fa-solid fa-crown text-purple-400 text-[11px]"></i></div>
+          <span class="tile-title">Tournament Activity</span>
+          <a href="/tournaments/" class="ml-auto text-[10px] text-purple-400/50 hover:text-purple-300 transition font-semibold">Browse →</a>
+        </div>
+        {% if active_tournaments %}
+        <div class="grid sm:grid-cols-2 gap-2.5 max-h-[210px] overflow-y-auto dash-scroll pr-1">
+          {% for t in active_tournaments %}
+          <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="text-xs font-bold text-white truncate flex-1 mr-2">{{ t.name }}</div>
+              <span class="px-1.5 py-0.5 rounded text-[9px] font-bold flex-shrink-0
+                {% if t.status == 'LIVE' %}bg-emerald-500/15 text-emerald-400
+                {% elif t.status == 'UPCOMING' or t.status == 'REGISTRATION' %}bg-cyan-500/15 text-cyan-400
+                {% else %}bg-white/5 text-white/30{% endif %}">{{ t.status }}</span>
+            </div>
+            <div class="flex items-center gap-2 text-[9px] text-white/25">
+              {% if t.game_name %}<span>{{ t.game_name }}</span>{% endif %}
+              {% if t.prize_pool %}<span class="text-amber-400/60"><i class="fa-solid fa-coins"></i> {{ t.prize_pool }}</span>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty" style="min-height:100px;">
+          <i class="fa-solid fa-crown text-base text-purple-400/20 mb-1.5"></i>
+          <p class="text-white/30 text-xs font-medium">No tournament activity</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="span-5 bt p-5 bf bf7 glow-indigo">
+        <div class="tile-label">
+          <div class="tile-icon bg-indigo-500/10"><i class="fa-solid fa-building text-indigo-400 text-[11px]"></i></div>
+          <span class="tile-title">Organizations</span>
+        </div>
+        {% if my_organizations %}
+        <div class="space-y-2.5">
+          {% for org in my_organizations %}
+          <a href="/orgs/{{ org.slug }}/" class="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] hover:border-indigo-500/20 transition group block">
+            {% if org.logo_url %}
+              <img src="{{ org.logo_url }}" alt="" class="w-9 h-9 rounded-lg object-cover border border-white/10">
+            {% else %}
+              <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500/15 to-purple-500/15 grid place-items-center border border-white/10">
+                <span class="text-[10px] font-bold text-indigo-300">{{ org.name|truncatechars:2 }}</span>
               </div>
             {% endif %}
-          </li>
-        {% endfor %}
-      </ul>
-    </article>
-    {% endif %}
-
-    <!-- Upcoming Matches (FE-T-027: Dashboard Integration) -->
-    {% if upcoming_matches %}
-    <article class="glass p-6 rounded-2xl">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-semibold flex items-center">
-          <i class="fas fa-gamepad mr-2 text-primary"></i>
-          Upcoming Matches
-        </h3>
-        <a href="{% url 'tournaments:my_tournaments' %}" class="text-sm text-primary hover:underline">View All</a>
-      </div>
-      <ul class="grid gap-3">
-        {% for match in upcoming_matches %}
-          <li class="p-3 rounded-lg hover:bg-white/5 transition border border-primary/20">
-            <div class="flex items-center justify-between mb-2">
-              <a href="{% url 'tournaments:detail' match.tournament.slug %}" class="link-nav font-medium text-sm truncate flex-1">
-                {{ match.tournament.name }}
-              </a>
-              <span class="text-xs text-accent ml-2">
-                {% if match.scheduled_time %}
-                  {% if match.scheduled_time|timeuntil == "0 minutes" %}
-                    Now!
-                  {% else %}
-                    in {{ match.scheduled_time|timeuntil }}
-                  {% endif %}
-                {% endif %}
-              </span>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-bold text-white group-hover:text-indigo-300 transition truncate">
+                {{ org.name }}
+                {% if org.is_verified %}<i class="fa-solid fa-circle-check text-[9px] text-blue-400 ml-0.5"></i>{% endif %}
+              </div>
+              <div class="text-[10px] text-white/25">
+                <span class="text-indigo-400/60 font-semibold">{{ org.role }}</span>
+                <span class="text-white/10">·</span>
+                <span>{{ org.team_count }} team{{ org.team_count|pluralize }}</span>
+              </div>
             </div>
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-muted">{{ match.participant_a_name }}</span>
-              <span class="text-primary font-bold">vs</span>
-              <span class="text-muted">{{ match.participant_b_name }}</span>
-            </div>
-            {% if match.round_name %}
-              <div class="text-xs text-muted mt-2">
-                <i class="fas fa-layer-group mr-1"></i>{{ match.round_name }}
-              </div>
-            {% endif %}
-          </li>
-        {% endfor %}
-      </ul>
-    </article>
-    {% endif %}
-
-    <!-- My Tournaments (Sprint 2: Player Dashboard) -->
-    <article class="glass p-6 rounded-2xl">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-semibold flex items-center">
-          <i class="fas fa-trophy mr-2 text-primary"></i>
-          My Tournaments
-        </h3>
-        <a href="{% url 'tournaments:my_tournaments' %}" class="text-sm text-primary hover:underline">View All</a>
-      </div>
-      {% if user_tournaments %}
-        <ul class="grid gap-3">
-          {% for registration in user_tournaments %}
-            <li class="p-3 rounded-lg hover:bg-white/5 transition">
-              <div class="flex items-center justify-between mb-2">
-                <a href="{% url 'tournaments:detail' registration.tournament.slug %}" class="link-nav font-medium truncate flex-1">
-                  {{ registration.tournament.name }}
-                </a>
-                <span class="text-xs px-2 py-1 rounded-full ml-2 flex-shrink-0
-                  {% if registration.status == 'confirmed' %}bg-green-600/20 text-green-400
-                  {% elif registration.status == 'payment_submitted' %}bg-yellow-600/20 text-yellow-400
-                  {% elif registration.status == 'pending' %}bg-blue-600/20 text-blue-400
-                  {% else %}bg-gray-600/20 text-gray-400{% endif %}">
-                  {{ registration.get_status_display }}
-                </span>
-              </div>
-              <div class="flex items-center gap-3 text-xs text-muted">
-                {% if registration.tournament.game %}
-                  <span class="px-2 py-0.5 rounded bg-primary/10 text-primary">{{ registration.tournament.game.name }}</span>
-                {% endif %}
-                {% if registration.tournament.tournament_start %}
-                  <span><i class="fas fa-calendar mr-1"></i>{{ registration.tournament.tournament_start|date:"M d" }}</span>
-                {% endif %}
-              </div>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="text-center py-6">
-          <i class="fas fa-trophy text-4xl text-muted/30 mb-3"></i>
-          <p class="text-muted text-sm mb-3">You haven't registered for any tournaments yet.</p>
-          <a href="{% url 'tournaments:list' %}" class="btn-sm btn-primary">
-            <i class="fas fa-search mr-1"></i>Browse Tournaments
           </a>
-        </div>
-      {% endif %}
-    </article>
-
-    <!-- Payouts -->
-    <article class="glass p-6 rounded-2xl">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-semibold flex items-center">
-          <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
-          Payouts
-        </h3>
-      </div>
-      {% if payouts %}
-        <ul class="grid gap-2 text-sm">
-          {% for p in payouts %}
-            <li class="flex items-center justify-between p-2 rounded hover:bg-white/5">
-              <span class="flex-1 truncate">Payout</span>
-              <span class="text-green-400 font-semibold">{% if p.amount_bdt %}৳{{ p.amount_bdt }}{% else %}—{% endif %}</span>
-            </li>
           {% endfor %}
-        </ul>
-      {% else %}
-        <div class="text-center py-6">
-          <i class="fas fa-piggy-bank text-4xl text-muted/30 mb-3"></i>
-          <p class="text-muted text-sm">No payouts yet. Keep competing!</p>
         </div>
+        {% else %}
+        <div class="empty" style="min-height:100px;">
+          <i class="fa-solid fa-building text-base text-indigo-400/20 mb-1.5"></i>
+          <p class="text-white/30 text-xs font-medium">No organization</p>
+          <p class="text-[9px] text-white/15 mt-0.5">Join or create an organization</p>
+        </div>
+        {% endif %}
+      </div>
+
+      {# ── ROW 5: NOTIFICATIONS (medium) + LEADERBOARD + BADGES ── #}
+      <div class="span-4 bt p-5 bf bf8">
+        <div class="tile-label">
+          <div class="tile-icon bg-rose-500/10"><i class="fa-solid fa-bell text-rose-400 text-[11px]"></i></div>
+          <span class="tile-title">Notifications</span>
+          <a href="/notifications/" class="ml-auto text-[10px] text-rose-400/50 hover:text-rose-300 transition font-semibold">All →</a>
+        </div>
+        {% if recent_notifications %}
+        <div class="space-y-1.5 max-h-[200px] overflow-y-auto dash-scroll pr-1">
+          {% for n in recent_notifications|slice:":6" %}
+          <a href="{{ n.url|default:'/notifications/' }}"
+             class="flex items-start gap-2 p-2 rounded-lg hover:bg-white/[0.03] transition group block {% if not n.is_read %}border-l-2 border-l-cyan-400{% endif %}">
+            <div class="w-6 h-6 rounded-md grid place-items-center shrink-0 mt-0.5
+              {% if n.type == 'invite_sent' %}bg-amber-500/10{% elif n.type == 'invite_accepted' %}bg-emerald-500/10{% elif n.type == 'match_result' %}bg-blue-500/10{% else %}bg-white/5{% endif %}">
+              {% if n.type == 'invite_sent' %}<i class="fa-solid fa-envelope text-amber-400 text-[8px]"></i>
+              {% elif n.type == 'invite_accepted' %}<i class="fa-solid fa-user-check text-emerald-400 text-[8px]"></i>
+              {% elif n.type == 'match_result' %}<i class="fa-solid fa-flag-checkered text-blue-400 text-[8px]"></i>
+              {% else %}<i class="fa-solid fa-bell text-white/20 text-[8px]"></i>{% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[11px] font-semibold text-white/50 group-hover:text-white/80 transition truncate">{{ n.title }}</div>
+              <div class="text-[9px] text-white/15 mt-0.5">{{ n.created_at|timesince }} ago</div>
+            </div>
+            {% if not n.is_read %}<span class="w-1.5 h-1.5 bg-cyan-400 rounded-full shrink-0 mt-2"></span>{% endif %}
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty" style="min-height:80px;">
+          <p class="text-[10px] text-white/20">No notifications</p>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if leaderboard_data %}
+      <div class="span-4 bt p-5 bf bf8 glow-amber">
+        <div class="tile-label">
+          <div class="tile-icon bg-amber-500/10"><i class="fa-solid fa-ranking-star text-amber-400 text-[11px]"></i></div>
+          <span class="tile-title">Rankings</span>
+        </div>
+        <div class="space-y-2.5">
+          {% for lb in leaderboard_data %}
+          <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.03] text-center">
+            <div class="text-2xl font-black text-amber-400">#{{ lb.rank }}</div>
+            <div class="text-[10px] text-white/35 font-semibold">{{ lb.leaderboard_type|title }}</div>
+            {% if lb.game_name %}<div class="text-[9px] text-white/15">{{ lb.game_name }}</div>{% endif %}
+            <div class="flex justify-center gap-2 mt-1.5 text-[9px]">
+              <span class="text-white/25">{{ lb.points }} pts</span>
+              <span class="text-emerald-400/50">{{ lb.wins }}W</span>
+              <span class="text-red-400/50">{{ lb.losses }}L</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
       {% endif %}
-    </article>
+
+      {% if badges %}
+      <div class="{% if leaderboard_data %}span-4{% else %}span-8{% endif %} bt p-5 bf bf8">
+        <div class="tile-label">
+          <div class="tile-icon bg-purple-500/10"><i class="fa-solid fa-medal text-purple-400 text-[11px]"></i></div>
+          <span class="tile-title">Badges</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          {% for b in badges %}
+          <div class="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.03] text-center group" title="{{ b.description }}">
+            {% if b.icon %}
+              <img src="{{ b.icon }}" alt="" class="w-7 h-7 mx-auto mb-1 group-hover:scale-110 transition">
+            {% else %}
+              <div class="w-7 h-7 mx-auto mb-1 rounded-lg bg-gradient-to-br from-indigo-500/15 to-purple-500/15 grid place-items-center">
+                <i class="fa-solid fa-medal text-indigo-400 text-[10px]"></i>
+              </div>
+            {% endif %}
+            <div class="text-[9px] text-white/35 font-semibold truncate">{{ b.name }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {# ── ROW 6: QUICK ACTIONS (full width) ── #}
+      <div class="span-12 bf bf8">
+        <div class="tile-label mb-0">
+          <div class="tile-icon bg-white/5"><i class="fa-solid fa-bolt text-cyan-400 text-[11px]"></i></div>
+          <span class="tile-title">Quick Actions</span>
+        </div>
+        <div class="flex gap-2 flex-wrap mt-3">
+          <a href="/teams/vnext/create/" class="qa-pill"><i class="fa-solid fa-plus text-cyan-400 text-[10px]"></i> Create Team</a>
+          <a href="/teams/vnext/" class="qa-pill"><i class="fa-solid fa-users text-blue-400 text-[10px]"></i> My Teams</a>
+          <a href="/tournaments/" class="qa-pill"><i class="fa-solid fa-crown text-purple-400 text-[10px]"></i> Tournaments</a>
+          <a href="/competition/" class="qa-pill"><i class="fa-solid fa-swords text-emerald-400 text-[10px]"></i> Report Match</a>
+          <a href="/crownstore/" class="qa-pill"><i class="fa-solid fa-store text-amber-400 text-[10px]"></i> Crown Store</a>
+          <a href="/search/" class="qa-pill"><i class="fa-solid fa-magnifying-glass text-rose-400 text-[10px]"></i> Find Players</a>
+          <a href="/spectator/" class="qa-pill"><i class="fa-solid fa-eye text-white/30 text-[10px]"></i> Spectator</a>
+          <a href="{% url 'user_profile:public_profile' request.user.username %}" class="qa-pill"><i class="fa-solid fa-user text-indigo-400 text-[10px]"></i> My Profile</a>
+          <a href="{% url 'user_profile:settings' %}" class="qa-pill"><i class="fa-solid fa-gear text-white/30 text-[10px]"></i> Settings</a>
+        </div>
+      </div>
+
+      {# ── ROW 7: RECENT ORDERS (if any) ── #}
+      {% if recent_orders %}
+      <div class="span-12 bt p-5 bf bf8">
+        <div class="tile-label">
+          <div class="tile-icon bg-rose-500/10"><i class="fa-solid fa-bag-shopping text-rose-400 text-[11px]"></i></div>
+          <span class="tile-title">Recent Orders</span>
+          <a href="/crownstore/" class="ml-auto text-[10px] text-rose-400/50 hover:text-rose-300 transition font-semibold">Store →</a>
+        </div>
+        <div class="flex gap-3 overflow-x-auto dash-scroll pb-1">
+          {% for o in recent_orders %}
+          <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.03] min-w-[180px] flex-shrink-0">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-white/50">Order #{{ o.id }}</span>
+              <span class="text-sm font-bold text-white">{{ o.total|floatformat:0 }} DC</span>
+            </div>
+            <div class="flex items-center justify-between mt-1">
+              <span class="text-[9px] text-white/20">{{ o.created_at|timesince }} ago</span>
+              <span class="text-[9px] font-bold
+                {% if o.status == 'COMPLETED' %}text-emerald-400{% elif o.status == 'PENDING' %}text-amber-400{% else %}text-white/25{% endif %}">{{ o.status }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>{# /bento-grid #}
+
   </div>
-</section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function _csrf() {
+    let v = null;
+    document.cookie.split(';').forEach(c => { c = c.trim(); if (c.startsWith('csrftoken=')) v = decodeURIComponent(c.substring(10)); });
+    return v;
+  }
+
+  async function dashInvite(id, action) {
+    const card = document.getElementById(`dash-invite-${id}`);
+    if (!card) return;
+    const btns = card.querySelectorAll('button');
+    btns.forEach(b => { b.disabled = true; b.classList.add('opacity-50', 'pointer-events-none'); });
+
+    try {
+      const res = await fetch(`/notifications/api/team-invite/${id}/${action}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': _csrf(), 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+      });
+      const data = await res.json();
+      if (data.success) {
+        card.style.transition = 'all 0.3s';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.95) translateY(-8px)';
+        setTimeout(() => card.remove(), 300);
+      } else {
+        btns.forEach(b => { b.disabled = false; b.classList.remove('opacity-50', 'pointer-events-none'); });
+        const errEl = document.createElement('div');
+        errEl.className = 'text-[10px] text-red-400 mt-2 font-medium text-center';
+        errEl.textContent = data.error || 'Action failed.';
+        card.appendChild(errEl);
+        setTimeout(() => errEl.remove(), 5000);
+      }
+    } catch (err) {
+      console.error('[Dashboard]', err);
+      btns.forEach(b => { b.disabled = false; b.classList.remove('opacity-50', 'pointer-events-none'); });
+    }
+  }
+</script>
 {% endblock %}

@@ -14,8 +14,8 @@ from apps.user_profile.models import UserProfile
 User = get_user_model()
 
 Registration = apps.get_model("tournaments", "Registration")
-Team = apps.get_model("teams", "Team")
-TeamMembership = apps.get_model("teams", "TeamMembership")
+Team = apps.get_model("organizations", "Team")
+TeamMembership = apps.get_model("organizations", "TeamMembership")
 TournamentRegistrationPolicy = apps.get_model("tournaments", "TournamentRegistrationPolicy")
 
 

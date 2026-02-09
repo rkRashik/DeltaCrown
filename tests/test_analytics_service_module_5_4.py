@@ -30,7 +30,7 @@ from apps.tournaments.models import (
     Game,
 )
 from apps.tournaments.services.analytics_service import AnalyticsService
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.user_profile.models import UserProfile
 
 User = get_user_model()

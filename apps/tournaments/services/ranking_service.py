@@ -39,7 +39,7 @@ class TournamentRankingService:
     def Team(self):
         """Lazy-load Team model to avoid circular imports."""
         if not self._team_model:
-            self._team_model = apps.get_model('teams', 'Team')
+            self._team_model = apps.get_model('organizations', 'Team')
         return self._team_model
 
     @property
@@ -137,10 +137,10 @@ class TournamentRankingService:
             team_id = participant['participant_id']
             rank_data = ranking_map[team_id]
             
-            # Primary: final_total (higher is better → negate for DESC)
+            # Primary: final_total (higher is better â†’ negate for DESC)
             total_points = rank_data['final_total']
             
-            # Secondary: created_at (older teams first → negate timestamp)
+            # Secondary: created_at (older teams first â†’ negate timestamp)
             created_at = rank_data['team__created_at']
             
             # Tertiary: team_id (lexicographic)

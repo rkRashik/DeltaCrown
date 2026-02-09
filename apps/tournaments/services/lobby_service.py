@@ -152,7 +152,7 @@ class LobbyService:
             )
             
             # Verify user has permission (team captain/owner)
-            from apps.teams.models import Team, TeamMembership
+            from apps.organizations.models import Team, TeamMembership
             team = Team.objects.get(id=team_id)
             
             if team.owner != user:

@@ -15,7 +15,7 @@ from apps.tournaments.services.registration import (
     TeamRegistrationInput, SoloRegistrationInput
 )
 from apps.user_profile.models import UserProfile
-from apps.teams.models import Team
+from apps.organizations.models import Team
 
 
 class SlotManagementTestCase(TestCase):

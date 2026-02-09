@@ -403,7 +403,7 @@ class CheckinService:
         # For team registrations (check if captain)
         if registration.team_id:
             try:
-                from apps.teams.models import TeamMembership
+                from apps.organizations.models import TeamMembership
                 from apps.user_profile.models import UserProfile
                 
                 # TeamMembership uses profile FK, not user

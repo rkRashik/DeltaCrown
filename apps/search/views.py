@@ -22,8 +22,8 @@ def search(request):
         # Teams
         if ftype in ("", "teams"):
             try:
-                Team = apps.get_model("teams", "Team")
-                tqs = Team.objects.select_related("captain__user").filter(Q(name__icontains=q) | Q(tag__icontains=q) | Q(slug__icontains=q)).order_by("name")[:25]
+                Team = apps.get_model("organizations", "Team")
+                tqs = Team.objects.filter(Q(name__icontains=q) | Q(tag__icontains=q) | Q(slug__icontains=q)).order_by("name")[:25]
                 teams = list(tqs)
             except Exception:
                 teams = []

@@ -394,7 +394,7 @@ class TestConflictDetection:
         """Test detecting team scheduling conflict."""
         from apps.tournaments.models import Tournament, TournamentStage, Match, TournamentParticipant
         from apps.games.models import Game
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         from django.contrib.auth import get_user_model
         
         User = get_user_model()

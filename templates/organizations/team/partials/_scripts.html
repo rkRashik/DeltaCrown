@@ -18,10 +18,11 @@
       // Inject role/theme/game from Django context via data-bootstrap
       const bootstrapEl = document.getElementById("dc-detail-bootstrap");
       if (bootstrapEl) {
-        const { role, theme, game } = bootstrapEl.dataset;
+        const { role, theme, game, customColors } = bootstrapEl.dataset;
         if (role)  document.body.setAttribute("data-role", role);
         if (theme) document.body.setAttribute("data-theme", theme);
         if (game)  document.body.setAttribute("data-game", game);
+        if (customColors === "true") document.body.setAttribute("data-custom-colors", "true");
       }
 
       // ─── 2. STICKY NAV GLASS ──────────────────────────────
@@ -177,5 +178,151 @@
       adjustSidebar();
       window.addEventListener("resize", adjustSidebar, { passive: true });
 
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // 8. INVITE ACCEPT / DECLINE
+    // ═══════════════════════════════════════════════════════════
+    {% if pending_actions.has_pending_invite and pending_actions.pending_invite_id %}
+    function dcInviteAction(action) {
+      const inviteId = {{ pending_actions.pending_invite_id }};
+      const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]")?.value
+                     || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || "";
+
+      // Disable all invite buttons across both CTA and sidebar
+      document.querySelectorAll("#dc-invite-actions button, #dc-sidebar-invite-actions button").forEach(b => {
+        b.disabled = true;
+        b.style.opacity = "0.5";
+      });
+
+      // Try the notifications API first (used by bell/dashboard), fallback to vNext API
+      const urls = [
+        `/notifications/api/team-invite/${inviteId}/${action}/`,
+        `/api/vnext/teams/invites/membership/${inviteId}/${action}/`
+      ];
+
+      (async function tryInvite(urlIdx) {
+        if (urlIdx >= urls.length) {
+          showInviteMsg("error", "Something went wrong. Please reload and try again.");
+          return;
+        }
+        try {
+          const resp = await fetch(urls[urlIdx], {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": csrfToken,
+              "Content-Type": "application/json",
+              "X-Requested-With": "XMLHttpRequest"
+            },
+            credentials: "same-origin"
+          });
+          if (resp.ok || resp.status === 200 || resp.status === 204) {
+            const isAccept = action === "accept";
+            showInviteMsg(
+              isAccept ? "success" : "info",
+              isAccept ? "Welcome to the team! Reloading..." : "Invite declined."
+            );
+            if (isAccept) {
+              setTimeout(() => window.location.reload(), 1200);
+            } else {
+              setTimeout(() => {
+                // Hide invite UI elements
+                const dd = document.getElementById("dc-invite-dropdown");
+                const wrap = document.getElementById("dc-invite-cta-wrap");
+                const sidebar = document.getElementById("dc-sidebar-invite");
+                if (dd) dd.classList.add("hidden");
+                if (wrap) wrap.style.display = "none";
+                if (sidebar) sidebar.style.display = "none";
+              }, 1500);
+            }
+          } else if (resp.status === 404 || resp.status === 405) {
+            // This API endpoint doesn't exist, try next
+            tryInvite(urlIdx + 1);
+          } else {
+            const data = await resp.json().catch(() => ({}));
+            showInviteMsg("error", data.detail || data.error || `Failed (${resp.status})`);
+          }
+        } catch (err) {
+          tryInvite(urlIdx + 1);
+        }
+      })(0);
+    }
+
+    function showInviteMsg(type, text) {
+      const colors = { success: "text-emerald-400", error: "text-red-400", info: "text-slate-300" };
+      // Update both CTA dropdown and sidebar messages
+      ["dc-invite-msg", "dc-sidebar-invite-msg"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.className = `mt-2 text-center text-xs font-bold ${colors[type] || "text-white"}`;
+          el.textContent = text;
+        }
+      });
+    }
+    {% endif %}
+
+    // ═══════════════════════════════════════════════════════════
+    // 9. PLAYER POPUP
+    // ═══════════════════════════════════════════════════════════
+    function dcShowPlayerPopup(cardEl) {
+      const popup = document.getElementById("dc-player-popup");
+      if (!popup) return;
+
+      // Extract data from card
+      const d = cardEl.dataset;
+      document.getElementById("pp-avatar").src = d.avatar || "";
+      document.getElementById("pp-avatar").alt = d.display || "";
+      document.getElementById("pp-name").textContent = d.display || d.username || "";
+      document.getElementById("pp-username").textContent = d.username || "";
+      document.getElementById("pp-role-chip").textContent = d.role || "PLAYER";
+      document.getElementById("pp-profile-link").href = d.profileUrl || "#";
+
+      // Player role (game-specific)
+      const prEl = document.getElementById("pp-player-role");
+      if (d.playerRole) {
+        prEl.textContent = d.playerRole;
+        prEl.style.display = "";
+      } else {
+        prEl.style.display = "none";
+      }
+
+      // Captain chip
+      const captainChip = document.getElementById("pp-captain-chip");
+      if (d.captain === "true") {
+        captainChip.classList.remove("hidden");
+      } else {
+        captainChip.classList.add("hidden");
+      }
+
+      // Show popup
+      popup.classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+    }
+
+    function dcClosePlayerPopup() {
+      const popup = document.getElementById("dc-player-popup");
+      if (popup) {
+        popup.classList.add("hidden");
+        document.body.style.overflow = "";
+      }
+    }
+
+    // Close popup on Escape key
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        dcClosePlayerPopup();
+        // Also close invite dropdown
+        const dd = document.getElementById("dc-invite-dropdown");
+        if (dd) dd.classList.add("hidden");
+      }
+    });
+
+    // Close invite dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      const wrap = document.getElementById("dc-invite-cta-wrap");
+      const dd = document.getElementById("dc-invite-dropdown");
+      if (wrap && dd && !wrap.contains(e.target)) {
+        dd.classList.add("hidden");
+      }
     });
     </script>

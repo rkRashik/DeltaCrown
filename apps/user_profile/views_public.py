@@ -138,7 +138,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     #             match_history.append({
     #                 "tournament_name": getattr(m.tournament, "name", "Tournament"),
     #                 "result": ("Win" if getattr(m, "winner_user_id", None) == profile.id else ("Loss" if m.winner_user_id else "-")),
-    #                 "game": getattr(m.tournament, "game", None) or "—",
+    #                 "game": getattr(m.tournament, "game", None) or "â€”",
     #                 "played_at": getattr(m, "created_at", None),
     #                 "url": f"/tournaments/{getattr(m.tournament, 'id', '')}/matches/{m.id}/" if getattr(m, 'id', None) else "#",
     #                 "summary": "",
@@ -146,7 +146,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     # except Exception:
     #     pass
 
-    # Social links from profile fields → list of dicts expected by template
+    # Social links from profile fields â†’ list of dicts expected by template
     social = []
     if profile and show_socials:
         try:
@@ -184,43 +184,119 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     
     try:
         if profile:
-            from apps.teams.models import TeamMembership, Team
+            # === Try vNext (organizations) memberships first ===
+            from apps.organizations.models import TeamMembership as OrgMembership
+            from apps.organizations.choices import MembershipStatus as OrgStatus
             
-            # Get active team memberships
-            active_memberships = TeamMembership.objects.filter(
-                profile=profile, 
-                status=TeamMembership.Status.ACTIVE
+            vnext_active = OrgMembership.objects.filter(
+                user=profile.user,
+                status=OrgStatus.ACTIVE
             ).select_related('team').order_by('-joined_at')
             
-            for membership in active_memberships:
+            for membership in vnext_active:
+                team_obj = membership.team
                 team_data = {
-                    'team': membership.team,
-                    'role': membership.get_role_display(),
+                    'team': team_obj,
+                    'role': membership.get_role_display() if hasattr(membership, 'get_role_display') else membership.role,
                     'role_code': membership.role,
                     'joined_at': membership.joined_at,
-                    'is_captain': membership.role == TeamMembership.Role.CAPTAIN,
-                    'game': membership.team.get_game_display() if membership.team.game else None,
-                    'logo_url': membership.team.logo.url if membership.team.logo else None,
+                    'is_captain': membership.is_tournament_captain,
+                    'player_role': membership.player_role or '',
+                    'game': None,
+                    'logo_url': team_obj.logo.url if getattr(team_obj, 'logo', None) and team_obj.logo else None,
+                    'slug': team_obj.slug,
+                    'detail_url': f'/teams/{team_obj.slug}/',
+                    'source': 'vnext',
                 }
+                # Resolve game name
+                if team_obj.game_id:
+                    try:
+                        from apps.games.models import Game
+                        game = Game.objects.filter(id=team_obj.game_id).first()
+                        if game:
+                            team_data['game'] = game.name
+                    except Exception:
+                        pass
                 current_teams.append(team_data)
                 teams.append(team_data)
             
-            # Get team history (past teams)
-            past_memberships = TeamMembership.objects.filter(
-                profile=profile, 
-                status__in=[TeamMembership.Status.REMOVED]
+            # vNext past memberships
+            vnext_past = OrgMembership.objects.filter(
+                user=profile.user,
+                status=OrgStatus.INACTIVE
             ).select_related('team').order_by('-joined_at')[:5]
             
-            for membership in past_memberships:
+            for membership in vnext_past:
+                team_obj = membership.team
                 team_data = {
-                    'team': membership.team,
-                    'role': membership.get_role_display(),
+                    'team': team_obj,
+                    'role': membership.get_role_display() if hasattr(membership, 'get_role_display') else membership.role,
                     'joined_at': membership.joined_at,
                     'left_team': True,
-                    'game': membership.team.get_game_display() if membership.team.game else None,
-                    'logo_url': membership.team.logo.url if membership.team.logo else None,
+                    'game': None,
+                    'logo_url': team_obj.logo.url if getattr(team_obj, 'logo', None) and team_obj.logo else None,
+                    'slug': team_obj.slug,
+                    'detail_url': f'/teams/{team_obj.slug}/',
+                    'source': 'vnext',
                 }
+                if team_obj.game_id:
+                    try:
+                        from apps.games.models import Game
+                        game = Game.objects.filter(id=team_obj.game_id).first()
+                        if game:
+                            team_data['game'] = game.name
+                    except Exception:
+                        pass
                 team_history.append(team_data)
+            
+            # === Fallback: also check legacy teams memberships ===
+            # Only add if not already covered by vNext
+            vnext_team_ids = {m.team_id for m in vnext_active} | {m.team_id for m in vnext_past}
+            try:
+                from apps.organizations.models import TeamMembership, Team
+                
+                active_memberships = TeamMembership.objects.filter(
+                    user=profile.user, 
+                    status=TeamMembership.Status.ACTIVE
+                ).select_related('team').order_by('-joined_at')
+                
+                for membership in active_memberships:
+                    # Skip if already covered by vNext
+                    if membership.team_id in vnext_team_ids:
+                        continue
+                    team_data = {
+                        'team': membership.team,
+                        'role': membership.get_role_display(),
+                        'role_code': membership.role,
+                        'joined_at': membership.joined_at,
+                        'is_captain': membership.role == TeamMembership.Role.CAPTAIN,
+                        'game': membership.team.get_game_display() if membership.team.game else None,
+                        'logo_url': membership.team.logo.url if membership.team.logo else None,
+                        'source': 'legacy',
+                    }
+                    current_teams.append(team_data)
+                    teams.append(team_data)
+                
+                past_memberships = TeamMembership.objects.filter(
+                    user=profile.user, 
+                    status__in=[TeamMembership.Status.REMOVED]
+                ).select_related('team').order_by('-joined_at')[:5]
+                
+                for membership in past_memberships:
+                    if membership.team_id in vnext_team_ids:
+                        continue
+                    team_data = {
+                        'team': membership.team,
+                        'role': membership.get_role_display(),
+                        'joined_at': membership.joined_at,
+                        'left_team': True,
+                        'game': membership.team.get_game_display() if membership.team.game else None,
+                        'logo_url': membership.team.logo.url if membership.team.logo else None,
+                        'source': 'legacy',
+                    }
+                    team_history.append(team_data)
+            except Exception:
+                pass  # Legacy teams app may not be fully configured
                 
     except Exception as e:
         # Fail gracefully if team models aren't available
@@ -297,38 +373,9 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     
     try:
         if profile:
-            # Get team posts by user
-            from apps.teams.models.social import TeamPost, TeamActivity
-            
-            recent_posts = TeamPost.objects.filter(
-                author=profile,
-                published_at__isnull=False
-            ).select_related('team').order_by('-published_at')[:5]
-            
-            for post in recent_posts:
-                activity.append({
-                    'type': 'team_post',
-                    'description': f'Posted in {post.team.name}',
-                    'title': post.title or post.content[:50] + '...' if len(post.content) > 50 else post.content,
-                    'date': post.published_at,
-                    'team': post.team,
-                    'url': f'/teams/{post.team.slug}/social/'
-                })
-            
-            # Get recent team activities involving this user
-            team_activities = TeamActivity.objects.filter(
-                actor=profile,
-                is_public=True
-            ).select_related('team').order_by('-created_at')[:5]
-            
-            for act in team_activities:
-                activity.append({
-                    'type': 'team_activity', 
-                    'description': act.description,
-                    'date': act.created_at,
-                    'team': act.team,
-                    'url': f'/teams/{act.team.slug}/'
-                })
+            # Legacy TeamPost / TeamActivity models removed (Phase B cleanup).
+            # Team-based activity feed will use organizations models in a future phase.
+            pass
             
             # Add coin transactions to activity
             for transaction in recent_transactions[:3]:
@@ -347,7 +394,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
                 activity.append({
                     'type': 'ecommerce_order',
                     'description': f'Order #{order.id} - {order.get_status_display()}',
-                    'title': f'${order.total_price} • {order.items.count()} items',
+                    'title': f'${order.total_price} â€¢ {order.items.count()} items',
                     'date': order.created_at,
                     'order': order,
                     'url': f'/shop/orders/{order.id}/'
@@ -479,7 +526,7 @@ def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:
         show_game_ids = False
         if request.user.is_authenticated:
             try:
-                from apps.teams.models import TeamMembership
+                from apps.organizations.models import TeamMembership
                 # Check if users share any active team
                 requester_profile = UserProfile.objects.filter(user=request.user).first()
                 if requester_profile:

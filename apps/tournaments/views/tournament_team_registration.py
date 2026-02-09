@@ -19,7 +19,7 @@ from apps.tournaments.models.form_configuration import TournamentFormConfigurati
 class SoloRegistrationDemoView(LoginRequiredMixin, View):
     """
     3-Step Solo Player Registration Demo
-    Steps: 1) Player Info → 2) Review & Terms → 3) Payment
+    Steps: 1) Player Info â†’ 2) Review & Terms â†’ 3) Payment
     """
     
     def get(self, request, slug):
@@ -112,7 +112,7 @@ class SoloRegistrationDemoView(LoginRequiredMixin, View):
 class TeamRegistrationView(LoginRequiredMixin, View):
     """
     Professional Team Registration Wizard
-    Steps: 1) Team Info → 2) Review & Agreements → 3) Payment
+    Steps: 1) Team Info â†’ 2) Review & Agreements â†’ 3) Payment
     """
     
     def get(self, request, slug):
@@ -138,7 +138,7 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                 from apps.user_profile.models import UserProfile
                 user_profile = UserProfile.objects.filter(user=request.user).first()
                 if user_profile:
-                    from apps.teams.models import TeamMembership
+                    from apps.organizations.models import TeamMembership
                     user_team_ids = TeamMembership.objects.filter(
                         profile=user_profile,
                         status=TeamMembership.Status.ACTIVE
@@ -171,7 +171,7 @@ class TeamRegistrationView(LoginRequiredMixin, View):
         error_context = {}
         
         try:
-            from apps.teams.models import Team, TeamMembership
+            from apps.organizations.models import Team, TeamMembership
             from apps.user_profile.models import UserProfile
             
             user_profile = UserProfile.objects.filter(user=request.user).first()
@@ -184,10 +184,10 @@ class TeamRegistrationView(LoginRequiredMixin, View):
             else:
                 # Get user's teams for this game
                 user_teams = Team.objects.filter(
-                    game=tournament.game.slug,
-                    memberships__profile=user_profile,
-                    memberships__status=TeamMembership.Status.ACTIVE,
-                    is_active=True
+                    game_id=tournament.game_id,
+                    vnext_memberships__user=user_profile.user,
+                    vnext_memberships__status=TeamMembership.Status.ACTIVE,
+                    status='ACTIVE'
                 ).distinct()
                 
                 if not user_teams.exists():
@@ -205,7 +205,7 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                     for team in user_teams:
                         membership = TeamMembership.objects.filter(
                             team=team, 
-                            profile=user_profile,
+                            user=user_profile.user,
                             status=TeamMembership.Status.ACTIVE
                         ).first()
                         
@@ -213,7 +213,7 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                             TeamMembership.Role.OWNER,
                             TeamMembership.Role.MANAGER, 
                             TeamMembership.Role.CAPTAIN
-                        ] or membership.can_register_tournaments):
+                        ]):
                             user_team = team
                             user_membership = membership
                             break
@@ -226,7 +226,7 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                                 status=TeamMembership.Status.ACTIVE
                             ).first()
                             if captain_membership:
-                                captain_name = captain_membership.profile.user.username
+                                captain_name = captain_membership.user.username
                     
                     if not user_team:
                         eligibility_error = "You don't have permission to register any of your teams for tournaments. Only team captains, managers, or members with explicit tournament registration permission can register."
@@ -338,7 +338,7 @@ class TeamRegistrationView(LoginRequiredMixin, View):
         
         if step == '1':
             # Find user's team (same logic as GET method)
-            from apps.teams.models import Team, TeamMembership
+            from apps.organizations.models import Team, TeamMembership
             from apps.user_profile.models import UserProfile
             
             user_profile = UserProfile.objects.filter(user=request.user).first()
@@ -347,17 +347,17 @@ class TeamRegistrationView(LoginRequiredMixin, View):
             if user_profile:
                 # Get user's teams for this game
                 user_teams = Team.objects.filter(
-                    game=tournament.game.slug,
-                    memberships__profile=user_profile,
-                    memberships__status=TeamMembership.Status.ACTIVE,
-                    is_active=True
+                    game_id=tournament.game_id,
+                    vnext_memberships__user=user_profile.user,
+                    vnext_memberships__status=TeamMembership.Status.ACTIVE,
+                    status='ACTIVE'
                 ).distinct()
                 
                 # Find first team where user has registration permission
                 for team in user_teams:
                     membership = TeamMembership.objects.filter(
                         team=team, 
-                        profile=user_profile,
+                        user=user_profile.user,
                         status=TeamMembership.Status.ACTIVE
                     ).first()
                     
@@ -365,7 +365,7 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                         TeamMembership.Role.OWNER,
                         TeamMembership.Role.MANAGER, 
                         TeamMembership.Role.CAPTAIN
-                    ] or membership.can_register_tournaments):
+                    ]):
                         user_team = team
                         break
             
@@ -443,7 +443,7 @@ class TeamRegistrationView(LoginRequiredMixin, View):
             }
             
             # Lock all selected members for this tournament
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
             for player in roster:
                 try:
                     membership = TeamMembership.objects.get(id=player['member_id'])

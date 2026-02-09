@@ -49,7 +49,7 @@ def get_team_url_for_tournament(team_id: int) -> str:
         notify_team(team, url=team_url, title="Tournament Registration Confirmed")
     
     Performance:
-        ≤2 queries (routing decision + URL lookup)
+        â‰¤2 queries (routing decision + URL lookup)
     """
     adapter = TeamAdapter()
     return adapter.get_team_url(team_id)
@@ -94,7 +94,7 @@ def validate_team_roster_for_tournament(
             return render(request, 'error.html', {'errors': validation['errors']})
     
     Performance:
-        ≤6 queries (routing + roster lookup + validation logic)
+        â‰¤6 queries (routing + roster lookup + validation logic)
     """
     adapter = TeamAdapter()
     return adapter.validate_roster(
@@ -131,7 +131,7 @@ def get_team_identity_for_tournament(team_id: int) -> Dict[str, Any]:
         }
     
     Performance:
-        ≤3 queries (routing + team lookup with select_related)
+        â‰¤3 queries (routing + team lookup with select_related)
     """
     adapter = TeamAdapter()
     return adapter.get_team_identity(team_id)
@@ -147,7 +147,7 @@ PHASE 3 MIGRATION GUIDE FOR TOURNAMENTS APP:
 1. ROSTER VALIDATION (HIGH PRIORITY):
    Current Location: tournaments/services/eligibility_service.py
    Current Code:
-       from apps.teams.models import Team, TeamMembership
+       from apps.organizations.models import Team, TeamMembership
        team = Team.objects.get(id=team_id)
        members = TeamMembership.objects.filter(team=team, status='ACTIVE')
    

@@ -108,9 +108,12 @@ def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
     if not is_restricted:
         team_data.update({
             'tagline': getattr(team, 'tagline', ''),
+            'description': getattr(team, 'description', ''),
             'avatar_url': team_data['logo_url'],  # Reuse logo as avatar
             'team_type': getattr(team, 'team_type', 'independent'),
             'theme': getattr(team, 'theme', 'CROWN'),
+            'primary_color': getattr(team, 'primary_color', '#3B82F6'),
+            'accent_color': getattr(team, 'accent_color', '#10B981'),
             'status': getattr(team, 'status', 'active'),
             'founded_date': _safe_date(getattr(team, 'founded_date', None)),
             'total_members': _safe_int(getattr(team, 'member_count', 0)),
@@ -124,9 +127,12 @@ def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
         # Restricted: empty defaults for Tier 2+
         team_data.update({
             'tagline': '',
+            'description': '',
             'avatar_url': team_data['logo_url'],
             'team_type': 'independent',
             'theme': 'CROWN',
+            'primary_color': '#3B82F6',
+            'accent_color': '#10B981',
             'status': 'private',
             'founded_date': None,
             'total_members': 0,
@@ -309,19 +315,67 @@ def _build_roster_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
             status=MembershipStatus.ACTIVE
         ).order_by('-joined_at')[:20]  # Limit to 20
         
-        roster_items = [
-            {
-                'username': getattr(member.user, 'username', 'Unknown'),
-                'display_name': getattr(member.user, 'username', 'Unknown'),
-                'avatar_url': _get_user_avatar(member.user),
-                'role': getattr(member, 'role', 'PLAYER'),
-                'player_role': getattr(member, 'player_role', ''),  # Game-specific role
+        # Prefetch game passport data for all roster members
+        game_passports = {}
+        if team.game_id:
+            try:
+                from apps.user_profile.models import GameProfile
+                user_ids = [m.user_id for m in memberships]
+                passports = GameProfile.objects.filter(
+                    user_id__in=user_ids,
+                    game_id=team.game_id
+                ).select_related('user')
+                for gp in passports:
+                    game_passports[gp.user_id] = {
+                        'ign': getattr(gp, 'in_game_name', '') or getattr(gp, 'ign', '') or '',
+                        'rank': getattr(gp, 'rank_name', '') or '',
+                        'region': getattr(gp, 'region', '') or '',
+                        'has_passport': True,
+                    }
+            except Exception:
+                pass  # GameProfile not available or schema mismatch
+        
+        roster_items = []
+        for member in memberships:
+            user = member.user
+            username = getattr(user, 'username', 'Unknown')
+            profile = getattr(user, 'profile', None)
+            display = member.display_name or ''
+            if not display and profile:
+                dn = getattr(profile, 'display_name', '') or getattr(profile, 'gamer_tag', '')
+                if dn:
+                    display = dn
+            if not display:
+                display = username
+
+            # Resolve avatar: roster_image > profile avatar > default
+            avatar_url = None
+            if member.roster_image:
+                avatar_url = member.roster_image.url
+            else:
+                avatar_url = _get_user_avatar(user)
+            
+            # Get game passport for this user
+            passport_data = game_passports.get(user.id, {})
+
+            roster_items.append({
+                'username': username,
+                'display_name': display,
+                'avatar_url': avatar_url,
+                # Owner privacy: hide OWNER role on public page if hide_ownership is set
+                'role': ('PLAYER' if getattr(member, 'hide_ownership', False) and getattr(member, 'role', '') == 'OWNER' else getattr(member, 'role', 'PLAYER')),
+                'roster_slot': getattr(member, 'roster_slot', '') or '',
+                'player_role': getattr(member, 'player_role', ''),
                 'status': getattr(member, 'status', 'ACTIVE'),
-                'joined_date': _safe_date(getattr(member, 'joined_at', None)),  # Field is joined_at not joined_date
+                'joined_date': _safe_date(getattr(member, 'joined_at', None)),
                 'is_captain': getattr(member, 'is_tournament_captain', False),
-            }
-            for member in memberships
-        ]
+                'user_profile_url': f'/u/{username}/',
+                'user_id': user.id,
+                'country': getattr(profile, 'country', '') if profile else '',
+                'bio': (getattr(profile, 'bio', '') or '')[:120] if profile else '',
+                'game_passport': passport_data,
+                'hide_ownership': getattr(member, 'hide_ownership', False),
+            })
         
         return {
             'items': roster_items,
@@ -444,29 +498,9 @@ def _build_partners_context(team: Team, is_restricted: bool) -> List[Dict[str, A
     if not hasattr(team, 'sponsors'):
         return []
     
-    try:
-        # Query active sponsors (only works with legacy Team objects)
-        from apps.teams.models.sponsorship import TeamSponsor
-        
-        sponsors = team.sponsors.filter(
-            status='active',
-            is_active=True
-        ).order_by('-sponsor_tier', 'sponsor_name')[:10]  # Limit to top 10
-        
-        partners = []
-        for sponsor in sponsors:
-            partners.append({
-                'name': sponsor.sponsor_name,
-                'logo_url': _safe_image_url(sponsor.sponsor_logo.url if sponsor.sponsor_logo else None, 
-                                            FALLBACK_URLS['org_logo']),
-                'url': sponsor.sponsor_link or '#',
-                'tier': sponsor.sponsor_tier or 'partner',
-            })
-    except AttributeError:
-        # Team object has no sponsors relationship
-        return []
-    
-    return partners
+    # Legacy TeamSponsor model removed (Phase B cleanup).
+    # Sponsors feature will be rebuilt on organizations models in a future phase.
+    return []
 
 
 def _build_merch_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:

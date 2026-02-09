@@ -336,24 +336,24 @@ def _get_fallback_context() -> Dict[str, Any]:
             "title": "From the Delta to the Crown",
             "subtitle": "Where Champions Rise",
             "description": (
-                "Building a world where geography does not define destiny—where a gamer in "
+                "Building a world where geography does not define destinyâ€”where a gamer in "
                 "Bangladesh has the same trusted path to global glory as a pro on the main stage."
             ),
             "primary_cta": {
                 "text": "Join Tournament",
                 "url": "/tournaments/",
-                "icon": "🏆",
+                "icon": "ðŸ†",
             },
             "secondary_cta": {
                 "text": "Explore Teams",
                 "url": "/teams/",
-                "icon": "👥",
+                "icon": "ðŸ‘¥",
             },
             "highlights": [
-                {"label": "Active Players", "value": "12,500+", "icon": "👥"},
-                {"label": "Prize Pool", "value": "৳5,00,000+", "icon": "💰"},
-                {"label": "Tournaments", "value": "150+", "icon": "🏆"},
-                {"label": "Games", "value": "11", "icon": "🎮"},
+                {"label": "Active Players", "value": "12,500+", "icon": "ðŸ‘¥"},
+                {"label": "Prize Pool", "value": "à§³5,00,000+", "icon": "ðŸ’°"},
+                {"label": "Tournaments", "value": "150+", "icon": "ðŸ†"},
+                {"label": "Games", "value": "11", "icon": "ðŸŽ®"},
             ],
         },
         "sections_enabled": {
@@ -380,7 +380,7 @@ def _get_fallback_context() -> Dict[str, Any]:
         },
         "games": {
             "title": "11 Games, One Platform",
-            "description": "From mobile to PC, tactical shooters to sports—game-agnostic by design",
+            "description": "From mobile to PC, tactical shooters to sportsâ€”game-agnostic by design",
             "items": [],
         },
         "tournaments": {
@@ -407,7 +407,7 @@ def _get_fallback_context() -> Dict[str, Any]:
         },
         "community": {
             "title": "Join the Community",
-            "description": "Strategy guides, match highlights, esports news—all in one home",
+            "description": "Strategy guides, match highlights, esports newsâ€”all in one home",
         },
         "roadmap": {
             "title": "The Vision Ahead",
@@ -427,7 +427,7 @@ def _get_fallback_context() -> Dict[str, Any]:
             },
         },
         "platform": {
-            "tagline": "From the Delta to the Crown — Where Champions Rise.",
+            "tagline": "From the Delta to the Crown â€” Where Champions Rise.",
             "founded_year": 2025,
             "founder": "Redwanul Rashik",
         },
@@ -439,7 +439,7 @@ def _calculate_total_prize_pool() -> str:
     Calculate total prize pool from all active tournaments.
     
     Returns:
-        str: Formatted prize pool (e.g., "৳2.5M+") or empty string
+        str: Formatted prize pool (e.g., "à§³2.5M+") or empty string
     """
     try:
         from django.apps import apps
@@ -456,19 +456,19 @@ def _calculate_total_prize_pool() -> str:
         total = result.get('total') or Decimal('0')
         
         if total == 0:
-            return "৳0"
+            return "à§³0"
         
         # Format based on size
         if total >= 1000000:  # 1M+
-            return f"৳{total / 1000000:.1f}M+"
+            return f"à§³{total / 1000000:.1f}M+"
         elif total >= 1000:  # 1K+
-            return f"৳{total / 1000:.0f}K+"
+            return f"à§³{total / 1000:.0f}K+"
         else:
-            return f"৳{total:,.0f}"
+            return f"à§³{total:,.0f}"
             
     except Exception as e:
         print(f"[WARNING] Failed to calculate prize pool: {e}")
-        return "৳0"
+        return "à§³0"
 
 
 def _get_featured_tournaments(limit=3):
@@ -520,7 +520,7 @@ def _get_featured_tournaments(limit=3):
                 'slug': tournament.slug,
                 'game': tournament.game.name if hasattr(tournament, 'game') and tournament.game else 'N/A',
                 'game_slug': tournament.game.slug if hasattr(tournament, 'game') and tournament.game else '',
-                'prize_pool': f"৳{tournament.prize_pool:,.0f}" if tournament.prize_pool else "TBD",
+                'prize_pool': f"à§³{tournament.prize_pool:,.0f}" if tournament.prize_pool else "TBD",
                 'registration_count': registration_count,
                 'max_teams': tournament.max_participants if hasattr(tournament, 'max_participants') else None,
                 'status': tournament.status,
@@ -558,15 +558,15 @@ def _get_top_teams(limit=5):
         from django.utils import timezone
         from datetime import timedelta
         
-        Team = apps.get_model('teams', 'Team')
+        Team = apps.get_model('organizations', 'Team')
         
         # Get top teams with optimized query
         teams = Team.objects.filter(
-            is_active=True,
-            is_public=True
-        ).select_related('captain').annotate(
-            members_count=Count('memberships', filter=Q(memberships__status='ACTIVE'))
-        ).order_by('-total_points', '-created_at')[:limit]
+            status='ACTIVE',
+            visibility='PUBLIC'
+        ).annotate(
+            members_count=Count('vnext_memberships', filter=Q(vnext_memberships__status='ACTIVE'))
+        ).order_by('-created_at')[:limit]
         
         result = []
         for rank, team in enumerate(teams, start=1):
@@ -649,7 +649,7 @@ def _get_featured_tournament():
             'description': tournament.description if hasattr(tournament, 'description') else '',
             'game': tournament.game.name if hasattr(tournament, 'game') and tournament.game else 'N/A',
             'game_display': tournament.game.display_name if hasattr(tournament.game, 'display_name') else tournament.game.name if tournament.game else 'N/A',
-            'prize_pool': f"৳{tournament.prize_pool:,.0f}" if tournament.prize_pool else "TBD",
+            'prize_pool': f"à§³{tournament.prize_pool:,.0f}" if tournament.prize_pool else "TBD",
             'registration_count': registration_count,
             'max_teams': tournament.max_participants if hasattr(tournament, 'max_participants') else None,
             'status': tournament.status,

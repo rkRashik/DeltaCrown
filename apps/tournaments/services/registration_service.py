@@ -275,7 +275,7 @@ class RegistrationService:
             Uses TeamMembership.can_register_tournaments cached permission field.
             This field is automatically updated when membership role changes.
         """
-        from apps.teams.models import TeamMembership, Team
+        from apps.organizations.models import TeamMembership, Team
         
         # Get team
         try:
@@ -287,7 +287,7 @@ class RegistrationService:
         try:
             membership = TeamMembership.objects.get(
                 team=team,
-                profile=user.profile,
+                user=user,
                 status=TeamMembership.Status.ACTIVE
             )
         except TeamMembership.DoesNotExist:
@@ -296,12 +296,15 @@ class RegistrationService:
                 "Only team members can register their team."
             )
         
-        # Check permission
-        if not membership.can_register_tournaments:
+        # Check permission (role-based)
+        if membership.role not in [
+            TeamMembership.Role.OWNER,
+            TeamMembership.Role.MANAGER,
+            TeamMembership.Role.CAPTAIN
+        ]:
             raise ValidationError(
                 f"You do not have permission to register {team.name} for tournaments. "
-                "Only team owners, managers, or members with explicit registration "
-                "permission can register teams."
+                "Only team owners, managers, or captains can register teams."
             )
     
     @staticmethod
@@ -493,7 +496,7 @@ class RegistrationService:
                 raise ValidationError("You can only pay for your own registrations")
         else:
             # Team registration - user must be team captain
-            from apps.teams.models import Team
+            from apps.organizations.models import Team
             try:
                 team = Team.objects.get(id=registration.team_id)
                 if team.captain.user_id != user.id:
@@ -1354,7 +1357,7 @@ class RegistrationService:
         # Check if team is sponsored (requires apps.teams integration)
         if registration.team_id:
             # TODO: Check team sponsorship status
-            # from apps.teams.models import Team
+            # from apps.organizations.models import Team
             # team = Team.objects.get(id=registration.team_id)
             # if team.is_sponsored or team.sponsor_covers_fees:
             #     return (True, f"Team sponsored by {team.sponsor_name}")
@@ -1805,7 +1808,7 @@ class RegistrationService:
         # Unlock roster members if team tournament
         roster_unlocked = False
         if registration.team_id and registration.registration_data.get('roster'):
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
             roster = registration.registration_data.get('roster', [])
             for player in roster:
                 try:
@@ -1900,7 +1903,7 @@ class RegistrationService:
         Unlock all roster members after tournament ends.
         Called by post-tournament cleanup task.
         """
-        from apps.teams.models import TeamMembership
+        from apps.organizations.models import TeamMembership
         
         # Find all locked memberships for this tournament
         locked_members = TeamMembership.objects.filter(

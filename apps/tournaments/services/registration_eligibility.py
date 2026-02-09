@@ -7,7 +7,7 @@ user-friendly messages and action items.
 
 from django.contrib.auth.models import User
 from apps.tournaments.models import Tournament
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 
 
 class EligibilityResult:
@@ -112,9 +112,9 @@ class RegistrationEligibilityService:
         
         # Get user's teams for this game
         user_teams = Team.objects.filter(
-            game=tournament.game,
-            memberships__profile__user=user,
-            is_active=True
+            game_id=tournament.game_id,
+            vnext_memberships__user=user,
+            status='ACTIVE'
         ).distinct()
         
         # Check if user has any team for this game
@@ -137,11 +137,11 @@ class RegistrationEligibilityService:
         permitted_teams = []
         blocked_teams = []
         for team in user_teams:
-            member = TeamMembership.objects.filter(team=team, profile__user=user).first()
+            member = TeamMembership.objects.filter(team=team, user=user).first()
             if not member:
                 blocked_teams.append(team)
                 continue
-            if member.role in permissive_roles or member.can_register_tournaments:
+            if member.role in permissive_roles:
                 permitted_teams.append((team, member))
             else:
                 blocked_teams.append(team)
@@ -202,15 +202,12 @@ class RegistrationEligibilityService:
         if not user.is_authenticated or tournament.participation_type != 'team':
             return Team.objects.none()
         
-        # Get teams where user is captain/manager
+        # Get teams where user is owner/manager
         eligible_teams = Team.objects.filter(
-            game=tournament.game,
-            members__user=user,
-            members__role__in=['captain', 'manager', 'admin'],
-            is_active=True
+            game_id=tournament.game_id,
+            vnext_memberships__user=user,
+            vnext_memberships__role__in=['OWNER', 'MANAGER'],
+            status='ACTIVE'
         ).distinct()
-        
-        # TODO: Add teams where user has explicit registration permission
-        # This requires adding a 'can_register_tournaments' field to TeamMember model
         
         return eligible_teams

@@ -2,6 +2,7 @@
    DELTACROWN PRIMARY NAVIGATION SYSTEM
    Modern 2026 Esports-Grade Design
    STICKY LIQUID GLASS | Cybernetic Neon | Premium UI
+   Single Source of Truth — v3 Clean
    ============================================ */
 
 /* === CSS CUSTOM PROPERTIES === */
@@ -9,35 +10,28 @@
   /* Z-Index Scale */
   --z-base: 1;
   --z-dropdown: 50;
+  --z-bottom-nav: 90;
   --z-header: 100;
-  --z-drawer: 150;
+  --z-backdrop: 155;
+  --z-drawer: 160;
   --z-overlay: 200;
   --z-modal: 300;
 
   /* Navigation Heights */
   --nav-height-mobile: 64px;
-  --nav-height-desktop: 70px;
-  --nav-height-desktop-scrolled: 60px;
-
-  /* Spacing */
-  --nav-gap-mobile: 1rem;
-  --nav-gap-tablet: 1.25rem;
-  --nav-gap-desktop: 1.5rem;
-
-  /* Transitions */
-  --nav-transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  --nav-transition-fast: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  --nav-height-desktop: 80px;
+  --nav-height-desktop-scrolled: 64px;
+  --nav-height-bottom: 60px;
 }
 
-/* === DESKTOP NAVBAR - STICKY LIQUID GLASS === */
+/* === DESKTOP NAVBAR — STICKY LIQUID GLASS === */
 #dc-navbar {
   will-change: transform, background, backdrop-filter;
   position: fixed !important;
   z-index: var(--z-header) !important;
-  transition: var(--nav-transition);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Modern 2026 Glassmorphism - Reduced blur, cleaner */
 #dc-navbar.scrolled {
   height: var(--nav-height-desktop-scrolled) !important;
   background: rgba(11, 15, 22, 0.75) !important;
@@ -48,7 +42,7 @@
     inset 0 1px 0 rgba(0, 229, 255, 0.08);
 }
 
-/* NO auto-hide on desktop - Only hide on mobile */
+/* Desktop navbar never hides on scroll */
 @media (min-width: 768px) {
   #dc-navbar.nav-hidden {
     transform: translateY(0) !important;
@@ -63,7 +57,6 @@
   align-items: center;
 }
 
-/* Fluid Typography */
 .dc-nav-link {
   font-size: clamp(0.875rem, 2vw, 1rem);
   color: rgba(255, 255, 255, 0.85);
@@ -81,7 +74,7 @@
   text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
 }
 
-/* Consistent Cybernetic Neon Underline */
+/* Cybernetic Neon Underline */
 .dc-nav-item::after {
   content: '';
   position: absolute;
@@ -102,7 +95,7 @@
   opacity: 1;
 }
 
-/* === DROPDOWNS (Premium Glassmorphism) === */
+/* === DROPDOWNS === */
 .dc-dropdown {
   background: rgba(10, 10, 15, 0.98);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -115,7 +108,7 @@
   opacity: 0;
   transform: translateY(10px) scale(0.98);
   pointer-events: none;
-  transition: var(--nav-transition-fast);
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
   overflow: hidden;
   position: absolute;
 }
@@ -167,51 +160,37 @@
 /* === MOBILE HEADER === */
 #dc-mobile-header {
   will-change: transform;
-  transition: transform 0.3s ease;
   z-index: var(--z-header);
-  /* Safe Area Support for Notch */
+  /* Safe Area for notch */
   padding-top: env(safe-area-inset-top);
   height: calc(var(--nav-height-mobile) + env(safe-area-inset-top));
 }
 
+/* Scroll hide — translateY set directly; no translateZ(0) here to avoid conflict */
 #dc-mobile-header.nav-hidden {
-  transform: translateY(-100%);
+  transform: translateY(-100%) !important;
+}
+
+/* === MOBILE BOTTOM NAV === */
+#dc-bottom-nav {
+  will-change: transform;
+  z-index: var(--z-bottom-nav);
+}
+
+#dc-bottom-nav.nav-hidden {
+  transform: translateY(100%) !important;
 }
 
 /* === MOBILE DRAWER === */
+/* Transform controlled 100% via JS inline styles to prevent CSS specificity conflicts */
 #dc-mobile-drawer {
+  will-change: transform;
   scrollbar-width: none;
-  z-index: var(--z-drawer);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  -ms-overflow-style: none;
 }
 
 #dc-mobile-drawer::-webkit-scrollbar {
   display: none;
-}
-
-#dc-mobile-drawer.open {
-  transform: translateX(0);
-}
-
-#dc-mobile-backdrop {
-  z-index: calc(var(--z-drawer) - 1);
-  transition: opacity 0.3s ease;
-}
-
-#dc-mobile-backdrop.visible {
-  display: block !important;
-  opacity: 1;
-}
-
-/* === LOGO TRANSITIONS === */
-.nav-logo {
-  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-}
-
-.nav-logo.hidden-smooth {
-  opacity: 0;
-  transform: scale(0.95);
-  pointer-events: none;
 }
 
 /* === SEARCH MODAL === */
@@ -235,61 +214,37 @@
   opacity: 1;
 }
 
-/* === MOBILE BOTTOM NAVIGATION === */
-.mobile-bottom-nav {
-  z-index: calc(var(--z-header) - 10);
-  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+/* === BODY SPACING FOR FIXED NAVBARS === */
+body {
+  padding-top: var(--nav-height-mobile);
+  padding-bottom: calc(var(--nav-height-bottom) + env(safe-area-inset-bottom));
 }
 
-/* Mobile Touch States */
-.mobile-nav-item {
-  transition: all 0.2s ease;
-}
-
-.mobile-nav-item:active {
-  transform: scale(0.95);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-/* Mobile Active State Indicator */
-.mobile-nav-item.active::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #00E5FF, transparent);
-  box-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+@media (min-width: 768px) {
+  body {
+    padding-top: var(--nav-height-desktop);
+    padding-bottom: 0;
+  }
 }
 
 /* === RESPONSIVE BREAKPOINTS === */
 
-/* Small Mobile (320px - 640px) */
+/* Small Mobile (< 640px) */
 @media (max-width: 639px) {
-  :root {
-    --nav-gap-mobile: 0.75rem;
-  }
-
   .dc-nav-link {
     font-size: 0.875rem;
     padding: 0.375rem 0.5rem;
   }
 }
 
-/* Tablet (640px - 768px) */
+/* Tablet (640 - 768) */
 @media (min-width: 640px) and (max-width: 767px) {
-  :root {
-    --nav-gap-tablet: 1.25rem;
-  }
-
   #dc-navbar {
     height: 70px;
   }
 }
 
-/* Large Tablet (768px - 1024px) */
+/* Large Tablet (768 - 1024) */
 @media (min-width: 768px) and (max-width: 1023px) {
   #dc-navbar {
     height: 72px;
@@ -300,88 +255,43 @@
   }
 }
 
-/* Desktop (1024px+) */
+/* Desktop (1024+) */
 @media (min-width: 1024px) {
   #dc-navbar {
     display: flex !important;
   }
 }
 
-/* Large Desktop (1280px+) */
+/* Large Desktop (1280+) */
 @media (min-width: 1280px) {
   .dc-nav-link {
     font-size: 1rem;
   }
 }
 
-/* Add spacing for fixed navigation */
-body {
-  padding-top: var(--nav-height-mobile);
-  padding-bottom: 70px;
-}
-
-@media (min-width: 768px) {
-  body {
-    padding-top: var(--nav-height-desktop);
-    padding-bottom: 0;
-  }
-}
-
 /* === ANIMATIONS === */
-@keyframes pulse {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.5;
-  }
-}
-
-@keyframes slideInFromRight {
-  from {
-    transform: translateX(100%);
-  }
-
-  to {
-    transform: translateX(0);
-  }
-}
-
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* === PERFORMANCE OPTIMIZATIONS === */
+/* === PERFORMANCE === */
 .dc-nav-item,
 .dc-nav-link,
 .dc-dropdown,
-#dc-navbar,
-#dc-mobile-header {
+#dc-navbar {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* GPU Acceleration for transforms */
+/* GPU Acceleration — only on elements where translateZ(0) won't conflict with scroll-hide transforms */
 #dc-navbar,
-#dc-mobile-header,
-#dc-mobile-drawer,
 .dc-dropdown {
   transform: translateZ(0);
   backface-visibility: hidden;
 }
 
 /* === ACCESSIBILITY === */
-
-/* Focus indicators */
 .dc-nav-link:focus,
 .dc-dd-item:focus,
 button:focus {
@@ -396,15 +306,8 @@ button:focus:not(:focus-visible) {
   outline: none;
 }
 
-/* Ensure sufficient contrast */
-.dc-nav-link {
-  color: rgba(255, 255, 255, 0.85);
-  /* Improved from 0.7 */
-}
-
-/* Reduce motion for accessibility */
+/* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
@@ -416,12 +319,13 @@ button:focus:not(:focus-visible) {
   #dc-navbar,
   #dc-mobile-header,
   #dc-mobile-drawer,
+  #dc-bottom-nav,
   .dc-dropdown {
     transition: none !important;
   }
 }
 
-/* High contrast mode support */
+/* High contrast mode */
 @media (prefers-contrast: high) {
   .dc-nav-link {
     color: rgba(255, 255, 255, 0.95);
@@ -432,12 +336,13 @@ button:focus:not(:focus-visible) {
   }
 }
 
-/* === PRINT STYLES === */
+/* === PRINT === */
 @media print {
-
   #dc-navbar,
   #dc-mobile-header,
-  .mobile-bottom-nav {
+  #dc-bottom-nav,
+  #dc-mobile-drawer,
+  #dc-backdrop {
     display: none !important;
   }
 
@@ -445,29 +350,4 @@ button:focus:not(:focus-visible) {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
   }
-}
-
-/* === MOBILE DRAWER STATES === */
-#dc-mobile-drawer.open {
-  transform: translateX(0) !important;
-  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
-}
-
-#dc-mobile-backdrop {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  display: block;
-  /* Always display in DOM, handle visibility via opacity */
-  visibility: hidden;
-}
-
-#dc-mobile-backdrop.visible {
-  opacity: 1;
-  pointer-events: auto;
-  visibility: visible;
-}
-
-#dc-mobile-backdrop.hidden {
-  display: none !important;
 }

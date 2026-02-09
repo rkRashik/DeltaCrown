@@ -33,7 +33,7 @@ def home(request):
         tournaments_qs = None
 
     try:
-        from apps.teams.models import Team  # type: ignore
+        from apps.organizations.models import Team  # type: ignore
         stats["teams"] = Team.objects.count()
     except Exception:
         pass

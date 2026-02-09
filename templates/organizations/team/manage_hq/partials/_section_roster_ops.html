@@ -1,0 +1,1061 @@
+{% comment %}
+Roster Ops — Gaming-style roster with player-first priority, dual-role support,
+tactical roles, roster lock, invite, role edit, remove. vNext organizations models.
+Section 7.2 of the Master Plan.
+
+DESIGN PHILOSOPHY:
+- Players are the face of the team — they come FIRST
+- Dual roles: Owner who plays appears in Players section with a subtle crown badge
+- Staff (coaches/analysts/scouts) in separate section
+- Manager-only actions hidden behind permission checks
+- Game-specific role badges (Duelist, IGL, AWPer, etc.)
+{% endcomment %}
+<section id="roster" class="hq-section space-y-4" aria-label="Roster Operations">
+
+    {# ── Roster Lock Banner ── #}
+    {% if roster_locked %}
+    <div class="rounded-2xl border border-red-500/30 bg-red-500/8 p-4 flex items-center gap-3">
+        <div class="h-10 w-10 rounded-xl bg-red-500/15 grid place-items-center shrink-0">
+            <i data-lucide="lock" class="w-5 h-5 text-red-400"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-red-400">Roster Locked</p>
+            <p class="text-xs text-white/50">
+                {% if roster_lock_source == 'organization' %}Locked by organization policy. Contact org admin.
+                {% elif roster_lock_source == 'tournament' %}Locked due to active tournament registration.
+                {% else %}Locked by team owner.{% endif %}
+            </p>
+        </div>
+        {% if is_owner and roster_lock_source == 'owner' %}
+        <button onclick="ManageHQ.toggleRosterLock(false)"
+            class="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/15 transition font-medium">
+            Unlock
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# ── Manual Roster Lock Toggle (Owner only, when not org-locked) ── #}
+    {% if is_owner and roster_lock_source != 'organization' and not roster_locked %}
+    <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-xl bg-white/5 grid place-items-center shrink-0">
+                <i data-lucide="shield-check" class="w-4 h-4 text-white/40"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-white/80">Roster Lock</p>
+                <p class="text-xs text-white/40">Prevent all roster changes until you unlock</p>
+            </div>
+        </div>
+        <button onclick="ManageHQ.toggleRosterLock(true)"
+            class="text-xs px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/15 transition font-medium">
+            <i data-lucide="lock" class="w-3 h-3 inline mr-1"></i>Lock Roster
+        </button>
+    </div>
+    {% endif %}
+
+    {# ── Roster Summary Header ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <div>
+                <h2 class="text-base font-bold flex items-center gap-2">
+                    <i data-lucide="shield" class="w-4 h-4 text-blue-400"></i>
+                    Roster Operations
+                </h2>
+                <p class="text-sm text-white/60 mt-0.5">{{ game_display }} · {{ current_roster_size }} / {{ max_roster_size }} slots</p>
+            </div>
+            {% if can_manage_roster and not roster_locked %}
+            <button onclick="ManageHQ.openInviteModal()"
+                class="rounded-xl px-4 py-2 text-sm font-medium border transition inline-flex items-center gap-1.5"
+                style="background:linear-gradient(135deg,color-mix(in oklab,var(--team-primary) 60%,transparent),rgba(255,255,255,.06));border-color:color-mix(in oklab,var(--team-primary) 38%,rgba(255,255,255,.16))">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                Invite
+            </button>
+            {% endif %}
+        </div>
+
+        {# Roster config metrics #}
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+            <div class="rounded-xl bg-white/5 border border-white/8 p-2.5 text-center">
+                <div class="text-lg font-bold" style="color:var(--team-primary)">{{ max_team_size|default:max_roster_size }}</div>
+                <div class="text-[10px] text-white/50 uppercase tracking-wide">Team Size</div>
+            </div>
+            <div class="rounded-xl bg-white/5 border border-white/8 p-2.5 text-center">
+                <div class="text-lg font-bold text-emerald-400" id="starter-count-metric">0</div>
+                <div class="text-[10px] text-white/50 uppercase tracking-wide">Starters</div>
+            </div>
+            <div class="rounded-xl bg-white/5 border border-white/8 p-2.5 text-center">
+                <div class="text-lg font-bold text-blue-400" id="sub-count-metric">0</div>
+                <div class="text-[10px] text-white/50 uppercase tracking-wide">Substitutes</div>
+            </div>
+            <div class="rounded-xl bg-white/5 border border-white/8 p-2.5 text-center">
+                <div class="text-lg font-bold text-amber-400">{{ pending_invites.count }}</div>
+                <div class="text-[10px] text-white/50 uppercase tracking-wide">Pending</div>
+            </div>
+        </div>
+
+        {# Roster fill progress bar #}
+        {% widthratio current_roster_size max_roster_size 100 as fill_pct %}
+        <div class="h-1.5 rounded-full bg-white/10 overflow-hidden mb-1">
+            <div class="h-full rounded-full transition-all duration-500 {% if fill_pct|add:0 >= 90 %}bg-red-500{% elif fill_pct|add:0 >= 70 %}bg-amber-500{% else %}bg-emerald-500{% endif %}"
+                 style="width:{{ fill_pct }}%"></div>
+        </div>
+        <div class="flex justify-between text-[10px] text-white/40">
+            <span>{{ current_roster_size }} filled</span>
+            <span>{{ max_roster_size }} max</span>
+        </div>
+    </div>
+
+    {% comment %}Players section — Gaming-Style Roster Cards{% endcomment %}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold flex items-center gap-2">
+                <i data-lucide="swords" class="w-4 h-4 text-emerald-400"></i>
+                Players
+                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold" id="player-total-count">0</span>
+            </h3>
+            <div class="flex items-center gap-2 text-[10px] text-white/40">
+                <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Starter</span>
+                <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Sub</span>
+                <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Captain</span>
+            </div>
+        </div>
+
+        {# ── Starting Players Grid ── #}
+        <p class="text-[10px] text-white/45 uppercase tracking-wider font-semibold mb-2">Starting Lineup</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mb-5" id="roster-starters">
+            {% for membership in members %}
+            {% if membership.roster_slot == 'STARTER' or membership.role == 'PLAYER' and not membership.roster_slot or membership.role == 'OWNER' and not membership.roster_slot %}
+            <div class="group relative rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] overflow-hidden hover:border-white/20 hover:shadow-lg transition-all duration-300"
+                 data-membership-id="{{ membership.id }}" data-slot="starter"
+                 data-permissions='{{ membership.permissions|default:"{}" }}'>
+                {# Top Accent Bar #}
+                <div class="h-1 w-full" style="background:linear-gradient(90deg,var(--team-primary),var(--team-accent))"></div>
+
+                <div class="p-4">
+                    {# Avatar + Identity #}
+                    <div class="flex items-start gap-3">
+                        <div class="relative shrink-0">
+                            <div class="h-14 w-14 rounded-xl border-2 overflow-hidden"
+                                 style="border-color:color-mix(in oklab,var(--team-primary) 50%,rgba(255,255,255,.15))">
+                                {% if membership.roster_image %}
+                                <img src="{{ membership.roster_image.url }}" alt="" class="w-full h-full object-cover">
+                                {% elif membership.user.profile.avatar %}
+                                <img src="{{ membership.user.profile.avatar.url }}" alt="" class="w-full h-full object-cover">
+                                {% else %}
+                                <div class="w-full h-full grid place-items-center bg-white/10">
+                                    <span class="font-bold text-lg" style="color:var(--team-primary)">{{ membership.user.username|slice:":1"|upper }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {# Captain Crown #}
+                            {% if membership.is_tournament_captain %}
+                            <div class="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-amber-500 grid place-items-center shadow-lg" title="Team Captain">
+                                <i data-lucide="crown" class="w-3 h-3 text-black"></i>
+                            </div>
+                            {% endif %}
+                            {# Online indicator #}
+                            <div class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[var(--bg0)] bg-emerald-500"></div>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="font-bold text-sm truncate text-white">{{ membership.display_name|default:membership.user.username }}</span>
+                                {# Dual-role: show management role as subtle badge #}
+                                {% if membership.role == 'OWNER' %}
+                                <span class="text-[9px] px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold leading-none" title="Team Owner">👑</span>
+                                {% elif membership.role == 'MANAGER' %}
+                                <span class="text-[9px] px-1 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold leading-none" title="Manager">MGR</span>
+                                {% elif membership.role == 'COACH' %}
+                                <span class="text-[9px] px-1 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold leading-none" title="Coach">🎓</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-xs text-white/50 truncate">@{{ membership.user.username }}</p>
+                        </div>
+                    </div>
+
+                    {# Game Role & Status Row #}
+                    <div class="mt-3 flex items-center gap-2 flex-wrap">
+                        {% if membership.player_role %}
+                        <span class="text-[10px] px-2 py-1 rounded-lg font-semibold border"
+                              style="color:var(--team-primary);border-color:color-mix(in oklab,var(--team-primary) 30%,transparent);background:color-mix(in oklab,var(--team-primary) 10%,transparent)">
+                            {{ membership.player_role }}
+                        </span>
+                        {% endif %}
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">STARTER</span>
+                        {% if membership.is_tournament_captain %}
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-medium">⭐ Captain</span>
+                        {% endif %}
+                    </div>
+
+                    {# Joined date #}
+                    <div class="mt-2 text-[10px] text-white/35">Joined {{ membership.joined_at|timesince }} ago</div>
+                </div>
+
+                {# Hover Action Buttons (management only) #}
+                {% if can_manage_roster and not roster_locked %}
+                <div class="absolute top-3 right-3 flex items-center gap-1.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition">
+                    <button onclick="ManageHQ.openPlayerInfoModal({{ membership.user.id }}, '{{ membership.user.username|escapejs }}')"
+                        class="h-7 w-7 rounded-lg border border-teal-500/30 bg-black/40 backdrop-blur-sm hover:bg-teal-500/20 transition grid place-items-center text-teal-400" title="Player Info">
+                        <i data-lucide="info" class="w-3 h-3"></i>
+                    </button>
+                    {% if membership.role != 'OWNER' %}
+                    <button onclick="ManageHQ.swapSlot({{ membership.id }}, 'SUBSTITUTE')"
+                        class="h-7 w-7 rounded-lg border border-blue-500/30 bg-black/40 backdrop-blur-sm hover:bg-blue-500/20 transition grid place-items-center text-blue-400" title="Move to Bench">
+                        <i data-lucide="arrow-down" class="w-3 h-3"></i>
+                    </button>
+                    {% endif %}
+                    <button onclick="ManageHQ.openRoleModal({{ membership.id }}, '{{ membership.role }}', '{{ membership.user.username|escapejs }}', {{ membership.is_tournament_captain|yesno:'true,false' }}, '{{ membership.player_role|default:""|escapejs }}', '{{ membership.roster_slot|default:""|escapejs }}')"
+                        class="h-7 w-7 rounded-lg border border-white/15 bg-black/40 backdrop-blur-sm hover:bg-white/15 transition grid place-items-center" title="Edit">
+                        <i data-lucide="pencil" class="w-3 h-3"></i>
+                    </button>
+                    {% if membership.role != 'OWNER' %}
+                    <button onclick="ManageHQ.openRemoveModal({{ membership.id }}, '{{ membership.user.username|escapejs }}')"
+                        class="h-7 w-7 rounded-lg border border-red-500/30 bg-black/40 backdrop-blur-sm hover:bg-red-500/20 transition grid place-items-center text-red-400" title="Remove">
+                        <i data-lucide="user-x" class="w-3 h-3"></i>
+                    </button>
+                    {% endif %}
+                </div>
+                {% elif membership.id == user_membership_id and not roster_locked %}
+                {# Self-edit: any member can edit their own roster info #}
+                <div class="absolute top-3 right-3 flex items-center gap-1.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition">
+                    <button onclick="ManageHQ.openSelfEditModal({{ membership.id }}, '{{ membership.user.username|escapejs }}', '{{ membership.player_role|default:""|escapejs }}', '{{ membership.roster_slot|default:""|escapejs }}', '{{ membership.display_name|default:""|escapejs }}', '{% if membership.roster_image %}{{ membership.roster_image.url }}{% endif %}')"
+                        class="h-7 px-2 rounded-lg border border-cyan-500/30 bg-black/40 backdrop-blur-sm hover:bg-cyan-500/20 transition inline-flex items-center gap-1 text-cyan-400 text-[10px] font-medium" title="Edit your info">
+                        <i data-lucide="pencil" class="w-3 h-3"></i> Edit
+                    </button>
+                </div>
+                {% elif membership.role == 'OWNER' and is_owner and roster_locked %}
+                <div class="absolute top-3 right-3">
+                    <span class="text-[9px] text-white/30 bg-black/30 backdrop-blur-sm px-2 py-1 rounded-lg">You</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        {# ── Substitutes ── #}
+        <p class="text-[10px] text-white/45 uppercase tracking-wider font-semibold mb-2">Substitutes</p>
+        <div class="space-y-2 mb-4" id="roster-subs">
+            {% for membership in members %}
+            {% if membership.roster_slot == 'SUBSTITUTE' or membership.role == 'SUBSTITUTE' %}
+            <div class="rounded-xl border border-white/8 bg-white/[0.03] p-3 flex items-center gap-3 group hover:bg-white/[0.06] transition"
+                 data-membership-id="{{ membership.id }}" data-slot="substitute"
+                 data-permissions='{{ membership.permissions|default:"{}" }}'>
+                <div class="relative shrink-0">
+                    <div class="h-10 w-10 rounded-lg border border-white/15 bg-white/5 grid place-items-center overflow-hidden">
+                        {% if membership.roster_image %}
+                        <img src="{{ membership.roster_image.url }}" alt="" class="w-full h-full object-cover">
+                        {% elif membership.user.profile.avatar %}
+                        <img src="{{ membership.user.profile.avatar.url }}" alt="" class="w-full h-full object-cover">
+                        {% else %}
+                        <span class="font-bold text-sm" style="color:var(--team-primary)">{{ membership.user.username|slice:":1"|upper }}</span>
+                        {% endif %}
+                    </div>
+                    {% if membership.is_tournament_captain %}
+                    <div class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-amber-500 grid place-items-center">
+                        <i data-lucide="crown" class="w-2.5 h-2.5 text-black"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-semibold text-sm truncate text-white/90">{{ membership.display_name|default:membership.user.username }}</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 font-medium">SUB</span>
+                        {% if membership.player_role %}
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-lg font-medium"
+                              style="color:var(--team-primary);background:color-mix(in oklab,var(--team-primary) 10%,transparent)">{{ membership.player_role }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-[10px] text-white/40 mt-0.5">@{{ membership.user.username }} · Joined {{ membership.joined_at|timesince }} ago</div>
+                </div>
+                {% if can_manage_roster and not roster_locked %}
+                <div class="flex items-center gap-1.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition shrink-0">
+                    <button onclick="ManageHQ.openPlayerInfoModal({{ membership.user.id }}, '{{ membership.user.username|escapejs }}')"
+                        class="h-7 w-7 rounded-lg border border-teal-500/30 bg-teal-500/5 hover:bg-teal-500/15 transition grid place-items-center text-teal-400" title="Player Info">
+                        <i data-lucide="info" class="w-3 h-3"></i>
+                    </button>
+                    <button onclick="ManageHQ.swapSlot({{ membership.id }}, 'STARTER')"
+                        class="h-7 w-7 rounded-lg border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/15 transition grid place-items-center text-emerald-400" title="Promote to Starter">
+                        <i data-lucide="arrow-up" class="w-3 h-3"></i>
+                    </button>
+                    <button onclick="ManageHQ.openRoleModal({{ membership.id }}, '{{ membership.role }}', '{{ membership.user.username|escapejs }}', {{ membership.is_tournament_captain|yesno:'true,false' }}, '{{ membership.player_role|default:""|escapejs }}', '{{ membership.roster_slot|default:""|escapejs }}')"
+                        class="h-7 w-7 rounded-lg border border-line bg-white/5 hover:bg-white/10 transition grid place-items-center" title="Edit">
+                        <i data-lucide="pencil" class="w-3 h-3"></i>
+                    </button>
+                    <button onclick="ManageHQ.openRemoveModal({{ membership.id }}, '{{ membership.user.username|escapejs }}')"
+                        class="h-7 w-7 rounded-lg border border-red-500/30 bg-red-500/5 hover:bg-red-500/15 transition grid place-items-center text-red-400" title="Remove">
+                        <i data-lucide="user-x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+                {% elif membership.id == user_membership_id and not roster_locked %}
+                <div class="flex items-center gap-1.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition shrink-0">
+                    <button onclick="ManageHQ.openSelfEditModal({{ membership.id }}, '{{ membership.user.username|escapejs }}', '{{ membership.player_role|default:""|escapejs }}', '{{ membership.roster_slot|default:""|escapejs }}', '{{ membership.display_name|default:""|escapejs }}', '{% if membership.roster_image %}{{ membership.roster_image.url }}{% endif %}')"
+                        class="h-7 px-2 rounded-lg border border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/15 transition inline-flex items-center gap-1 text-cyan-400 text-[10px] font-medium" title="Edit your info">
+                        <i data-lucide="pencil" class="w-3 h-3"></i> Edit
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+            <div id="subs-empty" class="rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-center" style="display:none">
+                <p class="text-xs text-white/40">No substitutes yet. Invite backup players for tournament flexibility.</p>
+            </div>
+        </div>
+    </div>
+
+    {% comment %}Staff section — Coaches, Analysts, Scouts, Managers{% endcomment %}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h3 class="text-sm font-bold mb-3 flex items-center gap-2">
+            <i data-lucide="briefcase" class="w-4 h-4 text-purple-400"></i>
+            Coaching & Staff
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400 font-semibold" id="staff-count">0</span>
+        </h3>
+        <div class="space-y-2" id="roster-staff">
+            {% for membership in members %}
+            {% if membership.role == 'MANAGER' or membership.role == 'COACH' or membership.role == 'ANALYST' or membership.role == 'SCOUT' %}
+            <div class="rounded-xl border border-white/8 bg-white/[0.03] p-3 flex items-center gap-3 group hover:bg-white/[0.06] transition"
+                 data-membership-id="{{ membership.id }}"
+                 data-permissions='{{ membership.permissions|default:"{}" }}'>
+                <div class="h-10 w-10 rounded-lg border border-white/15 bg-white/5 grid place-items-center shrink-0 overflow-hidden">
+                    {% if membership.roster_image %}
+                    <img src="{{ membership.roster_image.url }}" alt="" class="w-full h-full object-cover">
+                    {% elif membership.user.profile.avatar %}
+                    <img src="{{ membership.user.profile.avatar.url }}" alt="" class="w-full h-full object-cover">
+                    {% else %}
+                    <span class="font-bold text-sm">{{ membership.user.username|slice:":1"|upper }}</span>
+                    {% endif %}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-semibold text-sm truncate text-white/90">{{ membership.display_name|default:membership.user.username }}</span>
+                        {% if membership.role == 'MANAGER' %}
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-medium">MANAGER</span>
+                        {% elif membership.role == 'COACH' %}
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-medium">COACH</span>
+                        {% elif membership.role == 'ANALYST' %}
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 font-medium">ANALYST</span>
+                        {% elif membership.role == 'SCOUT' %}
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-medium">SCOUT</span>
+                        {% endif %}
+                        {% if membership.roster_slot == 'STARTER' or membership.roster_slot == 'SUBSTITUTE' %}
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400/70 font-medium">Also Plays</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-[10px] text-white/40 mt-0.5">@{{ membership.user.username }} · Joined {{ membership.joined_at|timesince }} ago</div>
+                </div>
+                {% if can_manage_roster and not roster_locked %}
+                <div class="flex items-center gap-1.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition shrink-0">
+                    <button onclick="ManageHQ.openRoleModal({{ membership.id }}, '{{ membership.role }}', '{{ membership.user.username|escapejs }}', false, '', '{{ membership.roster_slot|default:""|escapejs }}')"
+                        class="h-7 w-7 rounded-lg border border-line bg-white/5 hover:bg-white/10 transition grid place-items-center" title="Edit">
+                        <i data-lucide="pencil" class="w-3 h-3"></i>
+                    </button>
+                    <button onclick="ManageHQ.openRemoveModal({{ membership.id }}, '{{ membership.user.username|escapejs }}')"
+                        class="h-7 w-7 rounded-lg border border-red-500/30 bg-red-500/5 hover:bg-red-500/15 transition grid place-items-center text-red-400" title="Remove">
+                        <i data-lucide="user-x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+            <div id="staff-empty" class="rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-center" style="display:none">
+                <p class="text-xs text-white/40">No staff members yet. Invite coaches & analysts to strengthen operations.</p>
+            </div>
+        </div>
+    </div>
+
+    {# ── Roster Guide ── #}
+    {% if can_manage_roster %}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h3 class="text-sm font-bold mb-3 flex items-center gap-2">
+            <i data-lucide="info" class="w-4 h-4 text-white/40"></i>
+            Roster Guide
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="rounded-xl border border-white/8 bg-white/[0.02] p-3">
+                <div class="flex items-center gap-2 mb-1.5">
+                    <i data-lucide="layers" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    <span class="text-[11px] font-bold text-white/80">Dual Roles</span>
+                </div>
+                <p class="text-[10px] text-white/45 leading-relaxed">
+                    An Owner or Manager can also play. Set their roster slot to STARTER/SUB and assign an in-game role.
+                </p>
+            </div>
+            <div class="rounded-xl border border-white/8 bg-white/[0.02] p-3">
+                <div class="flex items-center gap-2 mb-1.5">
+                    <i data-lucide="gamepad-2" class="w-3.5 h-3.5 text-cyan-400"></i>
+                    <span class="text-[11px] font-bold text-white/80">{{ game_display }} Roles</span>
+                </div>
+                <p class="text-[10px] text-white/45 leading-relaxed">
+                    Assign game-specific tactical roles (e.g. Duelist, IGL, Controller) via the role editor pencil icon.
+                </p>
+            </div>
+            <div class="rounded-xl border border-white/8 bg-white/[0.02] p-3">
+                <div class="flex items-center gap-2 mb-1.5">
+                    <i data-lucide="star" class="w-3.5 h-3.5 text-amber-400"></i>
+                    <span class="text-[11px] font-bold text-white/80">Captain</span>
+                </div>
+                <p class="text-[10px] text-white/45 leading-relaxed">
+                    Designate one player as Tournament Captain ⭐ for match check-ins and lobby admin duties.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Pending Invitations ── #}
+    <div id="pending-invites-section" class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6 {% if not pending_invites %}hidden{% endif %}">
+        <h2 class="text-sm font-bold mb-3 flex items-center gap-2">
+            <i data-lucide="mail" class="w-4 h-4 text-amber-400"></i>
+            Pending Invitations
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-semibold">{{ pending_invites.count }}</span>
+        </h2>
+        <div id="pending-invites-list" class="space-y-2">
+            {% for invite in pending_invites %}
+            <div id="invite-{{ invite.id }}" class="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 flex items-center justify-between">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="h-9 w-9 rounded-lg bg-white/10 grid place-items-center text-xs font-bold shrink-0 overflow-hidden">
+                        {% if invite.invited_user and invite.invited_user.profile.avatar %}
+                        <img src="{{ invite.invited_user.profile.avatar.url }}" alt="" class="w-full h-full object-cover rounded-lg">
+                        {% elif invite.invited_user %}
+                        {{ invite.invited_user.username|slice:":1"|upper }}
+                        {% else %}
+                        ?
+                        {% endif %}
+                    </div>
+                    <div class="min-w-0">
+                        <div class="font-semibold text-sm truncate text-white/90">{{ invite.invited_user.username|default:"Unknown" }}</div>
+                        <div class="text-xs text-white/50 truncate">
+                            {{ invite.role }} · {{ invite.created_at|timesince }} ago
+                            {% if invite.inviter %}· by {{ invite.inviter.username }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% if can_manage_roster and not roster_locked %}
+                <button onclick="ManageHQ.cancelInvite({{ invite.id }}, this)"
+                    class="text-xs px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition shrink-0 ml-2">
+                    Cancel
+                </button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</section>
+
+{% comment %}MODALS{% endcomment %}
+
+{# ── Invite Modal ── #}
+<div id="modal-invite" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="modal-invite-title"
+     onclick="if(event.target===this)ManageHQ.closeModal('modal-invite')">
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between p-4 border-b border-white/10">
+            <h3 id="modal-invite-title" class="font-bold text-base">Invite Player</h3>
+            <button onclick="ManageHQ.closeModal('modal-invite')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="invite-form" class="p-4 space-y-4">
+            <div id="invite-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3"></div>
+            <div>
+                <label class="block text-xs text-white/70 mb-1.5 font-medium">Username or Email</label>
+                <div id="invite-search-wrapper" class="relative">
+                    <input id="invite-username" type="text" placeholder="Start typing a username or email…"
+                        class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-cyan-500/40 focus:outline-none transition" required autocomplete="off">
+                    <i data-lucide="search" class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none"></i>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-white/70 mb-1.5 font-medium">Role</label>
+                <select id="invite-role"
+                    class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
+                    {% for rc in role_choices %}
+                    <option value="{{ rc.value }}" {% if rc.value == 'PLAYER' %}selected{% endif %}>{{ rc.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="ManageHQ.closeModal('modal-invite')"
+                    class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button id="invite-submit-btn" type="submit"
+                    class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition"
+                    style="background:linear-gradient(135deg,color-mix(in oklab,var(--team-primary) 70%,transparent),rgba(255,255,255,.08))">Send Invite</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ── Role Edit Modal ── #}
+<div id="modal-role-edit" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="modal-role-edit-title"
+     onclick="if(event.target===this)ManageHQ.closeModal('modal-role-edit')">
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between p-4 border-b border-white/10">
+            <h3 id="modal-role-edit-title" class="font-bold text-base">Edit Role: <span id="role-username-display"></span></h3>
+            <button onclick="ManageHQ.closeModal('modal-role-edit')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="role-edit-form" class="p-4 space-y-4">
+            <input type="hidden" id="role-membership-id">
+            <div id="role-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3"></div>
+            <div>
+                <label class="block text-xs text-white/70 mb-1.5 font-medium">Organizational Role</label>
+                <select id="role-select"
+                    class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
+                    {% for rc in role_choices %}
+                    {% if rc.value != 'OWNER' or is_owner %}
+                    <option value="{{ rc.value }}">{{ rc.label }}{% if rc.value == 'OWNER' %} (Transfer Ownership){% endif %}</option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-white/70 mb-1.5 font-medium">Roster Slot</label>
+                <select id="role-roster-slot"
+                    class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
+                    <option value="">Not Assigned</option>
+                    <option value="STARTER">Starting Player</option>
+                    <option value="SUBSTITUTE">Substitute Player</option>
+                    <option value="COACH">Coach</option>
+                    <option value="ANALYST">Analyst</option>
+                </select>
+            </div>
+            {% if can_assign_captain_title %}
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+                <input id="role-captain-cb" type="checkbox" class="w-4 h-4 rounded accent-amber-400">
+                <div>
+                    <label for="role-captain-cb" class="text-sm font-medium cursor-pointer">Captain Title ⭐</label>
+                    <p class="text-xs text-white/50 mt-0.5">Tournament check-in authority</p>
+                </div>
+            </div>
+            {% endif %}
+            <div>
+                <label class="block text-xs text-white/70 mb-1.5 font-medium">In-Game Role <span class="text-white/40">({{ game_display }})</span></label>
+                <select id="role-player-role"
+                    class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
+                    <option value="">— Select Role —</option>
+                    {% for gr in game_roles %}
+                    <option value="{{ gr.role_name }}">{{ gr.role_name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="text-[10px] text-white/30 mt-1">Game-specific role for this player</p>
+            </div>
+            <div>
+                <label class="block text-xs text-white/70 mb-1.5 font-medium">Display Name <span class="text-white/40">(optional)</span></label>
+                <input id="role-display-name" type="text" placeholder="Custom name for this team roster…"
+                    class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition"
+                    maxlength="80">
+            </div>
+
+            {# ── Advanced Permissions ── #}
+            <div id="role-permissions-section" class="hidden">
+                <button type="button" onclick="document.getElementById('role-perm-grid').classList.toggle('hidden');this.querySelector('[data-lucide]')?.classList.toggle('rotate-90')"
+                    class="flex items-center gap-2 text-xs text-white/60 hover:text-white/80 transition mb-2 font-medium">
+                    <i data-lucide="chevron-right" class="w-3 h-3 transition-transform"></i>
+                    Advanced Permissions
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">OVERRIDES</span>
+                </button>
+                <div id="role-perm-grid" class="hidden space-y-1.5 rounded-xl bg-white/[0.03] border border-white/10 p-3">
+                    <p class="text-[10px] text-white/40 mb-2">Grant or revoke specific permissions beyond the defaults for this role.</p>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+                            <input type="checkbox" data-perm="register_tournaments" class="perm-cb w-3.5 h-3.5 rounded accent-teal-400">
+                            <span class="text-[11px] text-white/70">Register Tournaments</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+                            <input type="checkbox" data-perm="edit_roster" class="perm-cb w-3.5 h-3.5 rounded accent-teal-400">
+                            <span class="text-[11px] text-white/70">Edit Roster</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+                            <input type="checkbox" data-perm="edit_team" class="perm-cb w-3.5 h-3.5 rounded accent-teal-400">
+                            <span class="text-[11px] text-white/70">Edit Team</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+                            <input type="checkbox" data-perm="schedule_scrims" class="perm-cb w-3.5 h-3.5 rounded accent-teal-400">
+                            <span class="text-[11px] text-white/70">Schedule Scrims</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+                            <input type="checkbox" data-perm="edit_toc" class="perm-cb w-3.5 h-3.5 rounded accent-teal-400">
+                            <span class="text-[11px] text-white/70">Edit TOC</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+                            <input type="checkbox" data-perm="view_analytics" class="perm-cb w-3.5 h-3.5 rounded accent-teal-400">
+                            <span class="text-[11px] text-white/70">View Analytics</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+                            <input type="checkbox" data-perm="view_dashboard" class="perm-cb w-3.5 h-3.5 rounded accent-teal-400">
+                            <span class="text-[11px] text-white/70">View Dashboard</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+                            <input type="checkbox" data-perm="view_player_stats" class="perm-cb w-3.5 h-3.5 rounded accent-teal-400">
+                            <span class="text-[11px] text-white/70">View Player Stats</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+                            <input type="checkbox" data-perm="manage_bounties" class="perm-cb w-3.5 h-3.5 rounded accent-amber-400">
+                            <span class="text-[11px] text-white/70">Manage Bounties</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+                            <input type="checkbox" data-perm="manage_economy" class="perm-cb w-3.5 h-3.5 rounded accent-amber-400">
+                            <span class="text-[11px] text-white/70">Manage Economy</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+                            <input type="checkbox" data-perm="manage_media" class="perm-cb w-3.5 h-3.5 rounded accent-pink-400">
+                            <span class="text-[11px] text-white/70">Manage Media</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+                            <input type="checkbox" data-perm="send_announcements" class="perm-cb w-3.5 h-3.5 rounded accent-blue-400">
+                            <span class="text-[11px] text-white/70">Send Announcements</span>
+                        </label>
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
+                            <input type="checkbox" data-perm="manage_discord" class="perm-cb w-3.5 h-3.5 rounded accent-indigo-400">
+                            <span class="text-[11px] text-white/70">Manage Discord</span>
+                        </label>
+                    </div>
+                    <p class="text-[9px] text-white/30 mt-2">Checked items are granted beyond role defaults. Unchecked items use role defaults.</p>
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="ManageHQ.closeModal('modal-role-edit')"
+                    class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button id="role-submit-btn" type="submit"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 transition text-sm font-medium text-white">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ── Remove Member Modal ── #}
+<div id="modal-remove" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="modal-remove-title"
+     onclick="if(event.target===this)ManageHQ.closeModal('modal-remove')">
+    <div class="bg-[#0f1525] border border-red-500/25 rounded-2xl w-full max-w-md shadow-2xl" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between p-4 border-b border-red-500/15">
+            <h3 id="modal-remove-title" class="font-bold text-base text-red-400 flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4"></i> Remove Member
+            </h3>
+            <button onclick="ManageHQ.closeModal('modal-remove')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <div class="p-4 space-y-4">
+            <div id="remove-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3"></div>
+            <input type="hidden" id="remove-membership-id">
+            <p class="text-sm text-white/70">
+                You are about to remove <strong id="remove-username-display" class="text-white"></strong> from the team. This action cannot be undone.
+            </p>
+            <div>
+                <label class="block text-xs text-white/70 mb-1.5 font-medium">
+                    Type <strong id="remove-confirm-target" class="text-red-400"></strong> to confirm
+                </label>
+                <input id="remove-confirm-input" type="text" placeholder="Type username to confirm…"
+                    class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-red-500/25 text-sm placeholder-white/30 focus:border-red-500/40 focus:outline-none transition">
+            </div>
+            <div class="flex gap-2 pt-1">
+                <button type="button" onclick="ManageHQ.closeModal('modal-remove')"
+                    class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button id="remove-submit-btn" type="button" onclick="ManageHQ.confirmRemove()"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 transition text-sm font-medium text-white">Remove Member</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Self-Edit Modal (Player edits own roster info) ── #}
+<div id="modal-self-edit" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="modal-self-edit-title"
+     onclick="if(event.target===this)ManageHQ.closeModal('modal-self-edit')">
+    <div class="bg-[#0f1525] border border-cyan-500/25 rounded-2xl w-full max-w-md shadow-2xl" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between p-4 border-b border-cyan-500/15">
+            <h3 id="modal-self-edit-title" class="font-bold text-base text-cyan-400 flex items-center gap-2">
+                <i data-lucide="user-cog" class="w-4 h-4"></i> Edit Your Roster Info
+            </h3>
+            <button onclick="ManageHQ.closeModal('modal-self-edit')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="self-edit-form" class="p-4 space-y-4">
+            <input type="hidden" id="self-edit-membership-id">
+            <div id="self-edit-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3"></div>
+            <div>
+                <label class="block text-xs text-white/70 mb-1.5 font-medium">Display Name <span class="text-white/40">(optional)</span></label>
+                <input id="self-edit-display-name" type="text" placeholder="Your custom name for this roster…"
+                    class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-cyan-500/40 focus:outline-none transition"
+                    maxlength="80">
+            </div>
+            <div>
+                <label class="block text-xs text-white/70 mb-1.5 font-medium">In-Game Role <span class="text-white/40">({{ game_display }})</span></label>
+                <select id="self-edit-player-role"
+                    class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-cyan-500/40 focus:outline-none transition">
+                    <option value="">— Select Role —</option>
+                    {% for gr in game_roles %}
+                    <option value="{{ gr.role_name }}">{{ gr.role_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-white/70 mb-1.5 font-medium">Roster Photo</label>
+                <div class="flex items-center gap-3">
+                    <div id="self-edit-photo-preview" class="h-14 w-14 rounded-xl border border-white/15 bg-white/5 grid place-items-center overflow-hidden shrink-0">
+                        <i data-lucide="camera" class="w-5 h-5 text-white/20"></i>
+                    </div>
+                    <div class="flex-1">
+                        <input id="self-edit-photo" type="file" accept="image/jpeg,image/png,image/webp" class="hidden"
+                            onchange="ManageHQ.previewSelfPhoto(this)">
+                        <button type="button" onclick="document.getElementById('self-edit-photo').click()"
+                            class="text-xs px-3 py-1.5 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 transition">
+                            Choose Photo
+                        </button>
+                        <p class="text-[10px] text-white/30 mt-1">JPEG, PNG, WebP · Max 5 MB</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="ManageHQ.closeModal('modal-self-edit')"
+                    class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button id="self-edit-submit-btn" type="submit"
+                    class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition"
+                    style="background:linear-gradient(135deg,color-mix(in oklab,var(--team-primary) 70%,transparent),rgba(255,255,255,.08))">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ── Player Info Modal (Comprehensive Profile Viewer) ── #}
+<div id="modal-player-info" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="modal-player-info-title"
+     onclick="if(event.target===this)ManageHQ.closeModal('modal-player-info')">
+    <div class="bg-[#0f1525] border border-teal-500/25 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+        {# Header #}
+        <div class="flex items-center justify-between p-4 border-b border-teal-500/15 shrink-0">
+            <h3 id="modal-player-info-title" class="font-bold text-base text-teal-400 flex items-center gap-2">
+                <i data-lucide="id-card" class="w-4 h-4"></i>
+                <span id="player-info-username">Player Info</span>
+            </h3>
+            <button onclick="ManageHQ.closeModal('modal-player-info')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        {# Scrollable Content #}
+        <div id="player-info-content" class="p-4 overflow-y-auto flex-1 custom-scrollbar">
+            {# Loading spinner #}
+            <div id="player-info-loading" class="text-center py-8">
+                <div class="animate-spin h-6 w-6 border-2 border-teal-400/30 border-t-teal-400 rounded-full mx-auto"></div>
+                <p class="text-xs text-white/40 mt-2">Loading player profile…</p>
+            </div>
+
+            <div id="player-info-data" class="hidden space-y-4">
+
+                {# ─── Player Header Card ─── #}
+                <div id="pi-header-card" class="flex items-center gap-3 rounded-xl bg-white/[0.03] border border-white/10 p-3">
+                    <div id="pi-avatar-wrap" class="w-12 h-12 rounded-full bg-teal-500/20 border border-teal-500/30 grid place-items-center overflow-hidden shrink-0">
+                        <img id="pi-avatar" src="" alt="" class="w-full h-full object-cover hidden">
+                        <i data-lucide="user" class="w-5 h-5 text-teal-400" id="pi-avatar-fallback"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="pi-display-name" class="font-semibold text-sm text-white truncate">—</p>
+                        <p id="pi-header-meta" class="text-[10px] text-white/40 flex items-center gap-2 flex-wrap">
+                            <span id="pi-role-badge" class="px-1.5 py-0.5 rounded bg-teal-500/15 text-teal-400 font-medium hidden"></span>
+                            <span id="pi-joined-date" class="hidden">Joined —</span>
+                            <span id="pi-level-badge" class="hidden">Lv. —</span>
+                        </p>
+                    </div>
+                    <div id="pi-captain-badge" class="hidden shrink-0 px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/25 text-[10px] font-bold text-amber-400">
+                        <i data-lucide="crown" class="w-3 h-3 inline -mt-0.5"></i> Captain
+                    </div>
+                </div>
+
+                {# ─── Section: Game Passport ─── #}
+                <div class="rounded-xl bg-teal-500/5 border border-teal-500/15 overflow-hidden">
+                    <div class="px-4 py-2.5 bg-teal-500/[0.07] border-b border-teal-500/10 flex items-center gap-1.5">
+                        <i data-lucide="gamepad-2" class="w-3.5 h-3.5 text-teal-400"></i>
+                        <span class="text-xs font-semibold text-teal-400">Game Passport — {{ game_display }}</span>
+                    </div>
+                    <div class="p-4 space-y-3">
+                        {# Verification & Status Banner #}
+                        <div id="pi-verification-banner" class="hidden flex items-center justify-between rounded-lg px-3 py-2 bg-white/[0.03] border border-white/10">
+                            <div class="flex items-center gap-2">
+                                <span id="pi-verified-icon" class="hidden text-green-400"><i data-lucide="shield-check" class="w-4 h-4"></i></span>
+                                <span id="pi-unverified-icon" class="hidden text-white/30"><i data-lucide="shield" class="w-4 h-4"></i></span>
+                                <span id="pi-verification-text" class="text-[10px] font-medium text-white/60">—</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span id="pi-passport-status" class="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-white/50">—</span>
+                                <span id="pi-visibility-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-white/50">—</span>
+                            </div>
+                        </div>
+
+                        {# Identity Row #}
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <p class="text-[10px] text-white/40 mb-0.5">IGN</p>
+                                <p class="text-sm font-semibold text-white/90" id="pi-ign">—</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-white/40 mb-0.5">Tag / Disc.</p>
+                                <p class="text-sm font-semibold text-white/90" id="pi-discriminator">—</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-white/40 mb-0.5">Platform</p>
+                                <p class="text-sm text-white/70" id="pi-platform">—</p>
+                            </div>
+                        </div>
+                        {# Extended Identity #}
+                        <div id="pi-ext-identity-row" class="hidden grid grid-cols-3 gap-3">
+                            <div>
+                                <p class="text-[10px] text-white/40 mb-0.5">In-Game Name</p>
+                                <p class="text-sm text-white/70" id="pi-in-game-name">—</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-white/40 mb-0.5">Display Name</p>
+                                <p class="text-sm text-white/70" id="pi-game-display-name">—</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-white/40 mb-0.5">Identity Key</p>
+                                <p class="text-sm text-white/70 font-mono text-[11px]" id="pi-identity-key">—</p>
+                            </div>
+                        </div>
+                        {# Role & Region #}
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <p class="text-[10px] text-white/40 mb-0.5">Primary Role</p>
+                                <p class="text-sm text-white/70" id="pi-main-role">—</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-white/40 mb-0.5">Region</p>
+                                <p class="text-sm text-white/70" id="pi-region">—</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-white/40 mb-0.5">LFT Status</p>
+                                <p class="text-sm text-white/70" id="pi-lft">—</p>
+                            </div>
+                        </div>
+                        {# Rank Row with Image #}
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="flex items-center gap-2">
+                                <img id="pi-rank-image" src="" alt="" class="w-6 h-6 hidden">
+                                <div>
+                                    <p class="text-[10px] text-white/40 mb-0.5">Rank</p>
+                                    <p class="text-sm font-semibold text-white/90" id="pi-rank">—</p>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-white/40 mb-0.5">Rank Points</p>
+                                <p class="text-sm text-white/70" id="pi-rank-points">—</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-white/40 mb-0.5">Peak Rank</p>
+                                <p class="text-sm text-white/70" id="pi-peak-rank">—</p>
+                            </div>
+                        </div>
+                        {# Rank Tier #}
+                        <div id="pi-rank-tier-row" class="hidden grid grid-cols-3 gap-3">
+                            <div>
+                                <p class="text-[10px] text-white/40 mb-0.5">Rank Tier</p>
+                                <p class="text-sm text-white/70" id="pi-rank-tier">—</p>
+                            </div>
+                        </div>
+                        {# Statistics Row #}
+                        <div class="grid grid-cols-4 gap-3 pt-2 border-t border-teal-500/10">
+                            <div class="text-center">
+                                <p class="text-lg font-bold text-teal-400" id="pi-matches">0</p>
+                                <p class="text-[9px] text-white/40">Matches</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-lg font-bold text-green-400" id="pi-winrate">0%</p>
+                                <p class="text-[9px] text-white/40">Win Rate</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-lg font-bold text-amber-400" id="pi-kd">—</p>
+                                <p class="text-[9px] text-white/40">K/D Ratio</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-lg font-bold text-purple-400" id="pi-hours">—</p>
+                                <p class="text-[9px] text-white/40">Hours</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# ─── Section: Personal Info ─── #}
+                <div id="pi-personal-section" class="rounded-xl bg-purple-500/5 border border-purple-500/15 overflow-hidden hidden">
+                    <div class="px-4 py-2.5 bg-purple-500/[0.07] border-b border-purple-500/10 flex items-center gap-1.5">
+                        <i data-lucide="user-circle" class="w-3.5 h-3.5 text-purple-400"></i>
+                        <span class="text-xs font-semibold text-purple-400">Personal Info</span>
+                    </div>
+                    <div class="p-4 grid grid-cols-2 gap-x-4 gap-y-2.5">
+                        <div id="pi-realname-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">Real Name</p>
+                            <p class="text-sm text-white/80" id="pi-real-name">—</p>
+                        </div>
+                        <div id="pi-dob-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">Date of Birth</p>
+                            <p class="text-sm text-white/80" id="pi-dob">—</p>
+                        </div>
+                        <div id="pi-nationality-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">Nationality</p>
+                            <p class="text-sm text-white/80" id="pi-nationality">—</p>
+                        </div>
+                        <div id="pi-country-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">Country</p>
+                            <p class="text-sm text-white/80" id="pi-country">—</p>
+                        </div>
+                        <div id="pi-city-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">City</p>
+                            <p class="text-sm text-white/80" id="pi-city">—</p>
+                        </div>
+                        <div id="pi-gender-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">Gender</p>
+                            <p class="text-sm text-white/80" id="pi-gender">—</p>
+                        </div>
+                        <div id="pi-pronouns-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">Pronouns</p>
+                            <p class="text-sm text-white/80" id="pi-pronouns">—</p>
+                        </div>
+                        <div id="pi-timezone-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">Timezone</p>
+                            <p class="text-sm text-white/80" id="pi-timezone">—</p>
+                        </div>
+                        <div id="pi-language-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">Language</p>
+                            <p class="text-sm text-white/80" id="pi-language">—</p>
+                        </div>
+                    </div>
+                </div>
+
+                {# ─── Section: Gaming Profile ─── #}
+                <div id="pi-gaming-section" class="rounded-xl bg-blue-500/5 border border-blue-500/15 overflow-hidden hidden">
+                    <div class="px-4 py-2.5 bg-blue-500/[0.07] border-b border-blue-500/10 flex items-center gap-1.5">
+                        <i data-lucide="monitor" class="w-3.5 h-3.5 text-blue-400"></i>
+                        <span class="text-xs font-semibold text-blue-400">Gaming Profile</span>
+                    </div>
+                    <div class="p-4 grid grid-cols-2 gap-x-4 gap-y-2.5">
+                        <div id="pi-goal-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">Competitive Goal</p>
+                            <p class="text-sm text-white/80" id="pi-comp-goal">—</p>
+                        </div>
+                        <div id="pi-playstyle-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">Play Style</p>
+                            <p class="text-sm text-white/80" id="pi-play-style">—</p>
+                        </div>
+                        <div id="pi-device-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">Device / Platform</p>
+                            <p class="text-sm text-white/80" id="pi-device">—</p>
+                        </div>
+                        <div id="pi-activehours-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">Active Hours</p>
+                            <p class="text-sm text-white/80" id="pi-active-hours">—</p>
+                        </div>
+                        <div id="pi-mainrole-row" class="col-span-2">
+                            <p class="text-[10px] text-white/40 mb-0.5">Main Role / Secondary</p>
+                            <p class="text-sm text-white/80" id="pi-roles">—</p>
+                        </div>
+                        <div id="pi-bio-row" class="col-span-2">
+                            <p class="text-[10px] text-white/40 mb-0.5">Bio</p>
+                            <p class="text-sm text-white/60 leading-relaxed" id="pi-bio">—</p>
+                        </div>
+                        {# Extra Gaming Stats #}
+                        <div id="pi-lft-status-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">LFT Status</p>
+                            <p class="text-sm text-white/80" id="pi-lft-status">—</p>
+                        </div>
+                        <div id="pi-lan-row">
+                            <p class="text-[10px] text-white/40 mb-0.5">LAN Available</p>
+                            <p class="text-sm text-white/80" id="pi-lan">—</p>
+                        </div>
+                    </div>
+                    {# Reputation & XP Bar #}
+                    <div id="pi-rep-xp-bar" class="hidden flex items-center gap-4 px-4 py-2.5 border-t border-blue-500/10">
+                        <div class="flex items-center gap-1.5">
+                            <i data-lucide="star" class="w-3.5 h-3.5 text-amber-400"></i>
+                            <span class="text-[10px] text-white/40">Rep:</span>
+                            <span class="text-sm font-semibold text-amber-400" id="pi-reputation">—</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <i data-lucide="zap" class="w-3.5 h-3.5 text-cyan-400"></i>
+                            <span class="text-[10px] text-white/40">XP:</span>
+                            <span class="text-sm font-semibold text-cyan-400" id="pi-xp">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                {# ─── Section: Social Links ─── #}
+                <div id="pi-socials-section" class="rounded-xl bg-pink-500/5 border border-pink-500/15 overflow-hidden hidden">
+                    <div class="px-4 py-2.5 bg-pink-500/[0.07] border-b border-pink-500/10 flex items-center gap-1.5">
+                        <i data-lucide="link" class="w-3.5 h-3.5 text-pink-400"></i>
+                        <span class="text-xs font-semibold text-pink-400">Social & Connect</span>
+                    </div>
+                    <div id="pi-socials-list" class="p-3 grid grid-cols-2 gap-2">
+                        {# Populated by JS #}
+                    </div>
+                </div>
+
+                {# ─── Section: Membership Info ─── #}
+                <div id="pi-membership-section" class="rounded-xl bg-cyan-500/5 border border-cyan-500/15 overflow-hidden hidden">
+                    <div class="px-4 py-2.5 bg-cyan-500/[0.07] border-b border-cyan-500/10 flex items-center gap-1.5">
+                        <i data-lucide="users" class="w-3.5 h-3.5 text-cyan-400"></i>
+                        <span class="text-xs font-semibold text-cyan-400">Team Membership</span>
+                    </div>
+                    <div class="p-4 grid grid-cols-2 gap-x-4 gap-y-2.5">
+                        <div>
+                            <p class="text-[10px] text-white/40 mb-0.5">Team Role</p>
+                            <p class="text-sm text-white/80" id="pi-team-role">—</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-white/40 mb-0.5">Roster Slot</p>
+                            <p class="text-sm text-white/80" id="pi-roster-slot">—</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-white/40 mb-0.5">Player Role</p>
+                            <p class="text-sm text-white/80" id="pi-player-role">—</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-white/40 mb-0.5">Display Name</p>
+                            <p class="text-sm text-white/80" id="pi-member-dn">—</p>
+                        </div>
+                    </div>
+                </div>
+
+                {# Passport Missing Warning #}
+                <div id="pi-missing-warning" class="hidden rounded-xl bg-amber-500/5 border border-amber-500/20 p-3 flex items-start gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 shrink-0 mt-0.5"></i>
+                    <div>
+                        <p class="text-xs text-amber-400 font-semibold">Game Passport Incomplete</p>
+                        <p class="text-[10px] text-white/50 mt-0.5">This player hasn't completed their game passport for {{ game_display }}. They may not be eligible for tournaments.</p>
+                        {% if can_manage_roster %}
+                        <button id="pi-nudge-btn" type="button" onclick="ManageHQ.nudgePlayerPassport()"
+                            class="mt-2 text-[10px] px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition font-medium">
+                            <i data-lucide="bell" class="w-3 h-3 inline -mt-0.5"></i> Send Reminder
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div id="player-info-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    function updateCounts() {
+        var starters = document.querySelectorAll('#roster-starters [data-membership-id]').length;
+        var subs = document.querySelectorAll('#roster-subs [data-membership-id]').length;
+        var staff = document.querySelectorAll('#roster-staff [data-membership-id]').length;
+        var el;
+        el = document.getElementById('starter-count-metric'); if (el) el.textContent = starters;
+        el = document.getElementById('sub-count-metric'); if (el) el.textContent = subs;
+        el = document.getElementById('staff-count'); if (el) el.textContent = staff;
+        el = document.getElementById('player-total-count'); if (el) el.textContent = starters + subs;
+        el = document.getElementById('subs-empty'); if (el) el.style.display = subs === 0 ? '' : 'none';
+        el = document.getElementById('staff-empty'); if (el) el.style.display = staff === 0 ? '' : 'none';
+    }
+    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', updateCounts) : updateCounts();
+})();
+</script>

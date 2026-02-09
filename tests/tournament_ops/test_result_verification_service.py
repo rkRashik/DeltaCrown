@@ -888,7 +888,7 @@ class TestArchitectureCompliance:
         
         # Should not contain module-level ORM imports
         assert 'from apps.tournaments.models import' not in source
-        assert 'from apps.teams.models import' not in source
+        assert 'from apps.organizations.models import' not in source
         assert 'from django.db import models' not in source
         
         # Method-level imports in _get_game_slug_for_submission are OK

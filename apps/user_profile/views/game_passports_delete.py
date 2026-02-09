@@ -61,10 +61,10 @@ def request_delete_otp(request):
         )
     
     # Phase 9A-28: Check for team membership
-    from apps.teams.models import TeamMembership
+    from apps.organizations.models import TeamMembership
     team_membership = TeamMembership.objects.filter(
-        profile=request.user.profile,
-        team__game=passport.game.slug,
+        user=request.user,
+        team__game_id=passport.game_id,
         status='ACTIVE'
     ).first()
     

@@ -63,18 +63,23 @@
 
 <style>
   :root {
-    --team-primary: #ffd700;
-    --team-dim: rgba(255, 215, 0, 0.12);
-    --team-glow: rgba(255, 215, 0, 0.18);
+    /* Use team's custom brand colors from the model, with fallback */
+    --team-primary: {{ team.primary_color|default:"#3B82F6" }};
+    --team-accent: {{ team.accent_color|default:"#10B981" }};
+    --team-dim: color-mix(in oklab, {{ team.primary_color|default:"#3B82F6" }} 12%, transparent);
+    --team-glow: color-mix(in oklab, {{ team.primary_color|default:"#3B82F6" }} 18%, transparent);
     --glass-bg: rgba(10, 10, 15, 0.6);
     --glass-brd: rgba(255, 255, 255, 0.12);
     --ring-soft: rgba(255, 255, 255, 0.08);
   }
 
+  /* Legacy theme overrides (fallback for teams without custom colors) */
   body[data-theme="VIOLATION"] { --team-primary: #6C00FF; --team-dim: rgba(108, 0, 255, 0.16); --team-glow: rgba(108, 0, 255, 0.26); }
   body[data-theme="CYBER"] { --team-primary: #00E5FF; --team-dim: rgba(0, 229, 255, 0.16); --team-glow: rgba(0, 229, 255, 0.26); }
   body[data-theme="CRIMSON"] { --team-primary: #FF3131; --team-dim: rgba(255, 49, 49, 0.16); --team-glow: rgba(255, 49, 49, 0.26); }
   body[data-theme="EMERALD"] { --team-primary: #00FF41; --team-dim: rgba(0, 255, 65, 0.16); --team-glow: rgba(0, 255, 65, 0.26); }
+  /* When team has custom colors, custom-colors attribute takes priority over data-theme */
+  body[data-custom-colors="true"] { --team-primary: {{ team.primary_color|default:"#3B82F6" }}; --team-dim: color-mix(in oklab, {{ team.primary_color|default:"#3B82F6" }} 12%, transparent); --team-glow: color-mix(in oklab, {{ team.primary_color|default:"#3B82F6" }} 18%, transparent); }
 
   html, body { height: 100%; }
   body { background: #000; color: #E2E8F0; overflow-x: hidden; }

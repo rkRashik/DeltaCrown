@@ -6,7 +6,7 @@ both the vNext ranking system and the legacy team system. It returns a unified
 leaderboard with proper team URL routing and consistent data format.
 
 COMPATIBILITY: Supports both vNext and legacy teams simultaneously.
-PERFORMANCE: Target p95 < 400ms, ≤5 queries for leaderboard page load.
+PERFORMANCE: Target p95 < 400ms, â‰¤5 queries for leaderboard page load.
 
 Query Strategy:
 - Query 1-2: vNext teams with rankings (select_related)
@@ -232,7 +232,7 @@ class LeaderboardService:
             - Uses index: teams_team.total_points DESC
         """
         try:
-            from apps.teams.models import Team as LegacyTeam
+            from apps.organizations.models import Team as LegacyTeam
         except ImportError:
             logger.debug("Legacy Team model not available, skipping legacy teams")
             return []
@@ -313,7 +313,7 @@ class LeaderboardService:
             None - Errors are logged, partial results returned
         
         Performance:
-            - Queries: ≤4 (2 for vNext, 2 for legacy)
+            - Queries: â‰¤4 (2 for vNext, 2 for legacy)
             - Target: p95 < 400ms
             - Merge overhead: O(n log n) sorting, typically <10ms
         

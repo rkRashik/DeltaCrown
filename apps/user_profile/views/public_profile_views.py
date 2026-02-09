@@ -5,7 +5,7 @@ Privacy-safe profile views using profile_context service + ProfilePermissionChec
 Server-side privacy enforcement with can_view_* flags passed to template.
 
 Views:
-- public_profile_view: Public profile page (✅ Phase 5B privacy-aware)
+- public_profile_view: Public profile page (âœ… Phase 5B privacy-aware)
 - profile_activity_view: Activity feed page
 - profile_settings_view: Owner-only settings page
 - profile_privacy_view: Owner-only privacy settings page
@@ -48,7 +48,7 @@ def format_time_range(time_str: str, time_format: str = '12h', timezone_str: str
         timezone_str: Timezone abbreviation for display
     
     Returns:
-        Formatted time string (e.g., "8:30 PM – 1:23 AM (BDT)" or "20:30 – 01:23 (BDT)")
+        Formatted time string (e.g., "8:30 PM â€“ 1:23 AM (BDT)" or "20:30 â€“ 01:23 (BDT)")
     """
     import re
     import logging
@@ -56,7 +56,7 @@ def format_time_range(time_str: str, time_format: str = '12h', timezone_str: str
     logger = logging.getLogger(__name__)
     
     # Try to match HH:MM-HH:MM pattern (with optional spaces and en-dash)
-    pattern = r'^(\d{1,2}):(\d{2})\s*[–\-]\s*(\d{1,2}):(\d{2})$'
+    pattern = r'^(\d{1,2}):(\d{2})\s*[â€“\-]\s*(\d{1,2}):(\d{2})$'
     match = re.match(pattern, time_str.strip())
     
     if not match:
@@ -73,13 +73,13 @@ def format_time_range(time_str: str, time_format: str = '12h', timezone_str: str
         end_period = 'AM' if end_h < 12 else 'PM'
         start_h_12 = start_h % 12 or 12
         end_h_12 = end_h % 12 or 12
-        formatted = f"{start_h_12}:{start_m} {start_period} – {end_h_12}:{end_m} {end_period} ({timezone_str})"
-        logger.info(f"[PROFILE-PERF] Active hours: raw='{time_str}' format={time_format} → '{formatted}'")
+        formatted = f"{start_h_12}:{start_m} {start_period} â€“ {end_h_12}:{end_m} {end_period} ({timezone_str})"
+        logger.info(f"[PROFILE-PERF] Active hours: raw='{time_str}' format={time_format} â†’ '{formatted}'")
         return formatted
     else:
         # 24-hour format
-        formatted = f"{start_h:02d}:{start_m} – {end_h:02d}:{end_m} ({timezone_str})"
-        logger.info(f"[PROFILE-PERF] Active hours: raw='{time_str}' format={time_format} → '{formatted}'")
+        formatted = f"{start_h:02d}:{start_m} â€“ {end_h:02d}:{end_m} ({timezone_str})"
+        logger.info(f"[PROFILE-PERF] Active hours: raw='{time_str}' format={time_format} â†’ '{formatted}'")
         return formatted
 
 
@@ -274,7 +274,10 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     # SOCIAL LINKS: SocialLink model (platform, url, handle)
     # PRIVACY: show_preferred_contact (PrivacySettings.show_preferred_contact, line 987)
     
-    privacy_settings = user_profile.privacy_settings
+    # Early-fetch privacy_settings (reused in about_fields, connections, and follower visibility)
+    from apps.user_profile.models import PrivacySettings, CareerProfile, HardwareLoadout
+    privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=user_profile)
+    
     connections = {
         'public_email': user_profile.secondary_email if user_profile.secondary_email_verified else '',
         'phone': user_profile.phone if (context['is_owner'] or privacy_settings.show_preferred_contact) else '',
@@ -427,18 +430,18 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         
         # Attach team badge data to each passport (NO ROLE - role belongs to team context)
         if user_profile:
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
+            # Batch-query all active memberships once (avoids N+1: was 1 query per passport)
+            active_memberships = TeamMembership.objects.filter(
+                user=user_profile.user,
+                status=TeamMembership.Status.ACTIVE
+            ).select_related('team')
+            membership_by_game_id = {tm.team.game_id: tm for tm in active_memberships}
+            
             for passport in all_passports:
-                # Get active team for this game
-                team_membership = TeamMembership.objects.filter(
-                    profile=user_profile,
-                    team__game=passport.game,
-                    status=TeamMembership.Status.ACTIVE
-                ).select_related('team').first()
-                
-                if team_membership:
-                    passport.current_team = team_membership.team
-                    # UP-UI-REBIRTH-01: Do NOT attach role to passport
+                tm = membership_by_game_id.get(passport.game_id)
+                if tm:
+                    passport.current_team = tm.team
                 else:
                     passport.current_team = None
         
@@ -482,30 +485,34 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     
     # UP-TEAM-DISPLAY-01: Add user's teams data
     if user_profile:
-        from apps.teams.models import TeamMembership
+        from apps.organizations.models import TeamMembership
+        from apps.games.models import Game
         user_teams = TeamMembership.objects.filter(
-            profile=user_profile,
+            user=user_profile.user,
             status=TeamMembership.Status.ACTIVE
         ).select_related('team').order_by('-team__created_at')[:10]
         
-        # Get game display names from Game model
-        from apps.games.models import Game
-        games_map = {g.slug: g.display_name for g in Game.objects.all()}
+        # Get game display names from Game model (single query, reused below)
+        _all_games = list(Game.objects.all())
+        games_by_slug = {g.slug: g.display_name for g in _all_games}
+        games_by_id = {g.id: g for g in _all_games}
         
-        context['user_teams'] = [
-            {
+        context['user_teams'] = []
+        for tm in user_teams:
+            game_obj = games_by_id.get(tm.team.game_id)
+            game_slug = game_obj.slug if game_obj else str(tm.team.game_id)
+            game_name = game_obj.display_name if game_obj else game_slug.title()
+            context['user_teams'].append({
                 'id': tm.team.id,
                 'slug': tm.team.slug,
                 'name': tm.team.name,
                 'tag': tm.team.tag,
-                'game': games_map.get(tm.team.game, tm.team.game),
-                'game_slug': tm.team.game,
+                'game': game_name,
+                'game_slug': game_slug,
                 'role': tm.role,
                 'logo_url': tm.team.logo.url if tm.team.logo else None,
                 'is_captain': tm.role == 'CAPTAIN',
-            }
-            for tm in user_teams
-        ]
+            })
     else:
         context['user_teams'] = []
     
@@ -522,9 +529,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     # TODO: Implement tournament participation query when tournament app is ready
     
     # PHASE-4C: About Data Command Center - Privacy-Aware Fields
-    from apps.user_profile.models import PrivacySettings, CareerProfile, HardwareLoadout
-    
-    privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=user_profile)
+    # privacy_settings already fetched above (connections section)
     career_profile, _ = CareerProfile.objects.get_or_create(user_profile=user_profile)
     hardware_loadout, _ = HardwareLoadout.objects.get_or_create(user_profile=user_profile)
     
@@ -667,30 +672,17 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     from apps.user_profile.models import Follow, PrivacySettings
     context['follower_count'] = Follow.objects.filter(following=profile_user).count()
     context['following_count'] = Follow.objects.filter(follower=profile_user).count()
-    context['is_following'] = False
-    if request.user.is_authenticated and request.user != profile_user:
-        context['is_following'] = Follow.objects.filter(
-            follower=request.user,
-            following=profile_user
-        ).exists()
+    # Reuse is_following from permissions (already computed via FollowService)
+    context['is_following'] = permissions.get('is_following', False)
     
     # Add privacy settings to context for follower/following visibility
-    try:
-        privacy_settings = PrivacySettings.objects.get(user_profile=user_profile)
-        context['privacy'] = {
-            'show_followers_count': privacy_settings.show_followers_count if hasattr(privacy_settings, 'show_followers_count') else True,
-            'show_following_count': privacy_settings.show_following_count if hasattr(privacy_settings, 'show_following_count') else True,
-            'show_followers_list': privacy_settings.show_followers_list if hasattr(privacy_settings, 'show_followers_list') else True,
-            'show_following_list': privacy_settings.show_following_list if hasattr(privacy_settings, 'show_following_list') else True,
-        }
-    except PrivacySettings.DoesNotExist:
-        # Default to public if no settings
-        context['privacy'] = {
-            'show_followers_count': True,
-            'show_following_count': True,
-            'show_followers_list': True,
-            'show_following_list': True,
-        }
+    # Reuse privacy_settings already fetched at get_or_create above
+    context['privacy'] = {
+        'show_followers_count': getattr(privacy_settings, 'show_followers_count', True),
+        'show_following_count': getattr(privacy_settings, 'show_following_count', True),
+        'show_followers_list': getattr(privacy_settings, 'show_followers_list', True),
+        'show_following_list': getattr(privacy_settings, 'show_following_list', True),
+    }
     
     # UP-PHASE14C: Add ProfileShowcase data for About section
     from apps.user_profile.models import ProfileShowcase
@@ -902,20 +894,10 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     else:
         context['achievements'] = None  # Blocked by privacy
     
-    # UP-PHASE14C: Add real social links data (respecting privacy)
+    # UP-PHASE14C: Social links already loaded above (line ~202).
+    # Reuse social_links_renderable instead of re-querying SocialLink.
     if permissions.get('can_view_social_links'):
-        from apps.user_profile.models import SocialLink
-        social_links = SocialLink.objects.filter(
-            user=profile_user
-        ).order_by('platform')
-        context['social_links'] = [
-            {
-                'platform': link.platform,
-                'url': link.url,
-                'handle': link.handle
-            }
-            for link in social_links
-        ]
+        context['social_links'] = social_links_renderable  # Already list-of-dicts
     else:
         context['social_links'] = None  # Blocked by privacy
     
@@ -932,8 +914,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             'total_kills': getattr(stats, 'total_kills', 0),
             'total_deaths': getattr(stats, 'total_deaths', 0),
             'kd_ratio': round((getattr(stats, 'total_kills', 0) / getattr(stats, 'total_deaths', 1)) if getattr(stats, 'total_deaths', 0) > 0 else 0, 2),
-            'followers_count': Follow.objects.filter(following=profile_user).count(),
-            'following_count': Follow.objects.filter(follower=profile_user).count()
+            'followers_count': context['follower_count'],   # Reuse cached count
+            'following_count': context['following_count']    # Reuse cached count
         }
     except UserProfileStats.DoesNotExist:
         # No stats yet
@@ -946,8 +928,8 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             'total_kills': 0,
             'total_deaths': 0,
             'kd_ratio': 0,
-            'followers_count': Follow.objects.filter(following=profile_user).count(),
-            'following_count': Follow.objects.filter(follower=profile_user).count()
+            'followers_count': context['follower_count'],   # Reuse cached count
+            'following_count': context['following_count']    # Reuse cached count
         }
     
     # UP-PHASE14C: Add match history data (respect privacy)
@@ -1092,13 +1074,11 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
             })
     context['highlight_games'] = highlight_games
     
-    # Get all available games for upload dropdown
-    context['all_games'] = list(
-        Game.objects.filter(is_active=True)
-        .only('id', 'display_name', 'slug')
-        .order_by('display_name')
-        .values('id', 'display_name', 'slug')
-    )
+    # Get all available games for upload dropdown (reuse _all_games from user_teams section)
+    context['all_games'] = [
+        {'id': g.id, 'display_name': g.display_name, 'slug': g.slug}
+        for g in _all_games if getattr(g, 'is_active', True)
+    ]
     
     # ========================================================================
     # 06c: LOADOUT CONTEXT (Hardware + Game Configs)
@@ -1367,7 +1347,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     if is_owner or privacy_settings.show_active_hours:
         active_hours_raw = user_profile.active_hours
         if active_hours_raw:
-            # Format: "14:00-22:00 UTC" → "2:00 PM - 10:00 PM UTC"
+            # Format: "14:00-22:00 UTC" â†’ "2:00 PM - 10:00 PM UTC"
             def format_time_12h(time_str):
                 """Convert 24-hour time to 12-hour format."""
                 try:
@@ -1424,7 +1404,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
     if user_profile.primary_team:
         try:
             from django.urls import reverse
-            competitive_ctx['primary_team_url'] = reverse('teams:team_detail', kwargs={'slug': user_profile.primary_team.slug})
+            competitive_ctx['primary_team_url'] = reverse('organizations:team_detail', kwargs={'team_slug': user_profile.primary_team.slug})
         except Exception:
             pass  # URL pattern doesn't exist, keep None
     
@@ -1590,7 +1570,7 @@ def public_profile_view(request: HttpRequest, username: str) -> HttpResponse:
         time_format_pref = getattr(user_profile, 'time_format', '12h')
         timezone_str = getattr(user_profile, 'timezone_pref', 'UTC').split('/')[-1] if hasattr(user_profile, 'timezone_pref') else 'UTC'
         context['active_hours_formatted'] = format_time_range(active_hours_raw, time_format_pref, timezone_str)
-        logger.info(f"[PROFILE-PERF] Active hours formatted: raw='{active_hours_raw}' → formatted='{context['active_hours_formatted']}' (format={time_format_pref})")
+        logger.info(f"[PROFILE-PERF] Active hours formatted: raw='{active_hours_raw}' â†’ formatted='{context['active_hours_formatted']}' (format={time_format_pref})")
     else:
         context['active_hours_formatted'] = ''
     
@@ -1713,7 +1693,22 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
                 
                 if form.is_valid():
                     form.save()
-                    logger.info(f"About settings saved by user {request.user.username}")
+
+                    # Manual primary_team save (excluded from form — dropdown sends
+                    # organizations.Team PKs which is now the FK target).
+                    from apps.organizations.models import Team as OrgTeam
+                    pt_id = request.POST.get('primary_team')
+                    if pt_id:
+                        try:
+                            pt = OrgTeam.objects.get(pk=int(pt_id))
+                            user_profile.primary_team = pt
+                        except (OrgTeam.DoesNotExist, ValueError, TypeError):
+                            user_profile.primary_team = None
+                    else:
+                        user_profile.primary_team = None
+                    user_profile.save(update_fields=['primary_team'])
+
+                    logger.info(f"About settings saved by user {request.user.username} (primary_team={pt_id})")
                     
                     return JsonResponse({
                         'success': True,
@@ -2008,16 +2003,14 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     context['notification_settings'] = notification_settings
     
     # UP.3 EXTENSION: Add user teams and game profiles for primary_team/game dropdowns
-    from apps.teams.models import Team, TeamMembership
+    from apps.organizations.models import Team, TeamMembership
     from django.apps import apps
     GameProfile = apps.get_model("user_profile", "GameProfile")
     
-    # UP.3 HOTFIX #4: Fix Team query - TeamMembership uses 'profile' not 'user'
-    # UP.3 HOTFIX #5: Removed .select_related('game') - Team.game is CharField, not ForeignKey
     # Get user's teams (active memberships)
     user_teams = Team.objects.filter(
-        memberships__profile=request.user.profile,
-        memberships__left_at__isnull=True
+        vnext_memberships__user=request.user,
+        vnext_memberships__left_at__isnull=True
     ).distinct().order_by('name')
     
     # UP.3 HOTFIX #5: Build safe dropdown - Team.game is CharField (stores game slug)
@@ -2049,7 +2042,7 @@ def profile_settings_view(request: HttpRequest) -> HttpResponse:
     
     # ORGANIZATIONS: Add organization membership information (Phase 7)
     # TODO: Enable when OrganizationMembership model is implemented
-    # from apps.teams.models import OrganizationMembership
+    # from apps.organizations.models import OrganizationMembership
     # org_memberships = OrganizationMembership.objects.filter(
     #     profile=request.user.profile,
     #     status='ACTIVE'

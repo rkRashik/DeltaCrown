@@ -20,7 +20,7 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     # Daily ranking recalculation at 2 AM
     'recompute-rankings-daily': {
-        'task': 'apps.teams.tasks.recompute_team_rankings',
+        'task': 'teams.recompute_team_rankings',
         'schedule': crontab(hour=2, minute=0),
     },
     # Daily digest emails at 8 AM
@@ -30,17 +30,17 @@ app.conf.beat_schedule = {
     },
     # Clean expired invites every 6 hours
     'clean-expired-invites': {
-        'task': 'apps.teams.tasks.clean_expired_invites',
+        'task': 'teams.clean_expired_invites',
         'schedule': crontab(hour='*/6', minute=0),
     },
     # Expire sponsors daily at 3 AM
     'expire-sponsors-daily': {
-        'task': 'apps.teams.tasks.expire_sponsors_task',
+        'task': 'teams.expire_sponsors_task',
         'schedule': crontab(hour=3, minute=0),
     },
     # Process scheduled promotions hourly
     'process-scheduled-promotions': {
-        'task': 'apps.teams.tasks.process_scheduled_promotions_task',
+        'task': 'teams.process_scheduled_promotions_task',
         'schedule': crontab(minute=0),  # Every hour
     },
     # Tournament wrap-up check every hour

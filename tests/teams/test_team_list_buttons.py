@@ -3,7 +3,7 @@ import pytest
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 from apps.user_profile.models import UserProfile
 
 User = get_user_model()

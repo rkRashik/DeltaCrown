@@ -109,6 +109,10 @@ class TestRankingsIncludeZeroPoint:
     
     def test_rankings_order_deterministic(self, client: Client, django_user_model):
         """Test: 0-point teams ordered by created_at DESC (tie-breaker)."""
+        # Clear competition cache to avoid stale results from previous test
+        from django.core.cache import cache
+        cache.clear()
+        
         # Setup: Create 3 teams with 0 points at different times
         user = create_user('admin')
         
@@ -188,7 +192,7 @@ class TestTeamDetailRoleAwareCTAs:
         
         # Act: Load team detail as owner
         client.force_login(owner)
-        response = client.get(reverse('teams:detail', args=[team.slug]))
+        response = client.get(reverse('organizations:team_detail', args=[team.slug]))
         
         # Assert: 'Manage Team' CTA present
         assert response.status_code == 200
@@ -227,7 +231,7 @@ class TestTeamDetailRoleAwareCTAs:
         
         # Act: Load team detail as member
         client.force_login(member)
-        response = client.get(reverse('teams:detail', args=[team.slug]))
+        response = client.get(reverse('organizations:team_detail', args=[team.slug]))
         
         # Assert: 'Team Chat' CTA present, not 'Manage Team'
         assert response.status_code == 200
@@ -258,7 +262,7 @@ class TestTeamDetailRoleAwareCTAs:
         )
         
         # Act: Load team detail as anonymous user
-        response = client.get(reverse('teams:detail', args=[team.slug]))
+        response = client.get(reverse('organizations:team_detail', args=[team.slug]))
         
         # Assert: Join/Follow/Apply CTA present (not Manage)
         assert response.status_code == 200
@@ -294,7 +298,7 @@ class TestManageHQFullyWired:
         
         # Act
         client.force_login(owner)
-        response = client.get(reverse('teams:manage', args=[team.slug]))
+        response = client.get(reverse('organizations:team_manage', args=[team.slug]))
         
         # Assert
         assert response.status_code == 200
@@ -327,7 +331,7 @@ class TestManageHQFullyWired:
         
         # Act
         client.force_login(outsider)
-        response = client.get(reverse('teams:manage', args=[team.slug]))
+        response = client.get(reverse('organizations:team_manage', args=[team.slug]))
         
         # Assert
         assert response.status_code in [403, 302]

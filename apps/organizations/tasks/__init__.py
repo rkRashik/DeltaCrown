@@ -15,8 +15,31 @@ from .rankings import (
     recalculate_organization_rankings,
 )
 
+# Discord integration tasks
+from .discord_sync import (
+    send_discord_announcement,
+    send_discord_chat_message,
+    validate_discord_bot_presence,
+)
+
+# Legacy task aliases — registered under the old apps.teams.tasks.* names
+# so Celery Beat schedules continue to work during migration.
+from .legacy_bridge import (
+    recompute_team_rankings,
+    clean_expired_invites,
+    expire_sponsors_task,
+    process_scheduled_promotions_task,
+)
+
 __all__ = [
     'recalculate_team_rankings',
     'apply_inactivity_decay',
     'recalculate_organization_rankings',
+    'send_discord_announcement',
+    'send_discord_chat_message',
+    'validate_discord_bot_presence',
+    'recompute_team_rankings',
+    'clean_expired_invites',
+    'expire_sponsors_task',
+    'process_scheduled_promotions_task',
 ]

@@ -23,7 +23,7 @@ from rest_framework import status as http_status
 from apps.tournaments.models import Tournament, Registration, Game
 from apps.tournaments.services.checkin_service import CheckinService
 from django.contrib.auth import get_user_model
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 
 User = get_user_model()
 

@@ -1109,12 +1109,13 @@ def create_team(request: Request) -> Response:
             if validated_data.get('logo') or validated_data.get('banner'):
                 team.save()
             
-            # Create creator membership for independent teams
+            # Create creator membership
             if not organization_id:
+                # Independent team → creator is OWNER
                 membership = TeamMembership.objects.create(
                     team=team,
                     user=request.user,
-                    role='OWNER',  # Use OWNER for independent team creator
+                    role='OWNER',
                     status='ACTIVE',
                     joined_at=timezone.now(),
                 )
@@ -1129,6 +1130,25 @@ def create_team(request: Request) -> Response:
                     new_role='OWNER',
                     new_status='ACTIVE',
                     metadata={'source': 'team_creation', 'is_creator': True},
+                )
+            else:
+                # Org-owned team → org owner auto-joins as OWNER
+                membership = TeamMembership.objects.create(
+                    team=team,
+                    user=request.user,
+                    role='OWNER',
+                    status='ACTIVE',
+                    joined_at=timezone.now(),
+                )
+                TeamMembershipEvent.objects.create(
+                    membership=membership,
+                    team=team,
+                    user=request.user,
+                    actor=request.user,
+                    event_type=MembershipEventType.JOINED,
+                    new_role='OWNER',
+                    new_status='ACTIVE',
+                    metadata={'source': 'org_team_creation', 'is_creator': True, 'organization_id': organization_id},
                 )
             
             # Handle manager invite if provided

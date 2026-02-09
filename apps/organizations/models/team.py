@@ -184,6 +184,99 @@ class Team(models.Model):
         max_length=200,
         help_text='Team Twitch channel URL'
     )
+    facebook_url = models.URLField(
+        blank=True,
+        max_length=200,
+        help_text='Team Facebook page URL'
+    )
+    tiktok_url = models.URLField(
+        blank=True,
+        max_length=200,
+        help_text='Team TikTok profile URL'
+    )
+    discord_webhook_url = models.URLField(
+        blank=True,
+        max_length=300,
+        help_text='Discord webhook URL for team notifications'
+    )
+    discord_url = models.URLField(
+        blank=True,
+        max_length=300,
+        help_text='Discord server invite link (discord.gg/...)'
+    )
+
+    # ── Discord Bot Integration ──────────────────────────────────────
+    # These IDs are Discord "snowflakes" (up to 20 digits).
+    discord_guild_id = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text='Discord server (guild) ID — required for bot integration',
+    )
+    discord_announcement_channel_id = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text='Channel ID for bi-directional announcements',
+    )
+    discord_chat_channel_id = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text='Channel ID for real-time chat sync ("Lobby")',
+    )
+    discord_voice_channel_id = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text='Voice channel ID for one-click voice join',
+    )
+    discord_bot_active = models.BooleanField(
+        default=False,
+        help_text='True when the platform bot is verified present in this guild',
+    )
+    website_url = models.URLField(
+        blank=True,
+        max_length=200,
+        help_text='Custom team website URL'
+    )
+    whatsapp_url = models.URLField(
+        blank=True,
+        max_length=200,
+        help_text='Team WhatsApp group invite URL'
+    )
+    messenger_url = models.URLField(
+        blank=True,
+        max_length=200,
+        help_text='Team Messenger group URL'
+    )
+    
+    # Roster management
+    roster_locked = models.BooleanField(
+        default=False,
+        help_text="Manual roster lock — prevents all roster changes when True"
+    )
+    
+    # Invite link
+    invite_code = models.CharField(
+        max_length=32,
+        blank=True,
+        db_index=True,
+        help_text="Shareable invite code for joining the team"
+    )
+    
+    # Change tracking (for change restriction rules)
+    name_changed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Last time team name was changed (30-day cooldown)"
+    )
+    tag_changed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Last time team tag was changed (30-day cooldown)"
+    )
+    region_changed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Last time team region was changed (30-day cooldown)"
+    )
     
     # Metadata
     is_temporary = models.BooleanField(
@@ -335,3 +428,84 @@ class Team(models.Model):
         else:
             # Independent team - only creator/owner can manage
             return user == self.created_by
+
+    # ─── Legacy Compatibility Properties ──────────────────────────────
+    # These properties bridge the API gap between legacy teams.Team and
+    # organizations.Team so that code migrated from apps/teams continues
+    # to work without query-level changes.
+
+    @property
+    def game(self):
+        """Legacy compat: resolve integer game_id → slug string.
+        
+        Legacy code expected ``team.game`` to return a slug like
+        ``'valorant'``.  The vNext model stores ``game_id`` (int FK to
+        games.Game) so this property does the lookup transparently.
+        """
+        if not hasattr(self, '_game_slug_cache'):
+            try:
+                from apps.games.models import Game
+                self._game_slug_cache = (
+                    Game.objects.values_list('slug', flat=True)
+                    .get(pk=self.game_id)
+                )
+            except Exception:
+                self._game_slug_cache = ''
+        return self._game_slug_cache
+
+    @property
+    def game_obj(self):
+        """Convenience: full Game model instance for this team."""
+        if not hasattr(self, '_game_obj_cache'):
+            try:
+                from apps.games.models import Game
+                self._game_obj_cache = Game.objects.get(pk=self.game_id)
+            except Exception:
+                self._game_obj_cache = None
+        return self._game_obj_cache
+
+    def get_game_display(self):
+        """Legacy compat: return human-readable game name."""
+        obj = self.game_obj
+        return obj.display_name if obj else self.game
+
+    @property
+    def is_active(self):
+        """Legacy compat: True when status == ACTIVE."""
+        return self.status == TeamStatus.ACTIVE
+
+    @property
+    def is_public(self):
+        """Legacy compat: True when visibility == PUBLIC."""
+        return self.visibility == 'PUBLIC'
+
+    @property
+    def memberships(self):
+        """Alias for the vnext_memberships reverse relation.
+
+        The vNext TeamMembership FK uses ``related_name='vnext_memberships'``
+        to avoid clashing with the legacy model during the transition.  This
+        property lets code reference ``team.memberships`` transparently.
+        """
+        return self.vnext_memberships
+
+    # Social link aliases (legacy used ``twitter``, vNext uses ``twitter_url``)
+    @property
+    def twitter(self):
+        return self.twitter_url
+
+    @property
+    def instagram(self):
+        return self.instagram_url
+
+    @property
+    def youtube(self):
+        return self.youtube_url
+
+    @property
+    def twitch(self):
+        return self.twitch_url
+
+    @property
+    def discord(self):
+        return self.discord_url or self.discord_webhook_url

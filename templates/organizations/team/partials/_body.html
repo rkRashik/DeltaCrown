@@ -10,6 +10,8 @@
 {# ================================================================== #}
 
 {# ── AMBIENT BACKGROUND ───────────────────────────────────────────── #}
+{# Hidden CSRF token for AJAX calls (invite accept/decline) #}
+{% csrf_token %}
 <div class="fixed inset-0 z-0 pointer-events-none">
   <div class="absolute -top-40 -right-40 w-[800px] h-[800px] rounded-full blur-[200px] opacity-10" style="background: var(--team-primary)"></div>
   <div class="absolute -bottom-56 -left-56 w-[900px] h-[900px] rounded-full blur-[220px] opacity-[0.06]" style="background: var(--team-primary)"></div>
@@ -22,18 +24,18 @@
 {# ══════════════════════════════════════════════════════════════════ #}
 <header class="relative mb-0">
   {# Banner Image #}
-  <div class="relative w-full h-[320px] sm:h-[360px] md:h-[420px] overflow-hidden">
+  <div class="relative w-full h-[340px] sm:h-[400px] md:h-[480px] overflow-hidden">
     <div class="absolute inset-0">
       {% if team.banner_url %}
         <img id="dc-hero-banner" src="{{ team.banner_url }}" alt="{{ team.name }} banner"
-             class="w-full h-full object-cover hero-mask opacity-80 scale-105 lazy-media"
+             class="w-full h-full object-cover object-center hero-mask opacity-90 scale-[1.02] lazy-media"
              onerror="this.onerror=null; this.src='{% static 'img/teams/default-banner.svg' %}';" loading="lazy" />
       {% else %}
         <img id="dc-hero-banner" src="{% static 'img/teams/default-banner.svg' %}" alt="{{ team.name }} banner"
-             class="w-full h-full object-cover hero-mask opacity-80 scale-105" />
+             class="w-full h-full object-cover object-center hero-mask opacity-90 scale-[1.02]" />
       {% endif %}
     </div>
-    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent"></div>
     <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
   </div>
 
@@ -124,15 +126,32 @@
               <span>MANAGE</span>
             </a>
           {% elif permissions.is_member %}
-            <button type="button" class="btn-primary flex items-center gap-2" title="Team chat coming soon" disabled>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-              <span>TEAM CHAT</span>
-            </button>
+            <a href="{% url 'organizations:team_manage' team.slug %}" class="btn-primary flex items-center gap-2" title="Team Headquarters">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              <span>TEAM HQ</span>
+            </a>
           {% elif pending_actions.has_pending_invite %}
-            <button type="button" class="btn-primary flex items-center gap-2 animate-pulse">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-              <span>VIEW INVITE</span>
-            </button>
+            <div class="relative" id="dc-invite-cta-wrap">
+              <button type="button" class="btn-primary flex items-center gap-2 animate-pulse" onclick="document.getElementById('dc-invite-dropdown').classList.toggle('hidden')">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                <span>VIEW INVITE</span>
+              </button>
+              {# Inline accept/decline dropdown #}
+              <div id="dc-invite-dropdown" class="hidden absolute top-full right-0 mt-2 w-72 rounded-2xl bg-[#0A0A0F] border border-white/15 p-4 shadow-2xl z-50" onclick="event.stopPropagation()">
+                <p class="text-xs text-white/50 mb-3">You've been invited to join this team</p>
+                <div class="flex gap-2" id="dc-invite-actions">
+                  <button onclick="dcInviteAction('accept')" class="flex-1 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-wider hover:bg-emerald-500/25 transition flex items-center justify-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    Accept
+                  </button>
+                  <button onclick="dcInviteAction('decline')" class="flex-1 h-10 rounded-xl bg-white/5 border border-white/10 text-white/40 text-xs font-bold uppercase tracking-wider hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400 transition flex items-center justify-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Decline
+                  </button>
+                </div>
+                <div id="dc-invite-msg" class="hidden mt-2 text-center text-xs font-bold"></div>
+              </div>
+            </div>
           {% elif pending_actions.has_pending_request %}
             <button type="button" class="btn-primary flex items-center gap-2 opacity-75" disabled>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -254,11 +273,22 @@
           Mission &amp; Identity
         </h3>
 
-        {# Mission Statement #}
+        {# Mission Statement + Description #}
         <div class="liquid-trace rounded-2xl p-6 mb-6">
-          <p class="text-slate-300 text-sm leading-relaxed">
-            {{ team.tagline|default:"No mission statement has been set for this team yet." }}
+          {% if team.tagline %}
+          <p class="text-white/80 text-sm font-medium italic mb-2">
+            "{{ team.tagline }}"
           </p>
+          {% endif %}
+          {% if team.description %}
+          <p class="text-slate-300 text-sm leading-relaxed">
+            {{ team.description }}
+          </p>
+          {% elif not team.tagline %}
+          <p class="text-slate-400 text-sm leading-relaxed italic">
+            No mission statement has been set for this team yet.
+          </p>
+          {% endif %}
           {% if organization %}
             <p class="mt-3 text-xs text-slate-500 flex items-center gap-2">
               {% if organization.logo_url %}
@@ -316,7 +346,15 @@
         {% if roster.items %}
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4" id="dc-roster-grid">
             {% for member in roster.items %}
-              <div class="group relative h-[280px] sm:h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer">
+              <div class="group relative h-[280px] sm:h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer dc-roster-card"
+                   data-username="{{ member.username }}"
+                   data-display="{{ member.display_name }}"
+                   data-avatar="{{ member.avatar_url }}"
+                   data-role="{{ member.role|default:'PLAYER' }}"
+                   data-player-role="{{ member.player_role|default:'' }}"
+                   data-profile-url="{{ member.user_profile_url }}"
+                   data-captain="{{ member.is_captain|yesno:'true,false' }}"
+                   onclick="dcShowPlayerPopup(this)">
                 {# Player Photo #}
                 <div class="absolute inset-0">
                   <img src="{{ member.avatar_url }}" alt="{{ member.display_name }}"
@@ -339,17 +377,30 @@
                   {% endif %}
                 </div>
 
-                {# Player Info (bottom overlay) #}
+                {# Status indicator (top-left) — online/offline dot #}
+                {% if member.status == 'ACTIVE' %}
+                <div class="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur border border-white/10">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span class="text-[8px] font-mono uppercase text-emerald-400/80">Active</span>
+                </div>
+                {% endif %}
+
+                {# Player Info (bottom overlay) — enhanced layout #}
                 <div class="absolute bottom-0 left-0 w-full p-4">
                   {% if member.player_role %}
-                    <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5">{{ member.player_role }}</div>
+                    <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] tracking-widest mb-1">{{ member.player_role }}</div>
                   {% endif %}
-                  <h4 class="text-xl font-display font-bold text-white mb-1 truncate">{{ member.display_name }}</h4>
-                  <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                  <h4 class="text-lg font-display font-bold text-white mb-1.5 truncate leading-tight">{{ member.display_name }}</h4>
+                  <div class="flex items-center gap-2 flex-wrap">
                     <span class="chip">{{ member.role|default:"PLAYER" }}</span>
-                    {% if member.joined_date %}
-                      <span>· Joined {{ member.joined_date }}</span>
+                    {% if member.is_captain %}
+                      <span class="chip" style="background: rgba(234,179,8,0.15); color: #EAB308; border-color: rgba(234,179,8,0.25);">Captain</span>
                     {% endif %}
+                  </div>
+                  {# Hover prompt #}
+                  <div class="mt-2 flex items-center gap-1 text-[9px] text-white/0 group-hover:text-white/40 transition font-mono uppercase tracking-wider">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    View player
                   </div>
                 </div>
               </div>
@@ -681,13 +732,20 @@
 
       {# ── Widget 7: Pending Actions (Member Only) ────────────── #}
       {% if viewer.is_authenticated and pending_actions.has_pending_invite %}
-      <div class="sidebar-widget border-[var(--team-primary)]/30 animate-pulse">
+      <div class="sidebar-widget border-[var(--team-primary)]/30" id="dc-sidebar-invite">
         <h4 class="sidebar-widget__title text-[var(--team-primary)]">Action Required</h4>
-        <p class="text-sm text-slate-300 mb-4">You have a pending invitation to join this team.</p>
-        <div class="flex gap-2">
-          <button type="button" class="flex-1 h-10 rounded-xl bg-[var(--team-primary)] text-black font-bold uppercase text-[10px] tracking-[0.18em]" disabled title="Invite response coming soon">Accept</button>
-          <button type="button" class="flex-1 h-10 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-bold uppercase text-[10px] tracking-[0.18em]" disabled>Decline</button>
+        <p class="text-sm text-slate-300 mb-4">You have a pending invitation to join <strong class="text-white">{{ team.name }}</strong>.</p>
+        <div class="flex gap-2" id="dc-sidebar-invite-actions">
+          <button onclick="dcInviteAction('accept')" class="flex-1 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold uppercase text-[10px] tracking-[0.18em] hover:bg-emerald-500/25 transition flex items-center justify-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            Accept
+          </button>
+          <button onclick="dcInviteAction('decline')" class="flex-1 h-10 rounded-xl bg-white/5 border border-white/10 text-slate-400 font-bold uppercase text-[10px] tracking-[0.18em] hover:bg-red-500/10 hover:text-red-400 transition flex items-center justify-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+            Decline
+          </button>
         </div>
+        <div id="dc-sidebar-invite-msg" class="hidden mt-3 text-center text-xs font-bold"></div>
       </div>
       {% endif %}
 
@@ -749,6 +807,47 @@
 {% endif %}
 
 </div>{# /relative z-10 #}
+
+{# ══════════════════════════════════════════════════════════════════ #}
+{# PLAYER POPUP MODAL                                                #}
+{# ══════════════════════════════════════════════════════════════════ #}
+<div id="dc-player-popup" class="fixed inset-0 z-[9999] hidden" role="dialog" aria-modal="true">
+  {# Backdrop #}
+  <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="dcClosePlayerPopup()"></div>
+  {# Card #}
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] max-w-[92vw]">
+    <div class="relative rounded-3xl bg-[#0C0C14] border border-white/12 shadow-2xl overflow-hidden">
+      {# Close #}
+      <button onclick="dcClosePlayerPopup()" class="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      {# Hero image area #}
+      <div class="relative h-48 bg-gradient-to-b from-[var(--team-dim)] to-[#0C0C14]">
+        <img id="pp-avatar" src="" alt="" class="w-full h-full object-cover opacity-60" />
+        <div class="absolute inset-0 bg-gradient-to-t from-[#0C0C14] via-[#0C0C14]/40 to-transparent"></div>
+      </div>
+      {# Player info #}
+      <div class="relative px-5 pb-5 -mt-10">
+        <div id="pp-player-role" class="text-[9px] font-mono font-bold uppercase tracking-[0.18em] text-[var(--team-primary)] mb-1"></div>
+        <h3 id="pp-name" class="text-2xl font-display font-bold text-white mb-2 truncate"></h3>
+        <div class="flex items-center gap-2 flex-wrap mb-4">
+          <span id="pp-role-chip" class="chip"></span>
+          <span id="pp-captain-chip" class="chip hidden" style="background: rgba(234,179,8,0.15); color: #EAB308; border-color: rgba(234,179,8,0.25);">Captain</span>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-slate-400 mb-5">
+          <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          <span>@<span id="pp-username"></span></span>
+          <span class="text-white/15">·</span>
+          <span>Member of <b class="text-white">{{ team.name }}</b></span>
+        </div>
+        <a id="pp-profile-link" href="#" class="flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-[var(--team-primary)]/15 border border-[var(--team-primary)]/25 text-[var(--team-primary)] text-xs font-bold uppercase tracking-[0.15em] hover:bg-[var(--team-primary)]/25 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          View Full Profile
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
 
 {# ══════════════════════════════════════════════════════════════════ #}
 {# BODY-SCOPED STYLES                                                #}

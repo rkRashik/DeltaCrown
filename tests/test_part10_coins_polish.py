@@ -4,7 +4,7 @@ import pytest
 from apps.economy.models import DeltaCrownWallet, DeltaCrownTransaction, CoinPolicy
 from apps.economy import services as coin_services
 from apps.tournaments.models import Tournament, Registration, Match
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 
 
 def _profile(user):

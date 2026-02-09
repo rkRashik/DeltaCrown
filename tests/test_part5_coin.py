@@ -59,7 +59,7 @@ def test_placement_awards_solo(django_user_model):
 @pytest.mark.django_db
 def test_placement_awards_valorant_team(django_user_model):
     # create two teams (each with 5 active members)
-    from apps.teams.models import Team, TeamMembership
+    from apps.organizations.models import Team, TeamMembership
     # captains
     cu1 = django_user_model.objects.create_user("cap1", "c1@x.com", "pass")
     cu2 = django_user_model.objects.create_user("cap2", "c2@x.com", "pass")

@@ -15,7 +15,7 @@ DESIGN PRINCIPLES:
 
 3. IDEMPOTENCY:
    - Safe to call recompute multiple times
-   - Deterministic results (same input → same output)
+   - Deterministic results (same input â†’ same output)
    - No side effects
 
 Usage:
@@ -238,11 +238,11 @@ class TournamentStatsService:
                 'current_team_name': None
             }
         
-        from apps.teams.models._legacy import TeamMembership, Team
+        from apps.organizations.models import TeamMembership, Team
         
         # Count all teams user has joined (past + present)
         memberships = TeamMembership.objects.filter(
-            profile=profile,
+            user=profile.user,
             status=TeamMembership.Status.ACTIVE
         )
         

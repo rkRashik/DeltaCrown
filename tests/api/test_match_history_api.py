@@ -262,7 +262,7 @@ class TestTeamMatchHistoryAPI:
     @pytest.fixture
     def sample_team(self):
         """Create test team."""
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         return Team.objects.create(
             name="Test Team",
             tag="TST",

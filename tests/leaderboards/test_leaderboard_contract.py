@@ -14,7 +14,7 @@ from datetime import timedelta
 from apps.leaderboards.services import LeaderboardService
 from apps.leaderboards.models import LeaderboardEntry, LeaderboardSnapshot
 from apps.tournaments.models import Tournament, TournamentTeam, Match
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.accounts.models import User
 
 

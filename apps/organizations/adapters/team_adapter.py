@@ -33,7 +33,7 @@ from apps.organizations.services.exceptions import NotFoundError
 from apps.organizations.models import TeamMembership as VNextMembership  # Only membership is ready
 
 # Legacy system imports (for fallback behavior)
-from apps.teams.models import Team as LegacyTeam, TeamMembership as LegacyMembership
+from apps.organizations.models import Team as LegacyTeam, TeamMembership as LegacyMembership
 # Temporary: Use legacy Team as VNextTeam until vNext Team model is ready
 VNextTeam = LegacyTeam
 
@@ -47,9 +47,9 @@ class TeamAdapter:
     Adapter for routing team operations to correct backend.
     
     Routing Logic:
-        1. Check if team_id exists in TeamMigrationMap → use vNext
-        2. Otherwise check if team_id exists in organizations.Team → use vNext
-        3. Otherwise → use legacy system (apps.teams)
+        1. Check if team_id exists in TeamMigrationMap â†’ use vNext
+        2. Otherwise check if team_id exists in organizations.Team â†’ use vNext
+        3. Otherwise â†’ use legacy system (apps.teams)
     
     Performance:
         - Routing decision: 1-2 queries (cached in future phases)
@@ -72,8 +72,8 @@ class TeamAdapter:
         
         Strategy (P3-T2 with feature flags):
             1. Check feature flags first (should_use_vnext_routing)
-               - If flags say legacy → return False (no DB query)
-               - If flags say vNext → check database existence
+               - If flags say legacy â†’ return False (no DB query)
+               - If flags say vNext â†’ check database existence
             2. Check TeamMigrationMap (Phase 5-7 migrations)
             3. Check direct existence in organizations.Team
             4. Return False if neither (assume legacy)
@@ -178,7 +178,8 @@ class TeamAdapter:
                         # Should not happen if is_vnext_team returned True, but fail-safe
                         raise NotFoundError(
                             message=f"Team {team_id} not found in vNext system",
-                            error_code="TEAM_NOT_FOUND",
+                            resource_type="Team",
+                            resource_id=team_id,
                         )
                 else:
                     # Legacy path: Use existing legacy Team model
@@ -189,7 +190,8 @@ class TeamAdapter:
                     except LegacyTeam.DoesNotExist:
                         raise NotFoundError(
                             message=f"Team {team_id} not found in legacy system",
-                            error_code="TEAM_NOT_FOUND",
+                            resource_type="Team",
+                            resource_id=team_id,
                         )
         except NotFoundError as e:
             # P3-T2: Record error metrics
@@ -333,8 +335,8 @@ class TeamAdapter:
             NotFoundError: If team_id does not exist in either system
             
         Performance:
-            - vNext path: ≤6 queries (routing + TeamService.validate_roster)
-            - Legacy path: ≤5 queries (routing + legacy validation logic)
+            - vNext path: â‰¤6 queries (routing + TeamService.validate_roster)
+            - Legacy path: â‰¤5 queries (routing + legacy validation logic)
         
         Examples:
             >>> adapter = TeamAdapter()
@@ -411,7 +413,7 @@ class TeamAdapter:
             NotFoundError: If legacy team does not exist
             
         Performance:
-            ≤5 queries (same as current tournament validation)
+            â‰¤5 queries (same as current tournament validation)
         
         Implementation Notes:
             - This method wraps existing tournament validation logic

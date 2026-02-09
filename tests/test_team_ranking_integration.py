@@ -17,7 +17,7 @@ from django.utils import timezone
 from django.db import transaction
 from django.test.utils import override_settings
 
-from apps.teams.models import (
+from apps.organizations.models import (
     Team, TeamMembership, RankingCriteria, 
     TeamRankingHistory, TeamRankingBreakdown
 )

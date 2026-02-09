@@ -93,12 +93,8 @@ urlpatterns = [
     # URL namespace kept active for admin panel functionality
     path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),
     
-    # vNext Migration: Legacy Teams Routing Layer
-    # Redirects /teams/ to Organizations when ORG_APP_ENABLED=True
-    # See docs/vnext/org-migration-plan.md
-    # Note: Organizations app already handles /teams/create/, /teams/<slug>/ at root level
-    # This only handles explicit /teams/ namespace URLs (legacy bookmarks, external links)
-    path("teams/", include(("apps.teams.urls", "teams"), namespace="teams")),
+    # REMOVED: Legacy apps.teams URL patterns — apps/teams is now a frozen stub
+    # Organizations app handles all /teams/ routes at root level above
     
     path("", include(("apps.games.urls", "games"), namespace="games")),
     
@@ -133,8 +129,7 @@ urlpatterns = [
     # Phase B: System API (hub widgets, cross-app utilities)
     path("api/system/", include("apps.api.urls.system_api_urls")),
     
-    # Module 3.3: Team Management API
-    path("api/teams/", include("apps.teams.api.urls")),
+    # REMOVED: Legacy apps.teams API — all team APIs now in api/vnext/ (organizations_api)
     
     # Phase G: Spectator Live Views (public read-only tournament/match pages)
     path("spectator/", include(("apps.spectator.urls", "spectator"), namespace="spectator")),

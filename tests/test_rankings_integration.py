@@ -14,7 +14,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.teams.models.ranking import TeamGameRanking
 from apps.tournaments.models import Tournament, TournamentResult, Game as TournamentGame
 from apps.tournaments.models.registration import Registration

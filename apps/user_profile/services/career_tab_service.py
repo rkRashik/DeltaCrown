@@ -305,7 +305,8 @@ class CareerTabService:
         """
         try:
             from apps.matches.models import Match
-            from apps.teams.models import TeamMembership, Team
+            from apps.organizations.models import TeamMembership, Team
+            from apps.games.models import Game
             
             game_slug = game.slug if hasattr(game, 'slug') else game
             
@@ -318,8 +319,8 @@ class CareerTabService:
             
             # Count team matches via team membership
             user_teams = Team.objects.filter(
-                teammembership__profile__user=user,
-                game=game_slug
+                vnext_memberships__user=user,
+                game_id__in=Game.objects.filter(slug=game_slug).values('id')
             ).values_list('id', flat=True)
             
             team_matches = Match.objects.filter(
@@ -650,7 +651,7 @@ class CareerTabService:
                     return None
                 try:
                     game = Game.objects.filter(slug=value).first()
-                    logger.debug(f"[Career] resolve_game_obj: slug '{value}' → {game.slug if game else 'NOT_FOUND'}")
+                    logger.debug(f"[Career] resolve_game_obj: slug '{value}' â†’ {game.slug if game else 'NOT_FOUND'}")
                     return game
                 except Exception as e:
                     logger.warning(f"[Career] resolve_game_obj failed for slug '{value}': {e}")
@@ -660,7 +661,7 @@ class CareerTabService:
             if isinstance(value, int):
                 try:
                     game = Game.objects.filter(pk=value).first()
-                    logger.debug(f"[Career] resolve_game_obj: pk {value} → {game.slug if game else 'NOT_FOUND'}")
+                    logger.debug(f"[Career] resolve_game_obj: pk {value} â†’ {game.slug if game else 'NOT_FOUND'}")
                     return game
                 except Exception as e:
                     logger.warning(f"[Career] resolve_game_obj failed for pk {value}: {e}")
@@ -692,7 +693,7 @@ class CareerTabService:
                 if primary_game:
                     primary_source = 'team'
                     primary_game_slug = primary_game.slug
-                    logger.info(f"[Career] PRIMARY_RESOLUTION: by primary_team ({primary_team.name} → {primary_game_slug})")
+                    logger.info(f"[Career] PRIMARY_RESOLUTION: by primary_team ({primary_team.name} â†’ {primary_game_slug})")
         except Exception as e:
             logger.warning(f"[Career] primary_team resolution failed: {e}")
         
@@ -813,7 +814,8 @@ class CareerTabService:
         """
         try:
             from apps.tournaments.models import Match
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
+            from apps.games.models import Game
         except ImportError:
             # Match model not available yet - return 0 safely
             return 0
@@ -838,7 +840,7 @@ class CareerTabService:
             # Get user's active team for this game
             active_membership = TeamMembership.objects.filter(
                 user=user,
-                team__game=game_slug,
+                team__game_id__in=Game.objects.filter(slug=game_slug).values('id'),
                 status='ACTIVE'
             ).select_related('team').first()
             
@@ -882,7 +884,7 @@ class CareerTabService:
             }
         """
         try:
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
             from apps.leaderboards.models import TeamRanking
             from apps.tournament_ops.dtos.analytics import TierBoundaries
         except ImportError:
@@ -892,7 +894,7 @@ class CareerTabService:
         try:
             membership = TeamMembership.objects.filter(
                 user=user_profile.user,
-                team__game=game.slug,
+                team__game_id=game.id,
                 status='ACTIVE'
             ).select_related('team').first()
         except Exception:
@@ -973,13 +975,13 @@ class CareerTabService:
                     'is_active': bool,
                     'joined_at': str (ISO format),
                     'left_at': str or None,
-                    'duration_label': str ('Active' or 'Jan 2025 – Mar 2025')
+                    'duration_label': str ('Active' or 'Jan 2025 â€“ Mar 2025')
                 },
                 ...
             ]
         """
         try:
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
             from django.utils import timezone
             from django.urls import reverse
             from datetime import datetime
@@ -992,8 +994,8 @@ class CareerTabService:
         try:
             # Query TeamMembership - filter by game via team.game field
             memberships = TeamMembership.objects.filter(
-                profile=user_profile,
-                team__game=game.slug
+                user=user_profile.user,
+                team__game_id=game.id
             ).select_related('team').order_by('-joined_at')
             
             history = []
@@ -1005,10 +1007,10 @@ class CareerTabService:
                 if is_active:
                     duration_label = 'Active'
                 elif membership.left_at and membership.joined_at:
-                    # Format: "Jan 2025 – Mar 2025"
+                    # Format: "Jan 2025 â€“ Mar 2025"
                     start = membership.joined_at.strftime('%b %Y')
                     end = membership.left_at.strftime('%b %Y')
-                    duration_label = f"{start} – {end}"
+                    duration_label = f"{start} â€“ {end}"
                 elif membership.joined_at:
                     duration_label = f"Since {membership.joined_at.strftime('%b %Y')}"
                 else:
@@ -1027,7 +1029,7 @@ class CareerTabService:
                 team_slug = getattr(membership.team, 'slug', None)
                 if team_slug:
                     try:
-                        team_url = reverse('teams:detail', kwargs={'slug': team_slug})
+                        team_url = reverse('organizations:team_detail', kwargs={'team_slug': team_slug})
                     except Exception as e:
                         logger.debug(f"[Career] Could not build team URL for slug '{team_slug}': {e}")
                         team_url = None
@@ -1360,7 +1362,7 @@ class CareerTabService:
     @staticmethod
     def get_identity_meta_line(passport, game) -> str:
         """
-        Generate identity meta line in format: "SINGAPORE • 2,405 HRS" or "PC • 142 MATCHES"
+        Generate identity meta line in format: "SINGAPORE â€¢ 2,405 HRS" or "PC â€¢ 142 MATCHES"
         
         Args:
             passport: GameProfile instance
@@ -1409,7 +1411,7 @@ class CareerTabService:
         if not parts:
             return "NOT SET"
         
-        return " • ".join(parts)
+        return " â€¢ ".join(parts)
     
     @staticmethod
     def get_role_card(passport, game) -> Dict[str, Any]:

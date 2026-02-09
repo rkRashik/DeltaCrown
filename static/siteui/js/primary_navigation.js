@@ -1,322 +1,242 @@
-/**
- * DELTACROWN PRIMARY NAVIGATION SYSTEM
- * Modern 2026 Esports-Grade JavaScript (Refactored for Robustness)
- * Handles: Scroll Effects, Dropdowns, Search Modal, Mobile Menu, Swipe Gestures
- */
+/* ============================================
+   DELTACROWN PRIMARY NAVIGATION — JS Controller v3
+   Single source of truth for all nav interactions.
+   Loaded once via base.html at the bottom of <body>.
+   ============================================ */
 
 (function () {
   'use strict';
 
-  // Navigation Controller
-  const dcNav = {
-    navbar: null,
-    mobileHeader: null,
-    lastScrollY: 0,
-    ticking: false,
+  /* === DOM REFS === */
+  const $ = (sel) => document.querySelector(sel);
+  const navbar      = $('#dc-navbar');
+  const mobileHdr   = $('#dc-mobile-header');
+  const bottomNav   = $('#dc-bottom-nav');
+  const drawer      = $('#dc-mobile-drawer');
+  const backdrop    = $('#dc-backdrop');
+  const hamburger   = $('#dc-hamburger');
+  const toggleBtn   = $('#dc-mobile-menu-toggle');
+  const closeBtn    = $('#dc-drawer-close');
+  const searchBtn   = $('#dc-search-btn');
+  const searchOvr   = $('#dc-search-overlay');
+  const searchClose = $('#dc-search-close');
+  const searchInput = $('#dc-cmd-input');
+  const notifBtn    = $('#dc-notif-btn');
+  const notifMenu   = $('#dc-notif-menu');
+  const profileBtn  = $('#dc-profile-btn');
+  const profileMenu = $('#dc-profile-menu');
 
-    // Breakpoints
-    breakpoints: {
-      sm: 640,
-      md: 768,
-      lg: 1024,
-      xl: 1280
-    },
+  let menuOpen = false;
 
-    // Initialize
-    init() {
-      // DOM Elements
-      this.navbar = document.getElementById('dc-navbar');
-      this.mobileHeader = document.getElementById('dc-mobile-header');
-
-      // Initialize Modules
-      this.initScrollEffects();
-      this.initDropdowns();
-      this.initSearch();
-      this.initMobileMenu();
-      this.initKeyboardShortcuts();
-      this.initSwipeGestures();
-
-      console.log('DeltaCrown Navigation Initialized');
-    },
-
-    // === MOBILE MENU CONTROLS (Exposed for Inline Handlers) ===
-    openMenu() {
-      const drawer = document.getElementById('dc-mobile-drawer');
-      const backdrop = document.getElementById('dc-mobile-backdrop');
-
-      if (drawer) {
-        // CLEANUP: Remove any inline hacks first
-        drawer.style.transform = '';
-        drawer.style.removeProperty('transform');
-        drawer.classList.add('open');
-      }
-
-      if (backdrop) {
-        backdrop.style.display = ''; // Reset display
-        backdrop.classList.add('visible');
-        backdrop.classList.remove('hidden');
-      }
-      document.body.style.overflow = 'hidden';
-    },
-
-    closeMenu() {
-      const drawer = document.getElementById('dc-mobile-drawer');
-      const backdrop = document.getElementById('dc-mobile-backdrop');
-
-      if (drawer) {
-        drawer.classList.remove('open');
-        drawer.style.transform = ''; // Ensure no leftover inline transforms
-      }
-
-      if (backdrop) {
-        backdrop.classList.remove('visible');
-        // Delay hiding display:none to allow opacity transition
-        setTimeout(() => {
-          // Only add hidden if it wasn't reopened in the meantime
-          if (!backdrop.classList.contains('visible')) {
-            backdrop.classList.add('hidden');
-            backdrop.style.display = ''; // Clean up
-          }
-        }, 300);
-      }
-      document.body.style.overflow = '';
-    },
-
-    toggleSearch() {
-      const overlay = document.getElementById('dc-search-overlay');
-      const input = document.getElementById('dc-cmd-input');
-      const isOpen = overlay?.classList.contains('open');
-
-      if (isOpen) {
-        overlay.classList.remove('open');
-        document.body.style.overflow = '';
-      } else if (overlay) {
-        overlay.classList.add('open');
-        document.body.style.overflow = 'hidden';
-        setTimeout(() => input?.focus(), 100);
-      }
-    },
-
-    // === SCROLL EFFECTS ===
-    initScrollEffects() {
-      const updateNav = () => {
-        const scrollY = window.scrollY;
-
-        // Desktop & Mobile Glass Effect
-        if (scrollY > 50) {
-          this.navbar?.classList.add('scrolled');
-        } else {
-          this.navbar?.classList.remove('scrolled');
-        }
-
-        // Mobile Smart Hide/Show
-        const isMobile = window.innerWidth < this.breakpoints.md;
-        if (isMobile) {
-          if (scrollY > this.lastScrollY && scrollY > 100) {
-            this.navbar?.classList.add('nav-hidden');
-            this.mobileHeader?.classList.add('nav-hidden');
-          } else {
-            this.navbar?.classList.remove('nav-hidden');
-            this.mobileHeader?.classList.remove('nav-hidden');
-          }
-        }
-
-        this.lastScrollY = scrollY;
-        this.ticking = false;
-      };
-
-      const requestTick = () => {
-        if (!this.ticking) {
-          window.requestAnimationFrame(updateNav);
-          this.ticking = true;
-        }
-      };
-
-      window.addEventListener('scroll', requestTick, { passive: true });
-      updateNav();
-    },
-
-    // === DROPDOWNS ===
-    initDropdowns() {
-      const notifBtn = document.getElementById('dc-notif-btn');
-      const notifMenu = document.getElementById('dc-notif-menu');
-      const profileBtn = document.getElementById('dc-profile-btn');
-      const profileMenu = document.getElementById('dc-profile-menu');
-      const profileChevron = document.getElementById('dc-profile-chevron');
-
-      // Helper to toggle
-      const toggle = (menu, btn, otherMenu, otherBtn) => {
-        if (!menu) return;
-        const isOpen = menu.classList.contains('show');
-
-        // Close other
-        if (otherMenu) {
-          otherMenu.classList.remove('show');
-          if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
-        }
-
-        if (isOpen) {
-          menu.classList.remove('show');
-          if (btn) btn.setAttribute('aria-expanded', 'false');
-        } else {
-          menu.classList.add('show');
-          this.positionDropdown(menu, btn);
-          if (btn) btn.setAttribute('aria-expanded', 'true');
-
-          // Focus first item
-          const first = menu.querySelector('a, button');
-          if (first) setTimeout(() => first.focus(), 50);
-        }
-      };
-
-      // Listeners
-      if (notifBtn) {
-        notifBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          toggle(notifMenu, notifBtn, profileMenu, profileBtn);
-          if (profileChevron) profileChevron.style.transform = 'rotate(0deg)';
-        });
-      }
-
-      if (profileBtn) {
-        profileBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          toggle(profileMenu, profileBtn, notifMenu, notifBtn);
-          if (profileChevron) {
-            const willOpen = !profileMenu.classList.contains('show'); // It's toggling
-            profileChevron.style.transform = willOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-          }
-        });
-      }
-
-      // Close on outside click
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('.dc-dropdown') && !e.target.closest('button')) {
-          if (notifMenu) notifMenu.classList.remove('show');
-          if (profileMenu) profileMenu.classList.remove('show');
-          if (profileChevron) profileChevron.style.transform = 'rotate(0deg)';
-          if (notifBtn) notifBtn.setAttribute('aria-expanded', 'false');
-          if (profileBtn) profileBtn.setAttribute('aria-expanded', 'false');
-        }
-      });
-    },
-
-    positionDropdown(dropdown, button) {
-      if (!dropdown || !button) return;
-      const rect = button.getBoundingClientRect();
-      const dropRect = dropdown.getBoundingClientRect();
-
-      // Default right align
-      dropdown.style.right = '0';
-      dropdown.style.left = 'auto';
-
-      // Check overflow left
-      const leftEdge = rect.right - dropRect.width;
-      if (leftEdge < 0) {
-        dropdown.style.right = 'auto';
-        dropdown.style.left = '0';
-      }
-    },
-
-    // === SEARCH ===
-    initSearch() {
-      const overlay = document.getElementById('dc-search-overlay');
-      overlay?.addEventListener('click', (e) => {
-        if (e.target === overlay) this.toggleSearch();
-      });
-    },
-
-    // === MOBILE MENU INIT ===
-    initMobileMenu() {
-      const menuToggle = document.getElementById('dc-mobile-menu-toggle');
-      const drawerClose = document.getElementById('dc-mobile-drawer-close');
-      const backdrop = document.getElementById('dc-mobile-backdrop');
-      const drawer = document.getElementById('dc-mobile-drawer');
-
-      // Bind events using class methods
-      menuToggle?.addEventListener('click', () => this.openMenu());
-      drawerClose?.addEventListener('click', () => this.closeMenu());
-      backdrop?.addEventListener('click', () => this.closeMenu());
-
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && drawer?.classList.contains('open')) {
-          this.closeMenu();
-        }
-      });
-    },
-
-    // === SWIPE GESTURES ===
-    initSwipeGestures() {
-      const drawer = document.getElementById('dc-mobile-drawer');
-      if (!drawer) return;
-
-      let startX = 0;
-      let currentX = 0;
-      let isDragging = false;
-
-      drawer.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
-        currentX = startX;
-        isDragging = true;
-      }, { passive: true });
-
-      drawer.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-        currentX = e.touches[0].clientX;
-        const diff = currentX - startX;
-
-        // Only move if swiping right (closing)
-        if (diff > 0) {
-          drawer.style.transform = `translateX(${diff}px)`;
-        }
-      }, { passive: true });
-
-      drawer.addEventListener('touchend', () => {
-        if (!isDragging) return;
-        const diff = currentX - startX;
-
-        // Threshold to close
-        if (diff > 100) {
-          this.closeMenu();
-        } else {
-          // Snap back
-          drawer.style.transform = '';
-        }
-        isDragging = false;
-
-        // Clean up inline style to let CSS take over
-        setTimeout(() => {
-          if (!drawer.classList.contains('open')) {
-            drawer.style.transform = '';
-          }
-        }, 300);
-      }, { passive: true });
-    },
-
-    // === SHORTCUTS ===
-    initKeyboardShortcuts() {
-      document.addEventListener('keydown', (e) => {
-        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-          e.preventDefault();
-          this.toggleSearch();
-        }
-        if (e.key === 'Escape') {
-          const overlay = document.getElementById('dc-search-overlay');
-          if (overlay?.classList.contains('open')) this.toggleSearch();
-        }
-      });
-    }
-  };
-
-  // Expose globally IMMEDIATELY
-  window.dcNav = dcNav;
-
-  // Initialize
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => dcNav.init());
-  } else {
-    // If loaded async/defer
-    dcNav.init();
+  /* ════════════════════════════════════
+     MOBILE DRAWER — Open / Close
+     ════════════════════════════════════ */
+  function openMenu() {
+    if (menuOpen) return;
+    menuOpen = true;
+    drawer.style.transform = 'translateX(0)';
+    drawer.style.boxShadow = '-8px 0 32px rgba(0,0,0,.5)';
+    backdrop.style.display = 'block';
+    requestAnimationFrame(() => {
+      backdrop.style.opacity = '1';
+      backdrop.style.pointerEvents = 'auto';
+    });
+    hamburger?.classList.add('is-open');
+    toggleBtn?.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
   }
+
+  function closeMenu() {
+    if (!menuOpen) return;
+    menuOpen = false;
+    drawer.style.transform = 'translateX(100%)';
+    drawer.style.boxShadow = 'none';
+    backdrop.style.opacity = '0';
+    backdrop.style.pointerEvents = 'none';
+    setTimeout(() => { backdrop.style.display = 'none'; }, 300);
+    hamburger?.classList.remove('is-open');
+    toggleBtn?.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+
+  /* Bind hamburger toggle */
+  toggleBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menuOpen ? closeMenu() : openMenu();
+  });
+
+  /* Bind close button inside drawer */
+  closeBtn?.addEventListener('click', closeMenu);
+
+  /* Bind backdrop click */
+  backdrop?.addEventListener('click', closeMenu);
+
+  /* ════════════════════════════════════
+     SWIPE GESTURES — Drawer
+     ════════════════════════════════════ */
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let isSwiping = false;
+
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    isSwiping = false;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!isSwiping) {
+      const dx = Math.abs(e.touches[0].clientX - touchStartX);
+      const dy = Math.abs(e.touches[0].clientY - touchStartY);
+      if (dx > dy && dx > 10) isSwiping = true;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    if (!isSwiping) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const threshold = 60;
+    /* Swipe left from right edge → open drawer */
+    if (dx < -threshold && touchStartX > window.innerWidth - 40 && !menuOpen) {
+      openMenu();
+    }
+    /* Swipe right → close drawer */
+    if (dx > threshold && menuOpen) {
+      closeMenu();
+    }
+  }, { passive: true });
+
+  /* ════════════════════════════════════
+     SCROLL EFFECTS — Hide header + bottom nav on scroll down
+     ════════════════════════════════════ */
+  let lastScroll = 0;
+  let scrollTicking = false;
+  const scrollThreshold = 10;
+
+  function handleScroll() {
+    const currentScroll = window.scrollY;
+
+    /* Desktop: add .scrolled class for compact look */
+    if (navbar) {
+      if (currentScroll > 30) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    }
+
+    /* Mobile: hide header and bottom nav on scroll down, show on scroll up */
+    if (window.innerWidth < 768) {
+      const delta = currentScroll - lastScroll;
+      if (delta > scrollThreshold && currentScroll > 80) {
+        /* Scrolling DOWN — hide both bars so user can read */
+        mobileHdr?.classList.add('nav-hidden');
+        bottomNav?.classList.add('nav-hidden');
+      } else if (delta < -scrollThreshold || currentScroll < 30) {
+        /* Scrolling UP or near top — show both bars */
+        mobileHdr?.classList.remove('nav-hidden');
+        bottomNav?.classList.remove('nav-hidden');
+      }
+    }
+
+    lastScroll = Math.max(0, currentScroll);
+    scrollTicking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!scrollTicking) {
+      requestAnimationFrame(handleScroll);
+      scrollTicking = true;
+    }
+  }, { passive: true });
+
+  /* ════════════════════════════════════
+     SEARCH MODAL — Cmd+K
+     ════════════════════════════════════ */
+  function openSearch() {
+    if (!searchOvr) return;
+    searchOvr.classList.remove('hidden');
+    searchOvr.classList.add('open');
+    requestAnimationFrame(() => searchInput?.focus());
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSearch() {
+    if (!searchOvr) return;
+    searchOvr.classList.remove('open');
+    setTimeout(() => {
+      searchOvr.classList.add('hidden');
+    }, 300);
+    if (searchInput) searchInput.value = '';
+    document.body.style.overflow = '';
+  }
+
+  searchBtn?.addEventListener('click', openSearch);
+  searchClose?.addEventListener('click', closeSearch);
+
+  searchOvr?.addEventListener('click', (e) => {
+    if (e.target === searchOvr) closeSearch();
+  });
+
+  /* ════════════════════════════════════
+     KEYBOARD SHORTCUTS
+     ════════════════════════════════════ */
+  document.addEventListener('keydown', (e) => {
+    /* ESC — close anything open */
+    if (e.key === 'Escape') {
+      if (menuOpen) { closeMenu(); return; }
+      if (searchOvr?.classList.contains('open')) { closeSearch(); return; }
+      /* Close any open dropdown */
+      document.querySelectorAll('.dc-dropdown.show').forEach(d => d.classList.remove('show'));
+    }
+    /* Cmd/Ctrl + K — search */
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      searchOvr?.classList.contains('open') ? closeSearch() : openSearch();
+    }
+  });
+
+  /* ════════════════════════════════════
+     DESKTOP DROPDOWNS — Notifications & Profile
+     ════════════════════════════════════ */
+  function toggleDropdown(btn, menu, chevron) {
+    if (!btn || !menu) return;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = menu.classList.contains('show');
+      /* Close all dropdowns first */
+      document.querySelectorAll('.dc-dropdown.show').forEach(d => d.classList.remove('show'));
+      if (!isOpen) {
+        menu.classList.add('show');
+        btn.setAttribute('aria-expanded', 'true');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+      } else {
+        btn.setAttribute('aria-expanded', 'false');
+        if (chevron) chevron.style.transform = '';
+      }
+    });
+  }
+
+  toggleDropdown(notifBtn, notifMenu, null);
+  toggleDropdown(profileBtn, profileMenu, $('#dc-profile-chevron'));
+
+  /* Close dropdowns on outside click */
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.dc-dropdown.show').forEach(d => d.classList.remove('show'));
+    profileBtn?.setAttribute('aria-expanded', 'false');
+    notifBtn?.setAttribute('aria-expanded', 'false');
+    const chev = $('#dc-profile-chevron');
+    if (chev) chev.style.transform = '';
+  });
+
+  /* ════════════════════════════════════
+     PUBLIC API
+     ════════════════════════════════════ */
+  window.dcNav = {
+    openMenu,
+    closeMenu,
+    isMenuOpen: () => menuOpen,
+    toggleSearch: () => searchOvr?.classList.contains('open') ? closeSearch() : openSearch(),
+  };
 
 })();

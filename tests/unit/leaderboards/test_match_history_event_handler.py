@@ -29,7 +29,7 @@ class TestMatchHistoryEventHandler:
     @pytest.fixture
     def sample_team(self):
         """Create test team."""
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         return Team.objects.create(
             name="Test Team",
             tag="TST",
@@ -78,7 +78,7 @@ class TestMatchHistoryEventHandler:
     def sample_team_match(self, sample_tournament, sample_team):
         """Create test team match."""
         from apps.tournaments.models import Match
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         
         # Create opponent team
         opponent_team = Team.objects.create(

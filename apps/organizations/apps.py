@@ -36,4 +36,4 @@ class OrganizationsConfig(AppConfig):
         """
         # Import signals when implemented (Phase 2)
         # import apps.organizations.signals.handlers  # noqa: F401
-        pass
+        import apps.organizations.signals  # noqa: F401  — Discord announcement sync

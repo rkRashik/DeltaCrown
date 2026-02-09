@@ -17,7 +17,7 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.messages import get_messages
 from django.http import HttpRequest
 
-from apps.teams.models import (
+from apps.organizations.models import (
     Team, RankingCriteria, TeamRankingHistory, TeamRankingBreakdown
 )
 from apps.teams.admin.ranking import (

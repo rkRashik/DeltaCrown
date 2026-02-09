@@ -4,11 +4,11 @@ from django.contrib.auth import get_user_model
 from django.apps import apps
 
 User = get_user_model()
-Team = apps.get_model('teams', 'Team')
+Team = apps.get_model('organizations', 'Team')
 UserProfile = apps.get_model('user_profile', 'UserProfile')
-EfootballTeamPreset = apps.get_model('teams', 'EfootballTeamPreset')
-ValorantTeamPreset = apps.get_model('teams', 'ValorantTeamPreset')
-ValorantPlayerPreset = apps.get_model('teams', 'ValorantPlayerPreset')
+EfootballTeamPreset = apps.get_model('organizations', 'EfootballTeamPreset')
+ValorantTeamPreset = apps.get_model('organizations', 'ValorantTeamPreset')
+ValorantPlayerPreset = apps.get_model('organizations', 'ValorantPlayerPreset')
 
 def make_profile(username: str):
     user = User.objects.create_user(username=username, email=f"{username}@example.com", password='x')

@@ -244,8 +244,8 @@ INSTALLED_APPS = [
     "apps.common",
     "apps.corelib",
     "apps.games",  # Phase 3: Centralized game configuration
-    "apps.teams",
-    "apps.organizations.apps.OrganizationsConfig",  # Phase 1: Team & Organization vNext (replaces apps.teams)
+    "apps.teams",  # FROZEN STUB — kept only for migration history & FK resolution. No views/URLs.
+    "apps.organizations.apps.OrganizationsConfig",  # vNext — ALL team/org logic lives here
     # Legacy tournament system moved to legacy_backup/ (November 2, 2025)
     # New Tournament Engine being built (Phase 1, Module 1.2 - November 2025)
     "apps.tournaments",
@@ -773,8 +773,16 @@ CELERY_TASK_EAGER_PROPAGATES = True
 # -----------------------------------------------------------------------------
 # Discord Webhook Configuration
 # -----------------------------------------------------------------------------
+# Discord Configuration
+# -----------------------------------------------------------------------------
+# Global webhook (platform-level notifications)
 DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL', '')
 DISCORD_NOTIFICATIONS_ENABLED = bool(DISCORD_WEBHOOK_URL)
+
+# Bot integration (per-team chat & announcement sync)
+# Create a bot at https://discord.com/developers/applications
+DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN', '')
+DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID', '')  # For OAuth2 bot invite URL
 
 # -----------------------------------------------------------------------------
 # Notification Preferences

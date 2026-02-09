@@ -72,8 +72,9 @@ def community(request):
     from django.core.paginator import Paginator
     from django.db import models
     from django.contrib.auth.decorators import login_required
-    from apps.teams.models.social import TeamPost
-    from apps.teams.models import Team
+    # Legacy TeamPost model removed (Phase B cleanup) — only CommunityPost remains
+    TeamPost = None
+    from apps.organizations.models import Team
     from .models import CommunityPost
     from .forms import CommunityPostCreateForm
     from itertools import chain
@@ -87,14 +88,8 @@ def community(request):
     search_query = request.GET.get('q', '')
     current_game = request.GET.get('game', '')
     
-    # Base queryset for public team posts
-    team_posts = TeamPost.objects.filter(
-        visibility='public'
-    ).select_related(
-        'team', 'author', 'author__user'
-    ).prefetch_related(
-        'media', 'likes', 'comments'
-    ).order_by('-created_at')
+    # Legacy TeamPost model removed (Phase B cleanup) — only CommunityPost feeds remain
+    team_posts = []
     
     # Base queryset for public community posts
     community_posts = CommunityPost.objects.filter(
@@ -106,13 +101,8 @@ def community(request):
         'media', 'likes', 'comments'
     ).order_by('-created_at')
     
-    # Apply search filter to both post types
+    # Apply search filter
     if search_query:
-        team_posts = team_posts.filter(
-            models.Q(title__icontains=search_query) | 
-            models.Q(content__icontains=search_query) |
-            models.Q(team__name__icontains=search_query)
-        )
         community_posts = community_posts.filter(
             models.Q(title__icontains=search_query) | 
             models.Q(content__icontains=search_query) |
@@ -121,13 +111,13 @@ def community(request):
             models.Q(author__user__last_name__icontains=search_query)
         )
     
-    # Apply game filter to both post types
+    # Apply game filter
     if current_game:
-        team_posts = team_posts.filter(team__game=current_game)
         community_posts = community_posts.filter(game=current_game)
     
     # Get available games for filter dropdown with proper mapping
-    raw_games = Team.objects.values_list('game', flat=True).distinct()
+    from apps.games.models import Game as GameModel
+    raw_games = list(GameModel.objects.values_list('slug', flat=True))
     raw_games = [game for game in raw_games if game]  # Remove empty values
     
     # Game mapping to handle duplicates and provide proper display info
@@ -182,12 +172,6 @@ def community(request):
     
     # Combine and sort posts by creation date
     # Add a post_type attribute to differentiate in templates
-    for post in team_posts:
-        post.post_type = 'team'
-        post.display_author = post.team.name
-        post.author_avatar = post.team.logo
-        post.author_url = f"/teams/{post.team.slug}/"
-    
     for post in community_posts:
         post.post_type = 'user'
         post.display_author = post.author.user.get_full_name() or post.author.user.username
@@ -528,7 +512,7 @@ def newsletter_subscribe(request):
         else:
             # For now, just simulate success (you can integrate with email service later)
             # TODO: Integrate with MailChimp, ConvertKit, or other email service
-            messages.success(request, f"🎉 Welcome to the DeltaCrown Gaming Hub! We've added {email} to our newsletter. Get ready for exclusive tournaments, esports news, and gaming updates!")
+            messages.success(request, f"ðŸŽ‰ Welcome to the DeltaCrown Gaming Hub! We've added {email} to our newsletter. Get ready for exclusive tournaments, esports news, and gaming updates!")
             
             # Optional: Log the subscription for tracking
             import logging

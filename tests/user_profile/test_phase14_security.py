@@ -32,7 +32,7 @@ from apps.user_profile.models import (
     UserProfile, PrivacySettings, ProfileShowcase,
     GameProfile, UserBadge, Badge, SocialLink
 )
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 from apps.games.models import Game
 
 User = get_user_model()

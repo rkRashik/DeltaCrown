@@ -56,7 +56,7 @@ def _profiles_from_team(team) -> Iterable:
     """
     if not team:
         return []
-    Membership = apps.get_model("teams", "TeamMembership")
+    Membership = apps.get_model("organizations", "TeamMembership")
     qs = Membership.objects.filter(team=team)
     return [m.profile for m in qs.select_related("profile")]
 
@@ -198,7 +198,7 @@ def award_placements(tournament) -> List[DeltaCrownTransaction]:
         return []
 
     Match = apps.get_model("tournaments", "Match")
-    Membership = apps.get_model("teams", "TeamMembership")
+    Membership = apps.get_model("organizations", "TeamMembership")
 
     def captain_profile(team):
         cap = (

@@ -152,7 +152,7 @@ def _maybe_create_payment(method: Optional[str], ref: Optional[str], amount_bdt:
 def register_valorant_team(data: TeamRegistrationInput):
     Tournament = _get_model("tournaments", "Tournament")
     Registration = _get_model("tournaments", "Registration")
-    Team = _get_model("teams", "Team")
+    Team = _get_model("organizations", "Team")
     if not (Tournament and Registration and Team):
         raise ValidationError("Required models are not available.")
 
@@ -187,7 +187,7 @@ def register_valorant_team(data: TeamRegistrationInput):
         captain_user = getattr(team.captain, "user", None) or team.captain
         captain_email = getattr(captain_user, "email", None)
     _send_email_safe(
-        subject=f"[DeltaCrown] Team registration received – {getattr(tournament, 'name', '')}",
+        subject=f"[DeltaCrown] Team registration received â€“ {getattr(tournament, 'name', '')}",
         message="Your team registration has been received. Payment will be verified by admin.",
         to=[e for e in [captain_email] if e],
     )
@@ -228,7 +228,7 @@ def register_efootball_player(data: SoloRegistrationInput):
     # best-effort email to registrant
     captain_email = getattr(user, "email", None)
     _send_email_safe(
-        subject=f"[DeltaCrown] Registration received – {getattr(tournament, 'name', '')}",
+        subject=f"[DeltaCrown] Registration received â€“ {getattr(tournament, 'name', '')}",
         message="Your registration has been received. Payment will be verified by admin.",
         to=[e for e in [captain_email] if e],
     )

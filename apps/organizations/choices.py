@@ -31,11 +31,13 @@ class MembershipStatus(models.TextChoices):
     INACTIVE: Left team (historical record)
     INVITED: Pending invitation acceptance
     SUSPENDED: Temporarily removed (disciplinary)
+    REMOVED: Kicked/removed by manager/owner
     """
     ACTIVE = 'ACTIVE', 'Active'
     INACTIVE = 'INACTIVE', 'Inactive'
     INVITED = 'INVITED', 'Invited (Pending)'
     SUSPENDED = 'SUSPENDED', 'Suspended'
+    REMOVED = 'REMOVED', 'Removed'
 
 
 class MembershipEventType(models.TextChoices):

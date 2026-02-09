@@ -23,7 +23,7 @@ from apps.leaderboards.services import (
 )
 from apps.leaderboards.models import LeaderboardEntry, LeaderboardSnapshot
 from apps.tournaments.models import Tournament
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.accounts.models import User
 
 

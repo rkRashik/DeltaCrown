@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 UserProfile = apps.get_model('user_profile', 'UserProfile')
 Tournament = apps.get_model('tournaments', 'Tournament')
-EfootballTeamPreset = apps.get_model('teams', 'EfootballTeamPreset')
+EfootballTeamPreset = apps.get_model('organizations', 'EfootballTeamPreset')
 
 from apps.game_efootball.forms import EfootballDuoForm
 

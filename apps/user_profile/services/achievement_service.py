@@ -10,7 +10,7 @@ Usage:
 from django.db.models import Count, Sum, Q
 from apps.user_profile.models_main import Achievement, Follow, GameProfile, SocialLink
 from apps.user_profile.utils import get_user_profile_safe
-from apps.teams.models import TeamMembership
+from apps.organizations.models import TeamMembership
 from datetime import datetime, timedelta
 
 
@@ -72,7 +72,7 @@ def check_tournament_achievements(user):
             ach = award_achievement(
                 user, 'First Blood',
                 'Won your first tournament',
-                '🥇', 'common',
+                'ðŸ¥‡', 'common',
                 {'wins': wins}
             )
             if ach:
@@ -83,7 +83,7 @@ def check_tournament_achievements(user):
             ach = award_achievement(
                 user, 'Triple Crown',
                 'Won 3 tournaments',
-                '👑', 'rare',
+                'ðŸ‘‘', 'rare',
                 {'wins': wins}
             )
             if ach:
@@ -94,7 +94,7 @@ def check_tournament_achievements(user):
             ach = award_achievement(
                 user, 'Champion',
                 'Won 10 tournaments',
-                '🏆', 'epic',
+                'ðŸ†', 'epic',
                 {'wins': wins}
             )
             if ach:
@@ -105,7 +105,7 @@ def check_tournament_achievements(user):
             ach = award_achievement(
                 user, 'Legend',
                 'Won 25 tournaments',
-                '⭐', 'legendary',
+                'â­', 'legendary',
                 {'wins': wins}
             )
             if ach:
@@ -116,7 +116,7 @@ def check_tournament_achievements(user):
             ach = award_achievement(
                 user, 'Rookie',
                 'Participated in your first tournament',
-                '🎮', 'common',
+                'ðŸŽ®', 'common',
                 {'tournaments': total_tournaments}
             )
             if ach:
@@ -127,7 +127,7 @@ def check_tournament_achievements(user):
             ach = award_achievement(
                 user, 'Veteran',
                 'Participated in 10 tournaments',
-                '🎯', 'rare',
+                'ðŸŽ¯', 'rare',
                 {'tournaments': total_tournaments}
             )
             if ach:
@@ -138,7 +138,7 @@ def check_tournament_achievements(user):
             ach = award_achievement(
                 user, 'Grinder',
                 'Participated in 50 tournaments',
-                '⚡', 'epic',
+                'âš¡', 'epic',
                 {'tournaments': total_tournaments}
             )
             if ach:
@@ -149,7 +149,7 @@ def check_tournament_achievements(user):
             ach = award_achievement(
                 user, 'Competitor',
                 'Participated in 100 tournaments',
-                '🔥', 'legendary',
+                'ðŸ”¥', 'legendary',
                 {'tournaments': total_tournaments}
             )
             if ach:
@@ -161,7 +161,7 @@ def check_tournament_achievements(user):
             ach = award_achievement(
                 user, 'Runner Up',
                 'Placed 2nd in a tournament',
-                '🥈', 'common',
+                'ðŸ¥ˆ', 'common',
                 {'placement': 2}
             )
             if ach:
@@ -173,7 +173,7 @@ def check_tournament_achievements(user):
             ach = award_achievement(
                 user, 'Bronze Medalist',
                 'Placed 3rd in a tournament',
-                '🥉', 'common',
+                'ðŸ¥‰', 'common',
                 {'placement': 3}
             )
             if ach:
@@ -184,7 +184,7 @@ def check_tournament_achievements(user):
             ach = award_achievement(
                 user, 'Consistent',
                 'Placed in top 3 five times',
-                '📈', 'rare',
+                'ðŸ“ˆ', 'rare',
                 {'top_3_count': top_3}
             )
             if ach:
@@ -209,7 +209,7 @@ def check_social_achievements(user):
         ach = award_achievement(
             user, 'Influencer',
             'Gained 100 followers',
-            '🌟', 'rare',
+            'ðŸŒŸ', 'rare',
             {'followers': follower_count}
         )
         if ach:
@@ -220,7 +220,7 @@ def check_social_achievements(user):
         ach = award_achievement(
             user, 'Celebrity',
             'Gained 500 followers',
-            '✨', 'epic',
+            'âœ¨', 'epic',
             {'followers': follower_count}
         )
         if ach:
@@ -231,24 +231,23 @@ def check_social_achievements(user):
         ach = award_achievement(
             user, 'Icon',
             'Gained 1,000 followers',
-            '🎖️', 'legendary',
+            'ðŸŽ–ï¸', 'legendary',
             {'followers': follower_count}
         )
         if ach:
             achievements_awarded.append(ach)
     
     # Team Player
-    user_profile = get_user_profile_safe(user)
     team_count = TeamMembership.objects.filter(
-        profile=user_profile,
-        status='active'
+        user=user,
+        status='ACTIVE'
     ).count()
     
     if team_count >= 1:
         ach = award_achievement(
             user, 'Team Player',
             'Joined your first team',
-            '🤝', 'common',
+            'ðŸ¤', 'common',
             {'teams': team_count}
         )
         if ach:
@@ -267,7 +266,7 @@ def check_profile_achievements(user):
             ach = award_achievement(
                 user, 'Verified',
                 'Completed KYC verification',
-                '✅', 'rare',
+                'âœ…', 'rare',
                 {'verified': True}
             )
             if ach:
@@ -281,7 +280,7 @@ def check_profile_achievements(user):
         ach = award_achievement(
             user, 'Multi-Game Master',
             'Added game profiles for 3+ games',
-            '🎲', 'rare',
+            'ðŸŽ²', 'rare',
             {'games': game_profile_count}
         )
         if ach:
@@ -293,7 +292,7 @@ def check_profile_achievements(user):
         ach = award_achievement(
             user, 'Social Butterfly',
             'Connected 3+ social media accounts',
-            '🦋', 'common',
+            'ðŸ¦‹', 'common',
             {'links': social_link_count}
         )
         if ach:
@@ -323,7 +322,7 @@ def check_economic_achievements(user):
             ach = award_achievement(
                 user, 'First Earnings',
                 'Earned your first DeltaCoin',
-                '💵', 'common',
+                'ðŸ’µ', 'common',
                 {'earnings': total_earnings}
             )
             if ach:
@@ -334,7 +333,7 @@ def check_economic_achievements(user):
             ach = award_achievement(
                 user, 'Whale',
                 'Accumulated 10,000 DeltaCoins',
-                '🐋', 'epic',
+                'ðŸ‹', 'epic',
                 {'balance': wallet.balance}
             )
             if ach:
@@ -345,7 +344,7 @@ def check_economic_achievements(user):
             ach = award_achievement(
                 user, 'Mogul',
                 'Total lifetime earnings exceeded 50,000 DC',
-                '💎', 'legendary',
+                'ðŸ’Ž', 'legendary',
                 {'earnings': total_earnings}
             )
             if ach:
@@ -361,7 +360,7 @@ def check_economic_achievements(user):
             ach = award_achievement(
                 user, 'Big Spender',
                 'Spent 1,000 DeltaCoins',
-                '💸', 'rare',
+                'ðŸ’¸', 'rare',
                 {'spent': total_spent}
             )
             if ach:
@@ -384,7 +383,7 @@ def check_special_achievements(user):
         ach = award_achievement(
             user, 'Early Adopter',
             'Joined DeltaCrown in the first month',
-            '🚀', 'legendary',
+            'ðŸš€', 'legendary',
             {'joined': user.date_joined.isoformat()}
         )
         if ach:
@@ -398,7 +397,7 @@ def check_special_achievements(user):
             ach = award_achievement(
                 user, 'Certified',
                 'Earned your first tournament certificate',
-                '📜', 'rare',
+                'ðŸ“œ', 'rare',
                 {'certificates': cert_count}
             )
             if ach:

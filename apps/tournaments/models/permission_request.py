@@ -8,7 +8,7 @@ to register the team for tournaments.
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.tournaments.models import Tournament
 
 
@@ -105,7 +105,7 @@ class TeamRegistrationPermissionRequest(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.requester.username} → {self.team.name} ({self.tournament.title}) - {self.get_status_display()}"
+        return f"{self.requester.username} â†’ {self.team.name} ({self.tournament.title}) - {self.get_status_display()}"
     
     def approve(self, approved_by, message: str = ''):
         """Approve the permission request"""
@@ -151,7 +151,7 @@ class TeamRegistrationPermissionRequest(models.Model):
     
     def get_team_captains(self):
         """Get list of users who can respond to this request"""
-        from apps.teams.models import TeamMembership
+        from apps.organizations.models import TeamMembership
         from django.contrib.auth import get_user_model
         
         User = get_user_model()

@@ -26,7 +26,7 @@ class TestTeamStatsAdapter:
     @pytest.fixture
     def team(self):
         """Create test team."""
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         from django.contrib.auth import get_user_model
         
         User = get_user_model()
@@ -257,7 +257,7 @@ class TestTeamStatsAdapter:
     
     def test_get_stats_by_game(self, adapter):
         """Test get_stats_by_game returns teams ordered by win rate."""
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         from apps.leaderboards.models import TeamStats
         from django.contrib.auth import get_user_model
         

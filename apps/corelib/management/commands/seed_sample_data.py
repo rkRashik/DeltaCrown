@@ -125,8 +125,8 @@ class Command(BaseCommand):
 
         roles = self._ensure_roles()
         self._ensure_admin_user(roles, UserProfile)
-        Team = apps.get_model("teams", "Team")
-        TeamMembership = apps.get_model("teams", "TeamMembership")
+        Team = apps.get_model("organizations", "Team")
+        TeamMembership = apps.get_model("organizations", "TeamMembership")
         Tournament = apps.get_model("tournaments", "Tournament")
         Registration = apps.get_model("tournaments", "Registration")
 

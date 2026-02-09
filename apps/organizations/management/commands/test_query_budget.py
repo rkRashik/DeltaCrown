@@ -6,7 +6,7 @@ from django.test.utils import CaptureQueriesContext
 from django.db import connection
 from django.contrib.auth import get_user_model
 
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 from apps.organizations.services.team_detail_context import get_team_detail_context
 
 User = get_user_model()
@@ -24,7 +24,7 @@ class Command(BaseCommand):
         # Find a team
         team = Team.objects.first()
         if not team:
-            self.stdout.write(self.style.ERROR('❌ No teams found in database'))
+            self.stdout.write(self.style.ERROR('âŒ No teams found in database'))
             return
         
         results = []

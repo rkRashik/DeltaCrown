@@ -124,7 +124,7 @@ class TeamRegistrationSerializer(serializers.Serializer):
     
     def validate_team_id(self, value):
         """Validate team exists and caller is captain."""
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         try:
             team = Team.objects.get(pk=value)
         except Team.DoesNotExist:

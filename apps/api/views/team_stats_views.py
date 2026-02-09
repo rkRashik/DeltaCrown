@@ -156,7 +156,7 @@ class GameTeamLeaderboardView(APIView):
             ranking_dtos = service.get_top_teams_by_elo(game_slug, limit)
             
             # Enrich with team names (method-level ORM import)
-            from apps.teams.models import Team
+            from apps.organizations.models import Team
             
             leaderboard_data = []
             for ranking_dto in ranking_dtos:

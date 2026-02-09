@@ -17,7 +17,7 @@ from apps.leaderboards.event_handlers import (
     handle_tier_changed,
 )
 from apps.games.models import Game
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.matches.models import Match
 
 User = get_user_model()

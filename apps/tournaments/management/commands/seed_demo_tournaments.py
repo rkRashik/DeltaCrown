@@ -1,4 +1,4 @@
-﻿"""
+"""
 Django Management Command: Seed Demo Tournaments
 =================================================
 
@@ -31,7 +31,7 @@ from apps.tournaments.models import Tournament, Registration, Match, Group, Grou
 from apps.tournaments.services.group_stage_service import GroupStageService
 from apps.tournaments.services.tournament_service import TournamentService
 from apps.tournaments.services.bracket_service import BracketService
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.accounts.models import User
 
 

@@ -283,7 +283,7 @@ class RegistrationWizardView(LoginRequiredMixin, View):
         team = None
         
         if team_id:
-            from apps.teams.models import Team
+            from apps.organizations.models import Team
             team = Team.objects.filter(id=team_id).first()
         
         # Check eligibility
@@ -552,7 +552,7 @@ class RegistrationWizardView(LoginRequiredMixin, View):
                     # Registration already confirmed by PaymentService
                     messages.success(
                         request,
-                        f'✅ Payment successful! {deltacoin_result["amount"]} DC deducted. '
+                        f'âœ… Payment successful! {deltacoin_result["amount"]} DC deducted. '
                         f'Your registration is confirmed!'
                     )
                     
@@ -662,7 +662,7 @@ class RegistrationWizardView(LoginRequiredMixin, View):
                     # Registration already confirmed by PaymentService
                     messages.success(
                         request,
-                        f'✅ Team payment successful! {deltacoin_result["amount"]} DC deducted. '
+                        f'âœ… Team payment successful! {deltacoin_result["amount"]} DC deducted. '
                         f'Your team registration is confirmed!'
                     )
                     
@@ -712,10 +712,10 @@ class RegistrationWizardView(LoginRequiredMixin, View):
     def _get_user_teams(self, user):
         """Get all teams the user is a member of"""
         try:
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
             memberships = TeamMembership.objects.filter(
-                profile__user=user,
-                status='active'
+                user=user,
+                status='ACTIVE'
             ).select_related('team')
             return [m.team for m in memberships]
         except Exception:
@@ -729,19 +729,18 @@ class RegistrationWizardView(LoginRequiredMixin, View):
             tuple: (can_register: bool, team: Team|None, user_role: str)
         """
         try:
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
             
             # Get user's team memberships
             memberships = TeamMembership.objects.filter(
-                profile__user=user,
-                status='active'
+                user=user,
+                status='ACTIVE'
             ).select_related('team')
             
             # Check each team for registration permission
             for membership in memberships:
-                # Check if user has can_register_tournaments permission
-                # Owner and Manager roles automatically have this permission
-                if membership.can_register_tournaments:
+                # Owner and Manager roles automatically have registration permission
+                if membership.role in [TeamMembership.Role.OWNER, TeamMembership.Role.MANAGER, TeamMembership.Role.CAPTAIN]:
                     return (True, membership.team, membership.role)
             
             # No permission found - return first team with user's role
@@ -757,7 +756,7 @@ class RegistrationWizardView(LoginRequiredMixin, View):
     def _get_team_leaders(self, team):
         """Get team owner and managers"""
         try:
-            from apps.teams.models import TeamMembership
+            from apps.organizations.models import TeamMembership
             
             leaders = TeamMembership.objects.filter(
                 team=team,

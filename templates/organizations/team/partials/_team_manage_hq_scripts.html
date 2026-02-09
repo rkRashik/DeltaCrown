@@ -22,6 +22,9 @@
     let teamData = null;
     let membersData = [];
     let userPermissions = {};
+    let gameRoles = [];      // In-game roles from GameRole model (per-game)
+    let roleChoices = [];    // MembershipRole choices from backend
+    let slotChoices = [];    // RosterSlot choices from backend
 
     const globalMessageEl = document.getElementById('hqGlobalMessage');
     const rosterMessageEl = document.getElementById('hqRosterMessage');
@@ -64,14 +67,25 @@
             PLAYER: 'Player',
             COACH: 'Coach',
             MANAGER: 'Manager',
+            SUBSTITUTE: 'Substitute',
+            ANALYST: 'Analyst',
+            SCOUT: 'Scout',
+            OWNER: 'Owner',
         };
         return map[role] || role || 'Member';
     }
 
     function rolePillClass(role) {
-        if (role === 'MANAGER') return 'border-orange-500/30 bg-orange-500/10 text-orange-400';
-        if (role === 'COACH') return 'border-blue-500/30 bg-blue-500/10 text-blue-400';
-        return 'border-green-500/30 bg-green-500/10 text-green-400';
+        const palette = {
+            OWNER:      'border-yellow-500/30 bg-yellow-500/10 text-yellow-400',
+            MANAGER:    'border-orange-500/30 bg-orange-500/10 text-orange-400',
+            COACH:      'border-blue-500/30 bg-blue-500/10 text-blue-400',
+            PLAYER:     'border-green-500/30 bg-green-500/10 text-green-400',
+            SUBSTITUTE: 'border-teal-500/30 bg-teal-500/10 text-teal-400',
+            ANALYST:    'border-purple-500/30 bg-purple-500/10 text-purple-400',
+            SCOUT:      'border-cyan-500/30 bg-cyan-500/10 text-cyan-400',
+        };
+        return palette[role] || 'border-white/20 bg-white/5 text-white/60';
     }
 
     function escapeHtml(str) {
@@ -85,9 +99,13 @@
 
     function renderMemberCard(member) {
         const username = escapeHtml(member.username || 'Unknown');
+        const displayName = escapeHtml(member.display_name || member.username || 'Unknown');
         const email = escapeHtml(member.email || '');
         const role = member.role || 'PLAYER';
+        const playerRole = escapeHtml(member.player_role || '');
         const letter = escapeHtml((member.username || 'U')[0]?.toUpperCase() || 'U');
+        const isCaptain = member.is_tournament_captain;
+        const avatarUrl = member.avatar_url;
 
         const canManage = !!userPermissions?.can_manage;
         const actionsButton = canManage
@@ -98,22 +116,39 @@
             `
             : '';
 
+        // Avatar: show roster_image or profile avatar, fallback to letter
+        const avatarInner = avatarUrl
+            ? `<img src="${escapeHtml(avatarUrl)}" class="h-full w-full rounded-xl object-cover" alt="${username}" />`
+            : `<div class="h-full w-full rounded-xl grid place-items-center text-lg font-bold">${letter}</div>`;
+
+        // Captain badge
+        const captainBadge = isCaptain
+            ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 font-bold" title="Tournament Captain">C</span>`
+            : '';
+
+        // Player role pill
+        const playerRolePill = playerRole
+            ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-white/15 bg-white/5 text-white/60">${playerRole}</span>`
+            : '';
+
         return `
             <div class="rounded-2xl border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-sm p-4 relative group hover:border-white/25 transition-all">
                 <div class="absolute top-2 right-2 flex items-center gap-1">
                     <span class="h-2 w-2 rounded-full bg-green-500"></span>
                 </div>
                 <div class="flex items-center gap-3 mb-3">
-                    <div class="h-12 w-12 rounded-xl border-2" style="border-color: var(--team-primary); background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));">
-                        <div class="h-full w-full rounded-xl grid place-items-center text-lg font-bold">${letter}</div>
+                    <div class="h-12 w-12 rounded-xl border-2 overflow-hidden flex-shrink-0" style="border-color: var(--team-primary); background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));">
+                        ${avatarInner}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="font-bold text-sm truncate">${username}</div>
-                        <div class="text-xs text-muted truncate">${email}</div>
+                        <div class="font-bold text-sm truncate">${displayName}</div>
+                        <div class="text-xs text-muted truncate">${username !== displayName ? '@' + username : email}</div>
                     </div>
                 </div>
-                <div class="flex items-center gap-2 mb-3">
+                <div class="flex items-center gap-1.5 flex-wrap mb-3">
                     <span class="text-xs px-2 py-1 rounded-full border ${rolePillClass(role)} font-medium">${escapeHtml(roleLabel(role))}</span>
+                    ${captainBadge}
+                    ${playerRolePill}
                 </div>
                 <div class="flex items-center justify-between text-xs">
                     <div class="flex items-center gap-1 text-green-400">
@@ -129,11 +164,15 @@
     function updateRosterSummary() {
         if (!rosterSummaryEl) return;
         const total = Array.isArray(membersData) ? membersData.length : 0;
-        const counts = { MANAGER: 0, COACH: 0, PLAYER: 0 };
+        const counts = {};
         for (const m of membersData || []) {
-            if (m?.role && counts[m.role] !== undefined) counts[m.role] += 1;
+            if (m?.role) counts[m.role] = (counts[m.role] || 0) + 1;
         }
-        rosterSummaryEl.textContent = `${total} Members • ${counts.MANAGER} Managers • ${counts.COACH} Coaches • ${counts.PLAYER} Players`;
+        const parts = [`${total} Members`];
+        for (const [r, c] of Object.entries(counts)) {
+            parts.push(`${c} ${roleLabel(r)}${c > 1 ? 's' : ''}`);
+        }
+        rosterSummaryEl.textContent = parts.join(' • ');
     }
 
     function updateMembersList() {
@@ -216,6 +255,9 @@
             teamData = data.team || null;
             membersData = Array.isArray(data.members) ? data.members : [];
             userPermissions = data.permissions || {};
+            gameRoles = Array.isArray(data.game_roles) ? data.game_roles : [];
+            roleChoices = data.choices?.membership_roles || [];
+            slotChoices = data.choices?.roster_slots || [];
 
             applyPermissionsToTemplate();
             updateTeamHeader();
@@ -255,13 +297,18 @@
         return payload;
     }
 
-    async function changeTeamMemberRole(membershipId, newRole) {
+    async function changeTeamMemberRole(membershipId, newRole, extras = {}) {
         if (!userPermissions?.can_manage) {
             throw new Error('You do not have permission to manage this team');
         }
 
         const formData = new FormData();
         formData.append('role', newRole);
+        // Optional roster fields
+        if ('player_role' in extras) formData.append('player_role', extras.player_role);
+        if ('roster_slot' in extras) formData.append('roster_slot', extras.roster_slot);
+        if ('display_name' in extras) formData.append('display_name', extras.display_name);
+        if ('is_tournament_captain' in extras) formData.append('is_tournament_captain', extras.is_tournament_captain ? 'true' : 'false');
 
         const response = await fetch(`/api/vnext/teams/${teamSlug}/members/${membershipId}/role/`, {
             method: 'POST',
@@ -295,6 +342,29 @@
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
             throw new Error(payload?.error || 'Failed to remove member');
+        }
+
+        await bootstrapTeamData();
+        return payload;
+    }
+
+    async function uploadRosterPhoto(membershipId, file) {
+        const formData = new FormData();
+        formData.append('roster_image', file);
+
+        const response = await fetch(`/api/vnext/teams/${teamSlug}/members/${membershipId}/roster-photo/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: formData,
+            credentials: 'same-origin',
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(payload?.error || 'Failed to upload roster photo');
         }
 
         await bootstrapTeamData();
@@ -389,9 +459,11 @@
                     <div>
                         <label class="text-sm font-semibold block mb-2">Role</label>
                         <select id="hqAddMemberRole" class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition">
-                            <option value="PLAYER">Player</option>
-                            <option value="COACH">Coach</option>
-                            <option value="MANAGER">Manager</option>
+                            ${(roleChoices.length ? roleChoices : [
+                                {value:'PLAYER',label:'Player'},{value:'COACH',label:'Coach'},
+                                {value:'MANAGER',label:'Manager'},{value:'SUBSTITUTE',label:'Substitute'},
+                                {value:'ANALYST',label:'Analyst'},{value:'SCOUT',label:'Scout'}
+                            ]).map(c => `<option value="${c.value}">${escapeHtml(c.label)}</option>`).join('')}
                         </select>
                         <p class="text-xs text-muted mt-2">OWNER is not assignable in vNext.</p>
                     </div>
@@ -412,25 +484,117 @@
         const member = (membersData || []).find(m => String(m.id) === String(membershipId));
         if (!member) return;
 
+        // Build role options from backend choices
+        const roleOptions = (roleChoices.length ? roleChoices : [
+            {value:'PLAYER',label:'Player'},{value:'COACH',label:'Coach'},
+            {value:'MANAGER',label:'Manager'},{value:'SUBSTITUTE',label:'Substitute'},
+            {value:'ANALYST',label:'Analyst'},{value:'SCOUT',label:'Scout'}
+        ]).map(c => `<option value="${c.value}" ${member.role === c.value ? 'selected' : ''}>${escapeHtml(c.label)}</option>`).join('');
+
+        // Build in-game role options from GameRole model
+        const gameRoleOptions = gameRoles.length
+            ? `<option value="">— None —</option>` + gameRoles.map(gr =>
+                `<option value="${escapeHtml(gr.role_name)}" ${member.player_role === gr.role_name ? 'selected' : ''}>${escapeHtml(gr.icon ? gr.icon + ' ' : '')}${escapeHtml(gr.role_name)}</option>`
+              ).join('')
+            : '';
+
+        // Build roster slot options
+        const slotOptions = (slotChoices.length ? slotChoices : [
+            {value:'STARTER',label:'Starter'},{value:'SUBSTITUTE',label:'Substitute'},
+            {value:'COACH',label:'Coach (Non-playing)'},{value:'ANALYST',label:'Analyst (Non-playing)'}
+        ]).map(c => `<option value="${c.value}" ${member.roster_slot === c.value ? 'selected' : ''}>${escapeHtml(c.label)}</option>`).join('');
+
+        // Avatar preview
+        const avatarSrc = member.avatar_url || '';
+        const avatarLetter = escapeHtml((member.username || 'U')[0]?.toUpperCase() || 'U');
+        const avatarPreview = avatarSrc
+            ? `<img src="${escapeHtml(avatarSrc)}" class="h-16 w-16 rounded-xl object-cover border-2 border-white/15" />`
+            : `<div class="h-16 w-16 rounded-xl border-2 border-white/15 grid place-items-center text-xl font-bold bg-white/5">${avatarLetter}</div>`;
+
         openModalWithAsyncConfirm({
             title: `Manage: ${member.username}`,
-            subtitle: 'Change role or remove from team',
-            confirmText: 'Save',
+            subtitle: 'Edit roster details, role, or remove from team',
+            confirmText: 'Save Changes',
             bodyHtml: `
-                <div class="space-y-4">
+                <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
                     <div id="hqModalError" class="hidden rounded-xl border border-line bg-white/5 p-3 text-sm"></div>
-                    <div class="rounded-2xl border border-line bg-white/5 p-3">
-                        <div class="text-sm font-semibold">${escapeHtml(member.username)}</div>
-                        <div class="text-xs text-muted">${escapeHtml(member.email || '')}</div>
+
+                    <!-- Member identity card -->
+                    <div class="rounded-2xl border border-line bg-white/5 p-3 flex items-center gap-3">
+                        <div id="hqMemberAvatarPreview">${avatarPreview}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-semibold">${escapeHtml(member.display_name || member.username)}</div>
+                            <div class="text-xs text-muted">${escapeHtml(member.email || '@' + member.username)}</div>
+                        </div>
                     </div>
+
+                    <!-- Roster Photo Upload -->
                     <div>
-                        <label class="text-sm font-semibold block mb-2">Role</label>
+                        <label class="text-sm font-semibold block mb-2">Roster Photo</label>
+                        <div class="flex items-center gap-3">
+                            <label class="cursor-pointer rounded-xl border border-dashed border-white/20 bg-white/5 hover:bg-white/10 transition px-4 py-2 text-sm text-muted">
+                                <i data-lucide="upload" class="w-4 h-4 inline-block mr-1"></i> Upload Photo
+                                <input type="file" id="hqRosterPhotoInput" accept="image/jpeg,image/png,image/webp" class="hidden" />
+                            </label>
+                            <span id="hqRosterPhotoName" class="text-xs text-muted"></span>
+                        </div>
+                        <p class="text-xs text-muted mt-1">Max 5 MB. JPEG, PNG, or WebP.</p>
+                    </div>
+
+                    <!-- Display Name -->
+                    <div>
+                        <label class="text-sm font-semibold block mb-2">Roster Display Name</label>
+                        <input type="text" id="hqMemberDisplayName" value="${escapeHtml(member.display_name || '')}" placeholder="Custom name for this team..."
+                            class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition" maxlength="80" />
+                        <p class="text-xs text-muted mt-1">Leave blank to use profile display name.</p>
+                    </div>
+
+                    <!-- Organizational Role -->
+                    <div>
+                        <label class="text-sm font-semibold block mb-2">Organizational Role</label>
                         <select id="hqMemberNewRole" class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition">
-                            <option value="PLAYER" ${member.role === 'PLAYER' ? 'selected' : ''}>Player</option>
-                            <option value="COACH" ${member.role === 'COACH' ? 'selected' : ''}>Coach</option>
-                            <option value="MANAGER" ${member.role === 'MANAGER' ? 'selected' : ''}>Manager</option>
+                            ${roleOptions}
                         </select>
                     </div>
+
+                    <!-- Roster Slot -->
+                    <div>
+                        <label class="text-sm font-semibold block mb-2">Roster Slot</label>
+                        <select id="hqMemberRosterSlot" class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition">
+                            <option value="">— Unassigned —</option>
+                            ${slotOptions}
+                        </select>
+                    </div>
+
+                    ${gameRoleOptions ? `
+                    <!-- In-Game Role (from game app) -->
+                    <div>
+                        <label class="text-sm font-semibold block mb-2">In-Game Role</label>
+                        <select id="hqMemberPlayerRole" class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition">
+                            ${gameRoleOptions}
+                        </select>
+                        <p class="text-xs text-muted mt-1">Game-specific tactical role (e.g., Duelist, IGL).</p>
+                    </div>
+                    ` : `
+                    <!-- In-Game Role (free text fallback when no game roles configured) -->
+                    <div>
+                        <label class="text-sm font-semibold block mb-2">In-Game Role</label>
+                        <input type="text" id="hqMemberPlayerRole" value="${escapeHtml(member.player_role || '')}" placeholder="e.g., Duelist, IGL, AWPer..."
+                            class="w-full px-4 py-2 rounded-xl border border-line bg-white/5 outline-none focus:border-white/30 transition" maxlength="50" />
+                    </div>
+                    `}
+
+                    <!-- Tournament Captain -->
+                    <div class="flex items-center gap-3 rounded-2xl border border-line bg-white/5 p-3">
+                        <input type="checkbox" id="hqMemberCaptain" ${member.is_tournament_captain ? 'checked' : ''}
+                            class="h-4 w-4 rounded border-white/30 bg-white/5 accent-yellow-500" />
+                        <div>
+                            <div class="text-sm font-semibold">Tournament Captain</div>
+                            <div class="text-xs text-muted">Can check-in for tournaments and act as primary contact.</div>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone: Remove -->
                     <div class="rounded-2xl border border-red-500/30 bg-red-500/10 p-3">
                         <div class="text-sm font-semibold text-red-300">Remove member</div>
                         <p class="text-xs text-red-200/70 mt-1">This will deactivate their membership.</p>
@@ -440,18 +604,47 @@
             `,
             onConfirm: async () => {
                 const newRole = document.getElementById('hqMemberNewRole')?.value;
+                const playerRole = document.getElementById('hqMemberPlayerRole')?.value?.trim() ?? '';
+                const rosterSlot = document.getElementById('hqMemberRosterSlot')?.value ?? '';
+                const displayName = document.getElementById('hqMemberDisplayName')?.value?.trim() ?? '';
+                const isCaptain = document.getElementById('hqMemberCaptain')?.checked ?? false;
+                const photoFile = document.getElementById('hqRosterPhotoInput')?.files?.[0];
+
                 if (!newRole) throw new Error('Select a role');
-                if (newRole !== member.role) {
-                    await changeTeamMemberRole(member.id, newRole);
-                    setBanner(rosterMessageEl, `Updated ${member.username} to ${roleLabel(newRole)}.`, 'success');
+
+                // Upload roster photo first if selected
+                if (photoFile) {
+                    await uploadRosterPhoto(member.id, photoFile);
+                }
+
+                // Check if anything changed
+                const hasChanges = (
+                    newRole !== member.role ||
+                    playerRole !== (member.player_role || '') ||
+                    rosterSlot !== (member.roster_slot || '') ||
+                    displayName !== (member.display_name || '') ||
+                    isCaptain !== member.is_tournament_captain
+                );
+
+                if (hasChanges) {
+                    await changeTeamMemberRole(member.id, newRole, {
+                        player_role: playerRole,
+                        roster_slot: rosterSlot,
+                        display_name: displayName,
+                        is_tournament_captain: isCaptain,
+                    });
+                    setBanner(rosterMessageEl, `Updated ${member.username} roster details.`, 'success');
+                } else if (!photoFile) {
+                    setBanner(rosterMessageEl, 'No changes made.', 'info');
                 } else {
-                    setBanner(rosterMessageEl, 'No role changes made.', 'info');
+                    setBanner(rosterMessageEl, `Updated roster photo for ${member.username}.`, 'success');
                 }
             },
         });
 
-        // Wire remove button separately (different confirm semantics)
+        // Wire remove button and photo preview (after modal renders)
         setTimeout(() => {
+            // Remove button
             const removeBtn = document.getElementById('hqRemoveMemberBtn');
             removeBtn?.addEventListener('click', async () => {
                 try {
@@ -461,6 +654,24 @@
                 } catch (err) {
                     const modalErrorEl = document.getElementById('hqModalError');
                     setBanner(modalErrorEl, err?.message || 'Failed to remove member', 'error');
+                }
+            });
+
+            // Photo preview on file select
+            const photoInput = document.getElementById('hqRosterPhotoInput');
+            const photoName = document.getElementById('hqRosterPhotoName');
+            const avatarPreviewEl = document.getElementById('hqMemberAvatarPreview');
+            photoInput?.addEventListener('change', () => {
+                const file = photoInput.files?.[0];
+                if (file) {
+                    if (photoName) photoName.textContent = file.name;
+                    if (avatarPreviewEl) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            avatarPreviewEl.innerHTML = `<img src="${e.target.result}" class="h-16 w-16 rounded-xl object-cover border-2 border-white/15" />`;
+                        };
+                        reader.readAsDataURL(file);
+                    }
                 }
             });
         }, 0);
@@ -953,6 +1164,7 @@
     window.updateTeamSettings = updateTeamSettings;
     window.saveTeamProfile = saveTeamProfile;
     window.saveTournamentOps = saveTournamentOps;
+    window.uploadRosterPhoto = uploadRosterPhoto;
 
     // UI event wiring
     inviteBtnEl?.addEventListener('click', () => showAddMemberModal());

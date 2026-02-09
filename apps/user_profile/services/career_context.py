@@ -81,7 +81,7 @@ def build_career_context(user_profile, is_owner: bool = False) -> Dict:
     Returns:
         Dictionary with career_by_game (game-wise sections)
     """
-    from apps.teams.models import TeamMembership
+    from apps.organizations.models import TeamMembership
     from apps.games.models import Game
     from apps.user_profile.utils import get_game_icon_url
     
@@ -91,12 +91,14 @@ def build_career_context(user_profile, is_owner: bool = False) -> Dict:
             'has_teams': False,
         }
     
-    # Get all games with display info
-    games = {g.slug: g for g in Game.objects.all()}
+    # Get all games with display info (single query, dual lookup)
+    all_games = list(Game.objects.all())
+    games = {g.slug: g for g in all_games}          # slug -> Game
+    games_by_id = {g.id: g for g in all_games}      # int pk -> Game
     
     # Get all memberships (exclude PENDING from timeline)
     all_memberships = TeamMembership.objects.filter(
-        profile=user_profile
+        user=user_profile.user
     ).exclude(
         status=TeamMembership.Status.PENDING
     ).select_related('team').order_by('-joined_at')
@@ -104,15 +106,16 @@ def build_career_context(user_profile, is_owner: bool = False) -> Dict:
     # Group memberships by game
     career_by_game = {}
     for tm in all_memberships:
-        game_slug = tm.team.game
+        # Resolve game slug via pre-fetched dict (avoids N+1 from team.game property)
+        game_obj = games_by_id.get(tm.team.game_id)
+        game_slug = game_obj.slug if game_obj else str(tm.team.game_id)
         status = getattr(tm, 'status', 'ACTIVE')
         
         # Initialize game section if needed
         if game_slug not in career_by_game:
-            game = games.get(game_slug)
             career_by_game[game_slug] = {
                 'game_slug': game_slug,
-                'game_name': game.display_name if game else game_slug.title(),
+                'game_name': game_obj.display_name if game_obj else game_slug.title(),
                 'game_icon': get_game_icon_url(game_slug),
                 'current_team': None,
                 'history': [],
@@ -196,7 +199,7 @@ def build_career_context(user_profile, is_owner: bool = False) -> Dict:
     
     return {
         'career_by_game': career_by_game_list,
-        'has_teams': len(all_memberships) > 0,
+        'has_teams': len(career_by_game_list) > 0,
     }
 
 

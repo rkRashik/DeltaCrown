@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from apps.tournaments.models import GameConfiguration, Tournament
-from apps.teams.models import Team
+from apps.organizations.models import Team
 
 User = get_user_model()
 

@@ -13,7 +13,7 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Q
 
 from apps.tournaments.models import Tournament, TeamRegistrationPermissionRequest
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 from apps.tournaments.services.notification_service import TournamentNotificationService
 
 

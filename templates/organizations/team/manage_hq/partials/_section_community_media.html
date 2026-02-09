@@ -1,0 +1,486 @@
+{% comment %}
+Community & Media — Team Feed, Media Gallery, Highlight Reels, Connected Platforms.
+Section 7.5 of the Master Plan. Fully interactive social hub.
+{% endcomment %}
+<section id="community" class="hq-section space-y-4" aria-label="Community & Media">
+
+    {# ── Team Feed ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <i data-lucide="message-square" class="w-4 h-4 text-pink-400"></i>
+                Team Feed
+            </h3>
+            {% if is_admin %}
+            <button onclick="ManageHQ.Community.openPostModal()"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-pink-500/15 text-pink-400 border border-pink-500/20 hover:bg-pink-500/25 transition">
+                <i data-lucide="plus" class="w-3 h-3"></i>
+                New Post
+            </button>
+            {% endif %}
+        </div>
+
+        {# Post composer (quick) #}
+        <div class="rounded-xl border border-white/10 bg-white/3 p-3 flex items-start gap-3 mb-4">
+            <div class="h-8 w-8 rounded-full bg-white/10 grid place-items-center shrink-0 mt-0.5">
+                <i data-lucide="user" class="w-3.5 h-3.5 text-white/40"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div id="quick-post-input"
+                     class="text-sm text-white/40 cursor-pointer hover:text-white/60 transition py-1"
+                     onclick="ManageHQ.Community.openPostModal()">
+                    Share an update with your team…
+                </div>
+            </div>
+        </div>
+
+        {# Feed content #}
+        <div id="team-feed" class="space-y-3">
+            <div class="rounded-xl border border-dashed border-white/10 bg-white/3 p-4 sm:p-6 text-center">
+                <i data-lucide="newspaper" class="w-8 h-8 text-white/10 mx-auto mb-2"></i>
+                <p class="text-sm text-white/30 mb-1">No posts yet</p>
+                <p class="text-xs text-white/20">Share announcements, match-day updates, and team news with your squad.</p>
+            </div>
+        </div>
+
+        {# Pinned post area #}
+        <div id="pinned-posts" class="hidden mt-4">
+            <h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <i data-lucide="pin" class="w-3 h-3"></i>
+                Pinned
+            </h4>
+            <div id="pinned-posts-list" class="space-y-2"></div>
+        </div>
+    </div>
+
+    {# ── Media Gallery ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <i data-lucide="image" class="w-4 h-4 text-violet-400"></i>
+                Media Gallery
+                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-400 font-semibold" id="gallery-count">0 items</span>
+            </h3>
+            {% if is_admin %}
+            <button onclick="ManageHQ.Community.openMediaUpload()"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-violet-500/15 text-violet-400 border border-violet-500/20 hover:bg-violet-500/25 transition">
+                <i data-lucide="upload" class="w-3 h-3"></i>
+                Upload
+            </button>
+            {% endif %}
+        </div>
+
+        {# Gallery filter tabs #}
+        <div class="flex items-center gap-1 mb-4 bg-white/5 rounded-xl p-1 overflow-x-auto">
+            <button onclick="ManageHQ.Community.filterGallery('all')" class="gallery-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition bg-white/10 text-white" data-gallery-tab="all">All</button>
+            <button onclick="ManageHQ.Community.filterGallery('photo')" class="gallery-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-gallery-tab="photo">Photos</button>
+            <button onclick="ManageHQ.Community.filterGallery('brand')" class="gallery-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-gallery-tab="brand">Brand</button>
+            <button onclick="ManageHQ.Community.filterGallery('event')" class="gallery-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-gallery-tab="event">Events</button>
+        </div>
+
+        {# Gallery grid #}
+        <div id="media-gallery-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+            <div class="col-span-full rounded-xl border border-dashed border-white/10 bg-white/3 p-4 sm:p-6 text-center">
+                <i data-lucide="image-plus" class="w-8 h-8 text-white/10 mx-auto mb-2"></i>
+                <p class="text-sm text-white/30 mb-1">Gallery is empty</p>
+                <p class="text-xs text-white/20">Upload team photos, event media, and brand assets.</p>
+            </div>
+        </div>
+    </div>
+
+    {# ── Highlight Reels ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <i data-lucide="play" class="w-4 h-4 text-rose-400"></i>
+                Highlight Reels
+            </h3>
+            {% if is_admin %}
+            <button onclick="ManageHQ.Community.openHighlightModal()"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/20 hover:bg-rose-500/25 transition">
+                <i data-lucide="plus" class="w-3 h-3"></i>
+                Add Highlight
+            </button>
+            {% endif %}
+        </div>
+
+        {# Highlights grid #}
+        <div id="highlights-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div class="col-span-full rounded-xl border border-dashed border-white/10 bg-white/3 p-4 sm:p-6 text-center">
+                <i data-lucide="film" class="w-8 h-8 text-white/10 mx-auto mb-2"></i>
+                <p class="text-sm text-white/30 mb-1">No highlights yet</p>
+                <p class="text-xs text-white/20">Showcase match highlights, clutch moments, and montages from your team's competitive journey.</p>
+            </div>
+        </div>
+    </div>
+
+    {# ── Team Announcements Board ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <i data-lucide="megaphone" class="w-4 h-4 text-orange-400"></i>
+                Announcements
+            </h3>
+        </div>
+        <div id="announcements-list" class="space-y-2">
+            <div class="rounded-xl border border-dashed border-white/10 bg-white/3 p-4 text-center">
+                <p class="text-xs text-white/30">No announcements</p>
+            </div>
+        </div>
+    </div>
+
+    {# ── Connected Platforms ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
+        <h3 class="text-base font-bold mb-3 flex items-center gap-2">
+            <i data-lucide="link" class="w-4 h-4 text-white/50"></i>
+            Connected Platforms
+        </h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+            <div class="rounded-xl bg-white/5 border border-white/8 p-3 flex items-center gap-2.5 {% if team.twitter_url %}text-sky-400{% else %}text-white/20{% endif %}">
+                <i data-lucide="twitter" class="w-4 h-4 shrink-0"></i>
+                <span class="text-xs font-medium truncate">{% if team.twitter_url %}Connected{% else %}Not linked{% endif %}</span>
+            </div>
+            <div class="rounded-xl bg-white/5 border border-white/8 p-3 flex items-center gap-2.5 {% if team.instagram_url %}text-pink-400{% else %}text-white/20{% endif %}">
+                <i data-lucide="instagram" class="w-4 h-4 shrink-0"></i>
+                <span class="text-xs font-medium truncate">{% if team.instagram_url %}Connected{% else %}Not linked{% endif %}</span>
+            </div>
+            <div class="rounded-xl bg-white/5 border border-white/8 p-3 flex items-center gap-2.5 {% if team.youtube_url %}text-red-400{% else %}text-white/20{% endif %}">
+                <i data-lucide="youtube" class="w-4 h-4 shrink-0"></i>
+                <span class="text-xs font-medium truncate">{% if team.youtube_url %}Connected{% else %}Not linked{% endif %}</span>
+            </div>
+            <div class="rounded-xl bg-white/5 border border-white/8 p-3 flex items-center gap-2.5 {% if team.twitch_url %}text-purple-400{% else %}text-white/20{% endif %}">
+                <i data-lucide="twitch" class="w-4 h-4 shrink-0"></i>
+                <span class="text-xs font-medium truncate">{% if team.twitch_url %}Connected{% else %}Not linked{% endif %}</span>
+            </div>
+            <div class="rounded-xl bg-white/5 border border-white/8 p-3 flex items-center gap-2.5 {% if team.facebook_url %}text-blue-400{% else %}text-white/20{% endif %}">
+                <i data-lucide="facebook" class="w-4 h-4 shrink-0"></i>
+                <span class="text-xs font-medium truncate">{% if team.facebook_url %}Connected{% else %}Not linked{% endif %}</span>
+            </div>
+            <div class="rounded-xl bg-white/5 border border-white/8 p-3 flex items-center gap-2.5 {% if team.tiktok_url %}text-cyan-400{% else %}text-white/20{% endif %}">
+                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1 0-5.78c.27 0 .54.04.8.1v-3.5a6.37 6.37 0 0 0-.8-.05A6.34 6.34 0 0 0 3.15 15.2a6.34 6.34 0 0 0 10.86 4.46 6.3 6.3 0 0 0 1.86-4.49V8.76a8.26 8.26 0 0 0 4.85 1.56V6.87a4.82 4.82 0 0 1-1.13-.18Z"/></svg>
+                <span class="text-xs font-medium truncate">{% if team.tiktok_url %}Connected{% else %}Not linked{% endif %}</span>
+            </div>
+        </div>
+        <p class="text-xs text-white/30 mt-3">
+            <button onclick="setActiveRoute('profile')" class="text-white/50 hover:underline">Edit social links in Team Profile &rarr;</button>
+        </p>
+    </div>
+
+    {# ── Team Communications ── #}
+    <div id="comms-section" class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6"
+         data-discord="{{ team.discord_url }}"
+         data-whatsapp="{{ team.whatsapp_url }}"
+         data-messenger="{{ team.messenger_url }}">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <i data-lucide="headphones" class="w-4 h-4 text-indigo-400"></i>
+                Team Communications
+            </h3>
+            {% if is_admin %}
+            <button onclick="ManageHQ.Community.openCommsModal()"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/25 transition">
+                <i data-lucide="settings" class="w-3 h-3"></i>
+                Manage
+            </button>
+            {% endif %}
+        </div>
+        <p class="text-xs text-white/40 mb-4">Member-only communication channels. These links are visible to active roster members.</p>
+
+        <div class="space-y-2">
+            {# Discord — Primary / Mandatory #}
+            <div class="rounded-xl border {% if team.discord_url %}border-indigo-500/25 bg-indigo-500/8{% else %}border-red-500/20 bg-red-500/5{% endif %} p-3 flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl {% if team.discord_url %}bg-indigo-500/15{% else %}bg-red-500/10{% endif %} grid place-items-center shrink-0">
+                    <svg class="w-5 h-5 {% if team.discord_url %}text-indigo-400{% else %}text-red-400{% endif %}" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.11 13.11 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.029 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.06.06 0 0 0-.031-.03z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-semibold {% if team.discord_url %}text-indigo-300{% else %}text-red-400{% endif %}">Discord Server</span>
+                        {% if not team.discord_url %}
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-bold">REQUIRED</span>
+                        {% else %}
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 font-medium">PRIMARY</span>
+                        {% endif %}
+                    </div>
+                    {% if team.discord_url %}
+                    <a href="{{ team.discord_url }}" target="_blank" rel="noopener" class="text-xs text-white/50 hover:text-white/70 truncate block">{{ team.discord_url }}</a>
+                    {% else %}
+                    <p class="text-xs text-red-400/70">Discord is required for team coordination. Set it up in Team Profile.</p>
+                    {% endif %}
+                </div>
+                {% if team.discord_url %}
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <a href="{{ team.discord_url }}" target="_blank" rel="noopener"
+                       class="px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 text-xs font-medium hover:bg-indigo-500/30 transition">
+                        Join
+                    </a>
+                    {% if team.discord_webhook_url and is_admin %}
+                    <button onclick="ManageHQ.Community.testDiscordWebhook()" id="btn-test-discord"
+                        class="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/50 text-[10px] font-medium hover:bg-white/10 transition"
+                        title="Send test message to Discord">
+                        <i data-lucide="zap" class="w-3 h-3 inline -mt-0.5"></i> Test
+                    </button>
+                    {% endif %}
+                </div>
+                {% else %}
+                <button onclick="setActiveRoute('profile')" class="shrink-0 px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 text-xs font-medium hover:bg-red-500/25 transition">
+                    Set Up →
+                </button>
+                {% endif %}
+            </div>
+
+            {# WhatsApp — Optional #}
+            <div class="rounded-xl border border-white/8 bg-white/3 p-3 flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-emerald-500/10 grid place-items-center shrink-0">
+                    <svg class="w-5 h-5 {% if team.whatsapp_url %}text-emerald-400{% else %}text-white/20{% endif %}" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zm-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884zm8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.88 11.88 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <span class="text-sm font-semibold {% if team.whatsapp_url %}text-emerald-300{% else %}text-white/50{% endif %}">WhatsApp Group</span>
+                    {% if team.whatsapp_url %}
+                    <a href="{{ team.whatsapp_url }}" target="_blank" rel="noopener" class="text-xs text-white/40 hover:text-white/60 truncate block">{{ team.whatsapp_url }}</a>
+                    {% else %}
+                    <p class="text-xs text-white/30">Optional — add in Team Profile</p>
+                    {% endif %}
+                </div>
+                {% if team.whatsapp_url %}
+                <a href="{{ team.whatsapp_url }}" target="_blank" rel="noopener"
+                   class="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 text-xs font-medium hover:bg-emerald-500/25 transition">
+                    Open
+                </a>
+                {% endif %}
+            </div>
+
+            {# Messenger — Optional #}
+            <div class="rounded-xl border border-white/8 bg-white/3 p-3 flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-blue-500/10 grid place-items-center shrink-0">
+                    <svg class="w-5 h-5 {% if team.messenger_url %}text-blue-400{% else %}text-white/20{% endif %}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.898 1.441 5.484 3.696 7.17V22l3.415-1.876c.91.252 1.876.389 2.889.389 5.523 0 10-4.145 10-9.243C22 6.145 17.523 2 12 2zm1.024 12.46-2.55-2.72-4.974 2.72 5.47-5.81 2.614 2.72 4.91-2.72-5.47 5.81z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <span class="text-sm font-semibold {% if team.messenger_url %}text-blue-300{% else %}text-white/50{% endif %}">Messenger Group</span>
+                    {% if team.messenger_url %}
+                    <a href="{{ team.messenger_url }}" target="_blank" rel="noopener" class="text-xs text-white/40 hover:text-white/60 truncate block">{{ team.messenger_url }}</a>
+                    {% else %}
+                    <p class="text-xs text-white/30">Optional — add in Team Profile</p>
+                    {% endif %}
+                </div>
+                {% if team.messenger_url %}
+                <a href="{{ team.messenger_url }}" target="_blank" rel="noopener"
+                   class="shrink-0 px-3 py-1.5 rounded-lg bg-blue-500/15 text-blue-400 text-xs font-medium hover:bg-blue-500/25 transition">
+                    Open
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="mt-3 rounded-xl border border-white/8 bg-white/3 p-3 flex items-center gap-2.5">
+            <i data-lucide="shield" class="w-4 h-4 text-white/30 shrink-0"></i>
+            <p class="text-[11px] text-white/40 leading-relaxed">
+                Communication links are only visible to active team members. Set them up in
+                <button onclick="setActiveRoute('profile')" class="text-cyan-400 hover:underline">Team Profile</button>.
+            </p>
+        </div>
+    </div>
+
+</section>
+
+{% comment %}Community Modals{% endcomment %}
+
+{# ── New Post Modal ── #}
+<div id="modal-new-post" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="modal-post-title"
+     onclick="if(event.target===this)ManageHQ.closeModal('modal-new-post')">
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between p-4 border-b border-white/10">
+            <h3 id="modal-post-title" class="font-bold text-base">Create Post</h3>
+            <button onclick="ManageHQ.closeModal('modal-new-post')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="new-post-form" class="p-4 space-y-4">
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Post Type</label>
+                <div class="flex gap-2">
+                    <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs cursor-pointer hover:bg-white/10 transition has-[:checked]:bg-pink-500/15 has-[:checked]:border-pink-500/30 has-[:checked]:text-pink-400">
+                        <input type="radio" name="post_type" value="update" class="sr-only" checked>
+                        <i data-lucide="pen-line" class="w-3 h-3"></i> Update
+                    </label>
+                    <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs cursor-pointer hover:bg-white/10 transition has-[:checked]:bg-pink-500/15 has-[:checked]:border-pink-500/30 has-[:checked]:text-pink-400">
+                        <input type="radio" name="post_type" value="announcement" class="sr-only">
+                        <i data-lucide="megaphone" class="w-3 h-3"></i> Announcement
+                    </label>
+                    <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs cursor-pointer hover:bg-white/10 transition has-[:checked]:bg-pink-500/15 has-[:checked]:border-pink-500/30 has-[:checked]:text-pink-400">
+                        <input type="radio" name="post_type" value="matchday" class="sr-only">
+                        <i data-lucide="swords" class="w-3 h-3"></i> Match Day
+                    </label>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Content</label>
+                <textarea id="post-content" rows="4" placeholder="What's happening with your team?"
+                          class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition resize-none" required></textarea>
+            </div>
+            <div class="flex items-center gap-3">
+                <label class="flex items-center gap-1.5 text-xs text-white/50 cursor-pointer hover:text-white/70 transition">
+                    <input type="checkbox" id="post-pin" class="rounded border-white/20 bg-white/5 text-pink-500 focus:ring-pink-500/30">
+                    <i data-lucide="pin" class="w-3 h-3"></i> Pin this post
+                </label>
+            </div>
+            <div id="post-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="ManageHQ.closeModal('modal-new-post')"
+                        class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button type="submit" id="post-submit"
+                        class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-pink-600 hover:bg-pink-500 transition">Publish</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ── Upload Media Modal ── #}
+<div id="modal-upload-media" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="modal-media-title"
+     onclick="if(event.target===this)ManageHQ.closeModal('modal-upload-media')">
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between p-4 border-b border-white/10">
+            <h3 id="modal-media-title" class="font-bold text-base">Upload Media</h3>
+            <button onclick="ManageHQ.closeModal('modal-upload-media')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="upload-media-form" class="p-4 space-y-4">
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Title</label>
+                <input id="media-title" type="text" placeholder="e.g. LAN Finals Group Photo"
+                       class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition" required>
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Category</label>
+                <select id="media-category" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
+                    <option value="photo">Photo</option>
+                    <option value="brand">Brand Asset</option>
+                    <option value="event">Event</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">File</label>
+                <div class="rounded-xl border-2 border-dashed border-white/15 bg-white/3 p-6 text-center hover:border-white/25 transition cursor-pointer"
+                     onclick="document.getElementById('media-file-input').click()">
+                    <i data-lucide="cloud-upload" class="w-8 h-8 text-white/20 mx-auto mb-2"></i>
+                    <p class="text-xs text-white/40">Click to select or drag & drop</p>
+                    <p class="text-[10px] text-white/25 mt-1">PNG, JPG, GIF, WebP — Max 10MB</p>
+                </div>
+                <input id="media-file-input" type="file" accept="image/*" class="hidden" required>
+                <div id="media-file-preview" class="hidden mt-3 rounded-lg overflow-hidden">
+                    <img id="media-preview-img" src="" alt="Preview" class="w-full max-h-48 object-cover rounded-lg">
+                </div>
+            </div>
+            <div id="media-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="ManageHQ.closeModal('modal-upload-media')"
+                        class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button type="submit" id="media-submit"
+                        class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 transition">Upload</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ── Add Highlight Modal ── #}
+<div id="modal-add-highlight" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="modal-highlight-title"
+     onclick="if(event.target===this)ManageHQ.closeModal('modal-add-highlight')">
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between p-4 border-b border-white/10">
+            <h3 id="modal-highlight-title" class="font-bold text-base">Add Highlight Reel</h3>
+            <button onclick="ManageHQ.closeModal('modal-add-highlight')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="add-highlight-form" class="p-4 space-y-4">
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Title</label>
+                <input id="highlight-title" type="text" placeholder="e.g. Clutch Ace — Playoffs Week 3"
+                       class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition" required>
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Video URL</label>
+                <input id="highlight-url" type="url" placeholder="https://youtube.com/watch?v=..."
+                       class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition" required>
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Description (optional)</label>
+                <textarea id="highlight-desc" rows="2" placeholder="Context about this clip…"
+                          class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition resize-none"></textarea>
+            </div>
+            <div id="highlight-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="ManageHQ.closeModal('modal-add-highlight')"
+                        class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button type="submit" id="highlight-submit"
+                        class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-rose-600 hover:bg-rose-500 transition">Add Highlight</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ── Manage Communications Modal ── #}
+<div id="modal-comms" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="modal-comms-title"
+     onclick="if(event.target===this)ManageHQ.closeModal('modal-comms')">
+    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between p-4 border-b border-white/10">
+            <h3 id="modal-comms-title" class="font-bold text-base flex items-center gap-2">
+                <i data-lucide="headphones" class="w-4 h-4 text-indigo-400"></i>
+                Manage Communication Channels
+            </h3>
+            <button onclick="ManageHQ.closeModal('modal-comms')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <div class="p-4 space-y-5">
+            <p class="text-xs text-white/40">Configure communication channels for your team. Discord is required as the primary channel. Links are only visible to active team members.</p>
+
+            {# Discord — Primary #}
+            <div class="p-4 rounded-xl border border-indigo-500/25 bg-indigo-500/5">
+                <div class="flex items-center gap-2 mb-3">
+                    <svg class="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.11 13.11 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.029 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.06.06 0 0 0-.031-.03z"/></svg>
+                    <span class="text-sm font-bold text-indigo-300">Discord Server</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 font-bold">PRIMARY</span>
+                </div>
+                <label class="block text-xs text-white/60 mb-1.5 font-medium">Server Invite Link</label>
+                <input id="comms-discord-url" type="url" placeholder="https://discord.gg/your-server"
+                       class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-indigo-500/20 text-sm placeholder-white/30 focus:border-indigo-500/40 focus:outline-none transition">
+                <p class="text-[10px] text-white/30 mt-1.5">Your Discord server is the primary communication hub. Share a permanent invite link.</p>
+            </div>
+
+            {# WhatsApp — Optional #}
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <svg class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zm-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884zm8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.88 11.88 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+                    <span class="text-sm font-medium text-emerald-300">WhatsApp Group</span>
+                    <span class="text-[10px] text-white/30">Optional</span>
+                </div>
+                <input id="comms-whatsapp-url" type="url" placeholder="https://chat.whatsapp.com/..."
+                       class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+
+            {# Messenger — Optional #}
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.898 1.441 5.484 3.696 7.17V22l3.415-1.876c.91.252 1.876.389 2.889.389 5.523 0 10-4.145 10-9.243C22 6.145 17.523 2 12 2zm1.024 12.46-2.55-2.72-4.974 2.72 5.47-5.81 2.614 2.72 4.91-2.72-5.47 5.81z"/></svg>
+                    <span class="text-sm font-medium text-blue-300">Messenger Group</span>
+                    <span class="text-[10px] text-white/30">Optional</span>
+                </div>
+                <input id="comms-messenger-url" type="url" placeholder="https://m.me/..."
+                       class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition">
+            </div>
+
+            <div id="comms-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="ManageHQ.closeModal('modal-comms')"
+                        class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
+                <button type="button" onclick="ManageHQ.Community.saveComms()" id="comms-submit"
+                        class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 transition">Save Links</button>
+            </div>
+        </div>
+    </div>
+</div>

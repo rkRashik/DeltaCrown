@@ -705,7 +705,7 @@ def build_profile_context(request_user: Optional[User], profile_user: User) -> D
         PinnedHighlight,
     )
     from apps.user_profile.utils import get_user_profile_safe
-    from apps.teams.models import TeamMembership
+    from apps.organizations.models import TeamMembership
     from apps.games.models import Game
     from apps.economy.models import DeltaCrownWallet, DeltaCrownTransaction
     
@@ -798,8 +798,8 @@ def build_profile_context(request_user: Optional[User], profile_user: User) -> D
         # Attach team badge data to each passport
         for passport in all_passports:
             team_membership = TeamMembership.objects.filter(
-                profile=user_profile,
-                team__game=passport.game,
+                user=user_profile.user,
+                team__game_id=passport.game_id,
                 status=TeamMembership.Status.ACTIVE
             ).select_related('team').first()
             
@@ -821,7 +821,7 @@ def build_profile_context(request_user: Optional[User], profile_user: User) -> D
     # TEAMS & TOURNAMENTS
     # ========================================================================
     user_teams = TeamMembership.objects.filter(
-        profile=user_profile,
+        user=user_profile.user,
         status=TeamMembership.Status.ACTIVE
     ).select_related('team').order_by('-team__created_at')[:10]
     
@@ -1280,7 +1280,7 @@ def build_profile_context(request_user: Optional[User], profile_user: User) -> D
             context['live_feed'] = {
                 'is_live': True,
                 'title': live_match.tournament.name if live_match.tournament else 'Live Match',
-                'subtitle': f'Round {live_match.round_number} • vs {opponent_name}',
+                'subtitle': f'Round {live_match.round_number} â€¢ vs {opponent_name}',
                 'cta_label': 'Watch Match',
                 'cta_url': match_url,
                 'stream_url': live_match.stream_url if live_match.stream_url else None,

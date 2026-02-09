@@ -189,18 +189,18 @@ def team_manage(request, team_slug, org_slug=None):
                 has_permission = True
 
         if not has_permission:
+            # Per Master Plan Section 4.1: ALL active team members can access
+            # the manage page with role-gated section visibility.
             team_membership = TeamMembership.objects.filter(
                 team=team,
                 user=request.user,
-                role__in=[MembershipRole.OWNER, MembershipRole.MANAGER,
-                          MembershipRole.COACH],
                 status=MembershipStatus.ACTIVE,
             ).first()
             if team_membership:
                 has_permission = True
 
         if not has_permission:
-            messages.error(request, "You don't have permission to manage this team.")
+            messages.error(request, "You must be a team member to access this page.")
             return redirect('organizations:team_detail', team_slug=team_slug)
 
         # ── Build context ──
@@ -241,6 +241,9 @@ def team_manage(request, team_slug, org_slug=None):
                 MembershipRole.OWNER, MembershipRole.MANAGER
             )
         )
+        is_coach = user_membership and user_membership.role == MembershipRole.COACH
+        is_member = user_membership is not None
+        user_role = user_membership.role if user_membership else ('OWNER' if is_owner else 'GUEST')
 
         role_choices = [
             {'value': c[0], 'label': c[1]}
@@ -320,6 +323,9 @@ def team_manage(request, team_slug, org_slug=None):
             'user_membership': user_membership,
             'is_owner': is_owner,
             'is_admin': is_admin,
+            'is_coach': is_coach,
+            'is_member': is_member,
+            'user_role': user_role,
             # Permission convenience flags (used by templates)
             'can_manage_roster': is_admin,
             'can_edit_team_profile': is_admin,
@@ -363,7 +369,7 @@ def team_manage(request, team_slug, org_slug=None):
             'wallet_context': wallet_context,
         }
 
-        return render(request, 'teams/manage_hq.html', context)
+        return render(request, 'organizations/team/manage_hq.html', context)
 
     except Team.DoesNotExist:
         messages.error(request, f'Team "{team_slug}" not found.')

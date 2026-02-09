@@ -1,0 +1,256 @@
+{% comment %}
+Competition Hub — Active tournaments, upcoming matches, tournament history, TOC panel.
+Section 7.3 of the Master Plan.
+{% endcomment %}
+<section id="competition" class="hq-section space-y-4">
+
+    {# ── Header ── #}
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+            <h2 class="text-lg font-bold flex items-center gap-2">
+                <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+                Competition Hub
+            </h2>
+            <p class="text-sm text-white/50 mt-0.5">Tournaments, matches, and competitive operations</p>
+        </div>
+        {% if can_manage_roster %}
+        <a href="#"
+            class="rounded-xl px-4 py-2 text-sm font-medium border border-line bg-white/5 hover:bg-white/10 transition inline-flex items-center gap-2">
+            <i data-lucide="search" class="w-3.5 h-3.5"></i>
+            Browse Tournaments
+        </a>
+        {% endif %}
+    </div>
+
+    {# ── Active Tournaments ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h3 class="text-base font-bold mb-3 flex items-center gap-2">
+            <i data-lucide="flame" class="w-4 h-4 text-orange-400"></i>
+            Active Tournaments
+        </h3>
+        <div id="active-tournaments-list">
+            <div class="rounded-xl border border-dashed border-white/15 bg-white/3 p-8 text-center">
+                <i data-lucide="trophy" class="w-8 h-8 text-white/15 mx-auto mb-3"></i>
+                <p class="text-sm text-white/40 font-medium">No active tournament registrations</p>
+                <p class="text-xs text-white/25 mt-1">Browse and register for tournaments to get started</p>
+            </div>
+        </div>
+    </div>
+
+    {# ── Tournament Setup / Prep ── #}
+    {% if can_manage_roster %}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h3 class="text-base font-bold mb-4 flex items-center gap-2">
+            <i data-lucide="clipboard-check" class="w-4 h-4 text-cyan-400"></i>
+            Tournament Prep
+        </h3>
+
+        {# Pre-Tournament Checklist #}
+        <div class="space-y-2 mb-5">
+            <p class="text-xs font-bold text-white/60 uppercase tracking-wide mb-2">Pre-Registration Checklist</p>
+            {% comment %}Checklist items — evaluated inline{% endcomment %}
+            <div class="flex items-center gap-3 rounded-xl border border-white/8 bg-white/3 px-4 py-2.5">
+                {% if has_captain %}
+                <div class="h-6 w-6 rounded-full bg-emerald-500/20 grid place-items-center shrink-0"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i></div>
+                {% else %}
+                <div class="h-6 w-6 rounded-full bg-red-500/15 grid place-items-center shrink-0"><i data-lucide="x" class="w-3 h-3 text-red-400"></i></div>
+                {% endif %}
+                <div class="flex-1">
+                    <span class="text-sm {% if has_captain %}text-white/80{% else %}text-red-400{% endif %}">Captain Designated</span>
+                    <p class="text-[11px] text-white/40">One player must be marked as Tournament Captain (⭐) for check-ins</p>
+                </div>
+                {% if not has_captain and can_manage_roster %}
+                <a onclick="window.location.hash='#roster'" class="text-[11px] text-cyan-400 hover:underline cursor-pointer shrink-0">Fix →</a>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-3 rounded-xl border border-white/8 bg-white/3 px-4 py-2.5">
+                {% if current_roster_size >= min_roster_size %}
+                <div class="h-6 w-6 rounded-full bg-emerald-500/20 grid place-items-center shrink-0"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i></div>
+                {% else %}
+                <div class="h-6 w-6 rounded-full bg-red-500/15 grid place-items-center shrink-0"><i data-lucide="x" class="w-3 h-3 text-red-400"></i></div>
+                {% endif %}
+                <div class="flex-1">
+                    <span class="text-sm {% if current_roster_size >= min_roster_size %}text-white/80{% else %}text-red-400{% endif %}">Minimum Roster Met</span>
+                    <p class="text-[11px] text-white/40">{{ current_roster_size }} / {{ min_roster_size }} minimum players</p>
+                </div>
+                {% if current_roster_size < min_roster_size %}
+                <a onclick="ManageHQ.openInviteModal()" class="text-[11px] text-cyan-400 hover:underline cursor-pointer shrink-0">Invite →</a>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-3 rounded-xl border border-white/8 bg-white/3 px-4 py-2.5">
+                {% if team.logo and team.logo.url %}
+                <div class="h-6 w-6 rounded-full bg-emerald-500/20 grid place-items-center shrink-0"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i></div>
+                {% else %}
+                <div class="h-6 w-6 rounded-full bg-amber-500/15 grid place-items-center shrink-0"><i data-lucide="alert-triangle" class="w-3 h-3 text-amber-400"></i></div>
+                {% endif %}
+                <div class="flex-1">
+                    <span class="text-sm {% if team.logo and team.logo.url %}text-white/80{% else %}text-amber-400{% endif %}">Team Logo Uploaded</span>
+                    <p class="text-[11px] text-white/40">Required for most tournament registrations</p>
+                </div>
+                {% if not team.logo or not team.logo.url %}
+                <a onclick="window.location.hash='#profile'" class="text-[11px] text-cyan-400 hover:underline cursor-pointer shrink-0">Upload →</a>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-3 rounded-xl border border-white/8 bg-white/3 px-4 py-2.5">
+                {% if team.region %}
+                <div class="h-6 w-6 rounded-full bg-emerald-500/20 grid place-items-center shrink-0"><i data-lucide="check" class="w-3 h-3 text-emerald-400"></i></div>
+                {% else %}
+                <div class="h-6 w-6 rounded-full bg-amber-500/15 grid place-items-center shrink-0"><i data-lucide="alert-triangle" class="w-3 h-3 text-amber-400"></i></div>
+                {% endif %}
+                <div class="flex-1">
+                    <span class="text-sm {% if team.region %}text-white/80{% else %}text-amber-400{% endif %}">Region Set</span>
+                    <p class="text-[11px] text-white/40">Determines tournament eligibility by region</p>
+                </div>
+                {% if not team.region %}
+                <a onclick="window.location.hash='#settings'" class="text-[11px] text-cyan-400 hover:underline cursor-pointer shrink-0">Set →</a>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Roster Submission Preview #}
+        <div class="border-t border-white/8 pt-4">
+            <p class="text-xs font-bold text-white/60 uppercase tracking-wide mb-3">Tournament Lineup Preview</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="swords" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span class="text-xs font-bold text-emerald-400">Starting Lineup</span>
+                    </div>
+                    <div class="space-y-1.5" id="prep-starters">
+                        {% for membership in members %}
+                        {% if membership.roster_slot == 'STARTER' or membership.role == 'OWNER' and not membership.roster_slot or membership.role == 'PLAYER' and not membership.roster_slot %}
+                        <div class="flex items-center gap-2">
+                            <div class="h-5 w-5 rounded bg-white/10 grid place-items-center text-[10px] font-bold shrink-0">{{ membership.user.username|slice:":1"|upper }}</div>
+                            <span class="text-xs text-white/70 truncate">{{ membership.user.username }}</span>
+                            {% if membership.is_tournament_captain %}<span class="text-amber-400 text-[10px]">⭐</span>{% endif %}
+                            {% if membership.player_role %}<span class="text-[10px] text-blue-400/60">{{ membership.player_role }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="arrow-left-right" class="w-3.5 h-3.5 text-blue-400"></i>
+                        <span class="text-xs font-bold text-blue-400">Substitutes</span>
+                    </div>
+                    <div class="space-y-1.5" id="prep-subs">
+                        {% for membership in members %}
+                        {% if membership.roster_slot == 'SUBSTITUTE' or membership.role == 'SUBSTITUTE' %}
+                        <div class="flex items-center gap-2">
+                            <div class="h-5 w-5 rounded bg-white/10 grid place-items-center text-[10px] font-bold shrink-0">{{ membership.user.username|slice:":1"|upper }}</div>
+                            <span class="text-xs text-white/70 truncate">{{ membership.user.username }}</span>
+                            {% if membership.player_role %}<span class="text-[10px] text-blue-400/60">{{ membership.player_role }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                        <div id="prep-subs-empty" class="text-[11px] text-white/30 italic" style="display:none">No subs assigned</div>
+                    </div>
+                </div>
+            </div>
+            <p class="text-[11px] text-white/30 mt-3 flex items-center gap-1.5">
+                <i data-lucide="info" class="w-3 h-3 shrink-0"></i>
+                Manage roster slots in <a onclick="window.location.hash='#roster'" class="text-cyan-400 underline cursor-pointer">Roster Ops</a> before registering.
+            </p>
+        </div>
+
+        {# Match Day Readiness #}
+        <div class="border-t border-white/8 pt-4 mt-4">
+            <p class="text-xs font-bold text-white/60 uppercase tracking-wide mb-3">Match Day Quick Prep</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div class="rounded-xl border border-white/8 bg-white/3 p-3 text-center">
+                    <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400 mx-auto mb-1.5"></i>
+                    <div class="text-xs font-bold text-white/80">Roster Lock</div>
+                    <div class="text-[10px] text-white/40 mt-0.5">
+                        {% if roster_locked %}
+                        <span class="text-emerald-400">Locked ✓</span>
+                        {% else %}
+                        <span class="text-amber-400">Unlocked</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="rounded-xl border border-white/8 bg-white/3 p-3 text-center">
+                    <i data-lucide="id-card" class="w-5 h-5 text-blue-400 mx-auto mb-1.5"></i>
+                    <div class="text-xs font-bold text-white/80">Game IDs</div>
+                    <div class="text-[10px] text-white/40 mt-0.5">Verify player game IDs before match</div>
+                </div>
+                <div class="rounded-xl border border-white/8 bg-white/3 p-3 text-center">
+                    <i data-lucide="radio" class="w-5 h-5 text-purple-400 mx-auto mb-1.5"></i>
+                    <div class="text-xs font-bold text-white/80">Comms Ready</div>
+                    <div class="text-[10px] text-white/40 mt-0.5">Ensure voice comms are set up</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Upcoming Matches ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h3 class="text-base font-bold mb-3 flex items-center gap-2">
+            <i data-lucide="calendar" class="w-4 h-4 text-blue-400"></i>
+            Upcoming Matches
+        </h3>
+        <div id="upcoming-matches-list">
+            <div class="rounded-xl border border-dashed border-white/15 bg-white/3 p-8 text-center">
+                <i data-lucide="swords" class="w-8 h-8 text-white/15 mx-auto mb-3"></i>
+                <p class="text-sm text-white/40 font-medium">No upcoming matches</p>
+                <p class="text-xs text-white/25 mt-1">When your team is in a bracket, matches will appear here</p>
+            </div>
+        </div>
+    </div>
+
+    {# ── Tournament History ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h3 class="text-base font-bold mb-3 flex items-center gap-2">
+            <i data-lucide="history" class="w-4 h-4 text-purple-400"></i>
+            Tournament History
+        </h3>
+        <div id="tournament-history-list">
+            <div class="rounded-xl border border-dashed border-white/15 bg-white/3 p-6 text-center">
+                <p class="text-sm text-white/30">No tournament history yet</p>
+            </div>
+        </div>
+    </div>
+
+    {# ── TOC Panel (Team of Champions) ── #}
+    {% if is_admin %}
+    <div class="rounded-3xl border border-indigo-500/20 bg-indigo-500/5 shadow-soft p-5 lg:p-6">
+        <h3 class="text-base font-bold mb-2 flex items-center gap-2">
+            <i data-lucide="crown" class="w-4 h-4 text-indigo-400"></i>
+            Team of Champions
+        </h3>
+        <p class="text-sm text-white/50 mb-4">Season standings, crown point tracking, and qualification status.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="rounded-xl bg-white/5 border border-white/8 p-3 text-center">
+                <div class="text-xl font-black text-indigo-400">—</div>
+                <div class="text-[10px] text-white/40 uppercase tracking-wide mt-1">Crown Points</div>
+            </div>
+            <div class="rounded-xl bg-white/5 border border-white/8 p-3 text-center">
+                <div class="text-xl font-black text-white/50">—</div>
+                <div class="text-[10px] text-white/40 uppercase tracking-wide mt-1">Season Rank</div>
+            </div>
+            <div class="rounded-xl bg-white/5 border border-white/8 p-3 text-center">
+                <div class="text-xl font-black text-white/50">—</div>
+                <div class="text-[10px] text-white/40 uppercase tracking-wide mt-1">Qualification</div>
+            </div>
+        </div>
+
+        <div class="mt-3 text-xs text-white/30 flex items-center gap-1.5">
+            <i data-lucide="info" class="w-3 h-3"></i>
+            Data will populate when your team participates in ranked tournaments.
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Org Tournament Policies ── #}
+    {% if team.organization %}
+    <div class="rounded-2xl border border-indigo-500/15 bg-indigo-500/5 p-4 flex items-center gap-3">
+        <i data-lucide="building-2" class="w-5 h-5 text-indigo-400 shrink-0"></i>
+        <div class="text-sm text-white/50">
+            <strong class="text-white/70">{{ team.organization.name }}</strong> may influence tournament registration policies for this team.
+        </div>
+    </div>
+    {% endif %}
+
+</section>

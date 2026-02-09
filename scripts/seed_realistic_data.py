@@ -15,7 +15,7 @@ django.setup()
 
 from django.contrib.auth import get_user_model
 from apps.tournaments.models import Game, Tournament, Registration
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 
 User = get_user_model()
 
@@ -45,7 +45,7 @@ def create_users():
             last_name=data['last_name']
         )
         users.append(user)
-        print(f"  ✓ Created user: {user.username}")
+        print(f"  âœ“ Created user: {user.username}")
     
     return users
 
@@ -84,7 +84,7 @@ def create_games():
         )
         games.append(game)
         status = "Created" if created else "Already exists"
-        print(f"  ✓ {status}: {game.name}")
+        print(f"  âœ“ {status}: {game.name}")
     
     return games
 
@@ -168,7 +168,7 @@ def create_teams(users, games):
             )
         
         teams.append(team)
-        print(f"  ✓ Created team: {team.name} ({team.tag}) - {data['game']}")
+        print(f"  âœ“ Created team: {team.name} ({team.tag}) - {data['game']}")
         print(f"    Members: {', '.join([m.username for m in data['members']])}")
     
     return teams
@@ -268,7 +268,7 @@ def create_tournaments(users, games, teams):
             )
         
         tournaments.append(tournament)
-        print(f"  ✓ Created tournament: {tournament.name}")
+        print(f"  âœ“ Created tournament: {tournament.name}")
         print(f"    Game: {tournament.game.name} | Format: {tournament.get_format_display()}")
         print(f"    Prize Pool: {tournament.prize_pool} {tournament.prize_currency}")
         print(f"    Registered: {len(registered_teams)} teams")
@@ -283,7 +283,7 @@ def main():
     
     # Check if data already exists
     if User.objects.filter(username='alex_gaming').exists():
-        print("\n⚠️  Data already exists in database!")
+        print("\nâš ï¸  Data already exists in database!")
         response = input("Do you want to delete existing data and reseed? (yes/no): ")
         if response.lower() != 'yes':
             print("Seeding cancelled.")
@@ -292,24 +292,24 @@ def main():
         print("\nClearing existing data...")
         # Delete in proper order to avoid FK constraints
         from apps.tournaments.models import Registration, Tournament
-        from apps.teams.models import TeamMembership
+        from apps.organizations.models import TeamMembership
         
         Registration.objects.all().delete()
-        print("  ✓ Cleared registrations")
+        print("  âœ“ Cleared registrations")
         Tournament.objects.all().delete()
-        print("  ✓ Cleared tournaments")
+        print("  âœ“ Cleared tournaments")
         TeamMembership.objects.all().delete()
-        print("  ✓ Cleared team memberships")
+        print("  âœ“ Cleared team memberships")
         Team.objects.all().delete()
-        print("  ✓ Cleared teams")
+        print("  âœ“ Cleared teams")
         Game.objects.all().delete()
-        print("  ✓ Cleared games")
+        print("  âœ“ Cleared games")
         User.objects.filter(username__in=[
             'alex_gaming', 'shadow_striker', 'nova_star', 'phoenix_rising',
             'cyber_wolf', 'thunder_bolt', 'viper_strike', 'dragon_fury',
             'storm_rider', 'blaze_master'
         ]).delete()
-        print("  ✓ Cleared users")
+        print("  âœ“ Cleared users")
     
     # Create data
     users = create_users()
@@ -318,13 +318,13 @@ def main():
     tournaments = create_tournaments(users, games, teams)
     
     print("\n" + "=" * 80)
-    print("✅ Seeding Complete!")
+    print("âœ… Seeding Complete!")
     print("=" * 80)
     print(f"\nSummary:")
-    print(f"  • Users: {len(users)}")
-    print(f"  • Games: {len(games)}")
-    print(f"  • Teams: {len(teams)}")
-    print(f"  • Tournaments: {len(tournaments)}")
+    print(f"  â€¢ Users: {len(users)}")
+    print(f"  â€¢ Games: {len(games)}")
+    print(f"  â€¢ Teams: {len(teams)}")
+    print(f"  â€¢ Tournaments: {len(tournaments)}")
     print("\nYou can now login with any user:")
     print("  Username: alex_gaming (or any other username)")
     print("  Password: secure123")

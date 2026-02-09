@@ -67,7 +67,7 @@ class TestTournamentEventHandlers:
     def test_create_payment_verification_handler(self):
         """Test that PaymentVerification is created when registration is created"""
         from apps.tournaments.models import Tournament, Registration, PaymentVerification
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         from apps.accounts.models import User
         
         # Create test data
@@ -129,7 +129,7 @@ class TestTournamentService:
         """Test that creating registration through service publishes event"""
         from apps.tournaments.services.tournament_service import RegistrationService
         from apps.tournaments.models import Tournament, Registration, PaymentVerification
-        from apps.teams.models import Team
+        from apps.organizations.models import Team
         from apps.accounts.models import User
         
         # Create test data

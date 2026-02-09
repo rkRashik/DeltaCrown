@@ -39,7 +39,7 @@ class TournamentLobbyView(LoginRequiredMixin, View):
         
         # Check if user is registered (allow pending, payment_submitted, confirmed)
         from apps.tournaments.models import Registration
-        from apps.teams.models import TeamMembership
+        from apps.organizations.models import TeamMembership
         
         # First check for individual registration
         registration = Registration.objects.filter(
@@ -57,7 +57,7 @@ class TournamentLobbyView(LoginRequiredMixin, View):
         if not registration:
             # Get team IDs where user is an active member
             user_team_ids = TeamMembership.objects.filter(
-                profile__user=request.user,
+                user=request.user,
                 status=TeamMembership.Status.ACTIVE
             ).values_list('team_id', flat=True)
             
@@ -136,7 +136,7 @@ class CheckInView(LoginRequiredMixin, View):
             if tournament.participation_type == 'team':
                 # Find user's team registration
                 registration = tournament.registrations.filter(
-                    team__memberships__user=request.user,
+                    team__vnext_memberships__user=request.user,
                     status='confirmed',
                     is_deleted=False
                 ).first()
@@ -151,7 +151,7 @@ class CheckInView(LoginRequiredMixin, View):
                 team_id=team_id
             )
             
-            messages.success(request, "✓ Check-in successful! You're all set for the tournament.")
+            messages.success(request, "âœ“ Check-in successful! You're all set for the tournament.")
             
             # Return JSON for AJAX requests
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':

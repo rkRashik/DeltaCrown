@@ -249,7 +249,7 @@ class TestHubUsesCorrectModel:
         
         # Must import from organizations, not teams
         assert "from apps.organizations.models import Team" in source
-        assert "from apps.teams.models import Team" not in source
+        assert "from apps.organizations.models import Team" not in source
     
     def test_hub_queries_vnext_team_fields(self, client):
         """Hub queryset must use vNext fields (status, visibility, created_by)."""

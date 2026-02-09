@@ -4,8 +4,8 @@ from django.apps import apps
 from django.core.exceptions import ValidationError
 
 User = get_user_model()
-Team = apps.get_model('teams', 'Team')
-TeamMembership = apps.get_model('teams', 'TeamMembership')
+Team = apps.get_model('organizations', 'Team')
+TeamMembership = apps.get_model('organizations', 'TeamMembership')
 UserProfile = apps.get_model('user_profile', 'UserProfile')
 Tournament = apps.get_model('tournaments', 'Tournament')
 Registration = apps.get_model('tournaments', 'Registration')

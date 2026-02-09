@@ -7,7 +7,7 @@ from django.test import TestCase, Client
 from apps.accounts.models import User
 from django.urls import reverse
 from apps.user_profile.models import UserProfile
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 from apps.economy.models import DeltaCrownWallet
 
 

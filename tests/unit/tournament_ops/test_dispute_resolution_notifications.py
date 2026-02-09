@@ -442,7 +442,7 @@ class TestArchitectureCompliance:
         forbidden_patterns = [
             'from apps.tournaments.models import',
             'from apps.games.models import',
-            'from apps.teams.models import',
+            'from apps.organizations.models import',
             'from apps.user_profile.models import',
         ]
         

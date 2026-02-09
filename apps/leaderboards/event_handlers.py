@@ -35,7 +35,7 @@ def handle_match_completed_for_stats(event: MatchCompletedEvent):
     logger.info(f"Processing MatchCompletedEvent for stats: match_id={event.match_id}")
     
     try:
-        # Import service façade and DTOs
+        # Import service faÃ§ade and DTOs
         from apps.tournament_ops.services.tournament_ops_service import get_tournament_ops_service
         from apps.tournament_ops.dtos import MatchStatsUpdateDTO, TeamMatchStatsUpdateDTO
         
@@ -117,7 +117,7 @@ def handle_match_completed_for_stats(event: MatchCompletedEvent):
                 result1 = service.update_team_stats_from_match(team1_update)
                 logger.info(
                     f"Updated team {team1_id} stats: "
-                    f"ELO {team1_elo} → {result1['ranking'].elo_rating} "
+                    f"ELO {team1_elo} â†’ {result1['ranking'].elo_rating} "
                     f"({result1['elo_change']:+d})"
                 )
             except Exception as e:
@@ -128,7 +128,7 @@ def handle_match_completed_for_stats(event: MatchCompletedEvent):
                 result2 = service.update_team_stats_from_match(team2_update)
                 logger.info(
                     f"Updated team {team2_id} stats: "
-                    f"ELO {team2_elo} → {result2['ranking'].elo_rating} "
+                    f"ELO {team2_elo} â†’ {result2['ranking'].elo_rating} "
                     f"({result2['elo_change']:+d})"
                 )
             except Exception as e:
@@ -450,7 +450,7 @@ def handle_tier_changed(event: Event):
     """
     Handle TierChangedEvent to trigger notifications and cosmetic updates.
     
-    When a user/team's tier changes (Bronze → Silver → Gold → Diamond → Crown),
+    When a user/team's tier changes (Bronze â†’ Silver â†’ Gold â†’ Diamond â†’ Crown),
     sends congratulations notification and updates profile cosmetics.
     
     Args:
@@ -472,7 +472,7 @@ def handle_tier_changed(event: Event):
         is_promotion = tier_order.index(new_tier) > tier_order.index(old_tier)
         
         if is_promotion:
-            logger.info(f"{entity_type.capitalize()} {entity_id} promoted: {old_tier} → {new_tier} in {game_slug}")
+            logger.info(f"{entity_type.capitalize()} {entity_id} promoted: {old_tier} â†’ {new_tier} in {game_slug}")
             
             # Send notification via NotificationAdapter
             from apps.tournament_ops.services.tournament_ops_service import get_tournament_ops_service
@@ -497,7 +497,7 @@ def handle_tier_changed(event: Event):
                 # For teams: notify all team members
                 elif entity_type == "team":
                     # Get team members and notify each
-                    from apps.teams.models import Team, TeamMembership
+                    from apps.organizations.models import Team, TeamMembership
                     
                     team = Team.objects.get(id=entity_id)
                     memberships = TeamMembership.objects.filter(team=team, status='active')
@@ -523,7 +523,7 @@ def handle_tier_changed(event: Event):
         
         else:
             # Tier demotion (downward movement)
-            logger.info(f"{entity_type.capitalize()} {entity_id} tier changed: {old_tier} → {new_tier} in {game_slug}")
+            logger.info(f"{entity_type.capitalize()} {entity_id} tier changed: {old_tier} â†’ {new_tier} in {game_slug}")
         
     except Exception as e:
         logger.error(f"Error processing TierChangedEvent: {str(e)}", exc_info=True)

@@ -106,7 +106,7 @@ def game_passport_verify(request, passport_id):
         passport.verified_at = timezone.now()
         passport.save()
         
-        messages.success(request, f'✓ {passport.game.name} passport for {passport.user.username} marked as VERIFIED')
+        messages.success(request, f'âœ“ {passport.game.name} passport for {passport.user.username} marked as VERIFIED')
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'success': True, 'status': 'VERIFIED'})
@@ -130,7 +130,7 @@ def game_passport_flag(request, passport_id):
         passport.flagged_at = timezone.now()
         passport.save()
         
-        messages.warning(request, f'⚠ {passport.game.name} passport for {passport.user.username} marked as FLAGGED')
+        messages.warning(request, f'âš  {passport.game.name} passport for {passport.user.username} marked as FLAGGED')
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'success': True, 'status': 'FLAGGED'})
@@ -154,7 +154,7 @@ def game_passport_reset(request, passport_id):
         passport.flag_reason = ''
         passport.save()
         
-        messages.info(request, f'↺ {passport.game.name} passport for {passport.user.username} reset to PENDING')
+        messages.info(request, f'â†º {passport.game.name} passport for {passport.user.username} reset to PENDING')
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'success': True, 'status': 'PENDING'})
@@ -173,7 +173,7 @@ def game_passport_unlock(request, passport_id):
         passport.locked_until = None
         passport.save()
         
-        messages.success(request, f'🔓 Identity lock removed from {passport.game.name} passport for {passport.user.username}')
+        messages.success(request, f'ðŸ”“ Identity lock removed from {passport.game.name} passport for {passport.user.username}')
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'success': True})
@@ -198,7 +198,7 @@ def game_passport_override_cooldown(request, passport_id):
                 admin_user=request.user,
                 reason=f"Admin override by {request.user.username}"
             )
-            messages.success(request, f'✓ Cooldown removed for {passport.game.name} passport')
+            messages.success(request, f'âœ“ Cooldown removed for {passport.game.name} passport')
         else:
             messages.info(request, 'No active cooldown found')
         
@@ -227,10 +227,10 @@ def game_passport_detail(request, passport_id):
         passport.days_locked = 0
     
     # Get team memberships
-    from apps.teams.models import TeamMembership
+    from apps.organizations.models import TeamMembership
     team_memberships = TeamMembership.objects.filter(
-        profile=passport.user.profile,
-        team__game=passport.game.slug,
+        user=passport.user,
+        team__game_id=passport.game_id,
         status='ACTIVE'
     ).select_related('team')
     

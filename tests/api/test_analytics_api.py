@@ -14,7 +14,7 @@ from rest_framework.test import APIClient
 from rest_framework import status
 
 from apps.games.models import Game
-from apps.teams.models import Team
+from apps.organizations.models import Team
 from apps.leaderboards.models import (
     UserAnalyticsSnapshot,
     TeamAnalyticsSnapshot,

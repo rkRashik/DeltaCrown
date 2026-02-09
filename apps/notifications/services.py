@@ -74,7 +74,7 @@ def _resolve_email(target: Any) -> Optional[str]:
 
 
 def _to_user_model(target: Any) -> Optional[User]:
-    """Normalize target to accounts.User (UserProfile ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ .user; User ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ itself)."""
+    """Normalize target to accounts.User (UserProfile ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ .user; User ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ itself)."""
     if getattr(target, "user", None) and getattr(getattr(target, "user"), "_meta", None):
         usr = target.user
         if getattr(usr._meta, "model_name", "") == "user":
@@ -373,18 +373,37 @@ class NotificationService:
                 )
                 created_notifications.append(notification)
                 
-                # Queue email notification if enabled
+                # Queue email notification if enabled (graceful degradation
+                # when Redis / Celery broker is unavailable â€” the in-app
+                # notification is already persisted, email is best-effort).
                 if 'email' in channels:
-                    send_email_notification.delay(notification.id)
+                    try:
+                        send_email_notification.apply_async(
+                            args=[notification.id],
+                            ignore_result=True,
+                            retry=False,
+                        )
+                    except Exception:
+                        logger.warning(
+                            "Email notification queuing failed (broker down?) â€” "
+                            "in-app notification %s still delivered", notification.id,
+                        )
             
-            # Queue Discord notification if enabled
-            if 'discord' in channels and settings.DISCORD_NOTIFICATIONS_ENABLED:
-                send_discord_notification.delay({
-                    'title': title,
-                    'body': body,
-                    'url': url,
-                    'color': 3447003,  # Blue
-                })
+            # Queue Discord notification if enabled (same graceful degradation)
+            if 'discord' in channels and getattr(settings, 'DISCORD_NOTIFICATIONS_ENABLED', False):
+                try:
+                    send_discord_notification.apply_async(
+                        args=[{
+                            'title': title,
+                            'body': body,
+                            'url': url,
+                            'color': 3447003,  # Blue
+                        }],
+                        ignore_result=True,
+                        retry=False,
+                    )
+                except Exception:
+                    logger.warning("Discord notification queuing failed (broker down?)")
         
         return created_notifications
     
@@ -417,7 +436,7 @@ class NotificationService:
         )
 
     @staticmethod
-    def notify_vnext_team_invite_sent(*, recipient_user, team, inviter_user=None, role: str = 'PLAYER'):
+    def notify_vnext_team_invite_sent(*, recipient_user, team, inviter_user=None, role: str = 'PLAYER', invite_id=None):
         """Notify user when they receive a vNext team invite (organizations.TeamMembership INVITED).
 
         This avoids the legacy teams.TeamInvite dependency and works for vNext membership invites.
@@ -428,14 +447,24 @@ class NotificationService:
             return None
 
         inviter_name = getattr(inviter_user, 'username', None) or 'A team captain'
-        title = f"Team Invite: {getattr(team, 'name', 'a team')}"
-        body = f"{inviter_name} invited you to join {getattr(team, 'name', 'a team')} as {role}."
+        team_name = getattr(team, 'name', 'a team')
+        title = f"Team Invite: {team_name}"
+        body = f"{inviter_name} invited you to join {team_name} as {role}."
 
         try:
             url = reverse('organizations:team_invites')
         except Exception:
-            # Fallback to legacy invites page if needed
-            url = reverse('teams:my_invites')
+            try:
+                url = reverse('teams:my_invites')
+            except Exception:
+                url = '/dashboard/'
+
+        extra = {}
+        if invite_id:
+            extra['action_object_id'] = invite_id
+            extra['action_type'] = 'team_invite'
+            extra['action_label'] = 'View Invite'
+            extra['action_url'] = url
 
         return NotificationService._send_notification_multi_channel(
             users=[recipient_user],
@@ -443,6 +472,7 @@ class NotificationService:
             title=title,
             body=body,
             url=url,
+            **extra,
         )
     
     @staticmethod
@@ -477,16 +507,16 @@ class NotificationService:
             recipients.append(invite.team.created_by)
         
         # Add team managers
-        from apps.teams.models import TeamMembership
+        from apps.organizations.models import TeamMembership
         managers = TeamMembership.objects.filter(
             team=invite.team,
             status='ACTIVE',
             role__in=[TeamMembership.Role.OWNER, TeamMembership.Role.GENERAL_MANAGER, TeamMembership.Role.TEAM_MANAGER]
-        ).select_related('profile__user')
+        ).select_related('user')
         
         for membership in managers:
-            if membership.profile.user not in recipients:
-                recipients.append(membership.profile.user)
+            if membership.user not in recipients:
+                recipients.append(membership.user)
         
         if not recipients:
             return None
@@ -526,12 +556,14 @@ class NotificationService:
             adapter = TeamAdapter()
             url = adapter.get_team_url(team.id)
         except Exception:
-            # Fallback to legacy URL if adapter fails
-            from django.urls import reverse
-            url = reverse('teams:team_detail', kwargs={'slug': team.slug})
+            # Fallback: build URL directly from slug
+            url = f"/teams/{team.slug}/"
         
-        # Get all team members
-        team_members = [member.user for member in team.members.all() if member.user]
+        # Get all team members (support both vNext and legacy)
+        if hasattr(team, 'vnext_memberships'):
+            team_members = [m.user for m in team.vnext_memberships.filter(status='ACTIVE').select_related('user') if m.user]
+        else:
+            team_members = [member.user for member in team.members.all() if member.user]
         
         return NotificationService._send_notification_multi_channel(
             users=team_members,
@@ -650,10 +682,10 @@ class NotificationService:
         
         if new_rank < old_rank:
             direction = "up"
-            emoji = "📈"
+            emoji = "ðŸ“ˆ"
         else:
             direction = "down"
-            emoji = "📉"
+            emoji = "ðŸ“‰"
         
         title = f"{emoji} Ranking Update: {team.name}"
         body = f"Your team moved {direction} from #{old_rank} to #{new_rank} ({points_change:+} points)"
@@ -751,7 +783,7 @@ class NotificationService:
         """
         from django.urls import reverse
         
-        title = f"💰 Payout Received: {amount} coins"
+        title = f"ðŸ’° Payout Received: {amount} coins"
         body = f"Your team received {amount} coins! Reason: {reason}"
         url = reverse('teams:team_detail', kwargs={'slug': team.slug})
         
@@ -777,7 +809,7 @@ class NotificationService:
         """
         from django.urls import reverse
         
-        title = f"🏆 Achievement Unlocked: {achievement.title}"
+        title = f"ðŸ† Achievement Unlocked: {achievement.title}"
         body = f"Your team earned: {achievement.description}"
         url = reverse('teams:team_detail', kwargs={'slug': team.slug})
         
@@ -876,7 +908,7 @@ class NotificationService:
             )
             
             logger.info(
-                f"Follow notification created: follower={follower_user.username} → "
+                f"Follow notification created: follower={follower_user.username} â†’ "
                 f"followee={followee_user.username} (notif_id={notification.id})"
             )
             
@@ -884,7 +916,7 @@ class NotificationService:
             
         except Exception as e:
             logger.error(
-                f"Failed to create follow notification: follower={follower_user.username} → "
+                f"Failed to create follow notification: follower={follower_user.username} â†’ "
                 f"followee={followee_user.username}, error: {e}",
                 exc_info=True
             )

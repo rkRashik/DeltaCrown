@@ -769,7 +769,7 @@ class AnalyticsService:
         """
         if registration.team_id:
             # team_id is IntegerField, need to fetch Team model
-            from apps.teams.models import Team
+            from apps.organizations.models import Team
             try:
                 team = Team.objects.get(id=registration.team_id)
                 return team.name

@@ -78,7 +78,7 @@ class TestTeamCreationSync(TestCase):
         self.assertEqual(team.owner, self.user)
         
         # Verify it's NOT in legacy model
-        from apps.teams.models import Team as LegacyTeam
+        from apps.organizations.models import Team as LegacyTeam
         legacy_count = LegacyTeam.objects.filter(name='Test Esports Team').count()
         self.assertEqual(legacy_count, 0, "Team should NOT be created in legacy table")
     

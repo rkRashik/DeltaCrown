@@ -23,7 +23,7 @@ from django.core.exceptions import ValidationError
 
 from apps.tournaments.models import Tournament, Registration
 from apps.tournaments.services.registration_service import RegistrationService
-from apps.teams.models import Team, TeamMembership
+from apps.organizations.models import Team, TeamMembership
 
 
 class TournamentRegistrationView(LoginRequiredMixin, View):
@@ -216,23 +216,22 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
             
             # Get teams user has permission to register
             eligible_teams = Team.objects.filter(
-                memberships__user=user,
-                is_deleted=False
-            ).filter(
-                # User must be owner, manager, or have explicit permission
-                memberships__user=user,
-                memberships__is_deleted=False
+                vnext_memberships__user=user,
+                vnext_memberships__status='ACTIVE',
+                status='ACTIVE'
             ).distinct()
             
             # Annotate with permission level
             teams_with_permissions = []
             for team in eligible_teams:
-                membership = TeamMembership.objects.get(team=team, user=user, is_deleted=False)
+                try:
+                    membership = TeamMembership.objects.get(team=team, user=user, status='ACTIVE')
+                except TeamMembership.DoesNotExist:
+                    continue
                 permission_label = 'Owner' if team.created_by == user else membership.role.title()
                 can_register = (
                     team.created_by == user or
-                    membership.role in ['manager', 'captain'] or
-                    membership.can_register_tournaments
+                    membership.role in [TeamMembership.Role.OWNER, TeamMembership.Role.MANAGER, TeamMembership.Role.CAPTAIN]
                 )
                 
                 if can_register:
@@ -304,7 +303,7 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                 context['original_fee'] = tournament.entry_fee_amount
             else:
                 context['step_title'] = 'Payment Information'
-                context['step_description'] = f'Entry fee: ৳{tournament.entry_fee_amount}'
+                context['step_description'] = f'Entry fee: à§³{tournament.entry_fee_amount}'
                 context['fee_waived'] = False
                 
                 # Get DeltaCoin balance for user
@@ -413,13 +412,12 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                 result['errors']['team_id'] = 'Please select a team'
             else:
                 try:
-                    team = Team.objects.get(id=team_id, is_deleted=False)
+                    team = Team.objects.get(id=team_id, status='ACTIVE')
                     # Verify user has permission
-                    membership = TeamMembership.objects.get(team=team, user=user, is_deleted=False)
+                    membership = TeamMembership.objects.get(team=team, user=user, status='ACTIVE')
                     can_register = (
                         team.created_by == user or
-                        membership.role in ['manager', 'captain'] or
-                        membership.can_register_tournaments
+                        membership.role in [TeamMembership.Role.OWNER, TeamMembership.Role.MANAGER, TeamMembership.Role.CAPTAIN]
                     )
                     
                     if not can_register:
