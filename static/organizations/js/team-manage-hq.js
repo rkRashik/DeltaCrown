@@ -1156,28 +1156,170 @@
      ═══════════════════════════════════════════════════════════════════════ */
   const Discord = {
     pollInterval: null,
+    botStatusInterval: null,
     lastMessageId: 0,
+    _configOpen: false,
 
     init() {
       // Config form
       const form = document.getElementById("discordConfigForm");
       if (form) form.addEventListener("submit", (e) => { e.preventDefault(); this.saveConfig(); });
 
+      // Config panel toggle (Item 1 — collapse / expand)
+      const toggleBtn = document.getElementById("discordConfigToggle");
+      if (toggleBtn) toggleBtn.addEventListener("click", () => this.toggleConfigPanel());
+
+      // Cancel button — collapse back to View Mode
+      const cancelBtn = document.getElementById("discordCancelEditBtn");
+      if (cancelBtn) cancelBtn.addEventListener("click", () => {
+        this._configOpen = true; // force state so toggle flips to false
+        this.toggleConfigPanel();
+      });
+
+      // Smart URL → ID extraction on all .discord-id-input fields
+      document.querySelectorAll('.discord-id-input').forEach(inp => {
+        inp.addEventListener('paste', (e) => {
+          // Defer so pasted value is in the input
+          setTimeout(() => this._extractDiscordId(inp), 0);
+        });
+        inp.addEventListener('blur', () => this._extractDiscordId(inp));
+      });
+
+      // Community Invite URL validation
+      const inviteInput = document.getElementById('discordInviteUrlInput');
+      if (inviteInput) {
+        inviteInput.addEventListener('blur', () => this._validateInviteUrl(inviteInput));
+        inviteInput.addEventListener('input', () => {
+          // Clear error state on edit
+          inviteInput.classList.remove('border-red-500/50', 'ring-1', 'ring-red-500/30');
+          const err = inviteInput.parentElement?.querySelector('.invite-url-error');
+          if (err) err.remove();
+        });
+      }
+
+      // Webhook reveal toggle
+      const revealBtn = document.getElementById('discordWebhookReveal');
+      const webhookInput = document.getElementById('discordWebhookInput');
+      if (revealBtn && webhookInput) {
+        revealBtn.addEventListener('click', () => {
+          const isPassword = webhookInput.type === 'password';
+          webhookInput.type = isPassword ? 'url' : 'password';
+          revealBtn.querySelector('span').textContent = isPassword ? 'Hide URL' : 'Show URL';
+          const icon = revealBtn.querySelector('[data-lucide]');
+          if (icon) { icon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye'); if (window.lucide) lucide.createIcons({ nodes: [revealBtn] }); }
+        });
+      }
+
+      // If no guild_id is set, auto-expand config panel on first visit
+      const panel = document.getElementById("discordConfigPanel");
+      if (panel && !panel.classList.contains("hidden")) {
+        this._configOpen = true;
+        this._updateToggleUI();
+      }
+
       // Chat send form
       const chatForm = document.getElementById("chatSendForm");
       if (chatForm) chatForm.addEventListener("submit", (e) => { e.preventDefault(); this.sendChat(); });
 
-      // Start polling for chat messages if chat area exists
+      // Start chat: load history, connect WebSocket, fallback to polling
       const chatEl = document.getElementById("chatMessages");
       if (chatEl && chatEl.dataset.teamSlug) {
+        this._currentUserId = parseInt(chatEl.dataset.currentUserId, 10) || 0;
+        this._timeFormat = chatEl.dataset.timeFormat || '12h';
+        this._teamId = chatEl.dataset.teamId;
         this.loadChatHistory();
-        this.startPolling();
+        this._connectWebSocket();
       }
+
+      // Bot status auto-polling (every 10s when bot is offline)
+      this._startBotStatusPolling();
+
+      // Smart Voice Join — discord:// deep-link with fallback (Item 3)
+      document.querySelectorAll(".discord-voice-join").forEach(btn => {
+        btn.addEventListener("click", () => this.joinVoice(btn));
+      });
+    },
+
+    /* ── Config panel collapse / expand (Item 1) ── */
+    toggleConfigPanel() {
+      this._configOpen = !this._configOpen;
+      const panel = document.getElementById("discordConfigPanel");
+      const summary = document.getElementById("discordConfigSummary");
+      if (panel) panel.classList.toggle("hidden", !this._configOpen);
+      if (summary) summary.classList.toggle("hidden", this._configOpen);
+      this._updateToggleUI();
+    },
+
+    _updateToggleUI() {
+      const label = document.getElementById("discordConfigToggleLabel");
+      const chevron = document.getElementById("discordConfigChevron");
+      const btn = document.getElementById("discordConfigToggle");
+      if (label) label.textContent = this._configOpen ? "Close" : "Edit Configuration";
+      if (chevron) chevron.style.transform = this._configOpen ? "rotate(180deg)" : "";
+      if (btn) btn.setAttribute("aria-expanded", this._configOpen ? "true" : "false");
+    },
+
+    /**
+     * Smart extraction: if user pastes a full Discord URL or anything
+     * containing a snowflake ID, extract just the numeric ID.
+     * e.g. "https://discord.com/channels/123/456" → "456" (last segment)
+     *      "discord.gg/AbCdE" → left alone (not a numeric ID)
+     */
+    _extractDiscordId(input) {
+      const val = (input.value || '').trim();
+      if (!val) return;
+      // Already a pure numeric ID — leave as-is
+      if (/^\d{15,22}$/.test(val)) return;
+      // Try to extract the last numeric snowflake from a URL path
+      const urlMatch = val.match(/(?:channels|guilds)\/(\d{15,22})(?:\/(\d{15,22}))?/);
+      if (urlMatch) {
+        // Use the last captured group (most specific — channel > guild)
+        input.value = urlMatch[2] || urlMatch[1];
+        input.classList.add('border-emerald-500/40');
+        setTimeout(() => input.classList.remove('border-emerald-500/40'), 2000);
+        return;
+      }
+      // Fallback: find any 15-22 digit number in the string
+      const snowflake = val.match(/(\d{15,22})/);
+      if (snowflake) {
+        input.value = snowflake[1];
+        input.classList.add('border-emerald-500/40');
+        setTimeout(() => input.classList.remove('border-emerald-500/40'), 2000);
+      }
+    },
+
+    /**
+     * Validate Community Invite URL — must be discord.gg/ or discord.com/invite/
+     */
+    _validateInviteUrl(input) {
+      const val = (input.value || '').trim();
+      if (!val) return true; // optional field
+      const valid = /^https:\/\/(discord\.gg|discord\.com\/invite)\/[a-zA-Z0-9\-]+/.test(val);
+      if (!valid) {
+        input.classList.add('border-red-500/50', 'ring-1', 'ring-red-500/30');
+        // Add error message if not already present
+        if (!input.parentElement?.querySelector('.invite-url-error')) {
+          const msg = document.createElement('p');
+          msg.className = 'invite-url-error text-[10px] text-red-400/80 mt-1';
+          msg.textContent = 'Must be a discord.gg/ or discord.com/invite/ link';
+          input.parentElement?.appendChild(msg);
+        }
+        return false;
+      }
+      return true;
     },
 
     async saveConfig() {
       const form = document.getElementById("discordConfigForm");
       if (!form) return;
+
+      // Validate invite URL before saving
+      const inviteInput = document.getElementById('discordInviteUrlInput');
+      if (inviteInput && !this._validateInviteUrl(inviteInput)) {
+        toast("Invalid Community Invite URL — must be a discord.gg/ link", "error");
+        return;
+      }
+
       const statusEl = document.getElementById("discordSaveStatus");
       const data = {};
       form.querySelectorAll("input[name]").forEach((inp) => { data[inp.name] = inp.value.trim(); });
@@ -1191,15 +1333,139 @@
         }
         toast("Discord configuration saved!", "success");
         // Update bot status indicator
-        const botEl = document.getElementById("discordBotStatus");
-        if (botEl && res.discord_bot_active !== undefined) {
-          botEl.innerHTML = res.discord_bot_active
-            ? '<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span><span class="text-emerald-400 font-medium">Bot Connected</span>'
-            : '<span class="h-2 w-2 rounded-full bg-white/20"></span><span class="text-white/40">Bot Offline — verifying…</span>';
+        if (res.discord_bot_active !== undefined) {
+          this._updateBotStatusUI(res.discord_bot_active);
+        }
+        // Collapse config panel after successful save (Item 1)
+        if (data.discord_guild_id) {
+          this._configOpen = false;
+          const panel = document.getElementById("discordConfigPanel");
+          const summary = document.getElementById("discordConfigSummary");
+          if (panel) panel.classList.add("hidden");
+          // Rebuild summary badges from the just-saved data
+          if (summary) {
+            const isOnline = !!res.discord_bot_active;
+            const statusIcon = isOnline ? 'bg-emerald-500/15' : 'bg-red-500/10';
+            const statusIconText = isOnline ? 'text-emerald-400' : 'text-red-400';
+            const statusText = isOnline ? '✅ Active' : '🔴 Disconnected';
+            const statusTextCls = isOnline ? 'text-emerald-300' : 'text-red-400';
+            const heroBorder = isOnline ? 'border-emerald-500/15 bg-emerald-500/[0.03]' : 'border-red-500/15 bg-red-500/[0.03]';
+
+            // Mask guild ID: show first 4 + last 4 with … in middle
+            const gid = esc(data.discord_guild_id);
+            const maskedGid = gid.length > 8 ? gid.slice(0, 4) + '…' + gid.slice(-4) : gid;
+
+            let html = `<div id="discordViewHero" class="rounded-2xl border ${heroBorder} px-4 py-3.5 mb-3">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl ${statusIcon} grid place-items-center shrink-0">
+                  <svg class="w-5 h-5 ${statusIconText}" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.618-1.25.077.077 0 00-.079-.037A19.74 19.74 0 003.677 4.37a.07.07 0 00-.032.028C.533 9.046-.32 13.58.099 18.058a.082.082 0 00.031.056c2.053 1.508 4.041 2.423 5.993 3.03a.077.077 0 00.084-.028c.462-.63.873-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.11 13.11 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 01.078-.01c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 01.079.01c.12.099.245.197.372.291a.077.077 0 01-.006.128 12.3 12.3 0 01-1.873.891.076.076 0 00-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 00.084.028c1.961-.607 3.95-1.522 6.002-3.029a.077.077 0 00.031-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.029z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p id="discordViewStatusText" class="text-sm font-bold ${statusTextCls}">${statusText}</p>
+                  <p class="text-[11px] text-white/40 mt-0.5 truncate">Linked to Server: <span class="font-mono text-white/50">${maskedGid}</span></p>
+                </div>
+              </div>
+            </div>`;
+
+            let badges = '';
+            if (data.discord_chat_channel_id)
+              badges += `<div class="flex items-center gap-2 rounded-xl bg-indigo-500/5 border border-indigo-500/15 px-3 py-2"><i data-lucide="message-circle" class="w-3.5 h-3.5 text-indigo-400 shrink-0"></i><span class="text-xs text-indigo-300 truncate">Chat synced</span></div>`;
+            if (data.discord_voice_channel_id)
+              badges += `<div class="flex items-center gap-2 rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3 py-2"><i data-lucide="headphones" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i><span class="text-xs text-emerald-300 truncate">Voice ready</span></div>`;
+            if (data.discord_announcement_channel_id)
+              badges += `<div class="flex items-center gap-2 rounded-xl bg-amber-500/5 border border-amber-500/15 px-3 py-2"><i data-lucide="megaphone" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i><span class="text-xs text-amber-300 truncate">Announcements on</span></div>`;
+            if (data.discord_webhook_url)
+              badges += `<div class="flex items-center gap-2 rounded-xl bg-violet-500/5 border border-violet-500/15 px-3 py-2"><i data-lucide="webhook" class="w-3.5 h-3.5 text-violet-400 shrink-0"></i><span class="text-xs text-violet-300 truncate">Webhook ••••••••</span></div>`;
+            if (data.discord_captain_role_id)
+              badges += `<div class="flex items-center gap-2 rounded-xl bg-yellow-500/5 border border-yellow-500/15 px-3 py-2"><i data-lucide="shield" class="w-3.5 h-3.5 text-yellow-400 shrink-0"></i><span class="text-xs text-yellow-300 truncate">Captain role synced</span></div>`;
+            if (data.discord_manager_role_id)
+              badges += `<div class="flex items-center gap-2 rounded-xl bg-yellow-500/5 border border-yellow-500/15 px-3 py-2"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-yellow-400 shrink-0"></i><span class="text-xs text-yellow-300 truncate">Manager role synced</span></div>`;
+            if (badges) html += `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">${badges}</div>`;
+            summary.innerHTML = html;
+            summary.classList.remove("hidden");
+            if (window.lucide) lucide.createIcons({ nodes: [summary] });
+          }
+          this._updateToggleUI();
         }
       } catch (err) {
         toast(err.message || "Failed to save Discord config", "error");
       }
+    },
+
+    /* ── Bot Status Auto-Polling ── */
+    _startBotStatusPolling() {
+      const botEl = document.getElementById("discordBotStatus");
+      if (!botEl) return;
+      // Poll every 10s
+      this.botStatusInterval = setInterval(() => this._pollBotStatus(), 10000);
+    },
+
+    async _pollBotStatus() {
+      try {
+        const res = await api("discord/", { method: "GET" });
+        this._updateBotStatusUI(res.discord_bot_active);
+      } catch (_) { /* silent — network hiccup */ }
+    },
+
+    _updateBotStatusUI(isOnline) {
+      // Header badge
+      const botEl = document.getElementById("discordBotStatus");
+      if (botEl) {
+        botEl.innerHTML = isOnline
+          ? '<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span><span class="text-emerald-400 font-medium">Bot Online</span>'
+          : '<span class="h-2 w-2 rounded-full bg-red-400/60"></span><span class="text-red-400/80 font-medium">Bot Offline</span>';
+      }
+      // Update the View Mode summary hero card if visible
+      const summary = document.getElementById("discordConfigSummary");
+      if (summary && !summary.classList.contains("hidden")) {
+        const heroStatus = document.getElementById('discordViewStatusText');
+        if (heroStatus) {
+          heroStatus.className = `text-sm font-bold ${isOnline ? 'text-emerald-300' : 'text-red-400'}`;
+          heroStatus.textContent = isOnline ? '✅ Active' : '🔴 Disconnected';
+        }
+        const heroCard = document.getElementById('discordViewHero');
+        if (heroCard) {
+          heroCard.className = `rounded-2xl border ${isOnline ? 'border-emerald-500/15 bg-emerald-500/[0.03]' : 'border-red-500/15 bg-red-500/[0.03]'} px-4 py-3.5 mb-3`;
+        }
+        const heroBg = summary.querySelector('.h-10.w-10');
+        if (heroBg) {
+          heroBg.className = `h-10 w-10 rounded-xl ${isOnline ? 'bg-emerald-500/15' : 'bg-red-500/10'} grid place-items-center shrink-0`;
+          const svg = heroBg.querySelector('svg');
+          if (svg) svg.className.baseVal = `w-5 h-5 ${isOnline ? 'text-emerald-400' : 'text-red-400'}`;
+        }
+      }
+    },
+
+    /* ── Smart Voice Join — discord:// deep-link with fallback (Item 3) ── */
+    joinVoice(btn) {
+      const guildId = btn.dataset.guildId;
+      const channelId = btn.dataset.channelId;
+      if (!guildId || !channelId) return;
+
+      const webUrl = `https://discord.com/channels/${guildId}/${channelId}`;
+      const deepLink = `discord://discord.com/channels/${guildId}/${channelId}`;
+
+      // Try the discord:// protocol first. If the app isn't installed,
+      // the iframe trick silently fails and we fall back to the web URL.
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = deepLink;
+      document.body.appendChild(iframe);
+
+      // Fallback: open browser link after a short delay
+      const fallbackTimer = setTimeout(() => {
+        window.open(webUrl, "_blank", "noopener");
+      }, 1500);
+
+      // If the page loses focus, the app opened — cancel the fallback
+      const onBlur = () => {
+        clearTimeout(fallbackTimer);
+        window.removeEventListener("blur", onBlur);
+      };
+      window.addEventListener("blur", onBlur);
+
+      // Cleanup iframe
+      setTimeout(() => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); }, 3000);
     },
 
     async loadChatHistory() {
@@ -1221,8 +1487,69 @@
       }
     },
 
+    /* ── WebSocket connection for real-time chat ── */
+    _connectWebSocket() {
+      if (!this._teamId) { this.startPolling(); return; }
+      try {
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${proto}//${location.host}/ws/teams/${this._teamId}/`;
+        this._ws = new WebSocket(wsUrl);
+
+        this._ws.onopen = () => {
+          console.debug('[Chat] WebSocket connected');
+          const indicator = document.getElementById("chatWsStatus");
+          if (indicator) indicator.classList.remove("hidden");
+          // Stop polling if it was running
+          if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
+        };
+
+        this._ws.onmessage = (evt) => {
+          try {
+            const data = JSON.parse(evt.data);
+            if (data.type === 'chat.message') {
+              this._handleIncomingMessage(data);
+            }
+          } catch (_) { /* non-JSON or irrelevant event */ }
+        };
+
+        this._ws.onclose = () => {
+          console.debug('[Chat] WebSocket closed — falling back to polling');
+          const indicator = document.getElementById("chatWsStatus");
+          if (indicator) indicator.classList.add("hidden");
+          // Reconnect after 3s, or fall back to polling
+          this._wsReconnectTimer = setTimeout(() => this._connectWebSocket(), 3000);
+        };
+
+        this._ws.onerror = () => {
+          console.debug('[Chat] WebSocket error — falling back to polling');
+          this._ws.close();
+          this.startPolling();
+        };
+      } catch (_) {
+        this.startPolling();
+      }
+    },
+
+    _handleIncomingMessage(data) {
+      // Deduplicate — don't render if we already have this message ID
+      const container = document.getElementById("chatMessages");
+      if (!container) return;
+      const msgId = data.id;
+      if (msgId && container.querySelector(`[data-msg-id="${msgId}"]`)) return;
+
+      // Remove "no messages" placeholder
+      const placeholder = container.querySelector(".text-white\\/30");
+      if (placeholder && placeholder.closest(".flex.items-center.justify-center")) {
+        container.innerHTML = "";
+      }
+
+      container.insertAdjacentHTML("beforeend", this._renderMessage(data));
+      if (msgId) this.lastMessageId = Math.max(this.lastMessageId || 0, msgId);
+      container.scrollTop = container.scrollHeight;
+    },
+
     startPolling() {
-      // Poll every 2 seconds for new messages
+      if (this.pollInterval) return; // already polling
       this.pollInterval = setInterval(async () => {
         try {
           const indicator = document.getElementById("chatSyncIndicator");
@@ -1232,13 +1559,14 @@
           if (res.messages && res.messages.length > 0) {
             const container = document.getElementById("chatMessages");
             if (!container) return;
-            // Remove "no messages" placeholder
             const placeholder = container.querySelector(".text-white\\/30");
             if (placeholder && placeholder.closest(".flex.items-center.justify-center")) {
               container.innerHTML = "";
             }
             res.messages.forEach(m => {
-              container.insertAdjacentHTML("beforeend", this._renderMessage(m));
+              if (!container.querySelector(`[data-msg-id="${m.id}"]`)) {
+                container.insertAdjacentHTML("beforeend", this._renderMessage(m));
+              }
             });
             this.lastMessageId = res.messages[res.messages.length - 1].id;
             container.scrollTop = container.scrollHeight;
@@ -1246,7 +1574,7 @@
 
           if (indicator) setTimeout(() => indicator.classList.add("hidden"), 500);
         } catch (_) { /* silent */ }
-      }, 2000);
+      }, 3000);
     },
 
     async sendChat() {
@@ -1259,37 +1587,112 @@
       try {
         const res = await api("discord/chat/send/", { method: "POST", body: JSON.stringify({ content }) });
         if (res.message) {
-          const container = document.getElementById("chatMessages");
-          if (container) {
-            container.insertAdjacentHTML("beforeend", this._renderMessage(res.message));
-            this.lastMessageId = Math.max(this.lastMessageId, res.message.id);
-            container.scrollTop = container.scrollHeight;
-          }
+          this._handleIncomingMessage(res.message);
         }
       } catch (err) {
         toast(err.message || "Failed to send message", "error");
-        input.value = content; // Restore on failure
+        input.value = content;
       }
     },
 
+    /* ── Lightweight Markdown parser for Discord-style formatting ── */
+    _parseMd(text) {
+      let s = esc(text);
+      // Code blocks ``` ... ``` (must be before inline code)
+      s = s.replace(/```([^`]+?)```/g, '<pre class="bg-white/5 rounded-lg px-3 py-2 my-1 text-xs font-mono overflow-x-auto whitespace-pre-wrap">$1</pre>');
+      // Inline code `...`
+      s = s.replace(/`([^`]+?)`/g, '<code class="bg-white/10 rounded px-1 py-0.5 text-xs font-mono">$1</code>');
+      // Bold **...**
+      s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      // Italic *...*
+      s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      // Underline __...__
+      s = s.replace(/__(.+?)__/g, '<u>$1</u>');
+      // Strikethrough ~~...~~
+      s = s.replace(/~~(.+?)~~/g, '<del class="text-white/40">$1</del>');
+      // Spoiler ||...||  (click to reveal)
+      s = s.replace(/\|\|(.+?)\|\|/g, '<span class="bg-white/20 text-transparent hover:text-white/80 rounded px-1 cursor-pointer transition select-all" title="Spoiler">$1</span>');
+      // URLs
+      s = s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener" class="text-indigo-400 hover:underline break-all">$1</a>');
+      // Newlines
+      s = s.replace(/\n/g, '<br>');
+      return s;
+    },
+
+    /* ── Time formatter respecting user preference ── */
+    _formatTime(isoStr) {
+      if (!isoStr) return '';
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return '';
+      const now = new Date();
+      const isToday = d.toDateString() === now.toDateString();
+      const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+      const isYesterday = d.toDateString() === yesterday.toDateString();
+
+      const use12 = this._timeFormat === '12h';
+      const timeStr = d.toLocaleTimeString([], {
+        hour: '2-digit', minute: '2-digit',
+        hour12: use12,
+      });
+
+      if (isToday) return timeStr;
+      if (isYesterday) return `Yesterday ${timeStr}`;
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + timeStr;
+    },
+
+    /* ── Discord blurple logo SVG (inline, 12px) ── */
+    _discordBadgeSvg: '<svg class="w-3 h-3 inline-block" viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.37a19.79 19.79 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.618-1.25.077.077 0 00-.079-.037A19.74 19.74 0 003.677 4.37a.07.07 0 00-.032.028C.533 9.046-.32 13.58.099 18.058a.082.082 0 00.031.056c2.053 1.508 4.041 2.423 5.993 3.03a.078.078 0 00.084-.028c.462-.63.873-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.11 13.11 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 01.078-.01c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 01.079.01c.12.099.245.197.372.291a.077.077 0 01-.006.128 12.3 12.3 0 01-1.873.891.076.076 0 00-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 00.084.028c1.961-.607 3.95-1.522 6.002-3.029a.077.077 0 00.031-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.029z"/></svg>',
+
+    /* ── Modern chat bubble renderer ── */
     _renderMessage(m) {
-      const isDiscord = m.source === "discord";
-      const badge = isDiscord
-        ? '<span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-full">Discord</span>'
-        : '<span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full">Web</span>';
-      const time = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
-      return `
-        <div class="flex items-start gap-2.5 group hover:bg-white/[0.02] -mx-2 px-2 py-1 rounded-lg transition">
-          <div class="h-7 w-7 rounded-full ${isDiscord ? 'bg-indigo-500/15' : 'bg-emerald-500/15'} grid place-items-center shrink-0 mt-0.5">
-            <span class="text-[10px] font-bold ${isDiscord ? 'text-indigo-400' : 'text-emerald-400'}">${esc((m.author || "?")[0].toUpperCase())}</span>
-          </div>
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-semibold">${esc(m.author || "Unknown")}</span>
-              ${badge}
-              <span class="text-[10px] text-white/25 ml-auto">${time}</span>
+      const isMe = m.author_id && m.author_id === this._currentUserId;
+      const isDiscord = m.source === 'discord';
+      const time = this._formatTime(m.timestamp);
+      const content = this._parseMd(m.content || '');
+      const msgId = m.id || '';
+
+      if (isMe) {
+        // ── RIGHT-ALIGNED: My message ──
+        return `
+          <div class="flex justify-end" data-msg-id="${msgId}">
+            <div class="max-w-[75%] min-w-[60px]">
+              <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl rounded-tr-md px-3.5 py-2 shadow-lg shadow-indigo-500/10">
+                <div class="text-sm text-white break-words leading-relaxed">${content}</div>
+              </div>
+              <div class="flex items-center justify-end gap-1.5 mt-1 px-1">
+                <span class="text-[10px] text-white/25">${time}</span>
+              </div>
             </div>
-            <p class="text-sm text-white/70 mt-0.5 break-words">${esc(m.content)}</p>
+          </div>
+        `;
+      }
+
+      // ── LEFT-ALIGNED: Other person's message ──
+      const initial = esc((m.author || '?')[0].toUpperCase());
+      const avatarHtml = m.avatar_url
+        ? `<img src="${esc(m.avatar_url)}" alt="" class="h-8 w-8 rounded-full object-cover shrink-0">`
+        : `<div class="h-8 w-8 rounded-full ${isDiscord ? 'bg-[#5865F2]/20' : 'bg-emerald-500/15'} grid place-items-center shrink-0">
+             <span class="text-[11px] font-bold ${isDiscord ? 'text-[#5865F2]' : 'text-emerald-400'}">${initial}</span>
+           </div>`;
+
+      const discordIcon = isDiscord
+        ? `<span class="ml-1 opacity-60" title="Sent from Discord">${this._discordBadgeSvg}</span>`
+        : '';
+
+      return `
+        <div class="flex items-end gap-2" data-msg-id="${msgId}">
+          ${avatarHtml}
+          <div class="max-w-[75%] min-w-[60px]">
+            <div class="flex items-center gap-1.5 mb-0.5 px-1">
+              <span class="text-[11px] font-semibold ${isDiscord ? 'text-[#5865F2]/80' : 'text-white/60'}">${esc(m.author || 'Unknown')}</span>
+              ${discordIcon}
+            </div>
+            <div class="bg-white/[0.06] backdrop-blur-sm rounded-2xl rounded-tl-md px-3.5 py-2 border border-white/[0.04]">
+              <div class="text-sm text-white/80 break-words leading-relaxed">${content}</div>
+            </div>
+            <div class="flex items-center gap-1.5 mt-1 px-1">
+              <span class="text-[10px] text-white/25">${time}</span>
+            </div>
           </div>
         </div>
       `;
@@ -1297,6 +1700,9 @@
 
     destroy() {
       if (this.pollInterval) clearInterval(this.pollInterval);
+      if (this.botStatusInterval) clearInterval(this.botStatusInterval);
+      if (this._ws) { try { this._ws.close(); } catch (_) {} }
+      if (this._wsReconnectTimer) clearTimeout(this._wsReconnectTimer);
     },
   };
 

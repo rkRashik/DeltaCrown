@@ -643,6 +643,7 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=0, minute=0, day_of_month=1),  # First of month at 00:00 UTC
     },
 }
+"""
 
 
 # ============================================================================
@@ -1097,4 +1098,3 @@ def seasonal_rollover() -> dict:
         
         logger.error(f"Seasonal rollover failed: {e}")
         raise
-"""

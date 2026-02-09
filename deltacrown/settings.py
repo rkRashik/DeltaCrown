@@ -717,7 +717,7 @@ CHANNEL_LAYERS = {
             'channels_redis.core.RedisChannelLayer' if not DEBUG or os.getenv('USE_REDIS_CHANNELS') else 'channels.layers.InMemoryChannelLayer'
         ),
         'CONFIG': {
-            "hosts": [(
+            "hosts": [os.getenv('REDIS_URL', 'redis://localhost:6379/0')] if os.getenv('REDIS_URL') else [(
                 os.getenv('CHANNEL_LAYERS_HOST', 'localhost'),
                 int(os.getenv('CHANNEL_LAYERS_PORT', 6379))
             )],
@@ -758,8 +758,11 @@ WS_ALLOWED_ORIGINS = os.getenv('WS_ALLOWED_ORIGINS', '')  # Empty = allow all or
 # -----------------------------------------------------------------------------
 # Celery Configuration
 # -----------------------------------------------------------------------------
-CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+# REDIS_URL is the single env var for external Redis (e.g. Upstash on Render).
+# CELERY_BROKER_URL / CELERY_RESULT_BACKEND override it if set explicitly.
+_REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', _REDIS_URL)
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', _REDIS_URL)
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -782,7 +785,7 @@ DISCORD_NOTIFICATIONS_ENABLED = bool(DISCORD_WEBHOOK_URL)
 # Bot integration (per-team chat & announcement sync)
 # Create a bot at https://discord.com/developers/applications
 DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN', '')
-DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID', '')  # For OAuth2 bot invite URL
+DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID', '') or os.getenv('DISCORD_APPLICATION_ID', '')  # For OAuth2 bot invite URL
 
 # -----------------------------------------------------------------------------
 # Notification Preferences

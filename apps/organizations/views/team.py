@@ -241,7 +241,20 @@ def team_manage(request, team_slug, org_slug=None):
                 MembershipRole.OWNER, MembershipRole.MANAGER
             )
         )
+        # Org-level staff (CEO / MANAGER) also get admin privileges
+        if not is_admin and team.organization:
+            if team.organization.ceo_id == request.user.id:
+                is_admin = True
+            elif OrganizationMembership.objects.filter(
+                organization=team.organization,
+                user=request.user,
+                role__in=['CEO', 'MANAGER'],
+            ).exists():
+                is_admin = True
         is_coach = user_membership and user_membership.role == MembershipRole.COACH
+        # Coaches also get Discord access
+        if is_coach:
+            is_admin = True
         is_member = user_membership is not None
         user_role = user_membership.role if user_membership else ('OWNER' if is_owner else 'GUEST')
 
@@ -367,6 +380,11 @@ def team_manage(request, team_slug, org_slug=None):
             'org_policies': org_policies,
             # Phase 4: Economy
             'wallet_context': wallet_context,
+            # Discord bot invite URL
+            'discord_bot_invite_url': (
+                f'https://discord.com/api/oauth2/authorize?client_id={settings.DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands'
+                if settings.DISCORD_CLIENT_ID else ''
+            ),
         }
 
         return render(request, 'organizations/team/manage_hq.html', context)

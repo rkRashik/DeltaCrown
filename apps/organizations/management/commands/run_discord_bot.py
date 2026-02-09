@@ -89,6 +89,20 @@ class Command(BaseCommand):
                 f'Tracking {len(channel_map)} channel(s).'
             ))
 
+            # Set Redis cache for instant bot-status checks on the dashboard
+            try:
+                from django.core.cache import cache
+                connected_guild_ids = {str(g.id) for g in client.guilds}
+                for gid in connected_guild_ids:
+                    cache.set(f'discord_bot_online:{gid}', True, timeout=120)
+                # Bulk-activate teams whose guild_id matches a connected guild
+                from apps.organizations.models import Team
+                Team.objects.filter(
+                    discord_guild_id__in=connected_guild_ids,
+                ).update(discord_bot_active=True)
+            except Exception:
+                pass  # Redis may not be available
+
         @client.event
         async def on_message(message: discord.Message):
             # Ignore our own messages
@@ -110,26 +124,92 @@ class Command(BaseCommand):
                 await _handle_announcement(message, team_id)
 
         async def _handle_chat_message(message: discord.Message, team_id: int):
-            """Persist an inbound Discord chat message."""
+            """Persist an inbound Discord chat message.
+
+            Attempts to resolve the Discord author to a DeltaCrown user
+            by looking up their discord_id in SocialLink records.
+            Then pushes the message to the WebSocket group for real-time
+            display on the web UI.
+            """
             from apps.organizations.models.discord_sync import DiscordChatMessage
 
             # Run DB write in a thread to avoid blocking the event loop
             def _save():
-                DiscordChatMessage.objects.create(
+                # Try to resolve the Discord user → DeltaCrown user
+                linked_user = None
+                discord_id_str = str(message.author.id)
+                try:
+                    from apps.user_profile.models_main import SocialLink
+                    social = SocialLink.objects.select_related('user').filter(
+                        platform='discord',
+                        handle__icontains=discord_id_str,
+                    ).first()
+                    if social:
+                        linked_user = social.user
+                    else:
+                        # Fallback: check by Discord username#discriminator
+                        discord_tag = str(message.author)
+                        social = SocialLink.objects.select_related('user').filter(
+                            platform='discord',
+                            handle__iexact=discord_tag,
+                        ).first()
+                        if social:
+                            linked_user = social.user
+                except Exception:
+                    pass  # Graceful fallback — save without linking
+
+                obj = DiscordChatMessage.objects.create(
                     team_id=team_id,
                     discord_message_id=str(message.id),
                     discord_channel_id=str(message.channel.id),
-                    author_discord_id=str(message.author.id),
+                    author_discord_id=discord_id_str,
                     author_discord_name=message.author.display_name,
+                    author_user=linked_user,
                     content=message.content[:2000],
                     direction='inbound',
                 )
+                return obj
 
-            await asyncio.to_thread(_save)
+            msg_obj = await asyncio.to_thread(_save)
             logger.debug(
                 'Saved inbound chat: team=%s author=%s',
                 team_id, message.author.display_name,
             )
+
+            # Push to Django Channels WebSocket group for real-time web display
+            try:
+                from channels.layers import get_channel_layer
+                from asgiref.sync import async_to_sync
+                layer = get_channel_layer()
+                if layer:
+                    # Resolve avatar URL
+                    avatar_url = None
+                    if msg_obj.author_user_id:
+                        try:
+                            profile = msg_obj.author_user.profile
+                            if profile.avatar:
+                                from django.conf import settings as _s
+                                avatar_url = _s.MEDIA_URL + str(profile.avatar)
+                        except Exception:
+                            pass
+
+                    await layer.group_send(
+                        f'team_{team_id}',
+                        {
+                            'type': 'chat.message',
+                            'payload': {
+                                'id': msg_obj.pk,
+                                'content': msg_obj.content,
+                                'author': msg_obj.author_discord_name or 'Unknown',
+                                'author_id': msg_obj.author_user_id,
+                                'avatar_url': avatar_url,
+                                'source': 'discord',
+                                'timestamp': msg_obj.created_at.isoformat(),
+                            },
+                        },
+                    )
+            except Exception as e:
+                logger.debug('Could not push chat message to WebSocket: %s', e)
 
         async def _handle_announcement(message: discord.Message, team_id: int):
             """Persist an inbound Discord announcement as a TeamAnnouncement."""
@@ -170,6 +250,19 @@ class Command(BaseCommand):
             channel_map = build_channel_map()
 
         # ── Run the client ─────────────────────────────────────────────
-        client.run(token, log_handler=None)  # Django logging handles output
+        try:
+            client.run(token, log_handler=None)  # Django logging handles output
+        except discord.LoginFailure:
+            self.stderr.write(self.style.ERROR(
+                '❌  Login failed — DISCORD_BOT_TOKEN is invalid or expired.\n'
+                '    Generate a new token at https://discord.com/developers/applications'
+            ))
+            sys.exit(1)
+        except Exception as exc:
+            self.stderr.write(self.style.ERROR(
+                f'❌  Discord bot crashed: {exc}'
+            ))
+            logger.exception('Discord bot fatal error')
+            sys.exit(1)
 
         self.stdout.write(self.style.WARNING('Discord bot has shut down.'))

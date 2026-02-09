@@ -130,6 +130,12 @@
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
               <span>TEAM HQ</span>
             </a>
+            <a href="{% url 'organizations:team_manage' team.slug %}#discord"
+               class="btn-secondary flex items-center gap-2"
+               title="Open Team Chat in HQ">
+              <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+              <span>TEAM CHAT</span>
+            </a>
           {% elif pending_actions.has_pending_invite %}
             <div class="relative" id="dc-invite-cta-wrap">
               <button type="button" class="btn-primary flex items-center gap-2 animate-pulse" onclick="document.getElementById('dc-invite-dropdown').classList.toggle('hidden')">
@@ -535,6 +541,26 @@
           Team Transmission
         </h3>
 
+        {% if permissions.is_member or permissions.can_edit_team %}
+        {# ── Members see a CTA to open Team Chat in HQ ── #}
+        <div class="rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 p-6">
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-xl bg-[#5865F2]/15 flex items-center justify-center shrink-0">
+              <svg class="w-6 h-6 text-[#5865F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            </div>
+            <div class="flex-1">
+              <h4 class="text-white font-bold mb-1">Team Chat &amp; Discord</h4>
+              <p class="text-sm text-slate-400 mb-4">Chat with your team, sync messages with Discord, and coordinate matches — all from Team HQ.</p>
+              <a href="{% url 'organizations:team_manage' team.slug %}#discord"
+                 class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#5865F2]/20 border border-[#5865F2]/30 text-[#5865F2] text-sm font-semibold hover:bg-[#5865F2]/30 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                Open Team Chat
+              </a>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        {# ── Non-members see the coming-soon placeholder ── #}
         <div class="coming-soon-section">
           <div class="flex items-start gap-4">
             <div class="w-10 h-10 rounded-lg bg-[#5865F2]/10 flex items-center justify-center shrink-0">
@@ -546,6 +572,7 @@
             </div>
           </div>
         </div>
+        {% endif %}
       </section>
 
       {# ──────────────────────────────────────────────────────── #}

@@ -20,6 +20,7 @@ from .discord_sync import (
     send_discord_announcement,
     send_discord_chat_message,
     validate_discord_bot_presence,
+    sync_discord_role,
 )
 
 # Legacy task aliases — registered under the old apps.teams.tasks.* names
@@ -38,6 +39,7 @@ __all__ = [
     'send_discord_announcement',
     'send_discord_chat_message',
     'validate_discord_bot_presence',
+    'sync_discord_role',
     'recompute_team_rankings',
     'clean_expired_invites',
     'expire_sponsors_task',

@@ -78,6 +78,12 @@ urlpatterns = [
     path('teams/<str:slug>/discord/voice/', team_manage.discord_voice_link, name='team_discord_voice'),
     path('teams/<str:slug>/discord/test-webhook/', team_manage.discord_test_webhook, name='team_discord_test_webhook'),
     
+    # Community & Media (Phase B)
+    path('teams/<str:slug>/community/', team_manage.community_data, name='team_community_data'),
+    path('teams/<str:slug>/community/posts/', team_manage.community_create_post, name='team_community_create_post'),
+    path('teams/<str:slug>/community/media/', team_manage.community_upload_media, name='team_community_upload_media'),
+    path('teams/<str:slug>/community/highlights/', team_manage.community_add_highlight, name='team_community_add_highlight'),
+    
     # User team history (Profile journey, audits)
     path('users/<int:user_id>/team-history/', user_history.user_team_history, name='user_team_history'),
     

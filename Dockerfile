@@ -15,10 +15,14 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies
+# Install system dependencies (includes Cairo libs for reportlab/CairoSVG)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     gcc \
+    pkg-config \
+    libcairo2-dev \
+    libgirepository1.0-dev \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user

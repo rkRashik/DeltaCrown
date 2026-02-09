@@ -71,3 +71,19 @@ class TeamConsumer(AsyncJsonWebsocketConsumer):
     async def team_member_left(self, event: Dict[str, Any]):
         payload = event.get('payload', {})
         await self.send_json({"type": "team.member_left", **{k: payload.get(k) for k in ('team_id', 'team_name', 'username', 'timestamp')}})
+
+    # ─── Chat message handler (Discord ↔ Web sync) ──────────────
+    async def chat_message(self, event: Dict[str, Any]):
+        """Push an inbound chat message (from Discord bot or web send) to
+        all connected WebSocket clients in the team group."""
+        payload = event.get('payload', {})
+        await self.send_json({
+            "type": "chat.message",
+            "id": payload.get("id"),
+            "content": payload.get("content", ""),
+            "author": payload.get("author", "Unknown"),
+            "author_id": payload.get("author_id"),
+            "avatar_url": payload.get("avatar_url"),
+            "source": payload.get("source", "discord"),
+            "timestamp": payload.get("timestamp"),
+        })

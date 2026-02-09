@@ -55,6 +55,8 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/deltacrown
       - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - DEBUG=True
       - USE_REDIS_CHANNELS=1
     depends_on:
@@ -64,6 +66,53 @@ services:
         condition: service_healthy
     stdin_open: true
     tty: true
+
+  # Celery Worker (background tasks: Discord sync, rankings, etc.)
+  celery_worker:
+    build:
+      context: .
+      target: development
+    container_name: deltacrown_celery
+    command: celery -A deltacrown worker -l info -c 2
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/deltacrown
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - DEBUG=True
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Discord Bot (long-running listener for chat & announcement sync)
+  discord_bot:
+    build:
+      context: .
+      target: development
+    container_name: deltacrown_discord_bot
+    command: python manage.py run_discord_bot
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/deltacrown
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - DEBUG=True
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:

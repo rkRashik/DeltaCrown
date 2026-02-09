@@ -28,6 +28,7 @@ import json
 import re
 import uuid
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -51,7 +52,9 @@ def _check_manage_permissions(team, user):
     Allows:
     - Creator (team.created_by)
     - Team MANAGER role
-    - Organization admin (for org-owned teams)
+    - Team COACH role
+    - Organization CEO
+    - Organization staff (CEO/MANAGER) via OrganizationMembership
     """
     if not user.is_authenticated:
         return False, "Authentication required"
@@ -72,9 +75,16 @@ def _check_manage_permissions(team, user):
     except TeamMembership.DoesNotExist:
         pass
     
-    # Check organization admin (if org-owned team)
+    # Check organization staff (CEO, MANAGER) via OrganizationMembership
     if team.organization:
-        if team.organization.admins.filter(id=user.id).exists():
+        if team.organization.ceo_id == user.id:
+            return True, None
+        from apps.organizations.models import OrganizationMembership
+        if OrganizationMembership.objects.filter(
+            organization=team.organization,
+            user=user,
+            role__in=['CEO', 'MANAGER'],
+        ).exists():
             return True, None
     
     return False, "You do not have permission to manage this team"
@@ -1588,14 +1598,31 @@ def discord_config(request, slug):
     if not has_perm:
         return JsonResponse({'error': reason}, status=403)
 
+    # Check Redis cache first for instant bot status (set by bot on_ready)
+    bot_active = team.discord_bot_active
+    if team.discord_guild_id and not bot_active:
+        try:
+            from django.core.cache import cache
+            cached = cache.get(f'discord_bot_online:{team.discord_guild_id}')
+            if cached:
+                bot_active = True
+                # Update DB in background so future loads are fast
+                Team.objects.filter(pk=team.pk).update(discord_bot_active=True)
+        except Exception:
+            pass
+
     return JsonResponse({
         'discord_guild_id': team.discord_guild_id,
         'discord_announcement_channel_id': team.discord_announcement_channel_id,
         'discord_chat_channel_id': team.discord_chat_channel_id,
         'discord_voice_channel_id': team.discord_voice_channel_id,
-        'discord_webhook_url': team.discord_webhook_url,
+        'discord_webhook_url_masked': '••••••••' if team.discord_webhook_url else '',
         'discord_url': team.discord_url,
-        'discord_bot_active': team.discord_bot_active,
+        'discord_bot_active': bot_active,
+        'discord_bot_invite_url': (
+            f'https://discord.com/api/oauth2/authorize?client_id={settings.DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands'
+            if settings.DISCORD_CLIENT_ID else ''
+        ),
     })
 
 
@@ -1630,6 +1657,8 @@ def discord_config_save(request, slug):
         ann_ch = _validate_snowflake(data.get('discord_announcement_channel_id', ''), 'Announcement Channel ID')
         chat_ch = _validate_snowflake(data.get('discord_chat_channel_id', ''), 'Chat Channel ID')
         voice_ch = _validate_snowflake(data.get('discord_voice_channel_id', ''), 'Voice Channel ID')
+        captain_role = _validate_snowflake(data.get('discord_captain_role_id', ''), 'Captain Role ID')
+        manager_role = _validate_snowflake(data.get('discord_manager_role_id', ''), 'Manager Role ID')
     except ValueError as exc:
         return JsonResponse({'error': str(exc)}, status=400)
 
@@ -1640,6 +1669,8 @@ def discord_config_save(request, slug):
         ('discord_announcement_channel_id', ann_ch),
         ('discord_chat_channel_id', chat_ch),
         ('discord_voice_channel_id', voice_ch),
+        ('discord_captain_role_id', captain_role),
+        ('discord_manager_role_id', manager_role),
     ]:
         setattr(team, attr, val)
         update_fields.append(attr)
@@ -1647,6 +1678,16 @@ def discord_config_save(request, slug):
     # Also allow updating the invite link / webhook URL
     discord_url = (data.get('discord_url') or '').strip()[:300]
     webhook_url = (data.get('discord_webhook_url') or '').strip()[:300]
+
+    # Validate Community Invite URL (must be discord.gg/ or discord.com/invite/)
+    if discord_url and not re.match(
+        r'^https://(discord\.gg|discord\.com/invite)/[a-zA-Z0-9\-]+', discord_url
+    ):
+        return JsonResponse(
+            {'error': 'Community Invite URL must be a discord.gg/ or discord.com/invite/ link'},
+            status=400,
+        )
+
     if discord_url != team.discord_url:
         team.discord_url = discord_url
         update_fields.append('discord_url')
@@ -1706,23 +1747,43 @@ def discord_chat_messages(request, slug):
         .values(
             'id', 'content', 'direction',
             'author_discord_name', 'author_user__username',
+            'author_user_id',
+            'author_user__profile__display_name',
+            'author_user__profile__avatar',
+            'author_discord_id',
             'created_at',
         )
     )
     messages.reverse()  # oldest first for display
 
+    def _build_msg(m):
+        # Resolve best display name
+        display = (
+            m['author_user__profile__display_name']
+            or m['author_user__username']
+            or m['author_discord_name']
+            or 'Unknown'
+        )
+        # Resolve avatar
+        avatar = None
+        if m.get('author_user__profile__avatar'):
+            avatar = settings.MEDIA_URL + m['author_user__profile__avatar']
+        elif m.get('author_discord_id'):
+            # No linked profile — could build Discord CDN avatar later
+            pass
+        return {
+            'id': m['id'],
+            'content': m['content'],
+            'direction': m['direction'],
+            'author': display,
+            'author_id': m.get('author_user_id'),
+            'avatar_url': avatar,
+            'source': 'discord' if m['direction'] == 'inbound' else 'web',
+            'timestamp': m['created_at'].isoformat(),
+        }
+
     return JsonResponse({
-        'messages': [
-            {
-                'id': m['id'],
-                'content': m['content'],
-                'direction': m['direction'],
-                'author': m['author_user__username'] or m['author_discord_name'] or 'Unknown',
-                'source': 'discord' if m['direction'] == 'inbound' else 'web',
-                'timestamp': m['created_at'].isoformat(),
-            }
-            for m in messages
-        ],
+        'messages': [_build_msg(m) for m in messages],
     })
 
 
@@ -1768,20 +1829,49 @@ def discord_chat_send(request, slug):
         discord_channel_id=team.discord_chat_channel_id or '',
     )
 
-    # Dispatch to Discord asynchronously
-    if team.discord_bot_active and team.discord_chat_channel_id:
+    # Dispatch to Discord asynchronously (webhook OR bot — task decides)
+    if team.discord_webhook_url or (team.discord_bot_active and team.discord_chat_channel_id):
         from apps.organizations.tasks.discord_sync import send_discord_chat_message
         send_discord_chat_message.delay(team.pk, msg.pk)
 
+    # Resolve avatar + display_name for the sender
+    avatar_url = None
+    display_name = request.user.username
+    try:
+        profile = request.user.profile
+        if profile.avatar:
+            avatar_url = settings.MEDIA_URL + str(profile.avatar)
+        if profile.display_name:
+            display_name = profile.display_name
+    except Exception:
+        pass
+
+    msg_payload = {
+        'id': msg.pk,
+        'content': msg.content,
+        'author': display_name,
+        'author_id': request.user.id,
+        'avatar_url': avatar_url,
+        'source': 'web',
+        'timestamp': msg.created_at.isoformat(),
+    }
+
+    # Push to WebSocket group so other connected clients see it instantly
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        layer = get_channel_layer()
+        if layer:
+            async_to_sync(layer.group_send)(
+                f'team_{team.pk}',
+                {'type': 'chat.message', 'payload': msg_payload},
+            )
+    except Exception:
+        pass  # WebSocket push is best-effort
+
     return JsonResponse({
         'success': True,
-        'message': {
-            'id': msg.pk,
-            'content': msg.content,
-            'author': request.user.username,
-            'source': 'web',
-            'timestamp': msg.created_at.isoformat(),
-        },
+        'message': msg_payload,
     })
 
 
@@ -1842,4 +1932,203 @@ def discord_test_webhook(request, slug):
         return JsonResponse({
             'error': f'Webhook test failed: {exc}',
         }, status=502)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# COMMUNITY & MEDIA ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════
+
+
+@login_required
+@require_http_methods(["GET"])
+def community_data(request, slug):
+    """GET /api/vnext/teams/<slug>/community/ — aggregated feed data."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    is_member = team.vnext_memberships.filter(
+        user=request.user, status='ACTIVE',
+    ).exists()
+    is_manager = team.created_by_id == request.user.id or request.user.is_superuser
+    if not is_member and not is_manager:
+        return JsonResponse({'error': 'Team members only'}, status=403)
+
+    from apps.organizations.models import TeamAnnouncement, TeamMedia, TeamHighlight
+    from django.utils.timesince import timesince
+
+    posts = list(
+        TeamAnnouncement.objects.filter(team=team)
+        .select_related('author')
+        .order_by('-pinned', '-created_at')[:30]
+        .values('id', 'content', 'announcement_type', 'pinned',
+                'author__username', 'created_at')
+    )
+    gallery = list(
+        TeamMedia.objects.filter(team=team)
+        .order_by('-created_at')[:50]
+        .values('id', 'title', 'category', 'file', 'file_url', 'created_at')
+    )
+    highlights = list(
+        TeamHighlight.objects.filter(team=team)
+        .order_by('-created_at')[:20]
+        .values('id', 'title', 'url', 'description', 'thumbnail_url', 'created_at')
+    )
+
+    now = timezone.now()
+    return JsonResponse({
+        'posts': [{
+            'id': p['id'],
+            'content': p['content'],
+            'type': p['announcement_type'],
+            'pinned': p['pinned'],
+            'author': p['author__username'] or 'Team',
+            'time_ago': timesince(p['created_at'], now) + ' ago' if p['created_at'] else '',
+        } for p in posts],
+        'gallery': [{
+            'id': g['id'],
+            'title': g['title'],
+            'category': g['category'],
+            'url': (settings.MEDIA_URL + g['file']) if g['file'] else (g['file_url'] or ''),
+        } for g in gallery],
+        'highlights': [{
+            'id': h['id'],
+            'title': h['title'],
+            'url': h['url'],
+            'description': h['description'],
+            'thumbnail_url': h['thumbnail_url'],
+        } for h in highlights],
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def community_create_post(request, slug):
+    """POST /api/vnext/teams/<slug>/community/posts/ — create a team post/announcement."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    content = (data.get('content') or '').strip()
+    if not content:
+        return JsonResponse({'error': 'Content is required'}, status=400)
+    if len(content) > 2000:
+        return JsonResponse({'error': 'Content too long (max 2000 characters)'}, status=400)
+
+    post_type = data.get('type', 'update')
+    valid_types = [c[0] for c in [
+        ('general', ''), ('announcement', ''), ('update', ''),
+        ('alert', ''), ('match_result', ''), ('roster_change', ''),
+        ('matchday', ''),
+    ]]
+    if post_type == 'matchday':
+        post_type = 'match_result'
+    if post_type not in valid_types:
+        post_type = 'update'
+
+    from apps.organizations.models import TeamAnnouncement
+    post = TeamAnnouncement.objects.create(
+        team=team,
+        author=request.user,
+        content=content,
+        announcement_type=post_type,
+        pinned=bool(data.get('pinned', False)),
+    )
+    # post_save signal will fire Discord sync if announcement type
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Post published!',
+        'post': {
+            'id': post.pk,
+            'content': post.content,
+            'type': post.announcement_type,
+            'pinned': post.pinned,
+            'author': request.user.username,
+        },
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def community_upload_media(request, slug):
+    """POST /api/vnext/teams/<slug>/community/media/ — upload gallery media."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    title = (request.POST.get('title') or '').strip() or 'Untitled'
+    category = request.POST.get('category', 'general')
+    file = request.FILES.get('file')
+    if not file:
+        return JsonResponse({'error': 'No file uploaded'}, status=400)
+
+    # Limit to 10MB
+    if file.size > 10 * 1024 * 1024:
+        return JsonResponse({'error': 'File too large (max 10MB)'}, status=400)
+
+    from apps.organizations.models import TeamMedia
+    media = TeamMedia.objects.create(
+        team=team,
+        uploaded_by=request.user,
+        title=title[:200],
+        category=category,
+        file=file,
+        file_size=file.size,
+        file_type='image' if file.content_type.startswith('image') else 'video',
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Media uploaded!',
+        'media': {
+            'id': media.pk,
+            'title': media.title,
+            'url': media.url,
+            'category': media.category,
+        },
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def community_add_highlight(request, slug):
+    """POST /api/vnext/teams/<slug>/community/highlights/ — add a highlight reel."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    title = (data.get('title') or '').strip()
+    url = (data.get('url') or '').strip()
+    if not title or not url:
+        return JsonResponse({'error': 'Title and URL are required'}, status=400)
+
+    from apps.organizations.models import TeamHighlight
+    highlight = TeamHighlight.objects.create(
+        team=team,
+        added_by=request.user,
+        title=title[:200],
+        url=url[:500],
+        description=(data.get('description') or '')[:500],
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Highlight added!',
+        'highlight': {
+            'id': highlight.pk,
+            'title': highlight.title,
+            'url': highlight.url,
+        },
+    })
 

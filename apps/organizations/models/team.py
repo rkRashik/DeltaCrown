@@ -231,6 +231,16 @@ class Team(models.Model):
         default=False,
         help_text='True when the platform bot is verified present in this guild',
     )
+    discord_captain_role_id = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text='Discord role ID to assign/remove when a member becomes Captain (OWNER)',
+    )
+    discord_manager_role_id = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text='Discord role ID to assign/remove when a member becomes Manager',
+    )
     website_url = models.URLField(
         blank=True,
         max_length=200,

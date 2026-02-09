@@ -64,16 +64,34 @@ from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4, letter
-from reportlab.lib.units import inch, cm
-from reportlab.lib import colors
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.utils import ImageReader
+# Cairo / ReportLab are optional – they require native C libraries that may
+# not be present on every platform (e.g. Windows dev machines).  The
+# certificate generation code will raise a clear error at *call time* if
+# the libraries are missing, but Django and the rest of the app will boot
+# fine without them.
+try:
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4, letter
+    from reportlab.lib.units import inch, cm
+    from reportlab.lib import colors
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.lib.utils import ImageReader
+    HAS_REPORTLAB = True
+except ImportError:
+    HAS_REPORTLAB = False
 
-import qrcode
-from PIL import Image, ImageDraw, ImageFont
+try:
+    import qrcode
+    HAS_QRCODE = True
+except ImportError:
+    HAS_QRCODE = False
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    HAS_PILLOW = True
+except ImportError:
+    HAS_PILLOW = False
 
 from apps.tournaments.models import (
     Tournament,
@@ -176,6 +194,13 @@ class CertificateService:
         Raises:
             ValidationError: If registration not found or tournament not completed
         """
+        # ── Guard: ensure PDF libraries are available ────────────────
+        if not HAS_REPORTLAB:
+            raise RuntimeError(
+                "Certificate generation requires reportlab + Cairo. "
+                "Install them: pip install reportlab pycairo cairocffi CairoSVG"
+            )
+
         # Validate inputs
         if certificate_type not in self.TYPE_DISPLAY_NAMES:
             raise ValidationError(f"Invalid certificate_type: {certificate_type}")
