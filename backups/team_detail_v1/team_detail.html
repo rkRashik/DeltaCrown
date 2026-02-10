@@ -13,7 +13,6 @@
        data-role="{{ viewer.role|default:'PUBLIC' }}"
        data-theme="{{ ui.theme|default:'CROWN' }}"
        data-game="{{ team.game.slug|default:'unknown' }}"
-       data-game-type="{{ team.game.category|default:'FPS' }}"
        data-team-slug="{{ team.slug }}"
        {% if team.primary_color and team.primary_color != '#3B82F6' %}data-custom-colors="true"{% endif %}></div>
 

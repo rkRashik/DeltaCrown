@@ -135,7 +135,6 @@ def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
             'total_losses': _safe_int(getattr(team, 'total_losses', 0)),
             'crown_points': _safe_int(getattr(team, 'crown_points', 0)),
             'rank': _safe_int(getattr(team, 'rank', 0)),
-            'social_links': _safe_dict(getattr(team, 'social_links', {})),
             # P1: Header metadata fields
             'region': getattr(team, 'region', ''),
             'platform': getattr(team, 'platform', 'PC'),
@@ -163,7 +162,6 @@ def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
             'total_losses': 0,
             'crown_points': 0,
             'rank': 0,
-            'social_links': {},
             'region': '',
             'platform': '',
             'playstyle': '',
@@ -326,6 +324,16 @@ def _build_page_context(team: Team, request) -> Dict[str, Any]:
 # TIER 2 BUILDERS (Nice to have data)
 # ============================================================================
 
+def _get_starting_lineup_size(team: Team) -> int:
+    """Get the starting lineup size for a team's game from GameRosterConfig."""
+    try:
+        from apps.games.models.roster_config import GameRosterConfig
+        config = GameRosterConfig.objects.get(game_id=team.game_id)
+        return config.min_team_size or 5
+    except Exception:
+        return 5
+
+
 def _build_roster_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
     """Build roster dict with items and count (empty if restricted)."""
     if is_restricted:
@@ -407,11 +415,12 @@ def _build_roster_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
         
         return {
             'items': roster_items,
-            'count': len(roster_items)
+            'count': len(roster_items),
+            'starting_lineup_size': _get_starting_lineup_size(team),
         }
     except AttributeError:
         # No memberships relationship or other schema issue
-        return {'items': [], 'count': 0}
+        return {'items': [], 'count': 0, 'starting_lineup_size': 5}
 
 
 def _get_default_stats() -> Dict[str, Any]:
@@ -1192,14 +1201,33 @@ def _safe_game_context(team: Team) -> Dict[str, Any]:
         try:
             from apps.games.models import Game
             game = Game.objects.get(id=game_id)
+            
+            # Get team size from GameRosterConfig
+            team_size = 5
+            max_team_size = 5
+            try:
+                from apps.games.models.roster_config import GameRosterConfig
+                config = GameRosterConfig.objects.get(game=game)
+                team_size = config.min_team_size or 5
+                max_team_size = config.max_team_size or 5
+            except Exception:
+                pass
+            
+            # Map game category to game_type for template dynamics
+            category = getattr(game, 'category', '')
+            game_type = getattr(game, 'game_type', '') or category
+            
             return {
                 'id': game.id,
                 'name': game.display_name,
                 'slug': game.slug,
                 'logo_url': game.logo.url if game.logo else None,
                 'primary_color': game.primary_color,
-                'category': getattr(game, 'category', ''),
+                'category': category,
+                'game_type': game_type,
                 'short_code': getattr(game, 'short_code', ''),
+                'team_size': team_size,
+                'max_team_size': max_team_size,
             }
         except Game.DoesNotExist:
             # Fallback for invalid game_id
