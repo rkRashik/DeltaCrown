@@ -84,6 +84,51 @@ urlpatterns = [
     path('teams/<str:slug>/community/media/', team_manage.community_upload_media, name='team_community_upload_media'),
     path('teams/<str:slug>/community/highlights/', team_manage.community_add_highlight, name='team_community_add_highlight'),
     
+    # Join Requests — public applications (Phase B)
+    path('teams/<str:slug>/apply/', team_manage.apply_to_team, name='team_apply'),
+    path('teams/<str:slug>/apply/withdraw/', team_manage.withdraw_application, name='team_withdraw_application'),
+    path('teams/<str:slug>/join-requests/', team_manage.list_join_requests, name='team_join_requests'),
+    path('teams/<str:slug>/join-requests/<int:request_id>/review/', team_manage.review_join_request, name='team_review_join_request'),
+    
+    # Tryout workflow (5-Point Overhaul — Point 1B)
+    path('teams/<str:slug>/join-requests/<int:request_id>/tryout/schedule/', team_manage.schedule_tryout, name='team_schedule_tryout'),
+    path('teams/<str:slug>/join-requests/<int:request_id>/tryout/advance/', team_manage.advance_tryout, name='team_advance_tryout'),
+    
+    # Recruitment settings — Job Post builder (5-Point Overhaul — Point 1A)
+    path('teams/<str:slug>/recruitment/positions/', team_manage.recruitment_positions, name='team_recruitment_positions'),
+    path('teams/<str:slug>/recruitment/positions/save/', team_manage.recruitment_position_save, name='team_recruitment_position_save'),
+    path('teams/<str:slug>/recruitment/positions/<int:position_id>/delete/', team_manage.recruitment_position_delete, name='team_recruitment_position_delete'),
+    path('teams/<str:slug>/recruitment/requirements/', team_manage.recruitment_requirements, name='team_recruitment_requirements'),
+    path('teams/<str:slug>/recruitment/requirements/save/', team_manage.recruitment_requirement_save, name='team_recruitment_requirement_save'),
+    path('teams/<str:slug>/recruitment/requirements/<int:requirement_id>/delete/', team_manage.recruitment_requirement_delete, name='team_recruitment_requirement_delete'),
+    
+    # Activity pin/unpin (5-Point Overhaul — Point 2)
+    path('teams/<str:slug>/activity/<int:activity_id>/pin/', team_manage.toggle_activity_pin, name='team_toggle_activity_pin'),
+    
+    # Trophy management (5-Point Overhaul — Point 4)
+    path('teams/<str:slug>/trophies/', team_manage.list_trophies, name='team_trophies'),
+    path('teams/<str:slug>/trophies/save/', team_manage.save_trophy, name='team_save_trophy'),
+    path('teams/<str:slug>/trophies/<str:trophy_id>/delete/', team_manage.delete_trophy, name='team_delete_trophy'),
+    
+    # Merch management (5-Point Overhaul — Point 4)
+    path('teams/<str:slug>/merch/', team_manage.list_merch, name='team_merch'),
+    path('teams/<str:slug>/merch/save/', team_manage.save_merch, name='team_save_merch'),
+    path('teams/<str:slug>/merch/<str:merch_id>/delete/', team_manage.delete_merch, name='team_delete_merch'),
+    
+    # Manual milestones (7-Point Overhaul — Point 3)
+    path('teams/<str:slug>/milestones/add/', team_manage.add_manual_milestone, name='team_add_milestone'),
+    
+    # Sponsors / Partners (7-Point Overhaul — Point 6)
+    path('teams/<str:slug>/sponsors/', team_manage.list_sponsors, name='team_sponsors'),
+    path('teams/<str:slug>/sponsors/save/', team_manage.save_sponsor, name='team_save_sponsor'),
+    path('teams/<str:slug>/sponsors/<str:sponsor_id>/delete/', team_manage.delete_sponsor, name='team_delete_sponsor'),
+    
+    # Journey Milestones — curated public timeline
+    path('teams/<str:slug>/journey/', team_manage.list_journey_milestones, name='team_journey'),
+    path('teams/<str:slug>/journey/save/', team_manage.save_journey_milestone, name='team_journey_save'),
+    path('teams/<str:slug>/journey/<int:milestone_id>/delete/', team_manage.delete_journey_milestone, name='team_journey_delete'),
+    path('teams/<str:slug>/journey/<int:milestone_id>/toggle/', team_manage.toggle_journey_visibility, name='team_journey_toggle'),
+    
     # User team history (Profile journey, audits)
     path('users/<int:user_id>/team-history/', user_history.user_team_history, name='user_team_history'),
     

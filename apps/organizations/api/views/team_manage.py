@@ -651,36 +651,57 @@ def update_settings(request, slug):
     if not has_permission:
         return JsonResponse({'error': reason}, status=403)
     
-    # Parse params
-    tagline = request.POST.get('tagline', '').strip()
-    description = request.POST.get('description', '').strip()
-    twitter = request.POST.get('twitter', '').strip()
-    discord = request.POST.get('discord', '').strip()
-    website = request.POST.get('website', '').strip()
+    # Parse params — support both JSON body (toggles) and form data (profile form)
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        data = {}
     
-    # Validate lengths
-    if len(tagline) > 100:
-        return JsonResponse({'error': 'Tagline must be 100 characters or less'}, status=400)
-    if len(description) > 500:
-        return JsonResponse({'error': 'Description must be 500 characters or less'}, status=400)
-    
-    # Update team fields (if fields exist on model)
+    # Only update fields that are explicitly present in the request payload.
+    # This prevents a single-field AJAX save from wiping out unrelated fields.
     updated_fields = []
-    if hasattr(team, 'tagline'):
-        team.tagline = tagline
-        updated_fields.append('tagline')
-    if hasattr(team, 'description'):
-        team.description = description
-        updated_fields.append('description')
-    if hasattr(team, 'twitter'):
-        team.twitter = twitter
-        updated_fields.append('twitter')
-    if hasattr(team, 'discord'):
-        team.discord = discord
-        updated_fields.append('discord')
-    if hasattr(team, 'website'):
-        team.website = website
-        updated_fields.append('website')
+    
+    # String fields: only touch if the key is present in data
+    FIELD_MAP = {
+        'tagline': ('tagline', 140),
+        'description': ('description', 500),
+        'twitter': ('twitter_url', None),
+        'discord': ('discord_url', None),
+        'website': ('website_url', None),
+        'playstyle': ('playstyle', 50),
+        'playpace': ('playpace', 50),
+        'playfocus': ('playfocus', 50),
+    }
+    
+    for param_key, (model_field, max_len) in FIELD_MAP.items():
+        if param_key in data:
+            val = str(data[param_key]).strip() if data[param_key] is not None else ''
+            if max_len and len(val) > max_len:
+                return JsonResponse({'error': f'{param_key} must be {max_len} characters or less'}, status=400)
+            if hasattr(team, model_field):
+                setattr(team, model_field, val)
+                updated_fields.append(model_field)
+    
+    # Platform (validated)
+    if 'platform' in data:
+        platform = str(data['platform']).strip()
+        VALID_PLATFORMS = ('PC', 'Mobile', 'Console', 'Cross-Platform')
+        if platform and platform not in VALID_PLATFORMS:
+            return JsonResponse({'error': f'Invalid platform. Must be one of: {", ".join(VALID_PLATFORMS)}'}, status=400)
+        if platform and hasattr(team, 'platform'):
+            team.platform = platform
+            updated_fields.append('platform')
+    
+    # Boolean toggle fields (sent as JSON from ManageHQ.toggleSetting)
+    if 'is_recruiting' in data:
+        team.is_recruiting = bool(data['is_recruiting'])
+        updated_fields.append('is_recruiting')
+    if 'visibility' in data and data['visibility'] in ('PUBLIC', 'PRIVATE', 'UNLISTED'):
+        team.visibility = data['visibility']
+        updated_fields.append('visibility')
+    if 'is_temporary' in data:
+        team.is_temporary = bool(data['is_temporary'])
+        updated_fields.append('is_temporary')
     
     if updated_fields:
         team.save(update_fields=updated_fields)
@@ -1442,8 +1463,9 @@ def activity_timeline(request, slug):
     """
     GET /api/vnext/teams/<slug>/activity/
     
-    Returns the team's membership event timeline (audit trail).
-    Supports ?page=N (20 per page).
+    Returns the team's combined activity timeline (audit trail + activity log).
+    Supports ?page=N (20 per page) and ?filter=TYPE.
+    Includes is_pinned for admin pin/unpin controls.
     """
     team = get_object_or_404(Team, slug=slug)
     
@@ -1457,21 +1479,29 @@ def activity_timeline(request, slug):
         return JsonResponse({'error': 'Not a team member'}, status=403)
     
     page = int(request.GET.get('page', 1))
+    filter_type = request.GET.get('filter', '')
     per_page = 20
     offset = (page - 1) * per_page
     
+    # Merge membership events + activity logs into unified timeline
+    combined = []
+    
+    # Membership events
     events_qs = TeamMembershipEvent.objects.filter(
         team=team
     ).select_related('user', 'actor', 'membership').order_by('-created_at')
     
-    total = events_qs.count()
-    events = events_qs[offset:offset + per_page]
-    
-    items = []
-    for ev in events:
-        items.append({
-            'id': ev.id,
+    if filter_type == 'roster':
+        events_qs = events_qs.filter(event_type__in=['JOINED', 'REMOVED', 'ROLE_CHANGED', 'LEFT'])
+    elif filter_type == 'settings' or filter_type == 'profile':
+        events_qs = events_qs.none()
+
+    for ev in events_qs[:50]:
+        combined.append({
+            'id': f'me-{ev.id}',
+            'source': 'membership',
             'event_type': ev.event_type,
+            'description': f'{ev.user.username if ev.user else "?"} — {ev.get_event_type_display() if hasattr(ev, "get_event_type_display") else ev.event_type}',
             'user': ev.user.username if ev.user else None,
             'actor': ev.actor.username if ev.actor else None,
             'old_role': ev.old_role or '',
@@ -1479,12 +1509,48 @@ def activity_timeline(request, slug):
             'old_status': ev.old_status or '',
             'new_status': ev.new_status or '',
             'metadata': ev.metadata or {},
-            'created_at': ev.created_at.isoformat() if ev.created_at else None,
+            'timestamp': ev.created_at.isoformat() if ev.created_at else None,
+            'is_pinned': False,
+            'can_pin': False,
         })
+    
+    # Activity log entries
+    from apps.organizations.models import TeamActivityLog
+    activity_qs = TeamActivityLog.objects.filter(team=team).order_by('-timestamp')
+    
+    if filter_type == 'roster':
+        activity_qs = activity_qs.filter(action_type__in=['ROSTER_ADD', 'ROSTER_REMOVE', 'ROSTER_UPDATE'])
+    elif filter_type == 'tournament':
+        activity_qs = activity_qs.filter(action_type='TOURNAMENT_REGISTER')
+    elif filter_type == 'settings':
+        activity_qs = activity_qs.filter(action_type='UPDATE')
+    elif filter_type == 'profile':
+        activity_qs = activity_qs.filter(action_type='UPDATE')
+    
+    for act in activity_qs[:50]:
+        combined.append({
+            'id': f'al-{act.pk}',
+            'activity_id': act.pk,
+            'source': 'activity_log',
+            'event_type': act.action_type,
+            'description': act.description,
+            'user': act.actor_username,
+            'actor': act.actor_username,
+            'metadata': act.metadata or {},
+            'timestamp': act.timestamp.isoformat() if act.timestamp else None,
+            'is_pinned': act.is_pinned,
+            'is_milestone': act.is_milestone,
+            'can_pin': True,
+        })
+    
+    # Sort by timestamp descending
+    combined.sort(key=lambda x: x.get('timestamp') or '', reverse=True)
+    total = len(combined)
+    page_items = combined[offset:offset + per_page]
     
     return JsonResponse({
         'success': True,
-        'events': items,
+        'events': page_items,
         'page': page,
         'total': total,
         'has_more': (offset + per_page) < total,
@@ -2132,3 +2198,941 @@ def community_add_highlight(request, slug):
         },
     })
 
+
+# ============================================================================
+# JOIN REQUESTS — User-initiated team applications
+# ============================================================================
+
+@login_required
+@require_http_methods(["POST"])
+def apply_to_team(request, slug):
+    """POST /api/vnext/teams/<slug>/apply/ — submit a join request.
+
+    Body: { "message": "optional intro message" }
+    """
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Login required'}, status=401)
+
+    # Can't apply if already a member
+    if team.vnext_memberships.filter(user=request.user, status='ACTIVE').exists():
+        return JsonResponse({'error': 'You are already a member of this team'}, status=400)
+
+    # Team must be recruiting
+    if not getattr(team, 'is_recruiting', True):
+        return JsonResponse({'error': 'This team is not currently recruiting'}, status=400)
+
+    # Roster must not be locked
+    if team.roster_locked:
+        return JsonResponse({'error': 'Team roster is currently locked'}, status=400)
+
+    from apps.organizations.models.join_request import TeamJoinRequest
+
+    # Check for existing pending request
+    if TeamJoinRequest.objects.filter(team=team, user=request.user, status='PENDING').exists():
+        return JsonResponse({'error': 'You already have a pending application'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        data = {}
+
+    msg = (data.get('message') or '').strip()[:500]
+
+    jr = TeamJoinRequest.objects.create(
+        team=team,
+        user=request.user,
+        message=msg,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Application submitted! The team will review it shortly.',
+        'request_id': jr.pk,
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def withdraw_application(request, slug):
+    """POST /api/vnext/teams/<slug>/apply/withdraw/ — withdraw own pending request."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    from apps.organizations.models.join_request import TeamJoinRequest
+
+    jr = TeamJoinRequest.objects.filter(
+        team=team, user=request.user, status='PENDING',
+    ).first()
+    if not jr:
+        return JsonResponse({'error': 'No pending application found'}, status=404)
+
+    jr.status = 'WITHDRAWN'
+    jr.save(update_fields=['status', 'updated_at'])
+
+    return JsonResponse({'success': True, 'message': 'Application withdrawn.'})
+
+
+@login_required
+@require_http_methods(["GET"])
+def list_join_requests(request, slug):
+    """GET /api/vnext/teams/<slug>/join-requests/ — list pending join requests (admin only)."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models.join_request import TeamJoinRequest
+
+    requests_qs = TeamJoinRequest.objects.filter(
+        team=team, status__in=['PENDING', 'TRYOUT_SCHEDULED', 'TRYOUT_COMPLETED', 'OFFER_SENT'],
+    ).select_related('user', 'user__profile').order_by('-created_at')
+
+    items = []
+    for jr in requests_qs:
+        avatar = None
+        display_name = jr.user.username
+        try:
+            if jr.user.profile.avatar:
+                avatar = settings.MEDIA_URL + str(jr.user.profile.avatar)
+            if jr.user.profile.display_name:
+                display_name = jr.user.profile.display_name
+        except Exception:
+            pass
+        items.append({
+            'id': jr.pk,
+            'user_id': jr.user_id,
+            'username': jr.user.username,
+            'display_name': display_name,
+            'avatar_url': avatar,
+            'message': jr.message,
+            'status': jr.status,
+            'applied_position': jr.applied_position,
+            'tryout_date': jr.tryout_date.isoformat() if jr.tryout_date else None,
+            'tryout_notes': jr.tryout_notes,
+            'created_at': jr.created_at.isoformat(),
+        })
+
+    return JsonResponse({
+        'requests': items,
+        'count': len(items),
+        'total_count': TeamJoinRequest.objects.filter(team=team).count(),
+        'accepted_count': TeamJoinRequest.objects.filter(team=team, status='ACCEPTED').count(),
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def review_join_request(request, slug, request_id):
+    """POST /api/vnext/teams/<slug>/join-requests/<id>/<action>/ — accept or decline.
+
+    Body: { "action": "accept" | "decline" }
+    """
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models.join_request import TeamJoinRequest
+    from django.utils import timezone
+
+    jr = get_object_or_404(TeamJoinRequest, pk=request_id, team=team, status='PENDING')
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        data = {}
+
+    action = (data.get('action') or '').lower()
+    if action not in ('accept', 'decline'):
+        return JsonResponse({'error': 'action must be "accept" or "decline"'}, status=400)
+
+    if action == 'accept':
+        # Create membership
+        from apps.organizations.models import TeamMembership
+        from apps.organizations.choices import MembershipRole
+
+        if team.vnext_memberships.filter(user=jr.user, status='ACTIVE').exists():
+            jr.status = 'ACCEPTED'
+            jr.reviewed_by = request.user
+            jr.reviewed_at = timezone.now()
+            jr.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'updated_at'])
+            return JsonResponse({'success': True, 'message': 'User is already a member.'})
+
+        TeamMembership.objects.create(
+            team=team,
+            user=jr.user,
+            role=MembershipRole.PLAYER,
+            status='ACTIVE',
+            invited_by=request.user,
+        )
+        jr.status = 'ACCEPTED'
+        jr.reviewed_by = request.user
+        jr.reviewed_at = timezone.now()
+        jr.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'updated_at'])
+        return JsonResponse({'success': True, 'message': f'{jr.user.username} has been added to the team!'})
+
+    else:  # decline
+        jr.status = 'DECLINED'
+        jr.reviewed_by = request.user
+        jr.reviewed_at = timezone.now()
+        jr.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'updated_at'])
+        return JsonResponse({'success': True, 'message': 'Application declined.'})
+
+
+# ============================================================================
+# RECRUITMENT SETTINGS — Job Post Builder (Point 1A)
+# ============================================================================
+
+@login_required
+@require_http_methods(["GET"])
+def recruitment_positions(request, slug):
+    """GET /api/vnext/teams/<slug>/recruitment/positions/ — list open positions."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models.recruitment import RecruitmentPosition
+    positions = RecruitmentPosition.objects.filter(team=team).order_by('sort_order', '-created_at')
+
+    return JsonResponse({
+        'positions': [
+            {
+                'id': p.pk,
+                'title': p.title,
+                'role_category': getattr(p, 'role_category', ''),
+                'rank_requirement': getattr(p, 'rank_requirement', ''),
+                'region': getattr(p, 'region', ''),
+                'platform': getattr(p, 'platform', ''),
+                'short_pitch': getattr(p, 'short_pitch', ''),
+                'cross_post_community': getattr(p, 'cross_post_community', False),
+                'description': p.description,
+                'is_active': p.is_active,
+                'sort_order': p.sort_order,
+            }
+            for p in positions
+        ],
+        'team_defaults': {
+            'region': team.region or '',
+            'platform': team.platform or '',
+        },
+        'role_choices': [
+            {'value': c[0], 'label': c[1]}
+            for c in RecruitmentPosition.RoleCategory.choices
+        ],
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def recruitment_position_save(request, slug):
+    """POST /api/vnext/teams/<slug>/recruitment/positions/save/ — create or update position."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models.recruitment import RecruitmentPosition
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    title = (data.get('title') or '').strip()
+    if not title or len(title) > 60:
+        return JsonResponse({'error': 'Title is required (max 60 chars)'}, status=400)
+
+    description = (data.get('description') or '').strip()[:200]
+    role_category = (data.get('role_category') or '').strip()[:20]
+    rank_requirement = (data.get('rank_requirement') or '').strip()[:60]
+    region = (data.get('region') or '').strip()[:30]
+    platform = (data.get('platform') or '').strip()[:30]
+    short_pitch = (data.get('short_pitch') or '').strip()[:140]
+    cross_post = bool(data.get('cross_post_community', False))
+    position_id = data.get('id')
+
+    save_fields = {
+        'title': title,
+        'description': description,
+        'role_category': role_category,
+        'rank_requirement': rank_requirement,
+        'region': region,
+        'platform': platform,
+        'short_pitch': short_pitch,
+        'cross_post_community': cross_post,
+        'is_active': data.get('is_active', True),
+    }
+
+    if position_id:
+        pos = get_object_or_404(RecruitmentPosition, pk=position_id, team=team)
+        for k, v in save_fields.items():
+            setattr(pos, k, v)
+        pos.save(update_fields=list(save_fields.keys()))
+        return JsonResponse({'success': True, 'id': pos.pk, 'message': 'Position updated.'})
+
+    # Check limit (max 10 active positions)
+    active_count = RecruitmentPosition.objects.filter(team=team, is_active=True).count()
+    if active_count >= 10:
+        return JsonResponse({'error': 'Maximum 10 active positions allowed.'}, status=400)
+
+    pos = RecruitmentPosition.objects.create(
+        team=team,
+        sort_order=active_count,
+        **save_fields,
+    )
+    return JsonResponse({'success': True, 'id': pos.pk, 'message': 'Position added.'})
+
+
+@login_required
+@require_http_methods(["POST"])
+def recruitment_position_delete(request, slug, position_id):
+    """POST /api/vnext/teams/<slug>/recruitment/positions/<id>/delete/"""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models.recruitment import RecruitmentPosition
+    pos = get_object_or_404(RecruitmentPosition, pk=position_id, team=team)
+    pos.delete()
+    return JsonResponse({'success': True, 'message': 'Position removed.'})
+
+
+@login_required
+@require_http_methods(["GET"])
+def recruitment_requirements(request, slug):
+    """GET /api/vnext/teams/<slug>/recruitment/requirements/ — list requirements."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models.recruitment import RecruitmentRequirement
+    reqs = RecruitmentRequirement.objects.filter(team=team).order_by('sort_order', '-created_at')
+
+    return JsonResponse({
+        'requirements': [
+            {'id': r.pk, 'label': r.label, 'value': r.value, 'sort_order': r.sort_order}
+            for r in reqs
+        ],
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def recruitment_requirement_save(request, slug):
+    """POST /api/vnext/teams/<slug>/recruitment/requirements/save/"""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models.recruitment import RecruitmentRequirement
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    label = (data.get('label') or '').strip()
+    value = (data.get('value') or '').strip()
+    if not label or not value:
+        return JsonResponse({'error': 'Both label and value are required.'}, status=400)
+
+    req_id = data.get('id')
+    if req_id:
+        req = get_object_or_404(RecruitmentRequirement, pk=req_id, team=team)
+        req.label = label[:40]
+        req.value = value[:100]
+        req.save(update_fields=['label', 'value'])
+        return JsonResponse({'success': True, 'id': req.pk, 'message': 'Requirement updated.'})
+
+    count = RecruitmentRequirement.objects.filter(team=team).count()
+    if count >= 15:
+        return JsonResponse({'error': 'Maximum 15 requirements allowed.'}, status=400)
+
+    req = RecruitmentRequirement.objects.create(
+        team=team, label=label[:40], value=value[:100], sort_order=count,
+    )
+    return JsonResponse({'success': True, 'id': req.pk, 'message': 'Requirement added.'})
+
+
+@login_required
+@require_http_methods(["POST"])
+def recruitment_requirement_delete(request, slug, requirement_id):
+    """POST /api/vnext/teams/<slug>/recruitment/requirements/<id>/delete/"""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models.recruitment import RecruitmentRequirement
+    req = get_object_or_404(RecruitmentRequirement, pk=requirement_id, team=team)
+    req.delete()
+    return JsonResponse({'success': True, 'message': 'Requirement removed.'})
+
+
+# ============================================================================
+# TRYOUT WORKFLOW — Schedule / Complete / Offer (Point 1B)
+# ============================================================================
+
+@login_required
+@require_http_methods(["POST"])
+def schedule_tryout(request, slug, request_id):
+    """POST /api/vnext/teams/<slug>/join-requests/<id>/tryout/schedule/"""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models.join_request import TeamJoinRequest
+    from datetime import datetime
+
+    jr = get_object_or_404(TeamJoinRequest, pk=request_id, team=team, status='PENDING')
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        data = {}
+
+    tryout_date_str = data.get('tryout_date')
+    if not tryout_date_str:
+        return JsonResponse({'error': 'tryout_date is required (ISO format)'}, status=400)
+
+    try:
+        tryout_date = datetime.fromisoformat(tryout_date_str.replace('Z', '+00:00'))
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid date format. Use ISO 8601.'}, status=400)
+
+    position = (data.get('position') or '').strip()[:60]
+    notes = (data.get('notes') or '').strip()[:1000]
+
+    jr.status = 'TRYOUT_SCHEDULED'
+    jr.tryout_date = tryout_date
+    jr.tryout_notes = notes
+    if position:
+        jr.applied_position = position
+    jr.reviewed_by = request.user
+    jr.save(update_fields=['status', 'tryout_date', 'tryout_notes', 'applied_position', 'reviewed_by', 'updated_at'])
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Tryout scheduled for {jr.user.username}.',
+        'tryout_date': jr.tryout_date.isoformat(),
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def advance_tryout(request, slug, request_id):
+    """POST /api/vnext/teams/<slug>/join-requests/<id>/tryout/advance/
+
+    Advance through tryout lifecycle:
+      TRYOUT_SCHEDULED → TRYOUT_COMPLETED
+      TRYOUT_COMPLETED → OFFER_SENT
+      OFFER_SENT → ACCEPTED (creates membership)
+    """
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models.join_request import TeamJoinRequest
+
+    jr = get_object_or_404(TeamJoinRequest, pk=request_id, team=team)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        data = {}
+
+    notes = (data.get('notes') or '').strip()
+    if notes:
+        jr.tryout_notes = notes[:1000]
+
+    TRANSITIONS = {
+        'TRYOUT_SCHEDULED': ('TRYOUT_COMPLETED', 'Tryout completed.'),
+        'TRYOUT_COMPLETED': ('OFFER_SENT', 'Offer sent.'),
+    }
+
+    if jr.status == 'OFFER_SENT':
+        # Final step — sign the player (create membership)
+        from apps.organizations.models import TeamMembership
+        if not team.vnext_memberships.filter(user=jr.user, status='ACTIVE').exists():
+            TeamMembership.objects.create(
+                team=team,
+                user=jr.user,
+                role=MembershipRole.PLAYER,
+                status='ACTIVE',
+                invited_by=request.user,
+            )
+        jr.status = 'ACCEPTED'
+        jr.reviewed_by = request.user
+        jr.reviewed_at = timezone.now()
+        jr.save(update_fields=['status', 'tryout_notes', 'reviewed_by', 'reviewed_at', 'updated_at'])
+        return JsonResponse({'success': True, 'status': 'ACCEPTED', 'message': f'{jr.user.username} signed!'})
+
+    if jr.status not in TRANSITIONS:
+        return JsonResponse({'error': f'Cannot advance from status {jr.status}'}, status=400)
+
+    next_status, msg = TRANSITIONS[jr.status]
+    jr.status = next_status
+    jr.reviewed_by = request.user
+    jr.save(update_fields=['status', 'tryout_notes', 'reviewed_by', 'updated_at'])
+
+    return JsonResponse({'success': True, 'status': next_status, 'message': msg})
+
+
+# ============================================================================
+# ACTIVITY PIN / UNPIN — Journey filtering (Point 2)
+# ============================================================================
+
+@login_required
+@require_http_methods(["POST"])
+def toggle_activity_pin(request, slug, activity_id):
+    """POST /api/vnext/teams/<slug>/activity/<id>/pin/ — toggle pin on activity log entry."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models import TeamActivityLog
+    entry = get_object_or_404(TeamActivityLog, pk=activity_id, team=team)
+
+    entry.is_pinned = not entry.is_pinned
+    entry.save(update_fields=['is_pinned'])
+
+    return JsonResponse({
+        'success': True,
+        'is_pinned': entry.is_pinned,
+        'message': 'Pinned!' if entry.is_pinned else 'Unpinned.',
+    })
+
+
+# ============================================================================
+# TROPHY MANAGEMENT — Dashboard module (Point 4)
+# ============================================================================
+
+@login_required
+@require_http_methods(["GET"])
+def list_trophies(request, slug):
+    """GET /api/vnext/teams/<slug>/trophies/ — list team trophies from metadata."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    # Public endpoint — no perm check
+    meta = team.metadata or {}
+    trophies = meta.get('trophies', [])
+    return JsonResponse({'trophies': trophies})
+
+
+@login_required
+@require_http_methods(["POST"])
+def save_trophy(request, slug):
+    """POST /api/vnext/teams/<slug>/trophies/save/ — add or edit trophy entry."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    title = (data.get('title') or '').strip()
+    if not title:
+        return JsonResponse({'error': 'Trophy title is required.'}, status=400)
+
+    meta = team.metadata or {}
+    trophies = meta.get('trophies', [])
+
+    entry = {
+        'id': data.get('id') or str(uuid.uuid4())[:8],
+        'title': title[:80],
+        'event': (data.get('event') or '').strip()[:100],
+        'date': (data.get('date') or '').strip()[:20],
+        'placement': (data.get('placement') or '').strip()[:30],
+    }
+
+    # Update existing or append
+    existing_idx = next((i for i, t in enumerate(trophies) if t.get('id') == entry['id']), None)
+    if existing_idx is not None:
+        trophies[existing_idx] = entry
+    else:
+        if len(trophies) >= 50:
+            return JsonResponse({'error': 'Maximum 50 trophies.'}, status=400)
+        trophies.append(entry)
+
+    meta['trophies'] = trophies
+    team.metadata = meta
+    team.save(update_fields=['metadata'])
+
+    return JsonResponse({'success': True, 'trophy': entry, 'message': 'Trophy saved.'})
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_trophy(request, slug, trophy_id):
+    """POST /api/vnext/teams/<slug>/trophies/<id>/delete/"""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    meta = team.metadata or {}
+    trophies = meta.get('trophies', [])
+    meta['trophies'] = [t for t in trophies if t.get('id') != trophy_id]
+    team.metadata = meta
+    team.save(update_fields=['metadata'])
+
+    return JsonResponse({'success': True, 'message': 'Trophy deleted.'})
+
+
+# ============================================================================
+# MERCH MANAGEMENT — Dashboard module (Point 4)
+# ============================================================================
+
+@login_required
+@require_http_methods(["GET"])
+def list_merch(request, slug):
+    """GET /api/vnext/teams/<slug>/merch/ — list merch items from metadata."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    meta = team.metadata or {}
+    return JsonResponse({'merch': meta.get('merch_items', [])})
+
+
+@login_required
+@require_http_methods(["POST"])
+def save_merch(request, slug):
+    """POST /api/vnext/teams/<slug>/merch/save/ — add or edit merch item."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    name = (data.get('name') or '').strip()
+    if not name:
+        return JsonResponse({'error': 'Item name is required.'}, status=400)
+
+    meta = team.metadata or {}
+    merch = meta.get('merch_items', [])
+
+    item = {
+        'id': data.get('id') or str(uuid.uuid4())[:8],
+        'name': name[:80],
+        'price': (data.get('price') or '').strip()[:20],
+        'url': (data.get('url') or '').strip()[:300],
+        'image_url': (data.get('image_url') or '').strip()[:300],
+    }
+
+    existing_idx = next((i for i, m in enumerate(merch) if m.get('id') == item['id']), None)
+    if existing_idx is not None:
+        merch[existing_idx] = item
+    else:
+        if len(merch) >= 20:
+            return JsonResponse({'error': 'Maximum 20 merch items.'}, status=400)
+        merch.append(item)
+
+    meta['merch_items'] = merch
+    team.metadata = meta
+    team.save(update_fields=['metadata'])
+
+    return JsonResponse({'success': True, 'item': item, 'message': 'Merch item saved.'})
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_merch(request, slug, merch_id):
+    """POST /api/vnext/teams/<slug>/merch/<id>/delete/"""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    meta = team.metadata or {}
+    merch = meta.get('merch_items', [])
+    meta['merch_items'] = [m for m in merch if m.get('id') != merch_id]
+    team.metadata = meta
+    team.save(update_fields=['metadata'])
+
+    return JsonResponse({'success': True, 'message': 'Merch item deleted.'})
+
+
+# ============================================================================
+# MANUAL MILESTONES
+# ============================================================================
+
+@login_required
+@require_http_methods(["POST"])
+def add_manual_milestone(request, slug):
+    """POST /api/vnext/teams/<slug>/milestones/add/ — add a custom milestone entry."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    description = (data.get('description') or '').strip()
+    if not description or len(description) > 300:
+        return JsonResponse({'error': 'Description is required (max 300 chars)'}, status=400)
+
+    milestone_date = data.get('date', '')
+
+    from apps.organizations.models import TeamActivityLog
+    from django.utils import timezone
+    import datetime
+
+    ts = timezone.now()
+    if milestone_date:
+        try:
+            ts = datetime.datetime.fromisoformat(milestone_date).replace(tzinfo=datetime.timezone.utc)
+        except (ValueError, TypeError):
+            pass
+
+    entry = TeamActivityLog.objects.create(
+        team=team,
+        action_type='UPDATE',
+        actor_id=request.user.pk,
+        actor_username=request.user.username,
+        description=description,
+        is_milestone=True,
+        is_pinned=True,
+        timestamp=ts,
+    )
+
+    return JsonResponse({'success': True, 'id': entry.pk, 'message': 'Milestone added.'})
+
+
+# ============================================================================
+# SPONSORS / PARTNERS  (stored in team.metadata['sponsors'])
+# ============================================================================
+
+@login_required
+@require_http_methods(["GET"])
+def list_sponsors(request, slug):
+    """GET /api/vnext/teams/<slug>/sponsors/"""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    meta = team.metadata or {}
+    return JsonResponse({'sponsors': meta.get('sponsors', [])})
+
+
+@login_required
+@require_http_methods(["POST"])
+def save_sponsor(request, slug):
+    """POST /api/vnext/teams/<slug>/sponsors/save/"""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    name = (data.get('name') or '').strip()
+    if not name or len(name) > 80:
+        return JsonResponse({'error': 'Name is required (max 80 chars)'}, status=400)
+
+    meta = team.metadata or {}
+    sponsors = meta.get('sponsors', [])
+    sponsor_id = data.get('id')
+
+    import uuid
+    entry = {
+        'id': sponsor_id or str(uuid.uuid4())[:8],
+        'name': name,
+        'logo_url': (data.get('logo_url') or '').strip()[:500],
+        'url': (data.get('url') or '').strip()[:300],
+        'tier': (data.get('tier') or 'partner').strip()[:20],
+    }
+
+    if sponsor_id:
+        sponsors = [entry if s.get('id') == sponsor_id else s for s in sponsors]
+    else:
+        if len(sponsors) >= 10:
+            return JsonResponse({'error': 'Maximum 10 sponsors.'}, status=400)
+        sponsors.append(entry)
+
+    meta['sponsors'] = sponsors
+    team.metadata = meta
+    team.save(update_fields=['metadata'])
+
+    return JsonResponse({'success': True, 'sponsor': entry})
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_sponsor(request, slug, sponsor_id):
+    """POST /api/vnext/teams/<slug>/sponsors/<id>/delete/"""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    meta = team.metadata or {}
+    sponsors = meta.get('sponsors', [])
+    meta['sponsors'] = [s for s in sponsors if s.get('id') != sponsor_id]
+    team.metadata = meta
+    team.save(update_fields=['metadata'])
+
+    return JsonResponse({'success': True, 'message': 'Sponsor removed.'})
+
+
+# ============================================================================
+# JOURNEY MILESTONES — Curated Public Timeline
+# ============================================================================
+
+@login_required
+@require_http_methods(["GET"])
+def list_journey_milestones(request, slug):
+    """GET /api/vnext/teams/<slug>/journey/ — list all curated journey milestones."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models.journey import TeamJourneyMilestone
+    milestones = TeamJourneyMilestone.objects.filter(team=team).order_by('-milestone_date')
+    items = [
+        {
+            'id': m.pk,
+            'title': m.title,
+            'description': m.description,
+            'milestone_date': m.milestone_date.isoformat(),
+            'is_visible': m.is_visible,
+            'sort_order': m.sort_order,
+        }
+        for m in milestones
+    ]
+    return JsonResponse({'success': True, 'milestones': items, 'count': len(items)})
+
+
+@login_required
+@require_http_methods(["POST"])
+def save_journey_milestone(request, slug):
+    """POST /api/vnext/teams/<slug>/journey/save/ — create or update a journey milestone."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    title = (data.get('title') or '').strip()
+    description = (data.get('description') or '').strip()
+    milestone_date_str = (data.get('milestone_date') or '').strip()
+    is_visible = data.get('is_visible', True)
+    milestone_id = data.get('id')
+
+    if not title or len(title) > 120:
+        return JsonResponse({'error': 'Title is required (max 120 chars)'}, status=400)
+    if len(description) > 500:
+        return JsonResponse({'error': 'Description must be 500 characters or less'}, status=400)
+    if not milestone_date_str:
+        return JsonResponse({'error': 'Date is required'}, status=400)
+
+    import datetime
+    try:
+        milestone_date = datetime.date.fromisoformat(milestone_date_str)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid date format (use YYYY-MM-DD)'}, status=400)
+
+    from apps.organizations.models.journey import TeamJourneyMilestone
+
+    # Max 10 milestones per team
+    if not milestone_id:
+        existing_count = TeamJourneyMilestone.objects.filter(team=team).count()
+        if existing_count >= 10:
+            return JsonResponse({'error': 'Maximum 10 journey milestones allowed'}, status=400)
+
+    if milestone_id:
+        try:
+            milestone = TeamJourneyMilestone.objects.get(pk=milestone_id, team=team)
+            milestone.title = title
+            milestone.description = description
+            milestone.milestone_date = milestone_date
+            milestone.is_visible = bool(is_visible)
+            milestone.save()
+            msg = 'Milestone updated.'
+        except TeamJourneyMilestone.DoesNotExist:
+            return JsonResponse({'error': 'Milestone not found'}, status=404)
+    else:
+        milestone = TeamJourneyMilestone.objects.create(
+            team=team,
+            title=title,
+            description=description,
+            milestone_date=milestone_date,
+            is_visible=bool(is_visible),
+            created_by=request.user,
+        )
+        msg = 'Milestone created.'
+
+    return JsonResponse({
+        'success': True,
+        'message': msg,
+        'milestone': {
+            'id': milestone.pk,
+            'title': milestone.title,
+            'description': milestone.description,
+            'milestone_date': milestone.milestone_date.isoformat(),
+            'is_visible': milestone.is_visible,
+        },
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_journey_milestone(request, slug, milestone_id):
+    """POST /api/vnext/teams/<slug>/journey/<id>/delete/ — delete a journey milestone."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models.journey import TeamJourneyMilestone
+    try:
+        milestone = TeamJourneyMilestone.objects.get(pk=milestone_id, team=team)
+        milestone.delete()
+        return JsonResponse({'success': True, 'message': 'Milestone deleted.'})
+    except TeamJourneyMilestone.DoesNotExist:
+        return JsonResponse({'error': 'Milestone not found'}, status=404)
+
+
+@login_required
+@require_http_methods(["POST"])
+def toggle_journey_visibility(request, slug, milestone_id):
+    """POST /api/vnext/teams/<slug>/journey/<id>/toggle/ — toggle milestone visibility."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.models.journey import TeamJourneyMilestone
+    try:
+        milestone = TeamJourneyMilestone.objects.get(pk=milestone_id, team=team)
+        milestone.is_visible = not milestone.is_visible
+        milestone.save(update_fields=['is_visible'])
+        return JsonResponse({
+            'success': True,
+            'is_visible': milestone.is_visible,
+            'message': f'Milestone {"shown" if milestone.is_visible else "hidden"}.',
+        })
+    except TeamJourneyMilestone.DoesNotExist:
+        return JsonResponse({'error': 'Milestone not found'}, status=404)

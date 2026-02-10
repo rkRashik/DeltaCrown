@@ -77,11 +77,23 @@ def get_team_detail_context(
         'ui': _build_ui_context(team, viewer_role),
         'roster': _build_roster_context(team, is_private_restricted),
         'stats': _build_stats_context(team, is_private_restricted),
+        'leaderboard_stats': _build_leaderboard_stats_context(team, is_private_restricted),
         'streams': _build_streams_context(team, is_private_restricted),
         'partners': _build_partners_context(team, is_private_restricted),
         'merch': _build_merch_context(team, is_private_restricted),
         'pending_actions': _build_pending_actions_context(team, viewer, is_authorized),
         'page': _build_page_context(team, request),
+        # P6-P15 context
+        'journey': _build_journey_context(team, is_private_restricted),
+        'announcements': _build_announcements_context(team, is_private_restricted),
+        'upcoming_matches': _build_upcoming_matches_context(team, is_private_restricted),
+        'trophy_cabinet': _build_trophy_cabinet_context(team, is_private_restricted),
+        'media_highlights': _build_media_highlights_context(team, is_private_restricted),
+        'challenges': _build_challenges_context(team, is_private_restricted),
+        'match_history': _build_match_history_context(team, is_private_restricted),
+        # 7-Point Overhaul — recruitment & sponsors
+        'recruitment': _build_recruitment_context(team, is_private_restricted),
+        'sponsors': _build_sponsors_context(team, is_private_restricted),
     }
     
     return context
@@ -115,6 +127,8 @@ def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
             'primary_color': getattr(team, 'primary_color', '#3B82F6'),
             'accent_color': getattr(team, 'accent_color', '#10B981'),
             'status': getattr(team, 'status', 'active'),
+            'is_recruiting': getattr(team, 'is_recruiting', True),
+            'roster_locked': getattr(team, 'roster_locked', False),
             'founded_date': _safe_date(getattr(team, 'founded_date', None)),
             'total_members': _safe_int(getattr(team, 'member_count', 0)),
             'total_wins': _safe_int(getattr(team, 'total_wins', 0)),
@@ -122,6 +136,13 @@ def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
             'crown_points': _safe_int(getattr(team, 'crown_points', 0)),
             'rank': _safe_int(getattr(team, 'rank', 0)),
             'social_links': _safe_dict(getattr(team, 'social_links', {})),
+            # P1: Header metadata fields
+            'region': getattr(team, 'region', ''),
+            'platform': getattr(team, 'platform', 'PC'),
+            # P3: Identity tags
+            'playstyle': getattr(team, 'playstyle', ''),
+            'playpace': getattr(team, 'playpace', ''),
+            'playfocus': getattr(team, 'playfocus', ''),
         })
     else:
         # Restricted: empty defaults for Tier 2+
@@ -134,6 +155,8 @@ def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
             'primary_color': '#3B82F6',
             'accent_color': '#10B981',
             'status': 'private',
+            'is_recruiting': False,
+            'roster_locked': True,
             'founded_date': None,
             'total_members': 0,
             'total_wins': 0,
@@ -141,6 +164,11 @@ def _build_team_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
             'crown_points': 0,
             'rank': 0,
             'social_links': {},
+            'region': '',
+            'platform': '',
+            'playstyle': '',
+            'playpace': '',
+            'playfocus': '',
         })
     
     return team_data
@@ -444,6 +472,122 @@ def _build_stats_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
         return _get_default_stats()
 
 
+def _build_leaderboard_stats_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
+    """
+    Build leaderboard stats from TeamStats, TeamRanking, and TeamAnalyticsSnapshot.
+
+    Wires real data from leaderboards app for P2 (Streak & Rank) and P5 (dynamic game sections).
+    Returns win/loss/draw counts, ELO rating, tier, recent match form, and streaks.
+    """
+    defaults = {
+        'matches_played': 0,
+        'matches_won': 0,
+        'matches_lost': 0,
+        'matches_drawn': 0,
+        'tournaments_played': 0,
+        'tournaments_won': 0,
+        'win_rate': 0.0,
+        'elo_rating': 1200,
+        'peak_elo': 1200,
+        'tier': 'UNRANKED',
+        'percentile_rank': 0.0,
+        'current_streak': 0,
+        'streak_type': '',       # 'W' or 'L'
+        'longest_win_streak': 0,
+        'recent_form': [],       # List of 'W'/'L'/'D' for last 10 matches
+        'trophies_count': 0,
+    }
+
+    if is_restricted:
+        return defaults
+
+    import logging
+    logger = logging.getLogger(__name__)
+
+    game_slug = ''
+    if team.game_id:
+        try:
+            from apps.games.models import Game
+            g = Game.objects.only('slug').get(id=team.game_id)
+            game_slug = g.slug
+        except Exception:
+            pass
+
+    # --- TeamStats ---
+    try:
+        from apps.leaderboards.models import TeamStats
+        ts = TeamStats.objects.filter(team=team, game_slug=game_slug).first() if game_slug else None
+        if ts:
+            defaults['matches_played'] = ts.matches_played or 0
+            defaults['matches_won'] = ts.matches_won or 0
+            defaults['matches_lost'] = ts.matches_lost or 0
+            defaults['matches_drawn'] = ts.matches_drawn or 0
+            defaults['tournaments_played'] = ts.tournaments_played or 0
+            defaults['tournaments_won'] = ts.tournaments_won or 0
+            defaults['win_rate'] = float(ts.win_rate or 0)
+    except Exception as e:
+        logger.debug(f"TeamStats lookup failed for {team.slug}: {e}")
+
+    # --- TeamRanking (ELO) ---
+    try:
+        from apps.leaderboards.models import TeamRanking
+        tr = TeamRanking.objects.filter(team=team, game_slug=game_slug).first() if game_slug else None
+        if tr:
+            defaults['elo_rating'] = tr.elo_rating or 1200
+            defaults['peak_elo'] = tr.peak_elo or defaults['elo_rating']
+    except Exception as e:
+        logger.debug(f"TeamRanking lookup failed for {team.slug}: {e}")
+
+    # --- TeamAnalyticsSnapshot (tier, percentile, streaks) ---
+    try:
+        from apps.leaderboards.models import TeamAnalyticsSnapshot
+        snap = TeamAnalyticsSnapshot.objects.filter(
+            team=team, game_slug=game_slug,
+        ).order_by('-id').first() if game_slug else None
+        if snap:
+            defaults['tier'] = getattr(snap, 'tier', 'UNRANKED') or 'UNRANKED'
+            defaults['percentile_rank'] = float(getattr(snap, 'percentile_rank', 0) or 0)
+            defaults['current_streak'] = abs(getattr(snap, 'current_streak', 0) or 0)
+            streak_val = getattr(snap, 'current_streak', 0) or 0
+            defaults['streak_type'] = 'W' if streak_val > 0 else ('L' if streak_val < 0 else '')
+            defaults['longest_win_streak'] = getattr(snap, 'longest_win_streak', 0) or 0
+    except Exception as e:
+        logger.debug(f"TeamAnalyticsSnapshot lookup failed for {team.slug}: {e}")
+
+    # --- Recent Form (last 10 matches from TeamMatchHistory) ---
+    try:
+        from apps.leaderboards.models import TeamMatchHistory
+        recent = TeamMatchHistory.objects.filter(
+            team=team, game_slug=game_slug,
+        ).order_by('-id')[:10]
+        form = []
+        for m in recent:
+            if m.is_winner:
+                form.append('W')
+            elif hasattr(m, 'is_draw') and m.is_draw:
+                form.append('D')
+            else:
+                form.append('L')
+        defaults['recent_form'] = form
+    except Exception as e:
+        logger.debug(f"TeamMatchHistory lookup failed for {team.slug}: {e}")
+
+    # --- Trophy count (tournaments won) ---
+    try:
+        from apps.tournaments.models import Tournament
+        # Count tournaments where this team won (participant_id = team.id and is completed)
+        # Simpler: use tournaments_won from TeamStats if available
+        if defaults['tournaments_won'] == 0:
+            # Fallback: count from TeamMatchHistory where flags contain 'tournament_winner'
+            pass
+    except Exception:
+        pass
+
+    defaults['trophies_count'] = defaults['tournaments_won']
+
+    return defaults
+
+
 def _build_streams_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
     """
     Build streams/social links from team social media fields.
@@ -461,10 +605,14 @@ def _build_streams_context(team: Team, is_restricted: bool) -> List[Dict[str, An
     
     # Map vNext Team social fields to stream items (use _url suffix)
     social_platforms = [
-        ('twitch', getattr(team, 'twitch_url', None), 'Twitch', 'https://static-cdn.jtvnw.net/jtv_user_pictures/twitch-logo.png'),
-        ('twitter', getattr(team, 'twitter_url', None), 'Twitter/X', 'https://abs.twimg.com/icons/apple-touch-icon-192x192.png'),
-        ('youtube', getattr(team, 'youtube_url', None), 'YouTube', 'https://www.youtube.com/s/desktop/logo.png'),
-        ('instagram', getattr(team, 'instagram_url', None), 'Instagram', 'https://www.instagram.com/static/images/ico/favicon-192.png/68d99ba29cc8.png'),
+        ('discord', getattr(team, 'discord_url', None), 'Discord', ''),
+        ('twitch', getattr(team, 'twitch_url', None), 'Twitch', ''),
+        ('twitter', getattr(team, 'twitter_url', None), 'Twitter/X', ''),
+        ('youtube', getattr(team, 'youtube_url', None), 'YouTube', ''),
+        ('instagram', getattr(team, 'instagram_url', None), 'Instagram', ''),
+        ('facebook', getattr(team, 'facebook_url', None), 'Facebook', ''),
+        ('tiktok', getattr(team, 'tiktok_url', None), 'TikTok', ''),
+        ('website', getattr(team, 'website_url', None), 'Website', ''),
     ]
     
     for platform, url, platform_name, default_thumb in social_platforms:
@@ -473,6 +621,7 @@ def _build_streams_context(team: Team, is_restricted: bool) -> List[Dict[str, An
                 'platform': platform,
                 'url': url,
                 'title': f"{team.name} on {platform_name}",
+                'platform_name': platform_name,
                 'is_live': False,  # Future: Check Twitch API for live status
                 'viewer_count': 0,
                 'thumbnail_url': default_thumb,
@@ -507,6 +656,50 @@ def _build_merch_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]
     """Build merch list (Tier 3 - future feature)."""
     # Always empty for now
     return []
+
+
+def _build_recruitment_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
+    """
+    Build recruitment positions + requirements for the public detail page.
+    7-Point Overhaul — Point 1B: "Join the Ranks" card data.
+    """
+    if is_restricted:
+        return {'positions': [], 'requirements': []}
+
+    try:
+        from apps.organizations.models.recruitment import (
+            RecruitmentPosition,
+            RecruitmentRequirement,
+        )
+        positions = list(
+            RecruitmentPosition.objects.filter(team=team, is_active=True)
+            .order_by('sort_order', '-created_at')[:10]
+            .values('title', 'role_category', 'rank_requirement', 'region',
+                    'platform', 'short_pitch')
+        )
+        requirements = list(
+            RecruitmentRequirement.objects.filter(team=team)
+            .order_by('sort_order', '-created_at')[:15]
+            .values('label', 'value')
+        )
+    except Exception:
+        positions, requirements = [], []
+
+    return {
+        'positions': positions,
+        'requirements': requirements,
+    }
+
+
+def _build_sponsors_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
+    """
+    Build sponsors list from team.metadata['sponsors'].
+    7-Point Overhaul — Point 6: Partners / Sponsors.
+    """
+    if is_restricted:
+        return []
+    meta = getattr(team, 'metadata', None) or {}
+    return meta.get('sponsors', [])
 
 
 def _build_pending_actions_context(team: Team, viewer, is_authorized: bool) -> Dict[str, Any]:
@@ -546,16 +739,19 @@ def _build_pending_actions_context(team: Team, viewer, is_authorized: bool) -> D
         status='PENDING'
     ).first()
     
-    # vNext organizations app has no TeamJoinRequest model yet (Phase 3 work)
-    # For now, always None (no join request functionality)
-    pending_request = None
+    # Check for pending join request (vNext TeamJoinRequest)
+    from apps.organizations.models.join_request import TeamJoinRequest
+    pending_request = TeamJoinRequest.objects.filter(
+        team=team, user=viewer, status='PENDING',
+    ).first()
     
-    # User can request to join if: not a member, no pending invite, no pending request, team allows requests
+    # User can request to join if: not a member, no pending invite, no pending request, team is recruiting
     can_request = (
         not is_member and
         not pending_invite and
         not pending_request and
-        getattr(team, 'allow_join_requests', True)  # Legacy Team field
+        getattr(team, 'is_recruiting', True) and
+        not team.roster_locked
     )
     
     return {
@@ -565,6 +761,400 @@ def _build_pending_actions_context(team: Team, viewer, is_authorized: bool) -> D
         'pending_invite_id': pending_invite.id if pending_invite else None,
         'pending_request_id': pending_request.id if pending_request else None,
     }
+
+
+# ============================================================================
+# P6-P15 CONTEXT BUILDERS
+# ============================================================================
+
+def _build_journey_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
+    """
+    P6 — Curated Journey Milestones.
+    
+    Shows up to 5 owner-curated milestones from TeamJourneyMilestone (is_visible=True).
+    Falls back to legacy activity-based timeline if no curated milestones exist.
+    """
+    if is_restricted:
+        return []
+
+    # ── Primary: Curated milestones ──
+    try:
+        from apps.organizations.models.journey import TeamJourneyMilestone
+        milestones = TeamJourneyMilestone.objects.filter(
+            team=team, is_visible=True
+        ).order_by('-milestone_date')[:5]
+        if milestones.exists():
+            return [
+                {
+                    'type': 'milestone',
+                    'title': m.title,
+                    'description': m.description,
+                    'timestamp': m.milestone_date,
+                    'id': m.pk,
+                }
+                for m in milestones
+            ]
+    except Exception:
+        pass
+
+    # ── Fallback: Legacy activity log timeline ──
+    timeline = []
+    PUBLIC_ACTIVITY_TYPES = {'CREATE', 'TOURNAMENT_REGISTER', 'ACQUIRE', 'DELETE'}
+    try:
+        from apps.organizations.models import TeamActivityLog
+        from django.db.models import Q
+        activities = TeamActivityLog.objects.filter(
+            Q(team=team) & (
+                Q(action_type__in=PUBLIC_ACTIVITY_TYPES) |
+                Q(is_pinned=True) |
+                Q(is_milestone=True)
+            )
+        ).order_by('-timestamp')[:5]
+        for act in activities:
+            timeline.append({
+                'type': 'activity',
+                'action': getattr(act, 'action_type', ''),
+                'description': getattr(act, 'description', ''),
+                'actor': getattr(act, 'actor_username', ''),
+                'timestamp': act.timestamp,
+                'metadata': getattr(act, 'metadata', {}),
+                'is_pinned': getattr(act, 'is_pinned', False),
+                'is_milestone': getattr(act, 'is_milestone', False),
+                'id': act.pk,
+            })
+    except Exception:
+        pass
+
+    try:
+        from apps.organizations.models import TeamMembershipEvent
+        PUBLIC_MEMBERSHIP_EVENTS = {'JOINED', 'REMOVED', 'LEFT'}
+        events = TeamMembershipEvent.objects.filter(
+            team=team,
+            event_type__in=PUBLIC_MEMBERSHIP_EVENTS,
+        ).order_by('-created_at')[:5]
+        for evt in events:
+            timeline.append({
+                'type': 'membership',
+                'event_type': getattr(evt, 'event_type', ''),
+                'actor': getattr(evt.actor, 'username', '') if evt.actor else '',
+                'user': getattr(evt.user, 'username', '') if evt.user else '',
+                'old_role': getattr(evt, 'old_role', ''),
+                'new_role': getattr(evt, 'new_role', ''),
+                'timestamp': evt.created_at,
+                'metadata': getattr(evt, 'metadata', {}),
+            })
+    except Exception:
+        pass
+
+    timeline.sort(key=lambda x: x.get('timestamp') or '', reverse=True)
+    return timeline[:5]
+
+
+def _build_announcements_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
+    """
+    P7: Transmission Feed — fetch TeamAnnouncement items.
+    Returns most recent 10 announcements for public view.
+    """
+    if is_restricted:
+        return []
+
+    try:
+        from apps.organizations.models import TeamAnnouncement
+        announcements = TeamAnnouncement.objects.filter(
+            team=team
+        ).select_related('author').order_by('-pinned', '-created_at')[:10]
+        return [
+            {
+                'id': ann.id,
+                'content': ann.content,
+                'type': getattr(ann, 'announcement_type', 'general'),
+                'pinned': getattr(ann, 'pinned', False),
+                'author_name': ann.author.username if ann.author else 'System',
+                'author_avatar': _get_user_avatar(ann.author) if ann.author else FALLBACK_URLS['user_avatar'],
+                'created_at': ann.created_at,
+            }
+            for ann in announcements
+        ]
+    except Exception:
+        return []
+
+
+def _build_upcoming_matches_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
+    """
+    P8: Up Next sidebar widget — fetch scheduled matches from tournaments.
+    Returns the next 3 upcoming matches for this team.
+    """
+    if is_restricted:
+        return []
+
+    try:
+        from django.db.models import Q
+        from django.utils import timezone
+        from apps.tournaments.models import Match
+        now = timezone.now()
+        matches = Match.objects.filter(
+            Q(participant1_id=team.id) | Q(participant2_id=team.id),
+            state__in=['scheduled', 'SCHEDULED', 'CHECK_IN'],
+            scheduled_time__gte=now,
+        ).select_related('tournament').order_by('scheduled_time')[:3]
+        return [
+            {
+                'id': m.id,
+                'tournament_name': m.tournament.name if m.tournament else 'Unknown',
+                'opponent_name': (
+                    m.participant2_name if str(m.participant1_id) == str(team.id) else m.participant1_name
+                ),
+                'opponent_id': (
+                    m.participant2_id if str(m.participant1_id) == str(team.id) else m.participant1_id
+                ),
+                'scheduled_time': m.scheduled_time,
+                'format': getattr(m, 'best_of', 'BO1'),
+                'stream_url': getattr(m, 'stream_url', ''),
+                'state': m.state,
+            }
+            for m in matches
+        ]
+    except Exception:
+        return []
+
+
+def _build_trophy_cabinet_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
+    """
+    P13: Trophy Cabinet — fetch tournament placements.
+    Queries TournamentResult + Registration to find team's placement history.
+    """
+    if is_restricted:
+        return []
+
+    trophies = []
+    try:
+        from apps.tournaments.models import TournamentResult, Registration
+        # Find all registrations for this team
+        team_registrations = Registration.objects.filter(
+            team_id=team.id
+        ).values_list('id', flat=True)
+
+        if team_registrations:
+            # Find results where this team placed
+            from django.db.models import Q
+            results = TournamentResult.objects.filter(
+                Q(winner_id__in=team_registrations) |
+                Q(runner_up_id__in=team_registrations) |
+                Q(third_place_id__in=team_registrations)
+            ).select_related('tournament')[:12]
+
+            for result in results:
+                placement = None
+                placement_label = None
+                placement_emoji = None
+                if result.winner_id in list(team_registrations):
+                    placement = 1
+                    placement_label = '1st Place'
+                    placement_emoji = '🏆'
+                elif result.runner_up_id and result.runner_up_id in list(team_registrations):
+                    placement = 2
+                    placement_label = '2nd Place'
+                    placement_emoji = '🥈'
+                elif result.third_place_id and result.third_place_id in list(team_registrations):
+                    placement = 3
+                    placement_label = '3rd Place'
+                    placement_emoji = '🥉'
+
+                if placement:
+                    tournament = result.tournament
+                    trophies.append({
+                        'tournament_name': tournament.name if tournament else 'Unknown',
+                        'placement': placement,
+                        'placement_label': placement_label,
+                        'emoji': placement_emoji,
+                        'date': getattr(tournament, 'end_date', None) or getattr(tournament, 'created_at', None),
+                        'prize': None,  # Could query PrizeTransaction
+                    })
+    except Exception:
+        pass
+
+    # Sort by placement (1st first), then date
+    trophies.sort(key=lambda x: (x['placement'], str(x.get('date') or '')))
+    return trophies
+
+
+def _build_media_highlights_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
+    """
+    P14: Highlights & Media — fetch TeamMedia + TeamHighlight.
+    Returns dict with 'media' list (uploads) and 'highlights' list (external links).
+    """
+    if is_restricted:
+        return {'media': [], 'highlights': []}
+
+    media_items = []
+    highlight_items = []
+
+    try:
+        from apps.organizations.models import TeamMedia
+        media_qs = TeamMedia.objects.filter(team=team).order_by('-created_at')[:6]
+        for m in media_qs:
+            media_items.append({
+                'id': m.id,
+                'title': getattr(m, 'title', ''),
+                'category': getattr(m, 'category', 'general'),
+                'file_url': m.file.url if m.file else getattr(m, 'file_url', ''),
+                'file_type': getattr(m, 'file_type', 'image'),
+                'created_at': m.created_at,
+            })
+    except Exception:
+        pass
+
+    try:
+        from apps.organizations.models import TeamHighlight
+        highlights_qs = TeamHighlight.objects.filter(team=team).order_by('-created_at')[:6]
+        for h in highlights_qs:
+            highlight_items.append({
+                'id': h.id,
+                'title': getattr(h, 'title', ''),
+                'url': getattr(h, 'url', ''),
+                'description': getattr(h, 'description', ''),
+                'thumbnail_url': getattr(h, 'thumbnail_url', ''),
+                'created_at': h.created_at,
+            })
+    except Exception:
+        pass
+
+    return {
+        'media': media_items,
+        'highlights': highlight_items,
+        'has_content': len(media_items) > 0 or len(highlight_items) > 0,
+    }
+
+
+def _build_challenges_context(team: Team, is_restricted: bool) -> Dict[str, Any]:
+    """
+    P11: Challenge Hub — fetch open/active challenges for the team.
+    Returns dict with 'items' list, 'open_count', and summary stats.
+    """
+    if is_restricted:
+        return {'items': [], 'open_count': 0, 'stats': {}}
+
+    items = []
+    stats = {'wins': 0, 'losses': 0, 'total_earned': 0}
+
+    try:
+        from apps.challenges.models import Challenge
+        from django.utils import timezone
+
+        now = timezone.now()
+        # Active challenges (open, accepted, in_progress)
+        qs = Challenge.objects.filter(
+            team=team,
+            status__in=['open', 'accepted', 'in_progress'],
+        ).select_related('opponent_team', 'created_by').order_by('-created_at')[:5]
+
+        for c in qs:
+            opponent_name = ''
+            if c.opponent_team_id:
+                opponent_name = getattr(c.opponent_team, 'name', '?')
+            elif c.target_player_name:
+                opponent_name = c.target_player_name
+
+            expires_delta = None
+            if c.expires_at and c.expires_at > now:
+                expires_delta = (c.expires_at - now).total_seconds()
+
+            items.append({
+                'id': c.id,
+                'title': c.title,
+                'description': c.description or '',
+                'challenge_type': c.challenge_type,
+                'status': c.status,
+                'format': c.format or '',
+                'match_type': c.match_type or '',
+                'prize_amount': float(c.prize_amount) if c.prize_amount else 0,
+                'prize_currency': c.prize_currency or '',
+                'prize_description': c.prize_description or '',
+                'opponent_name': opponent_name,
+                'attempts': c.attempts,
+                'wins_by_challenger': c.wins_by_challenger,
+                'expires_seconds': expires_delta,
+                'created_at': c.created_at,
+            })
+
+        # Summary stats (all completed challenges for this team)
+        completed = Challenge.objects.filter(team=team, status='completed')
+        stats['wins'] = completed.filter(wins_by_challenger__gt=0).count()
+        stats['losses'] = completed.filter(wins_by_challenger=0).count()
+        from django.db.models import Sum
+        earned = completed.aggregate(total=Sum('prize_amount'))['total']
+        stats['total_earned'] = float(earned) if earned else 0
+
+    except Exception:
+        pass
+
+    return {
+        'items': items,
+        'open_count': sum(1 for i in items if i['status'] == 'open'),
+        'stats': stats,
+    }
+
+
+def _build_match_history_context(team: Team, is_restricted: bool) -> List[Dict[str, Any]]:
+    """
+    P8 supplement: Match History — fetch recent completed matches.
+    Uses leaderboard_stats recent_form if available, else queries Match model.
+    """
+    if is_restricted:
+        return []
+
+    matches = []
+    try:
+        from apps.tournaments.models import Match
+        from django.db.models import Q
+        from django.utils import timezone
+
+        qs = Match.objects.filter(
+            Q(participant1_id=team.id) | Q(participant2_id=team.id),
+            state__in=['COMPLETED', 'completed', 'DONE', 'done'],
+        ).select_related('tournament').order_by('-updated_at')[:5]
+
+        for m in qs:
+            is_p1 = (m.participant1_id == team.id)
+            opponent_id = m.participant2_id if is_p1 else m.participant1_id
+            opponent_name = f'Team #{opponent_id}' if opponent_id else 'TBD'
+
+            # Try to resolve opponent name
+            try:
+                opp_team = Team.objects.only('name', 'tag').get(id=opponent_id)
+                opponent_name = opp_team.name
+            except Team.DoesNotExist:
+                pass
+
+            # Determine result
+            winner_id = getattr(m, 'winner_id', None)
+            if winner_id == team.id:
+                result = 'win'
+            elif winner_id:
+                result = 'loss'
+            else:
+                result = 'draw'
+
+            score_display = ''
+            if hasattr(m, 'score_participant1') and hasattr(m, 'score_participant2'):
+                if is_p1:
+                    score_display = f'{m.score_participant1 or 0}-{m.score_participant2 or 0}'
+                else:
+                    score_display = f'{m.score_participant2 or 0}-{m.score_participant1 or 0}'
+
+            matches.append({
+                'id': m.id,
+                'opponent_name': opponent_name,
+                'result': result,
+                'score': score_display,
+                'tournament_name': getattr(m.tournament, 'name', '') if m.tournament_id else '',
+                'match_type': getattr(m, 'match_type', 'official'),
+                'date': m.updated_at,
+            })
+    except Exception:
+        pass
+
+    return matches
 
 
 # ============================================================================
@@ -608,6 +1198,8 @@ def _safe_game_context(team: Team) -> Dict[str, Any]:
                 'slug': game.slug,
                 'logo_url': game.logo.url if game.logo else None,
                 'primary_color': game.primary_color,
+                'category': getattr(game, 'category', ''),
+                'short_code': getattr(game, 'short_code', ''),
             }
         except Game.DoesNotExist:
             # Fallback for invalid game_id
@@ -617,6 +1209,8 @@ def _safe_game_context(team: Team) -> Dict[str, Any]:
                 'slug': None,
                 'logo_url': None,
                 'primary_color': '#7c3aed',
+                'category': '',
+                'short_code': '',
             }
     
     # Legacy path: game is a CharField slug

@@ -1,0 +1,186 @@
+{# ═══════════════════════════════════════════════════════════ #}
+{# SECTION: Sponsors — Partner / Sponsor Management          #}
+{# Route: #sponsors                                          #}
+{# 7-Point Overhaul — Point 6                                #}
+{# ═══════════════════════════════════════════════════════════ #}
+{% if is_admin or is_owner %}
+<section id="sponsors" class="hq-section space-y-5">
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h2 class="text-lg font-bold flex items-center gap-2">
+                <svg class="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                Sponsors &amp; Partners
+            </h2>
+            <p class="text-sm text-white/40 mt-0.5">Showcase team sponsors, partners, and brand affiliations (max 10)</p>
+        </div>
+        <button onclick="SponsorManager.openForm()" class="h-9 px-4 rounded-xl bg-teal-500/15 border border-teal-500/25 text-teal-400 text-xs font-bold uppercase tracking-wider hover:bg-teal-500/25 transition flex items-center gap-2">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            Add Sponsor
+        </button>
+    </div>
+
+    {# Add/Edit Form (hidden by default) #}
+    <div id="sponsor-form" class="hidden rounded-2xl border border-teal-500/15 bg-white/[0.03] p-5 space-y-3">
+        <h3 id="sponsor-form-title" class="text-sm font-bold text-teal-400">Add Sponsor</h3>
+        <input type="hidden" id="sponsor-edit-id" value="" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input type="text" id="sponsor-name" placeholder="Sponsor / Partner name" maxlength="80"
+                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-teal-500/30" />
+            <select id="sponsor-tier"
+                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-teal-500/30">
+                <option value="partner" class="bg-[#0a0a0f]">Partner</option>
+                <option value="gold" class="bg-[#0a0a0f]">Gold Sponsor</option>
+                <option value="silver" class="bg-[#0a0a0f]">Silver Sponsor</option>
+                <option value="bronze" class="bg-[#0a0a0f]">Bronze Sponsor</option>
+                <option value="community" class="bg-[#0a0a0f]">Community Sponsor</option>
+            </select>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input type="url" id="sponsor-logo" placeholder="Logo URL (https://...)" maxlength="300"
+                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-teal-500/30" />
+            <input type="url" id="sponsor-url" placeholder="Website URL (https://...)" maxlength="300"
+                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-teal-500/30" />
+        </div>
+        <div class="flex items-center gap-2 pt-1">
+            <button onclick="SponsorManager.save()" class="h-8 px-5 rounded-xl bg-teal-500/15 border border-teal-500/25 text-teal-400 text-xs font-bold hover:bg-teal-500/25 transition">Save</button>
+            <button onclick="SponsorManager.closeForm()" class="h-8 px-4 rounded-xl bg-white/5 border border-white/10 text-white/50 text-xs font-bold hover:bg-white/10 transition">Cancel</button>
+        </div>
+    </div>
+
+    {# Sponsor List #}
+    <div id="sponsor-list" class="space-y-3">
+        <div class="text-center py-8 text-white/30 text-sm">Loading sponsors…</div>
+    </div>
+
+</section>
+{% endif %}
+
+<script>
+(function() {
+    const API_BASE = '/api/vnext/teams/{{ team.slug }}';
+    function getCsrfToken() {
+        const el = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (el) return el.value;
+        const m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? m[1] : '';
+    }
+    function getHeaders() {
+        return { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() };
+    }
+
+    const TIER_COLORS = {
+        gold:      { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400' },
+        silver:    { bg: 'bg-slate-400/10', border: 'border-slate-400/20', text: 'text-slate-300' },
+        bronze:    { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400' },
+        partner:   { bg: 'bg-teal-500/10', border: 'border-teal-500/20', text: 'text-teal-400' },
+        community: { bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', text: 'text-indigo-400' },
+    };
+
+    const SponsorManager = {
+        async load() {
+            const resp = await fetch(`${API_BASE}/sponsors/`);
+            const data = await resp.json();
+            const list = document.getElementById('sponsor-list');
+            if (!list) return;
+
+            const sponsors = data.sponsors || [];
+            if (!sponsors.length) {
+                list.innerHTML = `<div class="text-center py-8 text-white/30 text-sm">No sponsors yet. Add your first sponsor or partner above.</div>`;
+                return;
+            }
+
+            list.innerHTML = sponsors.map(s => {
+                const t = TIER_COLORS[s.tier] || TIER_COLORS.partner;
+                return `
+                <div class="flex items-center gap-4 rounded-xl border border-white/8 bg-white/[0.02] p-4 hover:bg-white/[0.04] transition group">
+                    <div class="h-12 w-12 rounded-xl bg-white/5 grid place-items-center shrink-0 overflow-hidden border border-white/10">
+                        ${s.logo_url ? `<img src="${s.logo_url}" alt="${s.name}" class="w-full h-full object-contain p-1" />` : `<svg class="w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>`}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-bold text-white truncate">${s.name}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${t.bg} ${t.border} ${t.text} border">${s.tier}</span>
+                        </div>
+                        ${s.url ? `<a href="${s.url}" target="_blank" class="text-[11px] text-white/40 hover:text-teal-400 truncate block mt-0.5">${s.url}</a>` : ''}
+                    </div>
+                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                        <button onclick="SponsorManager.edit('${s.id}', '${s.name.replace(/'/g,"\\'")}', '${s.logo_url || ''}', '${s.url || ''}', '${s.tier}')" class="h-7 w-7 rounded-lg bg-white/5 grid place-items-center hover:bg-white/10 transition" title="Edit">
+                            <svg class="w-3.5 h-3.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </button>
+                        <button onclick="SponsorManager.remove('${s.id}')" class="h-7 w-7 rounded-lg bg-white/5 grid place-items-center hover:bg-red-500/20 transition" title="Delete">
+                            <svg class="w-3.5 h-3.5 text-white/50 hover:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        },
+
+        openForm() {
+            document.getElementById('sponsor-form').classList.remove('hidden');
+            document.getElementById('sponsor-form-title').textContent = 'Add Sponsor';
+            document.getElementById('sponsor-edit-id').value = '';
+        },
+
+        closeForm() {
+            document.getElementById('sponsor-form').classList.add('hidden');
+            document.getElementById('sponsor-name').value = '';
+            document.getElementById('sponsor-logo').value = '';
+            document.getElementById('sponsor-url').value = '';
+            document.getElementById('sponsor-tier').value = 'partner';
+            document.getElementById('sponsor-edit-id').value = '';
+        },
+
+        edit(id, name, logo, url, tier) {
+            document.getElementById('sponsor-form').classList.remove('hidden');
+            document.getElementById('sponsor-form-title').textContent = 'Edit Sponsor';
+            document.getElementById('sponsor-edit-id').value = id;
+            document.getElementById('sponsor-name').value = name;
+            document.getElementById('sponsor-logo').value = logo;
+            document.getElementById('sponsor-url').value = url;
+            document.getElementById('sponsor-tier').value = tier;
+        },
+
+        async save() {
+            const name = document.getElementById('sponsor-name').value.trim();
+            if (!name) { alert('Sponsor name is required'); return; }
+            const body = {
+                name,
+                logo_url: document.getElementById('sponsor-logo').value.trim(),
+                url: document.getElementById('sponsor-url').value.trim(),
+                tier: document.getElementById('sponsor-tier').value,
+            };
+            const editId = document.getElementById('sponsor-edit-id').value;
+            if (editId) body.id = editId;
+
+            const resp = await fetch(`${API_BASE}/sponsors/save/`, {
+                method: 'POST', headers: getHeaders(), body: JSON.stringify(body),
+            });
+            const data = await resp.json();
+            if (data.ok) { SponsorManager.closeForm(); SponsorManager.load(); }
+            else alert(data.error || 'Failed');
+        },
+
+        async remove(id) {
+            if (!confirm('Remove this sponsor?')) return;
+            const resp = await fetch(`${API_BASE}/sponsors/${id}/delete/`, {
+                method: 'POST', headers: getHeaders(), body: '{}',
+            });
+            const data = await resp.json();
+            if (data.ok) SponsorManager.load();
+        },
+    };
+
+    window.SponsorManager = SponsorManager;
+
+    const observer = new MutationObserver(() => {
+        const section = document.getElementById('sponsors');
+        if (section && section.classList.contains('is-active')) {
+            SponsorManager.load();
+            observer.disconnect();
+        }
+    });
+    const section = document.getElementById('sponsors');
+    if (section) observer.observe(section, { attributes: true, attributeFilter: ["class"] });
+})();
+</script>

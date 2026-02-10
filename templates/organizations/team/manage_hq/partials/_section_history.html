@@ -50,6 +50,75 @@ Section 7.9 of the Master Plan.
             class="text-xs px-2 py-1.5 text-white/30 hover:text-white/50 transition">Clear</button>
     </div>
 
+    {# ── Journey Manager (Curated Public Timeline) ── #}
+    {% if is_admin or is_owner %}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <i data-lucide="milestone" class="w-4 h-4 text-amber-400"></i>
+                Journey Manager
+            </h3>
+            <span class="text-[10px] font-mono text-white/30" id="journey-count">0 / 10</span>
+        </div>
+        <p class="text-xs text-white/40 mb-4">Curate up to 10 milestones for your public team timeline. Only visible milestones show on the detail page (max 5).</p>
+
+        {# Add / Edit Form #}
+        <div class="rounded-2xl border border-amber-500/15 bg-amber-500/[0.02] p-4 mb-4" id="journey-form-wrap">
+            <div class="flex items-center gap-2 mb-3">
+                <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider" id="journey-form-title">Add Milestone</h4>
+            </div>
+            <input type="hidden" id="journey-edit-id" value="">
+            <div class="grid grid-cols-1 gap-2 mb-2">
+                <input type="text" id="journey-title" placeholder="Title — e.g. Won Regional Finals" maxlength="120"
+                    class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-amber-500/30" />
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 mb-2">
+                <textarea id="journey-description" placeholder="Brief description (optional)" maxlength="500" rows="2"
+                    class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-amber-500/30 resize-none"></textarea>
+                <input type="date" id="journey-date"
+                    class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500/30 self-start" />
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="JourneyManager.save()" class="h-8 px-4 rounded-xl bg-amber-500/15 border border-amber-500/25 text-amber-400 text-xs font-bold hover:bg-amber-500/25 transition" id="journey-save-btn">
+                    Add
+                </button>
+                <button onclick="JourneyManager.cancelEdit()" class="h-8 px-3 rounded-xl text-white/30 text-xs hover:text-white/50 transition hidden" id="journey-cancel-btn">
+                    Cancel
+                </button>
+                <span class="text-[10px] text-white/30 ml-auto" id="journey-save-status"></span>
+            </div>
+        </div>
+
+        {# Milestone List #}
+        <div id="journey-list" class="space-y-2">
+            <div class="text-sm text-white/30 text-center py-6">
+                <i data-lucide="loader" class="w-4 h-4 animate-spin inline-block mb-1"></i><br>
+                Loading milestones…
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Manual Milestone (legacy — creates activity log entry) ── #}
+    {% if is_admin or is_owner %}
+    <div class="rounded-2xl border border-amber-500/15 bg-amber-500/[0.02] p-4">
+        <div class="flex items-center gap-2 mb-3">
+            <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+            <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Add Manual Milestone</h4>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+            <input type="text" id="milestone-desc" placeholder='e.g. "Won Local LAN Championship"' maxlength="300"
+                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-amber-500/30" />
+            <input type="date" id="milestone-date"
+                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500/30" />
+            <button onclick="ManageHQ.History.addMilestone()" class="h-8 px-4 rounded-xl bg-amber-500/15 border border-amber-500/25 text-amber-400 text-xs font-bold hover:bg-amber-500/25 transition">
+                Add
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
     {# ── Activity Timeline ── #}
     <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
         <h3 class="text-base font-bold mb-4 flex items-center gap-2">
@@ -57,7 +126,6 @@ Section 7.9 of the Master Plan.
             Activity Timeline
         </h3>
         <div id="history-timeline">
-            {# Will be populated via JS from /manage/api/activity/ #}
             <div class="text-sm text-white/40 text-center py-8">
                 <i data-lucide="loader" class="w-5 h-5 animate-spin inline-block mb-2"></i><br>
                 Loading timeline…
@@ -67,6 +135,11 @@ Section 7.9 of the Master Plan.
             <i data-lucide="clock" class="w-8 h-8 text-white/15 mx-auto mb-3"></i>
             <p class="text-sm text-white/40">No activity recorded yet</p>
             <p class="text-xs text-white/25 mt-1">Team actions will appear here as they happen</p>
+        </div>
+        <div id="history-load-more" class="hidden text-center mt-4">
+            <button onclick="ManageHQ.History.loadMore()" class="text-xs px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 transition">
+                Load More
+            </button>
         </div>
     </div>
 
@@ -121,3 +194,331 @@ Section 7.9 of the Master Plan.
     {% endif %}
 
 </section>
+
+{# ── History Timeline JavaScript ── #}
+<script>
+(function() {
+    const SLUG = "{{ team.slug }}";
+    const API = `/api/vnext/teams/${SLUG}/activity/`;
+    const PIN_API = (id) => `/api/vnext/teams/${SLUG}/activity/${id}/pin/`;
+    const CSRF = document.querySelector("[name=csrfmiddlewaretoken]")?.value || "{{ csrf_token }}";
+    const IS_ADMIN = {{ is_admin|yesno:"true,false" }};
+    let currentPage = 1;
+
+    const EVENT_ICONS = {
+        'JOINED': { icon: 'user-plus', color: 'text-emerald-400' },
+        'REMOVED': { icon: 'user-minus', color: 'text-red-400' },
+        'LEFT': { icon: 'log-out', color: 'text-amber-400' },
+        'ROLE_CHANGED': { icon: 'shield', color: 'text-blue-400' },
+        'STATUS_CHANGED': { icon: 'toggle-left', color: 'text-purple-400' },
+        'CREATE': { icon: 'flag', color: 'text-emerald-400' },
+        'UPDATE': { icon: 'edit', color: 'text-slate-400' },
+        'ROSTER_ADD': { icon: 'user-plus', color: 'text-emerald-400' },
+        'ROSTER_REMOVE': { icon: 'user-minus', color: 'text-red-400' },
+        'ROSTER_UPDATE': { icon: 'refresh-cw', color: 'text-blue-400' },
+        'TOURNAMENT_REGISTER': { icon: 'trophy', color: 'text-amber-400' },
+        'RANKING_UPDATE': { icon: 'trending-up', color: 'text-purple-400' },
+        'ACQUIRE': { icon: 'git-merge', color: 'text-indigo-400' },
+    };
+
+    function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+    function renderEvent(ev) {
+        const meta = EVENT_ICONS[ev.event_type] || { icon: 'circle', color: 'text-white/30' };
+        const time = ev.timestamp ? new Date(ev.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+        const pinned = ev.is_pinned;
+
+        const pinBtn = (IS_ADMIN && ev.can_pin && ev.activity_id)
+            ? `<button onclick="HistoryTimeline.togglePin(${ev.activity_id}, this)" class="ml-auto opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-white/10" title="${pinned ? 'Unpin from public journey' : 'Pin to public journey'}">
+                <i data-lucide="${pinned ? 'pin-off' : 'pin'}" class="w-3.5 h-3.5 ${pinned ? 'text-amber-400' : 'text-white/30'}"></i>
+               </button>`
+            : '';
+
+        const pinnedBadge = pinned ? '<span class="text-[9px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded ml-2">Pinned</span>' : '';
+
+        return `
+        <div class="flex items-start gap-3 py-3 px-2 rounded-xl group hover:bg-white/[0.02] transition ${pinned ? 'bg-amber-500/[0.03] border-l-2 border-amber-500/30 pl-3' : ''}">
+            <div class="mt-0.5 flex-shrink-0 w-7 h-7 rounded-lg bg-white/5 grid place-items-center">
+                <i data-lucide="${meta.icon}" class="w-3.5 h-3.5 ${meta.color}"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-xs text-white/80">${esc(ev.description || ev.event_type)}${pinnedBadge}</p>
+                <p class="text-[10px] text-white/30 mt-0.5">${esc(ev.actor || '')} · ${time}</p>
+            </div>
+            ${pinBtn}
+        </div>`;
+    }
+
+    const HistoryTimeline = {
+        async load(page) {
+            const filter = document.getElementById("history-filter-type")?.value || '';
+            const resp = await fetch(`${API}?page=${page}&filter=${filter}`, { headers: { "X-CSRFToken": CSRF } });
+            const data = await resp.json();
+            if (!data.success) return;
+
+            const timeline = document.getElementById("history-timeline");
+            const empty = document.getElementById("history-timeline-empty");
+            const loadMore = document.getElementById("history-load-more");
+
+            if (data.events.length === 0 && page === 1) {
+                timeline.innerHTML = '';
+                if (empty) empty.classList.remove("hidden");
+                if (loadMore) loadMore.classList.add("hidden");
+                return;
+            }
+
+            if (empty) empty.classList.add("hidden");
+            const html = data.events.map(renderEvent).join('');
+
+            if (page === 1) {
+                timeline.innerHTML = html;
+            } else {
+                timeline.insertAdjacentHTML('beforeend', html);
+            }
+
+            if (loadMore) loadMore.classList.toggle("hidden", !data.has_more);
+            currentPage = page;
+
+            // Re-init lucide icons
+            if (window.lucide) lucide.createIcons();
+        },
+
+        loadMore() { HistoryTimeline.load(currentPage + 1); },
+
+        applyFilters() { currentPage = 1; HistoryTimeline.load(1); },
+        clearFilters() {
+            document.getElementById("history-filter-type").value = '';
+            document.getElementById("history-filter-from").value = '';
+            document.getElementById("history-filter-to").value = '';
+            currentPage = 1;
+            HistoryTimeline.load(1);
+        },
+
+        async togglePin(activityId, btn) {
+            const resp = await fetch(PIN_API(activityId), {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+                body: "{}",
+            });
+            const data = await resp.json();
+            if (data.success) {
+                HistoryTimeline.load(1); // Reload to reflect pin state
+            }
+        },
+    };
+
+    /* ── Add Manual Milestone ── */
+    HistoryTimeline.addMilestone = async function() {
+        const desc = document.getElementById('milestone-desc');
+        const date = document.getElementById('milestone-date');
+        if (!desc || !desc.value.trim()) { showToast('Enter milestone description', 'warning'); return; }
+        const body = { description: desc.value.trim() };
+        if (date && date.value) body.milestone_date = date.value;
+        try {
+            const res = await fetch(`/api/vnext/teams/{{ team.slug }}/milestones/add/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')?.value || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '') },
+                body: JSON.stringify(body),
+            });
+            const data = await res.json();
+            if (data.ok) {
+                showToast('Milestone added ⭐', 'success');
+                desc.value = ''; if (date) date.value = '';
+                HistoryTimeline.load(1);
+            } else {
+                showToast(data.error || 'Failed to add milestone', 'error');
+            }
+        } catch (e) { showToast('Network error', 'error'); }
+    };
+
+    window.HistoryTimeline = HistoryTimeline;
+    if (!window.ManageHQ) window.ManageHQ = {};
+    if (!window.ManageHQ.History) window.ManageHQ.History = {};
+    window.ManageHQ.History.applyFilters = HistoryTimeline.applyFilters;
+    window.ManageHQ.History.clearFilters = HistoryTimeline.clearFilters;
+    window.ManageHQ.History.loadMore = HistoryTimeline.loadMore;
+    window.ManageHQ.History.addMilestone = HistoryTimeline.addMilestone;
+
+    // Auto-load when section becomes visible
+    const observer = new MutationObserver(() => {
+        const section = document.getElementById('history');
+        if (section && section.classList.contains('is-active')) {
+            HistoryTimeline.load(1);
+            if (window.JourneyManager) JourneyManager.load();
+            observer.disconnect();
+        }
+    });
+    const section = document.getElementById('history');
+    if (section) observer.observe(section, { attributes: true, attributeFilter: ["class"] });
+
+    /* ── Journey Manager (Curated Public Timeline) ── */
+    const JOURNEY_API = `/api/vnext/teams/${SLUG}/journey/`;
+    const JOURNEY_SAVE_API = `/api/vnext/teams/${SLUG}/journey/save/`;
+    const JOURNEY_DELETE_API = (id) => `/api/vnext/teams/${SLUG}/journey/${id}/delete/`;
+    const JOURNEY_TOGGLE_API = (id) => `/api/vnext/teams/${SLUG}/journey/${id}/toggle/`;
+
+    function jesc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+    const JourneyManager = {
+        milestones: [],
+
+        async load() {
+            try {
+                const res = await fetch(JOURNEY_API, { headers: { "X-CSRFToken": CSRF } });
+                const data = await res.json();
+                if (data.success) {
+                    JourneyManager.milestones = data.milestones || [];
+                    JourneyManager.render();
+                }
+            } catch (e) { console.error('Journey load error', e); }
+        },
+
+        render() {
+            const list = document.getElementById('journey-list');
+            const counter = document.getElementById('journey-count');
+            if (!list) return;
+            if (counter) counter.textContent = `${JourneyManager.milestones.length} / 10`;
+
+            if (JourneyManager.milestones.length === 0) {
+                list.innerHTML = `
+                    <div class="rounded-xl border border-dashed border-white/15 bg-white/3 p-6 text-center">
+                        <i data-lucide="map-pin" class="w-6 h-6 text-white/15 mx-auto mb-2"></i>
+                        <p class="text-sm text-white/40">No journey milestones yet</p>
+                        <p class="text-xs text-white/25 mt-1">Add milestones above to build your team's public timeline</p>
+                    </div>`;
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
+
+            list.innerHTML = JourneyManager.milestones.map(m => {
+                const vis = m.is_visible;
+                return `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition group" data-id="${m.id}">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-lg ${vis ? 'bg-amber-500/10' : 'bg-white/5'} grid place-items-center">
+                        <i data-lucide="${vis ? 'star' : 'eye-off'}" class="w-3.5 h-3.5 ${vis ? 'text-amber-400' : 'text-white/20'}"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold ${vis ? 'text-white/90' : 'text-white/40'} truncate">${jesc(m.title)}</p>
+                        <p class="text-[10px] text-white/30 mt-0.5">
+                            ${new Date(m.milestone_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                            ${m.description ? ' · ' + jesc(m.description.substring(0, 50)) + (m.description.length > 50 ? '…' : '') : ''}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                        <button onclick="JourneyManager.toggleVisibility(${m.id})" class="p-1.5 rounded-lg hover:bg-white/10 transition" title="${vis ? 'Hide from public' : 'Show on public page'}">
+                            <i data-lucide="${vis ? 'eye' : 'eye-off'}" class="w-3.5 h-3.5 text-white/40"></i>
+                        </button>
+                        <button onclick="JourneyManager.edit(${m.id})" class="p-1.5 rounded-lg hover:bg-white/10 transition" title="Edit">
+                            <i data-lucide="pencil" class="w-3.5 h-3.5 text-white/40"></i>
+                        </button>
+                        <button onclick="JourneyManager.remove(${m.id})" class="p-1.5 rounded-lg hover:bg-red-500/10 transition" title="Delete">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red-400/50"></i>
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+            if (window.lucide) lucide.createIcons();
+        },
+
+        async save() {
+            const titleEl = document.getElementById('journey-title');
+            const descEl = document.getElementById('journey-description');
+            const dateEl = document.getElementById('journey-date');
+            const editIdEl = document.getElementById('journey-edit-id');
+            const statusEl = document.getElementById('journey-save-status');
+
+            const title = (titleEl?.value || '').trim();
+            const description = (descEl?.value || '').trim();
+            const milestone_date = (dateEl?.value || '').trim();
+
+            if (!title) { if(window.showToast) showToast('Title is required', 'warning'); return; }
+            if (!milestone_date) { if(window.showToast) showToast('Date is required', 'warning'); return; }
+
+            const body = { title, description, milestone_date };
+            if (editIdEl?.value) body.id = parseInt(editIdEl.value);
+
+            if (statusEl) statusEl.textContent = 'Saving…';
+            try {
+                const res = await fetch(JOURNEY_SAVE_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                    body: JSON.stringify(body),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (statusEl) statusEl.textContent = '✓ Saved';
+                    if(window.showToast) showToast(data.message, 'success');
+                    JourneyManager.cancelEdit();
+                    JourneyManager.load();
+                } else {
+                    if (statusEl) statusEl.textContent = '';
+                    if(window.showToast) showToast(data.error || 'Failed', 'error');
+                }
+            } catch (e) {
+                if (statusEl) statusEl.textContent = '';
+                if(window.showToast) showToast('Network error', 'error');
+            }
+        },
+
+        edit(id) {
+            const m = JourneyManager.milestones.find(x => x.id === id);
+            if (!m) return;
+            document.getElementById('journey-edit-id').value = m.id;
+            document.getElementById('journey-title').value = m.title;
+            document.getElementById('journey-description').value = m.description || '';
+            document.getElementById('journey-date').value = m.milestone_date;
+            document.getElementById('journey-form-title').textContent = 'Edit Milestone';
+            document.getElementById('journey-save-btn').textContent = 'Update';
+            document.getElementById('journey-cancel-btn').classList.remove('hidden');
+            document.getElementById('journey-save-status').textContent = '';
+            document.getElementById('journey-title').focus();
+        },
+
+        cancelEdit() {
+            document.getElementById('journey-edit-id').value = '';
+            document.getElementById('journey-title').value = '';
+            document.getElementById('journey-description').value = '';
+            document.getElementById('journey-date').value = '';
+            document.getElementById('journey-form-title').textContent = 'Add Milestone';
+            document.getElementById('journey-save-btn').textContent = 'Add';
+            document.getElementById('journey-cancel-btn').classList.add('hidden');
+            document.getElementById('journey-save-status').textContent = '';
+        },
+
+        async remove(id) {
+            if (!confirm('Delete this milestone?')) return;
+            try {
+                const res = await fetch(JOURNEY_DELETE_API(id), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                    body: '{}',
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if(window.showToast) showToast('Milestone deleted', 'success');
+                    JourneyManager.load();
+                } else {
+                    if(window.showToast) showToast(data.error || 'Failed', 'error');
+                }
+            } catch (e) { if(window.showToast) showToast('Network error', 'error'); }
+        },
+
+        async toggleVisibility(id) {
+            try {
+                const res = await fetch(JOURNEY_TOGGLE_API(id), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                    body: '{}',
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if(window.showToast) showToast(data.message, 'success');
+                    JourneyManager.load();
+                }
+            } catch (e) { if(window.showToast) showToast('Network error', 'error'); }
+        },
+    };
+
+    window.JourneyManager = JourneyManager;
+})();
+</script>

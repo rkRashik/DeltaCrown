@@ -157,12 +157,16 @@
         const ROUTES = {
             command:     { title: "Command Center",      sub: "Real-time team overview" },
             roster:      { title: "Roster Ops",          sub: "Players & staff management" },
+            'join-requests': { title: "Scouting Grounds", sub: "Recruit talent & review applications" },
             competition: { title: "Competition Hub",     sub: "Tournaments & matches" },
             training:    { title: "Training Lab",        sub: "Practice & scrims" },
             community:   { title: "Community & Media",   sub: "Announcements & content" },
             profile:     { title: "Team Profile",        sub: "Public identity editor" },
             settings:    { title: "Settings & Security", sub: "Visibility & danger zone" },
             treasury:    { title: "Treasury & Economy",  sub: "Prizes, fees & wallet" },
+            achievements:{ title: "Trophy Cabinet",      sub: "Awards & achievements" },
+            store:       { title: "Team Store",          sub: "Merch & digital items" },
+            sponsors:    { title: "Sponsors & Partners", sub: "Brand affiliations & partnerships" },
             history:     { title: "History & Archive",   sub: "Activity log & timeline" },
             guide:       { title: "Guide & Rules",       sub: "Platform rulebook & team handbook" },
         };
@@ -209,7 +213,7 @@
 
             // Update mobile nav active state
             // Routes that live under More menu (not in the main 4 bottom buttons)
-            const MORE_ROUTES = new Set(['competition', 'profile', 'settings', 'treasury', 'history', 'guide']);
+            const MORE_ROUTES = new Set(['competition', 'profile', 'settings', 'treasury', 'achievements', 'store', 'sponsors', 'history', 'guide']);
             const isMoreRoute = MORE_ROUTES.has(route);
             document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
                 const btnRoute = btn.dataset.route;
@@ -250,6 +254,12 @@
             ],
             settings: [],
             treasury: [],
+            achievements: [
+                { label: 'Add Trophy', icon: 'trophy', onclick: "TrophyManager.openForm()", color: 'amber' },
+            ],
+            store: [
+                { label: 'Add Item', icon: 'shopping-bag', onclick: "MerchStore.openForm()", color: 'violet' },
+            ],
             history: [],
             guide: [],
         };

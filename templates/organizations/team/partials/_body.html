@@ -22,26 +22,28 @@
 {# ══════════════════════════════════════════════════════════════════ #}
 {# HERO BANNER                                                       #}
 {# ══════════════════════════════════════════════════════════════════ #}
-<header class="relative mb-0">
+<header class="relative mb-16 md:mb-20">
   {# Banner Image #}
-  <div class="relative w-full h-[340px] sm:h-[400px] md:h-[480px] overflow-hidden">
+  <div class="relative w-full h-[420px] sm:h-[460px] md:h-[520px] overflow-hidden">
     <div class="absolute inset-0">
       {% if team.banner_url %}
         <img id="dc-hero-banner" src="{{ team.banner_url }}" alt="{{ team.name }} banner"
-             class="w-full h-full object-cover object-center hero-mask opacity-90 scale-[1.02] lazy-media"
+             class="w-full h-full object-cover object-center hero-mask opacity-80 scale-105 will-change-transform lazy-media"
              onerror="this.onerror=null; this.src='{% static 'img/teams/default-banner.svg' %}';" loading="lazy" />
       {% else %}
         <img id="dc-hero-banner" src="{% static 'img/teams/default-banner.svg' %}" alt="{{ team.name }} banner"
-             class="w-full h-full object-cover object-center hero-mask opacity-90 scale-[1.02]" />
+             class="w-full h-full object-cover object-center hero-mask opacity-80 scale-105 will-change-transform" />
       {% endif %}
     </div>
-    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent"></div>
+    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+    {# Noise texture overlay #}
+    <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04]"></div>
     <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
   </div>
 
   {# Team Card (overlaps banner) #}
-  <div class="max-w-[1600px] mx-auto px-4 sm:px-6 relative -mt-20 md:-mt-24 z-20">
-    <div class="liquid-glass team-card rounded-3xl p-5 sm:p-6 md:p-8 flex flex-col lg:flex-row gap-6 md:gap-8 items-stretch lg:items-center">
+  <div class="max-w-[1600px] mx-auto px-4 sm:px-6 relative -mt-24 md:-mt-28 z-20">
+    <div class="liquid-glass team-card rounded-[2.5rem] p-5 sm:p-6 md:p-8 flex flex-col lg:flex-row gap-6 md:gap-8 items-stretch lg:items-center">
 
       {# Logo Slab #}
       <div class="relative shrink-0">
@@ -78,6 +80,9 @@
             {% elif stats.tier and stats.tier != 'UNRANKED' %}
               <span class="tag tag--rank">{{ stats.tier }}</span>
             {% endif %}
+            {% if team.founded_date %}
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-white/70 font-mono uppercase tracking-wider">Est. {{ team.founded_date|date:"Y" }}</span>
+            {% endif %}
           </div>
         </div>
 
@@ -85,33 +90,74 @@
           {{ team.tagline|default:"A competitive team ready to compete." }}
         </p>
 
-        <div class="mt-4 flex flex-wrap items-center gap-2">
+        {# ── Minimalist Meta Badges (5-Point Overhaul — Point 3) ── #}
+        <div class="mt-4 flex flex-wrap items-center gap-1.5">
           {% if organization and organization.name %}
-            <span class="meta-pill">
+            <a href="{{ organization.url }}" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm text-xs text-white/70 hover:bg-white/[0.08] hover:border-white/15 transition group">
               {% if organization.logo_url %}
-              <img src="{{ organization.logo_url }}" alt="" class="w-4 h-4 rounded object-cover">
+              <img src="{{ organization.logo_url }}" alt="" class="w-3.5 h-3.5 rounded-sm object-cover">
               {% else %}
-              <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21V7a2 2 0 012-2h14a2 2 0 012 2v14M9 21V9h6v12"/></svg>
+              <svg class="w-3.5 h-3.5 text-indigo-400/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21V7a2 2 0 012-2h14a2 2 0 012 2v14M9 21V9h6v12"/></svg>
               {% endif %}
-              <span>ORG</span>
-              <b><a href="{{ organization.url }}" class="hover:text-[var(--team-primary)] transition">{{ organization.name }}</a></b>
+              <span class="font-medium group-hover:text-white transition">{{ organization.name }}</span>
               {% if organization.is_verified %}
-              <svg class="w-3.5 h-3.5 text-indigo-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <svg class="w-3 h-3 text-indigo-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
               {% endif %}
+            </a>
+          {% endif %}
+          {% if team.platform %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-white/60">
+              <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L8 21h8l-1.75-4M3 13h18M5 4h14a2 2 0 012 2v9H3V6a2 2 0 012-2z"/></svg>
+              <span class="font-medium">{{ team.platform|upper }}</span>
             </span>
           {% endif %}
           {% if team.game.name %}
-            <span class="meta-pill">
-              <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L8 21h8l-1.75-4M3 13h18M5 4h14a2 2 0 012 2v9H3V6a2 2 0 012-2z"/></svg>
-              <span>GAME</span>
-              <b>{{ team.game.name|upper }}</b>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-white/60">
+              {% if team.game.logo_url %}
+              <img src="{{ team.game.logo_url }}" alt="" class="w-3 h-3 rounded-sm object-cover">
+              {% else %}
+              <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>
+              {% endif %}
+              <span class="font-medium">{{ team.game.name }}</span>
             </span>
           {% endif %}
           {% if team.founded_date %}
-            <span class="meta-pill">
-              <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              <span>EST</span>
-              <b>{{ team.founded_date }}</b>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs text-white/50">
+              <svg class="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>{{ team.founded_date }}</span>
+            </span>
+          {% endif %}
+          {% if leaderboard_stats and leaderboard_stats.crown_points %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/[0.08] border border-amber-500/15 text-xs text-amber-400 font-semibold">
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 2a2 2 0 00-2 2v14l3.5-2 3.5 2 3.5-2 3.5 2V4a2 2 0 00-2-2H5zm4.707 3.707a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L8.414 9H10a3 3 0 110 6v-2a1 1 0 10-2 0v2H5a5 5 0 0110 0h-1.586l1.293-1.293z" clip-rule="evenodd"/></svg>
+              {{ leaderboard_stats.crown_points }} CP
+            </span>
+          {% endif %}
+          {% if leaderboard_stats and leaderboard_stats.rank %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-500/[0.08] border border-purple-500/15 text-xs text-purple-400 font-semibold">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+              #{{ leaderboard_stats.rank }}
+            </span>
+          {% endif %}
+        </div>
+
+        {# P1: Compact Status Tags #}
+        <div class="mt-2 flex flex-wrap items-center gap-1.5">
+          {% if team.region %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.03] text-[10px] text-white/50 font-medium uppercase tracking-wider">
+              <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+              {{ team.region }}
+            </span>
+          {% endif %}
+          {% if team.is_recruiting and not team.roster_locked %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/15 text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Recruiting
+            </span>
+          {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.03] text-[10px] text-white/30 font-medium uppercase tracking-wider">
+              <span class="w-1.5 h-1.5 rounded-full bg-red-400/50"></span>
+              Closed
             </span>
           {% endif %}
         </div>
@@ -120,6 +166,15 @@
       {# CTAs + Stats (Right side) #}
       <div class="flex flex-col justify-between gap-5 lg:items-end">
         <div id="team-info-actions" class="flex items-center gap-3 lg:justify-end">
+          {% if permissions.is_member %}
+            {# Team Chat — visible to ALL members (admin, manager, coach, player) #}
+            <a href="{% url 'organizations:team_manage' team.slug %}#discord"
+               class="btn-secondary flex items-center gap-2"
+               title="Open Team Chat in HQ">
+              <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+              <span>TEAM CHAT</span>
+            </a>
+          {% endif %}
           {% if permissions.can_edit_team %}
             <a href="{% url 'organizations:team_manage' team.slug %}" class="btn-primary flex items-center gap-2" title="Manage team">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -129,12 +184,6 @@
             <a href="{% url 'organizations:team_manage' team.slug %}" class="btn-primary flex items-center gap-2" title="Team Headquarters">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
               <span>TEAM HQ</span>
-            </a>
-            <a href="{% url 'organizations:team_manage' team.slug %}#discord"
-               class="btn-secondary flex items-center gap-2"
-               title="Open Team Chat in HQ">
-              <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-              <span>TEAM CHAT</span>
             </a>
           {% elif pending_actions.has_pending_invite %}
             <div class="relative" id="dc-invite-cta-wrap">
@@ -159,12 +208,22 @@
               </div>
             </div>
           {% elif pending_actions.has_pending_request %}
-            <button type="button" class="btn-primary flex items-center gap-2 opacity-75" disabled>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              <span>PENDING</span>
-            </button>
+            <div class="relative" id="dc-pending-cta-wrap">
+              <button type="button" class="btn-primary flex items-center gap-2 opacity-75" onclick="document.getElementById('dc-pending-dropdown').classList.toggle('hidden')">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>PENDING</span>
+              </button>
+              <div id="dc-pending-dropdown" class="hidden absolute top-full right-0 mt-2 w-64 rounded-2xl bg-[#0A0A0F] border border-white/15 p-4 shadow-2xl z-50" onclick="event.stopPropagation()">
+                <p class="text-xs text-white/50 mb-3">Your application is being reviewed by the team.</p>
+                <button onclick="dcWithdrawApplication()" id="dc-withdraw-btn" class="w-full h-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 transition flex items-center justify-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                  Withdraw Application
+                </button>
+                <div id="dc-withdraw-msg" class="hidden mt-2 text-center text-xs font-bold"></div>
+              </div>
+            </div>
           {% elif pending_actions.can_request_to_join %}
-            <button type="button" class="btn-primary flex items-center gap-2" title="Applications coming soon" disabled>
+            <button type="button" class="btn-primary flex items-center gap-2" onclick="dcOpenApplyModal()">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
               <span>APPLY</span>
             </button>
@@ -177,22 +236,21 @@
           </button>
         </div>
 
-        {# Hero Stats Grid #}
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
+        {# Hero Stats Grid — P2: Streak & Rank from leaderboard_stats #}
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-4 lg:gap-x-10">
           <div class="text-right">
             <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider">Crown Pts</div>
-            <div class="text-2xl font-display font-bold text-white">{{ team.crown_points|default:0|intcomma }}</div>
+            <div class="text-2xl font-display font-bold text-white">{{ leaderboard_stats.elo_rating|default:0|intcomma }}</div>
           </div>
           <div class="text-right">
-            <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider">Wins</div>
-            <div class="text-2xl font-display font-bold text-emerald-400">{{ team.total_wins|default:0 }}</div>
+            <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider">Trophies</div>
+            <div class="text-2xl font-display font-bold text-amber-400">{{ leaderboard_stats.trophies_count|default:0 }}</div>
           </div>
           <div class="text-right">
             <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider">Win Rate</div>
             <div class="text-2xl font-display font-bold text-white">
-              {% widthratio team.total_wins 1 100 as wr_num %}
-              {% if team.total_wins and team.total_losses %}
-                {% widthratio team.total_wins team.total_wins|add:team.total_losses 100 %}%
+              {% if leaderboard_stats.matches_played > 0 %}
+                {% widthratio leaderboard_stats.matches_won leaderboard_stats.matches_played 100 %}%
               {% else %}
                 —
               {% endif %}
@@ -204,6 +262,15 @@
               {% if stats.rank %}#{{ stats.rank }}{% else %}—{% endif %}
             </div>
           </div>
+          {# Streak indicator #}
+          {% if leaderboard_stats.current_streak > 0 %}
+          <div class="text-right col-span-2">
+            <div class="text-[9px] font-mono uppercase text-slate-500 tracking-wider">Current Streak</div>
+            <div class="text-2xl font-display font-bold {% if leaderboard_stats.streak_type == 'W' %}text-emerald-400{% else %}text-red-400{% endif %}">
+              {{ leaderboard_stats.current_streak }}{{ leaderboard_stats.streak_type }}
+            </div>
+          </div>
+          {% endif %}
           {% if organization and organization.empire_score %}
           <div class="text-right col-span-2 sm:col-span-4 border-t border-white/10 pt-3 mt-1">
             <div class="flex items-center justify-end gap-3">
@@ -232,20 +299,33 @@
 <nav class="sticky top-0 z-40 bg-[#000]/80 backdrop-blur-md border-b border-white/10 mt-8 mb-8 transition-all duration-300" id="dc-subnav">
   <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
     <div class="flex items-center justify-between h-14 md:h-16 overflow-x-auto no-scrollbar mask-fade-sides">
-      {# Section Links #}
+      {# Section Links — clean underline tabs #}
       <div class="flex items-center gap-1 md:gap-6 text-xs md:text-sm font-bold tracking-widest uppercase font-mono h-full min-w-max">
         <a href="#overview" class="relative h-full flex items-center px-2 text-[var(--team-primary)] nav-link" data-nav="overview">
           Overview
-          <span class="nav-underline absolute bottom-0 left-0 w-full h-0.5 bg-[var(--team-primary)] shadow-[0_0_10px_var(--team-primary)]"></span>
+          <span class="nav-neon absolute bottom-0 left-0 w-full h-0.5 bg-[var(--team-primary)] shadow-[0_0_10px_var(--team-primary)]"></span>
         </a>
-        <a href="#roster" class="relative h-full flex items-center px-2 text-slate-500 hover:text-white transition-colors nav-link" data-nav="roster">Roster</a>
-        <a href="#matches" class="relative h-full flex items-center px-2 text-slate-500 hover:text-white transition-colors nav-link" data-nav="matches">Matches</a>
-        <a href="#stats" class="relative h-full flex items-center px-2 text-slate-500 hover:text-white transition-colors nav-link" data-nav="stats">Stats</a>
-        <a href="#media" class="relative h-full flex items-center px-2 text-slate-500 hover:text-white transition-colors nav-link" data-nav="media">Media</a>
+        <a href="#roster" class="relative h-full flex items-center px-2 text-slate-500 hover:text-white transition-colors nav-link" data-nav="roster">
+          Roster
+          <span class="nav-neon absolute bottom-0 left-0 w-full h-0.5 bg-[var(--team-primary)] shadow-[0_0_10px_var(--team-primary)]" style="opacity:0"></span>
+        </a>
+        <a href="#matches" class="relative h-full flex items-center px-2 text-slate-500 hover:text-white transition-colors nav-link" data-nav="matches">
+          Matches
+          <span class="nav-neon absolute bottom-0 left-0 w-full h-0.5 bg-[var(--team-primary)] shadow-[0_0_10px_var(--team-primary)]" style="opacity:0"></span>
+        </a>
+        <a href="#stats" class="relative h-full flex items-center px-2 text-slate-500 hover:text-white transition-colors nav-link" data-nav="stats">
+          Stats
+          <span class="nav-neon absolute bottom-0 left-0 w-full h-0.5 bg-[var(--team-primary)] shadow-[0_0_10px_var(--team-primary)]" style="opacity:0"></span>
+        </a>
+        <a href="#media" class="relative h-full flex items-center px-2 text-slate-500 hover:text-white transition-colors nav-link" data-nav="media">
+          Media
+          <span class="nav-neon absolute bottom-0 left-0 w-full h-0.5 bg-[var(--team-primary)] shadow-[0_0_10px_var(--team-primary)]" style="opacity:0"></span>
+        </a>
         {% if permissions.can_view_operations %}
-          <a href="#operations" class="relative h-full flex items-center px-2 text-slate-500 hover:text-emerald-400 transition-colors nav-link gap-2" data-nav="operations">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          <a href="#operations" class="relative h-full flex items-center px-2 text-slate-500 hover:text-emerald-400 transition-colors gap-2 nav-link" data-nav="operations">
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
             Ops
+            <span class="nav-neon absolute bottom-0 left-0 w-full h-0.5 bg-emerald-400 shadow-[0_0_10px_theme(colors.emerald.400)]" style="opacity:0"></span>
           </a>
         {% endif %}
       </div>
@@ -274,60 +354,183 @@
       {# SECTION 1: OVERVIEW — Mission & Identity                 #}
       {# ──────────────────────────────────────────────────────── #}
       <section id="overview" class="transition-smooth">
-        <h3 class="section-heading mb-6">
-          <span class="section-heading__bar"></span>
-          Mission &amp; Identity
-        </h3>
+        <div class="flex flex-col md:flex-row gap-6 md:gap-10 items-start">
+          {# Left: Description + Identity Tags #}
+          <div class="flex-1">
+            <h3 class="text-white font-display font-bold text-lg mb-3 flex items-center gap-2">
+              <span class="w-1 h-5 bg-[var(--team-primary)] rounded-full"></span>
+              Mission &amp; Identity
+            </h3>
 
-        {# Mission Statement + Description #}
-        <div class="liquid-trace rounded-2xl p-6 mb-6">
-          {% if team.tagline %}
-          <p class="text-white/80 text-sm font-medium italic mb-2">
-            "{{ team.tagline }}"
-          </p>
-          {% endif %}
-          {% if team.description %}
-          <p class="text-slate-300 text-sm leading-relaxed">
-            {{ team.description }}
-          </p>
-          {% elif not team.tagline %}
-          <p class="text-slate-400 text-sm leading-relaxed italic">
-            No mission statement has been set for this team yet.
-          </p>
-          {% endif %}
-          {% if organization %}
-            <p class="mt-3 text-xs text-slate-500 flex items-center gap-2">
-              {% if organization.logo_url %}
-              <img src="{{ organization.logo_url }}" alt="" class="w-4 h-4 rounded object-cover opacity-60">
-              {% endif %}
-              Part of <a href="{{ organization.url }}" class="text-[var(--team-primary)] hover:underline font-medium">{{ organization.name }}</a>
-              {% if organization.is_verified %}
-              <svg class="w-3.5 h-3.5 text-indigo-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              {% endif %}
-              {% if organization.type %}· {{ organization.type|title }} Organization{% endif %}
+            {% if team.description %}
+            <p class="text-slate-400 text-sm leading-7">
+              {{ team.description|linebreaksbr }}
             </p>
-          {% endif %}
+            {% elif team.tagline %}
+            <p class="text-slate-400 text-sm leading-7">
+              {{ team.tagline }}
+            </p>
+            {% else %}
+            <p class="text-slate-400 text-sm leading-7 italic">
+              No mission statement has been set for this team yet.
+            </p>
+            {% endif %}
+
+            {% if organization %}
+              <p class="mt-3 text-xs text-slate-500 flex items-center gap-2">
+                {% if organization.logo_url %}
+                <img src="{{ organization.logo_url }}" alt="" class="w-4 h-4 rounded object-cover opacity-60">
+                {% endif %}
+                Part of <a href="{{ organization.url }}" class="text-[var(--team-primary)] hover:underline font-medium">{{ organization.name }}</a>
+                {% if organization.is_verified %}
+                <svg class="w-3.5 h-3.5 text-indigo-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                {% endif %}
+                {% if organization.type %}· {{ organization.type|title }} Organization{% endif %}
+              </p>
+            {% endif %}
+
+            {# Identity Tags — Demo-style compact labels #}
+            {% if team.playstyle or team.playpace or team.playfocus %}
+            <div class="flex flex-wrap gap-2 mt-4">
+              {% if team.playstyle %}
+              <div class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-mono uppercase tracking-wider text-slate-300">
+                Style: <span class="text-white font-bold">{{ team.playstyle }}</span>
+              </div>
+              {% endif %}
+              {% if team.playpace %}
+              <div class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-mono uppercase tracking-wider text-slate-300">
+                Pace: <span class="text-white font-bold">{{ team.playpace }}</span>
+              </div>
+              {% endif %}
+              {% if team.playfocus %}
+              <div class="px-3 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-mono uppercase tracking-wider text-slate-300">
+                Focus: <span class="text-white font-bold">{{ team.playfocus }}</span>
+              </div>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+
+          {# Right: Stats Cards (2-col) #}
+          <div class="w-full md:w-auto shrink-0 grid grid-cols-2 gap-3">
+            {% if leaderboard_stats.current_streak > 0 %}
+            <div class="p-4 rounded-2xl bg-[#0A0A0F] border border-white/10 min-w-[140px]">
+              <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1">Current Streak</div>
+              <div class="text-2xl font-display font-bold {% if leaderboard_stats.streak_type == 'W' %}text-[#00FF41]{% else %}text-red-400{% endif %}">
+                {{ leaderboard_stats.current_streak }} {{ leaderboard_stats.streak_type }}ins
+              </div>
+            </div>
+            {% else %}
+            <div class="p-4 rounded-2xl bg-[#0A0A0F] border border-white/10 min-w-[140px]">
+              <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1">Members</div>
+              <div class="text-2xl font-display font-bold text-white">{{ roster.count|default:0 }}</div>
+            </div>
+            {% endif %}
+            <div class="p-4 rounded-2xl bg-[#0A0A0F] border border-white/10 min-w-[140px]">
+              <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1">Global Rank</div>
+              <div class="text-2xl font-display font-bold text-white">{% if stats.rank %}#{{ stats.rank }}{% else %}—{% endif %}</div>
+            </div>
+          </div>
         </div>
 
-        {# Quick Stats Cards #}
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="liquid-trace rounded-xl p-4 text-center hover-lift">
-            <div class="text-[9px] font-mono uppercase text-slate-500 mb-1">Members</div>
-            <div class="text-2xl font-display font-bold text-white">{{ roster.count|default:0 }}</div>
+        {# P2: Recent Form (last 10 matches visual) #}
+        {% if leaderboard_stats.recent_form %}
+        <div class="mt-4 p-5 rounded-2xl bg-[#0A0A0F] border border-white/10">
+          <div class="text-[9px] font-mono uppercase text-slate-500 mb-3 flex items-center gap-2">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            Recent Form
           </div>
-          <div class="liquid-trace rounded-xl p-4 text-center hover-lift">
-            <div class="text-[9px] font-mono uppercase text-slate-500 mb-1">Wins</div>
-            <div class="text-2xl font-display font-bold text-emerald-400">{{ team.total_wins|default:0 }}</div>
-          </div>
-          <div class="liquid-trace rounded-xl p-4 text-center hover-lift">
-            <div class="text-[9px] font-mono uppercase text-slate-500 mb-1">Losses</div>
-            <div class="text-2xl font-display font-bold text-red-400">{{ team.total_losses|default:0 }}</div>
-          </div>
-          <div class="liquid-trace rounded-xl p-4 text-center hover-lift">
-            <div class="text-[9px] font-mono uppercase text-slate-500 mb-1">Crown Points</div>
-            <div class="text-2xl font-display font-bold text-[var(--team-primary)]">{{ team.crown_points|default:0|intcomma }}</div>
+          <div class="flex items-center justify-between">
+            <div class="flex gap-2">
+              {% for result in leaderboard_stats.recent_form %}
+                <div class="w-8 h-8 rounded flex items-center justify-center text-xs font-bold
+                  {% if result == 'W' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30
+                  {% elif result == 'L' %}bg-red-500/20 text-red-400 border border-red-500/30
+                  {% else %}bg-slate-500/20 text-slate-400 border border-slate-500/30{% endif %}" title="{{ result }}">
+                  {{ result }}
+                </div>
+              {% endfor %}
+            </div>
+            {% if leaderboard_stats.win_rate %}
+            <div class="text-right">
+              <div class="text-2xl font-display font-bold {% if leaderboard_stats.win_rate >= 60 %}text-emerald-400{% elif leaderboard_stats.win_rate >= 40 %}text-amber-400{% else %}text-red-400{% endif %}">{{ leaderboard_stats.win_rate|floatformat:0 }}%</div>
+              <div class="text-[10px] text-slate-500 font-mono uppercase">Win Rate</div>
+            </div>
+            {% endif %}
           </div>
         </div>
+        {% endif %}
+
+        {# 7-Point Overhaul — P2A: Performance Stats Panel #}
+        {% if leaderboard_stats.matches_played > 0 %}
+        <div class="mt-4 liquid-trace rounded-2xl overflow-hidden">
+          {# Header bar #}
+          <div class="flex items-center gap-2 px-5 py-3 border-b border-white/5 bg-white/[0.02]">
+            <svg class="w-4 h-4 text-[var(--team-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <h4 class="text-xs font-bold text-white uppercase tracking-widest">Performance</h4>
+          </div>
+          <div class="p-5 space-y-5">
+            {# Win Rate bar #}
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[10px] font-mono uppercase text-slate-500">Win Rate</span>
+                <span class="text-sm font-bold {% if leaderboard_stats.win_rate >= 60 %}text-emerald-400{% elif leaderboard_stats.win_rate >= 40 %}text-amber-400{% else %}text-red-400{% endif %}">{{ leaderboard_stats.win_rate|floatformat:1 }}%</span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-white/5 overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-700 {% if leaderboard_stats.win_rate >= 60 %}bg-gradient-to-r from-emerald-500 to-emerald-400{% elif leaderboard_stats.win_rate >= 40 %}bg-gradient-to-r from-amber-500 to-amber-400{% else %}bg-gradient-to-r from-red-500 to-red-400{% endif %}" style="width: {{ leaderboard_stats.win_rate|floatformat:0 }}%"></div>
+              </div>
+            </div>
+
+            {# Key Stats Grid #}
+            <div class="grid grid-cols-3 gap-3">
+              <div class="rounded-xl bg-white/[0.03] border border-white/5 p-3 text-center">
+                <div class="text-[9px] font-mono uppercase text-slate-500 mb-1">Matches</div>
+                <div class="text-lg font-display font-bold text-white">{{ leaderboard_stats.matches_played }}</div>
+                <div class="text-[9px] text-slate-500 mt-0.5">
+                  <span class="text-emerald-400">{{ leaderboard_stats.matches_won }}W</span>
+                  <span class="mx-0.5">·</span>
+                  <span class="text-red-400">{{ leaderboard_stats.matches_lost }}L</span>
+                  {% if leaderboard_stats.matches_drawn > 0 %}
+                  <span class="mx-0.5">·</span>
+                  <span class="text-slate-400">{{ leaderboard_stats.matches_drawn }}D</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="rounded-xl bg-white/[0.03] border border-white/5 p-3 text-center">
+                <div class="text-[9px] font-mono uppercase text-slate-500 mb-1">ELO</div>
+                <div class="text-lg font-display font-bold text-[var(--team-primary)]">{{ leaderboard_stats.elo_rating|floatformat:0 }}</div>
+                {% if leaderboard_stats.peak_elo > leaderboard_stats.elo_rating %}
+                <div class="text-[9px] text-slate-500 mt-0.5">Peak {{ leaderboard_stats.peak_elo|floatformat:0 }}</div>
+                {% endif %}
+              </div>
+              <div class="rounded-xl bg-white/[0.03] border border-white/5 p-3 text-center">
+                <div class="text-[9px] font-mono uppercase text-slate-500 mb-1">Tournaments</div>
+                <div class="text-lg font-display font-bold text-white">{{ leaderboard_stats.tournaments_played }}</div>
+                {% if leaderboard_stats.tournaments_won > 0 %}
+                <div class="text-[9px] text-amber-400 mt-0.5">🏆 {{ leaderboard_stats.tournaments_won }} Won</div>
+                {% endif %}
+              </div>
+            </div>
+
+            {# Best Streak + Percentile #}
+            {% if leaderboard_stats.longest_win_streak > 0 or leaderboard_stats.percentile_rank > 0 %}
+            <div class="flex items-center gap-3 flex-wrap">
+              {% if leaderboard_stats.longest_win_streak > 0 %}
+              <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/15 text-emerald-400 text-[10px] font-bold">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                Best Streak: {{ leaderboard_stats.longest_win_streak }}W
+              </div>
+              {% endif %}
+              {% if leaderboard_stats.percentile_rank > 0 %}
+              <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--team-primary)]/10 border border-[var(--team-primary)]/15 text-[var(--team-primary)] text-[10px] font-bold">
+                Top {{ leaderboard_stats.percentile_rank|floatformat:0 }}%
+              </div>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
       </section>
 
       {# ──────────────────────────────────────────────────────── #}
@@ -342,15 +545,22 @@
               <span class="section-heading__badge">{{ roster.count }}</span>
             {% endif %}
           </h3>
-          {% if permissions.can_manage_roster %}
-            <a href="{% url 'organizations:team_manage' team.slug %}" class="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 hover:text-[var(--team-primary)] transition">
-              Manage Roster →
-            </a>
-          {% endif %}
+          <div class="flex items-center gap-3">
+            {# P4: Expand/Collapse toggle #}
+            <button type="button" onclick="dcToggleRosterExpand()" id="dc-roster-toggle" class="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 hover:text-white transition flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="dc-roster-toggle-icon"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+              Expand
+            </button>
+            {% if permissions.can_manage_roster %}
+              <a href="{% url 'organizations:team_manage' team.slug %}" class="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 hover:text-[var(--team-primary)] transition">
+                Manage Roster →
+              </a>
+            {% endif %}
+          </div>
         </div>
 
         {% if roster.items %}
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4" id="dc-roster-grid">
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 dc-roster-grid" id="dc-roster-grid" data-expanded="false">
             {% for member in roster.items %}
               <div class="group relative h-[280px] sm:h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer dc-roster-card"
                    data-username="{{ member.username }}"
@@ -360,11 +570,13 @@
                    data-player-role="{{ member.player_role|default:'' }}"
                    data-profile-url="{{ member.user_profile_url }}"
                    data-captain="{{ member.is_captain|yesno:'true,false' }}"
+                   data-ign="{{ member.game_passport.ign|default:'' }}"
+                   data-game-rank="{{ member.game_passport.rank|default:'' }}"
                    onclick="dcShowPlayerPopup(this)">
                 {# Player Photo #}
                 <div class="absolute inset-0">
                   <img src="{{ member.avatar_url }}" alt="{{ member.display_name }}"
-                       class="w-full h-full object-cover opacity-50 group-hover:opacity-70 group-hover:scale-105 transition-smooth lazy-media"
+                       class="w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth lazy-media"
                        loading="lazy"
                        onerror="this.onerror=null; this.style.display='none';" />
                 </div>
@@ -383,7 +595,7 @@
                   {% endif %}
                 </div>
 
-                {# Status indicator (top-left) — online/offline dot #}
+                {# Status indicator (top-left) #}
                 {% if member.status == 'ACTIVE' %}
                 <div class="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur border border-white/10">
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -391,22 +603,43 @@
                 </div>
                 {% endif %}
 
-                {# Player Info (bottom overlay) — enhanced layout #}
+                {# Player Info (bottom overlay) — P4: enhanced with hover-reveal stats #}
                 <div class="absolute bottom-0 left-0 w-full p-4">
                   {% if member.player_role %}
                     <div class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] tracking-widest mb-1">{{ member.player_role }}</div>
                   {% endif %}
-                  <h4 class="text-lg font-display font-bold text-white mb-1.5 truncate leading-tight">{{ member.display_name }}</h4>
+                  <h4 class="text-xl font-display font-bold text-white mb-1 truncate leading-tight">{{ member.display_name }}</h4>
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="chip">{{ member.role|default:"PLAYER" }}</span>
                     {% if member.is_captain %}
                       <span class="chip" style="background: rgba(234,179,8,0.15); color: #EAB308; border-color: rgba(234,179,8,0.25);">Captain</span>
                     {% endif %}
                   </div>
-                  {# Hover prompt #}
-                  <div class="mt-2 flex items-center gap-1 text-[9px] text-white/0 group-hover:text-white/40 transition font-mono uppercase tracking-wider">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                    View player
+
+                  {# P4: Hover-reveal game passport stats #}
+                  <div class="mt-2 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 space-y-1">
+                    {% if member.game_passport.ign %}
+                    <div class="flex items-center justify-between text-[9px]">
+                      <span class="text-slate-500 uppercase">IGN</span>
+                      <span class="text-white font-bold font-mono">{{ member.game_passport.ign }}</span>
+                    </div>
+                    {% endif %}
+                    {% if member.game_passport.rank %}
+                    <div class="flex items-center justify-between text-[9px]">
+                      <span class="text-slate-500 uppercase">Rank</span>
+                      <span class="text-[var(--team-primary)] font-bold">{{ member.game_passport.rank }}</span>
+                    </div>
+                    {% endif %}
+                    {% if member.country %}
+                    <div class="flex items-center justify-between text-[9px]">
+                      <span class="text-slate-500 uppercase">Region</span>
+                      <span class="text-white/60 font-mono">{{ member.country }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="flex items-center gap-1 text-white/40 font-mono uppercase tracking-wider pt-1" style="font-size: 8px;">
+                      <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                      View profile
+                    </div>
                   </div>
                 </div>
               </div>
@@ -469,7 +702,7 @@
       <section id="stats" class="transition-smooth">
         <h3 class="section-heading mb-6">
           <span class="section-heading__bar"></span>
-          Team Statistics &amp; Performance
+          <span data-term="stats-title">Team Statistics &amp; Performance</span>
         </h3>
 
         {% if stats.tier and stats.tier != 'UNRANKED' %}
@@ -494,6 +727,70 @@
               </div>
             </div>
           </div>
+        {% elif leaderboard_stats.matches_played > 0 %}
+          {# P5: Dynamic game-specific stats from leaderboard data #}
+          <div class="liquid-trace rounded-2xl p-6 mb-6" data-accent="team">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div>
+                <div class="text-[9px] font-mono uppercase text-slate-500 mb-1" data-label="stat-1">Total Played</div>
+                <div class="text-xl font-display font-bold text-white">{{ leaderboard_stats.matches_played }}</div>
+              </div>
+              <div>
+                <div class="text-[9px] font-mono uppercase text-slate-500 mb-1" data-label="stat-2">
+                  {% if leaderboard_stats.current_streak > 0 %}Streak{% else %}Win Rate{% endif %}
+                </div>
+                <div class="text-xl font-display font-bold {% if leaderboard_stats.current_streak > 0 %}{% if leaderboard_stats.streak_type == 'W' %}text-emerald-400{% else %}text-red-400{% endif %}{% else %}text-white{% endif %}">
+                  {% if leaderboard_stats.current_streak > 0 %}
+                    {{ leaderboard_stats.current_streak }}{{ leaderboard_stats.streak_type }}
+                  {% else %}
+                    {% widthratio leaderboard_stats.matches_won leaderboard_stats.matches_played 100 %}%
+                  {% endif %}
+                </div>
+              </div>
+              <div>
+                <div class="text-[9px] font-mono uppercase text-slate-500 mb-1" data-label="stat-3">ELO Rating</div>
+                <div class="text-xl font-display font-bold text-[var(--team-primary)]">{{ leaderboard_stats.elo_rating|intcomma }}</div>
+              </div>
+              <div>
+                <div class="text-[9px] font-mono uppercase text-slate-500 mb-1" data-label="stat-4">Peak ELO</div>
+                <div class="text-xl font-display font-bold text-white/60">{{ leaderboard_stats.peak_elo|intcomma }}</div>
+              </div>
+            </div>
+          </div>
+
+          {# P5: Game-specific detailed stats grid #}
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="liquid-trace rounded-xl p-4 text-center hover-lift">
+              <div class="text-[9px] font-mono uppercase text-slate-500 mb-1" data-label="gs-1">Record</div>
+              <div class="text-lg font-display font-bold">
+                <span class="text-emerald-400">{{ leaderboard_stats.matches_won }}</span>
+                <span class="text-white/30">-</span>
+                <span class="text-red-400">{{ leaderboard_stats.matches_lost }}</span>
+                {% if leaderboard_stats.matches_drawn > 0 %}
+                <span class="text-white/30">-</span>
+                <span class="text-yellow-400">{{ leaderboard_stats.matches_drawn }}</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="liquid-trace rounded-xl p-4 text-center hover-lift">
+              <div class="text-[9px] font-mono uppercase text-slate-500 mb-1" data-label="gs-2">Tournaments</div>
+              <div class="text-lg font-display font-bold text-white">{{ leaderboard_stats.tournaments_played }}</div>
+            </div>
+            <div class="liquid-trace rounded-xl p-4 text-center hover-lift">
+              <div class="text-[9px] font-mono uppercase text-slate-500 mb-1" data-label="gs-3">Titles Won</div>
+              <div class="text-lg font-display font-bold text-amber-400">{{ leaderboard_stats.tournaments_won }}</div>
+            </div>
+            <div class="liquid-trace rounded-xl p-4 text-center hover-lift">
+              <div class="text-[9px] font-mono uppercase text-slate-500 mb-1" data-label="gs-4">Percentile</div>
+              <div class="text-lg font-display font-bold text-white">
+                {% if leaderboard_stats.percentile_rank > 0 %}
+                  Top {{ leaderboard_stats.percentile_rank|floatformat:0 }}%
+                {% else %}
+                  —
+                {% endif %}
+              </div>
+            </div>
+          </div>
         {% else %}
           {# Unranked Placeholder #}
           <div class="coming-soon-section">
@@ -514,64 +811,170 @@
       {# SECTION 5: JOURNEY — The Journey (Timeline)              #}
       {# ──────────────────────────────────────────────────────── #}
       <section id="journey" class="transition-smooth">
-        <h3 class="section-heading mb-6">
-          <span class="section-heading__bar"></span>
+        <h3 class="text-white font-display font-bold text-lg mb-8 flex items-center gap-2">
+          <span class="w-1 h-5 bg-[var(--team-primary)] rounded-full"></span>
           The Journey
         </h3>
 
-        <div class="coming-soon-section">
-          <div class="flex items-start gap-4">
-            <div class="w-10 h-10 rounded-lg bg-[var(--team-primary)]/10 flex items-center justify-center shrink-0">
-              <svg class="w-5 h-5 text-[var(--team-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <div class="flex-1">
-              <h4 class="text-white font-bold mb-1">Team Timeline</h4>
-              <p class="text-sm text-slate-400">Coming soon – milestones, achievements, roster changes, and tournament history documented chronologically.</p>
+        {% if journey %}
+          <div class="relative border-l border-white/10 ml-3 space-y-10 pb-4">
+            {% for entry in journey %}
+              <div class="relative pl-8 group">
+                {# Timeline dot #}
+                {% if forloop.first %}
+                  <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-[var(--team-primary)] shadow-[0_0_10px_var(--team-glow)] ring-4 ring-[#000]"></div>
+                {% else %}
+                  <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-slate-700 ring-4 ring-[#000] group-hover:bg-white transition-colors"></div>
+                {% endif %}
+
+                <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <span class="text-[10px] font-mono font-bold uppercase tracking-wider {% if forloop.first %}text-[var(--team-primary)] bg-[var(--team-primary)]/10 px-2 py-1 rounded{% else %}text-slate-500{% endif %}">
+                    {{ entry.timestamp|date:"M Y" }}
+                  </span>
+                  <div class="h-px w-8 bg-white/10 hidden sm:block"></div>
+                  {% if entry.type == 'milestone' %}
+                    <h4 class="{% if forloop.first %}text-white{% else %}text-slate-200{% endif %} font-bold text-base">{{ entry.title }}</h4>
+                  {% elif entry.type == 'activity' %}
+                    <h4 class="{% if forloop.first %}text-white{% else %}text-slate-200{% endif %} font-bold text-base">
+                      {% if entry.action == 'CREATE' %}Team Founded
+                      {% elif entry.action == 'ROSTER_ADD' %}New Member Joined
+                      {% elif entry.action == 'ROSTER_REMOVE' %}Roster Change
+                      {% elif entry.action == 'TOURNAMENT_REGISTER' %}Tournament Registration
+                      {% elif entry.action == 'RANKING_UPDATE' %}Ranking Updated
+                      {% elif entry.action == 'UPDATE' %}Team Updated
+                      {% elif entry.action == 'ACQUIRE' %}Roster Acquisition
+                      {% else %}{{ entry.action|title }}
+                      {% endif %}
+                    </h4>
+                  {% elif entry.type == 'membership' %}
+                    <h4 class="{% if forloop.first %}text-white{% else %}text-slate-200{% endif %} font-bold text-base">
+                      {% if entry.event_type == 'joined' %}{{ entry.user }} joined the team
+                      {% elif entry.event_type == 'left' %}{{ entry.user }} left the team
+                      {% elif entry.event_type == 'promoted' %}{{ entry.user }} promoted to {{ entry.new_role }}
+                      {% elif entry.event_type == 'demoted' %}Role change for {{ entry.user }}
+                      {% elif entry.event_type == 'kicked' %}{{ entry.user }} removed from roster
+                      {% else %}{{ entry.event_type|title }}: {{ entry.user }}
+                      {% endif %}
+                    </h4>
+                  {% endif %}
+                </div>
+
+                {% if entry.description %}
+                <p class="text-sm {% if forloop.first %}text-slate-400{% else %}text-slate-500{% endif %} mt-2 max-w-2xl leading-relaxed">
+                  {{ entry.description }}
+                </p>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="coming-soon-section">
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-lg bg-[var(--team-primary)]/10 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-[var(--team-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div class="flex-1">
+                <h4 class="text-white font-bold mb-1">Team Timeline</h4>
+                <p class="text-sm text-slate-400">This team's journey will appear here as milestones and roster changes are recorded.</p>
+              </div>
             </div>
           </div>
-        </div>
+        {% endif %}
       </section>
 
       {# ──────────────────────────────────────────────────────── #}
       {# SECTION 6: COMMUNITY — Team Transmission                 #}
       {# ──────────────────────────────────────────────────────── #}
       <section id="community" class="transition-smooth">
-        <h3 class="section-heading mb-6">
-          <span class="w-1 h-5 bg-[#5865F2] rounded-full"></span>
-          Team Transmission
-        </h3>
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-white font-display font-bold text-lg flex items-center gap-2">
+            <span class="w-1 h-5 bg-[#5865F2] rounded-full"></span>
+            Team Transmission
+          </h3>
+          {% if permissions.is_member or permissions.can_edit_team %}
+            <a href="{% url 'organizations:team_manage' team.slug %}#discord"
+               class="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-colors flex items-center gap-1">
+              Open Community App
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          {% endif %}
+        </div>
 
-        {% if permissions.is_member or permissions.can_edit_team %}
-        {# ── Members see a CTA to open Team Chat in HQ ── #}
-        <div class="rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 p-6">
-          <div class="flex items-start gap-4">
-            <div class="w-12 h-12 rounded-xl bg-[#5865F2]/15 flex items-center justify-center shrink-0">
-              <svg class="w-6 h-6 text-[#5865F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-            </div>
-            <div class="flex-1">
-              <h4 class="text-white font-bold mb-1">Team Chat &amp; Discord</h4>
-              <p class="text-sm text-slate-400 mb-4">Chat with your team, sync messages with Discord, and coordinate matches — all from Team HQ.</p>
-              <a href="{% url 'organizations:team_manage' team.slug %}#discord"
-                 class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#5865F2]/20 border border-[#5865F2]/30 text-[#5865F2] text-sm font-semibold hover:bg-[#5865F2]/30 transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                Open Team Chat
-              </a>
+        {% if announcements %}
+          <div class="flex flex-col gap-3">
+            {% for ann in announcements %}
+              <div class="p-5 rounded-2xl bg-[#0A0A0F] border border-white/10 hover:border-white/20 transition-colors">
+                <div class="flex gap-4">
+                  {# Author Avatar #}
+                  <div class="shrink-0 relative">
+                    <div class="w-10 h-10 rounded-xl overflow-hidden bg-black border border-white/10">
+                      <img src="{{ ann.author_avatar }}" alt="{{ ann.author_name }}" class="w-full h-full object-cover" onerror="this.onerror=null; this.style.display='none';" />
+                    </div>
+                    {% if ann.pinned %}
+                      <div class="absolute -bottom-1 -right-1 bg-white text-black p-0.5 rounded-full border-2 border-[#0A0A0F]">
+                        <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  {# Content #}
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1 flex-wrap">
+                      <span class="font-bold text-white text-sm">{{ ann.author_name }}</span>
+                      <span class="text-[10px] text-slate-500 font-mono">{{ ann.created_at|timesince }} ago</span>
+                      {% if ann.pinned %}
+                        <span class="ml-auto flex items-center gap-1 text-[9px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                          <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg> Pinned
+                        </span>
+                      {% endif %}
+                      {% if ann.type == 'announcement' %}
+                        <span class="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-[var(--team-primary)]/10 border border-[var(--team-primary)]/20 text-[var(--team-primary)]">📢 Announcement</span>
+                      {% elif ann.type == 'match_result' %}
+                        <span class="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">⚔️ Match Result</span>
+                      {% elif ann.type == 'roster_change' %}
+                        <span class="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-blue-500/10 border border-blue-500/20 text-blue-400">👥 Roster</span>
+                      {% endif %}
+                    </div>
+
+                    <p class="text-sm text-slate-300 leading-relaxed">
+                      {{ ann.content|linebreaksbr|truncatewords:80 }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% elif permissions.is_member or permissions.can_edit_team %}
+          {# Members see a CTA to open Team Chat in HQ #}
+          <div class="rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 p-6">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-[#5865F2]/15 flex items-center justify-center shrink-0">
+                <svg class="w-6 h-6 text-[#5865F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+              </div>
+              <div class="flex-1">
+                <h4 class="text-white font-bold mb-1">Team Chat &amp; Discord</h4>
+                <p class="text-sm text-slate-400 mb-4">Post announcements and chat with your team from Team HQ.</p>
+                <a href="{% url 'organizations:team_manage' team.slug %}#discord"
+                   class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#5865F2]/20 border border-[#5865F2]/30 text-[#5865F2] text-sm font-semibold hover:bg-[#5865F2]/30 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                  Open Team Chat
+                </a>
+              </div>
             </div>
           </div>
-        </div>
         {% else %}
-        {# ── Non-members see the coming-soon placeholder ── #}
-        <div class="coming-soon-section">
-          <div class="flex items-start gap-4">
-            <div class="w-10 h-10 rounded-lg bg-[#5865F2]/10 flex items-center justify-center shrink-0">
-              <svg class="w-5 h-5 text-[#5865F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/></svg>
-            </div>
-            <div class="flex-1">
-              <h4 class="text-white font-bold mb-1">Team Feed &amp; Announcements</h4>
-              <p class="text-sm text-slate-400">Coming soon – team posts, match callouts, community polls, and pinned announcements.</p>
+          {# Non-members see an empty state placeholder #}
+          <div class="coming-soon-section">
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-lg bg-[#5865F2]/10 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-[#5865F2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/></svg>
+              </div>
+              <div class="flex-1">
+                <h4 class="text-white font-bold mb-1">Team Feed &amp; Announcements</h4>
+                <p class="text-sm text-slate-400">No public announcements yet. Check back later for team updates.</p>
+              </div>
             </div>
           </div>
-        </div>
         {% endif %}
       </section>
 
@@ -616,145 +1019,469 @@
     {# ── RIGHT COLUMN (4 cols — Sidebar) ──────────────────────── #}
     <div class="lg:col-span-4 flex flex-col gap-6" id="dc-sidebar">
 
-      {# ── Widget 1: Team Information ─────────────────────────── #}
-      <div class="sidebar-widget" data-accent="team">
-        <h4 class="sidebar-widget__title">Team Info</h4>
-        <dl class="space-y-3 text-sm">
-          <div class="flex items-center justify-between">
-            <dt class="text-slate-500 text-xs">Status</dt>
-            <dd class="font-medium">
-              {% if team.status == 'active' or team.status == 'ACTIVE' %}
-                <span class="text-emerald-400">● Active</span>
-              {% else %}
-                <span class="text-slate-400">{{ team.status|default:"Active"|title }}</span>
-              {% endif %}
-            </dd>
+      {# ── P8: Up Next (Upcoming Match Widget) ────────────────── #}
+      {% if upcoming_matches %}
+        {% with next_match=upcoming_matches.0 %}
+        <div class="relative overflow-hidden rounded-3xl bg-[#0A0A0F] border border-white/10 p-1">
+          <div class="relative bg-white/5 p-4 rounded-t-[1.3rem] flex items-center justify-between">
+            <span class="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--team-primary)]">Up Next</span>
+            <span class="text-[10px] text-slate-400">{{ next_match.scheduled_time|date:"D, M j · H:i" }}</span>
           </div>
-          {% if team.founded_date %}
-          <div class="flex items-center justify-between">
-            <dt class="text-slate-500 text-xs">Founded</dt>
-            <dd class="text-white font-medium">{{ team.founded_date }}</dd>
-          </div>
-          {% endif %}
-          {% if team.game.name %}
-          <div class="flex items-center justify-between">
-            <dt class="text-slate-500 text-xs">Primary Game</dt>
-            <dd class="text-white font-medium">{{ team.game.name }}</dd>
-          </div>
-          {% endif %}
-          {% if organization %}
-          <div class="flex items-center justify-between">
-            <dt class="text-slate-500 text-xs">Organization</dt>
-            <dd class="text-white font-medium flex items-center gap-1.5">
-              {% if organization.logo_url %}
-              <img src="{{ organization.logo_url }}" alt="" class="w-4 h-4 rounded object-cover">
-              {% endif %}
-              <a href="{{ organization.url }}" class="hover:text-[var(--team-primary)] transition">{{ organization.name }}</a>
-              {% if organization.is_verified %}
-              <svg class="w-3.5 h-3.5 text-indigo-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              {% endif %}
-            </dd>
-          </div>
-          {% if organization.empire_score %}
-          <div class="flex items-center justify-between">
-            <dt class="text-slate-500 text-xs">Empire Score</dt>
-            <dd class="text-amber-400 font-bold">{{ organization.empire_score|intcomma }}{% if organization.global_rank %} <span class="text-xs text-white/40 font-normal">#{{ organization.global_rank }}</span>{% endif %}</dd>
-          </div>
-          {% endif %}
-          {% endif %}
-          <div class="flex items-center justify-between">
-            <dt class="text-slate-500 text-xs">Team Type</dt>
-            <dd class="text-white font-medium">
-              {% if organization %}
-              <span class="inline-flex items-center gap-1 text-indigo-400">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21V7a2 2 0 012-2h14a2 2 0 012 2v14M9 21V9h6v12"/></svg>
-                Organization Team
-              </span>
-              {% else %}
-              {{ team.team_type|default:"Independent"|title }}
-              {% endif %}
-            </dd>
-          </div>
-          <div class="flex items-center justify-between">
-            <dt class="text-slate-500 text-xs">Members</dt>
-            <dd class="text-white font-medium">{{ roster.count|default:0 }}</dd>
-          </div>
-        </dl>
-      </div>
 
-      {# ── Widget 2: Connect (Social Links) ───────────────────── #}
+          <div class="p-6 flex flex-col items-center">
+            <div class="flex items-center gap-6 w-full justify-center mb-4">
+              <div class="w-16 h-16 rounded-2xl bg-[var(--team-primary)]/10 border border-[var(--team-primary)]/30 flex items-center justify-center p-2">
+                {% if team.logo_url %}
+                  <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-10 h-10 object-contain" />
+                {% else %}
+                  <span class="font-display font-bold text-[var(--team-primary)] text-sm">{{ team.tag|default:team.name|truncatechars:3 }}</span>
+                {% endif %}
+              </div>
+              <div class="text-xs font-mono text-slate-500">VS</div>
+              <div class="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center p-2">
+                <span class="font-display font-bold text-slate-400 text-sm">{{ next_match.opponent_name|truncatechars:4 }}</span>
+              </div>
+            </div>
+
+            <h4 class="text-white font-display font-bold text-xl mb-1">{{ next_match.tournament_name|truncatechars:40 }}</h4>
+            <p class="text-xs text-slate-500 mb-6">{{ next_match.format }}</p>
+
+            {% if next_match.stream_url %}
+            <a href="{{ next_match.stream_url }}" target="_blank"
+               class="w-full py-3 rounded-xl bg-red-600 text-white font-bold uppercase text-xs tracking-widest hover:bg-red-500 transition text-center flex items-center justify-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+              Watch Live
+            </a>
+            {% else %}
+            <button disabled class="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-slate-500 font-bold uppercase text-xs tracking-widest cursor-default">
+              {{ next_match.scheduled_time|date:"H:i" }} Kickoff
+            </button>
+            {% endif %}
+          </div>
+        </div>
+        {% endwith %}
+      {% endif %}
+
+      {# ── P9 → 7-Point Overhaul: "Join the Ranks" (Recruitment 2.0 Card) ── #}
+      {% if not permissions.is_member %}
+      <div class="relative group bg-[#0A0A0F] border border-[var(--team-primary)]/30 hover:border-[var(--team-primary)]/50 rounded-3xl p-6 transition-all overflow-hidden">
+        {# Background SVG icon #}
+        <div class="absolute -right-4 -bottom-4 opacity-10 text-[var(--team-primary)] transform -rotate-12 group-hover:scale-110 transition-transform">
+          <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        </div>
+
+        <div class="relative z-10 flex flex-col h-full justify-between">
+          <div>
+            {# Title + Status Badge #}
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-white font-display font-bold text-lg">Join the Ranks</h4>
+              {% if team.is_recruiting and not team.roster_locked %}
+                <span class="px-2 py-0.5 rounded bg-[#00FF41]/10 border border-[#00FF41]/20 text-[#00FF41] text-[9px] font-bold uppercase tracking-widest animate-pulse">Open</span>
+              {% else %}
+                <span class="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-[9px] font-bold uppercase tracking-widest">Closed</span>
+              {% endif %}
+            </div>
+
+            {% if team.is_recruiting and not team.roster_locked %}
+              {# Flavor text #}
+              <p class="text-xs text-slate-400 leading-relaxed mb-4">
+                {% if team.short_pitch %}{{ team.short_pitch }}{% else %}{{ team.name }} is scouting for rising talent{% if team.region %} in {{ team.region }}{% endif %}. Do you have the mechanics and the discipline?{% endif %}
+              </p>
+
+              {# Role / Rank tags #}
+              {% if recruitment.positions %}
+              <div class="flex flex-wrap gap-2 mb-6">
+                {% for pos in recruitment.positions %}
+                  <span class="px-2 py-1 bg-white/5 border border-white/10 text-[9px] text-slate-300 font-mono rounded uppercase">Role: {{ pos.title }}</span>
+                  {% if pos.rank_requirement %}
+                    <span class="px-2 py-1 bg-white/5 border border-white/10 text-[9px] text-slate-300 font-mono rounded uppercase">Rank: {{ pos.rank_requirement }}</span>
+                  {% endif %}
+                {% endfor %}
+              </div>
+              {% elif team.playfocus or team.region %}
+              <div class="flex flex-wrap gap-2 mb-6">
+                {% if team.playfocus %}
+                <span class="px-2 py-1 bg-white/5 border border-white/10 text-[9px] text-slate-300 font-mono rounded uppercase">{{ team.playfocus }}</span>
+                {% endif %}
+                {% if team.region %}
+                <span class="px-2 py-1 bg-white/5 border border-white/10 text-[9px] text-slate-300 font-mono rounded uppercase">{{ team.region }}</span>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {# Requirements (compact) #}
+              {% if recruitment.requirements %}
+              <div class="flex flex-wrap gap-2 mb-6">
+                {% for req in recruitment.requirements %}
+                  <span class="px-2 py-1 bg-white/5 border border-white/10 text-[9px] text-slate-300 font-mono rounded uppercase">{{ req.label }}: {{ req.value }}</span>
+                {% endfor %}
+              </div>
+              {% endif %}
+            {% else %}
+              <p class="text-xs text-slate-400 leading-relaxed mb-4">This team is not currently accepting new applications.</p>
+            {% endif %}
+          </div>
+
+          {# CTA #}
+          {% if pending_actions.has_pending_request %}
+            <div class="w-full py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Application Pending
+            </div>
+          {% elif pending_actions.can_request_to_join %}
+            <button type="button" onclick="dcOpenApplyModal()"
+              class="w-full py-3 rounded-xl bg-white text-black font-bold uppercase text-[10px] tracking-widest hover:bg-slate-200 transition shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+              Apply for Tryouts
+            </button>
+          {% elif pending_actions.has_pending_invite %}
+            <div class="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold uppercase text-[10px] tracking-widest flex items-center justify-center">
+              Invite Pending
+            </div>
+          {% else %}
+            <div class="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-slate-500 font-bold uppercase text-[10px] tracking-widest flex items-center justify-center">
+              Applications Closed
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {# ── P12: Connect (Enhanced Social Links) ─────────────────── #}
       {% if streams and ui.enable_streams %}
-      <div class="sidebar-widget">
-        <h4 class="sidebar-widget__title">Connect</h4>
-        <div class="flex flex-wrap gap-2">
+      <div class="rounded-3xl bg-[#0A0A0F] border border-white/10 p-6">
+        <h4 class="text-xs font-mono font-bold uppercase tracking-widest text-slate-500 mb-4">Connect</h4>
+        <div class="flex gap-2">
           {% for stream in streams %}
             <a href="{{ stream.url }}" target="_blank" rel="noopener noreferrer"
-               class="flex-1 min-w-[80px] h-10 rounded-lg flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider transition hover-glow
-               {% if stream.platform == 'twitch' %}bg-[#9146FF]/20 border border-[#9146FF]/30 text-[#9146FF] hover:bg-[#9146FF]/30
-               {% elif stream.platform == 'twitter' %}bg-white/5 border border-white/20 text-white hover:bg-white/10
-               {% elif stream.platform == 'youtube' %}bg-[#FF0000]/20 border border-[#FF0000]/30 text-[#FF0000] hover:bg-[#FF0000]/30
-               {% elif stream.platform == 'instagram' %}bg-[#E4405F]/20 border border-[#E4405F]/30 text-[#E4405F] hover:bg-[#E4405F]/30
-               {% else %}bg-white/5 border border-white/10 text-white hover:bg-white/10
-               {% endif %}">
-              {{ stream.platform|title }}
+               class="flex-1 h-10 rounded-lg transition flex items-center justify-center text-white has-tooltip"
+               data-tooltip="{{ stream.platform|title }}"
+               {% if stream.platform == 'discord' %}style="background:#5865F2"
+               {% elif stream.platform == 'twitter' %}style="background:#000;border:1px solid rgba(255,255,255,0.2)"
+               {% elif stream.platform == 'youtube' %}style="background:#FF0000"
+               {% elif stream.platform == 'twitch' %}style="background:#9146FF"
+               {% elif stream.platform == 'instagram' %}style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)"
+               {% elif stream.platform == 'tiktok' %}style="background:#000;border:1px solid rgba(255,255,255,0.2)"
+               {% elif stream.platform == 'facebook' %}style="background:#1877F2"
+               {% else %}style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1)"{% endif %}>
+              {% if stream.platform == 'discord' %}
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+              {% elif stream.platform == 'twitter' %}
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              {% elif stream.platform == 'youtube' %}
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.263-4.356 2.627-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+              {% elif stream.platform == 'twitch' %}
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
+              {% elif stream.platform == 'instagram' %}
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+              {% elif stream.platform == 'tiktok' %}
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86 4.43v-7.15a8.16 8.16 0 005.58 2.17V11.2a4.85 4.85 0 01-2-.51z"/></svg>
+              {% elif stream.platform == 'facebook' %}
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              {% elif stream.platform == 'website' %}
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+              {% else %}
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              {% endif %}
             </a>
           {% endfor %}
         </div>
       </div>
       {% endif %}
 
-      {# ── Widget 3: Join the Ranks (Recruitment) ─────────────── #}
-      {% if not permissions.is_member %}
-      <div class="relative group sidebar-widget border-[var(--team-primary)]/30 hover:border-[var(--team-primary)]/50 overflow-hidden">
-        <div class="absolute top-0 right-0 w-40 h-40 opacity-5 pointer-events-none" style="background: radial-gradient(circle, var(--team-primary), transparent 70%)"></div>
-        <div class="flex items-center justify-between mb-3">
-          <h4 class="text-sm font-display font-bold text-white">Join the Ranks</h4>
-          <span class="text-[9px] font-mono font-bold uppercase tracking-widest text-emerald-400 animate-pulse">Open</span>
+      {# ── P11: Challenge Hub ─────────────────────────────────── #}
+      {% if challenges.items or permissions.is_member %}
+      <div class="rounded-3xl bg-gradient-to-br from-[#0A0A0F] to-[#1a1015] border border-red-500/20 overflow-hidden">
+        <div class="bg-gradient-to-r from-red-600/10 to-orange-600/10 px-5 py-4 border-b border-red-500/20">
+          <div class="flex items-center justify-between mb-1">
+            <h4 class="text-white font-display font-bold text-sm flex items-center gap-2">
+              <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              Challenge Hub
+            </h4>
+            {% if challenges.open_count %}
+            <span class="px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/30 text-green-400 text-[8px] font-bold uppercase tracking-wider animate-pulse">
+              <span class="inline-block w-1 h-1 rounded-full bg-green-400 mr-1"></span>{{ challenges.open_count }} Open
+            </span>
+            {% endif %}
+          </div>
+          <p class="text-[10px] text-slate-400">Compete for prizes &amp; reputation</p>
         </div>
-        <p class="text-xs text-slate-400 mb-4">Interested in competing? This team is looking for talented players.</p>
-        {% if pending_actions.can_request_to_join %}
-          <button type="button" class="w-full h-10 rounded-xl bg-[var(--team-primary)] text-black font-bold uppercase text-[10px] tracking-[0.18em] hover:brightness-110 transition shadow-[0_0_22px_var(--team-glow)]" disabled title="Applications coming soon">
-            Apply for Tryouts
-          </button>
-        {% elif pending_actions.has_pending_invite %}
-          <div class="w-full h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold uppercase text-[10px] tracking-[0.18em] flex items-center justify-center">
-            Invite Pending
+
+        <div class="p-4 space-y-3">
+          {% for ch in challenges.items %}
+          <div class="relative group p-4 rounded-xl
+            {% if ch.challenge_type == 'wager' %}bg-gradient-to-br from-red-950/30 to-orange-950/20 border border-red-500/30 hover:border-red-500/50
+            {% elif ch.challenge_type == 'bounty' %}bg-[#0A0A0F] border border-purple-500/20 hover:border-purple-500/40
+            {% elif ch.challenge_type == 'scrim' %}bg-[#0A0A0F] border border-cyan-500/20 hover:border-cyan-500/40
+            {% else %}bg-[#0A0A0F] border border-amber-500/20 hover:border-amber-500/40{% endif %}
+            transition-all cursor-pointer">
+            <div class="absolute top-2 right-2">
+              <span class="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase
+                {% if ch.status == 'open' %}bg-green-500/20 border border-green-500/30 text-green-400
+                {% elif ch.status == 'accepted' %}bg-amber-500/20 border border-amber-500/30 text-amber-400
+                {% else %}bg-blue-500/20 border border-blue-500/30 text-blue-400{% endif %}">{{ ch.status|title }}</span>
+            </div>
+
+            <div class="mb-3">
+              <div class="flex items-center gap-2 mb-1">
+                <div class="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider
+                  {% if ch.challenge_type == 'wager' %}bg-yellow-500/10 border border-yellow-500/20 text-yellow-400
+                  {% elif ch.challenge_type == 'bounty' %}bg-purple-500/10 border border-purple-500/20 text-purple-400
+                  {% elif ch.challenge_type == 'scrim' %}bg-cyan-500/10 border border-cyan-500/20 text-cyan-400
+                  {% else %}bg-amber-500/10 border border-amber-500/20 text-amber-400{% endif %}">
+                  {% if ch.challenge_type == 'wager' %}💰{% elif ch.challenge_type == 'bounty' %}🎯{% elif ch.challenge_type == 'scrim' %}⚔️{% else %}🗡️{% endif %} {{ ch.challenge_type|title }}
+                </div>
+                {% if ch.format or ch.match_type %}
+                <div class="text-[9px] text-slate-500 font-mono">{{ ch.format }}{% if ch.format and ch.match_type %} · {% endif %}{{ ch.match_type }}</div>
+                {% endif %}
+              </div>
+              <h5 class="text-white font-bold text-sm mb-1 pr-12">{{ ch.title }}</h5>
+              {% if ch.description %}
+              <p class="text-[10px] text-slate-400 leading-relaxed mb-2 line-clamp-2">{{ ch.description }}</p>
+              {% endif %}
+            </div>
+
+            <div class="flex items-center justify-between text-[10px] mb-3">
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-[var(--team-primary)]/20 border border-[var(--team-primary)]/30 flex items-center justify-center text-[8px] font-bold text-[var(--team-primary)]">{{ team.tag|truncatechars:3 }}</div>
+                <span class="text-white font-mono">vs</span>
+                {% if ch.opponent_name %}
+                <div class="w-6 h-6 rounded bg-white/10 border border-white/20 flex items-center justify-center text-[8px] font-bold text-white">{{ ch.opponent_name|truncatechars:2 }}</div>
+                {% else %}
+                <div class="w-6 h-6 rounded bg-white/5 border border-white/10 border-dashed flex items-center justify-center text-[8px] text-slate-500">?</div>
+                {% endif %}
+              </div>
+              {% if ch.prize_amount %}
+              <div class="text-right">
+                <div class="text-[8px] text-slate-500 uppercase font-bold">Prize</div>
+                <div class="text-lg font-display font-bold {% if ch.challenge_type == 'bounty' %}text-purple-400{% else %}text-yellow-400{% endif %}">
+                  {% if ch.prize_currency == 'CP' %}{{ ch.prize_amount|floatformat:0 }} CP{% else %}${{ ch.prize_amount|floatformat:0 }}{% endif %}
+                </div>
+              </div>
+              {% elif ch.prize_description %}
+              <div class="text-right">
+                <div class="text-[8px] text-slate-500 uppercase font-bold">Reward</div>
+                <div class="text-xs font-bold text-amber-400">{{ ch.prize_description|truncatechars:20 }}</div>
+              </div>
+              {% endif %}
+            </div>
+
+            {% if ch.status == 'open' %}
+            <button class="w-full py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[9px] font-bold uppercase tracking-widest transition shadow-lg">
+              Accept Challenge
+            </button>
+            {% endif %}
+
+            {% if ch.expires_seconds %}
+            <div class="mt-3 pt-3 border-t border-red-500/10 flex items-center justify-between">
+              <span class="text-[9px] text-slate-500 uppercase font-mono">Expires in</span>
+              <span class="text-[9px] font-mono font-bold text-red-400" data-countdown="{{ ch.expires_seconds }}">--:--:--</span>
+            </div>
+            {% endif %}
+
+            {% if ch.attempts %}
+            <div class="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[9px]">
+              <span class="text-slate-500">{{ ch.attempts }} Attempts</span>
+              <span class="text-slate-400">•</span>
+              <span class="text-emerald-400 font-bold">{{ ch.wins_by_challenger }} Wins</span>
+            </div>
+            {% endif %}
           </div>
-        {% else %}
-          <div class="w-full h-10 rounded-xl bg-white/5 border border-white/10 text-slate-500 font-bold uppercase text-[10px] tracking-[0.18em] flex items-center justify-center">
-            Applications Closed
+          {% empty %}
+          <div class="text-center py-4">
+            <p class="text-[10px] text-slate-500">No active challenges</p>
           </div>
-        {% endif %}
+          {% endfor %}
+
+          {# Challenge Stats Summary #}
+          {% if challenges.stats.wins or challenges.stats.losses %}
+          <div class="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+            <div class="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <div class="text-lg font-display font-bold text-emerald-400">{{ challenges.stats.wins }}</div>
+                <div class="text-[8px] text-slate-500 uppercase font-bold tracking-wider">Wins</div>
+              </div>
+              <div>
+                <div class="text-lg font-display font-bold text-red-400">{{ challenges.stats.losses }}</div>
+                <div class="text-[8px] text-slate-500 uppercase font-bold tracking-wider">Losses</div>
+              </div>
+              <div>
+                <div class="text-lg font-display font-bold text-yellow-400">{% if challenges.stats.total_earned >= 1000 %}${{ challenges.stats.total_earned|floatformat:0 }}{% else %}${{ challenges.stats.total_earned|floatformat:0 }}{% endif %}</div>
+                <div class="text-[8px] text-slate-500 uppercase font-bold tracking-wider">Earned</div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
       </div>
       {% endif %}
 
-      {# ── Widget 4: Match History ────────────────────────────── #}
+      {# ── Match History (data-driven) ────────────────────────── #}
       <div class="sidebar-widget">
-        <h4 class="sidebar-widget__title">Match History</h4>
+        <h4 class="sidebar-widget__title flex items-center gap-2">
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          Match History
+        </h4>
+        {% if match_history %}
+        <div class="space-y-2">
+          {% for m in match_history %}
+          <div class="relative group rounded-lg border border-white/5 bg-[#0E0E12] overflow-hidden
+            {% if m.result == 'win' %}hover:border-emerald-500/30{% elif m.result == 'loss' %}hover:border-red-500/30{% else %}hover:border-slate-500/30{% endif %} transition-all">
+            {# Result indicator stripe #}
+            <div class="absolute left-0 top-0 bottom-0 w-0.5
+              {% if m.result == 'win' %}bg-emerald-500{% elif m.result == 'loss' %}bg-red-500{% else %}bg-slate-500{% endif %}"></div>
+
+            <div class="relative pl-3 pr-3 py-2.5 flex items-center justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 mb-0.5">
+                  <span class="px-1 py-0.5 rounded text-[8px] font-bold uppercase
+                    {% if m.result == 'win' %}bg-emerald-500/10 text-emerald-400{% elif m.result == 'loss' %}bg-red-500/10 text-red-400{% else %}bg-slate-500/10 text-slate-400{% endif %}">{{ m.result|upper }}</span>
+                  {% if m.score %}
+                  <span class="text-[10px] font-mono font-bold text-white">{{ m.score }}</span>
+                  {% endif %}
+                </div>
+                <div class="text-xs text-white font-bold truncate">vs {{ m.opponent_name }}</div>
+                {% if m.tournament_name %}
+                <div class="text-[9px] text-slate-500 font-mono truncate mt-0.5">{{ m.tournament_name }}</div>
+                {% endif %}
+              </div>
+              <div class="shrink-0 text-right">
+                <div class="text-[9px] text-slate-500 font-mono">{{ m.date|timesince }} ago</div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
         <div class="text-center py-6">
           <svg class="w-10 h-10 mx-auto text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
           <p class="text-xs text-slate-500">No match history yet</p>
         </div>
+        {% endif %}
       </div>
 
-      {# ── Widget 5: Trophy Cabinet ───────────────────────────── #}
+      {# ── P13: Trophy Cabinet ─────────────────────────────────── #}
       <div class="sidebar-widget">
-        <h4 class="sidebar-widget__title">Trophy Cabinet</h4>
+        <h4 class="sidebar-widget__title flex items-center gap-2">
+          <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          Trophy Cabinet
+        </h4>
+        {% if trophy_cabinet %}
+        <div class="space-y-3">
+          {% for trophy in trophy_cabinet %}
+          <div class="relative group p-6 rounded-2xl bg-gradient-to-br from-[#0A0A0F] to-[#1a1a20] border border-white/10 overflow-hidden hover:-translate-y-1 transition-transform duration-300">
+            <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03]"></div>
+            <div class="absolute top-0 right-0 w-24 h-24
+              {% if trophy.placement == 1 %}bg-amber-400{% elif trophy.placement == 2 %}bg-slate-300{% else %}bg-orange-500{% endif %}
+              blur-[60px] opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none"></div>
+            <div class="relative z-10 flex flex-col items-center text-center">
+              <div class="mb-4 text-4xl filter
+                {% if trophy.placement == 1 %}drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]
+                {% elif trophy.placement == 2 %}drop-shadow-[0_0_10px_rgba(200,200,200,0.3)]
+                {% else %}drop-shadow-[0_0_10px_rgba(205,127,50,0.3)]{% endif %}">{{ trophy.emoji }}</div>
+              <div class="px-2 py-0.5 mb-2 rounded text-[9px] font-bold uppercase tracking-widest
+                {% if trophy.placement == 1 %}bg-amber-400/10 border border-amber-400/30 text-amber-400
+                {% elif trophy.placement == 2 %}bg-slate-300/10 border border-slate-300/30 text-slate-300
+                {% else %}bg-orange-400/10 border border-orange-400/30 text-orange-400{% endif %}">{{ trophy.label }}</div>
+              <h5 class="text-white font-display font-bold text-lg leading-tight mb-1">{{ trophy.tournament_name }}</h5>
+              <p class="text-[10px] font-mono text-slate-500 uppercase">{{ trophy.date|date:"M Y" }}</p>
+              {% if trophy.prize_amount %}
+              <div class="mt-4 pt-4 w-full border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <p class="text-[10px] text-slate-400">Prize: <span class="text-white font-bold">{{ trophy.prize_amount }}</span></p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
         <div class="text-center py-6">
           <div class="text-4xl mb-2 opacity-30">🏆</div>
           <p class="text-xs text-slate-500">No trophies earned yet</p>
           <p class="text-[10px] text-slate-600 mt-1">Win tournaments to fill this cabinet</p>
         </div>
+        {% endif %}
       </div>
 
-      {# ── Widget 6: Highlights & Media ───────────────────────── #}
+      {# ── 7-Point Overhaul P6: Sponsors & Partners Bar ──────── #}
+      {% if sponsors %}
+      <div class="sidebar-widget">
+        <h4 class="sidebar-widget__title flex items-center gap-2">
+          <svg class="w-4 h-4 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          Sponsors &amp; Partners
+        </h4>
+        <div class="grid grid-cols-2 gap-2">
+          {% for sponsor in sponsors %}
+          <a href="{{ sponsor.url|default:'#' }}" target="_blank" rel="noopener noreferrer"
+             class="group flex flex-col items-center gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-teal-500/20 hover:bg-white/[0.04] transition">
+            {% if sponsor.logo_url %}
+            <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}" class="w-10 h-10 rounded-lg object-contain bg-white/5 p-1 group-hover:scale-105 transition-transform" loading="lazy" />
+            {% else %}
+            <div class="w-10 h-10 rounded-lg bg-white/5 grid place-items-center">
+              <svg class="w-4 h-4 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </div>
+            {% endif %}
+            <span class="text-[10px] font-medium text-white/60 group-hover:text-white/80 text-center truncate w-full transition">{{ sponsor.name }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {# ── P14: Highlights & Media ──────────────────────────────── #}
       <div class="sidebar-widget" id="media">
-        <h4 class="sidebar-widget__title">Highlights &amp; Media</h4>
+        <h4 class="sidebar-widget__title flex items-center gap-2">
+          <svg class="w-4 h-4 text-[var(--team-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          Highlights &amp; Media
+        </h4>
+        {% if media_highlights.has_content %}
+        <div class="space-y-3">
+          {# Featured highlight clip #}
+          {% for hl in media_highlights.highlights|slice:":2" %}
+          <a href="{{ hl.url }}" target="_blank" rel="noopener noreferrer"
+             class="relative group block rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover:border-[var(--team-primary)]/30 transition-all hover:-translate-y-0.5 cursor-pointer aspect-video">
+            {% if hl.thumbnail_url %}
+            <img src="{{ hl.thumbnail_url }}" alt="{{ hl.title }}" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-all duration-500" loading="lazy" />
+            {% else %}
+            <div class="absolute inset-0 bg-gradient-to-br from-[var(--team-primary)]/10 to-transparent"></div>
+            {% endif %}
+            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
+            {# Play button overlay #}
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-12 h-12 rounded-full bg-[var(--team-primary)]/20 backdrop-blur-sm border border-[var(--team-primary)] flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-[0_0_20px_var(--team-glow)]">
+                <svg class="w-5 h-5 text-[var(--team-primary)] ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+            </div>
+            <div class="absolute bottom-0 left-0 w-full p-4">
+              <div class="text-[9px] font-mono text-[var(--team-primary)] mb-0.5 uppercase">{{ hl.highlight_type|default:"Highlight" }}</div>
+              <div class="text-sm font-bold text-white leading-tight truncate">{{ hl.title }}</div>
+            </div>
+          </a>
+          {% endfor %}
+
+          {# Media gallery thumbnails #}
+          {% if media_highlights.media %}
+          <div class="grid grid-cols-3 gap-2">
+            {% for m in media_highlights.media|slice:":3" %}
+            <div class="relative group rounded-lg overflow-hidden bg-[#0A0A0F] border border-white/10 hover:border-white/20 transition-all aspect-square cursor-pointer">
+              {% if m.file_url %}
+              <img src="{{ m.file_url }}" alt="{{ m.title }}" class="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" loading="lazy" />
+              {% else %}
+              <div class="absolute inset-0 flex items-center justify-center text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
         <div class="text-center py-6">
           <svg class="w-10 h-10 mx-auto text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
           <p class="text-xs text-slate-500">No media highlights yet</p>
           <p class="text-[10px] text-slate-600 mt-1">Team clips and highlights will appear here</p>
         </div>
+        {% endif %}
       </div>
 
       {# ── Widget 7: Pending Actions (Member Only) ────────────── #}
@@ -812,21 +1539,51 @@
 {% endif %}
 
 {# ══════════════════════════════════════════════════════════════════ #}
-{# PARTNERS BAR                                                      #}
+{# P15: PARTNERS & SPONSORS BAR                                      #}
 {# ══════════════════════════════════════════════════════════════════ #}
 {% if partners %}
 <section class="border-t border-white/10 bg-[#050507] py-12">
   <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
-    <p class="text-[10px] text-center text-slate-600 font-mono uppercase tracking-[0.2em] mb-8">Partners</p>
-    <div class="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+    <p class="text-[10px] text-center text-slate-600 font-mono uppercase tracking-[0.2em] mb-8">Partners &amp; Sponsors</p>
+    <div class="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-40 grayscale hover:grayscale-0 hover:opacity-80 transition-all duration-700">
       {% for partner in partners %}
-        <a href="{{ partner.url }}" target="_blank" rel="noopener noreferrer" class="has-tooltip" data-tooltip="{{ partner.name }}">
+        <a href="{{ partner.url }}" target="_blank" rel="noopener noreferrer"
+           class="has-tooltip hover:scale-110 transition-transform duration-300"
+           data-tooltip="{{ partner.name }}">
           {% if partner.logo_url %}
-            <img src="{{ partner.logo_url }}" alt="{{ partner.name }}" class="h-8 md:h-10 object-contain" loading="lazy" />
+            <img src="{{ partner.logo_url }}" alt="{{ partner.name }}" class="h-8 md:h-10 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.05)]" loading="lazy" />
           {% else %}
-            <span class="text-xl font-display font-bold text-white tracking-tighter">{{ partner.name }}</span>
+            <span class="text-xl font-display font-bold text-white/60 tracking-tighter hover:text-white transition">{{ partner.name }}</span>
           {% endif %}
         </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ── Merch Bar (renders when merch context has items) ─── #}
+{% if merch %}
+<section class="border-t border-white/10 bg-[#050507] py-10">
+  <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
+    <div class="flex items-center justify-center gap-2 mb-6">
+      <svg class="w-4 h-4 text-[var(--team-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+      <p class="text-[10px] text-center text-slate-500 font-mono uppercase tracking-[0.2em]">Official Merch</p>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {% for item in merch %}
+      <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer"
+         class="group rounded-2xl bg-white/[0.03] border border-white/10 p-4 hover:border-[var(--team-primary)]/30 transition-all hover:-translate-y-1">
+        {% if item.image_url %}
+        <div class="aspect-square rounded-xl overflow-hidden bg-white/5 mb-3">
+          <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+        </div>
+        {% endif %}
+        <h4 class="text-sm font-bold text-white truncate">{{ item.name }}</h4>
+        {% if item.price %}
+        <p class="text-xs text-[var(--team-primary)] font-mono mt-1">${{ item.price }}</p>
+        {% endif %}
+      </a>
       {% endfor %}
     </div>
   </div>
@@ -875,6 +1632,54 @@
     </div>
   </div>
 </div>
+
+{# ═══════════════════════════════════════════════════════════ #}
+{# APPLY MODAL — Submit a join request to the team            #}
+{# ═══════════════════════════════════════════════════════════ #}
+{% if pending_actions.can_request_to_join %}
+<div id="dc-apply-modal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);">
+  <div class="relative w-full max-w-md rounded-3xl bg-[#0C0C14] border border-white/10 shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+    {# Header #}
+    <div class="relative h-20 bg-gradient-to-r from-[var(--team-primary)]/20 to-transparent flex items-end px-6 pb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl overflow-hidden border border-white/10">
+          <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-full h-full object-cover" />
+        </div>
+        <div>
+          <h3 class="text-lg font-display font-bold text-white">Apply to {{ team.name }}</h3>
+          <p class="text-[10px] font-mono uppercase tracking-wider text-white/40">Join Request</p>
+        </div>
+      </div>
+      <button onclick="dcCloseApplyModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    {# Body #}
+    <div class="px-6 py-5">
+      <label class="block text-xs font-bold text-white/60 uppercase tracking-wider mb-2">
+        Message <span class="text-white/30 font-normal">(optional)</span>
+      </label>
+      <textarea id="dc-apply-message" rows="4" maxlength="500"
+        class="w-full rounded-xl bg-white/5 border border-white/10 text-white text-sm px-4 py-3 placeholder-white/20 focus:border-[var(--team-primary)]/50 focus:ring-1 focus:ring-[var(--team-primary)]/30 outline-none transition resize-none"
+        placeholder="Tell the team why you'd be a great fit..."></textarea>
+      <div class="flex justify-end mt-1">
+        <span class="text-[10px] text-white/25"><span id="dc-apply-charcount">0</span>/500</span>
+      </div>
+      <div id="dc-apply-error" class="hidden mt-3 text-xs text-red-400 font-bold text-center"></div>
+    </div>
+    {# Footer #}
+    <div class="px-6 pb-6 flex gap-3">
+      <button onclick="dcCloseApplyModal()" class="flex-1 h-11 rounded-xl bg-white/5 border border-white/10 text-white/50 text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition">
+        Cancel
+      </button>
+      <button onclick="dcSubmitApplication()" id="dc-apply-submit" class="flex-1 h-11 rounded-xl bg-[var(--team-primary)] text-black text-xs font-bold uppercase tracking-[0.18em] hover:brightness-110 transition shadow-[0_0_22px_var(--team-glow)] flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+        Submit Application
+      </button>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {# ══════════════════════════════════════════════════════════════════ #}
 {# BODY-SCOPED STYLES                                                #}

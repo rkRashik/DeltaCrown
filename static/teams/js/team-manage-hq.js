@@ -394,7 +394,7 @@
       } catch (err) { toast(err.message, "error"); }
     },
 
-    openRoleModal(membershipId, currentRole, username, isCaptain, playerRole, rosterSlot) {
+    openRoleModal(membershipId, currentRole, username, isCaptain, playerRole, rosterSlot, displayName, rosterImageUrl) {
       qs("#role-membership-id").value  = membershipId;
       qs("#role-username-display").textContent = username;
       qs("#role-select").value        = currentRole;
@@ -405,8 +405,20 @@
       const prField = qs("#role-player-role");
       if (prField) prField.value = playerRole || "";
       const dnField = qs("#role-display-name");
-      if (dnField) dnField.value = "";
+      if (dnField) dnField.value = displayName || "";
       qs("#role-error")?.classList.add("hidden");
+
+      // ── Photo preview ──
+      const photoPreview = qs("#role-photo-preview");
+      const photoInput = qs("#role-photo-input");
+      if (photoPreview) {
+        if (rosterImageUrl) {
+          photoPreview.innerHTML = `<img src="${rosterImageUrl}" class="w-full h-full object-cover">`;
+        } else {
+          photoPreview.innerHTML = `<svg class="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`;
+        }
+      }
+      if (photoInput) photoInput.value = "";
 
       // ── Load permissions from data attribute ──
       const permSection = document.getElementById("role-permissions-section");
@@ -464,6 +476,19 @@
           method: "POST",
           body: JSON.stringify({ role, roster_slot: rosterSlot, assign_captain: captain ? "true" : "false", player_role: playerRole, display_name: displayName, permissions }),
         });
+
+        // Upload roster photo if one was selected
+        const photoInput = qs("#role-photo-input");
+        if (photoInput && photoInput.files && photoInput.files[0]) {
+          const fd = new FormData();
+          fd.append("roster_image", photoInput.files[0]);
+          await fetch(`${API}/members/${memId}/roster-photo/`, {
+            method: "POST",
+            headers: { "X-CSRFToken": CSRF },
+            body: fd,
+          });
+        }
+
         toast("Role updated.");
         Modal.close("modal-role-edit");
         setTimeout(() => location.reload(), 600);

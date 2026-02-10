@@ -59,22 +59,17 @@
               const sectionId = entry.target.getAttribute("id");
               navLinks.forEach(link => {
                 const linkTarget = link.getAttribute("data-nav");
-                const underline = link.querySelector(".nav-underline");
+                const neon = link.querySelector(".nav-neon");
+                const isOps = linkTarget === "operations";
 
                 if (linkTarget === sectionId) {
-                  link.classList.add("text-[var(--team-primary)]");
+                  link.classList.add(isOps ? "text-emerald-400" : "text-[var(--team-primary)]");
                   link.classList.remove("text-slate-500");
-                  if (underline) underline.style.display = "block";
-                  // Also create dynamic underline if not exists
-                  if (!underline) {
-                    const span = document.createElement("span");
-                    span.className = "nav-underline absolute bottom-0 left-0 w-full h-0.5 bg-[var(--team-primary)] shadow-[0_0_10px_var(--team-primary)]";
-                    link.appendChild(span);
-                  }
+                  if (neon) { neon.style.opacity = "1"; }
                 } else {
-                  link.classList.remove("text-[var(--team-primary)]");
+                  link.classList.remove("text-[var(--team-primary)]", "text-emerald-400");
                   link.classList.add("text-slate-500");
-                  if (underline) underline.style.display = "none";
+                  if (neon) { neon.style.opacity = "0"; }
                 }
               });
             }
@@ -314,6 +309,11 @@
         // Also close invite dropdown
         const dd = document.getElementById("dc-invite-dropdown");
         if (dd) dd.classList.add("hidden");
+        // Close apply modal
+        dcCloseApplyModal();
+        // Close pending dropdown
+        const pd = document.getElementById("dc-pending-dropdown");
+        if (pd) pd.classList.add("hidden");
       }
     });
 
@@ -324,5 +324,277 @@
       if (wrap && dd && !wrap.contains(e.target)) {
         dd.classList.add("hidden");
       }
+      // Close pending dropdown when clicking outside
+      const pw = document.getElementById("dc-pending-cta-wrap");
+      const pd = document.getElementById("dc-pending-dropdown");
+      if (pw && pd && !pw.contains(e.target)) {
+        pd.classList.add("hidden");
+      }
     });
+
+    // ═══════════════════════════════════════════════════════
+    // APPLY / JOIN REQUEST SYSTEM
+    // ═══════════════════════════════════════════════════════
+
+    function dcOpenApplyModal() {
+      const modal = document.getElementById("dc-apply-modal");
+      if (!modal) return;
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      document.body.style.overflow = "hidden";
+      // Focus the textarea
+      const ta = document.getElementById("dc-apply-message");
+      if (ta) setTimeout(() => ta.focus(), 100);
+    }
+
+    function dcCloseApplyModal() {
+      const modal = document.getElementById("dc-apply-modal");
+      if (!modal) return;
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+      document.body.style.overflow = "";
+    }
+
+    // Close modal on backdrop click
+    (function() {
+      const modal = document.getElementById("dc-apply-modal");
+      if (modal) {
+        modal.addEventListener("click", (e) => {
+          if (e.target === modal) dcCloseApplyModal();
+        });
+      }
+    })();
+
+    // Character counter for apply message
+    (function() {
+      const ta = document.getElementById("dc-apply-message");
+      const counter = document.getElementById("dc-apply-charcount");
+      if (ta && counter) {
+        ta.addEventListener("input", () => {
+          counter.textContent = ta.value.length;
+        });
+      }
+    })();
+
+    async function dcSubmitApplication() {
+      const btn = document.getElementById("dc-apply-submit");
+      const errEl = document.getElementById("dc-apply-error");
+      const ta = document.getElementById("dc-apply-message");
+      if (!btn) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2" stroke-dasharray="31.4 31.4" /></svg> Submitting...';
+      if (errEl) { errEl.classList.add("hidden"); errEl.textContent = ""; }
+
+      try {
+        const resp = await fetch(`/api/vnext/teams/{{ team.slug }}/apply/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")?.value || "{{ csrf_token }}",
+          },
+          body: JSON.stringify({ message: ta ? ta.value.trim() : "" }),
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+          dcCloseApplyModal();
+          // Replace APPLY buttons with PENDING state
+          location.reload();
+        } else {
+          if (errEl) {
+            errEl.textContent = data.error || "Something went wrong. Please try again.";
+            errEl.classList.remove("hidden");
+          }
+          btn.disabled = false;
+          btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg> Submit Application';
+        }
+      } catch (err) {
+        if (errEl) {
+          errEl.textContent = "Network error. Please check your connection.";
+          errEl.classList.remove("hidden");
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg> Submit Application';
+      }
+    }
+
+    async function dcWithdrawApplication() {
+      const btn = document.getElementById("dc-withdraw-btn");
+      const msgEl = document.getElementById("dc-withdraw-msg");
+      if (!btn) return;
+
+      btn.disabled = true;
+      btn.textContent = "Withdrawing...";
+
+      try {
+        const resp = await fetch(`/api/vnext/teams/{{ team.slug }}/apply/withdraw/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")?.value || "{{ csrf_token }}",
+          },
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+          if (msgEl) {
+            msgEl.textContent = "Application withdrawn.";
+            msgEl.classList.remove("hidden");
+            msgEl.classList.add("text-emerald-400");
+          }
+          setTimeout(() => location.reload(), 800);
+        } else {
+          if (msgEl) {
+            msgEl.textContent = data.error || "Could not withdraw application.";
+            msgEl.classList.remove("hidden");
+            msgEl.classList.add("text-red-400");
+          }
+          btn.disabled = false;
+          btn.textContent = "Withdraw Application";
+        }
+      } catch (err) {
+        if (msgEl) {
+          msgEl.textContent = "Network error.";
+          msgEl.classList.remove("hidden");
+          msgEl.classList.add("text-red-400");
+        }
+        btn.disabled = false;
+        btn.textContent = "Withdraw Application";
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // P4. SMART ROSTER EXPAND / COLLAPSE
+    // ═══════════════════════════════════════════════════════════
+    function dcToggleRosterExpand() {
+      const grid = document.getElementById("dc-roster-grid");
+      const toggle = document.getElementById("dc-roster-toggle");
+      const icon = document.getElementById("dc-roster-toggle-icon");
+      if (!grid) return;
+
+      const expanded = grid.dataset.expanded === "true";
+      if (expanded) {
+        // Collapse: show 5 cards, hide rest
+        grid.dataset.expanded = "false";
+        grid.style.maxHeight = "";
+        grid.style.overflow = "";
+        const cards = grid.querySelectorAll(".dc-roster-card");
+        cards.forEach((card, i) => {
+          if (i >= 5) {
+            card.style.display = "none";
+          }
+        });
+        if (toggle) toggle.childNodes[toggle.childNodes.length - 1].textContent = " Expand";
+      } else {
+        // Expand: show all cards
+        grid.dataset.expanded = "true";
+        const cards = grid.querySelectorAll(".dc-roster-card");
+        cards.forEach(card => {
+          card.style.display = "";
+        });
+        if (toggle) toggle.childNodes[toggle.childNodes.length - 1].textContent = " Collapse";
+      }
+    }
+
+    // Auto-collapse roster if more than 5 members
+    document.addEventListener("DOMContentLoaded", () => {
+      const grid = document.getElementById("dc-roster-grid");
+      if (grid) {
+        const cards = grid.querySelectorAll(".dc-roster-card");
+        if (cards.length > 5) {
+          cards.forEach((card, i) => {
+            if (i >= 5) card.style.display = "none";
+          });
+          grid.dataset.expanded = "false";
+        } else {
+          // Hide expand button if 5 or fewer
+          const toggle = document.getElementById("dc-roster-toggle");
+          if (toggle) toggle.style.display = "none";
+        }
+      }
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // P5. GAME PROFILES — Dynamic Terminology & Stats Labels
+    // ═══════════════════════════════════════════════════════════
+    const DC_GAME_PROFILES = {
+      'valorant':       { category: 'FPS_TACTICAL', player: 'Agent',    match: 'Series',     stat1: 'Rating',     stat2: 'Record',    stat3: 'ACS',       stat4: 'HS%'        },
+      'cs2':            { category: 'FPS_TACTICAL', player: 'Player',   match: 'Match',      stat1: 'Rating 2.0', stat2: 'Record',    stat3: 'ADR',       stat4: 'KAST'       },
+      'dota2':          { category: 'MOBA',         player: 'Hero',     match: 'Match',      stat1: 'MMR',        stat2: 'Win Rate',  stat3: 'GPM',       stat4: 'XPM'        },
+      'mlbb':           { category: 'MOBA_MOBILE',  player: 'Legend',   match: 'Match',      stat1: 'Win Rate',   stat2: 'MVP',       stat3: 'Gold/min',  stat4: 'KDA'        },
+      'pubgm':          { category: 'BATTLE_ROYALE', player: 'Player',  match: 'Tournament', stat1: 'Avg Dmg',    stat2: 'Top 10%',   stat3: 'K/D',       stat4: 'Survival'   },
+      'freefire':       { category: 'BATTLE_ROYALE', player: 'Player',  match: 'Tournament', stat1: 'Booyahs',    stat2: 'K/D',       stat3: 'HS%',       stat4: 'Avg Surv'   },
+      'codm':           { category: 'HYBRID_MOBILE', player: 'Player',  match: 'Match',      stat1: 'K/D (MP)',   stat2: 'Win Rate',  stat3: 'Accuracy',  stat4: 'Obj Score'  },
+      'ea-fc':          { category: 'SPORTS',       player: 'Player',   match: 'Match',      stat1: 'Goals',      stat2: 'Win%',      stat3: 'Assists',   stat4: 'Clean Sh.'  },
+      'efootball':      { category: 'SPORTS',       player: 'Player',   match: 'Match',      stat1: 'Goals',      stat2: 'Win Rate',  stat3: 'Pass%',     stat4: 'Possession' },
+      'r6siege':        { category: 'FPS_TACTICAL', player: 'Operator', match: 'Match',      stat1: 'K/D',        stat2: 'Win%',      stat3: 'HS%',       stat4: 'KOST'       },
+      'rocketleague':   { category: 'VEHICLE_SPORTS', player: 'Player', match: 'Series',     stat1: 'Goals/Game', stat2: 'Saves',     stat3: 'Shots',     stat4: 'Assists'    },
+    };
+
+    // Apply game-specific labels on page load
+    document.addEventListener("DOMContentLoaded", () => {
+      const gameSlug = document.body.getAttribute("data-game");
+      if (!gameSlug || !DC_GAME_PROFILES[gameSlug]) return;
+
+      const profile = DC_GAME_PROFILES[gameSlug];
+
+      // Update dynamic terminology
+      document.querySelectorAll('[data-term="player"]').forEach(el => { el.textContent = profile.player; });
+      document.querySelectorAll('[data-term="match"]').forEach(el => { el.textContent = profile.match; });
+
+      // Update game-specific stat labels
+      const labelMap = {
+        'stat-1': 'Total Played',
+        'stat-2': profile.stat1,
+        'stat-3': 'ELO Rating',
+        'stat-4': 'Peak ELO',
+        'gs-1': 'Record',
+        'gs-2': 'Tournaments',
+        'gs-3': 'Titles Won',
+        'gs-4': 'Percentile',
+      };
+
+      Object.entries(labelMap).forEach(([key, val]) => {
+        document.querySelectorAll(`[data-label="${key}"]`).forEach(el => {
+          el.textContent = val;
+        });
+      });
+
+      // Set game category class on body for CSS-driven visibility
+      document.body.setAttribute("data-game-category", profile.category);
+    });
+    </script>
+
+    {# ── P11: Challenge Hub Countdown Timers ────────────────── #}
+    <script>
+    (function() {
+      document.addEventListener("DOMContentLoaded", () => {
+        const countdowns = document.querySelectorAll("[data-countdown]");
+        if (!countdowns.length) return;
+
+        function formatTime(totalSeconds) {
+          if (totalSeconds <= 0) return "EXPIRED";
+          const h = Math.floor(totalSeconds / 3600);
+          const m = Math.floor((totalSeconds % 3600) / 60);
+          const s = Math.floor(totalSeconds % 60);
+          return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        countdowns.forEach(el => {
+          let remaining = parseFloat(el.dataset.countdown);
+          if (isNaN(remaining)) return;
+
+          el.textContent = formatTime(remaining);
+
+          const interval = setInterval(() => {
+            remaining -= 1;
+            el.textContent = formatTime(remaining);
+            if (remaining <= 0) {
+              clearInterval(interval);
+              el.classList.remove("text-red-400");
+              el.classList.add("text-slate-500");
+            }
+          }, 1000);
+        });
+      });
+    })();
     </script>

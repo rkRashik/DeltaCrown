@@ -87,6 +87,16 @@ Drawer on mobile, fixed on desktop.
             <span>Roster Ops</span>
         </a>
 
+        {% if is_admin or is_owner %}
+        <a data-route="join-requests" href="#join-requests"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6 relative">
+                <i data-lucide="user-plus" class="w-4 h-4 text-emerald-400"></i>
+            </div>
+            <span>Scouting Grounds</span>
+        </a>
+        {% endif %}
+
         <a data-route="competition" href="#competition"
            class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
             <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
@@ -158,6 +168,32 @@ Drawer on mobile, fixed on desktop.
                 <i data-lucide="wallet" class="w-4 h-4 text-yellow-400"></i>
             </div>
             <span>Treasury</span>
+        </a>
+        {% endif %}
+
+        {% if is_admin or is_owner %}
+        <a data-route="achievements" href="#achievements"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
+                <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+            </div>
+            <span>Trophy Cabinet</span>
+        </a>
+
+        <a data-route="store" href="#store"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
+                <i data-lucide="shopping-bag" class="w-4 h-4 text-violet-400"></i>
+            </div>
+            <span>Team Store</span>
+        </a>
+
+        <a data-route="sponsors" href="#sponsors"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent text-sm font-medium hover:bg-white/6 transition">
+            <div class="h-8 w-8 rounded-lg grid place-items-center bg-white/6">
+                <i data-lucide="handshake" class="w-4 h-4 text-teal-400"></i>
+            </div>
+            <span>Sponsors</span>
         </a>
         {% endif %}
 

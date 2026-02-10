@@ -262,6 +262,15 @@ class Team(models.Model):
         default=False,
         help_text="Manual roster lock — prevents all roster changes when True"
     )
+    is_recruiting = models.BooleanField(
+        default=True,
+        help_text="Whether the team is actively recruiting new members"
+    )
+    tagline = models.CharField(
+        max_length=140,
+        blank=True,
+        help_text="Short one-liner shown on team cards and detail hero"
+    )
     
     # Invite link
     invite_code = models.CharField(
@@ -288,6 +297,31 @@ class Team(models.Model):
         help_text="Last time team region was changed (30-day cooldown)"
     )
     
+    # Platform
+    platform = models.CharField(
+        max_length=30,
+        blank=True,
+        default='PC',
+        help_text="Primary platform: PC, Console, Mobile, Cross-Platform"
+    )
+
+    # Identity Tags (game-specific play identity)
+    playstyle = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Team play style tag (e.g., 'Aggressive', 'Methodical', 'Adaptive')"
+    )
+    playpace = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Team pace tag (e.g., 'Fast Execute', 'Slow Default', 'Mixed')"
+    )
+    playfocus = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Team focus tag (e.g., 'Aim-Heavy', 'Strategy-First', 'Utility-Rich')"
+    )
+
     # Metadata
     is_temporary = models.BooleanField(
         default=False,

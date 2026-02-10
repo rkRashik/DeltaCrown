@@ -373,6 +373,12 @@ def team_manage(request, team_slug, org_slug=None):
                 ('PRIVATE', 'Private'),
                 ('UNLISTED', 'Unlisted'),
             ],
+            'platform_choices': [
+                ('PC', 'PC'),
+                ('Mobile', 'Mobile'),
+                ('Console', 'Console'),
+                ('Cross-Platform', 'Cross-Platform'),
+            ],
             # Phase 4: Org integration
             'org_context': org_context,
             'is_org_ceo': is_org_ceo,

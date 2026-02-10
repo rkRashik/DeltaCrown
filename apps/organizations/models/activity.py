@@ -86,6 +86,18 @@ class TeamActivityLog(models.Model):
         help_text="When action occurred"
     )
     
+    # Journey filtering fields (Point 2)
+    is_pinned = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Pinned events always show in public journey timeline",
+    )
+    is_milestone = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Milestone events show in public timeline (auto-set for major actions)",
+    )
+    
     class Meta:
         db_table = 'organizations_activity_log'
         ordering = ['-timestamp']

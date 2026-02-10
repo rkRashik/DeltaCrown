@@ -262,6 +262,7 @@ INSTALLED_APPS = [
     "apps.leaderboards",  # Phase E/F: Leaderboards Service + Engine V2
     "apps.spectator",  # Phase G: Spectator Live Views
     "apps.support",  # FAQ, Contact, Testimonials
+    "apps.challenges",  # Phase B: Challenge Hub (wager matches, bounties)
     "channels",
 
 ]

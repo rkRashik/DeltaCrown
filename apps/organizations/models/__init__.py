@@ -29,6 +29,9 @@ from .activity import TeamActivityLog
 from .announcement import TeamAnnouncement
 from .team_media import TeamMedia, TeamHighlight
 from .discord_sync import DiscordChatMessage
+from .join_request import TeamJoinRequest
+from .recruitment import RecruitmentPosition, RecruitmentRequirement
+from .journey import TeamJourneyMilestone
 
 __all__ = [
     # Organization models
@@ -59,4 +62,11 @@ __all__ = [
 
     # Discord integration
     'DiscordChatMessage',
+
+    # Recruitment
+    'RecruitmentPosition',
+    'RecruitmentRequirement',
+
+    # Journey
+    'TeamJourneyMilestone',
 ]

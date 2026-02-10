@@ -78,7 +78,178 @@ Settings auto-save via AJAX.
         <div class="mt-4">
             {% include "organizations/team/manage_hq/partials/_toggle.html" with field="is_temporary" label="Temporary Team" desc="Mark this team as temporary (e.g., created for a specific tournament). Temporary teams may be auto-cleaned." checked=team.is_temporary %}
         </div>
+
+        {# ── Recruiting Toggle ── #}
+        <div class="mt-4">
+            {% include "organizations/team/manage_hq/partials/_toggle.html" with field="is_recruiting" label="Recruiting" desc="When enabled, players can discover and apply to join your team. Turn off to stop accepting new applications." checked=team.is_recruiting %}
+        </div>
     </div>
+
+    {# ── Team Identity & Platform ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <h2 class="text-base font-bold mb-1 flex items-center gap-2">
+            <i data-lucide="gamepad-2" class="w-4 h-4 text-sky-400"></i>
+            Team Identity &amp; Platform
+        </h2>
+        <p class="text-xs text-white/40 mb-5">Define your team's competitive platform and play identity tags shown on the public profile.</p>
+
+        <div class="space-y-4">
+            {# Platform Select #}
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-bold text-white/60 uppercase tracking-wider">Platform</label>
+                <select id="hq-field-platform" class="w-full rounded-xl bg-white/5 border border-white/10 text-white text-sm px-4 py-2.5 outline-none focus:border-sky-500/50 transition">
+                    {% for val, label in platform_choices %}
+                    <option value="{{ val }}" {% if team.platform == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# Playstyle #}
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-bold text-white/60 uppercase tracking-wider">Play Style</label>
+                <select id="hq-field-playstyle" class="w-full rounded-xl bg-white/5 border border-white/10 text-white text-sm px-4 py-2.5 outline-none focus:border-sky-500/50 transition">
+                    <option value="">— Select Play Style —</option>
+                </select>
+                <p class="text-[10px] text-white/30">Describes your team's approach — shown as an identity tag</p>
+            </div>
+
+            {# Playpace #}
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-bold text-white/60 uppercase tracking-wider">Play Pace</label>
+                <select id="hq-field-playpace" class="w-full rounded-xl bg-white/5 border border-white/10 text-white text-sm px-4 py-2.5 outline-none focus:border-sky-500/50 transition">
+                    <option value="">— Select Play Pace —</option>
+                </select>
+                <p class="text-[10px] text-white/30">Your tempo and how you approach rounds</p>
+            </div>
+
+            {# Playfocus #}
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-bold text-white/60 uppercase tracking-wider">Play Focus</label>
+                <select id="hq-field-playfocus" class="w-full rounded-xl bg-white/5 border border-white/10 text-white text-sm px-4 py-2.5 outline-none focus:border-sky-500/50 transition">
+                    <option value="">— Select Play Focus —</option>
+                </select>
+                <p class="text-[10px] text-white/30">Your primary strategic focus area</p>
+            </div>
+
+            {# Save Button #}
+            <div class="flex items-center justify-between pt-2">
+                <span id="identity-save-status" class="text-[10px] text-white/30"></span>
+                <button onclick="ManageHQ.saveIdentity()" id="identity-save-btn"
+                    class="px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold uppercase tracking-widest transition shadow-[0_0_20px_rgba(14,165,233,0.15)]">
+                    <i data-lucide="save" class="w-3.5 h-3.5 inline -mt-0.5 mr-1"></i>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {# ── Play Identity Dropdown Config (game-based) ── #}
+    <script>
+    (function() {
+        // Game-specific play identity options for all 11 DeltaCrown games
+        const PLAY_IDENTITY = {
+            // FPS Games
+            'valorant': {
+                style: ['Aggressive', 'Defensive', 'Methodical', 'Adaptive', 'Tactical', 'Hybrid'],
+                pace:  ['Fast Execute', 'Slow Default', 'Mixed Tempo', 'Aggressive Rush', 'Methodical', 'Adaptive'],
+                focus: ['Aim-Heavy', 'Utility-Rich', 'Strategy-First', 'Map Control', 'Retake', 'Picks', 'Site Execute'],
+            },
+            'cs2': {
+                style: ['Aggressive', 'Defensive', 'Methodical', 'Tactical', 'Hybrid', 'Adaptive'],
+                pace:  ['Fast Execute', 'Slow Default', 'Mixed Tempo', 'Rush Heavy', 'Methodical', 'Adaptive'],
+                focus: ['Aim-Heavy', 'Utility-Rich', 'Strategy-First', 'Map Control', 'Economy Play', 'Picks', 'Trade-Focused'],
+            },
+            'r6siege': {
+                style: ['Aggressive', 'Defensive', 'Methodical', 'Intel-Driven', 'Hybrid', 'Adaptive'],
+                pace:  ['Fast Push', 'Slow & Calculated', 'Mixed Tempo', 'Roam Heavy', 'Anchor', 'Adaptive'],
+                focus: ['Intel Denial', 'Hard Breach', 'Roam Control', 'Vertical Play', 'Utility Clear', 'Anchor Defense'],
+            },
+            'codm': {
+                style: ['Aggressive', 'Defensive', 'Balanced', 'Objective-First', 'Slayer', 'Hybrid'],
+                pace:  ['Fast Paced', 'Methodical', 'Mixed', 'Rush', 'Defensive', 'Adaptive'],
+                focus: ['Slaying', 'Objective Control', 'Map Control', 'Spawns', 'Rotations', 'Hardpoint'],
+            },
+            // MOBA Games
+            'dota2': {
+                style: ['Aggressive', 'Defensive', 'Split-Push', 'Team-Fight', 'Pick-Off', 'Adaptive'],
+                pace:  ['Early Aggression', 'Mid-Game Spike', 'Late-Game', 'All-In Rush', 'Tempo Control', 'Adaptive'],
+                focus: ['Team-Fight', 'Split-Push', 'Pick-Off', 'Objective Control', 'Vision Control', 'High Ground'],
+            },
+            'mlbb': {
+                style: ['Aggressive', 'Defensive', 'Split-Push', 'Team-Fight', 'Pick-Off', 'Adaptive'],
+                pace:  ['Early Invade', 'Mid-Game Power', 'Late-Game', 'Fast Push', 'Tempo', 'Adaptive'],
+                focus: ['Lord/Turtle Control', 'Team-Fight', 'Split-Push', 'Ganking', 'Tower Push', 'Vision Control'],
+            },
+            // Battle Royale
+            'pubgm': {
+                style: ['Aggressive', 'Passive', 'Balanced', 'Edge Zone', 'Hot Drop', 'Adaptive'],
+                pace:  ['Hot Drop', 'Safe Loot', 'Mid-Game Fight', 'End Zone', 'Rotate Heavy', 'Adaptive'],
+                focus: ['Zone Control', 'Positioning', 'Fragging', 'Vehicle Plays', 'Compound Hold', 'Rotation'],
+            },
+            'freefire': {
+                style: ['Aggressive', 'Passive', 'Balanced', 'Rush', 'Camper', 'Adaptive'],
+                pace:  ['Hot Drop', 'Safe Loot', 'Mid-Game', 'End Zone', 'Rush', 'Adaptive'],
+                focus: ['Fragging', 'Zone Control', 'Positioning', 'Character Combos', 'Loot Priority', 'Rotation'],
+            },
+            // Sports
+            'ea-fc': {
+                style: ['Possession', 'Counter-Attack', 'High Press', 'Tiki-Taka', 'Long Ball', 'Balanced'],
+                pace:  ['Fast Build-Up', 'Slow Possession', 'Mixed Tempo', 'Direct', 'Patient', 'Adaptive'],
+                focus: ['Wing Play', 'Central Play', 'Set Pieces', 'Crossing', 'Through Balls', 'Skill Moves'],
+            },
+            'efootball': {
+                style: ['Possession', 'Counter-Attack', 'High Press', 'Long Ball', 'Balanced', 'Defensive'],
+                pace:  ['Fast Build-Up', 'Slow Possession', 'Mixed', 'Direct', 'Patient', 'Adaptive'],
+                focus: ['Wing Play', 'Central Play', 'Set Pieces', 'Crossing', 'Through Balls', 'Dribbling'],
+            },
+            'rocketleague': {
+                style: ['Aggressive', 'Defensive', 'Balanced', 'Mechanical', 'Rotational', 'Adaptive'],
+                pace:  ['Fast Aerial', 'Grounded', 'Mixed', 'Boost Starve', 'Possession', 'Adaptive'],
+                focus: ['Aerial Play', 'Ground Game', 'Passing', 'Solo Plays', 'Boost Control', 'Demolitions'],
+            },
+        };
+
+        // Fallback for unknown games
+        const FALLBACK = {
+            style: ['Aggressive', 'Defensive', 'Balanced', 'Tactical', 'Adaptive', 'Hybrid'],
+            pace:  ['Fast', 'Slow', 'Mixed', 'Methodical', 'Rush', 'Adaptive'],
+            focus: ['Fragging', 'Strategy', 'Objective', 'Map Control', 'Utility', 'Teamwork'],
+        };
+
+        const gameSlug = "{{ team.game|default:''|escapejs }}";
+        const config = PLAY_IDENTITY[gameSlug] || FALLBACK;
+        const currentVals = {
+            playstyle: "{{ team.playstyle|default:''|escapejs }}",
+            playpace:  "{{ team.playpace|default:''|escapejs }}",
+            playfocus: "{{ team.playfocus|default:''|escapejs }}",
+        };
+
+        function populateSelect(id, options, currentVal) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            // Keep the first empty option
+            const frag = document.createDocumentFragment();
+            options.forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt; o.textContent = opt;
+                if (opt === currentVal) o.selected = true;
+                frag.appendChild(o);
+            });
+            // If current value exists but isn't in the list, add it
+            if (currentVal && !options.includes(currentVal)) {
+                const o = document.createElement('option');
+                o.value = currentVal; o.textContent = currentVal + ' (custom)';
+                o.selected = true;
+                frag.appendChild(o);
+            }
+            el.appendChild(frag);
+        }
+
+        populateSelect('hq-field-playstyle', config.style, currentVals.playstyle);
+        populateSelect('hq-field-playpace', config.pace, currentVals.playpace);
+        populateSelect('hq-field-playfocus', config.focus, currentVals.playfocus);
+    })();
+    </script>
 
     {# ── Owner Privacy ── #}
     {% if is_owner %}

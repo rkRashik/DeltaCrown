@@ -1,0 +1,172 @@
+{# ═══════════════════════════════════════════════════════════ #}
+{# SECTION: Trophy Cabinet — Achievement Management          #}
+{# Route: #achievements                                      #}
+{# 5-Point Overhaul — Point 4                                #}
+{# ═══════════════════════════════════════════════════════════ #}
+{% if is_admin or is_owner %}
+<section id="achievements" class="hq-section space-y-5">
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h2 class="text-lg font-bold flex items-center gap-2">
+                <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15l-2 5-1-3H6l3-2-1-3 4 3 4-3-1 3 3 2h-3l-1 3-2-5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4h8l2 4H6l2-4z"/></svg>
+                Trophy Cabinet
+            </h2>
+            <p class="text-sm text-white/40 mt-0.5">Manage tournament wins, awards, and achievements</p>
+        </div>
+        <button onclick="TrophyManager.openForm()" class="h-9 px-4 rounded-xl bg-amber-500/15 border border-amber-500/25 text-amber-400 text-xs font-bold uppercase tracking-wider hover:bg-amber-500/25 transition flex items-center gap-2">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            Add Trophy
+        </button>
+    </div>
+
+    {# Add/Edit Form (hidden by default) #}
+    <div id="trophy-form" class="hidden rounded-2xl border border-amber-500/15 bg-white/[0.03] p-5 space-y-3">
+        <h3 class="text-sm font-bold text-amber-400">Add Trophy</h3>
+        <input type="hidden" id="trophy-edit-id" value="" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input type="text" id="trophy-title" placeholder="Trophy title (e.g. VALORANT Masters)" maxlength="80"
+                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-amber-500/30" />
+            <input type="text" id="trophy-event" placeholder="Event / Tournament name" maxlength="100"
+                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-amber-500/30" />
+            <input type="text" id="trophy-placement" placeholder="Placement (e.g. 1st, Champion)" maxlength="30"
+                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-amber-500/30" />
+            <input type="date" id="trophy-date"
+                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500/30" />
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="TrophyManager.save()" class="h-8 px-5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold hover:bg-amber-500/30 transition">Save</button>
+            <button onclick="TrophyManager.closeForm()" class="h-8 px-4 rounded-xl bg-white/5 border border-white/10 text-white/40 text-xs hover:bg-white/10 transition">Cancel</button>
+        </div>
+    </div>
+
+    {# Trophy Grid #}
+    <div id="trophy-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div class="col-span-full text-center py-12">
+            <svg class="w-10 h-10 text-white/10 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15l-2 5-1-3H6l3-2-1-3 4 3 4-3-1 3 3 2h-3l-1 3-2-5z"/></svg>
+            <p class="text-sm text-white/30">No trophies yet</p>
+            <p class="text-xs text-white/20 mt-1">Start building your legacy!</p>
+        </div>
+    </div>
+
+</section>
+{% endif %}
+
+<script>
+(function() {
+    const SLUG = "{{ team.slug }}";
+    const API_BASE = `/api/vnext/teams/${SLUG}`;
+    const CSRF = document.querySelector("[name=csrfmiddlewaretoken]")?.value || "{{ csrf_token }}";
+    const HEADERS = { "Content-Type": "application/json", "X-CSRFToken": CSRF };
+
+    function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+    const PLACEMENT_ICONS = {
+        '1st': '\ud83e\uddc1', 'champion': '\ud83e\uddc1', 'first': '\ud83e\uddc1',
+        '2nd': '\ud83e\udd48', 'runner-up': '\ud83e\udd48', 'second': '\ud83e\udd48',
+        '3rd': '\ud83e\udd49', 'third': '\ud83e\udd49',
+    };
+
+    function placementIcon(p) {
+        const key = (p || '').toLowerCase().trim();
+        return PLACEMENT_ICONS[key] || '\ud83c\udfc6';
+    }
+
+    const TrophyManager = {
+        async load() {
+            const resp = await fetch(`${API_BASE}/trophies/`, { headers: { "X-CSRFToken": CSRF } });
+            const data = await resp.json();
+            const list = document.getElementById("trophy-list");
+            const trophies = data.trophies || [];
+
+            if (trophies.length === 0) {
+                list.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <svg class="w-10 h-10 text-white/10 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15l-2 5-1-3H6l3-2-1-3 4 3 4-3-1 3 3 2h-3l-1 3-2-5z"/></svg>
+                        <p class="text-sm text-white/30">No trophies yet</p>
+                    </div>`;
+                return;
+            }
+
+            list.innerHTML = trophies.map(t => `
+                <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:border-amber-500/20 transition group">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="text-2xl">${placementIcon(t.placement)}</div>
+                        <div class="opacity-0 group-hover:opacity-100 transition flex gap-1">
+                            <button onclick='TrophyManager.edit(${JSON.stringify(t).replace(/'/g, "\\'")})' class="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60" title="Edit">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </button>
+                            <button onclick="TrophyManager.remove('${t.id}')" class="p-1 rounded hover:bg-red-500/10 text-white/30 hover:text-red-400" title="Delete">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-sm font-bold text-white mt-2">${esc(t.title)}</p>
+                    ${t.event ? `<p class="text-[10px] text-white/40 mt-0.5">${esc(t.event)}</p>` : ''}
+                    <div class="flex items-center gap-2 mt-2 text-[10px] text-white/30">
+                        ${t.placement ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold">${esc(t.placement)}</span>` : ''}
+                        ${t.date || ''}
+                    </div>
+                </div>
+            `).join("");
+        },
+
+        openForm() {
+            document.getElementById("trophy-form").classList.remove("hidden");
+            document.getElementById("trophy-edit-id").value = '';
+            document.getElementById("trophy-title").value = '';
+            document.getElementById("trophy-event").value = '';
+            document.getElementById("trophy-placement").value = '';
+            document.getElementById("trophy-date").value = '';
+        },
+
+        closeForm() { document.getElementById("trophy-form").classList.add("hidden"); },
+
+        edit(t) {
+            document.getElementById("trophy-form").classList.remove("hidden");
+            document.getElementById("trophy-edit-id").value = t.id;
+            document.getElementById("trophy-title").value = t.title || '';
+            document.getElementById("trophy-event").value = t.event || '';
+            document.getElementById("trophy-placement").value = t.placement || '';
+            document.getElementById("trophy-date").value = t.date || '';
+        },
+
+        async save() {
+            const body = {
+                id: document.getElementById("trophy-edit-id").value || undefined,
+                title: document.getElementById("trophy-title").value,
+                event: document.getElementById("trophy-event").value,
+                placement: document.getElementById("trophy-placement").value,
+                date: document.getElementById("trophy-date").value,
+            };
+            const resp = await fetch(`${API_BASE}/trophies/save/`, {
+                method: "POST", headers: HEADERS, body: JSON.stringify(body),
+            });
+            const data = await resp.json();
+            if (data.success) { TrophyManager.closeForm(); TrophyManager.load(); }
+            else alert(data.error || "Failed");
+        },
+
+        async remove(id) {
+            if (!confirm("Delete this trophy?")) return;
+            const resp = await fetch(`${API_BASE}/trophies/${id}/delete/`, {
+                method: "POST", headers: HEADERS, body: "{}",
+            });
+            const data = await resp.json();
+            if (data.success) TrophyManager.load();
+        },
+    };
+
+    window.TrophyManager = TrophyManager;
+
+    const observer = new MutationObserver(() => {
+        const section = document.getElementById('achievements');
+        if (section && section.classList.contains('is-active')) {
+            TrophyManager.load();
+            observer.disconnect();
+        }
+    });
+    const section = document.getElementById('achievements');
+    if (section) observer.observe(section, { attributes: true, attributeFilter: ["class"] });
+})();
+</script>
