@@ -611,10 +611,11 @@
   };
 
   /* ═══════════════════════════════════════════════════════════════════════
-     TRAINING LAB
+     TRAINING LAB — Challenge & Bounty System + Scrims/Schedule/VODs
      ═══════════════════════════════════════════════════════════════════════ */
   const Training = {
     _loaded: false,
+    _challengeAPI: '/api/v1',
 
     init() {
       const section = document.getElementById("training");
@@ -622,12 +623,29 @@
       const observer = new MutationObserver(() => {
         if (section.classList.contains("is-active") && !this._loaded) {
           this._loaded = true;
-          this.loadData();
+          this.loadChallenges();
+          this.loadBounties();
+          this.loadStats();
         }
       });
       observer.observe(section, { attributes: true, attributeFilter: ["class"] });
 
-      // Form handlers
+      // Challenge form
+      const challengeForm = document.getElementById("issue-challenge-form");
+      if (challengeForm) challengeForm.addEventListener("submit", (e) => { e.preventDefault(); this.submitChallenge(); });
+
+      // Show/hide direct team field based on challenge type
+      const chType = document.getElementById("ch-type");
+      if (chType) chType.addEventListener("change", () => {
+        const wrap = document.getElementById("ch-direct-team-wrap");
+        if (wrap) wrap.classList.toggle("hidden", chType.value !== "DIRECT");
+      });
+
+      // Bounty form
+      const bountyForm = document.getElementById("create-bounty-form");
+      if (bountyForm) bountyForm.addEventListener("submit", (e) => { e.preventDefault(); this.submitBounty(); });
+
+      // Legacy forms (scrims, schedule, vods)
       const scheduleForm = document.getElementById("schedule-practice-form");
       if (scheduleForm) scheduleForm.addEventListener("submit", (e) => { e.preventDefault(); this.submitSchedule(); });
 
@@ -636,25 +654,363 @@
 
       const vodForm = document.getElementById("add-vod-form");
       if (vodForm) vodForm.addEventListener("submit", (e) => { e.preventDefault(); this.submitVod(); });
-
-      const bountyForm = document.getElementById("new-bounty-form");
-      if (bountyForm) bountyForm.addEventListener("submit", (e) => { e.preventDefault(); this.submitBounty(); });
     },
 
-    async loadData() {
-      // Load schedule, scrims, vods, bounties from API when available
+    // ── Sub-tab Navigation ──
+    switchSubTab(tab) {
+      document.querySelectorAll(".training-panel").forEach(p => p.classList.add("hidden"));
+      document.querySelectorAll(".training-sub-tab").forEach(t => {
+        const isActive = t.dataset.tab === tab;
+        t.classList.toggle("bg-white/10", isActive);
+        t.classList.toggle("text-white", isActive);
+        t.classList.toggle("text-white/50", !isActive);
+      });
+      const panel = document.getElementById(`training-panel-${tab}`);
+      if (panel) panel.classList.remove("hidden");
+    },
+
+    // ── Load Challenges ──
+    async loadChallenges() {
+      const section = document.getElementById("training");
+      const slug = section?.dataset.teamSlug;
+      if (!slug) return;
+
       try {
-        const data = await api(`${API}/training/`, { method: "GET" });
-        if (data.sessions) this.renderSessions(data.sessions);
-        if (data.scrims) this.renderScrims(data.scrims);
-        if (data.vods) this.renderVods(data.vods);
-        if (data.bounties) this.renderBounties(data.bounties);
-        if (data.stats) this.updateScrimStats(data.stats);
+        const data = await api(`${this._challengeAPI}/teams/${slug}/challenges/`, { method: "GET" });
+        const list = document.getElementById("challenge-list");
+        const history = document.getElementById("challenge-history");
+        const emptyState = document.getElementById("ch-empty-state");
+        const countEl = document.getElementById("ch-active-count");
+
+        if (!Array.isArray(data) || data.length === 0) {
+          if (countEl) countEl.textContent = "0";
+          return;
+        }
+
+        const active = data.filter(c => !["COMPLETED", "CANCELLED", "EXPIRED", "SETTLED"].includes(c.status));
+        const completed = data.filter(c => ["COMPLETED", "CANCELLED", "EXPIRED", "SETTLED"].includes(c.status));
+
+        if (countEl) countEl.textContent = active.length;
+
+        if (list && active.length > 0) {
+          if (emptyState) emptyState.style.display = "none";
+          active.forEach(c => list.appendChild(this._renderChallengeCard(c)));
+        }
+
+        if (history && completed.length > 0) {
+          history.innerHTML = "";
+          completed.forEach(c => history.appendChild(this._renderChallengeCard(c, true)));
+        }
       } catch {
-        // API not yet available — leave placeholders
+        // API may not be connected yet
       }
     },
 
+    _renderChallengeCard(c, isHistory = false) {
+      const div = document.createElement("div");
+      div.dataset.status = c.status;
+      const statusColors = {
+        OPEN: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+        PENDING: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+        ACCEPTED: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+        SCHEDULED: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
+        IN_PROGRESS: "text-orange-400 bg-orange-500/10 border-orange-500/20",
+        COMPLETED: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+        CANCELLED: "text-slate-400 bg-slate-500/10 border-slate-500/20",
+        EXPIRED: "text-slate-500 bg-slate-500/5 border-slate-500/15",
+        SETTLED: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
+      };
+      const colorClass = statusColors[c.status] || "text-white/50 bg-white/5 border-white/10";
+
+      const opponent = c.challenged_team_name || "Open Challenge";
+      const time = c.scheduled_at ? new Date(c.scheduled_at).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "";
+      const prize = c.prize_type !== "NONE" ? `${c.prize_amount} ${c.prize_type}` : "";
+
+      div.className = `rounded-xl border border-white/10 bg-white/3 p-4 hover:bg-white/5 transition`;
+      div.innerHTML = `
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs px-2 py-0.5 rounded-full border font-semibold ${colorClass}">${c.status_display || c.status}</span>
+              <span class="text-[10px] text-white/30 font-mono">${c.reference_code || ""}</span>
+              ${prize ? `<span class="text-[10px] text-amber-400 font-bold">${prize}</span>` : ""}
+            </div>
+            <h4 class="text-sm font-bold text-white/90 truncate">${this._esc(c.title)}</h4>
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-white/40">
+              <span><strong class="text-white/60">${this._esc(c.challenger_team_name)}</strong> vs <strong class="text-white/60">${this._esc(opponent)}</strong></span>
+              ${c.game_short_code ? `<span class="px-1.5 py-0.5 rounded bg-white/5 text-[10px] font-mono">${c.game_short_code}</span>` : ""}
+              <span>BO${c.best_of}</span>
+              ${time ? `<span>${time}</span>` : ""}
+            </div>
+          </div>
+          ${!isHistory ? this._renderChallengeActions(c) : ""}
+        </div>
+      `;
+      return div;
+    },
+
+    _renderChallengeActions(c) {
+      const slug = document.getElementById("training")?.dataset.teamSlug;
+      const isOurs = c.challenger_team_slug === slug;
+      let html = '<div class="flex items-center gap-1.5 shrink-0">';
+
+      if (c.status === "PENDING" && !isOurs) {
+        html += `<button onclick="ManageHQ.Training.acceptChallenge('${c.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition">Accept</button>`;
+        html += `<button onclick="ManageHQ.Training.declineChallenge('${c.id}')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-400 transition">Decline</button>`;
+      } else if (c.status === "OPEN" || (c.status === "PENDING" && isOurs)) {
+        html += `<button onclick="ManageHQ.Training.cancelChallenge('${c.id}')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 text-white/50 transition">Cancel</button>`;
+      } else if (c.status === "ACCEPTED" || c.status === "SCHEDULED") {
+        html += `<button onclick="ManageHQ.Training.openResultModal('${c.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition">Submit Result</button>`;
+      }
+      html += '</div>';
+      return html;
+    },
+
+    _esc(text) {
+      const d = document.createElement("div");
+      d.textContent = text || "";
+      return d.innerHTML;
+    },
+
+    // ── Challenge CRUD ──
+    async submitChallenge() {
+      const section = document.getElementById("training");
+      const teamId = section?.dataset.teamId;
+      const gameId = section?.dataset.gameId;
+      const btn = qs("#ch-submit");
+      const errEl = qs("#ch-error");
+      if (!teamId || !gameId) { if (errEl) { errEl.textContent = "Team/game not configured."; errEl.classList.remove("hidden"); } return; }
+
+      btn.disabled = true;
+      const origText = btn.innerHTML;
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Issuing…';
+
+      try {
+        const payload = {
+          challenger_team_id: parseInt(teamId),
+          game_id: parseInt(gameId),
+          title: qs("#ch-title")?.value.trim(),
+          description: qs("#ch-description")?.value.trim() || "",
+          challenge_type: qs("#ch-type")?.value || "OPEN",
+          best_of: parseInt(qs("#ch-bestof")?.value) || 1,
+          prize_type: qs("#ch-prize-type")?.value || "NONE",
+          prize_amount: parseFloat(qs("#ch-prize-amount")?.value) || 0,
+          is_public: true,
+        };
+
+        const scheduled = qs("#ch-scheduled")?.value;
+        if (scheduled) payload.scheduled_at = new Date(scheduled).toISOString();
+
+        // Direct challenge — resolve team slug to ID
+        if (payload.challenge_type === "DIRECT") {
+          const targetSlug = qs("#ch-challenged-slug")?.value.trim();
+          if (!targetSlug) throw new Error("Enter the opponent team's slug for a direct challenge.");
+          // Look up team ID by fetching the team challenges endpoint (or do inline)
+          try {
+            const teamData = await fetch(`/api/vnext/teams/${targetSlug}/`, { credentials: "same-origin" }).then(r => r.json());
+            if (teamData.id) payload.challenged_team_id = teamData.id;
+            else throw new Error(`Team "${targetSlug}" not found.`);
+          } catch {
+            throw new Error(`Could not find team "${targetSlug}". Check the slug.`);
+          }
+        }
+
+        await api(`${this._challengeAPI}/challenges/`, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+
+        toast("Challenge issued! Let's go! 🔥");
+        qs("#issue-challenge-form")?.reset();
+        errEl?.classList.add("hidden");
+        this.loadChallenges();
+        this.loadStats();
+      } catch (err) {
+        if (errEl) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    },
+
+    async acceptChallenge(id) {
+      try {
+        const section = document.getElementById("training");
+        const teamId = section?.dataset.teamId;
+        await api(`${this._challengeAPI}/challenges/${id}/accept/`, {
+          method: "POST",
+          body: JSON.stringify({ accepting_team_id: parseInt(teamId) }),
+        });
+        toast("Challenge accepted! Prepare for battle! ⚔️");
+        this.loadChallenges();
+        this.loadStats();
+      } catch (err) { toast(err.message, "error"); }
+    },
+
+    async declineChallenge(id) {
+      try {
+        await api(`${this._challengeAPI}/challenges/${id}/decline/`, { method: "POST", body: "{}" });
+        toast("Challenge declined.");
+        this.loadChallenges();
+      } catch (err) { toast(err.message, "error"); }
+    },
+
+    async cancelChallenge(id) {
+      try {
+        await api(`${this._challengeAPI}/challenges/${id}/cancel/`, { method: "POST", body: "{}" });
+        toast("Challenge cancelled.");
+        this.loadChallenges();
+        this.loadStats();
+      } catch (err) { toast(err.message, "error"); }
+    },
+
+    openResultModal(challengeId) {
+      // Quick inline prompt for result
+      const result = prompt("Enter result:\n1 = Our team won\n2 = Opponent won\n3 = Draw");
+      if (!result) return;
+      const map = { "1": "CHALLENGER_WIN", "2": "CHALLENGED_WIN", "3": "DRAW" };
+      const val = map[result];
+      if (!val) { toast("Invalid choice. Enter 1, 2, or 3.", "error"); return; }
+      this.submitResult(challengeId, val);
+    },
+
+    async submitResult(id, result) {
+      try {
+        await api(`${this._challengeAPI}/challenges/${id}/result/`, {
+          method: "POST",
+          body: JSON.stringify({ result }),
+        });
+        toast("Result submitted! GG! 🏆");
+        this.loadChallenges();
+        this.loadStats();
+      } catch (err) { toast(err.message, "error"); }
+    },
+
+    // ── Load & Render Bounties ──
+    async loadBounties() {
+      const section = document.getElementById("training");
+      const slug = section?.dataset.teamSlug;
+      if (!slug) return;
+
+      try {
+        const data = await api(`${this._challengeAPI}/teams/${slug}/bounties/`, { method: "GET" });
+        const list = document.getElementById("bounty-list");
+        const emptyState = document.getElementById("bn-empty-state");
+        const countEl = document.getElementById("bn-active-count");
+        const statEl = document.getElementById("stat-bounties-active");
+
+        if (!Array.isArray(data) || data.length === 0) {
+          if (countEl) countEl.textContent = "0";
+          if (statEl) statEl.textContent = "0";
+          return;
+        }
+
+        if (countEl) countEl.textContent = data.length;
+        if (statEl) statEl.textContent = data.length;
+
+        if (list && data.length > 0) {
+          if (emptyState) emptyState.style.display = "none";
+          data.forEach(b => list.appendChild(this._renderBountyCard(b)));
+        }
+      } catch {}
+    },
+
+    _renderBountyCard(b) {
+      const div = document.createElement("div");
+      const typeLabels = { BEAT_US: "Beat Us", WIN_STREAK: "Win Streak", FIRST_BLOOD: "First Blood", TOURNAMENT_WIN: "Tournament Win", CUSTOM: "Custom" };
+      div.className = "rounded-xl border border-amber-500/10 bg-gradient-to-r from-amber-500/5 to-transparent p-4 hover:from-amber-500/10 transition";
+      div.innerHTML = `
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-semibold border border-amber-500/20">${typeLabels[b.bounty_type] || b.bounty_type}</span>
+              <span class="text-[10px] text-white/30 font-mono">${b.reference_code || ""}</span>
+            </div>
+            <h4 class="text-sm font-bold text-white/90 truncate">${this._esc(b.title)}</h4>
+            ${b.description ? `<p class="text-[11px] text-white/40 mt-1 line-clamp-2">${this._esc(b.description)}</p>` : ""}
+            <div class="flex items-center gap-3 mt-1.5 text-[11px] text-white/40">
+              <span class="text-amber-400 font-bold">${b.reward_amount} ${b.reward_type}</span>
+              <span>${b.claim_count || 0} / ${b.max_claims} claims</span>
+              ${b.game_short_code ? `<span class="px-1.5 py-0.5 rounded bg-white/5 text-[10px] font-mono">${b.game_short_code}</span>` : ""}
+              ${b.expires_at ? `<span>Expires ${new Date(b.expires_at).toLocaleDateString()}</span>` : ""}
+            </div>
+          </div>
+          ${b.is_claimable ? '<div class="shrink-0"><span class="px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">Claimable</span></div>' : ''}
+        </div>
+      `;
+      return div;
+    },
+
+    async submitBounty() {
+      const section = document.getElementById("training");
+      const teamId = section?.dataset.teamId;
+      const gameId = section?.dataset.gameId;
+      const btn = qs("#bn-submit");
+      const errEl = qs("#bn-error");
+      if (!teamId || !gameId) { if (errEl) { errEl.textContent = "Team/game not configured."; errEl.classList.remove("hidden"); } return; }
+
+      btn.disabled = true;
+      const origText = btn.innerHTML;
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Posting…';
+
+      try {
+        const payload = {
+          issuer_team_id: parseInt(teamId),
+          game_id: parseInt(gameId),
+          title: qs("#bn-title")?.value.trim(),
+          description: qs("#bn-description")?.value.trim() || "",
+          bounty_type: qs("#bn-type")?.value || "BEAT_US",
+          reward_type: qs("#bn-reward-type")?.value || "CP",
+          reward_amount: parseFloat(qs("#bn-reward-amount")?.value) || 0,
+          max_claims: parseInt(qs("#bn-max-claims")?.value) || 1,
+          is_public: true,
+        };
+
+        const expires = qs("#bn-expires")?.value;
+        if (expires) payload.expires_at = new Date(expires).toISOString();
+
+        await api(`${this._challengeAPI}/bounties/`, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+
+        toast("Bounty posted! Let the hunt begin! 🎯");
+        qs("#create-bounty-form")?.reset();
+        errEl?.classList.add("hidden");
+        this.loadBounties();
+        this.loadStats();
+      } catch (err) {
+        if (errEl) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    },
+
+    // ── Challenge Stats ──
+    async loadStats() {
+      const section = document.getElementById("training");
+      const slug = section?.dataset.teamSlug;
+      if (!slug) return;
+
+      try {
+        const data = await api(`${this._challengeAPI}/teams/${slug}/challenges/stats/`, { method: "GET" });
+        const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        setEl("stat-challenges-issued", data.total || 0);
+        setEl("stat-challenges-won", data.wins || 0);
+        setEl("stat-challenges-total", data.total || 0);
+      } catch {}
+    },
+
+    // ── Challenge Filter ──
+    filterChallenges() {
+      const status = qs("#ch-filter-status")?.value || "";
+      qsa("#challenge-list > div[data-status]").forEach(el => {
+        el.style.display = (!status || el.dataset.status === status) ? "" : "none";
+      });
+    },
+
+    // ── Legacy: Schedule/Scrim/VOD (kept for backwards compatibility) ──
     openScheduleModal() {
       const form = document.getElementById("schedule-practice-form");
       if (form) form.reset();
@@ -750,38 +1106,6 @@
         errEl.textContent = err.message; errEl.classList.remove("hidden");
       } finally {
         btn.disabled = false; btn.textContent = "Add VOD";
-      }
-    },
-
-    openBountyModal() {
-      const form = document.getElementById("new-bounty-form");
-      if (form) form.reset();
-      qs("#bounty-error")?.classList.add("hidden");
-      Modal.open("modal-new-bounty");
-    },
-
-    async submitBounty() {
-      const btn = qs("#bounty-submit");
-      const errEl = qs("#bounty-error");
-      btn.disabled = true; btn.textContent = "Creating…";
-      try {
-        const payload = {
-          title: qs("#bounty-title")?.value.trim(),
-          description: qs("#bounty-desc")?.value.trim(),
-          reward: parseInt(qs("#bounty-reward")?.value) || 100,
-          deadline: qs("#bounty-deadline")?.value,
-        };
-        const data = await api("training/bounties/", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
-        toast(data.message || "Bounty created!");
-        Modal.close("modal-new-bounty");
-        this.loadData();
-      } catch (err) {
-        errEl.textContent = err.message; errEl.classList.remove("hidden");
-      } finally {
-        btn.disabled = false; btn.textContent = "Create Bounty";
       }
     },
 
@@ -2708,15 +3032,22 @@
     History: {
       applyFilters: () => History.applyFilters(),
       clearFilters: () => History.clearFilters(),
+      addMilestone: () => History.addMilestone(),
     },
     // Training Lab
     Training: {
+      switchSubTab:      (tab) => Training.switchSubTab(tab),
       openScheduleModal: () => Training.openScheduleModal(),
       openScrimModal:    () => Training.openScrimModal(),
       openVodModal:      () => Training.openVodModal(),
       openBountyModal:   () => Training.openBountyModal(),
       filterScrims:      () => Training.filterScrims(),
       filterVods:        (tab) => Training.filterVods(tab),
+      acceptChallenge:   (id) => Training.acceptChallenge(id),
+      declineChallenge:  (id) => Training.declineChallenge(id),
+      cancelChallenge:   (id) => Training.cancelChallenge(id),
+      openResultModal:   (id) => Training.openResultModal(id),
+      submitResult:      (id, result) => Training.submitResult(id, result),
     },
     // Community & Media
     Community: {

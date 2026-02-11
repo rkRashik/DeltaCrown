@@ -4,6 +4,7 @@ Competition App URLs
 Phase 3A-C: Match reporting and verification URLs
 Phase 3A-D: Ranking documentation URLs
 Phase 3A-E: Leaderboards URLs
+Phase 10: Challenge & Bounty pages
 """
 
 from django.urls import path
@@ -32,4 +33,11 @@ urlpatterns = [
     # Rankings URL aliases (for navigation compatibility)
     path('rankings/', leaderboards.leaderboard_global, name='rankings_global'),
     path('rankings/<str:game_id>/', leaderboards.leaderboard_game, name='rankings_game'),
+    
+    # Challenges (Phase 10)
+    path('challenges/', views.challenge_hub, name='challenge_hub'),
+    path('challenges/<str:reference_code>/', views.challenge_detail_page, name='challenge_detail_page'),
+    
+    # Bounties (Phase 10)
+    path('bounties/', views.bounty_board, name='bounty_board'),
 ]

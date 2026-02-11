@@ -1,187 +1,290 @@
 {% comment %}
-Training Lab — Practice scheduling, scrim finder, VOD library, bounty board.
-Section 7.4 of the Master Plan. Fully interactive with JS-powered CRUD UIs.
+Training Lab — Challenges, Bounties, Practice scheduling, Scrim finder, VOD library.
+Section 7.4 of the Master Plan. Fully interactive with real Challenge & Bounty API.
 {% endcomment %}
-<section id="training" class="hq-section space-y-4" aria-label="Training Lab">
+<section id="training" class="hq-section space-y-4" aria-label="Training Lab"
+         data-team-id="{{ team.pk }}" data-team-slug="{{ team.slug }}" data-game-id="{{ team.game_id }}">
 
-    {# ── Practice Schedule ── #}
-    <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-base font-bold flex items-center gap-2">
-                <i data-lucide="calendar-clock" class="w-4 h-4 text-cyan-400"></i>
-                Practice Schedule
-            </h3>
-            {% if is_admin %}
-            <button onclick="ManageHQ.Training.openScheduleModal()"
-                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/25 transition">
-                <i data-lucide="plus" class="w-3 h-3"></i>
-                New Session
-            </button>
-            {% endif %}
+    {# ── Header + Stats Overview ── #}
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+            <h2 class="text-lg font-bold flex items-center gap-2">
+                <i data-lucide="swords" class="w-5 h-5 text-red-400"></i>
+                Training Lab
+            </h2>
+            <p class="text-sm text-white/50 mt-0.5">Challenges, bounties, scrims, and competitive preparation</p>
         </div>
+    </div>
 
-        {# Weekly calendar strip #}
-        <div class="grid grid-cols-7 gap-1 sm:gap-1.5 mb-3">
-            <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Mon</div>
-            <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Tue</div>
-            <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Wed</div>
-            <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Thu</div>
-            <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Fri</div>
-            <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Sat</div>
-            <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Sun</div>
+    {# Quick Stats Strip #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <div class="rounded-2xl bg-gradient-to-br from-red-500/10 to-red-600/5 border border-red-500/15 p-3 text-center">
+            <div class="text-xl font-black text-red-400" id="stat-challenges-issued">—</div>
+            <div class="text-[10px] text-white/40 uppercase tracking-wide mt-0.5">Issued</div>
         </div>
-        <div id="practice-schedule-grid" class="grid grid-cols-7 gap-1 sm:gap-1.5">
-            {% for day in "1234567" %}
-            <div class="rounded-xl border border-white/8 bg-white/3 min-h-[60px] sm:min-h-[80px] p-1.5 sm:p-2 text-center">
-                <span class="text-xs text-white/20">—</span>
+        <div class="rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/15 p-3 text-center">
+            <div class="text-xl font-black text-emerald-400" id="stat-challenges-won">—</div>
+            <div class="text-[10px] text-white/40 uppercase tracking-wide mt-0.5">Wins</div>
+        </div>
+        <div class="rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/15 p-3 text-center">
+            <div class="text-xl font-black text-blue-400" id="stat-challenges-total">—</div>
+            <div class="text-[10px] text-white/40 uppercase tracking-wide mt-0.5">Total</div>
+        </div>
+        <div class="rounded-2xl bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/15 p-3 text-center">
+            <div class="text-xl font-black text-amber-400" id="stat-bounties-active">—</div>
+            <div class="text-[10px] text-white/40 uppercase tracking-wide mt-0.5">Bounties</div>
+        </div>
+    </div>
+
+    {# ── Sub-tab Navigation ── #}
+    <div class="flex items-center gap-1 bg-white/5 rounded-xl p-1 overflow-x-auto">
+        <button onclick="ManageHQ.Training.switchSubTab('challenges')" class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition bg-white/10 text-white flex items-center justify-center gap-1.5" data-tab="challenges">
+            <i data-lucide="swords" class="w-3.5 h-3.5"></i> Challenges
+        </button>
+        <button onclick="ManageHQ.Training.switchSubTab('bounties')" class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition text-white/50 hover:text-white flex items-center justify-center gap-1.5" data-tab="bounties">
+            <i data-lucide="target" class="w-3.5 h-3.5"></i> Bounties
+        </button>
+        <button onclick="ManageHQ.Training.switchSubTab('scrims')" class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition text-white/50 hover:text-white flex items-center justify-center gap-1.5" data-tab="scrims">
+            <i data-lucide="radar" class="w-3.5 h-3.5"></i> Scrims
+        </button>
+        <button onclick="ManageHQ.Training.switchSubTab('schedule')" class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition text-white/50 hover:text-white flex items-center justify-center gap-1.5" data-tab="schedule">
+            <i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i> Schedule
+        </button>
+        <button onclick="ManageHQ.Training.switchSubTab('vods')" class="training-sub-tab flex-1 min-w-[80px] px-3 py-2 rounded-lg text-xs font-semibold transition text-white/50 hover:text-white flex items-center justify-center gap-1.5" data-tab="vods">
+            <i data-lucide="video" class="w-3.5 h-3.5"></i> VODs
+        </button>
+    </div>
+
+    {# ══════════════════════════════════════════════════════════════════════ #}
+    {# SUB-TAB: CHALLENGES                                                  #}
+    {# ══════════════════════════════════════════════════════════════════════ #}
+    <div id="training-panel-challenges" class="training-panel space-y-4">
+
+        {# ── Issue Challenge Card ── #}
+        {% if is_admin %}
+        <div class="rounded-3xl border border-red-500/20 bg-gradient-to-br from-red-500/5 to-transparent shadow-soft p-4 sm:p-5 lg:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-bold flex items-center gap-2">
+                    <i data-lucide="flame" class="w-4 h-4 text-red-400"></i>
+                    Issue New Challenge
+                </h3>
             </div>
-            {% endfor %}
+            <form id="issue-challenge-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Challenge Title</label>
+                    <input id="ch-title" type="text" placeholder='e.g. "Can you beat us on Ascent?"'
+                           class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-red-500/40 focus:outline-none transition" required maxlength="120">
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Description (optional)</label>
+                    <textarea id="ch-description" rows="2" placeholder="Rules, conditions, trash talk..."
+                              class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-red-500/40 focus:outline-none transition resize-none"></textarea>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1.5 font-medium">Type</label>
+                        <select id="ch-type" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-red-500/40 focus:outline-none transition">
+                            <option value="OPEN">Open (anyone)</option>
+                            <option value="DIRECT">Direct (vs specific team)</option>
+                            <option value="RANKED">Ranked</option>
+                            <option value="SCRIM">Scrim</option>
+                            <option value="WAGER">Wager</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1.5 font-medium">Best Of</label>
+                        <select id="ch-bestof" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-red-500/40 focus:outline-none transition">
+                            <option value="1" selected>BO1</option>
+                            <option value="3">BO3</option>
+                            <option value="5">BO5</option>
+                            <option value="7">BO7</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1.5 font-medium">Prize</label>
+                        <select id="ch-prize-type" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-red-500/40 focus:outline-none transition">
+                            <option value="NONE">No Prize</option>
+                            <option value="GLORY">Glory / Bragging Rights</option>
+                            <option value="CP">Crown Points</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1.5 font-medium">Prize Amount</label>
+                        <input id="ch-prize-amount" type="number" min="0" value="0" placeholder="0"
+                               class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-red-500/40 focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1.5 font-medium">Scheduled Date (optional)</label>
+                        <input id="ch-scheduled" type="datetime-local"
+                               class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-red-500/40 focus:outline-none transition">
+                    </div>
+                </div>
+                <div id="ch-direct-team-wrap" class="hidden">
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Challenge Team (slug)</label>
+                    <input id="ch-challenged-slug" type="text" placeholder="opponent-team-slug"
+                           class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-red-500/40 focus:outline-none transition">
+                </div>
+                <div id="ch-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+                <div class="flex gap-2 pt-1">
+                    <button type="submit" id="ch-submit"
+                            class="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 transition shadow-lg shadow-red-600/20 flex items-center justify-center gap-2">
+                        <i data-lucide="swords" class="w-4 h-4"></i>
+                        Issue Challenge
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+        {# ── Team's Active Challenges ── #}
+        <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-bold flex items-center gap-2">
+                    <i data-lucide="shield-alert" class="w-4 h-4 text-orange-400"></i>
+                    Active Challenges
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 font-semibold" id="ch-active-count">0</span>
+                </h3>
+                <div class="flex items-center gap-2">
+                    <select id="ch-filter-status" onchange="ManageHQ.Training.filterChallenges()"
+                            class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs focus:outline-none">
+                        <option value="">All</option>
+                        <option value="OPEN">Open</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="ACCEPTED">Accepted</option>
+                        <option value="SCHEDULED">Scheduled</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="COMPLETED">Completed</option>
+                    </select>
+                </div>
+            </div>
+            <div id="challenge-list" class="space-y-2">
+                <div class="rounded-xl border border-dashed border-white/10 bg-white/3 p-6 text-center" id="ch-empty-state">
+                    <i data-lucide="swords" class="w-8 h-8 text-white/10 mx-auto mb-2"></i>
+                    <p class="text-sm text-white/30 mb-1">No challenges yet</p>
+                    <p class="text-xs text-white/20">Issue a challenge to other teams or wait for incoming challenges.</p>
+                </div>
+            </div>
         </div>
 
-        {# Upcoming sessions #}
-        <div class="mt-4">
-            <h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Upcoming Sessions</h4>
-            <div id="upcoming-sessions" class="space-y-2">
+        {# ── Challenge History ── #}
+        <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-bold flex items-center gap-2">
+                    <i data-lucide="history" class="w-4 h-4 text-slate-400"></i>
+                    Challenge History
+                </h3>
+            </div>
+            <div id="challenge-history" class="space-y-2">
                 <div class="rounded-xl border border-dashed border-white/10 bg-white/3 p-4 text-center">
-                    <i data-lucide="calendar-x" class="w-6 h-6 text-white/15 mx-auto mb-2"></i>
-                    <p class="text-xs text-white/30">No practice sessions scheduled</p>
-                    {% if is_admin %}
-                    <button onclick="ManageHQ.Training.openScheduleModal()" class="mt-2 text-xs text-cyan-400 hover:underline">Schedule your first session</button>
-                    {% endif %}
+                    <p class="text-xs text-white/30">Completed and cancelled challenges will appear here.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    {# ── Scrim Finder ── #}
-    <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-base font-bold flex items-center gap-2">
-                <i data-lucide="radar" class="w-4 h-4 text-emerald-400"></i>
-                Scrim Finder
-            </h3>
-            {% if is_admin %}
-            <button onclick="ManageHQ.Training.openScrimModal()"
-                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/25 transition">
-                <i data-lucide="plus" class="w-3 h-3"></i>
-                Post LFG
-            </button>
-            {% endif %}
-        </div>
+    {# ══════════════════════════════════════════════════════════════════════ #}
+    {# SUB-TAB: BOUNTIES                                                    #}
+    {# ══════════════════════════════════════════════════════════════════════ #}
+    <div id="training-panel-bounties" class="training-panel space-y-4 hidden">
 
-        {# Scrim filter bar #}
-        <div class="flex flex-wrap items-center gap-2 mb-4">
-            <select id="scrim-filter-status" onchange="ManageHQ.Training.filterScrims()"
-                    class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs focus:outline-none">
-                <option value="">All Status</option>
-                <option value="open">Open</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="completed">Completed</option>
-            </select>
-            <select id="scrim-filter-type" onchange="ManageHQ.Training.filterScrims()"
-                    class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs focus:outline-none">
-                <option value="">All Types</option>
-                <option value="bo1">Best of 1</option>
-                <option value="bo3">Best of 3</option>
-                <option value="bo5">Best of 5</option>
-            </select>
+        {# ── Create Bounty ── #}
+        {% if is_admin %}
+        <div class="rounded-3xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent shadow-soft p-4 sm:p-5 lg:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-bold flex items-center gap-2">
+                    <i data-lucide="target" class="w-4 h-4 text-amber-400"></i>
+                    Post New Bounty
+                </h3>
+            </div>
+            <form id="create-bounty-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Bounty Title</label>
+                    <input id="bn-title" type="text" placeholder='e.g. "Beat us in a BO3 — Win 500 CP"'
+                           class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-amber-500/40 focus:outline-none transition" required maxlength="120">
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Description</label>
+                    <textarea id="bn-description" rows="2" placeholder="What needs to be accomplished to claim this bounty..."
+                              class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-amber-500/40 focus:outline-none transition resize-none"></textarea>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1.5 font-medium">Type</label>
+                        <select id="bn-type" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-amber-500/40 focus:outline-none transition">
+                            <option value="BEAT_US">Beat Us</option>
+                            <option value="WIN_STREAK">Win Streak</option>
+                            <option value="FIRST_BLOOD">First Blood</option>
+                            <option value="TOURNAMENT_WIN">Tournament Win</option>
+                            <option value="CUSTOM">Custom</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1.5 font-medium">Reward Type</label>
+                        <select id="bn-reward-type" class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-amber-500/40 focus:outline-none transition">
+                            <option value="CP">Crown Points</option>
+                            <option value="GLORY">Glory / Badge</option>
+                            <option value="BADGE">Badge</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1.5 font-medium">Reward Amount</label>
+                        <input id="bn-reward-amount" type="number" min="0" value="100"
+                               class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-amber-500/40 focus:outline-none transition">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1.5 font-medium">Max Claims</label>
+                        <input id="bn-max-claims" type="number" min="1" value="1"
+                               class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-amber-500/40 focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1.5 font-medium">Expires</label>
+                        <input id="bn-expires" type="datetime-local"
+                               class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-amber-500/40 focus:outline-none transition">
+                    </div>
+                </div>
+                <div id="bn-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+                <div class="flex gap-2 pt-1">
+                    <button type="submit" id="bn-submit"
+                            class="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 transition shadow-lg shadow-amber-600/20 flex items-center justify-center gap-2">
+                        <i data-lucide="target" class="w-4 h-4"></i>
+                        Post Bounty
+                    </button>
+                </div>
+            </form>
         </div>
+        {% endif %}
 
-        {# Scrim list #}
-        <div id="scrim-list" class="space-y-2">
-            <div class="rounded-xl border border-dashed border-white/10 bg-white/3 p-4 sm:p-6 text-center">
-                <i data-lucide="search" class="w-8 h-8 text-white/10 mx-auto mb-2"></i>
-                <p class="text-sm text-white/30 mb-1">No scrims posted yet</p>
-                <p class="text-xs text-white/20">Post a Looking For Game (LFG) request to find opponent teams for practice matches.</p>
+        {# ── Active Bounties ── #}
+        <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-bold flex items-center gap-2">
+                    <i data-lucide="flame" class="w-4 h-4 text-amber-400"></i>
+                    Active Bounties
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-semibold" id="bn-active-count">0</span>
+                </h3>
+            </div>
+            <div id="bounty-list" class="space-y-2">
+                <div class="rounded-xl border border-dashed border-white/10 bg-white/3 p-6 text-center" id="bn-empty-state">
+                    <i data-lucide="target" class="w-8 h-8 text-white/10 mx-auto mb-2"></i>
+                    <p class="text-sm text-white/30 mb-1">No active bounties</p>
+                    <p class="text-xs text-white/20">Post a bounty to challenge other teams for rewards.</p>
+                </div>
             </div>
         </div>
 
-        {# Scrim history summary #}
-        <div class="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
-            <div class="rounded-xl bg-white/5 p-2.5 sm:p-3 text-center">
-                <div class="text-lg font-black text-emerald-400" id="scrim-stat-total">0</div>
-                <div class="text-[10px] text-white/40 mt-0.5">Total Scrims</div>
-            </div>
-            <div class="rounded-xl bg-white/5 p-2.5 sm:p-3 text-center">
-                <div class="text-lg font-black text-blue-400" id="scrim-stat-wins">0</div>
-                <div class="text-[10px] text-white/40 mt-0.5">Wins</div>
-            </div>
-            <div class="rounded-xl bg-white/5 p-2.5 sm:p-3 text-center">
-                <div class="text-lg font-black text-red-400" id="scrim-stat-losses">0</div>
-                <div class="text-[10px] text-white/40 mt-0.5">Losses</div>
-            </div>
-        </div>
-    </div>
-
-    {# ── VOD Library ── #}
-    <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-base font-bold flex items-center gap-2">
-                <i data-lucide="video" class="w-4 h-4 text-purple-400"></i>
-                VOD Library
-            </h3>
-            {% if is_admin %}
-            <button onclick="ManageHQ.Training.openVodModal()"
-                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-500/15 text-purple-400 border border-purple-500/20 hover:bg-purple-500/25 transition">
-                <i data-lucide="upload" class="w-3 h-3"></i>
-                Add VOD
-            </button>
-            {% endif %}
-        </div>
-
-        {# VOD filter tabs #}
-        <div class="flex items-center gap-1 mb-4 bg-white/5 rounded-xl p-1 overflow-x-auto">
-            <button onclick="ManageHQ.Training.filterVods('all')" class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition bg-white/10 text-white" data-vod-tab="all">All</button>
-            <button onclick="ManageHQ.Training.filterVods('match')" class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-vod-tab="match">Matches</button>
-            <button onclick="ManageHQ.Training.filterVods('scrim')" class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-vod-tab="scrim">Scrims</button>
-            <button onclick="ManageHQ.Training.filterVods('analysis')" class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-vod-tab="analysis">Analysis</button>
-        </div>
-
-        {# VOD grid #}
-        <div id="vod-library-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div class="col-span-full rounded-xl border border-dashed border-white/10 bg-white/3 p-4 sm:p-6 text-center">
-                <i data-lucide="film" class="w-8 h-8 text-white/10 mx-auto mb-2"></i>
-                <p class="text-sm text-white/30 mb-1">VOD library is empty</p>
-                <p class="text-xs text-white/20">Add match recordings, scrim replays, and strategy review videos.</p>
-            </div>
-        </div>
-    </div>
-
-    {# ── Bounty Board ── #}
-    <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-base font-bold flex items-center gap-2">
-                <i data-lucide="flame" class="w-4 h-4 text-amber-400"></i>
-                Bounty Board
-                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-semibold">Challenges</span>
-            </h3>
-            {% if is_admin %}
-            <button onclick="ManageHQ.Training.openBountyModal()"
-                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/20 hover:bg-amber-500/25 transition">
-                <i data-lucide="plus" class="w-3 h-3"></i>
-                New Bounty
-            </button>
-            {% endif %}
-        </div>
-
-        {# Active bounties #}
-        <div id="bounty-list" class="space-y-2">
-            <div class="rounded-xl border border-dashed border-white/10 bg-white/3 p-4 sm:p-6 text-center">
-                <i data-lucide="target" class="w-8 h-8 text-white/10 mx-auto mb-2"></i>
-                <p class="text-sm text-white/30 mb-1">No active bounties</p>
-                <p class="text-xs text-white/20">Create challenges for your squad to track milestones and reward achievements.</p>
-            </div>
-        </div>
-
-        {# Leaderboard preview #}
-        <div class="mt-4 rounded-xl bg-white/5 border border-white/8 p-3 sm:p-4">
-            <h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <i data-lucide="medal" class="w-3 h-3"></i>
+        {# ── Bounty Leaderboard ── #}
+        <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
+            <h3 class="text-base font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="medal" class="w-4 h-4 text-amber-400"></i>
                 Bounty Leaderboard
-            </h4>
+            </h3>
             <div id="bounty-leaderboard" class="space-y-2">
                 {% for m in members|slice:":5" %}
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 rounded-xl bg-white/3 border border-white/5 px-3 py-2">
                     <span class="text-xs font-bold text-white/30 w-5 text-center">{{ forloop.counter }}</span>
                     <div class="h-7 w-7 rounded-full bg-white/10 grid place-items-center overflow-hidden shrink-0">
                         {% if m.user.profile.avatar %}
@@ -196,6 +299,144 @@ Section 7.4 of the Master Plan. Fully interactive with JS-powered CRUD UIs.
                 {% empty %}
                 <p class="text-xs text-white/30 text-center">No leaderboard data</p>
                 {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {# ══════════════════════════════════════════════════════════════════════ #}
+    {# SUB-TAB: SCRIMS                                                      #}
+    {# ══════════════════════════════════════════════════════════════════════ #}
+    <div id="training-panel-scrims" class="training-panel space-y-4 hidden">
+        <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-bold flex items-center gap-2">
+                    <i data-lucide="radar" class="w-4 h-4 text-emerald-400"></i>
+                    Scrim Finder
+                </h3>
+                {% if is_admin %}
+                <button onclick="ManageHQ.Training.openScrimModal()"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/25 transition">
+                    <i data-lucide="plus" class="w-3 h-3"></i>
+                    Post LFG
+                </button>
+                {% endif %}
+            </div>
+            <div class="flex flex-wrap items-center gap-2 mb-4">
+                <select id="scrim-filter-status" onchange="ManageHQ.Training.filterScrims()"
+                        class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs focus:outline-none">
+                    <option value="">All Status</option>
+                    <option value="open">Open</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="completed">Completed</option>
+                </select>
+                <select id="scrim-filter-type" onchange="ManageHQ.Training.filterScrims()"
+                        class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs focus:outline-none">
+                    <option value="">All Types</option>
+                    <option value="bo1">Best of 1</option>
+                    <option value="bo3">Best of 3</option>
+                    <option value="bo5">Best of 5</option>
+                </select>
+            </div>
+            <div id="scrim-list" class="space-y-2">
+                <div class="rounded-xl border border-dashed border-white/10 bg-white/3 p-4 sm:p-6 text-center">
+                    <i data-lucide="search" class="w-8 h-8 text-white/10 mx-auto mb-2"></i>
+                    <p class="text-sm text-white/30 mb-1">No scrims posted yet</p>
+                    <p class="text-xs text-white/20">Post an LFG request to find opponents for practice matches.</p>
+                </div>
+            </div>
+            <div class="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+                <div class="rounded-xl bg-white/5 p-2.5 sm:p-3 text-center">
+                    <div class="text-lg font-black text-emerald-400" id="scrim-stat-total">0</div>
+                    <div class="text-[10px] text-white/40 mt-0.5">Total</div>
+                </div>
+                <div class="rounded-xl bg-white/5 p-2.5 sm:p-3 text-center">
+                    <div class="text-lg font-black text-blue-400" id="scrim-stat-wins">0</div>
+                    <div class="text-[10px] text-white/40 mt-0.5">Wins</div>
+                </div>
+                <div class="rounded-xl bg-white/5 p-2.5 sm:p-3 text-center">
+                    <div class="text-lg font-black text-red-400" id="scrim-stat-losses">0</div>
+                    <div class="text-[10px] text-white/40 mt-0.5">Losses</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ══════════════════════════════════════════════════════════════════════ #}
+    {# SUB-TAB: SCHEDULE                                                    #}
+    {# ══════════════════════════════════════════════════════════════════════ #}
+    <div id="training-panel-schedule" class="training-panel space-y-4 hidden">
+        <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-bold flex items-center gap-2">
+                    <i data-lucide="calendar-clock" class="w-4 h-4 text-cyan-400"></i>
+                    Practice Schedule
+                </h3>
+                {% if is_admin %}
+                <button onclick="ManageHQ.Training.openScheduleModal()"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/25 transition">
+                    <i data-lucide="plus" class="w-3 h-3"></i>
+                    New Session
+                </button>
+                {% endif %}
+            </div>
+            <div class="grid grid-cols-7 gap-1 sm:gap-1.5 mb-3">
+                <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Mon</div>
+                <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Tue</div>
+                <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Wed</div>
+                <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Thu</div>
+                <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Fri</div>
+                <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Sat</div>
+                <div class="text-center text-[10px] text-white/30 font-semibold uppercase">Sun</div>
+            </div>
+            <div id="practice-schedule-grid" class="grid grid-cols-7 gap-1 sm:gap-1.5">
+                {% for day in "1234567" %}
+                <div class="rounded-xl border border-white/8 bg-white/3 min-h-[60px] sm:min-h-[80px] p-1.5 sm:p-2 text-center">
+                    <span class="text-xs text-white/20">&mdash;</span>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="mt-4">
+                <h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Upcoming Sessions</h4>
+                <div id="upcoming-sessions" class="space-y-2">
+                    <div class="rounded-xl border border-dashed border-white/10 bg-white/3 p-4 text-center">
+                        <i data-lucide="calendar-x" class="w-6 h-6 text-white/15 mx-auto mb-2"></i>
+                        <p class="text-xs text-white/30">No practice sessions scheduled</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ══════════════════════════════════════════════════════════════════════ #}
+    {# SUB-TAB: VODS                                                        #}
+    {# ══════════════════════════════════════════════════════════════════════ #}
+    <div id="training-panel-vods" class="training-panel space-y-4 hidden">
+        <div class="rounded-3xl border border-line bg-card shadow-soft p-4 sm:p-5 lg:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-bold flex items-center gap-2">
+                    <i data-lucide="video" class="w-4 h-4 text-purple-400"></i>
+                    VOD Library
+                </h3>
+                {% if is_admin %}
+                <button onclick="ManageHQ.Training.openVodModal()"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-500/15 text-purple-400 border border-purple-500/20 hover:bg-purple-500/25 transition">
+                    <i data-lucide="upload" class="w-3 h-3"></i>
+                    Add VOD
+                </button>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-1 mb-4 bg-white/5 rounded-xl p-1 overflow-x-auto">
+                <button onclick="ManageHQ.Training.filterVods('all')" class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition bg-white/10 text-white" data-vod-tab="all">All</button>
+                <button onclick="ManageHQ.Training.filterVods('match')" class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-vod-tab="match">Matches</button>
+                <button onclick="ManageHQ.Training.filterVods('scrim')" class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-vod-tab="scrim">Scrims</button>
+                <button onclick="ManageHQ.Training.filterVods('analysis')" class="vod-tab flex-1 min-w-[60px] px-3 py-1.5 rounded-lg text-xs font-medium transition text-white/50 hover:text-white" data-vod-tab="analysis">Analysis</button>
+            </div>
+            <div id="vod-library-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div class="col-span-full rounded-xl border border-dashed border-white/10 bg-white/3 p-4 sm:p-6 text-center">
+                    <i data-lucide="film" class="w-8 h-8 text-white/10 mx-auto mb-2"></i>
+                    <p class="text-sm text-white/30 mb-1">VOD library is empty</p>
+                    <p class="text-xs text-white/20">Add match recordings, scrim replays, and strategy review videos.</p>
+                </div>
             </div>
         </div>
     </div>
@@ -358,51 +599,6 @@ Section 7.4 of the Master Plan. Fully interactive with JS-powered CRUD UIs.
                         class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
                 <button type="submit" id="vod-submit"
                         class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-purple-600 hover:bg-purple-500 transition">Add VOD</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{# ── New Bounty Modal ── #}
-<div id="modal-new-bounty" class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4"
-     role="dialog" aria-modal="true" aria-labelledby="modal-bounty-title"
-     onclick="if(event.target===this)ManageHQ.closeModal('modal-new-bounty')">
-    <div class="bg-[#0f1525] border border-white/15 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
-        <div class="flex items-center justify-between p-4 border-b border-white/10">
-            <h3 id="modal-bounty-title" class="font-bold text-base">Create Bounty Challenge</h3>
-            <button onclick="ManageHQ.closeModal('modal-new-bounty')" aria-label="Close" class="h-8 w-8 rounded-lg hover:bg-white/10 transition grid place-items-center">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-        </div>
-        <form id="new-bounty-form" class="p-4 space-y-4">
-            <div>
-                <label class="block text-xs text-white/60 mb-1.5 font-medium">Bounty Title</label>
-                <input id="bounty-title" type="text" placeholder="e.g. 10 Ranked Wins This Week"
-                       class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition" required>
-            </div>
-            <div>
-                <label class="block text-xs text-white/60 mb-1.5 font-medium">Description</label>
-                <textarea id="bounty-desc" rows="2" placeholder="What needs to be accomplished…"
-                          class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm placeholder-white/30 focus:border-white/30 focus:outline-none transition resize-none" required></textarea>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Reward (pts)</label>
-                    <input id="bounty-reward" type="number" min="1" value="100"
-                           class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
-                </div>
-                <div>
-                    <label class="block text-xs text-white/60 mb-1.5 font-medium">Deadline</label>
-                    <input id="bounty-deadline" type="date"
-                           class="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/15 text-sm focus:border-white/30 focus:outline-none transition">
-                </div>
-            </div>
-            <div id="bounty-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
-            <div class="flex gap-2 pt-2">
-                <button type="button" onclick="ManageHQ.closeModal('modal-new-bounty')"
-                        class="flex-1 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition text-sm font-medium">Cancel</button>
-                <button type="submit" id="bounty-submit"
-                        class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-amber-600 hover:bg-amber-500 transition">Create Bounty</button>
             </div>
         </form>
     </div>

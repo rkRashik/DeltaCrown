@@ -285,5 +285,210 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ── CHALLENGE HUB — Issue Challenge + Accept ──────────────────────────
+  document.querySelectorAll(".dc-issue-challenge").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const slug = btn.dataset.teamSlug;
+      if (slug) {
+        window.location.href = `/competition/challenges/?team=${slug}`;
+      }
+    });
+  });
+
+  document.querySelectorAll(".dc-challenge-accept").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const challengeId = btn.dataset.challengeId;
+      if (!challengeId) return;
+
+      btn.disabled = true;
+      btn.textContent = "ACCEPTING…";
+
+      try {
+        const resp = await fetch(`/api/v1/challenges/${challengeId}/accept/`, {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          btn.textContent = "ACCEPTED ✓";
+          btn.classList.remove("bg-red-600", "hover:bg-red-500");
+          btn.classList.add("bg-emerald-600/50", "text-emerald-300");
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          btn.textContent = data.detail || "Error";
+          setTimeout(() => { btn.textContent = "ACCEPT"; btn.disabled = false; }, 3000);
+        }
+      } catch {
+        btn.textContent = "NETWORK ERROR";
+        setTimeout(() => { btn.textContent = "ACCEPT"; btn.disabled = false; }, 3000);
+      }
+    });
+  });
+
+  document.querySelectorAll(".dc-challenge-info").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const challengeId = btn.dataset.challengeId;
+      if (challengeId) {
+        window.open(`/api/v1/challenges/${challengeId}/`, "_blank");
+      }
+    });
+  });
+
+  // ── MEDIA LIGHTBOX ────────────────────────────────────────────────────
+  document.querySelectorAll(".dc-media-item").forEach(item => {
+    item.addEventListener("click", (e) => {
+      e.preventDefault();
+      const type = item.dataset.mediaType || "image";
+      const url = item.dataset.mediaUrl;
+      const title = item.dataset.mediaTitle || "";
+      if (!url) return;
+      dcOpenLightbox(type, url, title);
+    });
+  });
+
 });
+
+// ── Global Media Lightbox Functions ─────────────────────────────────────
+function dcOpenLightbox(type, url, title) {
+  const lb = document.getElementById("dc-media-lightbox");
+  const content = document.getElementById("dc-lightbox-content");
+  const titleEl = document.getElementById("dc-lightbox-title");
+  if (!lb || !content) return;
+
+  titleEl.textContent = title;
+  content.innerHTML = "";
+
+  if (type === "video") {
+    // Check if it's a YouTube/Vimeo URL
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+
+    if (ytMatch) {
+      content.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0" 
+        class="w-full max-w-4xl aspect-video rounded-2xl shadow-2xl" 
+        frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+    } else if (vimeoMatch) {
+      content.innerHTML = `<iframe src="https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1" 
+        class="w-full max-w-4xl aspect-video rounded-2xl shadow-2xl" 
+        frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+    } else {
+      // Direct video file
+      content.innerHTML = `<video src="${url}" controls autoplay 
+        class="w-full max-w-4xl max-h-[80vh] rounded-2xl shadow-2xl bg-black" 
+        controlslist="nodownload"></video>`;
+    }
+  } else {
+    // Image
+    content.innerHTML = `<img src="${url}" alt="${title}" 
+      class="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain select-none"
+      style="cursor:zoom-out" onclick="dcCloseLightbox()">`;
+  }
+
+  lb.classList.remove("hidden");
+  lb.classList.add("flex");
+  // Animate in
+  requestAnimationFrame(() => lb.style.opacity = "1");
+  document.body.style.overflow = "hidden";
+}
+
+function dcCloseLightbox() {
+  const lb = document.getElementById("dc-media-lightbox");
+  if (!lb) return;
+  // Stop any playing media
+  lb.querySelectorAll("video, iframe").forEach(el => el.remove());
+  lb.classList.add("hidden");
+  lb.classList.remove("flex");
+  document.body.style.overflow = "";
+}
+
+// Close lightbox on Escape
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    dcCloseLightbox();
+    dcClosePlayerPopup();
+  }
+});
+
+// ── Player Profile Popup Functions ──────────────────────────────────────
+function dcOpenPlayerPopup(cardEl) {
+  const popup = document.getElementById("dc-player-popup");
+  const card = document.getElementById("dc-player-popup-card");
+  if (!popup || !card) return;
+
+  // Read data from card
+  const name = cardEl.dataset.playerName || "Player";
+  const username = cardEl.dataset.playerUsername || "";
+  const avatar = cardEl.dataset.playerAvatar || "";
+  const role = cardEl.dataset.playerRole || "";
+  const country = cardEl.dataset.playerCountry || "";
+  const isCaptain = cardEl.dataset.playerCaptain === "1";
+  const ign = cardEl.dataset.playerIgn || "";
+  const rank = cardEl.dataset.playerRank || "";
+  const profileUrl = cardEl.dataset.playerProfileUrl || "";
+
+  // Populate
+  document.getElementById("pp-display-name").textContent = name;
+  document.getElementById("pp-username").textContent = "@" + username;
+  document.getElementById("pp-role-tag").textContent = role;
+
+  const avatarEl = document.getElementById("pp-avatar");
+  if (avatar) { avatarEl.src = avatar; avatarEl.style.display = ""; }
+  else { avatarEl.style.display = "none"; }
+
+  const flagEl = document.getElementById("pp-flag");
+  if (country) {
+    flagEl.src = `https://flagcdn.com/${country.toLowerCase()}.svg`;
+    flagEl.classList.remove("hidden");
+  } else { flagEl.classList.add("hidden"); }
+
+  const badge = document.getElementById("pp-badge");
+  if (isCaptain) {
+    badge.textContent = "⭐ Captain";
+    badge.className = "absolute top-3 left-3 px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-amber-500/20 border border-amber-500/30 text-amber-400";
+  } else { badge.classList.add("hidden"); }
+
+  const passport = document.getElementById("pp-passport");
+  if (ign || rank) {
+    passport.classList.remove("hidden");
+    document.getElementById("pp-ign").textContent = ign || "—";
+    document.getElementById("pp-rank").textContent = rank || "—";
+  } else { passport.classList.add("hidden"); }
+
+  const profileLink = document.getElementById("pp-profile-link");
+  if (profileUrl) {
+    profileLink.href = profileUrl;
+    profileLink.style.display = "";
+  } else if (username) {
+    profileLink.href = `/profile/${username}/`;
+    profileLink.style.display = "";
+  } else {
+    profileLink.style.display = "none";
+  }
+
+  // Show with animation
+  popup.classList.remove("hidden");
+  popup.classList.add("flex");
+  document.body.style.overflow = "hidden";
+  requestAnimationFrame(() => {
+    card.classList.remove("scale-95", "opacity-0");
+    card.classList.add("scale-100", "opacity-100");
+  });
+}
+
+function dcClosePlayerPopup() {
+  const popup = document.getElementById("dc-player-popup");
+  const card = document.getElementById("dc-player-popup-card");
+  if (!popup) return;
+  card.classList.remove("scale-100", "opacity-100");
+  card.classList.add("scale-95", "opacity-0");
+  setTimeout(() => {
+    popup.classList.add("hidden");
+    popup.classList.remove("flex");
+    document.body.style.overflow = "";
+  }, 200);
+}
 </script>

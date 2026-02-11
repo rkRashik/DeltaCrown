@@ -222,14 +222,22 @@ def team_manage(request, team_slug, org_slug=None):
             .order_by('-created_at')
         )
 
-        # Game name + roster config
+        # Game name + roster config + game roles
         from apps.games.models import Game
         game_display = "Unknown"
         roster_config = None
+        game_roles = []
         try:
             game = Game.objects.select_related('roster_config').get(id=team.game_id)
             game_display = game.name
             roster_config = getattr(game, 'roster_config', None)
+            # Fetch game-specific roles for the Edit Role modal
+            from apps.games.models.role import GameRole
+            game_roles = list(
+                GameRole.objects.filter(game=game, is_active=True)
+                .order_by('order', 'role_name')
+                .values('id', 'role_name', 'role_code', 'description', 'icon', 'color')
+            )
         except Game.DoesNotExist:
             pass
 
@@ -334,6 +342,7 @@ def team_manage(request, team_slug, org_slug=None):
             'join_request_count': 0,
             # Current user
             'user_membership': user_membership,
+            'user_membership_id': user_membership.id if user_membership else None,
             'is_owner': is_owner,
             'is_admin': is_admin,
             'is_coach': is_coach,
@@ -368,6 +377,7 @@ def team_manage(request, team_slug, org_slug=None):
             'role_choices': role_choices,
             'region_choices': region_choices,
             'game_display': game_display,
+            'game_roles': game_roles,
             'visibility_choices': [
                 ('PUBLIC', 'Public'),
                 ('PRIVATE', 'Private'),

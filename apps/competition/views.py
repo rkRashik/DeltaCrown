@@ -13,8 +13,8 @@ from django.utils import timezone
 from django.db.models import Q
 
 from django.conf import settings
-from apps.competition.models import MatchReport, GameRankingConfig
-from apps.competition.services import MatchReportService, VerificationService
+from apps.competition.models import MatchReport, GameRankingConfig, Challenge, Bounty
+from apps.competition.services import MatchReportService, VerificationService, ChallengeService, BountyService
 from apps.organizations.models import Team
 
 
@@ -226,3 +226,76 @@ def ranking_about(request):
     
     return render(request, 'competition/ranking_about.html', context)
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Challenge & Bounty Pages (Phase 10)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def challenge_hub(request):
+    """
+    Public challenge hub — browse open challenges, filter by game.
+    """
+    from apps.games.models import Game
+
+    game_slug = request.GET.get('game')
+    game = None
+    if game_slug:
+        try:
+            game = Game.objects.get(slug=game_slug)
+        except Game.DoesNotExist:
+            pass
+
+    open_challenges = ChallengeService.get_open_challenges(game=game, limit=50)
+    games = Game.objects.filter(is_active=True).order_by('name')
+
+    context = {
+        'challenges': open_challenges,
+        'games': games,
+        'selected_game': game,
+        'page_title': 'Challenge Hub',
+    }
+    return render(request, 'competition/challenge_hub.html', context)
+
+
+def challenge_detail_page(request, reference_code):
+    """
+    Challenge detail page.
+    """
+    challenge = get_object_or_404(
+        Challenge.objects.select_related(
+            'challenger_team', 'challenged_team', 'game', 'created_by'
+        ),
+        reference_code=reference_code,
+    )
+
+    context = {
+        'challenge': challenge,
+        'page_title': f'Challenge {challenge.reference_code}',
+    }
+    return render(request, 'competition/challenge_detail.html', context)
+
+
+def bounty_board(request):
+    """
+    Public bounty board — browse active bounties, filter by game/type.
+    """
+    from apps.games.models import Game
+
+    game_slug = request.GET.get('game')
+    game = None
+    if game_slug:
+        try:
+            game = Game.objects.get(slug=game_slug)
+        except Game.DoesNotExist:
+            pass
+
+    active_bounties = BountyService.get_active_bounties(game=game, limit=50)
+    games = Game.objects.filter(is_active=True).order_by('name')
+
+    context = {
+        'bounties': active_bounties,
+        'games': games,
+        'selected_game': game,
+        'page_title': 'Bounty Board',
+    }
+    return render(request, 'competition/bounty_board.html', context)

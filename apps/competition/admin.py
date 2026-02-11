@@ -63,6 +63,9 @@ try:
         MatchVerification,
         TeamGameRankingSnapshot,
         TeamGlobalRankingSnapshot,
+        Challenge,
+        Bounty,
+        BountyClaim,
     )
     from .services import VerificationService, SnapshotService
     
@@ -332,3 +335,111 @@ if MODELS_IMPORTED:
                     f"Failed to recompute {error_count} global snapshot(s)", 
                     level=messages.WARNING
                 )
+
+    # ── Challenge Admin ──────────────────────────────────────────────────
+    @admin.register(Challenge)
+    class ChallengeAdmin(admin.ModelAdmin):
+        """Admin interface for Challenge."""
+        
+        list_display = [
+            'reference_code', 'title', 'challenger_team', 'challenged_team',
+            'game', 'status', 'challenge_type', 'prize_type', 'prize_amount',
+            'created_at',
+        ]
+        list_filter = ['status', 'challenge_type', 'prize_type', 'game', 'is_featured']
+        search_fields = ['reference_code', 'title', 'challenger_team__name', 'challenged_team__name']
+        readonly_fields = ['id', 'reference_code', 'created_at', 'updated_at', 'accepted_at', 'completed_at', 'settled_at']
+        raw_id_fields = ['challenger_team', 'challenged_team', 'game', 'match_report', 'created_by', 'accepted_by', 'resolved_by']
+        date_hierarchy = 'created_at'
+        
+        fieldsets = [
+            ('Challenge', {
+                'fields': ['id', 'reference_code', 'title', 'description', 'status', 'challenge_type']
+            }),
+            ('Teams', {
+                'fields': ['challenger_team', 'challenged_team']
+            }),
+            ('Game & Format', {
+                'fields': ['game', 'best_of', 'game_config', 'platform', 'server_region']
+            }),
+            ('Prize', {
+                'fields': ['prize_type', 'prize_amount', 'prize_description']
+            }),
+            ('Result', {
+                'fields': ['result', 'score_details', 'evidence_url', 'match_report'],
+                'classes': ['collapse']
+            }),
+            ('Scheduling', {
+                'fields': ['scheduled_at', 'expires_at']
+            }),
+            ('Users & Actions', {
+                'fields': ['created_by', 'accepted_by', 'resolved_by'],
+                'classes': ['collapse']
+            }),
+            ('Visibility', {
+                'fields': ['is_public', 'is_featured']
+            }),
+            ('Timestamps', {
+                'fields': ['created_at', 'updated_at', 'accepted_at', 'completed_at', 'settled_at'],
+                'classes': ['collapse']
+            }),
+        ]
+
+    # ── Bounty Admin ─────────────────────────────────────────────────────
+    @admin.register(Bounty)
+    class BountyAdmin(admin.ModelAdmin):
+        """Admin interface for Bounty."""
+        
+        list_display = [
+            'reference_code', 'title', 'issuer_team', 'game', 'status',
+            'bounty_type', 'reward_type', 'reward_amount', 'claim_count',
+            'max_claims', 'created_at',
+        ]
+        list_filter = ['status', 'bounty_type', 'reward_type', 'game', 'is_featured']
+        search_fields = ['reference_code', 'title', 'issuer_team__name']
+        readonly_fields = ['id', 'reference_code', 'created_at', 'updated_at', 'claim_count']
+        raw_id_fields = ['issuer_team', 'game', 'created_by']
+        date_hierarchy = 'created_at'
+        
+        fieldsets = [
+            ('Bounty', {
+                'fields': ['id', 'reference_code', 'title', 'description', 'status', 'bounty_type']
+            }),
+            ('Issuer & Game', {
+                'fields': ['issuer_team', 'game']
+            }),
+            ('Criteria', {
+                'fields': ['criteria'],
+                'description': 'JSON defining achievement criteria for this bounty.'
+            }),
+            ('Reward', {
+                'fields': ['reward_type', 'reward_amount', 'reward_description']
+            }),
+            ('Limits', {
+                'fields': ['max_claims', 'claim_count', 'expires_at']
+            }),
+            ('Visibility', {
+                'fields': ['is_public', 'is_featured']
+            }),
+            ('Meta', {
+                'fields': ['created_by', 'created_at', 'updated_at'],
+                'classes': ['collapse']
+            }),
+        ]
+
+    class BountyClaimInline(admin.TabularInline):
+        model = BountyClaim
+        extra = 0
+        readonly_fields = ['id', 'claimed_at', 'verified_at']
+        raw_id_fields = ['claiming_team', 'claimed_by', 'verified_by', 'challenge', 'match_report']
+        fields = ['claiming_team', 'status', 'evidence_url', 'claimed_by', 'claimed_at', 'verified_by', 'verified_at']
+
+    @admin.register(BountyClaim)
+    class BountyClaimAdmin(admin.ModelAdmin):
+        """Admin interface for BountyClaim."""
+        
+        list_display = ['bounty', 'claiming_team', 'status', 'claimed_at', 'verified_at']
+        list_filter = ['status']
+        search_fields = ['bounty__reference_code', 'claiming_team__name']
+        readonly_fields = ['id', 'claimed_at', 'verified_at']
+        raw_id_fields = ['bounty', 'claiming_team', 'claimed_by', 'verified_by', 'challenge', 'match_report']

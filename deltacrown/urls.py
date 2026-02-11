@@ -129,6 +129,9 @@ urlpatterns = [
     # Phase B: System API (hub widgets, cross-app utilities)
     path("api/system/", include("apps.api.urls.system_api_urls")),
     
+    # Phase 10: Challenge & Bounty competitive system API
+    path("api/v1/", include("apps.api.urls.challenge_urls")),
+    
     # REMOVED: Legacy apps.teams API — all team APIs now in api/vnext/ (organizations_api)
     
     # Phase G: Spectator Live Views (public read-only tournament/match pages)

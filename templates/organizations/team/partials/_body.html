@@ -167,16 +167,16 @@
             </svg>
           </button>
 
-          {# MEMBER/STAFF/OWNER: Team Chat (Discord Blurple, high visibility) #}
-          <button type="button" data-role-show="TEAM"
-                  class="h-11 px-6 bg-[#5865F2] text-white font-bold uppercase text-[10px] tracking-[0.18em]
-                         rounded-xl hover:bg-[#4752C4] transition shadow-[0_0_22px_rgba(88,101,242,0.4)] flex items-center gap-2"
-                  title="Team chat">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+          {# MEMBER/STAFF/OWNER: Team Chat link — scrolls to community section #}
+          <a href="#community" data-role-show="TEAM"
+             class="h-11 px-5 bg-[#5865F2] text-white font-bold uppercase text-[10px] tracking-[0.18em]
+                    rounded-xl hover:bg-[#4752C4] transition shadow-[0_0_22px_rgba(88,101,242,0.4)] flex items-center gap-2"
+             title="Team Chat">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M20.317 4.37a19.79 19.79 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.618-1.25.077.077 0 00-.079-.037A19.74 19.74 0 003.677 4.37a.07.07 0 00-.032.028C.533 9.046-.32 13.58.099 18.058a.082.082 0 00.031.056c2.053 1.508 4.041 2.423 5.993 3.03a.078.078 0 00.084-.028c.462-.63.873-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.11 13.11 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 01.078-.01c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 01.079.01c.12.099.245.197.372.291a.077.077 0 01-.006.128 12.3 12.3 0 01-1.873.891.076.076 0 00-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 00.084.028c1.961-.607 3.95-1.522 6.002-3.029a.077.077 0 00.031-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.029z"/>
             </svg>
             <span>TEAM CHAT</span>
-          </button>
+          </a>
 
           {# OWNER: Manage (primary action) #}
           <a href="{% url 'organizations:team_manage' team.slug %}" data-role-show="OWNER"
@@ -341,7 +341,17 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4" id="dc-roster-grid">
           {% for member in roster.items %}
           <div class="group relative h-[320px] rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 hover-lift hover-glow cursor-pointer dc-roster-card {% if forloop.counter > roster.starting_lineup_size %}dc-bench-player hidden{% endif %}"
-               {% if forloop.counter == roster.starting_lineup_size|add:1 %}id="dc-bench-start"{% endif %}>
+               {% if forloop.counter == roster.starting_lineup_size|add:1 %}id="dc-bench-start"{% endif %}
+               data-player-name="{{ member.display_name }}"
+               data-player-username="{{ member.username }}"
+               data-player-avatar="{{ member.avatar_url|default:'' }}"
+               data-player-role="{{ member.player_role|default:'' }}"
+               data-player-country="{{ member.country|default:'' }}"
+               data-player-captain="{% if member.is_captain %}1{% endif %}"
+               data-player-ign="{{ member.game_passport.ign|default:'' }}"
+               data-player-rank="{{ member.game_passport.rank|default:'' }}"
+               data-player-profile-url="{{ member.profile_url|default:'' }}"
+               onclick="dcOpenPlayerPopup(this)">
             {% if member.avatar_url %}
             <img src="{{ member.avatar_url }}" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-smooth" alt="{{ member.display_name }}" loading="lazy">
             {% else %}
@@ -687,7 +697,7 @@
         </div>
       </section>
 
-      {# ── JOURNEY ───────────────────────────────────────────────────────── #}
+      {# ── THE JOURNEY — Curated Hall of Fame Timeline ────────────────────── #}
       {% if journey %}
       <section id="journey">
         <h3 class="text-white font-display font-bold text-lg mb-8 flex items-center gap-2">
@@ -695,23 +705,48 @@
           The Journey
         </h3>
 
-        <div class="relative border-l border-white/10 ml-3 space-y-10 pb-4">
+        <div class="relative ml-4 sm:ml-6 pb-4">
+          {# Vertical line #}
+          <div class="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-[var(--team-primary)]/40 via-white/10 to-transparent"></div>
+
+          <div class="space-y-8">
           {% for entry in journey %}
-          <div class="relative pl-8 group">
-            {% if forloop.first %}
-            <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-[var(--team-primary)] shadow-[0_0_10px_var(--team-glow)] ring-4 ring-[#000]"></div>
+          <div class="relative pl-8 sm:pl-10 group">
+            {# Timeline dot — color-coded by type #}
+            {% if entry.milestone_type == 'TROPHY' or entry.milestone_type == 'trophy' %}
+            <div class="absolute -left-[6px] top-1 w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.5)] ring-4 ring-[#0A0A0F]"></div>
+            {% elif entry.milestone_type == 'TRANSFER' or entry.milestone_type == 'transfer' %}
+            <div class="absolute -left-[6px] top-1 w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.4)] ring-4 ring-[#0A0A0F]"></div>
+            {% elif entry.milestone_type == 'FOUNDED' or entry.milestone_type == 'founded' %}
+            <div class="absolute -left-[6px] top-1 w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.4)] ring-4 ring-[#0A0A0F]"></div>
+            {% elif entry.milestone_type == 'RANK_UP' %}
+            <div class="absolute -left-[6px] top-1 w-3 h-3 rounded-full bg-purple-400 shadow-[0_0_12px_rgba(192,132,252,0.4)] ring-4 ring-[#0A0A0F]"></div>
             {% else %}
-            <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-slate-700 ring-4 ring-[#000] group-hover:bg-white transition-colors"></div>
+            <div class="absolute -left-[6px] top-1 w-3 h-3 rounded-full bg-[var(--team-primary)] shadow-[0_0_10px_var(--team-glow)] ring-4 ring-[#0A0A0F] group-hover:scale-125 transition-transform"></div>
             {% endif %}
 
-            <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-              {% if forloop.first %}
-              <span class="text-[10px] font-mono font-bold text-[var(--team-primary)] uppercase tracking-wider bg-[var(--team-primary)]/10 px-2 py-1 rounded">{{ entry.timestamp|date:"M Y" }}</span>
-              {% else %}
-              <span class="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">{{ entry.timestamp|date:"M Y" }}</span>
-              {% endif %}
-              {% if not forloop.first %}<div class="h-px w-8 bg-white/10 hidden sm:block"></div>{% endif %}
-              <h4 class="{% if forloop.first %}text-white{% else %}text-slate-200{% endif %} font-bold text-base">{{ entry.title }}</h4>
+            {# Milestone icon badge #}
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 items-start sm:items-center">
+              <span class="text-[10px] font-mono font-bold uppercase tracking-wider shrink-0
+                {% if forloop.first %}text-[var(--team-primary)] bg-[var(--team-primary)]/10 px-2.5 py-1 rounded-lg
+                {% else %}text-slate-500{% endif %}">
+                {{ entry.timestamp|date:"M d, Y" }}
+              </span>
+              {% if not forloop.first %}<div class="h-px w-6 bg-white/10 hidden sm:block shrink-0"></div>{% endif %}
+              <div class="flex items-center gap-2">
+                {% if entry.milestone_type == 'TROPHY' or entry.milestone_type == 'trophy' %}
+                <span class="text-amber-400">🏆</span>
+                {% elif entry.milestone_type == 'TRANSFER' or entry.milestone_type == 'transfer' %}
+                <span class="text-blue-400">👤</span>
+                {% elif entry.milestone_type == 'FOUNDED' or entry.milestone_type == 'founded' %}
+                <span class="text-emerald-400">🚩</span>
+                {% elif entry.milestone_type == 'RANK_UP' %}
+                <span class="text-purple-400">📈</span>
+                {% elif entry.milestone_type == 'CUSTOM' %}
+                <span class="text-[var(--team-primary)]">⭐</span>
+                {% endif %}
+                <h4 class="{% if forloop.first %}text-white text-base{% else %}text-slate-200 text-sm{% endif %} font-bold">{{ entry.title }}</h4>
+              </div>
             </div>
             {% if entry.description %}
             <p class="text-sm {% if forloop.first %}text-slate-400{% else %}text-slate-500{% endif %} mt-2 max-w-2xl leading-relaxed">
@@ -720,6 +755,7 @@
             {% endif %}
           </div>
           {% endfor %}
+          </div>
         </div>
       </section>
       {% endif %}
@@ -960,31 +996,32 @@
             <span class="w-1 h-5 bg-[var(--team-primary)] rounded-full"></span>
             Highlights & Media
           </h3>
-          <a href="#" class="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 hover:text-[var(--team-primary)] transition-colors">View Gallery</a>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-[300px] md:h-[340px]">
-          {# Featured highlight spans 2 cols #}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" style="min-height:280px">
+          {# Featured highlights span 2 cols #}
           {% for highlight in media_highlights.highlights %}
-          <div class="{% if forloop.first %}md:col-span-2{% endif %} relative group rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 cursor-pointer">
+          <div class="{% if forloop.first %}md:col-span-2 min-h-[280px] md:min-h-[340px]{% else %}min-h-[160px]{% endif %} relative group rounded-2xl overflow-hidden bg-[#0A0A0F] border border-white/10 cursor-pointer hover:border-[var(--team-primary)]/40 transition-colors dc-media-item"
+               data-media-type="video" data-media-url="{{ highlight.url }}" data-media-title="{{ highlight.title|default:'Highlight' }}" data-media-thumb="{{ highlight.thumbnail|default:'' }}">
             {% if highlight.thumbnail %}
             <img src="{{ highlight.thumbnail }}" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700" alt="{{ highlight.title }}" loading="lazy">
             {% endif %}
-            <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent"></div>
+            {# Play button #}
             <div class="absolute inset-0 flex items-center justify-center">
-              <div class="w-16 h-16 rounded-full bg-[var(--team-primary)]/20 backdrop-blur-sm border border-[var(--team-primary)] flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-[0_0_30px_var(--team-glow)]">
-                <svg class="w-6 h-6 text-[var(--team-primary)] ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[var(--team-primary)]/20 backdrop-blur-sm border border-[var(--team-primary)]/60 flex items-center justify-center group-hover:scale-110 group-hover:bg-[var(--team-primary)]/30 transition-all duration-300 shadow-[0_0_30px_var(--team-glow)]">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-[var(--team-primary)] ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
               </div>
             </div>
-            <div class="absolute bottom-0 left-0 w-full p-{% if forloop.first %}6{% else %}3{% endif %}">
+            <div class="absolute bottom-0 left-0 w-full p-4 {% if forloop.first %}sm:p-6{% endif %}">
               {% if highlight.badge %}
               <div class="inline-flex items-center gap-2 px-2 py-1 rounded bg-red-600 text-white text-[9px] font-bold uppercase tracking-wider mb-2">
                 <span class="animate-pulse w-1.5 h-1.5 rounded-full bg-white"></span> {{ highlight.badge }}
               </div>
               {% endif %}
-              <h4 class="{% if forloop.first %}text-2xl{% else %}text-sm{% endif %} font-display font-bold text-white leading-tight {% if forloop.first %}mb-1{% endif %}">{{ highlight.title }}</h4>
+              <h4 class="{% if forloop.first %}text-lg sm:text-2xl{% else %}text-sm{% endif %} font-display font-bold text-white leading-tight {% if forloop.first %}mb-1{% endif %}">{{ highlight.title }}</h4>
               {% if highlight.description and forloop.first %}
-              <p class="text-xs text-slate-300 line-clamp-1">{{ highlight.description }}</p>
+              <p class="text-xs text-slate-300 line-clamp-1 mt-1">{{ highlight.description }}</p>
               {% endif %}
             </div>
             {% if highlight.duration %}
@@ -993,13 +1030,23 @@
           </div>
           {% endfor %}
 
-          {# Media clips column #}
+          {# Media clips column (images/uploads) #}
           {% if media_highlights.media %}
-          <div class="flex flex-col gap-4">
+          <div class="flex flex-col gap-4 {% if not media_highlights.highlights %}md:col-span-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3{% endif %}">
             {% for item in media_highlights.media %}
-            <div class="flex-1 relative group rounded-xl overflow-hidden bg-[#0A0A0F] border border-white/10 cursor-pointer hover-lift transition-smooth">
+            <div class="{% if media_highlights.highlights %}flex-1{% endif %} relative group rounded-xl overflow-hidden bg-[#0A0A0F] border border-white/10 cursor-pointer hover:border-white/20 transition-colors min-h-[140px] dc-media-item"
+                 data-media-type="{{ item.file_type|default:'image' }}" data-media-url="{{ item.url }}" data-media-title="{{ item.title|default:'Media' }}">
               {% if item.url %}
-              <img src="{{ item.url }}" class="lazy-media absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-70 transition-opacity" alt="{{ item.title|default:'Media' }}" loading="lazy">
+                {% if item.file_type == 'video' %}
+                <video src="{{ item.url }}" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-70 transition-opacity" muted preload="metadata"></video>
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div class="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  </div>
+                </div>
+                {% else %}
+                <img src="{{ item.url }}" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-70 transition-opacity" alt="{{ item.title|default:'Media' }}" loading="lazy">
+                {% endif %}
               {% endif %}
               <div class="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent"></div>
               <div class="absolute bottom-0 left-0 p-3">
@@ -1024,7 +1071,58 @@
     {# ── RIGHT SIDEBAR (4 cols) ──────────────────────────────────────────── #}
     <div class="lg:col-span-4 flex flex-col gap-6">
 
-      {# ── JOIN THE RANKS ────────────────────────────────────────────────── #}
+      {# ── UPCOMING MATCH (Up Next) ─────────────────────────────────────── #}
+      {% if upcoming_matches %}
+      {% with match=upcoming_matches.0 %}
+      <div class="relative overflow-hidden rounded-3xl bg-[#0A0A0F] border border-white/10 hover:border-[var(--team-primary)]/30 transition-colors">
+        <div class="relative bg-white/5 px-5 py-3 flex items-center justify-between border-b border-white/10">
+          <span class="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--team-primary)]">Up Next</span>
+          {% if match.scheduled_time %}
+          <span class="text-[10px] text-slate-400">{{ match.scheduled_time|date:"M d, H:i" }}</span>
+          {% endif %}
+        </div>
+        <div class="p-5 sm:p-6 flex flex-col items-center">
+          <div class="flex items-center gap-4 sm:gap-6 w-full justify-center mb-4">
+            {# Our team #}
+            <div class="flex flex-col items-center gap-2">
+              <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/5 border border-white/10 grid place-items-center p-2 overflow-hidden">
+                {% if team.logo %}
+                <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="w-full h-full object-contain">
+                {% else %}
+                <span class="text-lg font-bold text-[var(--team-primary)]">{{ team.tag|default:team.name|truncatechars:3 }}</span>
+                {% endif %}
+              </div>
+              <span class="text-[9px] text-white/60 font-bold uppercase truncate max-w-[80px]">{{ team.tag|default:team.name|truncatechars:8 }}</span>
+            </div>
+            <div class="text-xs font-mono text-slate-500 font-bold">VS</div>
+            {# Opponent #}
+            <div class="flex flex-col items-center gap-2">
+              <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/5 border border-white/10 grid place-items-center p-2">
+                <span class="text-base font-bold text-red-400">{{ match.opponent_name|truncatechars:4 }}</span>
+              </div>
+              <span class="text-[9px] text-white/60 font-bold uppercase truncate max-w-[80px]">{{ match.opponent_name|truncatechars:8 }}</span>
+            </div>
+          </div>
+          {% if match.tournament_name %}
+          <h4 class="text-white font-display font-bold text-base sm:text-lg text-center mb-1">{{ match.tournament_name|truncatechars:40 }}</h4>
+          {% endif %}
+          <p class="text-[10px] text-slate-500 mb-5">{{ match.format|default:"BO1" }}</p>
+          {% if match.stream_url %}
+          <a href="{{ match.stream_url }}" target="_blank" rel="noopener"
+             class="w-full py-2.5 rounded-xl bg-white text-black font-bold uppercase text-[10px] tracking-widest hover:bg-slate-200 transition text-center">
+            Watch Live
+          </a>
+          {% else %}
+          <button class="w-full py-2.5 rounded-xl bg-white/10 text-slate-300 font-bold uppercase text-[10px] tracking-widest hover:bg-white/15 transition cursor-default">
+            Coming Soon
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endwith %}
+      {% endif %}
+
+      {# ── TRYOUTS OPEN (Recruitment) ────────────────────────────────────── #}
       {% if team.is_recruiting and recruitment.positions %}
       <div class="relative group bg-[#0A0A0F] border border-[var(--team-primary)]/30 hover:border-[var(--team-primary)]/50 rounded-3xl p-6 transition-all overflow-hidden">
         <div class="absolute -right-4 -bottom-4 opacity-10 text-[var(--team-primary)] transform -rotate-12 group-hover:scale-110 transition-transform">
@@ -1033,31 +1131,33 @@
         <div class="relative z-10 flex flex-col h-full justify-between">
           <div>
             <div class="flex items-center justify-between mb-3">
-              <h4 class="text-white font-display font-bold text-lg">Join the Ranks</h4>
-              <span class="px-2 py-0.5 rounded bg-[#00FF41]/10 border border-[#00FF41]/20 text-[#00FF41] text-[9px] font-bold uppercase tracking-widest animate-pulse">Open</span>
+              <h4 class="text-white font-display font-bold text-lg">Tryouts Open</h4>
+              <span class="px-2 py-0.5 rounded bg-[#00FF41]/10 border border-[#00FF41]/20 text-[#00FF41] text-[9px] font-bold uppercase tracking-widest animate-pulse">Recruiting</span>
             </div>
             {% if recruitment.positions.0.short_pitch %}
             <p class="text-xs text-slate-400 leading-relaxed mb-4">{{ recruitment.positions.0.short_pitch }}</p>
             {% else %}
-            <p class="text-xs text-slate-400 leading-relaxed mb-4">{{ team.name }} is scouting for rising talent. Do you have the mechanics and the discipline?</p>
+            <p class="text-xs text-slate-400 leading-relaxed mb-4">{{ team.name }} is looking for new members. Think you have what it takes? Apply now!</p>
             {% endif %}
             <div class="flex flex-wrap gap-2 mb-6">
               {% for pos in recruitment.positions %}
               <span class="px-2 py-1 bg-white/5 border border-white/10 text-[9px] text-slate-300 font-mono rounded uppercase">{{ pos.title|default:pos.role_category }}</span>
               {% if pos.rank_requirement %}
-              <span class="px-2 py-1 bg-white/5 border border-white/10 text-[9px] text-slate-300 font-mono rounded uppercase">Rank: {{ pos.rank_requirement }}</span>
+              <span class="px-2 py-1 bg-[var(--team-primary)]/10 border border-[var(--team-primary)]/20 text-[9px] text-[var(--team-primary)] font-mono rounded uppercase">{{ pos.rank_requirement }}</span>
               {% endif %}
               {% endfor %}
             </div>
           </div>
 
           {% if pending_actions.can_request_to_join %}
-          <button class="w-full py-3 rounded-xl bg-white text-black font-bold uppercase text-[10px] tracking-widest hover:bg-slate-200 transition shadow-[0_0_15px_rgba(255,255,255,0.1)] dc-apply-btn"
+          <button class="w-full py-3 rounded-xl bg-[var(--team-primary)] text-black font-bold uppercase text-[10px] tracking-widest hover:brightness-110 transition shadow-[0_0_15px_var(--team-glow)] dc-apply-btn"
                   data-team-slug="{{ team.slug }}">
-            Apply for Tryouts
+            <svg class="w-4 h-4 inline -mt-0.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+            Apply for Tryout
           </button>
           {% elif pending_actions.has_pending_request %}
           <div class="w-full py-3 rounded-xl bg-white/10 text-slate-400 font-bold uppercase text-[10px] tracking-widest text-center">
+            <svg class="w-4 h-4 inline -mt-0.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             Application Pending
           </div>
           {% elif pending_actions.has_pending_invite %}
@@ -1067,8 +1167,32 @@
             <button class="flex-1 py-3 rounded-xl bg-white/10 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:bg-white/20 transition dc-invite-decline"
                     data-invite-id="{{ pending_actions.pending_invite_id }}">Decline</button>
           </div>
+          {% else %}
+          {# Non-member / non-logged-in user — show sign-in or generic tryout CTA #}
+          {% if user.is_authenticated %}
+          <button class="w-full py-3 rounded-xl bg-[var(--team-primary)] text-black font-bold uppercase text-[10px] tracking-widest hover:brightness-110 transition shadow-[0_0_15px_var(--team-glow)] dc-apply-btn"
+                  data-team-slug="{{ team.slug }}">
+            <svg class="w-4 h-4 inline -mt-0.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+            Apply for Tryout
+          </button>
+          {% else %}
+          <a href="{% url 'account_login' %}?next={{ request.path }}"
+             class="w-full py-3 rounded-xl bg-[var(--team-primary)] text-black font-bold uppercase text-[10px] tracking-widest hover:brightness-110 transition shadow-[0_0_15px_var(--team-glow)] text-center block">
+            <svg class="w-4 h-4 inline -mt-0.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+            Sign In to Apply
+          </a>
+          {% endif %}
           {% endif %}
         </div>
+      </div>
+      {% elif team.is_recruiting %}
+      {# Recruiting but no positions defined yet — simple card #}
+      <div class="rounded-3xl bg-[#0A0A0F] border border-emerald-500/20 p-5 text-center">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 grid place-items-center mx-auto mb-3">
+          <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+        </div>
+        <h4 class="text-white font-bold text-sm mb-1">We're Recruiting!</h4>
+        <p class="text-[10px] text-slate-400">{{ team.name }} is looking for new talent.</p>
       </div>
       {% endif %}
 
@@ -1297,6 +1421,69 @@
 
   </div>{# /grid #}
 </main>
+
+{# Chat popup removed — use Team Chat link in header bar instead #}
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# MEDIA LIGHTBOX — Inline video player + image viewer                       #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<div id="dc-media-lightbox" class="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md hidden items-center justify-center"
+     onclick="if(event.target===this)dcCloseLightbox()">
+  <button onclick="dcCloseLightbox()" class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 transition flex items-center justify-center" aria-label="Close">
+    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+  </button>
+  <div class="absolute top-4 left-4 z-10">
+    <h4 id="dc-lightbox-title" class="text-white font-display font-bold text-base sm:text-lg"></h4>
+  </div>
+  <div id="dc-lightbox-content" class="w-full h-full flex items-center justify-center p-4 sm:p-8 md:p-16">
+    {# Content injected by JS #}
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# PLAYER PROFILE POPUP                                                      #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<div id="dc-player-popup" class="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md hidden items-center justify-center p-4"
+     onclick="if(event.target===this)dcClosePlayerPopup()">
+  <div class="bg-[#0A0A12] rounded-3xl border border-white/10 w-full max-w-sm shadow-2xl shadow-black/50 overflow-hidden transform transition-all duration-300 scale-95 opacity-0" id="dc-player-popup-card" onclick="event.stopPropagation()">
+    {# Cover area #}
+    <div class="relative h-48 bg-gradient-to-br from-[var(--team-primary)]/20 to-transparent overflow-hidden">
+      <img id="pp-avatar" src="" alt="" class="absolute inset-0 w-full h-full object-cover opacity-70">
+      <div class="absolute inset-0 bg-gradient-to-t from-[#0A0A12] via-[#0A0A12]/40 to-transparent"></div>
+      <button onclick="dcClosePlayerPopup()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 border border-white/10 flex items-center justify-center transition">
+        <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      <div id="pp-badge" class="absolute top-3 left-3 px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider hidden"></div>
+    </div>
+    {# Info #}
+    <div class="px-5 pb-5 -mt-8 relative z-10">
+      <div class="mb-4">
+        <div id="pp-role-tag" class="text-[9px] font-mono font-bold uppercase text-[var(--team-primary)] mb-0.5"></div>
+        <h3 id="pp-display-name" class="text-xl font-display font-bold text-white"></h3>
+        <div class="flex items-center gap-2 mt-1">
+          <img id="pp-flag" src="" class="w-4 h-3 rounded-[2px] object-cover hidden" alt="">
+          <span id="pp-username" class="text-xs text-slate-400 font-mono"></span>
+        </div>
+      </div>
+      {# Game passport stats #}
+      <div id="pp-passport" class="hidden grid grid-cols-2 gap-3 mb-4">
+        <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div class="text-[8px] uppercase text-slate-500 font-bold tracking-wider mb-0.5">IGN</div>
+          <div id="pp-ign" class="text-sm font-bold text-white"></div>
+        </div>
+        <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div class="text-[8px] uppercase text-slate-500 font-bold tracking-wider mb-0.5">Rank</div>
+          <div id="pp-rank" class="text-sm font-bold text-[var(--team-primary)]"></div>
+        </div>
+      </div>
+      {# Profile link #}
+      <a id="pp-profile-link" href="#" class="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition text-center text-xs font-bold text-white/80 uppercase tracking-wider flex items-center justify-center gap-2">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        View Full Profile
+      </a>
+    </div>
+  </div>
+</div>
 
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {# PARTNERS / SPONSORS SECTION                                               #}

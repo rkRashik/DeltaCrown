@@ -55,12 +55,12 @@ Section 7.9 of the Master Plan.
     <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-base font-bold flex items-center gap-2">
-                <i data-lucide="milestone" class="w-4 h-4 text-amber-400"></i>
-                Journey Manager
+                <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+                Hall of Fame
             </h3>
             <span class="text-[10px] font-mono text-white/30" id="journey-count">0 / 10</span>
         </div>
-        <p class="text-xs text-white/40 mb-4">Curate up to 10 milestones for your public team timeline. Only visible milestones show on the detail page (max 5).</p>
+        <p class="text-xs text-white/40 mb-4">Curate your team's greatest moments. Up to 10 milestones — the 5 most recent visible entries appear on your public page.</p>
 
         {# Add / Edit Form #}
         <div class="rounded-2xl border border-amber-500/15 bg-amber-500/[0.02] p-4 mb-4" id="journey-form-wrap">
@@ -69,9 +69,17 @@ Section 7.9 of the Master Plan.
                 <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider" id="journey-form-title">Add Milestone</h4>
             </div>
             <input type="hidden" id="journey-edit-id" value="">
-            <div class="grid grid-cols-1 gap-2 mb-2">
+            <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 mb-2">
                 <input type="text" id="journey-title" placeholder="Title — e.g. Won Regional Finals" maxlength="120"
                     class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-amber-500/30" />
+                <select id="journey-type"
+                    class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500/30">
+                    <option value="CUSTOM">✏️ Custom</option>
+                    <option value="TROPHY">🏆 Trophy / Achievement</option>
+                    <option value="TRANSFER">🔄 Player Transfer</option>
+                    <option value="FOUNDED">🏁 Team Founded</option>
+                    <option value="RANK_UP">📈 Rank Breakthrough</option>
+                </select>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 mb-2">
                 <textarea id="journey-description" placeholder="Brief description (optional)" maxlength="500" rows="2"
@@ -96,25 +104,6 @@ Section 7.9 of the Master Plan.
                 <i data-lucide="loader" class="w-4 h-4 animate-spin inline-block mb-1"></i><br>
                 Loading milestones…
             </div>
-        </div>
-    </div>
-    {% endif %}
-
-    {# ── Manual Milestone (legacy — creates activity log entry) ── #}
-    {% if is_admin or is_owner %}
-    <div class="rounded-2xl border border-amber-500/15 bg-amber-500/[0.02] p-4">
-        <div class="flex items-center gap-2 mb-3">
-            <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
-            <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Add Manual Milestone</h4>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
-            <input type="text" id="milestone-desc" placeholder='e.g. "Won Local LAN Championship"' maxlength="300"
-                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:outline-none focus:border-amber-500/30" />
-            <input type="date" id="milestone-date"
-                class="text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500/30" />
-            <button onclick="ManageHQ.History.addMilestone()" class="h-8 px-4 rounded-xl bg-amber-500/15 border border-amber-500/25 text-amber-400 text-xs font-bold hover:bg-amber-500/25 transition">
-                Add
-            </button>
         </div>
     </div>
     {% endif %}
@@ -351,11 +340,19 @@ Section 7.9 of the Master Plan.
     const section = document.getElementById('history');
     if (section) observer.observe(section, { attributes: true, attributeFilter: ["class"] });
 
-    /* ── Journey Manager (Curated Public Timeline) ── */
+    /* ── Journey Manager (Hall of Fame Timeline) ── */
     const JOURNEY_API = `/api/vnext/teams/${SLUG}/journey/`;
     const JOURNEY_SAVE_API = `/api/vnext/teams/${SLUG}/journey/save/`;
     const JOURNEY_DELETE_API = (id) => `/api/vnext/teams/${SLUG}/journey/${id}/delete/`;
     const JOURNEY_TOGGLE_API = (id) => `/api/vnext/teams/${SLUG}/journey/${id}/toggle/`;
+
+    const MILESTONE_STYLES = {
+        TROPHY:   { icon: 'trophy',      color: 'text-amber-400',   bg: 'bg-amber-500/10',  border: 'border-amber-500/20', label: '🏆 Trophy' },
+        TRANSFER: { icon: 'arrow-right-left', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', label: '🔄 Transfer' },
+        FOUNDED:  { icon: 'flag',         color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: '🏁 Founded' },
+        RANK_UP:  { icon: 'trending-up',  color: 'text-purple-400',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20', label: '📈 Rank Up' },
+        CUSTOM:   { icon: 'star',         color: 'text-amber-400',   bg: 'bg-white/5',       border: 'border-white/10',      label: '✏️ Custom' },
+    };
 
     function jesc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 
@@ -382,9 +379,9 @@ Section 7.9 of the Master Plan.
             if (JourneyManager.milestones.length === 0) {
                 list.innerHTML = `
                     <div class="rounded-xl border border-dashed border-white/15 bg-white/3 p-6 text-center">
-                        <i data-lucide="map-pin" class="w-6 h-6 text-white/15 mx-auto mb-2"></i>
-                        <p class="text-sm text-white/40">No journey milestones yet</p>
-                        <p class="text-xs text-white/25 mt-1">Add milestones above to build your team's public timeline</p>
+                        <i data-lucide="trophy" class="w-6 h-6 text-white/15 mx-auto mb-2"></i>
+                        <p class="text-sm text-white/40">No milestones in the Hall of Fame</p>
+                        <p class="text-xs text-white/25 mt-1">Add your team's greatest moments above</p>
                     </div>`;
                 if (window.lucide) lucide.createIcons();
                 return;
@@ -392,12 +389,21 @@ Section 7.9 of the Master Plan.
 
             list.innerHTML = JourneyManager.milestones.map(m => {
                 const vis = m.is_visible;
+                const mType = m.milestone_type || 'CUSTOM';
+                const style = MILESTONE_STYLES[mType] || MILESTONE_STYLES.CUSTOM;
+                const sysFlag = m.is_system_generated ? '<span class="text-[9px] text-white/20 bg-white/5 px-1 py-0.5 rounded ml-1">Auto</span>' : '';
+
                 return `
-                <div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition group" data-id="${m.id}">
-                    <div class="flex-shrink-0 w-8 h-8 rounded-lg ${vis ? 'bg-amber-500/10' : 'bg-white/5'} grid place-items-center">
-                        <i data-lucide="${vis ? 'star' : 'eye-off'}" class="w-3.5 h-3.5 ${vis ? 'text-amber-400' : 'text-white/20'}"></i>
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border ${vis ? style.border : 'border-white/5'} hover:bg-white/[0.04] transition group" data-id="${m.id}">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-lg ${vis ? style.bg : 'bg-white/5'} grid place-items-center">
+                        <i data-lucide="${style.icon}" class="w-3.5 h-3.5 ${vis ? style.color : 'text-white/20'}"></i>
                     </div>
                     <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1.5 mb-0.5">
+                            <span class="text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${style.bg} ${style.color} border ${style.border}">${style.label}</span>
+                            ${sysFlag}
+                            ${!vis ? '<span class="text-[9px] text-white/20 bg-white/5 px-1 py-0.5 rounded">Hidden</span>' : ''}
+                        </div>
                         <p class="text-xs font-bold ${vis ? 'text-white/90' : 'text-white/40'} truncate">${jesc(m.title)}</p>
                         <p class="text-[10px] text-white/30 mt-0.5">
                             ${new Date(m.milestone_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -424,17 +430,19 @@ Section 7.9 of the Master Plan.
             const titleEl = document.getElementById('journey-title');
             const descEl = document.getElementById('journey-description');
             const dateEl = document.getElementById('journey-date');
+            const typeEl = document.getElementById('journey-type');
             const editIdEl = document.getElementById('journey-edit-id');
             const statusEl = document.getElementById('journey-save-status');
 
             const title = (titleEl?.value || '').trim();
             const description = (descEl?.value || '').trim();
             const milestone_date = (dateEl?.value || '').trim();
+            const milestone_type = (typeEl?.value || 'CUSTOM').trim();
 
             if (!title) { if(window.showToast) showToast('Title is required', 'warning'); return; }
             if (!milestone_date) { if(window.showToast) showToast('Date is required', 'warning'); return; }
 
-            const body = { title, description, milestone_date };
+            const body = { title, description, milestone_date, milestone_type };
             if (editIdEl?.value) body.id = parseInt(editIdEl.value);
 
             if (statusEl) statusEl.textContent = 'Saving…';
@@ -467,6 +475,8 @@ Section 7.9 of the Master Plan.
             document.getElementById('journey-title').value = m.title;
             document.getElementById('journey-description').value = m.description || '';
             document.getElementById('journey-date').value = m.milestone_date;
+            const typeEl = document.getElementById('journey-type');
+            if (typeEl) typeEl.value = m.milestone_type || 'CUSTOM';
             document.getElementById('journey-form-title').textContent = 'Edit Milestone';
             document.getElementById('journey-save-btn').textContent = 'Update';
             document.getElementById('journey-cancel-btn').classList.remove('hidden');
@@ -479,6 +489,8 @@ Section 7.9 of the Master Plan.
             document.getElementById('journey-title').value = '';
             document.getElementById('journey-description').value = '';
             document.getElementById('journey-date').value = '';
+            const typeEl = document.getElementById('journey-type');
+            if (typeEl) typeEl.value = 'CUSTOM';
             document.getElementById('journey-form-title').textContent = 'Add Milestone';
             document.getElementById('journey-save-btn').textContent = 'Add';
             document.getElementById('journey-cancel-btn').classList.add('hidden');

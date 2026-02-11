@@ -796,6 +796,7 @@ def _build_journey_context(team: Team, is_restricted: bool) -> List[Dict[str, An
             return [
                 {
                     'type': 'milestone',
+                    'milestone_type': getattr(m, 'milestone_type', 'CUSTOM'),
                     'title': m.title,
                     'description': m.description,
                     'timestamp': m.milestone_date,
@@ -820,10 +821,22 @@ def _build_journey_context(team: Team, is_restricted: bool) -> List[Dict[str, An
             )
         ).order_by('-timestamp')[:5]
         for act in activities:
+            # Map activity types to milestone categories
+            act_type = getattr(act, 'action_type', '')
+            m_type = 'CUSTOM'
+            if act_type == 'CREATE':
+                m_type = 'FOUNDED'
+            elif act_type == 'ACQUIRE':
+                m_type = 'TRANSFER'
+            elif act_type == 'TOURNAMENT_REGISTER':
+                m_type = 'TROPHY'
+            title = getattr(act, 'description', '') or act_type.replace('_', ' ').title()
             timeline.append({
                 'type': 'activity',
-                'action': getattr(act, 'action_type', ''),
-                'description': getattr(act, 'description', ''),
+                'milestone_type': m_type,
+                'title': title,
+                'action': act_type,
+                'description': '',
                 'actor': getattr(act, 'actor_username', ''),
                 'timestamp': act.timestamp,
                 'metadata': getattr(act, 'metadata', {}),
@@ -1002,11 +1015,13 @@ def _build_media_highlights_context(team: Team, is_restricted: bool) -> Dict[str
         from apps.organizations.models import TeamMedia
         media_qs = TeamMedia.objects.filter(team=team).order_by('-created_at')[:6]
         for m in media_qs:
+            url = m.file.url if m.file else getattr(m, 'file_url', '')
             media_items.append({
                 'id': m.id,
                 'title': getattr(m, 'title', ''),
                 'category': getattr(m, 'category', 'general'),
-                'file_url': m.file.url if m.file else getattr(m, 'file_url', ''),
+                'url': url,
+                'file_url': url,
                 'file_type': getattr(m, 'file_type', 'image'),
                 'created_at': m.created_at,
             })
@@ -1022,6 +1037,7 @@ def _build_media_highlights_context(team: Team, is_restricted: bool) -> Dict[str
                 'title': getattr(h, 'title', ''),
                 'url': getattr(h, 'url', ''),
                 'description': getattr(h, 'description', ''),
+                'thumbnail': getattr(h, 'thumbnail_url', ''),
                 'thumbnail_url': getattr(h, 'thumbnail_url', ''),
                 'created_at': h.created_at,
             })
@@ -1039,6 +1055,7 @@ def _build_challenges_context(team: Team, is_restricted: bool) -> Dict[str, Any]
     """
     P11: Challenge Hub — fetch open/active challenges for the team.
     Returns dict with 'items' list, 'open_count', and summary stats.
+    Uses Challenge & Bounty models from apps.competition.
     """
     if is_restricted:
         return {'items': [], 'open_count': 0, 'stats': {}}
@@ -1047,59 +1064,67 @@ def _build_challenges_context(team: Team, is_restricted: bool) -> Dict[str, Any]
     stats = {'wins': 0, 'losses': 0, 'total_earned': 0}
 
     try:
-        from apps.challenges.models import Challenge
+        from apps.competition.models import Challenge
+        from apps.competition.services import ChallengeService
+        from django.db.models import Q
         from django.utils import timezone
 
         now = timezone.now()
-        # Active challenges (open, accepted, in_progress)
+
+        # Active challenges involving this team (open, accepted, scheduled, in_progress)
         qs = Challenge.objects.filter(
-            team=team,
-            status__in=['open', 'accepted', 'in_progress'],
-        ).select_related('opponent_team', 'created_by').order_by('-created_at')[:5]
+            Q(challenger_team=team) | Q(challenged_team=team),
+            status__in=['OPEN', 'ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'],
+        ).select_related(
+            'challenger_team', 'challenged_team', 'game'
+        ).order_by('-created_at')[:5]
 
         for c in qs:
-            opponent_name = ''
-            if c.opponent_team_id:
-                opponent_name = getattr(c.opponent_team, 'name', '?')
-            elif c.target_player_name:
-                opponent_name = c.target_player_name
+            # Determine opponent
+            is_issuer = (c.challenger_team_id == team.pk)
+            opponent = c.challenged_team if is_issuer else c.challenger_team
+            opponent_name = opponent.name if opponent else 'Open Challenge'
 
-            expires_delta = None
-            if c.expires_at and c.expires_at > now:
-                expires_delta = (c.expires_at - now).total_seconds()
+            # Category for UI styling
+            category = 'wager' if c.challenge_type == 'WAGER' else (
+                'community' if c.challenge_type == 'OPEN' else 'direct'
+            )
+
+            # Format display
+            format_str = f'BO{c.best_of}'
+            if c.game:
+                format_str = f'{c.game.short_code} {format_str}'
 
             items.append({
-                'id': c.id,
+                'id': str(c.pk),
                 'title': c.title,
                 'description': c.description or '',
-                'challenge_type': c.challenge_type,
-                'status': c.status,
-                'format': c.format or '',
-                'match_type': c.match_type or '',
+                'category': category,
+                'status': c.get_status_display().split(' —')[0],
+                'format': format_str,
                 'prize_amount': float(c.prize_amount) if c.prize_amount else 0,
-                'prize_currency': c.prize_currency or '',
+                'prize_type': c.prize_type,
                 'prize_description': c.prize_description or '',
                 'opponent_name': opponent_name,
-                'attempts': c.attempts,
-                'wins_by_challenger': c.wins_by_challenger,
-                'expires_seconds': expires_delta,
+                'expires_at': c.expires_at,
                 'created_at': c.created_at,
+                'reference_code': c.reference_code,
             })
 
-        # Summary stats (all completed challenges for this team)
-        completed = Challenge.objects.filter(team=team, status='completed')
-        stats['wins'] = completed.filter(wins_by_challenger__gt=0).count()
-        stats['losses'] = completed.filter(wins_by_challenger=0).count()
-        from django.db.models import Sum
-        earned = completed.aggregate(total=Sum('prize_amount'))['total']
-        stats['total_earned'] = float(earned) if earned else 0
+        # Summary stats
+        challenge_stats = ChallengeService.get_challenge_stats(team)
+        stats = {
+            'wins': challenge_stats['wins'],
+            'losses': challenge_stats['losses'],
+            'total_earned': float(challenge_stats['total_earned']),
+        }
 
     except Exception:
         pass
 
     return {
         'items': items,
-        'open_count': sum(1 for i in items if i['status'] == 'open'),
+        'open_count': sum(1 for i in items if 'Open' in i.get('status', '')),
         'stats': stats,
     }
 
@@ -1298,6 +1323,19 @@ def _get_viewer_role(team: Team, viewer: Optional[User]) -> str:
     
     if not viewer or not viewer.is_authenticated:
         return 'PUBLIC'
+    
+    # Check if viewer is the team creator (created_by)
+    if team.created_by_id == viewer.id:
+        return 'OWNER'
+    
+    # Check if viewer is Organization CEO
+    if team.organization_id:
+        try:
+            org = team.organization
+            if org and org.ceo_id == viewer.id:
+                return 'OWNER'
+        except Exception:
+            pass
     
     # Query vNext TeamMembership with user FK
     try:

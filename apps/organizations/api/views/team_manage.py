@@ -445,8 +445,9 @@ def change_role(request, slug, membership_id):
     if new_role not in valid_roles:
         return JsonResponse({'error': f'Invalid role: {new_role}'}, status=400)
     
-    # Platform rule: OWNER role forbidden in vNext (use created_by + permissions)
-    if new_role == MembershipRole.OWNER:
+    # Platform rule: OWNER role cannot be *assigned* to someone who isn't already OWNER
+    # But if the member already IS the owner, allow edits to go through (role stays the same)
+    if new_role == MembershipRole.OWNER and membership.role != MembershipRole.OWNER:
         return JsonResponse({
             'error': 'OWNER role cannot be assigned. Use MANAGER role for team administration.'
         }, status=400)
@@ -3038,8 +3039,15 @@ def save_journey_milestone(request, slug):
     title = (data.get('title') or '').strip()
     description = (data.get('description') or '').strip()
     milestone_date_str = (data.get('milestone_date') or '').strip()
+    milestone_type = (data.get('milestone_type') or 'CUSTOM').strip()
     is_visible = data.get('is_visible', True)
     milestone_id = data.get('id')
+
+    # Validate milestone_type
+    from apps.organizations.models.journey import MilestoneType
+    valid_types = [c[0] for c in MilestoneType.choices]
+    if milestone_type not in valid_types:
+        milestone_type = 'CUSTOM'
 
     if not title or len(title) > 120:
         return JsonResponse({'error': 'Title is required (max 120 chars)'}, status=400)
