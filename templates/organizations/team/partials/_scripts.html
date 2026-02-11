@@ -190,7 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.textContent = "SENDING…";
 
       try {
-        const resp = await fetch(`/api/teams/${slug}/apply/`, {
+        const resp = await fetch(`/api/vnext/teams/${slug}/apply/`, {
           method: "POST",
           headers: {
             "X-CSRFToken": getCookie("csrftoken"),
@@ -203,7 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
           btn.classList.remove("bg-white", "text-black");
           btn.classList.add("bg-white/10", "text-slate-400");
         } else {
-          btn.textContent = data.detail || "Error";
+          btn.textContent = data.error || data.detail || "Error";
           setTimeout(() => { btn.textContent = "APPLY FOR TRYOUTS"; btn.disabled = false; }, 3000);
         }
       } catch {
@@ -364,13 +364,14 @@ function dcOpenLightbox(type, url, title) {
 
   if (type === "video") {
     // Check if it's a YouTube/Vimeo URL
-    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/);
     const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
 
     if (ytMatch) {
-      content.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0" 
+      const embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`;
+      content.innerHTML = `<iframe src="${embedUrl}" 
         class="w-full max-w-4xl aspect-video rounded-2xl shadow-2xl" 
-        frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+        frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="origin"></iframe>`;
     } else if (vimeoMatch) {
       content.innerHTML = `<iframe src="https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1" 
         class="w-full max-w-4xl aspect-video rounded-2xl shadow-2xl" 

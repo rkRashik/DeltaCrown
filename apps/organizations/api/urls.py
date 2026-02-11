@@ -126,6 +126,8 @@ urlpatterns = [
     # Journey Milestones — curated public timeline
     path('teams/<str:slug>/journey/', team_manage.list_journey_milestones, name='team_journey'),
     path('teams/<str:slug>/journey/save/', team_manage.save_journey_milestone, name='team_journey_save'),
+    path('teams/<str:slug>/journey/suggestions/', team_manage.journey_suggestions, name='team_journey_suggestions'),
+    path('teams/<str:slug>/journey/suggestions/dismiss/', team_manage.dismiss_journey_suggestion, name='team_journey_dismiss'),
     path('teams/<str:slug>/journey/<int:milestone_id>/delete/', team_manage.delete_journey_milestone, name='team_journey_delete'),
     path('teams/<str:slug>/journey/<int:milestone_id>/toggle/', team_manage.toggle_journey_visibility, name='team_journey_toggle'),
     

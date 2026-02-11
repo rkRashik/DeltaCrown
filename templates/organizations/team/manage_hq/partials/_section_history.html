@@ -62,6 +62,15 @@ Section 7.9 of the Master Plan.
         </div>
         <p class="text-xs text-white/40 mb-4">Curate your team's greatest moments. Up to 10 milestones — the 5 most recent visible entries appear on your public page.</p>
 
+        {# ── ✨ Detected Moments (Suggestion Strip) ── #}
+        <div id="journey-suggestions-wrap" class="hidden mb-4">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="text-xs font-bold text-white/60">✨ Detected Moments</span>
+                <span class="text-[10px] text-white/25">One-click add to your timeline</span>
+            </div>
+            <div id="journey-suggestions" class="flex gap-2 overflow-x-auto pb-2 scrollbar-thin"></div>
+        </div>
+
         {# Add / Edit Form #}
         <div class="rounded-2xl border border-amber-500/15 bg-amber-500/[0.02] p-4 mb-4" id="journey-form-wrap">
             <div class="flex items-center gap-2 mb-3">
@@ -343,6 +352,8 @@ Section 7.9 of the Master Plan.
     /* ── Journey Manager (Hall of Fame Timeline) ── */
     const JOURNEY_API = `/api/vnext/teams/${SLUG}/journey/`;
     const JOURNEY_SAVE_API = `/api/vnext/teams/${SLUG}/journey/save/`;
+    const JOURNEY_SUGGESTIONS_API = `/api/vnext/teams/${SLUG}/journey/suggestions/`;
+    const JOURNEY_DISMISS_API = `/api/vnext/teams/${SLUG}/journey/suggestions/dismiss/`;
     const JOURNEY_DELETE_API = (id) => `/api/vnext/teams/${SLUG}/journey/${id}/delete/`;
     const JOURNEY_TOGGLE_API = (id) => `/api/vnext/teams/${SLUG}/journey/${id}/toggle/`;
 
@@ -366,6 +377,7 @@ Section 7.9 of the Master Plan.
                 if (data.success) {
                     JourneyManager.milestones = data.milestones || [];
                     JourneyManager.render();
+                    JourneyManager.loadSuggestions();
                 }
             } catch (e) { console.error('Journey load error', e); }
         },
@@ -528,6 +540,125 @@ Section 7.9 of the Master Plan.
                     JourneyManager.load();
                 }
             } catch (e) { if(window.showToast) showToast('Network error', 'error'); }
+        },
+
+        /* ── Suggested Milestones ── */
+        async loadSuggestions() {
+            try {
+                const res = await fetch(JOURNEY_SUGGESTIONS_API, { headers: { 'X-CSRFToken': CSRF } });
+                const data = await res.json();
+                if (data.success && data.suggestions && data.suggestions.length > 0) {
+                    JourneyManager.renderSuggestions(data.suggestions);
+                } else {
+                    const wrap = document.getElementById('journey-suggestions-wrap');
+                    if (wrap) wrap.classList.add('hidden');
+                }
+            } catch (e) { console.error('Suggestions load error', e); }
+        },
+
+        _suggestions: [],
+
+        renderSuggestions(suggestions) {
+            const wrap = document.getElementById('journey-suggestions-wrap');
+            const container = document.getElementById('journey-suggestions');
+            if (!wrap || !container) return;
+
+            JourneyManager._suggestions = suggestions;
+
+            container.innerHTML = suggestions.map((s, idx) => {
+                const style = MILESTONE_STYLES[s.milestone_type] || MILESTONE_STYLES.CUSTOM;
+                const dateStr = s.date ? new Date(s.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+                const safeKey = s.key.replace(/'/g, "\\'");
+                return `
+                <div class="relative flex-shrink-0 w-56 rounded-xl border ${style.border} ${style.bg} p-3 group cursor-pointer hover:border-amber-500/30 transition"
+                     data-sg-key="${jesc(s.key)}">
+                    <button onclick="event.stopPropagation(); JourneyManager.dismissSuggestion('${safeKey}', this)"
+                            class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-white/5 hover:bg-red-500/20 grid place-items-center opacity-0 group-hover:opacity-100 transition"
+                            title="Dismiss">
+                        <i data-lucide="x" class="w-3 h-3 text-white/30 hover:text-red-400"></i>
+                    </button>
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <div class="w-6 h-6 rounded-lg ${style.bg} grid place-items-center">
+                            <i data-lucide="${style.icon}" class="w-3 h-3 ${style.color}"></i>
+                        </div>
+                        <span class="text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${style.bg} ${style.color} border ${style.border}">${style.label}</span>
+                    </div>
+                    <p class="text-[11px] font-bold text-white/80 truncate mb-0.5">${jesc(s.title)}</p>
+                    ${s.description ? `<p class="text-[10px] text-white/35 truncate mb-1">${jesc(s.description)}</p>` : ''}
+                    <p class="text-[9px] text-white/25">${dateStr}</p>
+                    <button onclick="event.stopPropagation(); JourneyManager.fillFromSuggestion(${idx})"
+                            class="mt-2 w-full text-[10px] font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg py-1.5 transition">
+                        + Add to Journey
+                    </button>
+                </div>`;
+            }).join('');
+
+            wrap.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        },
+
+        fillFromSuggestion(indexOrObj) {
+            const suggestion = (typeof indexOrObj === 'number') ? JourneyManager._suggestions[indexOrObj] : indexOrObj;
+            if (!suggestion) return;
+            const titleEl  = document.getElementById('journey-title');
+            const descEl   = document.getElementById('journey-description');
+            const dateEl   = document.getElementById('journey-date');
+            const typeEl   = document.getElementById('journey-type');
+            const editIdEl = document.getElementById('journey-edit-id');
+            const formTitle = document.getElementById('journey-form-title');
+            const saveBtn  = document.getElementById('journey-save-btn');
+            const cancelBtn = document.getElementById('journey-cancel-btn');
+
+            /* Clear any existing edit state */
+            if (editIdEl) editIdEl.value = '';
+            if (formTitle) formTitle.textContent = 'Add Milestone';
+            if (saveBtn) saveBtn.textContent = 'Add';
+            if (cancelBtn) cancelBtn.classList.add('hidden');
+
+            /* Fill the form */
+            if (titleEl) titleEl.value = suggestion.title || '';
+            if (descEl) descEl.value = suggestion.description || '';
+            if (dateEl) dateEl.value = suggestion.date || '';
+            if (typeEl) typeEl.value = suggestion.milestone_type || 'CUSTOM';
+
+            /* Scroll + highlight */
+            const formWrap = document.getElementById('journey-form-wrap');
+            if (formWrap) {
+                formWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                formWrap.classList.add('ring-1', 'ring-amber-500/40');
+                setTimeout(() => formWrap.classList.remove('ring-1', 'ring-amber-500/40'), 2000);
+            }
+            if (titleEl) titleEl.focus();
+            if(window.showToast) showToast('Suggestion loaded — review & save', 'info');
+        },
+
+        async dismissSuggestion(key, btnEl) {
+            try {
+                const res = await fetch(JOURNEY_DISMISS_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                    body: JSON.stringify({ key }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    /* Animate card out */
+                    const card = btnEl ? btnEl.closest('[data-sg-key]') : null;
+                    if (card) {
+                        card.style.transition = 'opacity 0.3s, transform 0.3s';
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.9)';
+                        setTimeout(() => {
+                            card.remove();
+                            /* Hide strip if no cards left */
+                            const container = document.getElementById('journey-suggestions');
+                            if (container && container.children.length === 0) {
+                                const wrap = document.getElementById('journey-suggestions-wrap');
+                                if (wrap) wrap.classList.add('hidden');
+                            }
+                        }, 300);
+                    }
+                }
+            } catch (e) { console.error('Dismiss error', e); }
         },
     };
 

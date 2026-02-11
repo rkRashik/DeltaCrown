@@ -3014,7 +3014,9 @@ def list_journey_milestones(request, slug):
             'title': m.title,
             'description': m.description,
             'milestone_date': m.milestone_date.isoformat(),
+            'milestone_type': getattr(m, 'milestone_type', 'CUSTOM'),
             'is_visible': m.is_visible,
+            'is_system_generated': getattr(m, 'is_system_generated', False),
             'sort_order': m.sort_order,
         }
         for m in milestones
@@ -3076,6 +3078,7 @@ def save_journey_milestone(request, slug):
             milestone.title = title
             milestone.description = description
             milestone.milestone_date = milestone_date
+            milestone.milestone_type = milestone_type
             milestone.is_visible = bool(is_visible)
             milestone.save()
             msg = 'Milestone updated.'
@@ -3087,6 +3090,7 @@ def save_journey_milestone(request, slug):
             title=title,
             description=description,
             milestone_date=milestone_date,
+            milestone_type=milestone_type,
             is_visible=bool(is_visible),
             created_by=request.user,
         )
@@ -3100,7 +3104,9 @@ def save_journey_milestone(request, slug):
             'title': milestone.title,
             'description': milestone.description,
             'milestone_date': milestone.milestone_date.isoformat(),
+            'milestone_type': milestone.milestone_type,
             'is_visible': milestone.is_visible,
+            'is_system_generated': milestone.is_system_generated,
         },
     })
 
@@ -3144,3 +3150,49 @@ def toggle_journey_visibility(request, slug, milestone_id):
         })
     except TeamJourneyMilestone.DoesNotExist:
         return JsonResponse({'error': 'Milestone not found'}, status=404)
+
+
+# ── Milestone Suggestions ──────────────────────────────────────────────
+
+@login_required
+@require_http_methods(["GET"])
+def journey_suggestions(request, slug):
+    """GET /api/vnext/teams/<slug>/journey/suggestions/ — auto-detected milestone suggestions."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    from apps.organizations.services.milestone_suggestions import get_milestone_suggestions
+    suggestions = get_milestone_suggestions(team)
+    return JsonResponse({'success': True, 'suggestions': suggestions})
+
+
+@login_required
+@require_http_methods(["POST"])
+def dismiss_journey_suggestion(request, slug):
+    """POST /api/vnext/teams/<slug>/journey/suggestions/dismiss/ — dismiss a suggested milestone."""
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    key = (data.get('key') or '').strip()
+    if not key:
+        return JsonResponse({'error': 'Suggestion key is required'}, status=400)
+
+    # Store dismissed key in team metadata
+    meta = team.metadata or {}
+    dismissed = meta.get('dismissed_milestone_suggestions', [])
+    if key not in dismissed:
+        dismissed.append(key)
+    meta['dismissed_milestone_suggestions'] = dismissed
+    team.metadata = meta
+    team.save(update_fields=['metadata'])
+
+    return JsonResponse({'success': True, 'message': 'Suggestion dismissed.'})

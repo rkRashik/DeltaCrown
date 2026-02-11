@@ -167,8 +167,8 @@
             </svg>
           </button>
 
-          {# MEMBER/STAFF/OWNER: Team Chat link — scrolls to community section #}
-          <a href="#community" data-role-show="TEAM"
+          {# MEMBER/STAFF/OWNER: Team Chat link — goes to manage page Discord section #}
+          <a href="{% url 'organizations:team_manage' team.slug %}#discord" data-role-show="TEAM"
              class="h-11 px-5 bg-[#5865F2] text-white font-bold uppercase text-[10px] tracking-[0.18em]
                     rounded-xl hover:bg-[#4752C4] transition shadow-[0_0_22px_rgba(88,101,242,0.4)] flex items-center gap-2"
              title="Team Chat">
@@ -197,20 +197,20 @@
               </svg>
             </button>
             <div id="dc-menu-dropdown" class="hidden absolute right-0 top-full mt-2 w-52 bg-[#0A0A0F] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
-              <a href="#" class="flex items-center gap-3 px-4 py-3 text-xs text-slate-300 hover:bg-white/5 hover:text-white transition">
+              <a href="{% url 'organizations:team_manage' team.slug %}#roster" class="flex items-center gap-3 px-4 py-3 text-xs text-slate-300 hover:bg-white/5 hover:text-white transition">
                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Review Applications
               </a>
-              <a href="#" class="flex items-center gap-3 px-4 py-3 text-xs text-slate-300 hover:bg-white/5 hover:text-white transition">
+              <a href="{% url 'organizations:team_manage' team.slug %}#roster" class="flex items-center gap-3 px-4 py-3 text-xs text-slate-300 hover:bg-white/5 hover:text-white transition">
                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 Roster Management
               </a>
               <div class="border-t border-white/5" data-role-show="OWNER"></div>
-              <a href="#" class="flex items-center gap-3 px-4 py-3 text-xs text-slate-300 hover:bg-white/5 hover:text-white transition" data-role-show="OWNER">
+              <a href="{% url 'organizations:team_manage' team.slug %}#treasury" class="flex items-center gap-3 px-4 py-3 text-xs text-slate-300 hover:bg-white/5 hover:text-white transition" data-role-show="OWNER">
                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
                 Team Wallet
               </a>
-              <a href="#" class="flex items-center gap-3 px-4 py-3 text-xs text-slate-300 hover:bg-white/5 hover:text-white transition" data-role-show="OWNER">
+              <a href="{% url 'organizations:team_manage' team.slug %}#competition" class="flex items-center gap-3 px-4 py-3 text-xs text-slate-300 hover:bg-white/5 hover:text-white transition" data-role-show="OWNER">
                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Match History
               </a>
@@ -1123,7 +1123,8 @@
       {% endif %}
 
       {# ── TRYOUTS OPEN (Recruitment) ────────────────────────────────────── #}
-      {% if team.is_recruiting and recruitment.positions %}
+      {# Hide the entire tryouts card from team members — only public visitors see it #}
+      {% if team.is_recruiting and recruitment.positions and viewer.role == 'PUBLIC' %}
       <div class="relative group bg-[#0A0A0F] border border-[var(--team-primary)]/30 hover:border-[var(--team-primary)]/50 rounded-3xl p-6 transition-all overflow-hidden">
         <div class="absolute -right-4 -bottom-4 opacity-10 text-[var(--team-primary)] transform -rotate-12 group-hover:scale-110 transition-transform">
           <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
@@ -1169,7 +1170,7 @@
           </div>
           {% else %}
           {# Non-member / non-logged-in user — show sign-in or generic tryout CTA #}
-          {% if user.is_authenticated %}
+          {% if user.is_authenticated and pending_actions.can_request_to_join %}
           <button class="w-full py-3 rounded-xl bg-[var(--team-primary)] text-black font-bold uppercase text-[10px] tracking-widest hover:brightness-110 transition shadow-[0_0_15px_var(--team-glow)] dc-apply-btn"
                   data-team-slug="{{ team.slug }}">
             <svg class="w-4 h-4 inline -mt-0.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
@@ -1185,8 +1186,8 @@
           {% endif %}
         </div>
       </div>
-      {% elif team.is_recruiting %}
-      {# Recruiting but no positions defined yet — simple card #}
+      {% elif team.is_recruiting and viewer.role == 'PUBLIC' %}
+      {# Recruiting but no positions defined yet — simple card (public only) #}
       <div class="rounded-3xl bg-[#0A0A0F] border border-emerald-500/20 p-5 text-center">
         <div class="w-10 h-10 rounded-xl bg-emerald-500/10 grid place-items-center mx-auto mb-3">
           <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
