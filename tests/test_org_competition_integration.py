@@ -583,8 +583,8 @@ class TestPhase6TeamsNavigation(TestCase):
         """
         response = self.client.get('/teams/vnext/', follow=True)
         self.assertEqual(response.status_code, 200)
-        # Template should be vnext_hub.html from Organizations app
-        self.assertTemplateUsed(response, 'organizations/hub/vnext_hub.html')
+        # Template should be team_hub.html from Organizations app
+        self.assertTemplateUsed(response, 'organizations/hub/team_hub.html')
     
     @override_settings(ORG_APP_ENABLED=0, LEGACY_TEAMS_ENABLED=1)
     def test_teams_vnext_falls_back_to_legacy_hub(self):

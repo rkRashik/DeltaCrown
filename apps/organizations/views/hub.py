@@ -12,12 +12,14 @@ Schema Safety:
 - Uses schema introspection to avoid ProgrammingError on missing columns
 """
 
+import json
 import logging
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.conf import settings
 from django.core.cache import cache
 from django.db import ProgrammingError
+from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
 
@@ -295,7 +297,7 @@ def vnext_hub(request):
     Query Budget Target: ≤15 queries
     
     Returns:
-        - 200: Renders vnext_hub.html (Tailwind UI with real data)
+        - 200: Renders team_hub.html (Tailwind UI with real data)
         - 302: Redirects to /teams/ if feature flags disabled
     """
     # Check feature flags
@@ -343,15 +345,15 @@ def vnext_hub(request):
                 # Per-game rankings
                 response = CompetitionService.get_game_rankings(
                     game_id=selected_game_id,
-                    limit=5,
-                    verified_only=True
+                    limit=10,
+                    verified_only=False
                 )
                 rankings_preview = response.entries
             else:
                 # Global rankings
                 response = CompetitionService.get_global_rankings(
-                    limit=5,
-                    verified_only=True
+                    limit=10,
+                    verified_only=False
                 )
                 rankings_preview = response.entries
             
@@ -361,11 +363,179 @@ def vnext_hub(request):
         except Exception as e:
             logger.warning(f"Could not fetch rankings preview: {e}")
     
-    # Fetch available games for filter
-    available_games = Game.objects.filter(is_active=True).order_by('display_name')
-    
-    return render(request, 'organizations/hub/vnext_hub.html', {
-        'page_title': 'Command Hub',
+    # Fetch available games for filter (with roster config for Match Finder)
+    available_games = Game.objects.select_related('roster_config').filter(
+        is_active=True
+    ).order_by('display_name')
+
+    # Build game configs JSON for Match Finder widget
+    game_configs = {}
+    for g in available_games:
+        rc = getattr(g, 'roster_config', None)
+        game_configs[g.slug] = {
+            'name': g.display_name,
+            'category': g.category,
+            'game_type': g.game_type,
+            'max_team_size': rc.max_team_size if rc else 5,
+            'primary_color': g.primary_color or '#06b6d4',
+        }
+    game_configs_json = json.dumps(game_configs)
+
+    # --- NEW: Additional context for production Hub template ---
+
+    # Featured tournament (closest upcoming or currently live)
+    featured_tournament = None
+    upcoming_tournament = None
+    try:
+        from apps.tournaments.models import Tournament
+        from django.utils import timezone
+
+        now = timezone.now()
+        featured_tournament = Tournament.objects.filter(
+            status__in=['live', 'registration_open', 'published'],
+        ).select_related('game').order_by(
+            # Prefer LIVE, then REGISTRATION_OPEN, then UPCOMING
+            '-status',
+            'tournament_start',
+        ).first()
+
+        # Separate upcoming tournament (second one, different from featured)
+        if featured_tournament:
+            upcoming_tournament = Tournament.objects.filter(
+                status__in=['registration_open', 'published'],
+            ).select_related('game').exclude(
+                pk=featured_tournament.pk
+            ).order_by('tournament_start').first()
+    except Exception as e:
+        logger.warning(f"Could not fetch tournaments for hub: {e}")
+
+    # Open challenges (public, unmatched or open)
+    open_challenges = []
+    try:
+        from apps.competition.models import Challenge
+
+        open_challenges = list(
+            Challenge.objects.filter(
+                status__in=['OPEN', 'PENDING'],
+                is_public=True,
+            ).select_related(
+                'challenger_team', 'challenged_team', 'game'
+            ).order_by('-created_at')[:5]
+        )
+    except Exception as e:
+        logger.warning(f"Could not fetch open challenges: {e}")
+
+    # Recruiting teams (for Scouting Grounds section)
+    recruiting_teams = []
+    try:
+        from apps.organizations.models import Team as VNextTeam
+        from apps.organizations.choices import TeamStatus
+
+        recruiting_qs = VNextTeam.objects.filter(
+            status=TeamStatus.ACTIVE,
+            visibility='PUBLIC',
+            is_recruiting=True,
+        ).select_related('organization').order_by('-updated_at')[:6]
+        recruiting_teams = list(recruiting_qs)
+    except Exception as e:
+        logger.warning(f"Could not fetch recruiting teams: {e}")
+
+    # User's active team memberships (for My Teams sidebar)
+    user_teams = []
+    user_game_ids = []
+    user_profile_primary_team = None
+    if request.user.is_authenticated:
+        try:
+            from apps.organizations.models import TeamMembership
+
+            user_teams = list(
+                TeamMembership.objects.filter(
+                    user=request.user,
+                    status='ACTIVE',
+                    team__status='ACTIVE',
+                ).select_related('team', 'team__organization').order_by('joined_at')
+            )
+            user_game_ids = [m.team.game_id for m in user_teams if m.team.game_id]
+
+            # Fetch primary team from UserProfile
+            try:
+                from apps.user_profile.models_main import UserProfile
+                profile = UserProfile.objects.select_related('primary_team').filter(
+                    user=request.user
+                ).first()
+                if profile and profile.primary_team_id:
+                    user_profile_primary_team = profile.primary_team
+                    # Sort: primary team first, then by join date
+                    user_teams.sort(
+                        key=lambda m: (0 if m.team_id == profile.primary_team_id else 1, m.joined_at)
+                    )
+            except Exception as e:
+                logger.debug(f"Could not fetch primary team from profile: {e}")
+        except Exception as e:
+            logger.warning(f"Could not fetch user teams: {e}")
+
+    # Top organizations (for sidebar)
+    top_organizations = []
+    user_organization = None
+    user_org_role = None
+    try:
+        from apps.organizations.models import Organization
+
+        top_organizations = list(
+            Organization.objects.select_related('ranking').filter(
+                is_verified=True,
+            ).order_by('-ranking__empire_score', '-updated_at')[:5]
+        )
+        if not top_organizations:
+            top_organizations = list(
+                Organization.objects.order_by('-updated_at')[:5]
+            )
+
+        # Detect if user is an org owner or staff
+        if request.user.is_authenticated:
+            try:
+                from apps.organizations.models.organization import OrganizationMembership
+                org_membership = OrganizationMembership.objects.select_related(
+                    'organization', 'organization__ranking'
+                ).filter(
+                    user=request.user,
+                    status='ACTIVE',
+                ).first()
+                if org_membership:
+                    user_organization = org_membership.organization
+                    user_org_role = org_membership.role
+                else:
+                    # Check if user is CEO (direct field on Organization)
+                    ceo_org = Organization.objects.select_related('ranking').filter(
+                        ceo=request.user
+                    ).first()
+                    if ceo_org:
+                        user_organization = ceo_org
+                        user_org_role = 'CEO'
+            except Exception as e:
+                logger.debug(f"Could not detect user organization: {e}")
+    except Exception as e:
+        logger.warning(f"Could not fetch top organizations: {e}")
+
+    # Platform stats (for hero counters)
+    stats = {
+        'live_matches': 0,
+        'total_prize_pool': 0,
+        'teams_active': 0,
+        'players_online': 0,
+    }
+    try:
+        from apps.organizations.models import Team as StatsTeam
+        from apps.organizations.choices import TeamStatus as StatsTeamStatus
+
+        stats['teams_active'] = StatsTeam.objects.filter(
+            status=StatsTeamStatus.ACTIVE
+        ).count()
+    except Exception as e:
+        logger.debug(f"Could not compute hub stats: {e}")
+
+    return render(request, 'organizations/hub/team_hub.html', {
+        'page_title': 'Team Hub',
         'featured_teams': featured_teams,
         'rankings_preview': rankings_preview,
         'user_highlights': user_highlights,
@@ -378,4 +548,100 @@ def vnext_hub(request):
         'user_teams_count': carousel_data['user_teams_count'],
         'user_primary_team': carousel_data['user_primary_team'],
         'recent_tournament_winner': carousel_data['recent_tournament_winner'],
+        # NEW: Production Hub context
+        'featured_tournament': featured_tournament,
+        'upcoming_tournament': upcoming_tournament,
+        'open_challenges': open_challenges,
+        'recruiting_teams': recruiting_teams,
+        'user_teams': user_teams,
+        'user_game_ids': user_game_ids,
+        'user_profile_primary_team': user_profile_primary_team,
+        'top_organizations': top_organizations,
+        'user_organization': user_organization,
+        'user_org_role': user_org_role,
+        'stats': stats,
+        'game_configs_json': game_configs_json,
+    })
+
+
+def vnext_hub_filter(request):
+    """
+    AJAX endpoint for game filter changes on the Hub page.
+    Returns JSON with rankings, recruiting teams, and featured teams
+    filtered by the selected game. Called when user clicks a Combat Zone
+    game card without page reload.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'ok': False, 'error': 'GET only'}, status=405)
+
+    from apps.games.models import Game
+
+    game_slug = request.GET.get('game', 'all')
+    game_id = None
+    game_display = 'All Games'
+
+    if game_slug and game_slug != 'all':
+        try:
+            game_obj = Game.objects.get(slug=game_slug, is_active=True)
+            game_id = game_obj.id
+            game_display = game_obj.display_name
+        except Game.DoesNotExist:
+            game_slug = 'all'
+
+    # Rankings
+    rankings_data = []
+    competition_enabled = getattr(settings, 'COMPETITION_APP_ENABLED', True)
+    if competition_enabled:
+        try:
+            from apps.competition.services import CompetitionService
+            if game_id:
+                response = CompetitionService.get_game_rankings(game_id=game_id, limit=10, verified_only=False)
+            else:
+                response = CompetitionService.get_global_rankings(limit=10, verified_only=False)
+            for e in response.entries:
+                rankings_data.append({
+                    'rank': e.rank,
+                    'team_name': e.team_name,
+                    'team_url': e.team_url or '#',
+                    'team_logo_url': e.team_logo_url,
+                    'team_tag': e.team_tag or (e.team_name[:3] if e.team_name else '??'),
+                    'tier': e.tier or 'UNRANKED',
+                    'score': e.score,
+                    'organization_name': e.organization_name,
+                })
+        except Exception as exc:
+            logger.warning(f"AJAX rankings fetch failed: {exc}")
+
+    # Recruiting teams
+    recruiting_data = []
+    try:
+        from apps.organizations.models import Team as VNextTeam
+        from apps.organizations.choices import TeamStatus
+
+        qs = VNextTeam.objects.filter(
+            status=TeamStatus.ACTIVE,
+            visibility='PUBLIC',
+            is_recruiting=True,
+        ).select_related('organization').order_by('-updated_at')
+        if game_id:
+            qs = qs.filter(game_id=game_id)
+        for t in qs[:6]:
+            recruiting_data.append({
+                'name': t.name,
+                'slug': t.slug,
+                'tag': t.tag or (t.name[:2] if t.name else '??'),
+                'game': t.get_game_display() or 'Unknown',
+                'logo_url': t.logo.url if t.logo else None,
+                'description': (t.description or 'Looking for skilled players to join the roster.')[:120],
+                'url': f'/teams/{t.slug}/',
+            })
+    except Exception as exc:
+        logger.warning(f"AJAX recruiting fetch failed: {exc}")
+
+    return JsonResponse({
+        'ok': True,
+        'game_slug': game_slug,
+        'game_display': game_display,
+        'rankings': rankings_data,
+        'recruiting': recruiting_data,
     })

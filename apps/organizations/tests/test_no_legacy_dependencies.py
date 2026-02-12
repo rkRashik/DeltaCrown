@@ -250,7 +250,7 @@ class TestLegacyDependencyGuard:
         
         # Key templates that MUST exist
         required_templates = [
-            'hub/vnext_hub.html',
+            'hub/team_hub.html',
             'team/team_create.html',
             'team/team_detail.html',
             'team/team_invites.html',

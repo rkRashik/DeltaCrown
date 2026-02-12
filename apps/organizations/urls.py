@@ -23,6 +23,7 @@ from apps.organizations.views import (
     org_hub,
     org_directory,
 )
+from apps.organizations.views.hub import vnext_hub_filter
 
 app_name = 'organizations'
 
@@ -32,6 +33,7 @@ urlpatterns = [
     
     # UI views - vNext Hub (landing page)
     path('teams/vnext/', vnext_hub, name='vnext_hub'),
+    path('teams/vnext/filter/', vnext_hub_filter, name='vnext_hub_filter'),
     
     # UI views - Team invites dashboard
     path('teams/invites/', team_invites, name='team_invites'),

@@ -32,6 +32,8 @@ class RankingEntry:
     tier: str
     confidence_level: str
     is_independent: bool
+    team_logo_url: Optional[str] = None
+    team_tag: Optional[str] = None
     
     def __post_init__(self):
         """Calculate team URL based on team type."""
@@ -158,6 +160,8 @@ class CompetitionService:
                 tier=team.display_tier,
                 confidence_level=confidence,
                 is_independent=(org is None),
+                team_logo_url=team.logo.url if team.logo else None,
+                team_tag=team.tag,
             )
             entries.append(entry)
         
@@ -207,7 +211,7 @@ class CompetitionService:
             game_id_int = int(game_id)
         except (ValueError, TypeError):
             # If game_id cannot be converted to int, return empty results
-            return RankingsResponse(entries=[], total_count=0, page=1, query_count=1)
+            return RankingsResponse(entries=[], total_count=0, query_count=1)
         
         # Build cache key
         cache_key = f'competition:game_rankings:{game_id}:{tier}:{verified_only}:{limit}:{offset}'
@@ -276,6 +280,8 @@ class CompetitionService:
                 tier=team.display_tier,
                 confidence_level=confidence,
                 is_independent=(org is None),
+                team_logo_url=team.logo.url if team.logo else None,
+                team_tag=team.tag,
             )
             entries.append(entry)
         
