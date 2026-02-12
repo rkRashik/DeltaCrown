@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Hub — DeltaCrown Esports</title>
+    <meta name="description"
+        content="Build your competitive legacy. Create a team, climb DCRS Rankings, and compete in Bangladesh's premier esports ecosystem.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class', theme: { extend: { colors: { 'dc-cyan': '#06b6d4', 'dc-purple': '#8b5cf6', 'dc-gold': '#facc15', 'dc-dark': '#050505', 'dc-surface': '#0d0d0d' }, fontFamily: { 'sans': ['Inter', 'system-ui', 'sans-serif'], 'display': ['Space Grotesk', 'sans-serif'] }, animation: { 'marquee': 'marquee 35s linear infinite', 'pulse-glow': 'pulseGlow 2.5s ease-in-out infinite' }, keyframes: { marquee: { '0%': { transform: 'translateX(0%)' }, '100%': { transform: 'translateX(-50%)}' }, pulseGlow: { '0%,100%': { boxShadow: '0 0 15px rgba(6,182,212,0.4)' }, '50%': { boxShadow: '0 0 5px rgba(6,182,212,0.1)' } } } } } };
+    </script>
+    <style>
+        /* ===== BASE ===== */
+        body {
+            background: #050505;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            letter-spacing: -0.005em;
+        }
+
+        /* Sharper headings */
+        h1, h2, h3, h4, h5, h6 {
+            text-rendering: geometricPrecision;
+            font-feature-settings: 'kern' 1;
+        }
+
+        /* Crisp text everywhere */
+        p, span, a, button, input, select, label {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ===== GRAIN OVERLAY ===== */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: .035;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        /* ===== GLASSMORPHISM V2 ===== */
+        .glass {
+            background: rgba(255, 255, 255, 0.025);
+            backdrop-filter: blur(16px) saturate(1.4);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all .4s cubic-bezier(.22, 1, .36, 1);
+            position: relative;
+        }
+
+        .glass:hover {
+            background: rgba(255, 255, 255, 0.055);
+            border-color: rgba(6, 182, 212, 0.3);
+            transform: translateY(-2px)
+        }
+
+        /* Animated gradient border on glass hover */
+        .glass-glow {
+            position: relative;
+            overflow: hidden
+        }
+
+        .glass-glow::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            z-index: -1;
+            border-radius: inherit;
+            background: conic-gradient(from var(--angle, 0deg), transparent 40%, #06b6d4 50%, #8b5cf6 60%, transparent 70%);
+            opacity: 0;
+            transition: opacity .5s;
+            animation: spin-border 4s linear infinite;
+        }
+
+        .glass-glow:hover::before {
+            opacity: 1
+        }
+
+        @property --angle {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false
+        }
+
+        @keyframes spin-border {
+            to {
+                --angle: 360deg
+            }
+        }
+
+        /* ===== 3D TILT ===== */
+        .tilt-card {
+            transition: transform .4s cubic-bezier(.22, 1, .36, 1), box-shadow .4s;
+            transform-style: preserve-3d
+        }
+
+        .tilt-card:hover {
+            transform: perspective(800px) rotateX(2deg) rotateY(-3deg) translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, .4), 0 0 30px rgba(6, 182, 212, .08)
+        }
+
+        /* ===== GRADIENTS & TEXT ===== */
+        .grad-text {
+            background: linear-gradient(135deg, #06b6d4, #8b5cf6 50%, #facc15);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        /* Animated gradient mesh hero */
+        .hero-mesh {
+            background: radial-gradient(ellipse 80% 50% at 20% 40%, rgba(6, 182, 212, .08) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 80% 20%, rgba(139, 92, 246, .06) 0%, transparent 50%),
+                radial-gradient(ellipse 50% 50% at 50% 80%, rgba(250, 204, 21, .04) 0%, transparent 50%);
+            animation: mesh-shift 12s ease-in-out infinite alternate;
+        }
+
+        @keyframes mesh-shift {
+            0% {
+                background-position: 0% 0%, 100% 0%, 50% 100%
+            }
+
+            100% {
+                background-position: 100% 50%, 0% 100%, 80% 0%
+            }
+        }
+
+        /* ===== CARD IMAGE OVERLAY ===== */
+        .card-img {
+            position: relative;
+            overflow: hidden
+        }
+
+        .card-img::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(5, 5, 5, 0.95) 0%, rgba(5, 5, 5, 0.3) 60%, transparent)
+        }
+
+        /* ===== SCROLL CONTAINERS ===== */
+        .scroll-x {
+            display: flex;
+            gap: .75rem;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            cursor: grab
+        }
+
+        .scroll-x::-webkit-scrollbar {
+            display: none
+        }
+
+        .scroll-x>* {
+            scroll-snap-align: start;
+            flex-shrink: 0
+        }
+
+        .scroll-x:active {
+            cursor: grabbing
+        }
+
+        /* ===== GAME CARDS ===== */
+        .game-card-active {
+            border-color: #06b6d4 !important;
+            background: linear-gradient(to bottom, rgba(6, 182, 212, 0.15), transparent) !important;
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.2), inset 0 0 15px rgba(6, 182, 212, 0.05)
+        }
+
+        /* Tooltip */
+        .game-tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%) scale(0.9);
+            background: rgba(13, 13, 13, .95);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 8px;
+            padding: 6px 10px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: all .25s cubic-bezier(.22, 1, .36, 1);
+            backdrop-filter: blur(12px);
+            z-index: 50;
+        }
+
+        .game-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: rgba(255, 255, 255, .1);
+        }
+
+        .game-card:hover .game-tooltip {
+            opacity: 1;
+            transform: translateX(-50%) scale(1)
+        }
+
+        /* ===== CROWN GLOW (rank #1) ===== */
+        .crown-card {
+            border: 1px solid rgba(250, 204, 21, 0.25) !important;
+            background: linear-gradient(135deg, rgba(250, 204, 21, 0.06), rgba(250, 204, 21, 0.02), transparent) !important;
+            box-shadow: 0 0 20px rgba(250, 204, 21, 0.08);
+        }
+
+        .crown-card:hover {
+            box-shadow: 0 0 35px rgba(250, 204, 21, 0.15);
+            border-color: rgba(250, 204, 21, 0.4) !important
+        }
+
+        /* ===== TIER BADGES ===== */
+        .tier-crown {
+            background: rgba(250, 204, 21, .12);
+            color: #facc15;
+            border: 1px solid rgba(250, 204, 21, .25)
+        }
+
+        .tier-ascendant {
+            background: rgba(139, 92, 246, .12);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, .25)
+        }
+
+        .tier-diamond {
+            background: rgba(6, 182, 212, .12);
+            color: #06b6d4;
+            border: 1px solid rgba(6, 182, 212, .25)
+        }
+
+        .tier-platinum {
+            background: rgba(148, 163, 184, .12);
+            color: #94a3b8;
+            border: 1px solid rgba(148, 163, 184, .25)
+        }
+
+        .tier-gold {
+            background: rgba(234, 179, 8, .12);
+            color: #eab308;
+            border: 1px solid rgba(234, 179, 8, .25)
+        }
+
+        .tier-silver {
+            background: rgba(156, 163, 175, .12);
+            color: #9ca3af;
+            border: 1px solid rgba(156, 163, 175, .25)
+        }
+
+        /* ===== ANIMATED PROGRESS BARS ===== */
+        .progress-fill {
+            width: 0%;
+            transition: width 1.2s cubic-bezier(.22, 1, .36, 1)
+        }
+
+        .progress-fill.animate {
+            width: var(--target-width)
+        }
+
+        /* ===== SECTION NEON HEADER ===== */
+        .neon-line {
+            position: relative
+        }
+
+        .neon-line::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            border-radius: 1px;
+            background: linear-gradient(90deg, #06b6d4, transparent);
+            transition: width .6s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        .neon-line:hover::after {
+            width: 100%
+        }
+
+        /* ===== STAGGERED SCROLL REVEAL ===== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: all .7s cubic-bezier(.22, 1, .36, 1)
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0)
+        }
+
+        .reveal-delay-1 {
+            transition-delay: .1s
+        }
+
+        .reveal-delay-2 {
+            transition-delay: .2s
+        }
+
+        .reveal-delay-3 {
+            transition-delay: .3s
+        }
+
+        .reveal-delay-4 {
+            transition-delay: .4s
+        }
+
+        /* ===== TYPING CURSOR ===== */
+        .type-cursor::after {
+            content: '|';
+            animation: blink 1s step-end infinite;
+            color: #06b6d4
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0
+            }
+        }
+
+        /* ===== PARTICLE CANVAS ===== */
+        #hero-particles {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none
+        }
+
+        /* ===== FAB ===== */
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 80;
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 32px rgba(6, 182, 212, .4);
+            cursor: pointer;
+            transition: all .3s cubic-bezier(.22, 1, .36, 1);
+            transform: translateY(100px);
+            opacity: 0;
+        }
+
+        .fab.visible {
+            transform: translateY(0);
+            opacity: 1
+        }
+
+        .fab:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 12px 40px rgba(6, 182, 212, .55)
+        }
+
+        .fab::before {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 19px;
+            background: conic-gradient(from 0deg, rgba(6, 182, 212, .6), transparent 40%, rgba(139, 92, 246, .6) 60%, transparent);
+            z-index: -1;
+            animation: spin-border 3s linear infinite;
+            opacity: .6;
+        }
+
+        .fab-label {
+            position: absolute;
+            right: calc(100% + 12px);
+            white-space: nowrap;
+            background: rgba(13, 13, 13, .95);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #06b6d4;
+            opacity: 0;
+            transform: translateX(8px);
+            transition: all .25s;
+            pointer-events: none;
+            backdrop-filter: blur(12px);
+        }
+
+        .fab:hover .fab-label {
+            opacity: 1;
+            transform: translateX(0)
+        }
+
+        /* ===== BACK TO TOP ===== */
+        .back-to-top {
+            position: fixed;
+            bottom: 90px;
+            right: 28px;
+            z-index: 79;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .05);
+            border: 1px solid rgba(255, 255, 255, .1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all .3s;
+            transform: translateY(80px);
+            opacity: 0;
+            backdrop-filter: blur(8px);
+        }
+
+        .back-to-top.visible {
+            transform: translateY(0);
+            opacity: 1
+        }
+
+        .back-to-top:hover {
+            background: rgba(6, 182, 212, .15);
+            border-color: rgba(6, 182, 212, .3)
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #222;
+            border-radius: 3px
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #06b6d4
+        }
+
+        /* ===== SEARCH MODAL ===== */
+        .search-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(0, 0, 0, .85);
+            backdrop-filter: blur(12px)
+        }
+
+        .search-modal.active {
+            display: flex
+        }
+
+        /* ===== UTILITY ANIMATIONS ===== */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp .5s ease-out both
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0)
+            }
+
+            50% {
+                transform: translateY(-6px)
+            }
+        }
+
+        .float-anim {
+            animation: float 3s ease-in-out infinite
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0
+            }
+
+            100% {
+                background-position: 200% 0
+            }
+        }
+
+        .shimmer {
+            background: linear-gradient(90deg, transparent 25%, rgba(255, 255, 255, .03) 50%, transparent 75%);
+            background-size: 200% 100%;
+            animation: shimmer 3s infinite
+        }
+
+        /* Micro-interaction: button arrow slide */
+        .btn-arrow i:last-child {
+            transition: transform .25s cubic-bezier(.22, 1, .36, 1)
+        }
+
+        .btn-arrow:hover i:last-child {
+            transform: translateX(4px)
+        }
+
+        /* Social icon glow */
+        .social-icon {
+            transition: all .3s;
+            color: #6b7280
+        }
+
+        .social-icon:hover {
+            color: #06b6d4;
+            filter: drop-shadow(0 0 8px rgba(6, 182, 212, .5));
+            transform: translateY(-2px)
+        }
+
+        /* Newsletter input */
+        .newsletter-input {
+            transition: all .3s
+        }
+
+        .newsletter-input:focus {
+            border-color: rgba(6, 182, 212, .5);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, .1)
+        }
+
+        /* ===== HERO CINEMATIC ENHANCEMENTS ===== */
+        .hero-grid-overlay {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(6,182,212,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(6,182,212,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 1;
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+            -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+        }
+
+        .hero-vignette {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, transparent 30%, rgba(5,5,5,0.65) 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .hero-scanline {
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(255,255,255,0.007) 2px,
+                rgba(255,255,255,0.007) 4px
+            );
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* Live activity ticker */
+        .activity-ticker-wrap {
+            overflow: hidden;
+            mask-image: linear-gradient(90deg, transparent, black 5%, black 95%, transparent);
+            -webkit-mask-image: linear-gradient(90deg, transparent, black 5%, black 95%, transparent);
+        }
+
+        .activity-ticker {
+            display: flex;
+            gap: 2.5rem;
+            animation: ticker-scroll 45s linear infinite;
+            white-space: nowrap;
+        }
+
+        .activity-ticker:hover {
+            animation-play-state: paused;
+        }
+
+        @keyframes ticker-scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .activity-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            animation: activity-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes activity-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* ===== RANKING TOP-3 HIGHLIGHT ===== */
+        .rank-row-gold {
+            background: linear-gradient(90deg, rgba(250,204,21,0.06) 0%, transparent 60%);
+            border: 1px solid rgba(250,204,21,0.15);
+            border-radius: 12px;
+        }
+        .rank-row-silver {
+            background: linear-gradient(90deg, rgba(148,163,184,0.04) 0%, transparent 60%);
+            border: 1px solid rgba(148,163,184,0.1);
+            border-radius: 12px;
+        }
+        .rank-row-bronze {
+            background: linear-gradient(90deg, rgba(234,179,8,0.04) 0%, transparent 60%);
+            border: 1px solid rgba(234,179,8,0.1);
+            border-radius: 12px;
+        }
+    </style>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- ========== STICKY NAV (appears on scroll) ========== -->
+    <nav id="sticky-nav"
+        class="fixed top-0 w-full z-50 transition-all duration-300 transform -translate-y-full bg-dc-dark/95 backdrop-blur-xl border-b border-white/10">
+        <div class="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="font-display font-bold text-lg">DELTA<span class="text-dc-cyan">CROWN</span></span>
+                <span class="hidden sm:inline text-xs text-gray-500 border-l border-white/10 pl-3 ml-1">Team Hub</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="openSearch()" class="p-2 hover:bg-white/10 rounded-lg transition-colors"><i
+                        data-lucide="search" class="w-4 h-4 text-gray-400"></i></button>
+                <button
+                    class="bg-gradient-to-r from-dc-cyan to-dc-purple hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] text-white px-5 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Create Team
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ========== MAIN HEADER ========== -->
+    <header class="relative z-40 border-b border-white/10 bg-dc-dark">
+        <div class="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div
+                    class="w-9 h-9 bg-gradient-to-br from-dc-cyan to-dc-purple rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-dc-cyan/20">
+                    D</div>
+                <span class="font-display font-bold text-xl hidden sm:block">DELTA<span
+                        class="text-white">CROWN</span></span>
+            </div>
+            <nav class="hidden md:flex gap-6 text-sm font-medium text-gray-400">
+                <a href="/" class="hover:text-white transition-colors">Home</a>
+                <a href="/tournaments" class="hover:text-white transition-colors">Tournaments</a>
+                <a href="/teams" class="text-white border-b-2 border-dc-cyan pb-0.5">Teams</a>
+                <a href="/rankings" class="hover:text-white transition-colors">Rankings</a>
+                <a href="/marketplace" class="hover:text-white transition-colors">Marketplace</a>
+            </nav>
+            <div class="flex items-center gap-3">
+                <button onclick="openSearch()"
+                    class="p-2 hover:bg-white/10 rounded-lg transition-colors hidden sm:flex"><i data-lucide="search"
+                        class="w-4 h-4 text-gray-400"></i></button>
+                <a href="/login"
+                    class="hidden sm:inline text-sm font-semibold text-gray-400 hover:text-white transition-colors">Sign
+                    In</a>
+                <a href="/register"
+                    class="px-4 py-2 bg-gradient-to-r from-dc-cyan to-dc-purple text-white text-sm font-bold rounded-lg hover:shadow-lg hover:shadow-dc-cyan/30 transition-all">Join
+                    Now</a>
+                <button id="mobile-menu-btn" class="md:hidden p-2 text-gray-400"><i data-lucide="menu"
+                        class="w-5 h-5"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========== SEARCH MODAL ========== -->
+    <div id="search-modal" class="search-modal items-start justify-center pt-[15vh]"
+        onclick="if(event.target===this)closeSearch()">
+        <div
+            class="w-full max-w-2xl mx-4 bg-dc-surface border border-white/10 rounded-2xl shadow-2xl overflow-hidden fade-in">
+            <div class="p-4 border-b border-white/10 flex items-center gap-3">
+                <i data-lucide="search" class="w-5 h-5 text-dc-cyan flex-shrink-0"></i>
+                <input id="search-input" type="text" placeholder="Search teams, players, tournaments..."
+                    class="flex-1 bg-transparent text-white text-lg outline-none placeholder-gray-500">
+                <button onclick="closeSearch()" class="hidden sm:flex items-center justify-center w-7 h-7 rounded-lg bg-white/5 border border-white/10 text-gray-500 hover:text-white hover:bg-white/10 transition-all flex-shrink-0" aria-label="Close search">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+            <div class="p-3 border-b border-white/10 flex items-center gap-2 flex-wrap">
+                <span class="text-[10px] text-gray-500 uppercase tracking-wider mr-1">Filter:</span>
+                <button
+                    class="search-filter active text-[11px] px-3 py-1 rounded-full font-semibold border transition-all bg-dc-cyan/15 border-dc-cyan/30 text-dc-cyan"
+                    data-filter="all">All</button>
+                <button
+                    class="search-filter text-[11px] px-3 py-1 rounded-full font-semibold border transition-all bg-white/5 border-white/10 text-gray-400 hover:text-white"
+                    data-filter="teams">Teams</button>
+                <button
+                    class="search-filter text-[11px] px-3 py-1 rounded-full font-semibold border transition-all bg-white/5 border-white/10 text-gray-400 hover:text-white"
+                    data-filter="players">Players</button>
+                <button
+                    class="search-filter text-[11px] px-3 py-1 rounded-full font-semibold border transition-all bg-white/5 border-white/10 text-gray-400 hover:text-white"
+                    data-filter="tournaments">Tournaments</button>
+                <div class="ml-auto flex items-center gap-2">
+                    <span class="text-[10px] text-gray-500">Sort:</span>
+                    <select
+                        class="text-[11px] bg-dc-dark border border-white/10 text-gray-300 rounded px-2 py-1 outline-none">
+                        <option style="background:#0d0d0d;color:#fff">Relevance</option>
+                        <option style="background:#0d0d0d;color:#fff">Rank (High→Low)</option>
+                        <option style="background:#0d0d0d;color:#fff">Newest</option>
+                        <option style="background:#0d0d0d;color:#fff">Name A-Z</option>
+                    </select>
+                </div>
+            </div>
+            <div class="p-4 max-h-[50vh] overflow-y-auto">
+                <p class="text-xs text-gray-500 mb-3">TRENDING SEARCHES</p>
+                <div class="space-y-2">
+                    <div
+                        class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+                        <i data-lucide="trending-up" class="w-4 h-4 text-dc-cyan"></i><span
+                            class="text-sm text-gray-300">Protocol V</span><span
+                            class="text-[10px] text-gray-600 ml-auto">Team · VALORANT</span>
+                    </div>
+                    <div
+                        class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+                        <i data-lucide="trending-up" class="w-4 h-4 text-dc-cyan"></i><span
+                            class="text-sm text-gray-300">Winter Championship</span><span
+                            class="text-[10px] text-gray-600 ml-auto">Tournament</span>
+                    </div>
+                    <div
+                        class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+                        <i data-lucide="trending-up" class="w-4 h-4 text-dc-cyan"></i><span
+                            class="text-sm text-gray-300">Delta Strikers</span><span
+                            class="text-[10px] text-gray-600 ml-auto">Team · PUBG Mobile</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ========== HERO ========== -->
+    <section class="relative overflow-hidden" id="hero-section">
+        <canvas id="hero-particles"></canvas>
+        <div class="hero-mesh absolute inset-0"></div>
+        <!-- Cinematic layered orbs (enhanced) -->
+        <div
+            class="absolute top-[-150px] left-1/4 w-[750px] h-[750px] bg-dc-cyan/[0.14] rounded-full blur-[220px] pointer-events-none">
+        </div>
+        <div
+            class="absolute bottom-[-130px] right-[15%] w-[650px] h-[650px] bg-dc-purple/[0.11] rounded-full blur-[200px] pointer-events-none">
+        </div>
+        <div
+            class="absolute top-[40%] left-[-120px] w-[450px] h-[450px] bg-dc-gold/[0.07] rounded-full blur-[160px] pointer-events-none">
+        </div>
+        <div
+            class="absolute top-[10%] right-[-80px] w-[350px] h-[350px] bg-red-500/[0.04] rounded-full blur-[140px] pointer-events-none">
+        </div>
+        <!-- Animated gradient line -->
+        <div
+            class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-dc-cyan/60 to-transparent">
+        </div>
+        <!-- Cinematic overlays -->
+        <div class="hero-grid-overlay"></div>
+        <div class="hero-vignette"></div>
+        <div class="hero-scanline"></div>
+
+        <div class="relative z-10 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 pt-14 sm:pt-20 pb-14">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-14">
+                <div class="max-w-2xl">
+                    <div
+                        class="reveal inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-dc-purple/10 border border-dc-purple/25 text-dc-purple text-[11px] font-bold uppercase tracking-widest mb-6">
+                        <span class="w-2 h-2 rounded-full bg-dc-purple animate-pulse"></span>Season 1 · Now Live
+                    </div>
+                    <h1
+                        class="reveal reveal-delay-1 font-display text-4xl sm:text-5xl lg:text-[3.8rem] font-black leading-[1.05] text-white mb-5">
+                        <span id="hero-typed"></span>
+                    </h1>
+                    <p class="reveal reveal-delay-2 text-gray-400 text-base sm:text-lg max-w-lg mb-8 leading-relaxed">
+                        Create a team in 30 seconds. Climb the DCRS tiers from Bronze to Crown. Earn real revenue, get
+                        scouted by organizations, and build a legacy that stays forever.
+                    </p>
+                    <div class="reveal reveal-delay-3 flex flex-col sm:flex-row gap-3 mb-5">
+                        <button
+                            class="group relative px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-display font-bold rounded-xl hover:scale-[1.03] transition-all shadow-[0_0_30px_rgba(6,182,212,0.35)] hover:shadow-[0_0_50px_rgba(6,182,212,0.5)] overflow-hidden btn-arrow">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                            </div>
+                            <span class="relative flex items-center justify-center gap-2 text-sm"><i
+                                    data-lucide="plus-circle" class="w-5 h-5"></i>CREATE YOUR TEAM<i
+                                    data-lucide="arrow-right" class="w-4 h-4"></i></span>
+                        </button>
+                        <button onclick="openSearch()"
+                            class="px-8 py-4 bg-white/[0.06] border border-white/15 text-white font-semibold rounded-xl hover:bg-white/12 hover:border-white/25 transition-all flex items-center justify-center gap-2 text-sm backdrop-blur-sm btn-arrow">
+                            <i data-lucide="search" class="w-4 h-4 text-dc-cyan"></i>Find a Squad<i
+                                data-lucide="arrow-right" class="w-3.5 h-3.5 opacity-0 group-hover:opacity-100"></i>
+                        </button>
+                    </div>
+                    <div class="reveal reveal-delay-4 flex flex-wrap items-center gap-x-5 gap-y-1">
+                        <p class="text-[11px] text-gray-500 flex items-center gap-1.5"><i data-lucide="zap"
+                                class="w-3 h-3 text-dc-gold"></i>Under 30 seconds</p>
+                        <a href="/teams/benefits" class="text-[11px] text-dc-cyan hover:underline">Learn Benefits →</a>
+                    </div>
+                </div>
+                <!-- Hero Stats — counter animation targets -->
+                <div id="hero-stats" class="grid grid-cols-2 gap-2.5 w-full lg:w-auto lg:max-w-sm">
+                    <div class="glass p-4 rounded-xl text-center group hover:border-dc-cyan/25 transition-colors">
+                        <p
+                            class="text-2xl sm:text-3xl font-display font-bold text-white group-hover:text-dc-cyan transition-colors">
+                            <span class="counter" data-target="124">0</span>
+                        </p>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Live Matches</p>
+                    </div>
+                    <div class="glass p-4 rounded-xl text-center group hover:border-dc-cyan/25 transition-colors">
+                        <p
+                            class="text-2xl sm:text-3xl font-display font-bold text-dc-cyan group-hover:text-dc-gold transition-colors">
+                            ৳<span class="counter" data-target="2.5" data-suffix="M" data-decimal="true">0</span><span
+                                class="text-sm">M</span></p>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Total Prize Pool</p>
+                    </div>
+                    <div class="glass p-4 rounded-xl text-center group hover:border-dc-cyan/25 transition-colors">
+                        <p
+                            class="text-2xl sm:text-3xl font-display font-bold text-white group-hover:text-dc-purple transition-colors">
+                            <span class="counter" data-target="850">0</span><span class="text-sm">+</span>
+                        </p>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Teams Active</p>
+                    </div>
+                    <div class="glass p-4 rounded-xl text-center group hover:border-dc-cyan/25 transition-colors">
+                        <p class="text-2xl sm:text-3xl font-display font-bold text-green-400">
+                            <span class="counter" data-target="12" data-suffix="K">0</span><span
+                                class="text-sm">K</span>
+                        </p>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Players Online</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Activity Ticker -->
+            <div class="mt-10 pt-6 border-t border-white/[0.06]">
+                <div class="flex items-center gap-2.5 mb-3">
+                    <span class="activity-dot bg-green-400"></span>
+                    <span class="text-[10px] text-gray-500 uppercase tracking-[0.15em] font-bold">Live Activity</span>
+                    <span class="text-[9px] text-gray-700 ml-1">— updates in real-time</span>
+                </div>
+                <div class="activity-ticker-wrap">
+                    <div class="activity-ticker">
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-dc-cyan"></span><span class="text-dc-cyan font-semibold">Team Liquid BD</span> won vs Revolt Clan · VALORANT</span>
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-dc-gold"></span><span class="text-dc-gold font-semibold">Protocol V</span> promoted to Crown tier</span>
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-dc-purple"></span><span class="text-dc-purple font-semibold">Gen X Esports</span> registered for Winter Championship</span>
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-green-400"></span><span class="text-green-400 font-semibold">Delta Strikers</span> created a new team · PUBG Mobile</span>
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span><span class="text-red-400 font-semibold">1v1 Bounty</span> ৳500 accepted by ShadowStrike</span>
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-dc-cyan"></span><span class="text-dc-cyan font-semibold">Sentinels Dhaka</span> won Scrim Series #41</span>
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span class="text-amber-400 font-semibold">Winter Cup</span> registrations open — 8 slots left</span>
+                        <!-- Duplicate for seamless loop -->
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-dc-cyan"></span><span class="text-dc-cyan font-semibold">Team Liquid BD</span> won vs Revolt Clan · VALORANT</span>
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-dc-gold"></span><span class="text-dc-gold font-semibold">Protocol V</span> promoted to Crown tier</span>
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-dc-purple"></span><span class="text-dc-purple font-semibold">Gen X Esports</span> registered for Winter Championship</span>
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-green-400"></span><span class="text-green-400 font-semibold">Delta Strikers</span> created a new team · PUBG Mobile</span>
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span><span class="text-red-400 font-semibold">1v1 Bounty</span> ৳500 accepted by ShadowStrike</span>
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-dc-cyan"></span><span class="text-dc-cyan font-semibold">Sentinels Dhaka</span> won Scrim Series #41</span>
+                        <span class="text-xs text-gray-500 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span class="text-amber-400 font-semibold">Winter Cup</span> registrations open — 8 slots left</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== COMBAT ZONE – 11 GAMES + ALL ========== -->
+    <section class="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-5">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2"><i
+                    data-lucide="crosshair" class="w-4 h-4 text-dc-cyan"></i>Select Combat Zone</h3>
+            <div class="flex items-center gap-3">
+                <span id="game-filter-indicator" class="text-[11px] text-dc-cyan font-semibold flex items-center gap-1.5 bg-dc-cyan/10 border border-dc-cyan/20 px-3 py-1 rounded-full"><i data-lucide="filter" class="w-3 h-3"></i>Showing: Global · All Games</span>
+                <span class="text-[11px] text-gray-500">12 Filters</span>
+            </div>
+        </div>
+        <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2.5" id="game-grid"></div>
+    </section>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <div class="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- LEFT COLUMN (2/3) -->
+            <div class="lg:col-span-2 space-y-8">
+
+                <!-- TOURNAMENT ARENA -->
+                <div class="reveal">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="font-display text-xl font-bold text-white flex items-center gap-2 neon-line"><span
+                                class="w-1.5 h-7 bg-dc-cyan rounded-full"></span>Tournament Arena</h2>
+                        <a href="/tournaments"
+                            class="text-xs text-gray-400 hover:text-white flex items-center gap-1 transition-colors btn-arrow">View
+                            All <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+                    </div>
+                    <div
+                        class="glass rounded-2xl overflow-hidden relative" style="transform:none!important">
+                        <span
+                            class="absolute top-3 right-3 z-20 bg-red-500/20 text-red-400 border border-red-500/40 text-[10px] font-bold px-2.5 py-1 rounded-full animate-pulse">LIVE
+                            NOW</span>
+                        <div class="grid md:grid-cols-3 h-full">
+                            <div class="relative h-44 md:h-full bg-gray-900"><img
+                                    src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&q=75"
+                                    class="w-full h-full object-cover opacity-50"
+                                    alt="Tournament"></div>
+                            <div class="md:col-span-2 p-5 flex flex-col justify-between relative">
+                                <div>
+                                    <div
+                                        class="flex items-center gap-2 mb-2 text-[10px] font-bold text-dc-cyan tracking-wider uppercase">
+                                        <span>TIER A</span><span class="w-1 h-1 bg-gray-600 rounded-full"></span><span
+                                            id="featured-game-label">VALORANT</span>
+                                    </div>
+                                    <h3
+                                        class="text-xl font-display font-black text-white mb-1">
+                                        Delta Winter Championship</h3>
+                                    <p class="text-gray-500 text-sm mb-4">Top 2 teams qualify for Nationals. Open to
+                                        Diamond+ teams.</p>
+                                    <div class="flex items-center gap-5 text-sm">
+                                        <div>
+                                            <p class="text-[10px] text-gray-600 uppercase">Prize</p>
+                                            <p class="font-bold text-white">৳150,000</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] text-gray-600 uppercase">Slots</p>
+                                            <p class="font-bold text-white">12<span
+                                                    class="text-gray-500 text-xs font-normal">/16</span></p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] text-gray-600 uppercase">Entry</p>
+                                            <p class="font-bold text-green-400">FREE</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 mt-4">
+                                    <button
+                                        class="flex-1 bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all text-sm">Register
+                                        Team</button>
+                                    <button class="px-3 py-2.5 glass rounded-lg hover:bg-white/10 transition-colors"><i
+                                            data-lucide="info" class="w-4 h-4 text-gray-400"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Upcoming Tournament -->
+                    <div class="glass p-3.5 rounded-xl flex items-center justify-between mt-3 cursor-pointer" style="transition: background .3s, border-color .3s; transform:none!important">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-10 h-10 rounded-lg bg-dc-surface border border-white/10 flex items-center justify-center">
+                                <i data-lucide="trophy" class="w-4 h-4 text-dc-purple"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white text-sm">Weekend Scrim Series #42</h4>
+                                <p class="text-[11px] text-gray-500">Starts in 2h · 5v5 · ৳5,000</p>
+                            </div>
+                        </div>
+                        <span
+                            class="bg-dc-cyan/10 text-dc-cyan text-[10px] font-bold px-2.5 py-1 rounded-full border border-dc-cyan/20">UPCOMING</span>
+                    </div>
+                </div>
+
+                <!-- GLOBAL STANDINGS (Table Layout) -->
+                <div class="reveal">
+                    <div class="glass rounded-2xl overflow-hidden">
+                        <div class="h-1 w-full bg-gradient-to-r from-dc-gold via-amber-400 to-dc-gold"></div>
+                        <div class="p-4 sm:p-5">
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="font-display text-lg font-bold text-white flex items-center gap-2">👑 Global
+                                    Standings</h2>
+                                <div class="flex items-center gap-2">
+                                    <a href="/ranking-policy"
+                                        class="text-[10px] text-gray-500 hover:text-dc-cyan flex items-center gap-1 transition-colors px-2.5 py-1 border border-white/10 rounded-lg">Ranking
+                                        Policy</a>
+                                    <a href="/rankings"
+                                        class="text-[10px] text-dc-cyan font-bold flex items-center gap-1 transition-colors px-2.5 py-1 bg-dc-cyan/10 border border-dc-cyan/30 rounded-lg hover:bg-dc-cyan/20">View
+                                        All <i data-lucide="arrow-right" class="w-3 h-3"></i></a>
+                                </div>
+                            </div>
+                            <p class="text-[11px] text-gray-500 mb-4">Top teams across all titles based on Crown Points
+                                (CP).</p>
+                            <!-- Table Header -->
+                            <div
+                                class="grid grid-cols-[40px_1fr_100px_90px_60px] gap-2 px-2 py-2 text-[10px] text-gray-600 uppercase tracking-wider font-bold border-b border-white/5">
+                                <span>#</span>
+                                <span>Team</span>
+                                <span class="text-center">W/L Ratio</span>
+                                <span class="text-center">Points</span>
+                                <span class="text-center">Trend</span>
+                            </div>
+                            <!-- Table Body -->
+                            <div id="rankings-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SCOUTING GROUNDS -->
+                <div class="reveal">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="font-display text-xl font-bold text-white flex items-center gap-2 neon-line"><span
+                                class="w-1.5 h-7 bg-dc-purple rounded-full"></span>Scouting Grounds</h2>
+                        <div class="flex gap-2">
+                            <button
+                                class="text-[11px] bg-dc-purple/15 text-dc-purple px-3 py-1 rounded-lg border border-dc-purple/30 font-bold hover:bg-dc-purple/25 transition-colors">Find
+                                Team</button>
+                            <button
+                                class="text-[11px] glass text-gray-400 px-3 py-1 rounded-lg hover:text-white transition-colors">Find
+                                Players</button>
+                        </div>
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-3" id="scouting-list"></div>
+                    <div class="mt-3 text-center">
+                        <a href="/teams?filter=recruiting"
+                            class="text-xs font-semibold text-gray-500 hover:text-dc-cyan transition-colors">Show 40+
+                            more teams recruiting →</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT SIDEBAR (1/3) -->
+            <div class="space-y-5">
+
+                <!-- MY TEAMS (User's joined teams) -->
+                <div class="glass rounded-2xl p-4" id="my-teams-widget">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-display font-bold text-white text-sm flex items-center gap-2"><i
+                                data-lucide="users" class="w-4 h-4 text-dc-cyan"></i>My Teams</h3>
+                        <a href="/dashboard/teams"
+                            class="text-[10px] text-gray-500 hover:text-dc-cyan transition-colors">Manage</a>
+                    </div>
+                    <div class="space-y-2" id="my-teams-list"></div>
+                    <a href="/teams/create" id="my-teams-cta"
+                        class="mt-3 block w-full py-2 bg-white/[0.03] border border-dashed border-white/10 text-center text-gray-500 font-bold text-[11px] rounded-lg hover:border-dc-cyan/30 hover:text-dc-cyan transition-all flex items-center justify-center gap-1.5">
+                        <i data-lucide="plus" class="w-3 h-3"></i> Join or Create Team
+                    </a>
+                    <!-- Role-based constraint notice -->
+                    <div id="team-game-constraint" class="hidden mt-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                        <p class="text-[10px] text-amber-400 font-semibold flex items-center gap-1.5">
+                            <i data-lucide="info" class="w-3 h-3"></i>You already have a team in VALORANT
+                        </p>
+                        <p class="text-[9px] text-gray-500 mt-0.5">One roster per game allowed</p>
+                    </div>
+                </div>
+
+                <!-- FEATURED TEAM SPOTLIGHT -->
+                <div class="glass rounded-2xl overflow-hidden">
+                    <div class="card-img h-28"><img
+                            src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&q=70"
+                            class="w-full h-full object-cover" alt="">
+                        <div class="absolute bottom-2 left-3 z-10 flex items-center gap-2">
+                            <img src="https://api.dicebear.com/7.x/identicon/svg?seed=ProtocolV&backgroundColor=111111"
+                                class="w-10 h-10 rounded-full border-2 border-dc-gold bg-dc-dark" alt="">
+                            <div>
+                                <p class="font-display font-bold text-white text-sm leading-tight">Protocol V</p>
+                                <p class="text-dc-gold text-[10px] font-bold">👑 CROWN · #1 Global</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-3.5 space-y-2.5">
+                        <div class="flex items-center justify-between text-xs"><span class="text-gray-500">42,500 CP ·
+                                VALORANT</span><span
+                                class="px-2 py-0.5 bg-green-500/15 text-green-400 text-[10px] font-bold rounded-full">Active</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="/teams/protocol-v"
+                                class="flex-1 py-2 bg-gradient-to-r from-dc-cyan/20 to-dc-cyan/10 border border-dc-cyan/30 text-dc-cyan text-center font-bold text-xs rounded-lg hover:from-dc-cyan hover:to-dc-cyan hover:text-white transition-all">View
+                                Profile</a>
+                            <button
+                                class="flex-1 py-2 bg-white/5 border border-white/10 text-gray-400 font-bold text-xs rounded-lg hover:bg-white/10 transition-all">Challenge</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CHALLENGE ARENA -->
+                <div class="glass rounded-2xl p-5 relative overflow-hidden">
+                    <div
+                        class="absolute top-0 right-0 w-24 h-24 bg-dc-purple/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none">
+                    </div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-display font-bold text-white text-base flex items-center gap-2"><i
+                                data-lucide="swords" class="w-4 h-4 text-dc-purple"></i>Open Challenges</h3>
+                        <a href="/challenges" class="text-[10px] text-gray-500 hover:text-white transition-colors">View
+                            All</a>
+                    </div>
+                    <p class="text-[10px] text-gray-600 mb-3">Scrims · Bounties · Friendly Matches</p>
+                    <div class="space-y-2" id="challenges-list"></div>
+                    <button id="issue-challenge-btn"
+                        class="w-full mt-3 py-2.5 border border-dashed border-gray-700 text-gray-400 rounded-xl text-xs font-bold hover:border-dc-cyan hover:text-dc-cyan transition-all flex items-center justify-center gap-1.5">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Issue a Challenge
+                    </button>
+                </div>
+
+                <!-- TOP ORGANIZATIONS -->
+                <div class="glass rounded-2xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-display font-bold text-white text-base">Top Organizations</h3>
+                        <a href="/organizations"
+                            class="text-[11px] text-dc-cyan font-semibold hover:underline flex items-center gap-1">View
+                            All <i data-lucide="arrow-right" class="w-3 h-3"></i></a>
+                    </div>
+                    <div class="space-y-2.5" id="orgs-list"></div>
+                    <a id="org-cta-btn" href="/organizations/create"
+                        class="mt-4 block w-full py-2.5 bg-dc-purple/10 border border-dc-purple/30 text-center text-dc-purple font-bold text-xs rounded-xl hover:bg-dc-purple/20 transition-all">+
+                        Start an Organization</a>
+                </div>
+
+                <!-- QUICK SCRIM — ADVANCED -->
+                <div class="glass rounded-2xl overflow-hidden" id="quick-scrim-widget">
+                    <div class="h-1 w-full bg-gradient-to-r from-dc-cyan via-dc-purple to-dc-cyan"></div>
+                    <div class="p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-display font-bold text-white text-base flex items-center gap-2">
+                                <i data-lucide="crosshair" class="w-4 h-4 text-dc-cyan"></i>Match Finder
+                            </h3>
+                            <span class="text-[9px] text-gray-500 uppercase tracking-wider">Find Your Next Match</span>
+                        </div>
+
+                        <!-- Match Type Selector -->
+                        <div class="flex gap-1.5 mb-4" id="scrim-type-tabs">
+                            <button class="scrim-tab active flex-1 py-2 px-2 rounded-lg text-[11px] font-bold text-center transition-all bg-dc-cyan/15 border border-dc-cyan/30 text-dc-cyan" data-type="competitive">
+                                <i data-lucide="trophy" class="w-3 h-3 inline mr-1"></i>Ranked
+                            </button>
+                            <button class="scrim-tab flex-1 py-2 px-2 rounded-lg text-[11px] font-bold text-center transition-all bg-white/5 border border-white/10 text-gray-400 hover:text-white" data-type="scrim">
+                                <i data-lucide="swords" class="w-3 h-3 inline mr-1"></i>Scrim
+                            </button>
+                            <button class="scrim-tab flex-1 py-2 px-2 rounded-lg text-[11px] font-bold text-center transition-all bg-white/5 border border-white/10 text-gray-400 hover:text-white" data-type="friendly">
+                                <i data-lucide="handshake" class="w-3 h-3 inline mr-1"></i>Casual
+                            </button>
+                        </div>
+
+                        <!-- Game Grid Picker -->
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-2">Select Game</p>
+                        <div class="grid grid-cols-4 gap-1.5 mb-4" id="scrim-game-grid"></div>
+
+                        <!-- Format & Options Row -->
+                        <div class="flex gap-2 mb-3">
+                            <select id="scrim-format"
+                                class="flex-1 bg-dc-dark border border-white/10 text-white text-xs font-semibold rounded-lg px-3 py-2.5 outline-none appearance-none cursor-pointer hover:border-white/20 transition-colors"
+                                style="background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%236b7280%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>');background-repeat:no-repeat;background-position:right 8px center;padding-right:24px">
+                                <option style="background:#0d0d0d;color:#fff">5v5</option>
+                                <option style="background:#0d0d0d;color:#fff">4v4</option>
+                                <option style="background:#0d0d0d;color:#fff">3v3</option>
+                                <option style="background:#0d0d0d;color:#fff">2v2</option>
+                                <option style="background:#0d0d0d;color:#fff">1v1</option>
+                            </select>
+                            <select id="scrim-region"
+                                class="flex-1 bg-dc-dark border border-white/10 text-white text-xs font-semibold rounded-lg px-3 py-2.5 outline-none appearance-none cursor-pointer hover:border-white/20 transition-colors"
+                                style="background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%236b7280%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>');background-repeat:no-repeat;background-position:right 8px center;padding-right:24px">
+                                <option style="background:#0d0d0d;color:#fff">Bangladesh</option>
+                                <option style="background:#0d0d0d;color:#fff">South Asia</option>
+                                <option style="background:#0d0d0d;color:#fff">Global</option>
+                            </select>
+                        </div>
+
+                        <!-- Selected Game Badge + Queue Info -->
+                        <div class="flex items-center justify-between bg-dc-dark/80 rounded-lg px-3 py-2 mb-3 border border-white/5">
+                            <div class="flex items-center gap-2">
+                                <span id="scrim-selected-icon" class="text-base">🎯</span>
+                                <div>
+                                    <p id="scrim-selected-game" class="text-xs font-bold text-white">VALORANT</p>
+                                    <p id="scrim-selected-meta" class="text-[10px] text-gray-500">Ranked · 5v5</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[10px] text-green-400 font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>247 in queue</p>
+                                <p class="text-[10px] text-gray-600">~30s avg wait</p>
+                            </div>
+                        </div>
+
+                        <!-- Role-Based State: Team Required -->
+                        <div id="scrim-team-notice" class="hidden bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 mb-3">
+                            <p class="text-[10px] text-amber-400 font-semibold flex items-center gap-1.5">
+                                <i data-lucide="alert-triangle" class="w-3 h-3"></i>You must be in a team to queue for scrims
+                            </p>
+                            <a href="/teams/create" class="text-[10px] text-dc-cyan hover:underline mt-0.5 inline-block">Create or join a team →</a>
+                        </div>
+
+                        <button id="scrim-find-btn"
+                            class="w-full py-3 bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-display font-bold text-sm rounded-xl hover:shadow-[0_0_25px_rgba(6,182,212,0.4)] transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="zap" class="w-4 h-4"></i> Find Match
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== GRASSROOTS TO GLORY ========== -->
+    <section class="border-t border-white/10 bg-dc-surface py-10">
+        <div class="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
+            <div class="text-center mb-8">
+                <h2 class="font-display text-2xl sm:text-3xl font-black text-white mb-2">The Path to <span
+                        class="grad-text">Pro</span></h2>
+                <p class="text-gray-500 text-sm">Reach Diamond to unlock Direct Invites (৳0 Entry Fees). Your stats and
+                    trophies are permanent.</p>
+            </div>
+            <div
+                class="relative flex flex-col md:flex-row justify-between items-center max-w-4xl mx-auto gap-6 md:gap-0">
+                <div
+                    class="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-gray-800 via-dc-cyan to-dc-gold -z-0 -translate-y-1/2">
+                </div>
+                <div class="flex flex-col items-center bg-dc-surface p-3 z-10 relative">
+                    <div
+                        class="w-14 h-14 rounded-full bg-gray-800 border-2 border-gray-600 flex items-center justify-center text-xl mb-2">
+                        🏁</div>
+                    <h3 class="font-bold text-white text-sm">Create</h3>
+                    <p class="text-[10px] text-gray-500">Unranked</p>
+                </div>
+                <div class="flex flex-col items-center bg-dc-surface p-3 z-10 relative">
+                    <div
+                        class="w-14 h-14 rounded-full bg-dc-cyan/15 border-2 border-dc-cyan flex items-center justify-center text-xl mb-2 shadow-[0_0_12px_rgba(6,182,212,0.3)]">
+                        ⚔️</div>
+                    <h3 class="font-bold text-white text-sm">Compete</h3>
+                    <p class="text-[10px] text-gray-500">Earn CP</p>
+                </div>
+                <div class="flex flex-col items-center bg-dc-surface p-3 z-10 relative">
+                    <div
+                        class="w-14 h-14 rounded-full bg-dc-purple/15 border-2 border-dc-purple flex items-center justify-center text-xl mb-2 shadow-[0_0_12px_rgba(139,92,246,0.3)]">
+                        💎</div>
+                    <h3 class="font-bold text-white text-sm">Diamond</h3>
+                    <p class="text-[10px] text-gray-500">Direct Invites</p>
+                </div>
+                <div class="flex flex-col items-center bg-dc-surface p-3 z-10 relative">
+                    <div
+                        class="w-14 h-14 rounded-full bg-dc-gold/15 border-2 border-dc-gold flex items-center justify-center text-xl mb-2 shadow-[0_0_15px_rgba(250,204,21,0.4)] animate-pulse-glow">
+                        👑</div>
+                    <h3 class="font-bold text-dc-gold text-sm">Crown</h3>
+                    <p class="text-[10px] text-gray-500">Sponsorships</p>
+                </div>
+            </div>
+            <div class="text-center mt-6">
+                <a href="/ranking-policy" class="text-xs text-dc-cyan hover:underline">View DCRS Ranking Rules →</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== CINEMATIC CTA (Story Section) ========== -->
+    <section class="relative py-16 overflow-hidden">
+        <div class="absolute inset-0 opacity-15">
+            <div class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-dc-cyan rounded-full blur-[150px]"></div>
+            <div class="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-dc-purple rounded-full blur-[150px]"></div>
+        </div>
+        <div class="relative z-10 w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-10 text-center">
+            <h2 class="font-display text-3xl sm:text-4xl font-black text-white mb-4">Don't Just Watch.<br><span
+                    class="grad-text">Compete.</span></h2>
+            <p class="text-gray-400 text-sm sm:text-base mb-3 max-w-xl mx-auto leading-relaxed">Every champion started
+                with a roster of one. Create your team, compete in tournaments, climb the DCRS Rankings, and build a
+                legacy that lasts. Your stats, trophies, and match history are permanent — this isn't casual, this is
+                your career.</p>
+            <p class="text-gray-500 text-xs mb-6">Independent teams can be scouted and acquired by Organizations —
+                turning your passion into a profession.</p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                    class="group px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-display font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/40 transition-all hover:scale-[1.03] flex items-center gap-2 text-sm">
+                    <i data-lucide="rocket" class="w-4 h-4"></i>Start Your Legacy
+                    <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+                </button>
+                <a href="/team-guide"
+                    class="px-8 py-3.5 bg-white/5 border border-white/10 text-gray-300 font-semibold rounded-xl hover:bg-white/10 transition-all text-sm">Read
+                    the Team Guide</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== PLATFORM RULES STRIP ========== -->
+    <section class="border-t border-white/10 bg-dc-surface py-8">
+        <div class="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="glass p-4 rounded-xl text-center"><i data-lucide="shield-check"
+                        class="w-5 h-5 text-green-400 mx-auto mb-2"></i>
+                    <p class="text-xs font-bold text-white mb-0.5">Admin Verified</p>
+                    <p class="text-[10px] text-gray-500">All results confirmed</p>
+                </div>
+                <div class="glass p-4 rounded-xl text-center"><i data-lucide="lock"
+                        class="w-5 h-5 text-dc-cyan mx-auto mb-2"></i>
+                    <p class="text-xs font-bold text-white mb-0.5">Roster Locks</p>
+                    <p class="text-[10px] text-gray-500">No mid-tourney swaps</p>
+                </div>
+                <div class="glass p-4 rounded-xl text-center"><i data-lucide="users"
+                        class="w-5 h-5 text-dc-purple mx-auto mb-2"></i>
+                    <p class="text-xs font-bold text-white mb-0.5">One Team Rule</p>
+                    <p class="text-[10px] text-gray-500">1 roster per game</p>
+                </div>
+                <div class="glass p-4 rounded-xl text-center"><i data-lucide="headphones"
+                        class="w-5 h-5 text-dc-gold mx-auto mb-2"></i>
+                    <p class="text-xs font-bold text-white mb-0.5">Instant Support</p>
+                    <p class="text-[10px] text-gray-500">24/7 admin response</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="bg-dc-dark border-t border-white/10 pt-10 pb-6">
+        <div class="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-8">
+                <div class="col-span-2 sm:col-span-1">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div
+                            class="w-7 h-7 bg-gradient-to-br from-dc-cyan to-dc-purple rounded-lg flex items-center justify-center text-white font-bold text-xs">
+                            D</div>
+                        <span class="font-display font-bold text-sm text-white">DELTACROWN</span>
+                    </div>
+                    <p class="text-[11px] text-gray-500 leading-relaxed">Bangladesh's premier esports ecosystem. From
+                        the Delta to the Crown.</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white text-xs mb-3 uppercase tracking-wider">New to DeltaCrown?</h4>
+                    <ul class="space-y-2 text-xs text-gray-400">
+                        <li><a href="/team-guide" class="hover:text-dc-cyan transition-colors">How to Create a Team</a>
+                        </li>
+                        <li><a href="/ranking-policy" class="hover:text-dc-cyan transition-colors">Ranking System
+                                Explained</a></li>
+                        <li><a href="/prize-faq" class="hover:text-dc-cyan transition-colors">Prize Money Guide</a></li>
+                        <li><a href="/teams/benefits" class="hover:text-dc-cyan transition-colors">Team Benefits</a>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white text-xs mb-3 uppercase tracking-wider">Policies</h4>
+                    <ul class="space-y-2 text-xs text-gray-400">
+                        <li><a href="/fair-play" class="hover:text-dc-cyan transition-colors">Fair Play Policy</a></li>
+                        <li><a href="/ranking-policy" class="hover:text-dc-cyan transition-colors">DCRS Ranking
+                                Rules</a></li>
+                        <li><a href="/roster-rules" class="hover:text-dc-cyan transition-colors">Roster Lock Rules</a>
+                        </li>
+                        <li><a href="/terms" class="hover:text-dc-cyan transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white text-xs mb-3 uppercase tracking-wider">Support</h4>
+                    <ul class="space-y-2 text-xs text-gray-400">
+                        <li><a href="/contact" class="hover:text-dc-cyan transition-colors">Contact Admins</a></li>
+                        <li><a href="/discord" class="hover:text-dc-cyan transition-colors">Discord Community</a></li>
+                        <li><a href="/faq" class="hover:text-dc-cyan transition-colors">FAQ</a></li>
+                        <li><a href="/report" class="hover:text-dc-cyan transition-colors">Report Issue</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-white/5 pt-4">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-3 text-[10px] text-gray-600">
+                    <p>© 2026 DeltaCrown. All rights reserved.</p>
+                    <div class="flex items-center gap-4">
+                        <a href="/discord" class="social-icon hover:text-dc-cyan transition-colors" title="Discord"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028 14.09 14.09 0 001.226-1.994.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.292a.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.009c.12.1.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z"/></svg></a>
+                        <a href="/twitter" class="social-icon hover:text-dc-cyan transition-colors" title="Twitter"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+                        <a href="/instagram" class="social-icon hover:text-dc-cyan transition-colors" title="Instagram"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>
+                        <a href="/youtube" class="social-icon hover:text-dc-cyan transition-colors" title="YouTube"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+                        <a href="/facebook" class="social-icon hover:text-dc-cyan transition-colors" title="Facebook"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+
+
+    <!-- ========== BACK TO TOP ========== -->
+    <button class="back-to-top" id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+        <i data-lucide="chevron-up" class="w-4 h-4 text-gray-400"></i>
+    </button>
+
+    <script>
+            lucide.createIcons();
+            const av = (s, sz = 40) => `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(s)}&backgroundColor=111111&size=${sz}`;
+
+        // === PARTICLE SYSTEM ===
+        (function initParticles() {
+                const canvas = document.getElementById('hero-particles');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                let particles = [], w, h, mouse = { x: null, y: null };
+                function resize() { const r = canvas.parentElement.getBoundingClientRect(); w = canvas.width = r.width; h = canvas.height = r.height }
+                resize(); window.addEventListener('resize', resize);
+                canvas.parentElement.addEventListener('mousemove', e => { const r = canvas.parentElement.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top });
+                canvas.parentElement.addEventListener('mouseleave', () => { mouse.x = null; mouse.y = null });
+                for (let i = 0; i < 40; i++) particles.push({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - .5) * .3, vy: (Math.random() - .5) * .3, r: Math.random() * 1.5 + .5, o: Math.random() * .4 + .1 });
+                function draw() {
+                    ctx.clearRect(0, 0, w, h);
+                    particles.forEach((p, i) => {
+                        p.x += p.vx; p.y += p.vy;
+                        if (p.x < 0 || p.x > w) p.vx *= -1;
+                        if (p.y < 0 || p.y > h) p.vy *= -1;
+                        // Mouse attraction
+                        if (mouse.x !== null) { const dx = mouse.x - p.x, dy = mouse.y - p.y, d = Math.sqrt(dx * dx + dy * dy); if (d < 150) { p.vx += dx * .0003; p.vy += dy * .0003 } }
+                        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(6,182,212,${p.o})`; ctx.fill();
+                        // Connect nearby particles
+                        for (let j = i + 1; j < particles.length; j++) {
+                            const dx = p.x - particles[j].x, dy = p.y - particles[j].y, d = Math.sqrt(dx * dx + dy * dy);
+                            if (d < 100) { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(particles[j].x, particles[j].y); ctx.strokeStyle = `rgba(6,182,212,${.06 * (1 - d / 100)})`; ctx.stroke() }
+                        }
+                    });
+                    requestAnimationFrame(draw);
+                }
+                draw();
+            })();
+
+        // === TYPING EFFECT ===
+        (function typeHero() {
+            const el = document.getElementById('hero-typed');
+            if (!el) return;
+            const lines = ['YOUR TEAM.', 'YOUR KINGDOM.'];
+            let lineIdx = 0, charIdx = 0, deleting = false;
+            function type() {
+                const current = lines[lineIdx];
+                if (!deleting) {
+                    const typed = current.substring(0, charIdx + 1);
+                    el.innerHTML = lineIdx === 0 ? typed : `YOUR TEAM.<br>${typed.includes('KINGDOM') ? typed.replace('KINGDOM', '<span class="grad-text">KINGDOM</span>') : typed}`;
+                    el.classList.add('type-cursor');
+                    charIdx++;
+                    if (charIdx === current.length) {
+                        if (lineIdx === lines.length - 1) { el.classList.remove('type-cursor'); return; }
+                        setTimeout(() => { lineIdx++; charIdx = 0; type() }, 400);
+                        return;
+                    }
+                    setTimeout(type, 60 + Math.random() * 40);
+                }
+            }
+            setTimeout(type, 600);
+        })();
+
+        // Data
+        const games = [
+            { name: 'VALORANT', slug: 'valorant', abbr: 'VAL', icon: '🎯', colors: 'from-red-900 to-red-950', players: '4.2K' },
+            { name: 'PUBG MOBILE', slug: 'pubgm', abbr: 'PUBG', icon: '🪖', colors: 'from-yellow-900 to-amber-950', players: '3.8K' },
+            { name: 'Free Fire', slug: 'freefire', abbr: 'FF', icon: '🔥', colors: 'from-orange-900 to-orange-950', players: '2.1K' },
+            { name: 'CS2', slug: 'cs2', abbr: 'CS2', icon: '💣', colors: 'from-amber-900 to-yellow-950', players: '1.9K' },
+            { name: 'Dota 2', slug: 'dota2', abbr: 'D2', icon: '⚔️', colors: 'from-red-800 to-rose-950', players: '1.5K' },
+            { name: 'MLBB', slug: 'mlbb', abbr: 'ML', icon: '🏰', colors: 'from-blue-900 to-indigo-950', players: '2.8K' },
+            { name: 'eFootball™', slug: 'efootball', abbr: 'eFB', icon: '⚽', colors: 'from-green-900 to-emerald-950', players: '980' },
+            { name: 'FC™ 26', slug: 'fc26', abbr: 'FC', icon: '🏟️', colors: 'from-blue-800 to-blue-950', players: '1.1K' },
+            { name: 'Rocket League', slug: 'rl', abbr: 'RL', icon: '🚀', colors: 'from-sky-900 to-cyan-950', players: '720' },
+            { name: 'Rainbow Six', slug: 'r6', abbr: 'R6', icon: '🛡️', colors: 'from-indigo-900 to-violet-950', players: '640' },
+            { name: 'COD Mobile', slug: 'codm', abbr: 'COD', icon: '🎖️', colors: 'from-gray-700 to-gray-900', players: '1.3K' },
+        ];
+        const teams = [
+            { r: 1, name: 'Team Liquid BD', tag: 'TL', game: 'VALORANT', games2: ['CS2'], cp: 3450, wl: '42W - 3L', trend: 0, tier: 'CROWN', verified: true },
+            { r: 2, name: 'Sentinels Dhaka', tag: 'SEN', game: 'PUBG M', games2: [], cp: 3120, wl: '38W - 5L', trend: 2, tier: 'CROWN', verified: false },
+            { r: 3, name: 'Gen X Esports', tag: 'GX', game: 'VALORANT', games2: [], cp: 2980, wl: '35W - 8L', trend: -1, tier: 'Ascendant', verified: false },
+            { r: 4, name: 'Revolt Clan', tag: 'RV', game: 'CS2', games2: [], cp: 2450, wl: '30W - 10L', trend: 1, tier: 'Diamond', verified: false },
+            { r: 5, name: 'Protocol V', tag: 'PV', game: 'VALORANT', games2: [], cp: 2100, wl: '28W - 12L', trend: 0, tier: 'Diamond', verified: false },
+            { r: 6, name: 'Mystic Gaming', tag: 'MY', game: 'Free Fire', games2: [], cp: 1950, wl: '25W - 15L', trend: 1, tier: 'Platinum', verified: false },
+            { r: 7, name: 'Storm Breakers', tag: 'SB', game: 'MLBB', games2: [], cp: 1820, wl: '22W - 14L', trend: -2, tier: 'Platinum', verified: false },
+            { r: 8, name: 'Red Wolves', tag: 'RW', game: 'CS2', games2: [], cp: 1690, wl: '20W - 17L', trend: 1, tier: 'Gold', verified: false },
+        ];
+        const scouts = [
+            { name: 'Protocol V', game: 'VALORANT', need: 'Looking for Duelist', tier: 'Diamond II', stat: 'Recruiting', desc: 'Must be Ascendant+. Mic required. Winter Cup roster spot.', tags: ['Duelist', 'Mic Required'] },
+            { name: 'Red Wolves', game: 'CS2', need: 'Need IGL & Controller', tier: 'Platinum I', stat: 'Recruiting', desc: 'Building new roster for weekend scrims. Chill vibes only.', tags: ['IGL', 'Controller'] },
+            { name: 'Delta Force', game: 'VALORANT', need: 'Looking for AWPer', tier: 'Gold III', stat: 'New', desc: 'New team, ambitious. Aiming for Diamond by Season 2.', tags: ['Sentinel', 'Flexible'] },
+            { name: 'Storm Breakers', game: 'MLBB', need: 'Tank & Support needed', tier: 'Platinum II', stat: 'Active', desc: 'Active in ranked. Need dedicated Tank/Support main.', tags: ['Tank', 'Support'] },
+        ];
+        const orgs = [
+            { name: 'Team Liquid BD', abbr: 'TL', score: '98', color: 'bg-blue-600' },
+            { name: 'Sentinels Dhaka', abbr: 'SEN', score: '92', color: 'bg-red-600' },
+            { name: 'SYNTAX Gaming', abbr: 'SYN', score: '87', color: 'bg-purple-600' },
+        ];
+        const challenges = [
+            { type: 'scrim', team1: 'Protocol V', team1Tag: 'PV', team1Color: 'bg-dc-cyan', team2: 'Open Slot', team2Tag: '?', team2Color: 'bg-gray-700', game: 'VALORANT', gameIcon: '🎯', format: 'BO3', time: '30m', prize: '৳500', status: 'open' },
+            { type: 'bounty', team1: 'ShadowStrike', team1Tag: 'SS', team1Color: 'bg-red-600', team2: 'Anyone', team2Tag: 'VS', team2Color: 'bg-gray-700', game: 'VALORANT', gameIcon: '🎯', format: '1v1', time: '15m', prize: '৳100', status: 'open' },
+            { type: 'friendly', team1: 'Revolt Clan', team1Tag: 'RV', team1Color: 'bg-amber-600', team2: 'Open Slot', team2Tag: '?', team2Color: 'bg-gray-700', game: 'CS2', gameIcon: '💣', format: '5v5', time: '1h', prize: '—', status: 'open' },
+        ];
+
+        // === COUNTER ANIMATION ===
+        function animateCounters() {
+            document.querySelectorAll('.counter').forEach(el => {
+                if (el.dataset.animated) return;
+                const target = parseFloat(el.dataset.target);
+                const isDecimal = el.dataset.decimal === 'true';
+                const duration = 1500;
+                const start = performance.now();
+                el.dataset.animated = 'true';
+                function update(now) {
+                    const p = Math.min((now - start) / duration, 1);
+                    const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+                    const val = eased * target;
+                    el.textContent = isDecimal ? val.toFixed(1) : Math.floor(val);
+                    if (p < 1) requestAnimationFrame(update);
+                }
+                requestAnimationFrame(update);
+            });
+        }
+
+        // === TIER CLASS MAP ===
+        const tierClass = { CROWN: 'tier-crown', Ascendant: 'tier-ascendant', Diamond: 'tier-diamond', Platinum: 'tier-platinum', Gold: 'tier-gold', Silver: 'tier-silver' };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+
+            // Games Grid with tooltips
+            const gg = document.getElementById('game-grid');
+            const allBtn = `<button class="game-card game-card-active group relative rounded-xl overflow-hidden border border-white/10 bg-gradient-to-b from-dc-cyan/20 to-dc-dark aspect-square transition-all duration-300 hover:scale-105" data-game="all" onclick="selectGame('all',this)">
+                <div class="absolute inset-0 flex flex-col items-center justify-center gap-1 p-1.5">
+                    <i data-lucide="layout-grid" class="w-5 h-5 text-dc-cyan"></i>
+                    <span class="text-[9px] text-dc-cyan font-bold uppercase tracking-wider">All</span>
+                </div>
+                <div class="game-tooltip"><span class="text-[10px] font-bold text-white">All Games</span><br><span class="text-[9px] text-gray-400">12K+ players</span></div>
+            </button>`;
+            const gameCards = games.map(g => `<button class="game-card group relative rounded-xl overflow-hidden border border-white/10 bg-gradient-to-b ${g.colors} aspect-square transition-all duration-300 hover:border-dc-cyan/50 hover:scale-105" data-game="${g.slug}" onclick="selectGame('${g.slug}',this)">
+                <div class="absolute inset-0 flex flex-col items-center justify-center gap-0.5 p-1.5">
+                    <span class="text-lg leading-none">${g.icon}</span>
+                    <span class="font-display font-black text-white text-xs sm:text-sm leading-none drop-shadow-lg mt-0.5">${g.abbr}</span>
+                    <span class="text-[7px] sm:text-[8px] text-gray-400 text-center leading-tight opacity-70 group-hover:opacity-100 transition-opacity">${g.name}</span>
+                </div>
+                <div class="game-tooltip"><span class="text-[10px] font-bold text-white">${g.name}</span><br><span class="text-[9px] text-gray-400">${g.players} online</span></div>
+            </button>`).join('');
+            gg.innerHTML = allBtn + gameCards;
+
+            // Rankings as table rows
+            const rl = document.getElementById('rankings-list');
+            rl.innerHTML = teams.map((t, i) => {
+                const rc = i < 3 ? ['text-dc-gold text-xl font-black', 'text-gray-300 text-lg font-bold', 'text-orange-400 text-lg font-bold'][i] : 'text-gray-500 text-sm';
+                const tc = tierClass[t.tier] || '';
+                const trendColor = t.trend > 0 ? 'text-green-400' : t.trend < 0 ? 'text-red-400' : 'text-gray-600';
+                const trendIcon = t.trend > 0 ? `↑ ${t.trend}` : t.trend < 0 ? `↓ ${Math.abs(t.trend)}` : '—';
+                const gameBadges = `<span class="text-[9px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-gray-400">${t.game}</span>` + (t.games2 && t.games2.length ? t.games2.map(g => `<span class="text-[9px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-gray-400">${g}</span>`).join('') : '');
+                const rankMedal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : t.r;
+                const topRowClass = i === 0 ? 'rank-row-gold my-1' : i === 1 ? 'rank-row-silver my-1' : i === 2 ? 'rank-row-bronze my-1' : 'border-b border-white/[0.03]';
+                return `<div class="grid grid-cols-[44px_1fr_100px_90px_60px] gap-2 items-center px-3 py-3 ${topRowClass} hover:bg-white/[0.04] transition-colors">
+                    <span class="${rc} text-center">${rankMedal}</span>
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-11 h-11 rounded-xl ${tc === 'tier-crown' ? 'bg-gradient-to-br from-dc-gold to-amber-600 shadow-[0_0_16px_rgba(250,204,21,0.3)]' : tc === 'tier-ascendant' ? 'bg-gradient-to-br from-dc-purple to-violet-600 shadow-[0_0_12px_rgba(139,92,246,0.25)]' : tc === 'tier-diamond' ? 'bg-gradient-to-br from-dc-cyan to-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.25)]' : tc === 'tier-platinum' ? 'bg-gradient-to-br from-teal-500 to-teal-600' : tc === 'tier-gold' ? 'bg-gradient-to-br from-amber-500 to-amber-700' : 'bg-gray-600'} flex items-center justify-center text-xs font-black text-white flex-shrink-0">${t.tag}</div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-white truncate">${t.name}${t.verified ? ' <span class="text-green-400">✓</span>' : ''}</p>
+                            <div class="flex gap-1 mt-0.5">${gameBadges}</div>
+                        </div>
+                    </div>
+                    <span class="text-xs text-gray-400 text-center">${t.wl}</span>
+                    <span class="text-sm font-bold text-dc-cyan text-center">${t.cp.toLocaleString()}</span>
+                    <span class="text-xs ${trendColor} font-bold text-center">${trendIcon}</span>
+                </div>`}).join('');
+
+            // My Teams widget
+            const myTeams = [
+                { name: 'Protocol V', game: 'VALORANT', role: 'Captain', logo: 'PV', color: 'bg-dc-cyan' },
+                { name: 'Delta Strikers', game: 'PUBG M', role: 'Member', logo: 'DS', color: 'bg-amber-600' },
+            ];
+            const mtl = document.getElementById('my-teams-list');
+            if (mtl) {
+                mtl.innerHTML = myTeams.map(t => `<a href="/teams/${t.name.toLowerCase().replace(/\s/g, '-')}" class="flex items-center gap-2.5 p-2 rounded-lg bg-white/[0.02] border border-white/5 hover:border-dc-cyan/30 hover:bg-dc-cyan/5 transition-all group cursor-pointer">
+                    <div class="w-8 h-8 rounded-lg ${t.color} flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">${t.logo}</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-white truncate group-hover:text-dc-cyan transition-colors">${t.name}</p>
+                        <p class="text-[10px] text-gray-600">${t.game} · <span class="text-gray-400">${t.role}</span></p>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-3 h-3 text-gray-700 group-hover:text-dc-cyan transition-colors flex-shrink-0"></i>
+                </a>`).join('');
+            }
+
+            // Scouting with glass-glow
+            const sl = document.getElementById('scouting-list');
+            const sc = { 'Recruiting': 'border-l-dc-cyan', 'New': 'border-l-dc-purple', 'Active': 'border-l-green-500' };
+            sl.innerHTML = scouts.map(s => `<div class="glass p-4 rounded-xl border-l-2 ${sc[s.stat]} hover:-translate-y-1 transition-all duration-300">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex items-center gap-2.5">
+                        <img src="${av(s.name)}" class="w-9 h-9 rounded-full border border-white/10" alt="">
+                        <div><h4 class="font-bold text-white text-sm">${s.name}</h4><p class="text-[10px] text-gray-500">Rank: <span class="text-dc-cyan">${s.tier}</span></p></div>
+                    </div>
+                    <span class="text-[9px] font-bold bg-white/5 text-gray-300 px-2 py-0.5 rounded uppercase border border-white/10">${s.stat}</span>
+                </div>
+                <p class="text-xs text-gray-400 mb-3 line-clamp-2">${s.desc}</p>
+                <div class="flex flex-wrap gap-1.5 mb-3">${s.tags.map(t => `<span class="text-[10px] bg-dc-dark border border-white/10 px-2 py-0.5 rounded text-gray-400">${t}</span>`).join('')}</div>
+                <button class="w-full py-2 bg-white/5 hover:bg-dc-cyan/15 hover:text-dc-cyan border border-white/10 hover:border-dc-cyan/40 rounded-lg text-xs font-bold transition-all btn-arrow flex items-center justify-center gap-1">Apply Now <i data-lucide="arrow-right" class="w-3 h-3"></i></button>
+            </div>`).join('');
+
+            // Orgs
+            const ol = document.getElementById('orgs-list');
+            ol.innerHTML = orgs.map(o => `<div class="flex items-center justify-between p-2.5 bg-white/[0.02] rounded-lg border border-white/5 hover:border-white/10 transition-colors">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded ${o.color} text-[10px] font-bold flex items-center justify-center text-white">${o.abbr}</div>
+                    <span class="text-sm text-gray-300 font-medium">${o.name}</span>
+                </div>
+                <span class="text-[11px] text-dc-cyan font-bold">${o.score} ES</span>
+            </div>`).join('');
+
+            // Open Challenges — visual card redesign
+            const cl = document.getElementById('challenges-list');
+            const typeColors = { scrim: 'text-dc-cyan', bounty: 'text-dc-gold', friendly: 'text-green-400' };
+            const typeIcons = { scrim: 'swords', bounty: 'flame', friendly: 'handshake' };
+            const typeBg = { scrim: 'bg-dc-cyan/10 border-dc-cyan/20', bounty: 'bg-dc-gold/10 border-dc-gold/20', friendly: 'bg-green-500/10 border-green-500/20' };
+            cl.innerHTML = challenges.map(c => `<div class="bg-dc-dark/60 rounded-xl border border-white/5 hover:border-white/15 transition-all cursor-pointer overflow-hidden">
+                <div class="flex items-center gap-3 p-3">
+                    <!-- Team 1 -->
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <div class="w-8 h-8 rounded-lg ${c.team1Color} flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">${c.team1Tag}</div>
+                        <span class="text-xs font-bold text-white truncate">${c.team1}</span>
+                    </div>
+                    <!-- VS -->
+                    <div class="flex flex-col items-center flex-shrink-0 px-1">
+                        <span class="text-[9px] font-black text-gray-500">VS</span>
+                    </div>
+                    <!-- Team 2 -->
+                    <div class="flex items-center gap-2 flex-1 min-w-0 justify-end">
+                        <span class="text-xs font-bold text-gray-400 truncate">${c.team2}</span>
+                        <div class="w-8 h-8 rounded-lg ${c.team2Color} flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">${c.team2Tag}</div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between px-3 pb-2.5 gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] ${typeBg[c.type]} border rounded px-1.5 py-0.5 ${typeColors[c.type]} font-bold uppercase">${c.type}</span>
+                        <span class="text-base" title="${c.game}">${c.gameIcon}</span>
+                        <span class="text-[10px] text-gray-500">${c.format}</span>
+                        <span class="text-[10px] text-gray-600">· ${c.time}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        ${c.prize !== '—' ? `<span class="text-[11px] font-bold text-dc-gold">${c.prize}</span>` : ''}
+                        <span class="text-[10px] font-bold text-dc-cyan bg-dc-cyan/10 border border-dc-cyan/25 px-2 py-0.5 rounded">JOIN</span>
+                    </div>
+                </div>
+            </div>`).join('');
+
+            // Match Finder — game grid
+            const scrimGrid = document.getElementById('scrim-game-grid');
+            if (scrimGrid) {
+                const topGames = games.slice(0, 8);
+                scrimGrid.innerHTML = topGames.map((g, i) => `<button class="scrim-game-btn ${i === 0 ? 'bg-dc-cyan/15 border-dc-cyan/40 text-dc-cyan' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-white/20'} border rounded-lg py-2 text-center transition-all" data-game="${g.name}" data-icon="${g.icon}" onclick="selectScrimGame(this)">
+                    <span class="text-sm block leading-none">${g.icon}</span>
+                    <span class="text-[8px] font-bold uppercase block mt-0.5">${g.abbr}</span>
+                </button>`).join('') + `<button class="scrim-game-btn bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-white/20 rounded-lg py-2 text-center transition-all col-span-4" onclick="document.getElementById('scrim-game-grid').classList.toggle('expanded')">
+                    <span class="text-[9px] font-bold uppercase">All 11 Games ▾</span>
+                </button>`;
+            }
+
+            // Match Finder — tab switching
+            document.querySelectorAll('.scrim-tab').forEach(tab => {
+                tab.onclick = function() {
+                    document.querySelectorAll('.scrim-tab').forEach(t => {
+                        t.className = 'scrim-tab flex-1 py-2 px-2 rounded-lg text-[11px] font-bold text-center transition-all bg-white/5 border border-white/10 text-gray-400 hover:text-white';
+                    });
+                    this.className = 'scrim-tab active flex-1 py-2 px-2 rounded-lg text-[11px] font-bold text-center transition-all bg-dc-cyan/15 border border-dc-cyan/30 text-dc-cyan';
+                    // Update the meta label
+                    const metaEl = document.getElementById('scrim-selected-meta');
+                    const fmt = document.getElementById('scrim-format').value;
+                    if (metaEl) metaEl.textContent = this.textContent.trim() + ' · ' + fmt;
+                };
+            });
+
+            // Role-based: show team notice if user has no team for selected game
+            const userHasTeam = true; // TODO: set dynamically
+            const scrimTeamNotice = document.getElementById('scrim-team-notice');
+            const scrimFindBtn = document.getElementById('scrim-find-btn');
+            if (!userHasTeam && scrimTeamNotice && scrimFindBtn) {
+                scrimTeamNotice.classList.remove('hidden');
+                scrimFindBtn.disabled = true;
+                scrimFindBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                scrimFindBtn.classList.remove('hover:shadow-[0_0_25px_rgba(6,182,212,0.4)]');
+            }
+
+            // Empty state: challenges
+            if (challenges.length === 0) {
+                const cl = document.getElementById('challenges-list');
+                if (cl) cl.innerHTML = '<div class="text-center py-6"><i data-lucide="swords" class="w-6 h-6 text-gray-700 mx-auto mb-2"></i><p class="text-xs text-gray-600">No open challenges right now</p><p class="text-[10px] text-gray-700 mt-0.5">Be the first to issue one!</p></div>';
+            }
+
+            // Empty state: rankings
+            if (teams.length === 0) {
+                const rl = document.getElementById('rankings-list');
+                if (rl) rl.innerHTML = '<div class="text-center py-8"><i data-lucide="bar-chart-3" class="w-6 h-6 text-gray-700 mx-auto mb-2"></i><p class="text-xs text-gray-600">Rankings will appear once teams start competing</p></div>';
+            }
+
+            // Empty state: scouting
+            if (scouts.length === 0) {
+                const sl = document.getElementById('scouting-list');
+                if (sl) sl.innerHTML = '<div class="text-center py-6"><i data-lucide="radar" class="w-6 h-6 text-gray-700 mx-auto mb-2"></i><p class="text-xs text-gray-600">No teams actively recruiting</p></div>';
+            }
+
+            // Role-based: challenge button state
+            const issueBtn = document.getElementById('issue-challenge-btn');
+            if (!userHasTeam && issueBtn) {
+                issueBtn.disabled = true;
+                issueBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                issueBtn.title = 'You need a team to issue challenges';
+            }
+
+            // Role-based: My Teams — show game constraint when user already has a team in a game
+            const userOwnedGames = ['VALORANT']; // TODO: pull from user data
+            const isLoggedIn = true; // TODO: set dynamically
+            const gameConstraint = document.getElementById('team-game-constraint');
+            const myTeamsCta = document.getElementById('my-teams-cta');
+            if (isLoggedIn && userOwnedGames.length > 0 && gameConstraint) {
+                gameConstraint.classList.remove('hidden');
+            }
+            // Guest state: if not logged-in, show sign-in prompt instead of team list
+            if (!isLoggedIn) {
+                const mtWidget = document.getElementById('my-teams-widget');
+                if (mtWidget) {
+                    mtWidget.innerHTML = `<div class="flex items-center justify-between mb-3">
+                        <h3 class="font-display font-bold text-white text-sm flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-dc-cyan"></i>My Teams</h3>
+                    </div>
+                    <div class="text-center py-4">
+                        <i data-lucide="log-in" class="w-6 h-6 text-gray-600 mx-auto mb-2"></i>
+                        <p class="text-xs text-gray-500 mb-2">Sign in to view your teams</p>
+                        <a href="/login" class="inline-block px-5 py-2 bg-gradient-to-r from-dc-cyan to-dc-purple text-white text-xs font-bold rounded-lg hover:shadow-lg hover:shadow-dc-cyan/30 transition-all">Sign In</a>
+                    </div>`;
+                }
+            }
+
+            // Re-render icons
+            lucide.createIcons();
+
+            // === SCROLL REVEAL SYSTEM ===
+            const revealObserver = new IntersectionObserver(entries => {
+                entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target) } });
+            }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+            document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+            // Old glass scroll animation (for non-reveal elements)
+            const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.style.opacity = '1'; e.target.style.transform = 'translateY(0)' } }), { threshold: 0.08 });
+            document.querySelectorAll('.glass:not(.reveal)').forEach(el => {
+                if (el.closest('header') || el.closest('nav') || el.closest('#search-modal') || el.closest('.search-filter') || el.closest('.reveal')) return;
+                el.style.opacity = '0'; el.style.transform = 'translateY(12px)'; el.style.transition = 'all 0.5s cubic-bezier(.22,1,.36,1)'; io.observe(el);
+            });
+
+            // === COUNTER ANIMATION ON SCROLL ===
+            const counterObserver = new IntersectionObserver(entries => {
+                entries.forEach(e => { if (e.isIntersecting) { animateCounters(); counterObserver.unobserve(e.target) } });
+            }, { threshold: 0.3 });
+            const statsEl = document.getElementById('hero-stats');
+            if (statsEl) counterObserver.observe(statsEl);
+
+            // === PROGRESS BAR ANIMATION ===
+            const progressObserver = new IntersectionObserver(entries => {
+                entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('animate'); progressObserver.unobserve(e.target) } });
+            }, { threshold: 0.5 });
+            document.querySelectorAll('.progress-fill').forEach(el => progressObserver.observe(el));
+
+            // === STICKY NAV + BACK-TO-TOP ===
+            const btt = document.getElementById('back-to-top');
+            window.addEventListener('scroll', () => {
+                const y = window.scrollY;
+                document.getElementById('sticky-nav').classList.toggle('-translate-y-full', y <= 350);
+                if (btt) btt.classList.toggle('visible', y > 800);
+            });
+
+            // === ORGANIZATION CTA — Conditional Logic ===
+            const isOrgMember = true; // TODO: Set dynamically based on user's org membership status
+            const orgCtaBtn = document.getElementById('org-cta-btn');
+            if (orgCtaBtn && isOrgMember) {
+                orgCtaBtn.href = '/organizations/my-organization';
+                orgCtaBtn.innerHTML = '<span class="flex items-center justify-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> My Organization</span>';
+                orgCtaBtn.classList.remove('bg-dc-purple/10', 'border-dc-purple/30', 'text-dc-purple', 'hover:bg-dc-purple/20');
+                orgCtaBtn.classList.add('bg-dc-cyan/10', 'border-dc-cyan/30', 'text-dc-cyan', 'hover:bg-dc-cyan/20');
+            }
+
+            // === KEYBOARD SHORTCUTS ===
+            document.addEventListener('keydown', e => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openSearch() }
+                if (e.key === 'Escape') closeSearch();
+            });
+
+            // Search filter
+            document.querySelectorAll('.search-filter').forEach(b => b.onclick = function () {
+                document.querySelectorAll('.search-filter').forEach(x => { x.className = 'search-filter text-[11px] px-3 py-1 rounded-full font-semibold border transition-all bg-white/5 border-white/10 text-gray-400 hover:text-white' });
+                this.className = 'search-filter active text-[11px] px-3 py-1 rounded-full font-semibold border transition-all bg-dc-cyan/15 border-dc-cyan/30 text-dc-cyan';
+            });
+        });
+
+        function selectGame(slug, el) {
+            document.querySelectorAll('.game-card').forEach(c => c.classList.remove('game-card-active'));
+            el.classList.add('game-card-active');
+            const gameName = slug === 'all' ? 'All Games' : (games.find(g => g.slug === slug) || {}).name || slug.toUpperCase();
+            const label = slug === 'all' ? 'ALL GAMES' : slug.toUpperCase();
+            // Update filter indicator
+            const indicator = document.getElementById('game-filter-indicator');
+            if (indicator) {
+                indicator.innerHTML = slug === 'all'
+                    ? '<i data-lucide="filter" class="w-3 h-3"></i>Showing: Global · All Games'
+                    : '<i data-lucide="filter" class="w-3 h-3"></i>Showing: ' + gameName + ' Rankings';
+                lucide.createIcons();
+            }
+            const content = document.querySelector('.lg\\:col-span-2');
+            content.style.opacity = '0.4'; content.style.transition = 'opacity 0.2s';
+            setTimeout(() => { content.style.opacity = '1'; document.getElementById('featured-game-label').textContent = label }, 250);
+        }
+
+        function selectScrimGame(btn) {
+            document.querySelectorAll('.scrim-game-btn').forEach(b => {
+                b.className = b.className.replace(/bg-dc-cyan\/15|border-dc-cyan\/40|text-dc-cyan/g, '').trim();
+                if (!b.classList.contains('bg-white/5')) b.classList.add('bg-white/5', 'border-white/10', 'text-gray-400');
+            });
+            btn.classList.remove('bg-white/5', 'border-white/10', 'text-gray-400');
+            btn.classList.add('bg-dc-cyan/15', 'border-dc-cyan/40', 'text-dc-cyan');
+            const gameName = btn.dataset.game;
+            const gameIcon = btn.dataset.icon;
+            const selName = document.getElementById('scrim-selected-game');
+            const selIcon = document.getElementById('scrim-selected-icon');
+            if (selName) selName.textContent = gameName;
+            if (selIcon) selIcon.textContent = gameIcon;
+        }
+
+        function openSearch() { document.getElementById('search-modal').classList.add('active'); document.getElementById('search-input').focus(); document.body.style.overflow = 'hidden' }
+        function closeSearch() { document.getElementById('search-modal').classList.remove('active'); document.body.style.overflow = '' }
+    </script>
+</body>
+
+</html>
