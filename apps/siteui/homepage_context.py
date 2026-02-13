@@ -440,7 +440,7 @@ def _calculate_total_prize_pool() -> str:
     Calculate total prize pool from all active tournaments.
     
     Returns:
-        str: Formatted prize pool (e.g., "à§³2.5M+") or empty string
+        str: Formatted prize pool (e.g., "৳2.5M+") or empty string
     """
     try:
         from django.apps import apps
@@ -457,19 +457,19 @@ def _calculate_total_prize_pool() -> str:
         total = result.get('total') or Decimal('0')
         
         if total == 0:
-            return "à§³0"
+            return "\u09f30"
         
         # Format based on size
         if total >= 1000000:  # 1M+
-            return f"à§³{total / 1000000:.1f}M+"
+            return f"\u09f3{total / 1000000:.1f}M+"
         elif total >= 1000:  # 1K+
-            return f"à§³{total / 1000:.0f}K+"
+            return f"\u09f3{total / 1000:.0f}K+"
         else:
-            return f"à§³{total:,.0f}"
+            return f"\u09f3{total:,.0f}"
             
     except Exception as e:
         print(f"[WARNING] Failed to calculate prize pool: {e}")
-        return "à§³0"
+        return "\u09f30"
 
 
 def _get_featured_tournaments(limit=3):
@@ -649,8 +649,10 @@ def _get_featured_tournament():
             'slug': tournament.slug,
             'description': tournament.description if hasattr(tournament, 'description') else '',
             'game': tournament.game.name if hasattr(tournament, 'game') and tournament.game else 'N/A',
-            'game_display': tournament.game.display_name if hasattr(tournament.game, 'display_name') else tournament.game.name if tournament.game else 'N/A',
-            'prize_pool': f"à§³{tournament.prize_pool:,.0f}" if tournament.prize_pool else "TBD",
+            'game_display': tournament.game.display_name if hasattr(tournament.game, 'display_name') else (tournament.game.name if tournament.game else 'N/A'),
+            # Prize pool display (use correct BDT currency symbol and comma formatting)
+            'prize_pool': f"৳{tournament.prize_pool:,.0f}" if tournament.prize_pool else "TBD",
+            'prize_pool_value': float(tournament.prize_pool) if tournament.prize_pool else None,
             'registration_count': registration_count,
             'max_teams': tournament.max_participants if hasattr(tournament, 'max_participants') else None,
             'status': tournament.status,
@@ -658,7 +660,10 @@ def _get_featured_tournament():
             'hours_left': hours_left,
             'tournament_start': tournament.tournament_start if hasattr(tournament, 'tournament_start') else None,
             'registration_deadline': tournament.registration_end,
-            'banner_image': tournament.banner_image.url if hasattr(tournament, 'banner_image') and tournament.banner_image else None,
+            # Banner fallback — prefer tournament banner, otherwise use game assets when available
+            'banner_image': (tournament.banner_image.url if hasattr(tournament, 'banner_image') and tournament.banner_image else (getattr(tournament.game, 'card_image').url if getattr(tournament, 'game', None) and getattr(tournament.game, 'card_image', None) else (getattr(tournament.game, 'banner').url if getattr(tournament, 'game', None) and getattr(tournament.game, 'banner', None) else None))),
+            'game_card_image': (getattr(tournament.game, 'card_image').url if getattr(tournament, 'game', None) and getattr(tournament.game, 'card_image', None) else None),
+            'game_banner_image': (getattr(tournament.game, 'banner').url if getattr(tournament, 'game', None) and getattr(tournament.game, 'banner', None) else None),
             'url': f"/tournaments/{tournament.slug}/",
             'organizer': tournament.organizer.username if tournament.organizer else 'DeltaCrown',
         }

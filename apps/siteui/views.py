@@ -67,147 +67,460 @@ def _get_model(candidates):
 
 def community(request):
     """
-    Community hub displaying both user posts and team posts
+    Community Hub — initial page load.
+    Serves the shell template; all data is loaded via the JSON API.
     """
-    from django.core.paginator import Paginator
-    from django.db import models
-    from django.contrib.auth.decorators import login_required
-    # Legacy TeamPost model removed (Phase B cleanup) — only CommunityPost remains
-    TeamPost = None
-    from apps.organizations.models import Team
-    from .models import CommunityPost
-    from .forms import CommunityPostCreateForm
-    from itertools import chain
-    from operator import attrgetter
-    
-    # Handle POST requests for creating community posts
-    if request.method == 'POST' and request.user.is_authenticated:
-        return handle_community_post_creation(request)
-    
-    # Get search and filter parameters
-    search_query = request.GET.get('q', '')
-    current_game = request.GET.get('game', '')
-    
-    # Legacy TeamPost model removed (Phase B cleanup) — only CommunityPost feeds remain
-    team_posts = []
-    
-    # Base queryset for public community posts
-    community_posts = CommunityPost.objects.filter(
-        visibility='public',
-        is_approved=True
-    ).select_related(
-        'author', 'author__user'
-    ).prefetch_related(
-        'media', 'likes', 'comments'
-    ).order_by('-created_at')
-    
-    # Apply search filter
-    if search_query:
-        community_posts = community_posts.filter(
-            models.Q(title__icontains=search_query) | 
-            models.Q(content__icontains=search_query) |
-            models.Q(author__user__username__icontains=search_query) |
-            models.Q(author__user__first_name__icontains=search_query) |
-            models.Q(author__user__last_name__icontains=search_query)
-        )
-    
-    # Apply game filter
-    if current_game:
-        community_posts = community_posts.filter(game=current_game)
-    
-    # Get available games for filter dropdown with proper mapping
-    from apps.games.models import Game as GameModel
-    raw_games = list(GameModel.objects.values_list('slug', flat=True))
-    raw_games = [game for game in raw_games if game]  # Remove empty values
-    
-    # Game mapping to handle duplicates and provide proper display info
-    game_mapping = {
-        'valorant': {
-            'display_name': 'Valorant',
-            'logo': 'img/game_logos/Valorant_logo.jpg',
-            'aliases': ['valorant', 'Valorant', 'VALORANT']
-        },
-        'efootball': {
-            'display_name': 'eFootball',
-            'logo': 'img/game_logos/efootball_logo.jpeg',
-            'aliases': ['efootball', 'eFootball', 'Efootball', 'EFOOTBALL']
-        },
-        'cs2': {
-            'display_name': 'Counter-Strike 2',
-            'logo': 'img/game_logos/CS2_logo.jpeg',
-            'aliases': ['cs2', 'CS2', 'counter-strike 2', 'Counter-Strike 2']
-        },
-        'fc26': {
-            'display_name': 'FC 26',
-            'logo': 'img/game_logos/fc26_logo.jpg',
-            'aliases': ['fc26', 'FC26', 'fc 26', 'FC 26']
-        },
-        'pubg': {
-            'display_name': 'PUBG',
-            'logo': 'img/game_logos/PUBG_logo.jpg',
-            'aliases': ['pubg', 'PUBG', 'pubg mobile', 'PUBG Mobile']
-        },
-        'mobile_legends': {
-            'display_name': 'Mobile Legends',
-            'logo': 'img/game_logos/mobile_legend_logo.jpeg',
-            'aliases': ['mobile legends', 'Mobile Legends', 'mobile_legends', 'ml']
-        }
-    }
-    
-    # Create unique games list based on raw data
-    unique_games = {}
-    for raw_game in raw_games:
-        # Find matching game in mapping
-        matched_key = None
-        for key, game_info in game_mapping.items():
-            if raw_game.lower() in [alias.lower() for alias in game_info['aliases']]:
-                matched_key = key
-                break
-        
-        if matched_key and matched_key not in unique_games:
-            unique_games[matched_key] = game_mapping[matched_key]
-            unique_games[matched_key]['raw_name'] = raw_game
-    
-    games = list(unique_games.values())
-    
-    # Combine and sort posts by creation date
-    # Add a post_type attribute to differentiate in templates
-    for post in community_posts:
-        post.post_type = 'user'
-        post.display_author = post.author.user.get_full_name() or post.author.user.username
-        post.author_avatar = getattr(post.author, 'avatar', None)
-        post.author_url = f"/profile/{post.author.user.username}/"
-    
-    # Combine posts and sort by creation date
-    all_posts = sorted(
-        chain(team_posts, community_posts),
-        key=attrgetter('created_at'),
-        reverse=True
-    )
-    
-    # Paginate combined posts (10 per page)
-    paginator = Paginator(all_posts, 10)
-    page_number = request.GET.get('page')
-    posts = paginator.get_page(page_number)
-    
-    # Get featured teams for sidebar
-    featured_teams = Team.objects.filter(
-        is_verified=True
-    ).select_related().order_by('?')[:5]  # Random featured teams
-    
-    if not featured_teams.exists():
-        # Fallback to recent teams if no verified teams
-        featured_teams = Team.objects.order_by('-created_at')[:5]
+    return render(request, 'pages/community.html')
 
-    context = {
-        'posts': posts,
-        'search_query': search_query,
-        'current_game': current_game,
-        'games': games,
-        'featured_teams': featured_teams,
-        'community_post_form': CommunityPostCreateForm(),
+
+# ── Community JSON API ──────────────────────────────────────────────────────
+
+def _serialize_post(post, request_user=None):
+    """Serialize a CommunityPost to a JSON-safe dict."""
+    author = post.author
+    avatar_url = None
+    if author and getattr(author, 'avatar', None):
+        try:
+            avatar_url = author.avatar.url
+        except (ValueError, AttributeError):
+            pass
+
+    display_name = ''
+    username = ''
+    if author and author.user:
+        display_name = author.display_name or author.user.get_full_name() or author.user.username
+        username = author.user.username
+
+    media_list = []
+    for m in post.media.all():
+        try:
+            media_list.append({
+                'id': m.id,
+                'type': m.media_type,
+                'url': m.file.url,
+                'alt': m.alt_text or '',
+            })
+        except (ValueError, AttributeError):
+            pass
+
+    liked_by_me = False
+    if request_user and request_user.is_authenticated:
+        profile = getattr(request_user, 'profile', None)
+        if profile:
+            liked_by_me = post.likes.filter(user=profile).exists()
+
+    # Team info (if posted on behalf of a team)
+    team_data = None
+    if post.team_id:
+        t = post.team
+        team_logo = None
+        if t and t.logo:
+            try:
+                team_logo = t.logo.url
+            except (ValueError, AttributeError):
+                pass
+        if t:
+            team_data = {
+                'id': t.id,
+                'name': t.name,
+                'slug': t.slug,
+                'tag': t.tag or '',
+                'logo_url': team_logo,
+            }
+
+    return {
+        'id': post.id,
+        'title': post.title or '',
+        'content': post.content,
+        'game': post.game or '',
+        'visibility': post.visibility,
+        'is_pinned': post.is_pinned,
+        'is_featured': post.is_featured,
+        'likes_count': post.likes_count,
+        'comments_count': post.comments_count,
+        'shares_count': post.shares_count,
+        'created_at': post.created_at.isoformat(),
+        'author': {
+            'username': username,
+            'display_name': display_name,
+            'avatar_url': avatar_url,
+            'profile_url': f'/profile/{username}/' if username else '#',
+        },
+        'team': team_data,
+        'media': media_list,
+        'liked_by_me': liked_by_me,
     }
-    return render(request, 'pages/community.html', context)
+
+
+def _serialize_comment(comment):
+    """Serialize a CommunityPostComment."""
+    author = comment.author
+    avatar_url = None
+    if author and getattr(author, 'avatar', None):
+        try:
+            avatar_url = author.avatar.url
+        except (ValueError, AttributeError):
+            pass
+    display_name = ''
+    username = ''
+    if author and author.user:
+        display_name = author.display_name or author.user.get_full_name() or author.user.username
+        username = author.user.username
+
+    return {
+        'id': comment.id,
+        'content': comment.content,
+        'parent_id': comment.parent_id,
+        'created_at': comment.created_at.isoformat(),
+        'author': {
+            'username': username,
+            'display_name': display_name,
+            'avatar_url': avatar_url,
+        },
+    }
+
+
+def community_api_feed(request):
+    """
+    GET /community/api/feed/?page=1&game=&q=
+    Returns paginated posts as JSON.
+    """
+    from django.http import JsonResponse
+    from .models import CommunityPost
+
+    page = int(request.GET.get('page', 1))
+    per_page = 10
+    game = request.GET.get('game', '').strip()
+    q = request.GET.get('q', '').strip()
+
+    qs = CommunityPost.objects.filter(
+        visibility='public', is_approved=True
+    ).select_related('author', 'author__user', 'team').prefetch_related('media', 'likes').order_by(
+        '-is_pinned', '-is_featured', '-created_at'
+    )
+
+    if game:
+        qs = qs.filter(game__iexact=game)
+    if q:
+        qs = qs.filter(
+            Q(title__icontains=q) | Q(content__icontains=q) |
+            Q(author__user__username__icontains=q)
+        )
+
+    total = qs.count()
+    start = (page - 1) * per_page
+    posts = list(qs[start:start + per_page])
+
+    return JsonResponse({
+        'posts': [_serialize_post(p, request.user) for p in posts],
+        'page': page,
+        'total': total,
+        'has_next': (start + per_page) < total,
+    })
+
+
+def community_api_create_post(request):
+    """
+    POST /community/api/posts/create/
+    JSON body: {title, content, game, visibility}
+    """
+    from django.http import JsonResponse
+    import json
+
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    from apps.user_profile.models import UserProfile
+    from .models import CommunityPost, CommunityPostMedia
+
+    try:
+        # Support both JSON and multipart
+        if request.content_type and 'application/json' in request.content_type:
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+
+        content = (data.get('content') or '').strip()
+        if not content:
+            return JsonResponse({'error': 'Content is required.'}, status=400)
+
+        profile, _ = UserProfile.objects.get_or_create(
+            user=request.user,
+            defaults={'display_name': request.user.get_full_name() or request.user.username}
+        )
+
+        # Team posting support
+        team_id = data.get('team_id')
+        team_obj = None
+        if team_id:
+            from apps.organizations.models import Team
+            from apps.organizations.models.membership import TeamMembership
+            try:
+                team_obj = Team.objects.get(pk=int(team_id))
+                # Verify user has permission (OWNER or MANAGER)
+                has_perm = TeamMembership.objects.filter(
+                    team=team_obj, user=request.user,
+                    status='ACTIVE', role__in=['OWNER', 'MANAGER']
+                ).exists()
+                if not has_perm:
+                    return JsonResponse({'error': 'You do not have permission to post for this team.'}, status=403)
+            except (Team.DoesNotExist, ValueError):
+                return JsonResponse({'error': 'Team not found.'}, status=404)
+
+        post = CommunityPost.objects.create(
+            author=profile,
+            team=team_obj,
+            title=(data.get('title') or '').strip(),
+            content=content,
+            game=(data.get('game') or '').strip(),
+            visibility=data.get('visibility', 'public'),
+        )
+
+        files = request.FILES.getlist('media_files')
+        for f in files:
+            CommunityPostMedia.objects.create(
+                post=post, file=f,
+                media_type='image' if f.content_type.startswith('image/') else 'video',
+            )
+
+        return JsonResponse({
+            'success': True,
+            'post': _serialize_post(post, request.user),
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+def community_api_like(request, post_id):
+    """
+    POST /community/api/posts/<id>/like/
+    Toggle like. Returns new like count.
+    """
+    from django.http import JsonResponse
+    from .models import CommunityPost, CommunityPostLike
+
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+
+    from apps.user_profile.models import UserProfile
+    profile = getattr(request.user, 'profile', None)
+    if not profile:
+        profile, _ = UserProfile.objects.get_or_create(
+            user=request.user,
+            defaults={'display_name': request.user.username}
+        )
+
+    try:
+        post = CommunityPost.objects.get(id=post_id, visibility='public', is_approved=True)
+    except CommunityPost.DoesNotExist:
+        return JsonResponse({'error': 'Post not found'}, status=404)
+
+    existing = CommunityPostLike.objects.filter(post=post, user=profile).first()
+    if existing:
+        existing.delete()
+        post.likes_count = max(0, post.likes_count - 1)
+        post.save(update_fields=['likes_count'])
+        return JsonResponse({'liked': False, 'likes_count': post.likes_count})
+    else:
+        CommunityPostLike.objects.create(post=post, user=profile)
+        post.likes_count = post.likes_count + 1
+        post.save(update_fields=['likes_count'])
+        return JsonResponse({'liked': True, 'likes_count': post.likes_count})
+
+
+def community_api_comments(request, post_id):
+    """
+    GET  /community/api/posts/<id>/comments/  — list comments
+    POST /community/api/posts/<id>/comments/  — add comment
+    """
+    from django.http import JsonResponse
+    import json
+    from .models import CommunityPost, CommunityPostComment
+
+    try:
+        post = CommunityPost.objects.get(id=post_id, visibility='public', is_approved=True)
+    except CommunityPost.DoesNotExist:
+        return JsonResponse({'error': 'Post not found'}, status=404)
+
+    if request.method == 'GET':
+        comments = CommunityPostComment.objects.filter(
+            post=post, is_approved=True
+        ).select_related('author', 'author__user').order_by('created_at')[:100]
+        return JsonResponse({
+            'comments': [_serialize_comment(c) for c in comments],
+        })
+
+    # POST — add comment
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+
+    from apps.user_profile.models import UserProfile
+    profile = getattr(request.user, 'profile', None)
+    if not profile:
+        profile, _ = UserProfile.objects.get_or_create(
+            user=request.user,
+            defaults={'display_name': request.user.username}
+        )
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        data = request.POST
+
+    content = (data.get('content') or '').strip()
+    if not content:
+        return JsonResponse({'error': 'Content is required.'}, status=400)
+
+    parent_id = data.get('parent_id')
+    parent = None
+    if parent_id:
+        parent = CommunityPostComment.objects.filter(id=parent_id, post=post).first()
+
+    comment = CommunityPostComment.objects.create(
+        post=post, author=profile, content=content, parent=parent,
+    )
+    post.comments_count = post.comments_count + 1
+    post.save(update_fields=['comments_count'])
+
+    return JsonResponse({
+        'success': True,
+        'comment': _serialize_comment(comment),
+        'comments_count': post.comments_count,
+    })
+
+
+def community_api_sidebar(request):
+    """
+    GET /community/api/sidebar/
+    Featured teams, games, stats for the sidebar widgets.
+    """
+    from django.http import JsonResponse
+    from apps.organizations.models import Team
+    from apps.organizations.choices import TeamStatus
+    from apps.games.models import Game as GameModel
+    from .models import CommunityPost
+    from django.db.models import Count
+
+    # Featured teams (active, with most members)
+    teams = (
+        Team.objects.filter(status=TeamStatus.ACTIVE)
+        .annotate(member_count=Count('vnext_memberships'))
+        .order_by('-member_count')[:6]
+    )
+
+    # Pre-fetch game names for teams that reference a game_id (int FK)
+    game_ids = [t.game_id for t in teams if t.game_id]
+    game_map = {}
+    if game_ids:
+        for g in GameModel.objects.filter(pk__in=game_ids):
+            game_map[g.pk] = g.display_name or g.name
+
+    teams_data = []
+    for t in teams:
+        logo_url = None
+        if t.logo:
+            try:
+                logo_url = t.logo.url
+            except (ValueError, AttributeError):
+                pass
+        teams_data.append({
+            'name': t.name,
+            'slug': t.slug,
+            'tag': t.tag or '',
+            'logo_url': logo_url,
+            'game': game_map.get(t.game_id, ''),
+            'member_count': t.member_count,
+        })
+
+    # Games
+    games = GameModel.objects.filter(is_active=True).order_by('name')
+    games_data = []
+    for g in games:
+        icon_url = None
+        if g.icon:
+            try:
+                icon_url = g.icon.url
+            except (ValueError, AttributeError):
+                pass
+        games_data.append({
+            'name': g.display_name or g.name,
+            'slug': g.slug,
+            'icon_url': icon_url,
+        })
+
+    # Stats
+    total_posts = CommunityPost.objects.filter(visibility='public', is_approved=True).count()
+    total_teams = Team.objects.filter(status=TeamStatus.ACTIVE).count()
+
+    return JsonResponse({
+        'teams': teams_data,
+        'games': games_data,
+        'stats': {
+            'total_posts': total_posts,
+            'total_teams': total_teams,
+            'total_games': len(games_data),
+        },
+    })
+
+
+def community_api_delete_post(request, post_id):
+    """
+    POST /community/api/posts/<id>/delete/
+    Delete own post.
+    """
+    from django.http import JsonResponse
+    from .models import CommunityPost
+
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+
+    try:
+        post = CommunityPost.objects.get(id=post_id)
+    except CommunityPost.DoesNotExist:
+        return JsonResponse({'error': 'Post not found'}, status=404)
+
+    if post.author.user != request.user and not request.user.is_staff:
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    post.delete()
+    return JsonResponse({'success': True})
+
+
+def community_api_user_teams(request):
+    """
+    GET /community/api/user-teams/
+    Returns teams the current user can post on behalf of (OWNER or MANAGER role).
+    """
+    from django.http import JsonResponse
+    if not request.user.is_authenticated:
+        return JsonResponse({'teams': []})
+
+    from apps.organizations.models.membership import TeamMembership
+    memberships = TeamMembership.objects.filter(
+        user=request.user, status='ACTIVE', role__in=['OWNER', 'MANAGER']
+    ).select_related('team')
+
+    teams_data = []
+    for m in memberships:
+        t = m.team
+        logo_url = None
+        if t.logo:
+            try:
+                logo_url = t.logo.url
+            except (ValueError, AttributeError):
+                pass
+        teams_data.append({
+            'id': t.id,
+            'name': t.name,
+            'slug': t.slug,
+            'tag': t.tag or '',
+            'logo_url': logo_url,
+            'role': m.role,
+        })
+
+    return JsonResponse({'teams': teams_data})
 
 
 def handle_community_post_creation(request):

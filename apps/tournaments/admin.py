@@ -32,7 +32,7 @@ from apps.tournaments.models import (
     TournamentFormConfiguration,
 )
 from apps.games.services import game_service
-from apps.games.models import Game
+from apps.games.models.game import Game as GamesGame
 from apps.tournaments.utils import import_rules_from_pdf
 
 # Import specialized admin classes from separate modules
@@ -419,10 +419,10 @@ class TournamentAdmin(admin.ModelAdmin):
             User = get_user_model()
             kwargs['queryset'] = User.objects.filter(is_staff=True)
         elif db_field.name == 'game':
-            # Filter to only show active games from Games app
+            # Filter to only show active games from Games app (games.Game)
             all_games = game_service.list_active_games()
             game_ids = [g.id for g in all_games]
-            kwargs['queryset'] = Game.objects.filter(id__in=game_ids, is_active=True)
+            kwargs['queryset'] = GamesGame.objects.filter(id__in=game_ids, is_active=True)
             # Override widget to show display_name
             if 'widget' not in kwargs:
                 from django import forms

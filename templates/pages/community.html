@@ -1,498 +1,760 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block title %}Community — DeltaCrown{% endblock %}
+
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'siteui/css/community-social.css' %}">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   DeltaCrown Community Hub v4 — Full-Width Esports Design
+   ═══════════════════════════════════════════════════════════════ */
+
+/* === Root === */
+.dc-root { min-height: 100vh; position: relative; overflow-x: hidden; background: linear-gradient(180deg, #060610 0%, #0a0e1a 30%, #080c16 60%, #060610 100%); }
+
+/* === Ambient atmosphere === */
+.dc-root::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 50% at 10% 20%, rgba(108,0,255,.08) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 80%, rgba(0,229,255,.06) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 30% at 50% 0%, rgba(6,182,212,.05) 0%, transparent 50%);
+}
+
+/* === Glow orb decorations === */
+.dc-glow-tl {
+  position: fixed; top: -120px; left: -120px;
+  width: 400px; height: 400px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(108,0,255,.12) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+  animation: dcOrb 12s ease-in-out infinite alternate;
+}
+.dc-glow-br {
+  position: fixed; bottom: -100px; right: -80px;
+  width: 350px; height: 350px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,229,255,.1) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+  animation: dcOrb 15s ease-in-out infinite alternate-reverse;
+}
+@keyframes dcOrb {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(30px, 20px) scale(1.15); }
+}
+
+/* === Fade-in === */
+.dc-enter { animation: dcEnter .45s cubic-bezier(.16,1,.3,1) both; }
+@keyframes dcEnter {
+  from { opacity: 0; transform: translateY(14px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* === Skeleton === */
+.dc-skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,.02) 25%, rgba(255,255,255,.06) 50%, rgba(255,255,255,.02) 75%);
+  background-size: 400% 100%;
+  animation: dcSkel 1.8s ease infinite;
+  border-radius: .75rem;
+}
+@keyframes dcSkel {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* === Glass panel === */
+.dc-glass {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.dc-glass-hover:hover {
+  background: rgba(255,255,255,.05);
+  border-color: rgba(6,182,212,.25);
+  box-shadow: 0 0 24px rgba(6,182,212,.06);
+}
+
+/* === Post card === */
+.dc-post-card {
+  transition: border-color .3s, box-shadow .3s, transform .3s;
+  position: relative;
+}
+.dc-post-card:hover {
+  border-color: rgba(6,182,212,.18);
+  box-shadow: 0 8px 32px rgba(6,182,212,.06), inset 0 1px 0 rgba(255,255,255,.04);
+  transform: translateY(-2px);
+}
+.dc-post-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(6,182,212,.15), transparent);
+  opacity: 0; transition: opacity .3s;
+}
+.dc-post-card:hover::before { opacity: 1; }
+
+/* === Like pop === */
+.dc-like-pop { animation: dcPop .35s ease; }
+@keyframes dcPop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+/* === Rich text editor === */
+.dc-editor {
+  min-height: 120px; max-height: 320px;
+  overflow-y: auto; outline: none;
+  line-height: 1.75; font-size: .9375rem;
+  color: rgba(255,255,255,.85);
+}
+.dc-editor:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(255,255,255,.2);
+  pointer-events: none;
+}
+.dc-editor h1,.dc-editor h2,.dc-editor h3 { font-weight: 700; margin: .5em 0 .25em; color: #fff; }
+.dc-editor h1 { font-size: 1.5rem; } .dc-editor h2 { font-size: 1.25rem; } .dc-editor h3 { font-size: 1.1rem; }
+.dc-editor strong { color: #fff; }
+.dc-editor ul,.dc-editor ol { padding-left: 1.5rem; margin: .5em 0; }
+.dc-editor blockquote {
+  border-left: 3px solid rgba(6,182,212,.4);
+  padding-left: .75rem; margin: .5em 0;
+  color: rgba(255,255,255,.5); font-style: italic;
+}
+.dc-editor a { color: #22d3ee; text-decoration: underline; }
+
+/* === Rich content in posts === */
+.dc-rich-content { line-height: 1.75; word-break: break-word; }
+.dc-rich-content h1,.dc-rich-content h2,.dc-rich-content h3 { font-weight: 700; margin: .6em 0 .3em; color: #fff; }
+.dc-rich-content h1 { font-size: 1.35rem; } .dc-rich-content h2 { font-size: 1.15rem; } .dc-rich-content h3 { font-size: 1.05rem; }
+.dc-rich-content strong { color: rgba(255,255,255,.95); }
+.dc-rich-content ul,.dc-rich-content ol { padding-left: 1.5rem; margin: .4em 0; }
+.dc-rich-content blockquote {
+  border-left: 3px solid rgba(6,182,212,.35);
+  padding: .25rem .75rem; margin: .5em 0;
+  color: rgba(255,255,255,.5); font-style: italic;
+  background: rgba(6,182,212,.04); border-radius: 0 .375rem .375rem 0;
+}
+.dc-rich-content a { color: #22d3ee; text-decoration: underline; }
+.dc-rich-content p { margin: .4em 0; }
+
+/* === Toolbar button === */
+.dc-tb-btn {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border-radius: .5rem; font-size: .8rem; font-weight: 600;
+  color: rgba(255,255,255,.35);
+  transition: all .15s;
+}
+.dc-tb-btn:hover { color: #00E5FF; background: rgba(0,229,255,.08); }
+.dc-tb-btn.active { color: #00E5FF; background: rgba(0,229,255,.12); }
+
+/* === Game chip === */
+.dc-chip { transition: all .2s; cursor: pointer; user-select: none; }
+.dc-chip:hover, .dc-chip.active {
+  background: rgba(0,229,255,.12) !important;
+  border-color: rgba(0,229,255,.35) !important;
+  color: #00E5FF !important;
+}
+
+/* === Comment anim === */
+.dc-comment-in { animation: dcSlide .25s ease-out both; }
+@keyframes dcSlide {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* === Scrollbar === */
+.dc-root ::-webkit-scrollbar { width: 4px; }
+.dc-root ::-webkit-scrollbar-track { background: transparent; }
+.dc-root ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.06); border-radius: 4px; }
+.dc-root ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.12); }
+
+/* === Sidebar drawer === */
+.dc-sidebar-drawer { transition: transform .3s cubic-bezier(.4,0,.2,1); }
+.dc-sidebar-drawer.open { transform: translateX(0) !important; }
+
+/* === Hide scrollbar === */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* === Modal panel === */
+.dc-modal-panel { animation: dcModalIn .3s cubic-bezier(.16,1,.3,1) both; }
+@keyframes dcModalIn {
+  from { opacity: 0; transform: translateY(20px) scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* === Team badge === */
+.dc-team-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 10px 2px 4px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(108,0,255,.12), rgba(139,92,246,.08));
+  border: 1px solid rgba(139,92,246,.2);
+  font-size: .7rem; color: #a78bfa; font-weight: 600;
+}
+
+/* === Post-as selector === */
+.dc-as-option { transition: all .15s; cursor: pointer; }
+.dc-as-option:hover { border-color: rgba(0,229,255,.4); }
+.dc-as-option.selected { border-color: #00E5FF; background: rgba(0,229,255,.08); color: #00E5FF; }
+
+/* === Inline compose bar === */
+.dc-compose-inline {
+  transition: all .3s;
+  cursor: text;
+}
+.dc-compose-inline:hover { border-color: rgba(6,182,212,.25); }
+
+/* === Sidebar widget header accent === */
+.dc-widget-header {
+  position: relative; padding-left: 14px;
+}
+.dc-widget-header::before {
+  content: '';
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 18px; border-radius: 3px;
+  background: linear-gradient(180deg, #00E5FF, #6C00FF);
+}
+
+/* === Stat card glow === */
+.dc-stat-card {
+  position: relative; overflow: hidden;
+}
+.dc-stat-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(0,229,255,.06), transparent 60%);
+  opacity: 0; transition: opacity .3s;
+}
+.dc-stat-card:hover::before { opacity: 1; }
+
+/* === Trending pulse dot === */
+.dc-pulse-dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: #10B981;
+  animation: dcPulseDot 2s ease-in-out infinite;
+}
+@keyframes dcPulseDot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,.4); }
+  50% { opacity: .6; box-shadow: 0 0 0 4px rgba(16,185,129,0); }
+}
+
+/* === Sentinel === */
+#feed-sentinel { height: 1px; }
+</style>
 {% endblock %}
+
 
 {% block content %}
-<!-- Premium Community Hub -->
-<div class="community-hub">
-  
-  <!-- Premium Search Bar -->
-  <div class="premium-search-section">
-    <div class="search-container">
-      <form method="get" class="search-form">
-        <div class="search-input-group">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <path d="m21 21-4.35-4.35"></path>
-          </svg>
-          <input type="search" 
-                 name="q" 
-                 class="premium-search-input" 
-                 placeholder="Discover amazing content, teams, and posts..." 
-                 value="{{ search_query|default:'' }}">
-          
-          <div class="search-filters">
-            <select name="game" class="game-filter">
-              <option value="">🎮 All Games</option>
-              {% for game in games %}
-              <option value="{{ game.raw_name }}" {% if game.raw_name == current_game %}selected{% endif %}>
-                {{ game.display_name }}
-              </option>
-              {% endfor %}
-            </select>
-            
-            <button type="submit" class="search-btn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="m21 21-4.35-4.35"></path>
-              </svg>
-            </button>
+<div class="dc-root" id="community-app">
+
+  {# Ambient glow decorations #}
+  <div class="dc-glow-tl"></div>
+  <div class="dc-glow-br"></div>
+
+  {# ═══ HEADER BAR ═══ #}
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-delta-base/80 border-b border-white/[.05]">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+      {# Row 1: Logo / Search / CTA #}
+      <div class="flex items-center gap-4 h-[60px]">
+        {# Mobile menu #}
+        <button id="sidebar-toggle" class="lg:hidden p-2 -ml-2 rounded-xl hover:bg-white/5 text-white/40">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+
+        {# Brand #}
+        <a href="/community/" class="flex items-center gap-3 shrink-0 group">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00E5FF] via-[#6C00FF] to-[#00E5FF] p-[1px] shadow-lg shadow-cyan-500/20">
+            <div class="w-full h-full rounded-[10px] bg-delta-base grid place-items-center">
+              <svg class="w-5 h-5 text-[#00E5FF]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            </div>
           </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Main Layout -->
-  <div class="main-layout">
-
-    <!-- Left Sidebar (Fixed) -->
-    <aside class="left-sidebar">
-      <!-- Quick Actions -->
-      <div class="sidebar-card">
-        <div class="card-header">
-          <h3>Quick Actions</h3>
-        </div>
-        <div class="card-content">
-          {% if request.user.is_authenticated %}
-            <button class="action-btn primary" data-modal="createPost">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
-              </svg>
-              Create Post
-            </button>
-            <a href="{% url 'teams:create' %}" class="action-btn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              Create Team
-            </a>
-          {% else %}
-            <a href="{% url 'account:login' %}" class="action-btn primary">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                <polyline points="10,17 15,12 10,7"></polyline>
-                <line x1="15" y1="12" x2="3" y2="12"></line>
-              </svg>
-              Join Community
-            </a>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- Games Navigation -->
-      <div class="sidebar-card">
-        <div class="card-header">
-          <h3>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-              <line x1="8" y1="21" x2="16" y2="21"></line>
-              <line x1="12" y1="17" x2="12" y2="21"></line>
-            </svg>
-            Games
-          </h3>
-        </div>
-        <div class="card-content">
-          <div class="games-nav">
-            <a href="?" class="game-nav-item {% if not current_game %}active{% endif %}">
-              <div class="game-icon">🎯</div>
-              <span>All Games</span>
-            </a>
-            {% for game in games %}
-            <a href="?game={{ game.raw_name }}" class="game-nav-item {% if game.raw_name == current_game %}active{% endif %}">
-              <div class="game-logo">
-                <img src="{% static game.logo %}" alt="{{ game.display_name }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="game-icon" style="display: none;">🎮</div>
-              </div>
-              <span>{{ game.display_name }}</span>
-            </a>
-            {% endfor %}
+          <div class="hidden sm:block">
+            <h1 class="text-base font-bold text-white leading-tight tracking-tight group-hover:text-[#00E5FF] transition">Community</h1>
+            <p class="text-[10px] text-white/25 -mt-0.5 font-medium tracking-wider uppercase">DeltaCrown Esports</p>
           </div>
+        </a>
+
+        {# Search — wider #}
+        <div class="flex-1 max-w-2xl mx-auto relative">
+          <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input id="search-input" type="search" placeholder="Search posts, players, games…"
+                 class="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white/[.03] border border-white/[.07] text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#00E5FF]/40 focus:bg-white/[.05] focus:shadow-[0_0_20px_rgba(0,229,255,.06)] transition">
         </div>
-      </div>
-    </aside>
 
-    <!-- Main Feed (Scrollable) -->
-    <main class="feed-container">
-      <!-- Post Feed -->
-      <div class="post-feed">
-        {% for post in posts %}
-          <article class="post-card">
-            <div class="post-header">
-              <a href="{{ post.author_url }}" class="post-author">
-                <div class="author-avatar">
-                  {% if post.author_avatar %}
-                    <img src="{{ post.author_avatar.url }}" alt="{{ post.display_author }}">
-                  {% else %}
-                    <div class="avatar-placeholder">{{ post.display_author|first|upper }}</div>
-                  {% endif %}
-                </div>
-                <div class="author-info">
-                  <h4 class="author-name">
-                    {{ post.display_author }}
-                    {% if post.post_type == 'team' %}
-                      <span class="post-type-badge team">Team</span>
-                    {% else %}
-                      <span class="post-type-badge user">User</span>
-                    {% endif %}
-                  </h4>
-                  <p class="post-time">
-                    {{ post.created_at|timesince }} ago
-                    {% if post.game and post.post_type == 'user' %}
-                      • <span class="post-game">{{ post.game|title }}</span>
-                    {% elif post.post_type == 'team' %}
-                      • <span class="post-game">{{ post.team.game|title }}</span>
-                    {% endif %}
-                  </p>
-                </div>
-              </a>
-              <div class="post-options">
-                <button class="options-btn">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="1"></circle>
-                    <circle cx="12" cy="5" r="1"></circle>
-                    <circle cx="12" cy="19" r="1"></circle>
-                  </svg>
-                </button>
-              </div>
-            </div>
-            
-            <div class="post-content">
-              {% if post.title %}
-              <h3 class="post-title">{{ post.title }}</h3>
-              {% endif %}
-              
-              <div class="post-text">{{ post.content|linebreaksbr|truncatechars:300 }}</div>
-              
-              {% if post.media.exists %}
-              <div class="post-media">
-                <div class="media-grid {% if post.media.count == 1 %}single{% elif post.media.count == 2 %}double{% else %}multiple{% endif %}">
-                  {% for media in post.media.all|slice:":4" %}
-                    <div class="media-item">
-                      <img src="{{ media.file.url }}" alt="{{ media.alt_text|default:'Post media' }}">
-                      {% if forloop.last and post.media.count > 4 %}
-                        <div class="media-overlay">+{{ post.media.count|add:"-4" }}</div>
-                      {% endif %}
-                    </div>
-                  {% endfor %}
-                </div>
-              </div>
-              {% endif %}
-            </div>
-            
-            <div class="post-actions">
-              <button class="action-btn" data-action="like" data-post-id="{{ post.id }}" data-post-type="{{ post.post_type }}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                </svg>
-                Like
-              </button>
-              
-              <button class="action-btn" data-action="comment" data-url="{{ post.author_url }}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                Comment
-              </button>
-              
-              <button class="action-btn" data-action="share" 
-                      data-url="{{ request.build_absolute_uri }}{{ post.author_url }}"
-                      data-title="{{ post.title|default:'Check out this post from '|add:post.display_author }}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="18" cy="5" r="3"></circle>
-                  <circle cx="6" cy="12" r="3"></circle>
-                  <circle cx="18" cy="19" r="3"></circle>
-                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                </svg>
-                Share
-              </button>
-              
-              <div class="action-stats">
-                {% if post.likes_count > 0 %}
-                  <span class="likes-count">{{ post.likes_count }} {{ post.likes_count|pluralize:"like,likes" }}</span>
-                {% elif post.likes.count > 0 %}
-                  <span class="likes-count">{{ post.likes.count }} {{ post.likes.count|pluralize:"like,likes" }}</span>
-                {% endif %}
-                {% if post.comments_count > 0 %}
-                  <span class="comments-count">{{ post.comments_count }} {{ post.comments_count|pluralize:"comment,comments" }}</span>
-                {% elif post.comments.count > 0 %}
-                  <span class="comments-count">{{ post.comments.count }} {{ post.comments.count|pluralize:"comment,comments" }}</span>
-                {% endif %}
-              </div>
-            </div>
-          </article>
-        {% empty %}
-          <div class="empty-state">
-            <div class="empty-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </div>
-            <h3>No posts yet</h3>
-            <p>Be the first to share something with the community!</p>
-            {% if request.user.is_authenticated %}
-              <button class="create-post-btn" data-modal="createPost">Create First Post</button>
-            {% else %}
-              <a href="{% url 'account:login' %}" class="create-post-btn">Sign In to Post</a>
-            {% endif %}
-          </div>
-        {% endfor %}
-
-        <!-- Pagination -->
-        {% if posts.has_other_pages %}
-          <nav class="pagination-nav">
-            {% if posts.has_previous %}
-              <a href="?page={{ posts.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_game %}&game={{ current_game }}{% endif %}" class="pagination-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="15,18 9,12 15,6"></polyline>
-                </svg>
-                Previous
-              </a>
-            {% endif %}
-            
-            <span class="pagination-info">
-              Page {{ posts.number }} of {{ posts.paginator.num_pages }}
-            </span>
-            
-            {% if posts.has_next %}
-              <a href="?page={{ posts.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_game %}&game={{ current_game }}{% endif %}" class="pagination-btn">
-                Next
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="9,18 15,12 9,6"></polyline>
-                </svg>
-              </a>
-            {% endif %}
-          </nav>
+        {# New Post CTA #}
+        {% if request.user.is_authenticated %}
+        <button id="btn-new-post" class="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#6C00FF] text-white text-sm font-bold hover:shadow-lg hover:shadow-cyan-500/20 active:scale-[.97] transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          New Post
+        </button>
         {% endif %}
       </div>
+    </div>
+  </header>
+
+  {# ═══ MAIN 3-COL LAYOUT ═══ #}
+  <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 flex gap-6 xl:gap-8 relative z-10">
+
+    {# ── LEFT SIDEBAR ── #}
+    <aside id="left-sidebar"
+           class="dc-sidebar-drawer fixed inset-y-0 left-0 z-50 w-[300px] bg-delta-base/95 backdrop-blur-xl border-r border-white/[.06] p-5 -translate-x-full
+                  lg:translate-x-0 lg:sticky lg:top-[104px] lg:h-[calc(100vh-120px)] lg:w-[280px] lg:shrink-0 lg:block overflow-y-auto no-scrollbar">
+
+      {# Close mobile #}
+      <button id="sidebar-close" class="lg:hidden absolute top-3 right-3 p-2 rounded-xl hover:bg-white/10 text-white/30">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+
+      {# Quick Actions #}
+      <div class="mb-7">
+        <div class="dc-widget-header text-[10px] font-bold uppercase tracking-[.14em] text-white/35 mb-3">Quick Actions</div>
+        {% if request.user.is_authenticated %}
+        <button id="btn-new-post-mobile"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#00E5FF]/10 to-[#6C00FF]/10 border border-[#00E5FF]/20 text-[#00E5FF] text-sm font-semibold hover:border-[#00E5FF]/40 hover:from-[#00E5FF]/15 transition">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          Create Post
+        </button>
+        {% else %}
+        <a href="{% url 'account:login' %}"
+           class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#00E5FF]/10 to-[#6C00FF]/10 border border-[#00E5FF]/20 text-[#00E5FF] text-sm font-semibold hover:border-[#00E5FF]/40 transition">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10,17 15,12 10,7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Sign In to Join
+        </a>
+        {% endif %}
+      </div>
+
+      {# Browse Games #}
+      <div class="mb-7">
+        <div class="dc-widget-header text-[10px] font-bold uppercase tracking-[.14em] text-white/35 mb-3">Games</div>
+        <div id="sidebar-games" class="space-y-1">
+          <div class="dc-skeleton h-9 w-full"></div>
+          <div class="dc-skeleton h-9 w-full"></div>
+          <div class="dc-skeleton h-9 w-3/4"></div>
+        </div>
+      </div>
+
+      {# Community Stats #}
+      <div class="mb-7">
+        <div class="dc-widget-header text-[10px] font-bold uppercase tracking-[.14em] text-white/35 mb-3">Stats</div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="dc-stat-card text-center p-3 rounded-xl dc-glass">
+            <div class="text-xl font-bold text-white" id="stat-posts">—</div>
+            <div class="text-[9px] text-white/30 uppercase tracking-wider mt-0.5">Posts</div>
+          </div>
+          <div class="dc-stat-card text-center p-3 rounded-xl dc-glass">
+            <div class="text-xl font-bold text-white" id="stat-teams">—</div>
+            <div class="text-[9px] text-white/30 uppercase tracking-wider mt-0.5">Teams</div>
+          </div>
+          <div class="dc-stat-card text-center p-3 rounded-xl dc-glass">
+            <div class="text-xl font-bold text-white" id="stat-games">—</div>
+            <div class="text-[9px] text-white/30 uppercase tracking-wider mt-0.5">Games</div>
+          </div>
+        </div>
+      </div>
+
+      {# Explore nav #}
+      <div class="mb-7">
+        <div class="dc-widget-header text-[10px] font-bold uppercase tracking-[.14em] text-white/35 mb-3">Explore</div>
+        <nav class="space-y-0.5">
+          <a href="/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/35 text-sm hover:text-white/70 hover:bg-white/[.04] transition group">
+            <svg class="w-4 h-4 shrink-0 group-hover:text-[#00E5FF] transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg> <span>Home</span>
+          </a>
+          <a href="/teams/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/35 text-sm hover:text-white/70 hover:bg-white/[.04] transition group">
+            <svg class="w-4 h-4 shrink-0 group-hover:text-[#6C00FF] transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Teams
+          </a>
+          <a href="/tournaments/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/35 text-sm hover:text-white/70 hover:bg-white/[.04] transition group">
+            <svg class="w-4 h-4 shrink-0 group-hover:text-[#FFD700] transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Tournaments
+          </a>
+          <a href="/rankings/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/35 text-sm hover:text-white/70 hover:bg-white/[.04] transition group">
+            <svg class="w-4 h-4 shrink-0 group-hover:text-emerald-400 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> Rankings
+          </a>
+          <a href="/store/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/35 text-sm hover:text-white/70 hover:bg-white/[.04] transition group">
+            <svg class="w-4 h-4 shrink-0 group-hover:text-rose-400 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg> Store
+          </a>
+        </nav>
+      </div>
+
+      {# Community guidelines #}
+      <div class="rounded-xl dc-glass p-3.5">
+        <div class="flex items-start gap-2.5 text-[11px] text-white/30 leading-relaxed">
+          <svg class="w-3.5 h-3.5 mt-0.5 shrink-0 text-[#00E5FF]/30" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Keep discussions respectful. Toxicity and spam will be removed.</span>
+        </div>
+      </div>
+    </aside>
+
+    {# Sidebar overlay (mobile) #}
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden lg:hidden"></div>
+
+
+    {# ── FEED COLUMN — fills available space ── #}
+    <main class="flex-1 min-w-0">
+
+      {# ── INLINE COMPOSE TRIGGER ── #}
+      {% if request.user.is_authenticated %}
+      <div id="compose-trigger" class="dc-compose-inline mb-6 rounded-2xl dc-glass p-4 flex items-center gap-4 cursor-text dc-enter"
+           onclick="CommunityHub.openComposer()">
+        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#00E5FF]/25 to-[#6C00FF]/25 grid place-items-center text-sm font-bold text-white/60 shrink-0 border border-white/[.06]">
+          {{ request.user.username|first|upper }}
+        </div>
+        <div class="flex-1 text-sm text-white/20">Share updates, highlights, strategies…</div>
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-white/[.04] grid place-items-center text-white/15 hover:text-[#00E5FF] transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 00-2.828 0L6 21"/></svg>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-white/[.04] grid place-items-center text-white/15 hover:text-[#6C00FF] transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {# ── COMPOSER (hidden — toggled via JS) ── #}
+      {% if request.user.is_authenticated %}
+      <div id="composer" class="hidden mb-6 dc-enter">
+        <div class="rounded-2xl dc-glass overflow-hidden">
+          {# Composer header #}
+          <div class="px-5 pt-5 pb-3 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white/80 flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-[#00E5FF] animate-pulse"></div>
+              Create a Post
+            </h3>
+            <button id="compose-close" class="p-1.5 rounded-lg hover:bg-white/10 text-white/25 hover:text-white/60 transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          {# Post-as selector #}
+          <div class="px-5 pb-3">
+            <div class="text-[11px] text-white/25 mb-2 uppercase tracking-wider font-semibold">Posting as</div>
+            <div id="post-as-options" class="flex items-center gap-2 flex-wrap">
+              <button data-post-as="user" data-team-id=""
+                      class="dc-as-option selected flex items-center gap-2 px-3.5 py-2 rounded-xl border border-white/[.08] bg-white/[.03] text-xs text-white/60">
+                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-[#00E5FF]/30 to-[#6C00FF]/30 grid place-items-center text-[10px] font-bold text-white">
+                  {{ request.user.username|first|upper }}
+                </div>
+                <span class="font-medium">{{ request.user.username }}</span>
+              </button>
+            </div>
+          </div>
+
+          {# Title input #}
+          <div class="px-5 pb-2">
+            <input id="compose-title" type="text" placeholder="Title (optional)"
+                   class="w-full px-0 py-2 bg-transparent border-0 border-b border-white/[.05] text-white text-sm placeholder-white/15 focus:outline-none focus:border-[#00E5FF]/30 transition">
+          </div>
+
+          {# Rich text toolbar #}
+          <div class="px-5 py-2 flex items-center gap-0.5 border-b border-white/[.04]" id="editor-toolbar">
+            <button class="dc-tb-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+            <button class="dc-tb-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+            <button class="dc-tb-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+            <div class="w-px h-5 bg-white/[.06] mx-1"></div>
+            <button class="dc-tb-btn" data-cmd="insertUnorderedList" title="Bullet list">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </button>
+            <button class="dc-tb-btn" data-cmd="insertOrderedList" title="Numbered list">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><text x="3" y="8" font-size="8" fill="currentColor">1</text><text x="3" y="14" font-size="8" fill="currentColor">2</text><text x="3" y="20" font-size="8" fill="currentColor">3</text></svg>
+            </button>
+            <button class="dc-tb-btn" data-cmd="formatBlock" data-value="blockquote" title="Quote">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/></svg>
+            </button>
+            <button class="dc-tb-btn" data-cmd="createLink" title="Add link">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+            </button>
+            <div class="w-px h-5 bg-white/[.06] mx-1"></div>
+            <button class="dc-tb-btn" data-cmd="formatBlock" data-value="h2" title="Heading">
+              <span class="text-[10px]">H</span>
+            </button>
+          </div>
+
+          {# Editable area #}
+          <div class="px-5 py-4">
+            <div id="compose-editor" class="dc-editor" contenteditable="true"
+                 data-placeholder="Share updates, highlights, strategies, or anything with the community…"></div>
+          </div>
+
+          {# Bottom: Game / Vis / Submit #}
+          <div class="px-5 py-3 border-t border-white/[.04] flex items-center justify-between flex-wrap gap-3 bg-white/[.01]">
+            <div class="flex items-center gap-2.5">
+              <select id="compose-game" class="px-3 py-2 rounded-lg bg-white/[.04] border border-white/[.06] text-xs text-white/40 focus:outline-none appearance-none pr-7 cursor-pointer hover:border-white/[.12] transition">
+                <option value="">🎮 Game</option>
+              </select>
+              <select id="compose-visibility" class="px-3 py-2 rounded-lg bg-white/[.04] border border-white/[.06] text-xs text-white/40 focus:outline-none appearance-none pr-7 cursor-pointer hover:border-white/[.12] transition">
+                <option value="public">🌐 Public</option>
+                <option value="friends">👥 Friends</option>
+                <option value="private">🔒 Private</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <button id="compose-cancel" class="px-4 py-2 rounded-xl text-xs text-white/30 hover:text-white/60 hover:bg-white/[.05] transition">Cancel</button>
+              <button id="compose-submit"
+                      class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#6C00FF] text-xs font-bold text-white hover:shadow-lg hover:shadow-cyan-500/20 active:scale-[.97] transition disabled:opacity-25 disabled:pointer-events-none"
+                      disabled>
+                Publish
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+
+      {# ── FEED ── #}
+      <div id="feed" class="space-y-5">
+        <div class="dc-skeleton h-56 w-full"></div>
+        <div class="dc-skeleton h-44 w-full"></div>
+        <div class="dc-skeleton h-52 w-full"></div>
+      </div>
+
+      <div id="feed-sentinel"></div>
+
+      {# Loading spinner #}
+      <div id="feed-loading" class="hidden py-8 flex justify-center">
+        <div class="flex items-center gap-2.5 text-white/20 text-sm">
+          <svg class="w-4 h-4 animate-spin text-[#00E5FF]/60" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          Loading more posts…
+        </div>
+      </div>
+
+      {# Empty state #}
+      <div id="feed-empty" class="hidden py-24 text-center">
+        <div class="w-24 h-24 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-[#00E5FF]/10 to-[#6C00FF]/10 border border-white/[.06] grid place-items-center">
+          <svg class="w-10 h-10 text-white/10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <h3 class="text-xl font-bold text-white/60 mb-2">No posts yet</h3>
+        <p class="text-sm text-white/30 mb-6 max-w-sm mx-auto">Be the first to share something with the DeltaCrown community!</p>
+        {% if request.user.is_authenticated %}
+        <button onclick="CommunityHub.openComposer()"
+                class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#00E5FF] to-[#6C00FF] text-sm font-bold text-white hover:shadow-lg hover:shadow-cyan-500/20 transition">
+          Create First Post
+        </button>
+        {% endif %}
+      </div>
+
+      {# Mobile FAB #}
+      {% if request.user.is_authenticated %}
+      <button id="fab-new-post"
+              class="sm:hidden fixed bottom-6 right-6 z-30 w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00E5FF] to-[#6C00FF] text-white grid place-items-center shadow-2xl shadow-[#00E5FF]/30 active:scale-90 transition">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      {% endif %}
     </main>
 
-    <!-- Right Sidebar (Fixed) -->
-    <aside class="right-sidebar">
-      <!-- Community Insights -->
-      <div class="sidebar-card">
-        <div class="card-header">
-          <h3>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-            </svg>
-            Community Insights
-          </h3>
+
+    {# ── RIGHT SIDEBAR ── wider + visible from lg ── #}
+    <aside class="hidden lg:block w-[300px] xl:w-[340px] shrink-0 sticky top-[104px] h-[calc(100vh-120px)] overflow-y-auto space-y-5 no-scrollbar">
+
+      {# User's quick profile card (logged in) #}
+      {% if request.user.is_authenticated %}
+      <div class="rounded-2xl dc-glass overflow-hidden">
+        <div class="h-16 bg-gradient-to-r from-[#00E5FF]/15 via-[#6C00FF]/10 to-[#00E5FF]/15 relative">
+          <div class="absolute -bottom-5 left-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00E5FF]/30 to-[#6C00FF]/30 grid place-items-center text-lg font-bold text-white border-2 border-delta-base">
+              {{ request.user.username|first|upper }}
+            </div>
+          </div>
         </div>
-        <div class="card-content">
-          <div class="insights-grid">
-            <div class="insight-item">
-              <div class="insight-number">{{ posts.paginator.count|default:"0" }}</div>
-              <div class="insight-label">Active Posts</div>
+        <div class="pt-8 px-4 pb-4">
+          <div class="text-sm font-bold text-white/90">{{ request.user.username }}</div>
+          <div class="text-[11px] text-white/30 mt-0.5">@{{ request.user.username }}</div>
+          <div class="flex items-center gap-4 mt-3 pt-3 border-t border-white/[.04]">
+            <a href="/profile/" class="text-[11px] text-white/35 hover:text-[#00E5FF] transition">View Profile</a>
+            <a href="/dashboard/" class="text-[11px] text-white/35 hover:text-[#00E5FF] transition">Dashboard</a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {# Top Teams #}
+      <div class="rounded-2xl dc-glass overflow-hidden">
+        <div class="px-4 py-3.5 border-b border-white/[.04] flex items-center justify-between">
+          <h3 class="dc-widget-header text-sm font-bold text-white/70">Top Teams</h3>
+          <a href="/teams/" class="text-[10px] text-[#00E5FF]/50 hover:text-[#00E5FF] transition font-medium">View All</a>
+        </div>
+        <div id="sidebar-teams" class="p-3 space-y-1.5">
+          <div class="dc-skeleton h-12 w-full"></div>
+          <div class="dc-skeleton h-12 w-full"></div>
+          <div class="dc-skeleton h-12 w-full"></div>
+        </div>
+      </div>
+
+      {# Trending Topics #}
+      <div class="rounded-2xl dc-glass overflow-hidden">
+        <div class="px-4 py-3.5 border-b border-white/[.04] flex items-center gap-2">
+          <h3 class="dc-widget-header text-sm font-bold text-white/70">Trending</h3>
+          <span class="dc-pulse-dot"></span>
+        </div>
+        <div id="sidebar-trending" class="p-4 space-y-3">
+          <div class="flex items-start gap-3 group cursor-pointer">
+            <div class="w-7 h-7 rounded-lg bg-rose-500/10 grid place-items-center text-rose-400/60 text-[10px] font-bold shrink-0 mt-0.5">1</div>
+            <div>
+              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">#Tournaments</div>
+              <div class="text-[10px] text-white/30">Community updates</div>
             </div>
-            <div class="insight-item">
-              <div class="insight-number">{{ featured_teams|length|default:"0" }}</div>
-              <div class="insight-label">Teams</div>
+          </div>
+          <div class="flex items-start gap-3 group cursor-pointer">
+            <div class="w-7 h-7 rounded-lg bg-amber-500/10 grid place-items-center text-amber-400/60 text-[10px] font-bold shrink-0 mt-0.5">2</div>
+            <div>
+              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">#TeamUpdates</div>
+              <div class="text-[10px] text-white/30">Team activity</div>
             </div>
-            <div class="insight-item">
-              <div class="insight-number">{{ games|length|default:"0" }}</div>
-              <div class="insight-label">Games</div>
+          </div>
+          <div class="flex items-start gap-3 group cursor-pointer">
+            <div class="w-7 h-7 rounded-lg bg-emerald-500/10 grid place-items-center text-emerald-400/60 text-[10px] font-bold shrink-0 mt-0.5">3</div>
+            <div>
+              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">#Highlights</div>
+              <div class="text-[10px] text-white/30">Best plays</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Trending Topics -->
-      <div class="sidebar-card">
-        <div class="card-header">
-          <h3>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
-            </svg>
-            Trending Now
-          </h3>
+      {# About #}
+      <div class="rounded-2xl dc-glass overflow-hidden">
+        <div class="px-4 py-3.5 border-b border-white/[.04]">
+          <h3 class="dc-widget-header text-sm font-bold text-white/70">About</h3>
         </div>
-        <div class="card-content">
-          <div class="trending-list">
-            <div class="trending-item">
-              <span class="trend-rank">#1</span>
-              <div class="trend-info">
-                <span class="trend-topic">Valorant Championship</span>
-                <span class="trend-posts">245 posts today</span>
-              </div>
-            </div>
-            <div class="trending-item">
-              <span class="trend-rank">#2</span>
-              <div class="trend-info">
-                <span class="trend-topic">Team Recruitment</span>
-                <span class="trend-posts">128 posts today</span>
-              </div>
-            </div>
-            <div class="trending-item">
-              <span class="trend-rank">#3</span>
-              <div class="trend-info">
-                <span class="trend-topic">eFootball Tips</span>
-                <span class="trend-posts">97 posts today</span>
-              </div>
-            </div>
-          </div>
+        <div class="p-4 text-[13px] text-white/40 leading-relaxed">
+          Connect with esports players, discover teams, share highlights, discuss strategies, and stay updated on the competitive scene.
         </div>
-      </div>
-      
-      <!-- Featured Teams -->
-      <div class="sidebar-card">
-        <div class="card-header">
-          <h3>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            Featured Teams
-          </h3>
-        </div>
-        <div class="card-content">
-          <div class="teams-list">
-            {% for team in featured_teams %}
-            <a href="{% url 'teams:teams_social:team_social_detail' team_slug=team.slug %}" class="team-item">
-              <div class="team-avatar">
-                {% if team.logo %}
-                  <img src="{{ team.logo.url }}" alt="{{ team.name }}">
-                {% else %}
-                  <div class="avatar-placeholder">{{ team.name|first|upper }}</div>
-                {% endif %}
-              </div>
-              <div class="team-info">
-                <div class="team-name">{{ team.name }}</div>
-                <div class="team-meta">{{ team.members.count }} members • {{ team.game|title }}</div>
-              </div>
-              <button class="follow-btn">Follow</button>
-            </a>
-            {% empty %}
-            <div class="empty-state-small">
-              <p>No featured teams yet</p>
-            </div>
-            {% endfor %}
-          </div>
+        <div class="px-4 pb-4 flex flex-wrap gap-2">
+          <span class="px-2.5 py-1 rounded-lg bg-white/[.03] text-[10px] text-white/25 border border-white/[.04]">Esports</span>
+          <span class="px-2.5 py-1 rounded-lg bg-white/[.03] text-[10px] text-white/25 border border-white/[.04]">Gaming</span>
+          <span class="px-2.5 py-1 rounded-lg bg-white/[.03] text-[10px] text-white/25 border border-white/[.04]">Competitive</span>
+          <span class="px-2.5 py-1 rounded-lg bg-white/[.03] text-[10px] text-white/25 border border-white/[.04]">Community</span>
         </div>
       </div>
 
-      <!-- Quick Links -->
-      <div class="sidebar-card">
-        <div class="card-header">
-          <h3>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-            </svg>
-            Quick Links
-          </h3>
+      {# Esports Quick Hub #}
+      <div class="rounded-2xl dc-glass overflow-hidden">
+        <div class="px-4 py-3.5 border-b border-white/[.04] flex items-center gap-2">
+          <h3 class="dc-widget-header text-sm font-bold text-white/70">Esports Hub</h3>
+          <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 font-bold uppercase tracking-wider">Live</span>
         </div>
-        <div class="card-content">
-          <div class="quick-links">
-            {# Tournament system moved to legacy - link disabled #}
-            {# <a href="{% url 'tournaments:hub' %}" class="quick-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <path d="M16 10a4 4 0 0 1-8 0"></path>
-              </svg>
-              Tournaments
-            </a> #}
-            <a href="{% url 'teams:index' %}" class="quick-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              Browse Teams
-            </a>
-            <a href="{% url 'siteui:homepage' %}" class="quick-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                <polyline points="9,22 9,12 15,12 15,22"></polyline>
-              </svg>
-              Home
-            </a>
-          </div>
+        <div class="p-4 space-y-2">
+          <a href="/tournaments/" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[.04] transition group">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500/15 to-orange-500/15 grid place-items-center">
+              <i class="fa-solid fa-trophy text-amber-400 text-xs"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">Active Tournaments</div>
+              <div class="text-[10px] text-white/25">Browse & register</div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-[8px] text-white/10 group-hover:text-cyan-400/40 transition"></i>
+          </a>
+          <a href="/search/?type=players&lft=true" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[.04] transition group">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/15 to-green-500/15 grid place-items-center">
+              <i class="fa-solid fa-signal text-emerald-400 text-xs"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">LFT Players</div>
+              <div class="text-[10px] text-white/25">Looking for team</div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-[8px] text-white/10 group-hover:text-cyan-400/40 transition"></i>
+          </a>
+          <a href="/rankings/" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[.04] transition group">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/15 to-violet-500/15 grid place-items-center">
+              <i class="fa-solid fa-ranking-star text-purple-400 text-xs"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">Leaderboards</div>
+              <div class="text-[10px] text-white/25">Global rankings</div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-[8px] text-white/10 group-hover:text-cyan-400/40 transition"></i>
+          </a>
+          <a href="/teams/vnext/create/" class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[.04] transition group">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/15 to-blue-500/15 grid place-items-center">
+              <i class="fa-solid fa-users text-cyan-400 text-xs"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-semibold text-white/60 group-hover:text-white/90 transition">Create Team</div>
+              <div class="text-[10px] text-white/25">Start competing</div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-[8px] text-white/10 group-hover:text-cyan-400/40 transition"></i>
+          </a>
+        </div>
+      </div>
+
+      {# Quick links #}
+      <div class="rounded-2xl dc-glass p-4 space-y-2">
+        <a href="/support/" class="flex items-center gap-2.5 text-[11px] text-white/30 hover:text-white/60 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Help & Support
+        </a>
+        <a href="/community-guidelines/" class="flex items-center gap-2.5 text-[11px] text-white/30 hover:text-white/60 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Community Guidelines
+        </a>
+        <div class="pt-2 border-t border-white/[.04] text-[10px] text-white/15">
+          &copy; 2026 DeltaCrown Esports
         </div>
       </div>
     </aside>
   </div>
 </div>
 
-<!-- Create Post Modal -->
-{% if request.user.is_authenticated %}
-<div class="modal" id="createPostModal">
-  <div class="modal-overlay" data-close-modal></div>
-  <div class="modal-content">
-    <header class="modal-header">
-      <h3 class="modal-title">Create New Post</h3>
-      <button class="modal-close" data-close-modal>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
+
+{# ═══ COMMENT MODAL ═══ #}
+<div id="comment-modal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" id="comment-overlay"></div>
+  <div class="dc-modal-panel absolute inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 top-1/2 -translate-y-1/2
+              sm:w-full sm:max-w-xl max-h-[85vh] flex flex-col rounded-2xl border border-white/[.08] bg-delta-surface shadow-2xl shadow-black/50 overflow-hidden">
+
+    {# Header #}
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/[.06] bg-white/[.02]">
+      <div class="flex items-center gap-2.5">
+        <svg class="w-4 h-4 text-[#00E5FF]/60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <h3 class="font-bold text-white/80 text-sm">Comments</h3>
+        <span id="comment-count-badge" class="text-[11px] text-white/20 font-medium"></span>
+      </div>
+      <button id="comment-close" class="p-1.5 rounded-lg hover:bg-white/10 text-white/25 hover:text-white/60 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
-    </header>
-    <form class="modal-body" method="POST" enctype="multipart/form-data" action="{% url 'siteui:create_community_post' %}">
-      {% csrf_token %}
-      <div class="form-group">
-        <label for="postTitle">Title (Optional)</label>
-        <input type="text" id="postTitle" name="title" class="form-input" placeholder="Add a title to your post...">
-      </div>
-      <div class="form-group">
-        <label for="postContent">Content</label>
-        <textarea id="postContent" name="content" class="form-textarea" placeholder="What's happening in your gaming world?" rows="4" required></textarea>
-      </div>
-      <div class="form-group">
-        <label for="postGame">Game (Optional)</label>
-        <select id="postGame" name="game" class="form-select">
-          <option value="">Select a game...</option>
-          {% for game in games %}
-          <option value="{{ game.raw_name }}">{{ game.display_name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="postVisibility">Visibility</label>
-        <select id="postVisibility" name="visibility" class="form-select" required>
-          <option value="public">Public - Everyone can see</option>
-          <option value="followers">Followers Only</option>
-          <option value="private">Private - Only me</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="postMedia">Add Media</label>
-        <div class="file-upload">
-          <input type="file" id="postMedia" name="media_files" multiple accept="image/*,video/*" class="file-input">
-          <div class="file-upload-area">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <circle cx="8.5" cy="8.5" r="1.5"></circle>
-              <polyline points="21,15 16,10 5,21"></polyline>
-            </svg>
-            <p>Click to add photos or videos</p>
-            <p class="file-help">Support: JPG, PNG, GIF, MP4 (Max 10MB each)</p>
+    </div>
+
+    {# Comments list #}
+    <div id="comments-list" class="flex-1 overflow-y-auto p-5 space-y-4 min-h-[100px]">
+      <div class="text-center text-sm text-white/15 py-10">Loading…</div>
+    </div>
+
+    {# Comment input #}
+    {% if request.user.is_authenticated %}
+    <div class="px-5 py-4 border-t border-white/[.06] bg-white/[.01]">
+      <div class="flex items-start gap-3">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#00E5FF]/25 to-[#6C00FF]/25 grid place-items-center text-[10px] font-bold text-white shrink-0 mt-0.5 border border-white/[.06]">
+          {{ request.user.username|first|upper }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-end gap-2">
+            <textarea id="comment-input" rows="1" placeholder="Write a comment…"
+                   class="flex-1 px-4 py-2.5 rounded-xl bg-white/[.04] border border-white/[.08] text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#00E5FF]/30 transition resize-none"
+                   style="min-height:40px; max-height:120px;"></textarea>
+            <button id="comment-send"
+                    class="px-4 py-2.5 rounded-xl bg-[#00E5FF]/80 text-white text-sm font-bold hover:bg-[#00E5FF] transition disabled:opacity-25 disabled:pointer-events-none shrink-0"
+                    disabled>
+              Send
+            </button>
           </div>
-          <div class="file-preview" id="filePreview"></div>
         </div>
       </div>
-      <div class="modal-actions">
-        <button type="button" class="btn-secondary" data-close-modal>Cancel</button>
-        <button type="submit" class="btn-primary">Share Post</button>
-      </div>
-    </form>
+    </div>
+    {% endif %}
   </div>
 </div>
-{% endif %}
-
 {% endblock %}
 
+
 {% block extra_js %}
-<script src="{% static 'siteui/js/community-social.js' %}"></script>
+<script>
+  window.DC_COMMUNITY = {
+    csrfToken: '{{ csrf_token }}',
+    isAuthenticated: {% if request.user.is_authenticated %}true{% else %}false{% endif %},
+    currentUser: '{{ request.user.username|escapejs }}',
+  };
+</script>
+<script src="{% static 'siteui/js/community-hub.js' %}"></script>
 {% endblock %}

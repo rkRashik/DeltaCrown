@@ -251,9 +251,9 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         help_text='Whether this tournament is featured on the homepage'
     )
     
-    # Game (ForeignKey to Game)
+    # Game (ForeignKey to games.Game — canonical source)
     game = models.ForeignKey(
-        'Game',
+        'games.Game',
         on_delete=models.PROTECT,
         related_name='tournaments',
         help_text='Game being played in this tournament'

@@ -10,11 +10,14 @@ Exports all tournament-related models for easy importing.
 """
 
 from .tournament import (
-    Game,
     Tournament,
     CustomField,
     TournamentVersion,
 )
+# Game is the canonical model from games app.
+# Re-exported here for backward compatibility so existing imports
+# like `from apps.tournaments.models import Game` still work.
+from apps.games.models.game import Game
 from .template import (
     TournamentTemplate,  # Full implementation (Module 2.3)
 )

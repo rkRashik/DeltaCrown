@@ -573,7 +573,7 @@ class HomePageContent(models.Model):
 
 class CommunityPost(models.Model):
     """
-    Community posts that can be created by individual users
+    Community posts that can be created by individual users or on behalf of a team.
     """
     VISIBILITY_CHOICES = [
         ('public', 'Public'),
@@ -582,6 +582,14 @@ class CommunityPost(models.Model):
     ]
     
     author = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='community_posts')
+    # Optional: post on behalf of a team (author must be OWNER/MANAGER on that team)
+    team = models.ForeignKey(
+        'organizations.Team',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='community_posts',
+        help_text="If set, this post is published on behalf of the team"
+    )
     title = models.CharField(max_length=200, blank=True)
     content = models.TextField()
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='public')

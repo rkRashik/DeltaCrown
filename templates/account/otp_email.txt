@@ -1,9 +1,12 @@
 Hi {{ user.username }},
 
-Your DeltaCrown verification code is: {{ code }}
+Your DeltaCrown verification code is:
 
-This code expires in 10 minutes.
+    {{ code }}
 
-If you didn’t request this, you can ignore this email.
+This code expires in {{ expires_in_minutes }} minutes.
 
-— DeltaCrown
+If you didn't request this code, you can safely ignore this email. Never share this code with anyone.
+
+— DeltaCrown Esports
+https://deltacrown.com

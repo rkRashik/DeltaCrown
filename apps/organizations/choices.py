@@ -52,6 +52,7 @@ class MembershipEventType(models.TextChoices):
     NOTE: Administrative note (optional)
     """
     JOINED = 'JOINED', 'Joined Team'
+    INVITED = 'INVITED', 'Invited to Team'
     ROLE_CHANGED = 'ROLE_CHANGED', 'Role Changed'
     LEFT = 'LEFT', 'Left Team'
     REMOVED = 'REMOVED', 'Removed from Team'

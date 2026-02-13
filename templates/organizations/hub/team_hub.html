@@ -530,7 +530,11 @@ body::before {
                     <div class="grid md:grid-cols-3 h-full">
                         <div class="relative h-44 md:h-full bg-gray-900">
                             {% if featured_tournament.banner_image %}
-                            <img src="{{ featured_tournament.banner_image.url }}" class="w-full h-full object-cover opacity-50" alt="{{ featured_tournament.name }}" loading="lazy">
+                            <img src="{{ featured_tournament.banner_image.url }}" class="w-full h-full object-cover opacity-60" alt="{{ featured_tournament.name }}" loading="lazy">
+                            {% elif featured_tournament.game.card_image %}
+                            <img src="{{ featured_tournament.game.card_image.url }}" class="w-full h-full object-cover opacity-60" alt="{{ featured_tournament.game.display_name }}" loading="lazy">
+                            {% elif featured_tournament.game.banner %}
+                            <img src="{{ featured_tournament.game.banner.url }}" class="w-full h-full object-cover opacity-60" alt="{{ featured_tournament.game.display_name }}" loading="lazy">
                             {% else %}
                             <div class="w-full h-full bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 flex items-center justify-center">
                                 <i data-lucide="trophy" class="w-12 h-12 text-gray-700"></i>
@@ -545,7 +549,7 @@ body::before {
                                     <span>{{ featured_tournament.game.name }}</span>
                                 </div>
                                 <h3 class="text-2xl font-display font-black text-white mb-1">{{ featured_tournament.name }}</h3>
-                                <p class="text-gray-300 text-sm mb-4">{{ featured_tournament.description|truncatewords:20 }}</p>
+                                <p class="text-gray-300 text-sm mb-4 line-clamp-2">{{ featured_tournament.description|striptags|truncatewords:30 }}</p>
                                 <div class="flex items-center gap-6 text-sm">
                                     <div>
                                         <p class="text-xs text-gray-500 uppercase">Prize</p>
@@ -566,8 +570,18 @@ body::before {
                                 </div>
                             </div>
                             <div class="flex gap-2 mt-4">
+                                {% if featured_tournament.status == 'live' %}
+                                <a href="/tournaments/{{ featured_tournament.slug }}/#matches" class="flex-1 bg-gradient-to-r from-red-500 to-rose-500 text-white font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all text-sm text-center flex items-center justify-center gap-2">
+                                    <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span></span> Watch Live
+                                </a>
+                                {% elif featured_tournament.status == 'registration_open' %}
+                                <a href="/tournaments/{{ featured_tournament.slug }}/register/{% if featured_tournament.participation_type == 'team' %}team/{% endif %}" class="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all text-sm text-center">Register Now</a>
+                                {% elif featured_tournament.status == 'completed' %}
+                                <a href="/tournaments/{{ featured_tournament.slug }}/#standings" class="flex-1 bg-gradient-to-r from-dc-gold to-amber-400 text-dc-dark font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all text-sm text-center">View Results</a>
+                                {% else %}
                                 <a href="/tournaments/{{ featured_tournament.slug }}/" class="flex-1 bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all text-sm text-center">View Tournament</a>
-                                <a href="/tournaments/{{ featured_tournament.slug }}/" class="px-3 py-2.5 glass rounded-lg hover:bg-white/10 transition-colors">
+                                {% endif %}
+                                <a href="/tournaments/{{ featured_tournament.slug }}/" class="px-3 py-2.5 glass rounded-lg hover:bg-white/10 transition-colors" title="Tournament Details">
                                     <i data-lucide="info" class="w-4 h-4 text-gray-400"></i>
                                 </a>
                             </div>
@@ -585,10 +599,14 @@ body::before {
                 {% endif %}
 
                 {% if upcoming_tournament %}
-                <div class="glass p-3.5 rounded-xl flex items-center justify-between mt-3 cursor-pointer" style="transition: background .3s, border-color .3s; transform:none!important">
+                <a href="/tournaments/{{ upcoming_tournament.slug }}/" class="glass p-3.5 rounded-xl flex items-center justify-between mt-3 cursor-pointer hover:bg-white/5 hover:border-white/20 block" style="transition: background .3s, border-color .3s; transform:none!important; text-decoration:none;">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-dc-surface border border-white/10 flex items-center justify-center">
+                        <div class="w-10 h-10 rounded-lg bg-dc-surface border border-white/10 flex items-center justify-center overflow-hidden">
+                            {% if upcoming_tournament.game.icon %}
+                            <img src="{{ upcoming_tournament.game.icon.url }}" class="w-full h-full object-cover" alt="{{ upcoming_tournament.game.display_name }}" loading="lazy">
+                            {% else %}
                             <i data-lucide="trophy" class="w-4 h-4 text-dc-purple"></i>
+                            {% endif %}
                         </div>
                         <div>
                             <h4 class="font-bold text-white text-sm">{{ upcoming_tournament.name }}</h4>
@@ -598,7 +616,7 @@ body::before {
                         </div>
                     </div>
                     <span class="bg-dc-cyan/10 text-dc-cyan text-xs font-bold px-2.5 py-1 rounded-full border border-dc-cyan/20">UPCOMING</span>
-                </div>
+                </a>
                 {% endif %}
             </div>
 

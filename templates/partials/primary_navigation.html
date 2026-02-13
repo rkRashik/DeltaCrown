@@ -55,7 +55,7 @@
     {% if request.user.is_authenticated %}
     <a href="/notifications/" class="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-white relative">
       <i class="fa-regular fa-bell text-lg"></i>
-      {% with nav_unread_count|default:0 as unread_count %}{% if unread_count > 0 %}<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>{% endif %}{% endwith %}
+      {% with nav_unread_count|default:0 as unread_count %}{% if unread_count > 0 %}<span class="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-0.5 flex items-center justify-center bg-red-500 rounded-full border-2 border-[#020005] text-[9px] font-bold text-white leading-none">{{ unread_count }}</span>{% endif %}{% endwith %}
     </a>
     {% endif %}
     <button id="dc-mobile-menu-toggle" aria-label="Open menu" aria-expanded="false"
@@ -109,14 +109,23 @@
       <div class="relative">
         <button id="dc-notif-btn" class="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all relative group" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
           <i class="fa-regular fa-bell text-[1.25rem] group-hover:rotate-12 transition-transform"></i>
-          {% with nav_unread_count|default:0 as unread_count %}{% if unread_count > 0 %}<span class="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-[#020005] animate-pulse"></span>{% endif %}{% endwith %}
+          {% with nav_unread_count|default:0 as unread_count %}
+          {% if unread_count > 0 %}
+          <span id="dc-notif-badge" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 rounded-full border-2 border-[#020005] text-[10px] font-bold text-white leading-none animate-pulse">{{ unread_count }}</span>
+          {% endif %}
+          {% endwith %}
         </button>
         <div id="dc-notif-menu" class="dc-dropdown absolute top-full right-0 mt-4 w-[400px]">
           <div class="px-5 py-4 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
-            <h4 class="font-bold text-white text-sm tracking-widest uppercase">Notifications</h4>
+            <h4 class="font-bold text-white text-sm tracking-widest uppercase flex items-center gap-2">
+              Notifications
+              <span id="dc-notif-header-count" class="text-[10px] text-cyan-400/60 font-medium normal-case tracking-normal" {% if nav_unread_count == 0 %}style="display:none"{% endif %}>{% if nav_unread_count > 0 %}{{ nav_unread_count }} new{% endif %}</span>
+            </h4>
             <button id="dc-mark-read-btn" class="text-[11px] text-cyan-400 hover:text-white transition font-bold uppercase tracking-wider"><i class="fa-solid fa-check-double"></i> Mark Read</button>
           </div>
-          {% notifications_bell %}
+          <div id="dc-notif-content">
+            {% notifications_bell %}
+          </div>
         </div>
       </div>
       <div class="w-px h-6 bg-white/10 mx-2"></div>
@@ -279,13 +288,97 @@ function getCookie(n){let v=null;if(document.cookie)document.cookie.split(';').f
 
 {% if request.user.is_authenticated %}
 document.getElementById('dc-mark-read-btn')?.addEventListener('click',async function(){
-  try{const r=await fetch('/notifications/mark-all-read/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken'),'Content-Type':'application/json'}});const d=await r.json();if(d.success){document.querySelectorAll('.notification-dropdown-item').forEach(i=>{i.classList.remove('bg-cyan-500/5');const dot=i.querySelector('.bg-cyan-400');if(dot)dot.remove()});const b=document.querySelector('#dc-notif-btn .animate-pulse');if(b)b.remove()}}catch(e){console.error('Mark read failed:',e)}
+  try{const r=await fetch('/notifications/mark-all-read/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken'),'Content-Type':'application/json'}});const d=await r.json();if(d.success){document.querySelectorAll('.notification-dropdown-item').forEach(i=>{i.classList.remove('bg-cyan-500/5','bg-amber-500/[0.03]');const dot=i.querySelector('.bg-cyan-400,.bg-amber-400');if(dot)dot.remove()});const b=document.getElementById('dc-notif-badge');if(b)b.remove();const hc=document.getElementById('dc-notif-header-count');if(hc){hc.style.display='none';hc.textContent=''}}}catch(e){console.error('Mark read failed:',e)}
 });
 
-let _ncnt=0;
-async function _pollNotif(){try{const r=await fetch('/notifications/api/unread-count/',{headers:{'X-Requested-With':'XMLHttpRequest'}});if(!r.ok)return;const d=await r.json(),c=d.count||0;const b=document.querySelector('#dc-notif-btn .animate-pulse');if(c>0){if(!b){const btn=document.getElementById('dc-notif-btn');if(btn){const s=document.createElement('span');s.className='absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-[#020005] animate-pulse';btn.appendChild(s)}}}else{if(b)b.remove()}_ncnt=c}catch(e){}}
-let _nint;function _startPoll(){_pollNotif();_nint=setInterval(_pollNotif,15000)}
-document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInterval(_nint)}else{_startPoll()}});
-_startPoll();
+/* ── Enhanced Notification Polling System ── */
+(function(){
+  let _prevCount=0;
+  let _notifSound=null;
+
+  /* Notification sound (subtle ping) */
+  function _playNotifSound(){
+    try{
+      if(!_notifSound){
+        _notifSound=new Audio('data:audio/wav;base64,UklGRl4FAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YToFAABkAHwAjACUAJQAjAB8AGQARAAkAAQA5P/E/6T/jP90/2T/VP9U/2T/dP+M/6T/xP/k/wQAJABEAGQAfACMAJQAlACMAHwAZABEACQABP/k/8T/pP+M/3T/ZP9U/1T/ZP90/4z/pP/E/+T/BAAkAEQAZAAAAA==');
+        _notifSound.volume=0.3;
+      }
+      _notifSound.currentTime=0;
+      _notifSound.play().catch(()=>{});
+    }catch(e){}
+  }
+
+  /* Update badge UI */
+  function _updateBadge(count){
+    const btn=document.getElementById('dc-notif-btn');
+    if(!btn)return;
+    let badge=document.getElementById('dc-notif-badge');
+    const headerCount=document.getElementById('dc-notif-header-count');
+
+    if(count>0){
+      const display=count>99?'99+':count.toString();
+      if(!badge){
+        badge=document.createElement('span');
+        badge.id='dc-notif-badge';
+        badge.className='absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 rounded-full border-2 border-[#020005] text-[10px] font-bold text-white leading-none';
+        btn.appendChild(badge);
+      }
+      badge.textContent=display;
+      /* Pulse animation on new notifications */
+      if(count>_prevCount && _prevCount>=0){
+        badge.classList.remove('animate-pulse');
+        void badge.offsetWidth;
+        badge.classList.add('animate-pulse');
+        setTimeout(()=>badge.classList.remove('animate-pulse'),3000);
+      }
+      if(headerCount){headerCount.style.display='';headerCount.textContent=display+' new'}
+    }else{
+      if(badge)badge.remove();
+      if(headerCount){headerCount.style.display='none';headerCount.textContent=''}
+    }
+
+    /* Play sound when new notifications arrive */
+    if(count>_prevCount && _prevCount>=0){
+      _playNotifSound();
+    }
+    _prevCount=count;
+  }
+
+  /* Poll for unread count */
+  async function _pollNotif(){
+    try{
+      const r=await fetch('/notifications/api/unread-count/',{headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!r.ok)return;
+      const d=await r.json();
+      _updateBadge(d.count||0);
+    }catch(e){}
+  }
+
+  /* Refresh dropdown content on open */
+  const notifBtn=document.getElementById('dc-notif-btn');
+  const notifMenu=document.getElementById('dc-notif-menu');
+  if(notifBtn && notifMenu){
+    notifBtn.addEventListener('click',async function(){
+      /* Refresh dropdown content when opening */
+      if(!notifMenu.classList.contains('show')){
+        try{
+          const r=await fetch('/notifications/api/nav-preview/',{headers:{'X-Requested-With':'XMLHttpRequest'}});
+          if(r.ok){
+            const d=await r.json();
+            if(d.html){
+              const content=document.getElementById('dc-notif-content');
+              if(content)content.innerHTML=d.html;
+            }
+          }
+        }catch(e){console.error('[Notif] Refresh failed:',e)}
+      }
+    });
+  }
+
+  let _nint;
+  function _startPoll(){_pollNotif();_nint=setInterval(_pollNotif,15000)}
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInterval(_nint)}else{_startPoll()}});
+  _startPoll();
+})();
 {% endif %}
 </script>

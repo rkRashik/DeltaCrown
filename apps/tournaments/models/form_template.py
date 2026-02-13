@@ -59,7 +59,7 @@ class RegistrationFormTemplate(models.Model):
     )
     
     game = models.ForeignKey(
-        'tournaments.Game',
+        'games.Game',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

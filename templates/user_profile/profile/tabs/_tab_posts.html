@@ -19,13 +19,63 @@
 .post-card:hover {
     border-color: rgba(255, 255, 255, 0.1) !important;
 }
+
+/* ── Rich Text Editor ── */
+.prof-editor {
+    min-height: 100px; max-height: 280px;
+    overflow-y: auto; outline: none;
+    line-height: 1.7; font-size: .9rem;
+    color: rgba(255,255,255,.85);
+}
+.prof-editor:empty::before {
+    content: attr(data-placeholder);
+    color: rgba(255,255,255,.2);
+    pointer-events: none;
+}
+.prof-editor h1,.prof-editor h2,.prof-editor h3 { font-weight: 700; margin: .5em 0 .25em; color: #fff; }
+.prof-editor h1 { font-size: 1.4rem; } .prof-editor h2 { font-size: 1.2rem; } .prof-editor h3 { font-size: 1.05rem; }
+.prof-editor strong { color: #fff; }
+.prof-editor ul,.prof-editor ol { padding-left: 1.5rem; margin: .5em 0; }
+.prof-editor blockquote {
+    border-left: 3px solid rgba(6,182,212,.4);
+    padding-left: .75rem; margin: .5em 0;
+    color: rgba(255,255,255,.5); font-style: italic;
+}
+.prof-editor a { color: #22d3ee; text-decoration: underline; }
+
+/* Rich content display */
+.prof-rich-content { line-height: 1.7; word-break: break-word; }
+.prof-rich-content h1,.prof-rich-content h2,.prof-rich-content h3 { font-weight: 700; margin: .5em 0 .25em; color: #fff; }
+.prof-rich-content h1 { font-size: 1.3rem; } .prof-rich-content h2 { font-size: 1.1rem; } .prof-rich-content h3 { font-size: 1rem; }
+.prof-rich-content strong { color: rgba(255,255,255,.95); }
+.prof-rich-content ul,.prof-rich-content ol { padding-left: 1.5rem; margin: .4em 0; }
+.prof-rich-content blockquote {
+    border-left: 3px solid rgba(6,182,212,.35);
+    padding: .25rem .75rem; margin: .5em 0;
+    color: rgba(255,255,255,.5); font-style: italic;
+    background: rgba(6,182,212,.04); border-radius: 0 .375rem .375rem 0;
+}
+.prof-rich-content a { color: #22d3ee; text-decoration: underline; }
+.prof-rich-content p { margin: .4em 0; }
+
+/* Toolbar button */
+.prof-tb-btn {
+    width: 32px; height: 32px;
+    display: grid; place-items: center;
+    border-radius: .5rem; font-size: .75rem; font-weight: 600;
+    color: rgba(255,255,255,.35);
+    transition: all .15s; cursor: pointer;
+    background: none; border: none;
+}
+.prof-tb-btn:hover { color: #00E5FF; background: rgba(0,229,255,.08); }
+.prof-tb-btn.active { color: #00E5FF; background: rgba(0,229,255,.12); }
 </style>
 <div class="space-y-8 animate-fade-in">
     
     {% if relationship_ctx.is_owner %}
-    <!-- Composer -->
-    <div class="glass-panel p-6 rounded-2xl border-l-4 border-z-cyan shadow-lg">
-        <div class="flex gap-4">
+    <!-- Rich Text Composer -->
+    <div class="glass-panel rounded-2xl border-l-4 border-z-cyan shadow-lg overflow-hidden">
+        <div class="p-5 pb-3 flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-z-cyan to-z-purple p-0.5 flex-shrink-0">
                 {% if profile.avatar %}
                 <img src="{{ profile.avatar.url }}" class="w-full h-full object-cover rounded-xl bg-black">
@@ -35,29 +85,66 @@
                 </div>
                 {% endif %}
             </div>
-            <div class="flex-1">
-                <textarea id="post-content-input" rows="3" placeholder="What's on your mind..." class="w-full bg-transparent text-white placeholder-gray-500 text-sm font-medium outline-none resize-none px-2 py-1.5 leading-relaxed"></textarea>
-                <div id="media-preview-container" class="hidden mt-3 grid grid-cols-2 md:grid-cols-4 gap-2"></div>
-                <input type="file" id="media-input" multiple accept="image/*,video/*" class="hidden">
-                <div id="post-error-message" class="text-xs text-red-400 mt-1 hidden"></div>
-                <div id="post-success-message" class="text-xs text-z-green mt-1 hidden"></div>
-                <div class="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
-                    <div class="flex gap-4 items-center text-gray-400">
-                        <button id="media-button" type="button" class="hover:text-z-cyan transition flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-white/5" title="Attach media (images/videos)">
-                            <i class="fa-solid fa-image"></i>
-                            <span class="text-xs">Media</span>
-                        </button>
-                        <select id="post-visibility" class="bg-black/30 text-xs text-gray-300 border border-white/10 rounded-lg px-3 py-1.5 outline-none cursor-pointer hover:border-z-cyan transition">
-                            <option value="public">🌍 Public</option>
-                            <option value="friends">👥 Friends</option>
-                            <option value="private">🔒 Private</option>
-                        </select>
-                    </div>
-                    <button id="post-submit-btn" class="px-6 py-2 rounded-lg bg-z-cyan hover:bg-cyan-500 text-black text-xs font-bold uppercase transition">
-                        Post
-                    </button>
-                </div>
+            <div>
+                <div class="text-sm font-bold text-white">{{ profile.display_name|default:profile_user.username }}</div>
+                <div class="text-[10px] text-gray-500">@{{ profile_user.username }}</div>
             </div>
+        </div>
+
+        <!-- Rich Text Toolbar -->
+        <div class="px-5 py-2 flex items-center gap-0.5 border-y border-white/5" id="prof-editor-toolbar">
+            <button class="prof-tb-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+            <button class="prof-tb-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+            <button class="prof-tb-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+            <div class="w-px h-4 bg-white/[.06] mx-1"></div>
+            <button class="prof-tb-btn" data-cmd="insertUnorderedList" title="Bullet list">
+                <i class="fa-solid fa-list-ul text-[11px]"></i>
+            </button>
+            <button class="prof-tb-btn" data-cmd="insertOrderedList" title="Numbered list">
+                <i class="fa-solid fa-list-ol text-[11px]"></i>
+            </button>
+            <button class="prof-tb-btn" data-cmd="formatBlock" data-value="blockquote" title="Quote">
+                <i class="fa-solid fa-quote-left text-[11px]"></i>
+            </button>
+            <button class="prof-tb-btn" data-cmd="createLink" title="Add link">
+                <i class="fa-solid fa-link text-[11px]"></i>
+            </button>
+            <div class="w-px h-4 bg-white/[.06] mx-1"></div>
+            <button class="prof-tb-btn" data-cmd="formatBlock" data-value="h2" title="Heading">
+                <span class="text-[10px] font-bold">H</span>
+            </button>
+        </div>
+
+        <!-- Editable Area -->
+        <div class="px-5 py-4">
+            <div id="post-content-editor" class="prof-editor" contenteditable="true"
+                 data-placeholder="What's on your mind... Share updates, highlights, strategies…"></div>
+        </div>
+
+        <!-- Media Preview -->
+        <div id="media-preview-container" class="hidden px-5 pb-3 grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+        <input type="file" id="media-input" multiple accept="image/*,video/*" class="hidden">
+
+        <!-- Error/Success Messages -->
+        <div id="post-error-message" class="text-xs text-red-400 px-5 pb-2 hidden"></div>
+        <div id="post-success-message" class="text-xs text-z-green px-5 pb-2 hidden"></div>
+
+        <!-- Bottom Bar -->
+        <div class="flex justify-between items-center px-5 py-3 border-t border-white/5 bg-white/[.01]">
+            <div class="flex gap-3 items-center text-gray-400">
+                <button id="media-button" type="button" class="hover:text-z-cyan transition flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/5" title="Attach media (images/videos)">
+                    <i class="fa-solid fa-image"></i>
+                    <span class="text-xs">Media</span>
+                </button>
+                <select id="post-visibility" class="bg-black/30 text-xs text-gray-300 border border-white/10 rounded-lg px-3 py-1.5 outline-none cursor-pointer hover:border-z-cyan transition">
+                    <option value="public">🌍 Public</option>
+                    <option value="friends">👥 Friends</option>
+                    <option value="private">🔒 Private</option>
+                </select>
+            </div>
+            <button id="post-submit-btn" class="px-6 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold uppercase transition shadow-lg shadow-cyan-500/20 disabled:opacity-30 disabled:pointer-events-none" disabled>
+                Publish
+            </button>
         </div>
     </div>
     {% endif %}
@@ -130,7 +217,7 @@
                     {% if post.title %}
                     <h3 class="text-xl font-display font-bold text-white mb-3">{{ post.title }}</h3>
                     {% endif %}
-                    <p class="post-content text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{{ post.content }}</p>
+                    <div class="post-content prof-rich-content text-gray-300 text-sm leading-relaxed">{{ post.content|safe }}</div>
                     {% if post.updated_at and post.updated_at != post.created_at %}
                     <div class="text-[10px] text-gray-600 mt-2 italic">
                         <i class="fa-solid fa-pencil"></i> Edited
@@ -228,7 +315,7 @@
 <script>
 (function() {
     const submitBtn = document.getElementById('post-submit-btn');
-    const contentInput = document.getElementById('post-content-input');
+    const editorEl = document.getElementById('post-content-editor');
     const visibilitySelect = document.getElementById('post-visibility');
     const mediaButton = document.getElementById('media-button');
     const mediaInput = document.getElementById('media-input');
@@ -237,7 +324,61 @@
     const successMsg = document.getElementById('post-success-message');
     const postsFeed = document.getElementById('posts-feed');
     
-    if (!submitBtn || !contentInput) return;
+    if (!submitBtn || !editorEl) return;
+
+    /* ── Rich Text Toolbar ── */
+    const toolbar = document.getElementById('prof-editor-toolbar');
+    if (toolbar) {
+        toolbar.querySelectorAll('.prof-tb-btn').forEach(btn => {
+            btn.addEventListener('mousedown', e => e.preventDefault());
+            btn.addEventListener('click', () => {
+                const cmd = btn.dataset.cmd;
+                if (!cmd) return;
+                if (cmd === 'createLink') {
+                    const url = prompt('Enter URL:', 'https://');
+                    if (url) document.execCommand(cmd, false, url);
+                } else if (cmd === 'formatBlock') {
+                    const val = btn.dataset.value;
+                    document.execCommand(cmd, false, val);
+                } else {
+                    document.execCommand(cmd, false, null);
+                }
+                editorEl.focus();
+                _updateToolbarState();
+            });
+        });
+    }
+
+    function _updateToolbarState() {
+        if (!toolbar) return;
+        toolbar.querySelectorAll('.prof-tb-btn[data-cmd]').forEach(btn => {
+            const cmd = btn.dataset.cmd;
+            if (['bold','italic','underline','insertUnorderedList','insertOrderedList'].includes(cmd)) {
+                btn.classList.toggle('active', document.queryCommandState(cmd));
+            }
+        });
+    }
+
+    editorEl.addEventListener('keyup', _updateToolbarState);
+    editorEl.addEventListener('mouseup', _updateToolbarState);
+
+    /* Enable/disable submit based on content */
+    editorEl.addEventListener('input', () => {
+        const hasContent = editorEl.textContent.trim().length > 0;
+        submitBtn.disabled = !hasContent;
+    });
+
+    /* Paste as plain text to avoid messy HTML */
+    editorEl.addEventListener('paste', e => {
+        e.preventDefault();
+        const text = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
+        if (e.clipboardData.getData('text/html')) {
+            /* Allow HTML paste but sanitize */
+            document.execCommand('insertHTML', false, text);
+        } else {
+            document.execCommand('insertText', false, text);
+        }
+    });
     
     // Media handling
     let selectedFiles = [];
@@ -360,14 +501,15 @@
         e.preventDefault();
         hideError();
         
-        const content = contentInput.value.trim();
-        if (!content) {
+        const content = editorEl.innerHTML.trim();
+        const textContent = editorEl.textContent.trim();
+        if (!textContent) {
             showError('Please enter some content for your post.');
             return;
         }
         
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Posting...';
+        submitBtn.textContent = 'Publishing...';
         
         try {
             const formData = new FormData();
@@ -390,7 +532,8 @@
             const data = await response.json();
             
             if (data.success) {
-                contentInput.value = '';
+                editorEl.innerHTML = '';
+                submitBtn.disabled = true;
                 selectedFiles = [];
                 updateMediaPreviews();
                 showSuccess('Posted successfully!');
@@ -423,7 +566,7 @@
             showError('Failed to create post. Please try again.');
         } finally {
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Post';
+            submitBtn.textContent = 'Publish';
         }
     });
     
@@ -494,7 +637,7 @@
                     </div>
                 </div>
                 <div class="mb-4 relative z-10">
-                    <p class="post-content text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">${post.content}</p>
+                    <div class="post-content prof-rich-content text-gray-300 text-sm leading-relaxed">${post.content}</div>
                     <div class="post-edit-form hidden" data-post-id="${post.id}">
                         <textarea class="edit-content-input w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm resize-none focus:outline-none focus:border-z-cyan" rows="3">${post.content}</textarea>
                         <div class="edit-error-message text-xs text-red-400 mt-1 hidden"></div>

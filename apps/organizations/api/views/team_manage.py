@@ -37,7 +37,7 @@ from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from django.utils import timezone
 
-from apps.organizations.models import Team, TeamMembership, TeamMembershipEvent
+from apps.organizations.models import Team, TeamMembership, TeamMembershipEvent, TeamInvite
 from apps.organizations.choices import MembershipRole, MembershipStatus, TeamStatus, MembershipEventType, RosterSlot
 from apps.accounts.models import User
 from apps.organizations.services.hub_cache import invalidate_hub_cache
@@ -1452,6 +1452,246 @@ def generate_invite_link(request, slug):
         'invite_code': team.invite_code,
         'invite_url': f'/teams/join/{team.invite_code}/',
     })
+
+
+# ────────────────────────────────────────────────────────────────
+# 14b. Search Players (for invite autocomplete)
+# ────────────────────────────────────────────────────────────────
+
+@require_http_methods(["GET"])
+@login_required
+def search_players(request, slug):
+    """
+    GET /api/vnext/teams/<slug>/search-players/?q=<query>
+
+    Autocomplete search for users to invite.
+    Returns up to 10 matching users excluding current team members.
+    """
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+
+    has_permission, reason = _check_manage_permissions(team, request.user)
+    if not has_permission:
+        return JsonResponse({'error': reason}, status=403)
+
+    q = (request.GET.get('q') or '').strip()
+    if len(q) < 2:
+        return JsonResponse({'results': []})
+
+    from django.db.models import Q
+
+    # IDs of current members
+    member_user_ids = set(
+        team.vnext_memberships
+            .filter(status__in=[MembershipStatus.ACTIVE, MembershipStatus.INVITED])
+            .values_list('user_id', flat=True)
+    )
+
+    # IDs of users with pending invites for this team
+    pending_invite_user_ids = set(
+        TeamInvite.objects.filter(team=team, status='PENDING', invited_user__isnull=False)
+        .values_list('invited_user_id', flat=True)
+    )
+
+    exclude_ids = member_user_ids | pending_invite_user_ids
+
+    users = (
+        User.objects
+        .filter(Q(username__icontains=q) | Q(email__icontains=q))
+        .exclude(id__in=exclude_ids)
+        .filter(is_active=True)
+        .order_by('username')[:10]
+    )
+
+    results = []
+    for u in users:
+        avatar_url = None
+        if hasattr(u, 'profile') and u.profile and getattr(u.profile, 'avatar', None):
+            try:
+                avatar_url = u.profile.avatar.url
+            except (ValueError, AttributeError):
+                pass
+        display_name = u.get_full_name() or u.username
+        results.append({
+            'id': u.id,
+            'username': u.username,
+            'display_name': display_name,
+            'avatar_url': avatar_url,
+        })
+
+    return JsonResponse({'results': results})
+
+
+# ────────────────────────────────────────────────────────────────
+# 14c. Send Invite (invite a player to the team)
+# ────────────────────────────────────────────────────────────────
+
+@require_http_methods(["POST"])
+@login_required
+@transaction.atomic
+def send_invite(request, slug):
+    """
+    POST /api/vnext/teams/<slug>/invite/
+
+    Invite a user to join the team.
+
+    Body: { "username_or_email": "...", "role": "PLAYER" }
+    Returns: { "success": true, "message": "...", "invite": { id, username, role } }
+    """
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+
+    has_permission, reason = _check_manage_permissions(team, request.user)
+    if not has_permission:
+        return JsonResponse({'error': reason}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    identifier = (data.get('username_or_email') or '').strip()
+    role = (data.get('role') or MembershipRole.PLAYER).strip()
+
+    if not identifier:
+        return JsonResponse({'error': 'Username or email is required.'}, status=400)
+
+    # Validate role
+    if role not in [choice[0] for choice in MembershipRole.choices]:
+        return JsonResponse({'error': f'Invalid role: {role}'}, status=400)
+
+    if role == MembershipRole.OWNER:
+        return JsonResponse({
+            'error': 'OWNER role cannot be assigned. Use MANAGER role instead.'
+        }, status=400)
+
+    # Find user
+    user = None
+    if '@' in identifier:
+        try:
+            user = User.objects.get(email=identifier)
+        except User.DoesNotExist:
+            return JsonResponse({'error': f'No user found with email: {identifier}'}, status=404)
+    else:
+        try:
+            user = User.objects.get(username=identifier)
+        except User.DoesNotExist:
+            return JsonResponse({'error': f'No user found: {identifier}'}, status=404)
+
+    # Cannot invite yourself
+    if user == request.user:
+        return JsonResponse({'error': 'You cannot invite yourself.'}, status=400)
+
+    # Check if already a team member
+    if team.vnext_memberships.filter(user=user, status=MembershipStatus.ACTIVE).exists():
+        return JsonResponse({'error': f'{user.username} is already a member of this team.'}, status=400)
+
+    # Check for pending invite
+    existing_invite = TeamInvite.objects.filter(
+        team=team, invited_user=user, status='PENDING'
+    ).first()
+    if existing_invite and not existing_invite.is_expired():
+        return JsonResponse({'error': f'{user.username} already has a pending invite.'}, status=400)
+
+    # If prior invite expired/declined, mark it so we can create a new one
+    if existing_invite:
+        existing_invite.mark_expired_if_needed()
+
+    # One-active-team-per-game check
+    existing_active_membership = TeamMembership.objects.filter(
+        user=user,
+        game_id=team.game_id,
+        status=MembershipStatus.ACTIVE,
+    ).exclude(team=team).filter(team__status=TeamStatus.ACTIVE).first()
+
+    if existing_active_membership:
+        return JsonResponse({
+            'error': f'{user.username} already has an active team for this game: {existing_active_membership.team.name}'
+        }, status=400)
+
+    # Create invite
+    invite = TeamInvite.objects.create(
+        team=team,
+        invited_user=user,
+        inviter=request.user,
+        role=role,
+    )
+
+    # Also create a TeamMembership with INVITED status so it shows in the team detail
+    membership, _created = TeamMembership.objects.get_or_create(
+        team=team,
+        user=user,
+        defaults={
+            'role': role,
+            'status': MembershipStatus.INVITED,
+            'game_id': team.game_id,
+        }
+    )
+    if not _created and membership.status != MembershipStatus.INVITED:
+        membership.status = MembershipStatus.INVITED
+        membership.role = role
+        membership.save(update_fields=['status', 'role'])
+
+    # Record event
+    TeamMembershipEvent.objects.create(
+        membership=membership,
+        team=team,
+        user=user,
+        actor=request.user,
+        event_type=MembershipEventType.INVITED,
+        new_role=role,
+        new_status=MembershipStatus.INVITED,
+        metadata={'invite_id': invite.id},
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Invitation sent to {user.username}.',
+        'invite': {
+            'id': invite.id,
+            'username': user.username,
+            'role': role,
+        }
+    })
+
+
+# ────────────────────────────────────────────────────────────────
+# 14d. Cancel Invite
+# ────────────────────────────────────────────────────────────────
+
+@require_http_methods(["POST"])
+@login_required
+@transaction.atomic
+def cancel_invite(request, slug, invite_id):
+    """
+    POST /api/vnext/teams/<slug>/invites/<invite_id>/cancel/
+
+    Cancel a pending invitation.
+    """
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+
+    has_permission, reason = _check_manage_permissions(team, request.user)
+    if not has_permission:
+        return JsonResponse({'error': reason}, status=403)
+
+    try:
+        invite = TeamInvite.objects.get(id=invite_id, team=team)
+    except TeamInvite.DoesNotExist:
+        return JsonResponse({'error': 'Invite not found.'}, status=404)
+
+    if invite.status != 'PENDING':
+        return JsonResponse({'error': f'Cannot cancel invite with status: {invite.status}'}, status=400)
+
+    invite.status = 'CANCELLED'
+    invite.responded_at = timezone.now()
+    invite.save(update_fields=['status', 'responded_at'])
+
+    # Also clean up the INVITED membership record if it exists
+    TeamMembership.objects.filter(
+        team=team,
+        user=invite.invited_user,
+        status=MembershipStatus.INVITED,
+    ).delete()
+
+    return JsonResponse({'success': True, 'message': 'Invite cancelled.'})
 
 
 # ────────────────────────────────────────────────────────────────

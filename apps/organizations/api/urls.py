@@ -67,6 +67,9 @@ urlpatterns = [
     path('teams/<str:slug>/disband/', team_manage.disband_team, name='team_manage_disband'),
     path('teams/<str:slug>/transfer-ownership/', team_manage.transfer_ownership, name='team_manage_transfer'),
     path('teams/<str:slug>/invite-link/', team_manage.generate_invite_link, name='team_manage_invite_link'),
+    path('teams/<str:slug>/invite/', team_manage.send_invite, name='team_manage_send_invite'),
+    path('teams/<str:slug>/invites/<int:invite_id>/cancel/', team_manage.cancel_invite, name='team_manage_cancel_invite'),
+    path('teams/<str:slug>/search-players/', team_manage.search_players, name='team_manage_search_players'),
     path('teams/<str:slug>/activity/', team_manage.activity_timeline, name='team_manage_activity'),
     path('teams/<str:slug>/payment-methods/', team_manage.update_payment_methods, name='team_manage_payment_methods'),
     

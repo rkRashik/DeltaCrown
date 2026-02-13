@@ -75,7 +75,7 @@ class TournamentTemplate(TimestampedModel, SoftDeleteModel):
     
     # Game reference (optional - can be multi-game template)
     game = models.ForeignKey(
-        'Game',
+        'games.Game',
         on_delete=models.PROTECT,
         related_name='templates',
         null=True,

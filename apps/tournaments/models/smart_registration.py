@@ -71,7 +71,7 @@ class RegistrationQuestion(TimestampedModel):
     )
     
     game = models.ForeignKey(
-        'Game',
+        'games.Game',
         on_delete=models.CASCADE,
         related_name='registration_questions',
         null=True,
