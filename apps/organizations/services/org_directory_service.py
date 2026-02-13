@@ -39,12 +39,12 @@ def get_directory_context(*, q: str = "", region: str = "", page: int = 1, page_
         - Query count: ~3-5 queries (base + top_three + paginated rows)
     """
     # Base queryset with necessary related objects
-    # NOTE: Organization has no 'teams' reverse relation (legacy Team has no org FK)
-    # Team count placeholder set to 0 - proper mapping requires intermediate table if exists
     qs = Organization.objects.select_related(
         'ranking',  # For empire_score ordering
         'profile',  # For region_code filtering
         'ceo',      # For CEO name display
+    ).annotate(
+        squads_count=Count('teams', distinct=True),
     )
     
     # Search filtering (name, slug, or public_id)

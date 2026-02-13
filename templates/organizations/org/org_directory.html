@@ -9,42 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<script>
-    tailwind.config = {
-        darkMode: 'class',
-        theme: {
-            extend: {
-                fontFamily: {
-                    'corp': ['"Outfit"', 'sans-serif'],
-                    'tech': ['"Rajdhani"', 'sans-serif'],
-                    'mono': ['"Space Mono"', 'monospace'],
-                },
-                colors: {
-                    delta: {
-                        base: '#020204',
-                        surface: '#0A0A0F',
-                        highlight: '#12121A',
-                        gold: '#FFD700',
-                        violet: '#6C00FF',
-                        electric: '#00E5FF',
-                        success: '#10B981',
-                        danger: '#EF4444',
-                    }
-                },
-                backgroundImage: {
-                    'grid-pattern': "linear-gradient(rgba(255, 215, 0, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 215, 0, 0.03) 1px, transparent 1px)",
-                    'rank-1': 'linear-gradient(180deg, rgba(255, 215, 0, 0.1) 0%, rgba(0,0,0,0) 100%)',
-                    'rank-2': 'linear-gradient(180deg, rgba(192, 192, 192, 0.1) 0%, rgba(0,0,0,0) 100%)',
-                    'rank-3': 'linear-gradient(180deg, rgba(205, 127, 50, 0.1) 0%, rgba(0,0,0,0) 100%)',
-                },
-                boxShadow: {
-                    'glow-gold': '0 0 30px rgba(255, 215, 0, 0.1)',
-                }
-            }
-        }
-    }
-</script>
-
 <style>
     body { background-color: #020204; color: #E2E8F0; font-family: 'Outfit', sans-serif; }
     
@@ -240,12 +204,9 @@
                     <div class="relative">
                         <select id="region-filter" name="region" class="bg-delta-surface border border-white/10 text-white text-xs font-bold uppercase tracking-wider py-3 pl-4 pr-10 rounded-lg appearance-none cursor-pointer hover:bg-white/5 transition focus:border-delta-electric">
                             <option value="">Global</option>
-                            <option value="BD" {% if region == "BD" %}selected{% endif %}>Bangladesh</option>
-                            <option value="US" {% if region == "US" %}selected{% endif %}>USA</option>
-                            <option value="GB" {% if region == "GB" %}selected{% endif %}>UK</option>
-                            <option value="SG" {% if region == "SG" %}selected{% endif %}>Singapore</option>
-                            <option value="DE" {% if region == "DE" %}selected{% endif %}>Germany</option>
-                            <option value="NL" {% if region == "NL" %}selected{% endif %}>Netherlands</option>
+                            {% for code, name in countries %}
+                            <option value="{{ code }}" {% if region == code %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
                         </select>
                         <i class="fas fa-globe absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xs"></i>
                     </div>

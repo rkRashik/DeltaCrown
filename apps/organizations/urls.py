@@ -22,6 +22,7 @@ from apps.organizations.views import (
     org_control_plane,
     org_hub,
     org_directory,
+    team_directory,
 )
 from apps.organizations.views.hub import vnext_hub_filter
 
@@ -30,6 +31,9 @@ app_name = 'organizations'
 urlpatterns = [
     # API endpoints are now registered at root level in deltacrown/urls.py
     # This comment left for reference - actual API routes moved to main urls.py
+    
+    # UI views - Team Directory (public browseable listing)
+    path('teams/', team_directory, name='team_directory'),
     
     # UI views - vNext Hub (landing page)
     path('teams/vnext/', vnext_hub, name='vnext_hub'),

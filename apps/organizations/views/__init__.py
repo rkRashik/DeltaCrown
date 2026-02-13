@@ -20,6 +20,7 @@ from .hub import vnext_hub
 from .team import team_create, team_detail, team_invites, team_manage
 from .org import organization_detail, org_create, org_hub, org_control_plane
 from .org_directory import org_directory
+from .team_directory import team_directory
 
 __all__ = [
     'vnext_hub',
@@ -32,4 +33,5 @@ __all__ = [
     'org_hub',
     'org_control_plane',
     'org_directory',
+    'team_directory',
 ]

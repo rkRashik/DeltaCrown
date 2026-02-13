@@ -371,9 +371,10 @@
                                     </div>
                                     <div class="input-group mb-0">
                                         <select name="region_code_guild" class="corp-input appearance-none">
-                                            <option>Global (International)</option>
-                                            <option>South Asia</option>
-                                            <option>Europe</option>
+                                            <option value="">Global (International)</option>
+                                            {% for code, name in countries %}
+                                            <option value="{{ code }}">{{ name }}</option>
+                                            {% endfor %}
                                         </select>
                                         <label class="corp-label">Primary Region</label>
                                         <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"></i>
@@ -401,10 +402,9 @@
 
                             <div id="manualRegionBox" class="hidden mt-4 pt-4 border-t border-white/5">
                                 <select id="orgRegion" name="region_code" class="corp-input appearance-none">
-                                    <option value="BD" selected>Bangladesh</option>
-                                    <option value="US">United States</option>
-                                    <option value="SG">Singapore</option>
-                                    <option value="IN">India</option>
+                                    {% for code, name in countries %}
+                                    <option value="{{ code }}" {% if code == default_country %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                         </div>

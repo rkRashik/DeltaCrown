@@ -62,6 +62,22 @@ class CreateOrganizationSerializer(serializers.Serializer):
         name: Organization display name (required, 3-100 chars)
         slug: URL-friendly identifier (optional, auto-generated if missing)
         branding: Optional branding configuration (logo, colors, etc.)
+        badge: Short ticker symbol (e.g., 'SYN')
+        founded_year: Year organization was established
+        description: Mission statement / manifesto
+        organization_type: club | pro | guild
+        hq_city: City base
+        hq_address: Full operating address (pro orgs)
+        business_email: Official business email (pro orgs)
+        trade_license: Trade license / BIN / TIN number
+        region_code: ISO country code (e.g., 'BD', 'US')
+        discord_link: Discord invite URL
+        instagram: Instagram handle or URL
+        facebook: Facebook page URL
+        youtube: YouTube channel URL
+        currency: Primary ledger currency (BDT, USD)
+        payout_method: mobile | bank
+        brand_color: Hex color code for primary brand color
     
     Validation:
         - Name uniqueness checked at service layer (avoids race conditions)
@@ -72,12 +88,16 @@ class CreateOrganizationSerializer(serializers.Serializer):
         {
             "name": "Team Liquid",
             "slug": "team-liquid",
+            "organization_type": "pro",
+            "region_code": "US",
+            "brand_color": "#0A4D92",
             "branding": {
                 "logo_url": "https://cdn.example.com/logo.png",
                 "primary_color": "#0A4D92"
             }
         }
     """
+    # Step 1: Identity
     name = serializers.CharField(
         required=True,
         min_length=3,
@@ -89,6 +109,106 @@ class CreateOrganizationSerializer(serializers.Serializer):
         allow_blank=True,
         max_length=50,
         help_text="URL-friendly identifier (auto-generated if omitted)"
+    )
+    badge = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=10,
+        help_text="Short ticker symbol (e.g., SYN)"
+    )
+    founded_year = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=1900,
+        max_value=2100,
+        help_text="Year organization was established"
+    )
+    description = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=500,
+        help_text="Organization manifesto / mission statement"
+    )
+    
+    # Step 2: Operations
+    organization_type = serializers.ChoiceField(
+        required=False,
+        choices=['club', 'pro', 'guild'],
+        help_text="Organization classification"
+    )
+    hq_city = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=100,
+        help_text="City where organization is based"
+    )
+    hq_address = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=500,
+        help_text="Full HQ address (for Pro orgs)"
+    )
+    business_email = serializers.EmailField(
+        required=False,
+        allow_blank=True,
+        help_text="Official business email (for Pro orgs)"
+    )
+    trade_license = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=100,
+        help_text="Trade license / BIN / TIN number"
+    )
+    region_code = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=3,
+        help_text="ISO country code (e.g., BD, US, SG)"
+    )
+    discord_link = serializers.URLField(
+        required=False,
+        allow_blank=True,
+        max_length=500,
+        help_text="Discord community invite link"
+    )
+    instagram = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=100,
+        help_text="Instagram handle or URL"
+    )
+    facebook = serializers.URLField(
+        required=False,
+        allow_blank=True,
+        max_length=500,
+        help_text="Facebook page URL"
+    )
+    youtube = serializers.URLField(
+        required=False,
+        allow_blank=True,
+        max_length=500,
+        help_text="YouTube channel URL"
+    )
+    
+    # Step 3: Treasury
+    currency = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=3,
+        help_text="Primary ledger currency (BDT, USD, etc.)"
+    )
+    payout_method = serializers.ChoiceField(
+        required=False,
+        choices=['mobile', 'bank'],
+        help_text="Primary payout method"
+    )
+    
+    # Step 4: Branding
+    brand_color = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=7,
+        help_text="Primary brand color hex code (e.g., #FFD700)"
     )
     branding = OrganizationBrandingSerializer(required=False, allow_null=True)
     
@@ -118,6 +238,12 @@ class CreateOrganizationSerializer(serializers.Serializer):
                     code="reserved_slug"
                 )
         
+        return value
+    
+    def validate_brand_color(self, value: str) -> str:
+        """Validate hex color format."""
+        if value and not value.startswith('#'):
+            raise serializers.ValidationError("Color must be hex format (e.g., #FF5733)")
         return value
 
 

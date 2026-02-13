@@ -90,10 +90,6 @@
       <div class="dc-nav-item{% if dashboard_active %} active{% endif %}"><a href="/dashboard/" class="dc-nav-link" {% if dashboard_active %}aria-current="page"{% endif %}>Dashboard</a></div>
       {% endif %}
 
-      {% if COMPETITION_APP_ENABLED %}{% nav_active '/competition/' '/competition' as competition_active %}
-      <div class="dc-nav-item{% if competition_active %} active{% endif %}"><a href="/competition/rankings/" class="dc-nav-link" {% if competition_active %}aria-current="page"{% endif %}>Rankings</a></div>
-      {% endif %}
-
       {% nav_active '/community/' '/community' as community_active %}
       <div class="dc-nav-item{% if community_active %} active{% endif %}"><a href="/community/" class="dc-nav-link" {% if community_active %}aria-current="page"{% endif %}>Community</a></div>
 
@@ -283,7 +279,7 @@ function getCookie(n){let v=null;if(document.cookie)document.cookie.split(';').f
 
 {% if request.user.is_authenticated %}
 document.getElementById('dc-mark-read-btn')?.addEventListener('click',async function(){
-  try{const r=await fetch('/notifications/mark-all-read/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken'),'Content-Type':'application/json'}});const d=await r.json();if(d.success){document.querySelectorAll('.notification-dropdown-item').forEach(i=>{i.classList.remove('bg-cyan-500/5');const dot=i.querySelector('.bg-cyan-400');if(dot)dot.remove()});const b=document.querySelector('#dc-notif-btn .animate-pulse');if(b)b.remove();setTimeout(()=>location.reload(),1000)}}catch(e){console.error('Mark read failed:',e)}
+  try{const r=await fetch('/notifications/mark-all-read/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken'),'Content-Type':'application/json'}});const d=await r.json();if(d.success){document.querySelectorAll('.notification-dropdown-item').forEach(i=>{i.classList.remove('bg-cyan-500/5');const dot=i.querySelector('.bg-cyan-400');if(dot)dot.remove()});const b=document.querySelector('#dc-notif-btn .animate-pulse');if(b)b.remove()}}catch(e){console.error('Mark read failed:',e)}
 });
 
 let _ncnt=0;

@@ -53,10 +53,21 @@ def mark_all_read(request):
 def mark_read(request, pk):
     u = _user(request.user)
     n = get_object_or_404(Notification, id=pk, recipient=u)
-    if request.method == "POST" and not getattr(n, "is_read", False):
+    was_unread = not getattr(n, "is_read", False)
+    if request.method == "POST" and was_unread:
         n.is_read = True
         n.save(update_fields=["is_read"])
-        messages.success(request, "Notification marked as read.")
+    
+    # Return JSON for AJAX requests
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+        return JsonResponse({
+            "success": True,
+            "message": "Notification marked as read." if was_unread else "Already read.",
+            "notification_id": pk,
+        })
+    
+    # Legacy: redirect for non-AJAX
+    messages.success(request, "Notification marked as read.")
     next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("notifications:list")
     return redirect(next_url)
 

@@ -1,239 +1,575 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Watch — DeltaCrown{% endblock %}
+{% load humanize %}
+
+{% block title %}Arena — DeltaCrown{% endblock %}
+{% block og_title %}Arena — Live Esports Watch Hub{% endblock %}
+
+{% block extra_head %}
+<meta name="description" content="Watch live esports streams, VODs and upcoming broadcasts on DeltaCrown Arena. Your front-row seat to Bangladesh's premier competitive gaming.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+tailwind.config = {
+    darkMode: 'class',
+    theme: {
+        extend: {
+            colors: {
+                'dc-cyan': '#06b6d4',
+                'dc-purple': '#8b5cf6',
+                'dc-gold': '#facc15',
+                'dc-red': '#ef4444',
+                'dc-dark': '#050505',
+                'dc-surface': '#0d0d0d'
+            },
+            fontFamily: {
+                'sans': ['Inter', 'system-ui', 'sans-serif'],
+                'display': ['Space Grotesk', 'sans-serif']
+            }
+        }
+    }
+};
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ===== BASE ===== */
+body {
+    background: #050505;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+h1,h2,h3,h4,h5,h6 { font-family: 'Space Grotesk', sans-serif; line-height: 1.15; }
+
+/* Film grain */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: .03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ===== GLASS ===== */
+.glass-panel {
+    background: rgba(255,255,255,0.025);
+    backdrop-filter: blur(16px) saturate(1.3);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    transition: all .35s cubic-bezier(.22,1,.36,1);
+}
+.glass-panel:hover {
+    background: rgba(255,255,255,0.045);
+    border-color: rgba(6,182,212,0.25);
+}
+
+/* ===== LIVE ===== */
+.live-dot {
+    width: 8px; height: 8px;
+    background: #ef4444;
+    border-radius: 50%;
+    animation: pulseLive 1.5s ease-in-out infinite;
+    box-shadow: 0 0 8px rgba(239,68,68,0.6);
+}
+@keyframes pulseLive {
+    0%,100% { opacity:1; transform:scale(1); box-shadow: 0 0 8px rgba(239,68,68,0.6); }
+    50% { opacity:.5; transform:scale(1.4); box-shadow: 0 0 16px rgba(239,68,68,0.8); }
+}
+.badge-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    background: rgba(239,68,68,0.15);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #ef4444;
+}
+
+/* ===== FILTER CHIPS ===== */
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #94a3b8;
+    transition: all .2s ease;
+    text-decoration: none;
+    cursor: pointer;
+}
+.filter-chip:hover, .filter-chip.active {
+    background: rgba(6,182,212,0.1);
+    border-color: rgba(6,182,212,0.3);
+    color: #06b6d4;
+}
+
+/* ===== VOD CARDS ===== */
+.vod-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: all .35s cubic-bezier(.22,1,.36,1);
+}
+.vod-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(6,182,212,0.3);
+    box-shadow: 0 12px 40px rgba(6,182,212,0.08);
+}
+.vod-card .thumb-wrap { position: relative; overflow: hidden; }
+.vod-card .thumb-wrap img { transition: transform .5s ease; }
+.vod-card:hover .thumb-wrap img { transform: scale(1.06); }
+.vod-card .play-overlay {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    background: rgba(0,0,0,0.4);
+    opacity: 0; transition: opacity .3s ease;
+}
+.vod-card:hover .play-overlay { opacity: 1; }
+
+/* ===== SIDEBAR ===== */
+.stream-item {
+    display: flex; gap: 12px; padding: 12px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    transition: all .3s ease;
+    text-decoration: none; color: inherit;
+}
+.stream-item:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(6,182,212,0.25);
+    transform: translateX(4px);
+}
+
+/* ===== SCHEDULE ===== */
+.schedule-row {
+    display: flex; align-items: center; gap: 16px; padding: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background .2s ease;
+}
+.schedule-row:hover { background: rgba(255,255,255,0.02); }
+.schedule-row:last-child { border-bottom: none; }
+
+/* ===== HERO ===== */
+.hero-mesh { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.hero-mesh .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .3; }
+.hero-mesh .orb-1 { width: 600px; height: 600px; top: -200px; left: -100px; background: radial-gradient(circle, rgba(6,182,212,0.4), transparent 70%); }
+.hero-mesh .orb-2 { width: 500px; height: 500px; bottom: -150px; right: -80px; background: radial-gradient(circle, rgba(139,92,246,0.3), transparent 70%); }
+.hero-mesh .orb-3 { width: 300px; height: 300px; top: 50%; left: 50%; transform: translate(-50%,-50%); background: radial-gradient(circle, rgba(250,204,21,0.15), transparent 70%); }
+
+/* ===== SECTION LABEL ===== */
+.section-label {
+    display: flex; align-items: center; gap: 12px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .12em; color: #64748b;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0.06), transparent); }
+
+/* ===== FEATURED PLAYER ===== */
+.featured-player {
+    border-radius: 16px; overflow: hidden; position: relative;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+.featured-player iframe { width: 100%; height: 100%; display: block; }
+
+/* ===== SEARCH ===== */
+.arena-search {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; overflow: hidden; transition: border-color .2s ease;
+}
+.arena-search:focus-within { border-color: rgba(6,182,212,0.4); box-shadow: 0 0 0 3px rgba(6,182,212,0.08); }
+.arena-search input { background: transparent; border: none; outline: none; color: #e2e8f0; font-size: 14px; padding: 12px 16px; width: 100%; }
+.arena-search input::placeholder { color: #475569; }
+
+/* ===== EMPTY STATE ===== */
+.empty-state { text-align: center; padding: 48px 24px; color: #475569; }
+
+/* ===== PAGINATION ===== */
+.arena-pagination a, .arena-pagination span {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; transition: all .2s ease;
+}
+.arena-pagination a {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    color: #94a3b8; text-decoration: none;
+}
+.arena-pagination a:hover { background: rgba(6,182,212,0.1); border-color: rgba(6,182,212,0.3); color: #06b6d4; }
+</style>
+{% endblock %}
 
 {% block content %}
-<main id="watch" class="min-h-screen">
+<main class="min-h-screen pb-24">
 
-  <!-- ===== Hero / Command Bar ===== -->
-  <section class="relative overflow-hidden">
-    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
-      <div class="absolute -top-24 left-1/2 -translate-x-1/2 h-[30rem] w-[30rem] rounded-full blur-3xl opacity-50"
-           style="background: radial-gradient(closest-side, color-mix(in oklab, var(--brand-delta) 28%, transparent), transparent 70%);"></div>
-      <div class="absolute -bottom-24 right-0 h-[24rem] w-[24rem] rounded-full blur-3xl opacity-45"
-           style="background: radial-gradient(closest-side, color-mix(in oklab, var(--brand-sky, #38bdf8) 24%, transparent), transparent 70%);"></div>
-    </div>
-
-    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-12 pb-6">
-      <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <p class="text-xs tracking-widest uppercase text-[color:var(--muted)]">Streams · VODs · Schedule</p>
-          <h1 class="font-extrabold tracking-tight leading-tight" style="font-size: var(--h1); color: var(--text);">
-            Watch
-            {% if live_streams %}<span class="pill pill--live align-middle ms-2">Live</span>{% endif %}
-          </h1>
-          <p class="mt-2 text-[color:var(--muted)] max-w-prose">
-            Catch live tournaments and community broadcasts. Replays and highlights right after the show.
-          </p>
+    <!-- ===== HERO ===== -->
+    <section class="relative py-16 md:py-20">
+        <div class="hero-mesh">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
         </div>
 
-        <form method="get" action="" class="w-full md:w-[28rem]">
-          <label for="q" class="sr-only">Search</label>
-          <div class="card p-2 flex items-center gap-2">
-            <svg aria-hidden="true" class="opacity-70 ms-1" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input id="q" name="q" type="search" class="form-input flex-1" placeholder="Search streams, games, channels… ( / )"
-                   value="{{ request.GET.q|default:'' }}">
-            <button class="btn btn-secondary">Search</button>
-          </div>
-        </form>
-      </header>
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Breadcrumb -->
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-6">
+                <a href="/" class="hover:text-dc-cyan transition no-underline text-slate-500">Home</a>
+                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                <span class="text-slate-400">Arena</span>
+            </div>
 
-      {% if games %}
-        <div class="mt-4 flex flex-wrap gap-2">
-          <a class="chip {% if not request.GET.game %}is-active{% endif %}" href="{{ request.path }}">All</a>
-          {% for g in games %}
-            <a class="chip {% if request.GET.game == g.slug %}is-active{% endif %}"
-               href="?game={{ g.slug|urlencode }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}">
-              {{ g.name|default:g }}
-            </a>
-          {% endfor %}
+            <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+                <div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 border border-dc-cyan/20 flex items-center justify-center">
+                            <i data-lucide="tv" class="w-5 h-5 text-dc-cyan"></i>
+                        </div>
+                        {% if live_streams %}
+                            <div class="badge-live">
+                                <span class="live-dot"></span>
+                                {{ live_streams|length }} Live Now
+                            </div>
+                        {% endif %}
+                    </div>
+                    <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-white">Arena</h1>
+                    <p class="mt-3 text-slate-400 max-w-xl leading-relaxed">
+                        Your front-row seat to live tournaments, community broadcasts, and match replays across the DeltaCrown ecosystem.
+                    </p>
+                </div>
+
+                <!-- Search -->
+                <form method="get" action="" class="w-full lg:w-[380px] shrink-0">
+                    <div class="arena-search flex items-center">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-500 ml-4 shrink-0"></i>
+                        <input name="q" type="search" placeholder="Search streams, games, channels..."
+                               value="{{ request.GET.q|default:'' }}" autocomplete="off">
+                        {% if request.GET.q %}
+                            <a href="{{ request.path }}" class="mr-3 text-slate-500 hover:text-dc-cyan transition">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+
+            <!-- Game Filters -->
+            {% if games %}
+            <div class="mt-6 flex flex-wrap gap-2">
+                <a class="filter-chip {% if not request.GET.game %}active{% endif %}" href="{{ request.path }}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i> All Games
+                </a>
+                {% for g in games %}
+                    <a class="filter-chip {% if request.GET.game == g.slug %}active{% endif %}"
+                       href="?game={{ g.slug|urlencode }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}">
+                        {{ g.name|default:g }}
+                    </a>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
-      {% endif %}
-    </div>
-  </section>
+    </section>
 
-  <!-- ===== Featured Player + Live Now ===== -->
-  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 grid lg:grid-cols-3 gap-6">
 
-    <!-- Featured Player -->
-    <div class="lg:col-span-2">
-      <div class="card overflow-hidden">
-        {% comment %} Choose first live; else featured; else first VOD {% endcomment %}
-        {% with featured=featured_stream %}
-          {% if featured %}
-            {% if featured.embed_url %}
-              <div class="aspect-video bg-black">
-                <iframe
-                  title="{{ featured.title|default:'Stream' }}"
-                  src="{{ featured.embed_url }}{% if '?' in featured.embed_url %}&{% else %}?{% endif %}autoplay=1&mute=1"
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  allowfullscreen
-                  loading="lazy"
-                  class="w-full h-full">
-                </iframe>
-              </div>
-            {% else %}
-              <button class="group w-full relative aspect-video bg-[color:var(--surface)] grid place-items-center"
-                      data-open-watch
-                      data-embed-url="{{ featured.watch_url|default:'#' }}">
-                {% if featured.thumbnail_url %}
-                  <img src="{{ featured.thumbnail_url }}" alt="" class="absolute inset-0 w-full h-full object-cover">
+    <!-- ===== FEATURED + LIVE SIDEBAR ===== -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        <div class="grid lg:grid-cols-3 gap-6">
+
+            <!-- Featured Player -->
+            <div class="lg:col-span-2">
+                <div class="section-label mb-4">
+                    <i data-lucide="play-circle" class="w-4 h-4 text-dc-cyan"></i>
+                    Now Playing
+                </div>
+
+                {% with featured=featured_stream %}
+                {% if featured %}
+                    <div class="featured-player">
+                        {% if featured.embed_url %}
+                            <div class="aspect-video bg-black">
+                                <iframe title="{{ featured.title|default:'Stream' }}"
+                                    src="{{ featured.embed_url }}{% if '?' in featured.embed_url %}&{% else %}?{% endif %}autoplay=1&mute=1"
+                                    allow="autoplay; encrypted-media; picture-in-picture"
+                                    allowfullscreen loading="lazy"></iframe>
+                            </div>
+                        {% else %}
+                            <button class="group w-full relative aspect-video bg-dc-dark grid place-items-center cursor-pointer"
+                                    data-open-watch data-embed-url="{{ featured.watch_url|default:'#' }}">
+                                {% if featured.thumbnail_url %}
+                                    <img src="{{ featured.thumbnail_url }}" alt="" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity">
+                                {% endif %}
+                                <div class="relative z-10 w-16 h-16 rounded-full bg-dc-cyan/20 border border-dc-cyan/40 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <i data-lucide="play" class="w-7 h-7 text-dc-cyan ml-1"></i>
+                                </div>
+                            </button>
+                        {% endif %}
+                    </div>
+
+                    <div class="glass-panel p-5 mt-3">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="min-w-0">
+                                <h2 class="text-lg font-bold text-white leading-snug truncate">{{ featured.title|default:"Untitled broadcast" }}</h2>
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm text-slate-400">
+                                    {% if featured.channel %}<span class="flex items-center gap-1.5"><i data-lucide="user" class="w-3.5 h-3.5"></i> {{ featured.channel }}</span>{% endif %}
+                                    {% if featured.game %}<span class="flex items-center gap-1.5"><i data-lucide="gamepad-2" class="w-3.5 h-3.5"></i> {{ featured.game }}</span>{% endif %}
+                                    {% if featured.viewers %}<span class="flex items-center gap-1.5"><i data-lucide="eye" class="w-3.5 h-3.5"></i> {{ featured.viewers|intcomma }} watching</span>{% endif %}
+                                    {% if featured.start_time %}<span class="flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i> <time datetime="{{ featured.start_time|date:'c' }}">{{ featured.start_time|timesince }} ago</time></span>{% endif %}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                {% if featured.platform %}<span class="px-3 py-1 rounded-full text-xs font-semibold bg-white/5 border border-white/10 text-slate-300">{{ featured.platform }}</span>{% endif %}
+                                {% if featured.is_live %}<div class="badge-live"><span class="live-dot"></span> Live</div>{% endif %}
+                            </div>
+                        </div>
+                        {% if featured.tags %}
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                {% for tg in featured.tags %}<span class="px-2.5 py-1 rounded-full text-xs font-medium bg-dc-cyan/10 text-dc-cyan border border-dc-cyan/15">#{{ tg }}</span>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="glass-panel p-8">
+                        <div class="aspect-video flex flex-col items-center justify-center text-center">
+                            <div class="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mb-4">
+                                <i data-lucide="tv-2" class="w-8 h-8 text-slate-600"></i>
+                            </div>
+                            <p class="text-slate-400 font-medium">No live streams or videos right now</p>
+                            <p class="text-slate-500 text-sm mt-1">Check back soon for upcoming broadcasts</p>
+                        </div>
+                    </div>
                 {% endif %}
-                <span class="relative z-10 btn btn-primary">Play</span>
-              </button>
+                {% endwith %}
+            </div>
+
+            <!-- Live Now Sidebar -->
+            <div class="flex flex-col">
+                <div class="section-label mb-4">
+                    <span class="live-dot"></span>
+                    Live Streams
+                </div>
+
+                <div class="flex-1 space-y-3 overflow-y-auto max-h-[600px] pr-1" style="scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent;">
+                    {% if live_streams %}
+                        {% for s in live_streams|slice:":8" %}
+                            <a href="{{ s.watch_url|default:'#' }}" target="_blank" rel="noopener" class="stream-item group">
+                                <div class="relative w-24 h-16 rounded-lg overflow-hidden shrink-0">
+                                    <img src="{{ s.thumbnail_url|default:'/static/siteui/svg/community.svg' }}" alt="" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300">
+                                    <div class="absolute top-1 left-1 badge-live" style="font-size:9px; padding:2px 6px;">
+                                        <span class="live-dot" style="width:5px;height:5px;"></span> LIVE
+                                    </div>
+                                </div>
+                                <div class="min-w-0 flex-1 py-0.5">
+                                    <p class="text-sm font-semibold text-white truncate leading-snug">{{ s.title|default:"Live stream" }}</p>
+                                    <p class="text-xs text-slate-500 truncate mt-1">
+                                        {% if s.channel %}{{ s.channel }}{% endif %}{% if s.game %} · {{ s.game }}{% endif %}
+                                    </p>
+                                    {% if s.viewers %}<p class="text-xs text-slate-500 mt-1 flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i> {{ s.viewers|intcomma }}</p>{% endif %}
+                                </div>
+                            </a>
+                        {% endfor %}
+                    {% else %}
+                        <div class="glass-panel p-6 text-center">
+                            <div class="w-10 h-10 rounded-xl bg-slate-800/50 flex items-center justify-center mx-auto mb-3">
+                                <i data-lucide="radio" class="w-5 h-5 text-slate-600"></i>
+                            </div>
+                            <p class="text-sm text-slate-500">No live streams right now</p>
+                            <p class="text-xs text-slate-600 mt-1">Streams appear here automatically</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <a href="#vods" class="mt-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm font-semibold text-slate-400 hover:text-dc-cyan hover:border-dc-cyan/30 transition-all no-underline">
+                    <i data-lucide="film" class="w-4 h-4"></i> Jump to VODs
+                </a>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ===== UPCOMING SCHEDULE ===== -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        <div class="section-label mb-5">
+            <i data-lucide="calendar" class="w-4 h-4 text-dc-gold"></i>
+            Upcoming Broadcasts
+        </div>
+
+        <div class="glass-panel overflow-hidden">
+            {% if upcoming_streams %}
+                {% for e in upcoming_streams %}
+                    <div class="schedule-row group">
+                        <div class="shrink-0 w-28 text-center">
+                            {% if e.scheduled_for %}
+                                <div class="text-lg font-bold text-white leading-none">{{ e.scheduled_for|date:"M j" }}</div>
+                                <div class="text-xs text-slate-500 mt-1 font-medium">{{ e.scheduled_for|date:"g:i A" }}</div>
+                            {% else %}
+                                <div class="text-sm text-slate-600">TBD</div>
+                            {% endif %}
+                        </div>
+                        <div class="w-px h-10 bg-white/[0.06]"></div>
+                        {% if e.game %}<span class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-dc-purple/10 text-dc-purple border border-dc-purple/20 shrink-0">{{ e.game }}</span>{% endif %}
+                        <div class="min-w-0 flex-1">
+                            <p class="font-semibold text-white truncate">{{ e.title|default:"Upcoming broadcast" }}</p>
+                            <p class="text-xs text-slate-500 mt-0.5">{% if e.channel %}{{ e.channel }}{% endif %}{% if e.platform %} · {{ e.platform }}{% endif %}</p>
+                        </div>
+                        {% if e.cta_url %}
+                            <a href="{{ e.cta_url }}" class="shrink-0 px-4 py-2 rounded-lg text-xs font-bold bg-dc-cyan/10 text-dc-cyan border border-dc-cyan/20 hover:bg-dc-cyan/20 hover:border-dc-cyan/40 transition-all no-underline flex items-center gap-2">
+                                <i data-lucide="bell" class="w-3.5 h-3.5"></i> Notify me
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i data-lucide="calendar-x" class="w-8 h-8 text-slate-600 mx-auto mb-3"></i>
+                    <p class="text-sm text-slate-500 font-medium">No scheduled broadcasts</p>
+                    <p class="text-xs text-slate-600 mt-1">Upcoming events will appear here</p>
+                </div>
             {% endif %}
 
-            <div class="p-4">
-              <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                  <h2 class="font-semibold leading-snug text-balance" style="font-size: var(--h3); color: var(--text);">
-                    {{ featured.title|default:"Untitled broadcast" }}
-                  </h2>
-                  <p class="mt-1 text-sm text-[color:var(--muted)]">
-                    {% if featured.channel %}{{ featured.channel }}{% endif %}
-                    {% if featured.game %} • {{ featured.game }}{% endif %}
-                    {% if featured.start_time %} • <time datetime="{{ featured.start_time|date:'c' }}">{{ featured.start_time|timesince }} ago</time>{% endif %}
-                    {% if featured.viewers %} • {{ featured.viewers }} watching{% endif %}
-                  </p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  {% if featured.platform %}
-                    <span class="pill">{{ featured.platform }}</span>
-                  {% endif %}
-                  {% if featured.is_live %}<span class="pill pill--live">Live</span>{% endif %}
-                </div>
-              </div>
-              {% if featured.tags %}
-                <div class="mt-3 flex flex-wrap gap-2">
-                  {% for tg in featured.tags %}<span class="chip">#{{ tg }}</span>{% endfor %}
-                </div>
-              {% endif %}
+            <div class="px-4 py-3 border-t border-white/[0.04] flex justify-between items-center">
+                <span class="text-xs text-slate-600">Times shown in your local timezone</span>
+                <a href="/tournaments/" class="text-xs font-semibold text-dc-cyan hover:text-dc-cyan/80 no-underline flex items-center gap-1 transition">
+                    View all tournaments <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
             </div>
-          {% else %}
-            <div class="p-6 text-[color:var(--muted)]">No streams or videos yet.</div>
-          {% endif %}
-        {% endwith %}
-      </div>
-    </div>
-
-    <!-- Live Now list -->
-    <aside class="space-y-3">
-      <div class="flex items-center justify-between">
-        <h3 class="font-semibold" style="font-size: var(--h4); color: var(--text);">Live now</h3>
-        <a href="#vods" class="btn btn-ghost text-sm">Recent VODs</a>
-      </div>
-      <ul class="space-y-3">
-        {% if live_streams %}
-          {% for s in live_streams|slice:":6" %}
-          <li class="card overflow-hidden">
-            <a class="grid grid-cols-[5rem,1fr] gap-3" href="{{ s.watch_url|default:'#' }}" target="_blank" rel="noopener">
-              <div class="relative">
-                <img src="{{ s.thumbnail_url|default:'/static/siteui/svg/community.svg' }}" alt="" class="w-full h-full object-cover">
-                <span class="absolute top-1 left-1 pill pill--live">Live</span>
-              </div>
-              <div class="p-3 min-w-0">
-                <div class="truncate font-medium">{{ s.title|default:"Live stream" }}</div>
-                <div class="text-xs text-[color:var(--muted)] truncate">
-                  {% if s.channel %}{{ s.channel }}{% endif %}
-                  {% if s.game %} • {{ s.game }}{% endif %}
-                  {% if s.viewers %} • {{ s.viewers }} watching{% endif %}
-                </div>
-              </div>
-            </a>
-          </li>
-          {% endfor %}
-        {% else %}
-          <li class="text-sm text-[color:var(--muted)]">No live streams right now.</li>
-        {% endif %}
-      </ul>
-    </aside>
-  </section>
-
-  <!-- ===== Upcoming Schedule ===== -->
-  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-    <div class="card">
-      <div class="p-4 sm:p-5">
-        <div class="flex items-center justify-between flex-wrap gap-3">
-          <h2 class="font-semibold" style="font-size: var(--h3); color: var(--text);">Upcoming</h2>
-          <a href="/tournaments/" class="btn btn-soft">All tournaments</a>
         </div>
-        <ul class="mt-3 divide-y divide-[color:var(--border)]/70">
-          {% if upcoming_streams %}
-            {% for e in upcoming_streams %}
-              <li class="py-3 flex items-center gap-3">
-                <div class="pill">{{ e.game|default:"" }}</div>
-                <div class="min-w-0 flex-1">
-                  <div class="truncate font-medium">{{ e.title|default:"Upcoming broadcast" }}</div>
-                  <div class="text-xs text-[color:var(--muted)]">
-                    {% if e.scheduled_for %}<time datetime="{{ e.scheduled_for|date:'c' }}">{{ e.scheduled_for|date:"M j, g:i A" }}</time>{% endif %}
-                    {% if e.channel %} · {{ e.channel }}{% endif %}
-                    {% if e.platform %} · {{ e.platform }}{% endif %}
-                  </div>
+    </section>
+
+
+    <!-- ===== RECENT VODS ===== -->
+    <section id="vods" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        <div class="flex items-center justify-between mb-5">
+            <div class="section-label flex-1">
+                <i data-lucide="film" class="w-4 h-4 text-dc-purple"></i>
+                Recent VODs &amp; Replays
+            </div>
+            {% if request.GET.q or request.GET.game %}
+                <a href="{{ request.path }}" class="text-xs font-semibold text-slate-400 hover:text-dc-cyan no-underline flex items-center gap-1.5 transition">
+                    <i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Clear filters
+                </a>
+            {% endif %}
+        </div>
+
+        {% if vods %}
+            <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {% for v in vods %}
+                    <a href="{{ v.watch_url|default:'#' }}" target="_blank" rel="noopener" class="vod-card group block no-underline">
+                        <div class="thumb-wrap">
+                            <img src="{{ v.thumbnail_url|default:'/static/siteui/svg/community.svg' }}" class="w-full aspect-video object-cover" alt="" loading="lazy">
+                            <div class="play-overlay">
+                                <div class="w-12 h-12 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                                    <i data-lucide="play" class="w-5 h-5 text-white ml-0.5"></i>
+                                </div>
+                            </div>
+                            {% if v.duration %}<span class="absolute bottom-2 right-2 px-2 py-0.5 rounded-md text-[11px] font-bold bg-black/75 text-white backdrop-blur-sm border border-white/10">{{ v.duration }}</span>{% endif %}
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-sm font-semibold text-white line-clamp-2 leading-snug group-hover:text-dc-cyan transition-colors">{{ v.title|default:"Replay" }}</h3>
+                            <div class="flex items-center gap-x-2 mt-2 text-xs text-slate-500">
+                                {% if v.channel %}<span class="flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> {{ v.channel }}</span>{% endif %}
+                                {% if v.published_at %}<span>·</span><time datetime="{{ v.published_at|date:'c' }}">{{ v.published_at|timesince }} ago</time>{% endif %}
+                            </div>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+
+            {% if page_obj %}
+                <nav class="mt-8 flex items-center justify-between arena-pagination" aria-label="VOD pagination">
+                    <div>{% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}{% if request.GET.game %}&game={{ request.GET.game|urlencode }}{% endif %}"><i data-lucide="chevron-left" class="w-4 h-4"></i> Previous</a>{% endif %}</div>
+                    <span class="text-xs text-slate-500 font-medium">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    <div>{% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}{% if request.GET.game %}&game={{ request.GET.game|urlencode }}{% endif %}">Next <i data-lucide="chevron-right" class="w-4 h-4"></i></a>{% endif %}</div>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="glass-panel">
+                <div class="empty-state">
+                    <i data-lucide="video-off" class="w-8 h-8 text-slate-600 mx-auto mb-3"></i>
+                    <p class="text-sm text-slate-500 font-medium">No VODs available yet</p>
+                    <p class="text-xs text-slate-600 mt-1">Recorded matches and highlights will appear here</p>
                 </div>
-                {% if e.cta_url %}<a class="btn btn-primary" href="{{ e.cta_url }}">Notify me</a>{% endif %}
-              </li>
-            {% endfor %}
-          {% else %}
-            <li class="py-3 text-sm text-[color:var(--muted)]">No scheduled broadcasts.</li>
-          {% endif %}
-        </ul>
-      </div>
-    </div>
-  </section>
+            </div>
+        {% endif %}
+    </section>
 
-  <!-- ===== Recent VODs ===== -->
-  <section id="vods" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-    <div class="flex items-center justify-between">
-      <h2 class="font-semibold" style="font-size: var(--h3); color: var(--text);">Recent VODs</h2>
-      {% if request.GET.q or request.GET.game %}
-        <a class="btn btn-ghost" href="{{ request.path }}">Clear filters</a>
-      {% endif %}
-    </div>
 
-    {% if vods %}
-      <div class="mt-3 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {% for v in vods %}
-          <article class="card overflow-hidden group">
-            <a href="{{ v.watch_url|default:'#' }}" target="_blank" rel="noopener">
-              <div class="relative">
-                <img src="{{ v.thumbnail_url|default:'/static/siteui/svg/community.svg' }}" class="w-full aspect-video object-cover" alt="">
-                {% if v.duration %}<span class="absolute bottom-2 right-2 pill bg-black/70 text-white">{{ v.duration }}</span>{% endif %}
-              </div>
-              <div class="p-4">
-                <div class="font-medium line-clamp-2">{{ v.title|default:"Replay" }}</div>
-                <div class="mt-1 text-sm text-[color:var(--muted)]">
-                  {% if v.channel %}{{ v.channel }}{% endif %}
-                  {% if v.published_at %} • <time datetime="{{ v.published_at|date:'c' }}">{{ v.published_at|timesince }} ago</time>{% endif %}
+    <!-- ===== QUICK STATS ===== -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        <div class="glass-panel p-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                <div>
+                    <div class="text-2xl font-extrabold text-white">{{ live_streams|length|default:"0" }}</div>
+                    <div class="text-xs text-slate-500 mt-1 font-medium uppercase tracking-wider">Live Now</div>
                 </div>
-              </div>
-            </a>
-          </article>
-        {% endfor %}
-      </div>
+                <div>
+                    <div class="text-2xl font-extrabold text-white">{{ upcoming_streams|length|default:"0" }}</div>
+                    <div class="text-xs text-slate-500 mt-1 font-medium uppercase tracking-wider">Upcoming</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-extrabold text-white">
+                        {% if page_obj %}{{ page_obj.paginator.count }}{% elif vods %}{{ vods|length }}{% else %}0{% endif %}
+                    </div>
+                    <div class="text-xs text-slate-500 mt-1 font-medium uppercase tracking-wider">Total VODs</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-extrabold text-white">{{ games|length|default:"0" }}</div>
+                    <div class="text-xs text-slate-500 mt-1 font-medium uppercase tracking-wider">Games</div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-      {% if page_obj %}
-        <nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
-          <div>{% if page_obj.has_previous %}<a class="btn btn-ghost" href="?page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}</div>
-          <div class="text-sm text-[color:var(--muted)]">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
-          <div>{% if page_obj.has_next %}<a class="btn btn-ghost" href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}</div>
-        </nav>
-      {% endif %}
-    {% else %}
-      <div class="card"><div class="p-6 text-[color:var(--muted)]">No VODs yet.</div></div>
-    {% endif %}
-  </section>
+
+    <!-- ===== FOOTER CTA ===== -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="glass-panel p-8 md:p-12 text-center relative overflow-hidden">
+            <div class="absolute -top-20 -left-20 w-64 h-64 rounded-full bg-dc-cyan/5 blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-20 -right-20 w-64 h-64 rounded-full bg-dc-purple/5 blur-3xl pointer-events-none"></div>
+            <div class="relative">
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Want to broadcast on DeltaCrown?</h2>
+                <p class="mt-3 text-slate-400 max-w-lg mx-auto">Stream your tournaments and scrims directly to the Arena. Reach thousands of competitive gaming fans in Bangladesh.</p>
+                <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <a href="/tournaments/" class="px-6 py-3 rounded-xl bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-bold text-sm hover:shadow-lg hover:shadow-dc-cyan/25 transition-all no-underline flex items-center gap-2">
+                        <i data-lucide="trophy" class="w-4 h-4"></i> Browse Tournaments
+                    </a>
+                    <a href="/support/" class="px-6 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-slate-300 font-semibold text-sm hover:bg-white/[0.07] hover:border-dc-cyan/30 hover:text-dc-cyan transition-all no-underline flex items-center gap-2">
+                        <i data-lucide="message-circle" class="w-4 h-4"></i> Contact Us
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
 
 </main>
 
-<!-- ===== Inline player modal (optional, provider-agnostic) ===== -->
-<dialog id="watch-modal" class="glass rounded-2xl p-0 w-[min(90vw,1000px)]">
-  <div class="aspect-video bg-black">
-    <iframe id="watch-iframe" class="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
-  </div>
-  <form method="dialog" class="flex justify-end p-2">
-    <button class="btn btn-ghost">Close</button>
-  </form>
+<!-- ===== Inline player modal ===== -->
+<dialog id="watch-modal" class="rounded-2xl p-0 w-[min(90vw,1000px)] bg-black border border-white/10 backdrop-blur-xl">
+    <div class="aspect-video bg-black">
+        <iframe id="watch-iframe" class="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+    </div>
+    <form method="dialog" class="flex justify-end p-3 bg-dc-dark border-t border-white/[0.06]">
+        <button class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 bg-white/[0.04] border border-white/[0.08] hover:text-white hover:bg-white/[0.08] transition-all">Close</button>
+    </form>
 </dialog>
 
 <script src="{% static 'siteui/js/arena-watch.js' %}"></script>
+<script>if (typeof lucide !== 'undefined') lucide.createIcons();</script>
 {% endblock %}

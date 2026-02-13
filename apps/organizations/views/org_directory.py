@@ -8,6 +8,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 
 from apps.organizations.services.org_directory_service import get_directory_context
+from apps.organizations.constants.regions import COUNTRIES
 
 
 def org_directory(request):
@@ -48,6 +49,7 @@ def org_directory(request):
     context = {
         'page_title': 'Global Organizations',
         'page_description': 'Browse and explore verified esports organizations worldwide',
+        'countries': COUNTRIES,
         **directory_context,
     }
     

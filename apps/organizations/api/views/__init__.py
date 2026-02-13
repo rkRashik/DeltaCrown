@@ -250,6 +250,9 @@ def create_organization(request: Request) -> Response:
     
     validated_data = serializer.validated_data
     
+    # Extract branding nested fields (backward compat)
+    branding = validated_data.get('branding') or {}
+    
     # Create organization via service layer
     try:
         with transaction.atomic():
@@ -257,8 +260,28 @@ def create_organization(request: Request) -> Response:
                 name=validated_data['name'],
                 ceo_user_id=request.user.id,
                 slug=validated_data.get('slug'),
-                logo=validated_data.get('branding', {}).get('logo_url'),
-                description=validated_data.get('branding', {}).get('description', ''),
+                logo=branding.get('logo_url'),
+                description=validated_data.get('description') or branding.get('description', ''),
+                website=branding.get('website_url'),
+                # Identity fields
+                badge=validated_data.get('badge'),
+                # Profile fields (Step 2: Operations)
+                founded_year=validated_data.get('founded_year'),
+                organization_type=validated_data.get('organization_type', 'club'),
+                hq_city=validated_data.get('hq_city', ''),
+                hq_address=validated_data.get('hq_address', ''),
+                business_email=validated_data.get('business_email', ''),
+                trade_license=validated_data.get('trade_license', ''),
+                region_code=validated_data.get('region_code', 'BD'),
+                discord_link=validated_data.get('discord_link', ''),
+                instagram=validated_data.get('instagram', ''),
+                facebook=validated_data.get('facebook', ''),
+                youtube=validated_data.get('youtube', ''),
+                # Treasury fields (Step 3)
+                currency=validated_data.get('currency', 'BDT'),
+                payout_method=validated_data.get('payout_method', 'mobile'),
+                # Branding fields (Step 4)
+                brand_color=validated_data.get('brand_color') or branding.get('primary_color', ''),
             )
             
             # Fetch org to get slug (create_organization returns int ID)
@@ -287,7 +310,18 @@ def create_organization(request: Request) -> Response:
             status=status.HTTP_201_CREATED
         )
     
-    except (ConflictError, PermissionDeniedError, ServiceValidationError) as e:
+    except PermissionDeniedError as e:
+        # Permission denied by service layer (e.g., already owns an org)
+        return Response(
+            {
+                'error_code': e.error_code,
+                'message': str(e),
+                'safe_message': e.safe_message,
+            },
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    except (ConflictError, ServiceValidationError) as e:
         # Handle known service errors with appropriate status codes
         status_code = status.HTTP_409_CONFLICT if isinstance(e, ConflictError) else status.HTTP_400_BAD_REQUEST
         
@@ -1941,42 +1975,23 @@ def update_organization_settings(request: Request, org_slug: str) -> Response:
     """
     POST /api/vnext/orgs/<org_slug>/settings/
     
-    Update organization branding settings.
+    Update organization settings from the control plane.
     
-    Payload: {
-        "logo_url": "https://...",
-        "banner_url": "https://...",
-        "primary_color": "#667eea",
-        "tagline": "Victory Awaits"
-    }
+    Accepts any combination of:
+        Organization fields: name, description, website, enforce_brand
+        Profile fields: discord_link, facebook, instagram, brand_color, currency
+        JSON config: org_take (int, 0-100)
     
-    Response: {
-        "success": true,
-        "org": {...}  // updated org data
-    }
-    
-    Performance: ≤3 queries, <100ms p95
+    Response: { "success": true, "updated_org_fields": [...], "updated_profile_fields": [...] }
     """
     try:
-        # Get organization ID from slug
         from apps.organizations.models import Organization
         org = Organization.objects.get(slug=org_slug)
         
-        # Update settings
-        OrganizationService.update_organization_settings(
+        result = OrganizationService.update_organization_settings(
             organization_id=org.id,
             updated_by_user_id=request.user.id,
-            logo_url=request.data.get('logo_url'),
-            banner_url=request.data.get('banner_url'),
-            primary_color=request.data.get('primary_color'),
-            tagline=request.data.get('tagline')
-        )
-        
-        # Get updated org data
-        data = OrganizationService.get_organization_detail(
-            org_slug=org_slug,
-            include_members=False,
-            include_teams=False
+            settings=dict(request.data),
         )
         
         logger.info(
@@ -1985,13 +2000,15 @@ def update_organization_settings(request: Request, org_slug: str) -> Response:
                 'event_type': 'org_settings_updated',
                 'user_id': request.user.id,
                 'org_slug': org_slug,
+                'updated_fields': result['updated_org_fields'] + result['updated_profile_fields'],
             }
         )
         
         return Response(
             {
                 'success': True,
-                'org': data['org']
+                'updated_org_fields': result['updated_org_fields'],
+                'updated_profile_fields': result['updated_profile_fields'],
             },
             status=status.HTTP_200_OK
         )

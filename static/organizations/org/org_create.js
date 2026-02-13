@@ -367,7 +367,7 @@ function handleSubmit(e) {
     }
 }
 
-function showSubmitError(message) {
+function showSubmitError(message, useHtml = false) {
     const submitBtn = document.getElementById('submitBtn');
     if (!submitBtn) {
         console.error(message);
@@ -382,7 +382,11 @@ function showSubmitError(message) {
         submitBtn.parentElement?.appendChild(el);
     }
 
-    el.textContent = message;
+    if (useHtml) {
+        el.innerHTML = message;
+    } else {
+        el.textContent = message;
+    }
     el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
@@ -391,41 +395,110 @@ function clearSubmitError() {
     if (el) el.remove();
 }
 
-// Phase B: Real submission function (placeholder)
+// Phase B: Real submission function
 function submitOrganization() {
     clearSubmitError();
 
+    // Step 1: Identity
     const name = document.getElementById('orgName')?.value?.trim() || '';
+    const badge = document.getElementById('orgTicker')?.value?.trim() || '';
     const slug = document.getElementById('orgSlug')?.value?.trim() || '';
     const description = document.getElementById('orgManifesto')?.value?.trim() || '';
-    const primaryColor = document.getElementById('customColor')?.value?.trim() || '';
+    const foundedYearRaw = document.getElementById('orgEst')?.value?.trim() || '';
+    const foundedYear = foundedYearRaw ? parseInt(foundedYearRaw, 10) : null;
 
+    // Step 2: Operations
+    const organizationType = document.querySelector('input[name="organization_type"]:checked')?.value || 'club';
+    const hqCity = document.querySelector('input[name="hq_city"]')?.value?.trim() || '';
+    const hqAddress = document.querySelector('input[name="hq_address"]')?.value?.trim() || '';
+    const businessEmail = document.querySelector('input[name="business_email"]')?.value?.trim() || '';
+    const tradeLicense = document.querySelector('input[name="trade_license"]')?.value?.trim() || '';
+    const regionCode = document.getElementById('orgRegion')?.value?.trim() || '';
+
+    // Social links — merge guild discord and social discord
+    const discordGuild = document.querySelector('input[name="discord_link"]')?.value?.trim() || '';
+    const discordSocial = document.querySelector('input[name="discord_social"]')?.value?.trim() || '';
+    const discordLink = discordGuild || discordSocial;
+    const facebook = document.querySelector('input[name="facebook"]')?.value?.trim() || '';
+    const instagram = document.querySelector('input[name="instagram"]')?.value?.trim() || '';
+    const youtube = document.querySelector('input[name="youtube"]')?.value?.trim() || '';
+
+    // Guild-specific region fallback
+    const regionCodeGuild = document.querySelector('select[name="region_code_guild"]')?.value?.trim() || '';
+    const finalRegionCode = regionCode || regionCodeGuild;
+
+    // Step 3: Treasury
+    const payoutMethod = document.querySelector('input[name="payout_method"]:checked')?.value || 'mobile';
+    const currency = document.getElementById('walletCurrency')?.value?.trim() || 'BDT';
+
+    // Step 4: Branding
+    const brandColor = document.getElementById('customColor')?.value?.trim() || '';
+
+    // Build payload — top-level fields (matching expanded serializer)
     const payload = { name };
     if (slug) payload.slug = slug;
-
-    const branding = {};
-    if (description) branding.description = description;
-    if (primaryColor) branding.primary_color = primaryColor;
-    if (Object.keys(branding).length > 0) payload.branding = branding;
+    if (badge) payload.badge = badge;
+    if (description) payload.description = description;
+    if (foundedYear) payload.founded_year = foundedYear;
+    if (organizationType) payload.organization_type = organizationType;
+    if (hqCity) payload.hq_city = hqCity;
+    if (hqAddress) payload.hq_address = hqAddress;
+    if (businessEmail) payload.business_email = businessEmail;
+    if (tradeLicense) payload.trade_license = tradeLicense;
+    if (finalRegionCode) payload.region_code = finalRegionCode;
+    if (discordLink) payload.discord_link = discordLink;
+    if (facebook) payload.facebook = facebook;
+    if (instagram) payload.instagram = instagram;
+    if (youtube) payload.youtube = youtube;
+    if (currency) payload.currency = currency;
+    if (payoutMethod) payload.payout_method = payoutMethod;
+    if (brandColor) payload.brand_color = brandColor;
 
     const config = getConfig();
     const createUrl = config.createUrl || '/api/vnext/organizations/create/';
+
+    // Check for file uploads (logo/banner)
+    const logoInput = document.getElementById('orgLogoUpload');
+    const bannerInput = document.getElementById('orgBannerUpload');
+    const hasFiles = (logoInput && logoInput.files.length > 0) || (bannerInput && bannerInput.files.length > 0);
+
+    let fetchOptions;
+    if (hasFiles) {
+        // Use FormData for multipart upload
+        const formData = new FormData();
+        Object.entries(payload).forEach(([key, val]) => {
+            if (val !== null && val !== undefined && val !== '') formData.append(key, val);
+        });
+        if (logoInput && logoInput.files[0]) formData.append('logo', logoInput.files[0]);
+        if (bannerInput && bannerInput.files[0]) formData.append('banner', bannerInput.files[0]);
+        fetchOptions = {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            credentials: 'same-origin',
+            body: formData,
+        };
+    } else {
+        fetchOptions = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload),
+        };
+    }
 
     const submitBtn = document.getElementById('submitBtn');
     const originalHTML = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-cog fa-spin"></i> Incorporating...';
     submitBtn.disabled = true;
 
-    fetch(createUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': getCsrfToken(),
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify(payload)
-    })
+    fetch(createUrl, fetchOptions)
     .then(async (response) => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
@@ -480,6 +553,15 @@ function submitOrganization() {
             }
             if (errorCode === 'SLUG_CONFLICT' || errorCode === 'slug_already_exists') {
                 handleFieldErrors({ slug: data?.safe_message || 'Slug already exists.' });
+            }
+            if (errorCode === 'USER_ALREADY_CEO') {
+                // User already owns an org - show which one and a link
+                const orgSlug = data?.details?.existing_organization_slug;
+                const orgName = data?.details?.existing_organization_name;
+                const linkHtml = orgSlug
+                    ? ` <a href="/orgs/${orgSlug}/" class="text-cyan-400 underline hover:text-cyan-300">Manage ${orgName || 'your organization'}</a>`
+                    : '';
+                showSubmitError((data?.safe_message || 'You already own an organization.') + linkHtml, true);
             }
         } else {
             console.error('Error:', error);

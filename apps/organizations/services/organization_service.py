@@ -89,7 +89,23 @@ class OrganizationService:
         logo: Optional[Any] = None,
         description: Optional[str] = None,
         website: Optional[str] = None,
-        twitter: Optional[str] = None
+        twitter: Optional[str] = None,
+        badge: Optional[str] = None,
+        # Profile fields (OrganizationProfile)
+        founded_year: Optional[int] = None,
+        organization_type: str = 'club',
+        hq_city: str = '',
+        hq_address: str = '',
+        business_email: str = '',
+        trade_license: str = '',
+        region_code: str = 'BD',
+        discord_link: str = '',
+        instagram: str = '',
+        facebook: str = '',
+        youtube: str = '',
+        currency: str = 'BDT',
+        payout_method: str = 'mobile',
+        brand_color: str = '',
     ) -> int:
         """
         Create a new professional organization.
@@ -102,6 +118,21 @@ class OrganizationService:
             description: Organization bio/mission statement (optional)
             website: Official website URL (optional)
             twitter: Twitter handle without @ (optional)
+            badge: Short ticker symbol (e.g., 'SYN') (optional)
+            founded_year: Year organization was established (optional)
+            organization_type: club | pro | guild (default: 'club')
+            hq_city: City where organization is based (optional)
+            hq_address: Full HQ address for Pro orgs (optional)
+            business_email: Official business email for Pro orgs (optional)
+            trade_license: Trade license / BIN / TIN number (optional)
+            region_code: ISO country code, e.g., 'BD', 'US' (default: 'BD')
+            discord_link: Discord community invite link (optional)
+            instagram: Instagram handle or URL (optional)
+            facebook: Facebook page URL (optional)
+            youtube: YouTube channel URL (optional)
+            currency: Primary ledger currency (default: 'BDT')
+            payout_method: mobile | bank (default: 'mobile')
+            brand_color: Primary brand color hex code (optional)
         
         Returns:
             New organization ID (integer primary key)
@@ -113,9 +144,9 @@ class OrganizationService:
             PermissionDeniedError: If user already owns an organization
         
         Performance Notes:
-            - Target: <100ms (p95), ≤3 queries
+            - Target: <100ms (p95), ≤5 queries
             - Slug generation may require counter increment for uniqueness
-            - Auto-creates OrganizationRanking via post_save signal (if configured)
+            - Auto-creates OrganizationProfile + OrganizationRanking
         
         Security Notes:
             - User ownership validated (ceo_user_id must exist)
@@ -126,6 +157,7 @@ class OrganizationService:
             - One user can own max 1 organization (CEO role)
             - Organization name must be globally unique
             - Slug auto-generated if not provided (slugify + uniqueness check)
+            - OrganizationProfile created with all Step 2-4 wizard fields
             - Verified badge granted manually by platform admins (separate flow)
         
         Example:
@@ -133,13 +165,16 @@ class OrganizationService:
                 name="SYNTAX Esports",
                 ceo_user_id=request.user.id,
                 description="Professional esports organization",
-                website="https://syntax.gg"
+                organization_type="pro",
+                region_code="BD",
+                currency="BDT",
             )
         """
         from django.db import transaction
         from django.contrib.auth import get_user_model
         from django.utils.text import slugify
         from apps.organizations.models import Organization, OrganizationMembership, OrganizationRanking
+        from apps.organizations.models.organization_profile import OrganizationProfile
         
         User = get_user_model()
         
@@ -168,17 +203,33 @@ class OrganizationService:
                 resource_id=ceo_user_id
             )
         
-        # Validation: Check if user already owns an organization (1 query)
-        existing_ownership = OrganizationMembership.objects.filter(
+        # Validation: Check if user already owns an organization
+        # Check both OrganizationMembership CEO role AND Organization.ceo FK
+        # to guard against data inconsistency between the two
+        existing_ceo_membership = OrganizationMembership.objects.filter(
             user=ceo,
             role='CEO'
-        ).exists()
+        ).select_related('organization').first()
         
-        if existing_ownership:
+        existing_org_as_ceo = Organization.objects.filter(ceo=ceo).first()
+        
+        if existing_ceo_membership or existing_org_as_ceo:
+            # Determine which org they own for the error message
+            owned_org = (
+                existing_ceo_membership.organization if existing_ceo_membership
+                else existing_org_as_ceo
+            )
             raise PermissionDeniedError(
-                message=f"User {ceo.username} already owns an organization",
+                message=f"User {ceo.username} already owns organization '{owned_org.name}' (id={owned_org.id})",
                 error_code="USER_ALREADY_CEO",
-                details={"ceo_user_id": ceo_user_id, "username": ceo.username}
+                safe_message=f"You already own \"{owned_org.name}\". Each user can only be CEO of one organization.",
+                details={
+                    "ceo_user_id": ceo_user_id,
+                    "username": ceo.username,
+                    "existing_organization_id": owned_org.id,
+                    "existing_organization_name": owned_org.name,
+                    "existing_organization_slug": owned_org.slug,
+                }
             )
         
         # Generate slug if not provided
@@ -209,6 +260,7 @@ class OrganizationService:
                 slug=slug,
                 ceo=ceo,
                 logo=logo,
+                badge=badge or "",
                 description=description or "",
                 website=website or "",
                 twitter=twitter or ""
@@ -220,6 +272,25 @@ class OrganizationService:
                 user=ceo,
                 role='CEO',
                 permissions={}  # Full permissions implied by CEO role
+            )
+            
+            # Create organization profile with wizard fields
+            OrganizationProfile.objects.create(
+                organization=org,
+                founded_year=founded_year,
+                organization_type=organization_type or 'club',
+                hq_city=hq_city or '',
+                hq_address=hq_address or '',
+                business_email=business_email or '',
+                trade_license=trade_license or '',
+                region_code=region_code or 'BD',
+                discord_link=discord_link or '',
+                instagram=instagram or '',
+                facebook=facebook or '',
+                youtube=youtube or '',
+                currency=currency or 'BDT',
+                payout_method=payout_method or 'mobile',
+                brand_color=brand_color or '',
             )
             
             # Create initial ranking (if OrganizationRanking model requires manual creation)
@@ -1040,56 +1111,47 @@ class OrganizationService:
         *,
         organization_id: int,
         updated_by_user_id: int,
-        logo_url: Optional[str] = None,
-        banner_url: Optional[str] = None,
-        primary_color: Optional[str] = None,
-        tagline: Optional[str] = None
-    ) -> None:
+        settings: dict,
+    ) -> dict:
         """
-        Update organization branding settings.
-        
-        Args:
-            organization_id: Organization primary key
-            updated_by_user_id: User performing the action (permission check)
-            logo_url: New logo URL (optional)
-            banner_url: New banner URL (optional)
-            primary_color: New primary color (hex format, optional)
-            tagline: New tagline (optional)
-        
+        Update organization settings from control plane.
+
+        Accepted settings keys:
+            Organization fields: name, description, website, enforce_brand
+            OrganizationProfile fields: discord_link, facebook, instagram, brand_color, currency
+            JSON config: org_take (int → saved as revenue_split_config.org_take)
+
+        Note: slug changes excluded for safety (needs dedicated endpoint with cooldown).
+              Logo/banner file uploads handled via separate multipart endpoint.
+
+        Returns:
+            dict with updated_org_fields and updated_profile_fields lists
+
         Raises:
             NotFoundError: If organization not found
             PermissionDeniedError: If updater lacks permission
-            ValidationError: If color format invalid
-        
-        Performance Notes:
-            - Target: <100ms (p95), ≤3 queries
-            - Uses transaction.atomic for safety
-        
-        Business Rules:
-            - Only CEO or Managers can update settings
-        
-        Example:
-            OrganizationService.update_organization_settings(
-                organization_id=42,
-                updated_by_user_id=1,
-                primary_color='#ff5733',
-                tagline='Victory Awaits'
-            )
+            ValidationError: If field value invalid
         """
         from django.db import transaction
         from apps.organizations.models import Organization, OrganizationMembership
+        from apps.organizations.models.organization_profile import OrganizationProfile
         import re
-        
-        # Validate color format if provided
-        if primary_color and not re.match(r'^#[0-9a-fA-F]{6}$', primary_color):
+
+        # Field allowlists
+        ORG_FIELDS = {'name', 'description', 'website', 'enforce_brand'}
+        PROFILE_FIELDS = {'discord_link', 'facebook', 'instagram', 'brand_color', 'currency'}
+
+        # Validate brand_color if provided
+        brand_color = settings.get('brand_color')
+        if brand_color and not re.match(r'^#[0-9a-fA-F]{6}$', brand_color):
             raise ValidationError(
                 message="Invalid color format. Must be hex format like #ff5733",
                 error_code="INVALID_COLOR_FORMAT",
-                details={"primary_color": primary_color}
+                details={"brand_color": brand_color}
             )
-        
+
         with transaction.atomic():
-            # Verify organization exists
+            # Fetch org with lock
             try:
                 org = Organization.objects.select_for_update().get(id=organization_id)
             except Organization.DoesNotExist:
@@ -1098,38 +1160,55 @@ class OrganizationService:
                     resource_type="Organization",
                     resource_id=organization_id
                 )
-            
-            # Permission check: CEO or MANAGER can update settings
+
+            # Permission check: CEO or MANAGER
             updater_membership = OrganizationMembership.objects.filter(
                 organization_id=organization_id,
                 user_id=updated_by_user_id
             ).first()
-            
+
             if not updater_membership or updater_membership.role not in ['CEO', 'MANAGER']:
                 raise PermissionDeniedError(
                     message="Only CEO or Managers can update organization settings",
                     error_code="INSUFFICIENT_PERMISSIONS",
                     details={"required_role": "CEO or MANAGER"}
                 )
-            
-            # Update fields (only if provided)
-            updated_fields = []
-            
-            if logo_url is not None:
-                org.logo_url = logo_url
-                updated_fields.append('logo_url')
-            
-            if banner_url is not None:
-                org.banner_url = banner_url
-                updated_fields.append('banner_url')
-            
-            if primary_color is not None:
-                org.primary_color = primary_color
-                updated_fields.append('primary_color')
-            
-            if tagline is not None:
-                org.tagline = tagline
-                updated_fields.append('tagline')
-            
-            if updated_fields:
-                org.save(update_fields=updated_fields)
+
+            # Update Organization model fields
+            updated_org_fields = []
+            for field in ORG_FIELDS:
+                if field in settings:
+                    val = settings[field]
+                    if field == 'enforce_brand':
+                        val = bool(val)
+                    setattr(org, field, val)
+                    updated_org_fields.append(field)
+
+            # Handle revenue split config (JSON)
+            if 'org_take' in settings:
+                org_take = max(0, min(100, int(settings['org_take'])))
+                config = org.revenue_split_config or {}
+                config['org_take'] = org_take
+                org.revenue_split_config = config
+                updated_org_fields.append('revenue_split_config')
+
+            if updated_org_fields:
+                org.save(update_fields=updated_org_fields + ['updated_at'])
+
+            # Update OrganizationProfile fields
+            updated_profile_fields = []
+            profile_data = {k: settings[k] for k in PROFILE_FIELDS if k in settings}
+
+            if profile_data:
+                profile, _created = OrganizationProfile.objects.get_or_create(
+                    organization=org
+                )
+                for field, val in profile_data.items():
+                    setattr(profile, field, val)
+                    updated_profile_fields.append(field)
+                profile.save(update_fields=updated_profile_fields + ['updated_at'])
+
+        return {
+            'updated_org_fields': updated_org_fields,
+            'updated_profile_fields': updated_profile_fields,
+        }

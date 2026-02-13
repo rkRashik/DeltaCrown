@@ -14,6 +14,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 
 from apps.organizations.models import Organization
+from apps.organizations.constants.regions import COUNTRIES, DEFAULT_COUNTRY
 from apps.organizations.permissions import (
     get_org_role,
     can_access_control_plane,
@@ -119,6 +120,8 @@ def org_create(request):
     
     return render(request, 'organizations/org/org_create.html', {
         'page_title': 'Create Organization',
+        'countries': COUNTRIES,
+        'default_country': DEFAULT_COUNTRY,
     })
 
 
@@ -198,15 +201,11 @@ def org_control_plane(request, org_slug):
     - 403 if user lacks permission
     - Control plane interface if authorized
     """
-    from apps.organizations.services.org_detail_service import get_org_detail_context
-    from django.shortcuts import get_object_or_404
-    from apps.organizations.models import Organization
+    from apps.organizations.services.org_detail_service import get_control_plane_context
     from django.http import HttpResponseForbidden
     
-    organization = get_object_or_404(Organization, slug=org_slug)
-    
-    # Get permission context
-    context = get_org_detail_context(
+    # Get control plane context (includes permissions + management-specific data)
+    context = get_control_plane_context(
         org_slug=org_slug,
         viewer=request.user
     )

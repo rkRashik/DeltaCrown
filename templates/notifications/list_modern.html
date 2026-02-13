@@ -263,7 +263,24 @@ async function clearAll() {
     const data = await response.json();
     if (data.success) {
       showToast(`Deleted ${data.deleted_count} notifications`);
-      location.reload();
+      // Update DOM in-place instead of reloading
+      const container = document.querySelector('.glass-panel');
+      if (container) {
+        container.innerHTML = `
+          <div class="p-16 text-center">
+            <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-600/20 flex items-center justify-center">
+              <svg class="w-12 h-12 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+            </div>
+            <p class="text-xl text-gray-400 mb-2">No notifications yet</p>
+            <p class="text-sm text-gray-500">We'll notify you when something happens</p>
+          </div>
+        `;
+      }
+      // Update header count
+      const countBadge = document.querySelector('.notification-count-badge');
+      if (countBadge) countBadge.textContent = '0';
     }
   } catch (error) {
     showToast('Failed to clear notifications', 'error');
@@ -277,6 +294,7 @@ async function markRead(notificationId) {
       method: 'POST',
       headers: {
         'X-CSRFToken': csrftoken,
+        'X-Requested-With': 'XMLHttpRequest',
         'Content-Type': 'application/json'
       }
     });

@@ -614,8 +614,8 @@ body::before {
                             <p class="text-sm text-gray-400 mt-1">Top teams {% if selected_game and selected_game_slug != 'all' %}in {{ selected_game.display_name }}{% else %}across all titles{% endif %} based on Crown Points (CP).</p>
                         </div>
                         <div class="flex gap-3">
-                            <a href="/rankings" class="text-xs font-bold text-gray-400 hover:text-white px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/30 transition-colors">Ranking Policy</a>
-                            <a href="/rankings" class="text-xs font-bold bg-dc-cyan/10 text-dc-cyan px-3 py-1.5 rounded-lg border border-dc-cyan/30 hover:bg-dc-cyan/20 transition-colors">View All</a>
+                            <a href="{% url 'competition:ranking_about' %}" class="text-xs font-bold text-gray-400 hover:text-white px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/30 transition-colors">Ranking Policy</a>
+                            <a href="{% url 'competition:rankings_global' %}" class="text-xs font-bold bg-dc-cyan/10 text-dc-cyan px-3 py-1.5 rounded-lg border border-dc-cyan/30 hover:bg-dc-cyan/20 transition-colors">View All</a>
                         </div>
                     </div>
 
@@ -1168,13 +1168,13 @@ body::before {
 
             <!-- Platform Column -->
             <div>
-                <h4 class="font-bold text-white text-xs mb-4 uppercase tracking-widest">Platform</h4>
+                <h4 class="font-bold text-white text-xs mb-4 uppercase tracking-widest">Hub</h4>
                 <ul class="space-y-2.5 text-sm text-gray-400">
+                    <li><a href="/competition/rankings/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-gray-600"></i>Rankings</a></li>
+                    <li><a href="/orgs/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="building-2" class="w-3.5 h-3.5 text-gray-600"></i>Organizations</a></li>
+                    <li><a href="/teams/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="users" class="w-3.5 h-3.5 text-gray-600"></i>Team Directory</a></li>
                     <li><a href="/tournaments/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="trophy" class="w-3.5 h-3.5 text-gray-600"></i>Tournaments</a></li>
-                    <li><a href="/competition/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="swords" class="w-3.5 h-3.5 text-gray-600"></i>Competition</a></li>
-                    <li><a href="/community/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="users" class="w-3.5 h-3.5 text-gray-600"></i>Community</a></li>
-                    <li><a href="/crownstore/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="store" class="w-3.5 h-3.5 text-gray-600"></i>Crown Store</a></li>
-                    <li><a href="/spectator/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="tv" class="w-3.5 h-3.5 text-gray-600"></i>Watch</a></li>
+                    <li><a href="/about/" class="hover:text-dc-cyan transition-colors flex items-center gap-1.5"><i data-lucide="info" class="w-3.5 h-3.5 text-gray-600"></i>About DeltaCrown</a></li>
                 </ul>
             </div>
 

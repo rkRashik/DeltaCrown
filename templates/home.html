@@ -175,7 +175,7 @@
                         </div>
                         <div>
                             <p class="text-gray-400 text-sm font-medium">Active Players</p>
-                            <p class="text-white text-2xl font-display font-bold" id="player-count">{{ live_stats.players_count|default:"12,500" }}+</p>
+                            <p class="text-white text-2xl font-display font-bold" id="player-count">{{ live_stats.players_count }}+</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2 text-gray-500 text-sm">
@@ -352,8 +352,8 @@
                 <div class="w-16 h-16 bg-dc-gold/20 rounded-2xl flex items-center justify-center mb-6">
                     <svg class="w-8 h-8 text-dc-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
                 </div>
-                <h3 class="font-display text-2xl font-bold text-white mb-3">ELO Rankings & Stats</h3>
-                <p class="text-gray-400">Track your team's performance with comprehensive statistics. Climb the leaderboard and prove your skill.</p>
+                <h3 class="font-display text-2xl font-bold text-white mb-3">DCRS Team Rankings</h3>
+                <p class="text-gray-400">Track your team's DCRS tier from Bronze to Crown. Performance-based rankings that reflect real competitive achievement.</p>
             </div>
             
             <!-- 24/7 Support -->
@@ -404,7 +404,7 @@
                         {{ featured_tournament.name }}
                     </h2>
                     
-                <p class="text-gray-200 text-lg mb-6">
+                <div class="text-gray-200 text-lg mb-6">
                     <!-- Tournament Stats Grid -->
                     <div class="grid grid-cols-3 gap-4 mb-6">
                         <div class="bg-gray-800/50 rounded-lg p-4 text-center">
@@ -484,7 +484,7 @@
                         <div class="w-16 h-16 bg-dc-cyan/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <svg class="w-8 h-8 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
                         </div>
-                        <p class="text-dc-cyan font-display font-black text-5xl mb-2 counter-animate" data-target="{{ live_stats.total_prize_pool|default:'2500000' }}" data-prefix="৳" data-suffix="+">৳0</p>
+                        <p class="text-dc-cyan font-display font-black text-5xl mb-2 counter-animate" data-target="{{ live_stats.total_prize_pool|default:'0' }}" data-prefix="৳" data-suffix="+">৳0</p>
                         <p class="text-gray-200 font-bold text-lg mb-2">Prize Money</p>
                         <p class="text-gray-500 text-sm">Since Launch</p>
                     </div>
@@ -499,7 +499,7 @@
                         <div class="w-16 h-16 bg-dc-purple/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <svg class="w-8 h-8 text-dc-purple" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
                         </div>
-                        <p class="text-dc-purple font-display font-black text-5xl mb-2 counter-animate" data-target="1200" data-suffix="+">0</p>
+                        <p class="text-dc-purple font-display font-black text-5xl mb-2 counter-animate" data-target="{{ live_stats.matches_count|default:'0' }}" data-suffix="+">0</p>
                         <p class="text-gray-200 font-bold text-lg mb-2">Matches Played</p>
                         <p class="text-gray-500 text-sm">Fair & Verified</p>
                     </div>
@@ -514,7 +514,7 @@
                         <div class="w-16 h-16 bg-dc-gold/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <svg class="w-8 h-8 text-dc-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
                         </div>
-                        <p class="text-dc-gold font-display font-black text-5xl mb-2 counter-animate" data-target="{{ live_stats.players_count|default:'12500' }}" data-suffix="+">0</p>
+                        <p class="text-dc-gold font-display font-black text-5xl mb-2 counter-animate" data-target="{{ live_stats.players_count|default:'0' }}" data-suffix="+">0</p>
                         <p class="text-gray-200 font-bold text-lg mb-2">Active Players</p>
                         <p class="text-gray-500 text-sm">And Growing Daily</p>
                     </div>
@@ -1330,7 +1330,7 @@ function toggleFAQCard(card) {
         
         <h2 class="font-display text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
             Ready to <span class="gradient-text">Compete</span>?<br>
-            Join <span class="text-dc-cyan">{{ live_stats.players_count|default:'12,500' }}+</span> Players Today
+            Join <span class="text-dc-cyan">{{ live_stats.players_count }}+</span> Players Today
         </h2>
         
         <p class="text-xl sm:text-2xl text-gray-200 mb-12 max-w-3xl mx-auto leading-relaxed">
@@ -1461,7 +1461,7 @@ function toggleFAQCard(card) {
         <!-- Trust Indicators -->
         <div class="mt-16 flex flex-wrap items-center justify-center gap-12">
             <div class="text-center">
-                <p class="text-white font-display font-bold text-3xl mb-1">{{ live_stats.players_count|default:"12,500" }}+</p>
+                <p class="text-white font-display font-bold text-3xl mb-1">{{ live_stats.players_count }}+</p>
                 <p class="text-gray-400 text-sm">Active Players</p>
             </div>
             <div class="text-center">

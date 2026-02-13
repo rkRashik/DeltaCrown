@@ -64,6 +64,7 @@ def get_homepage_context() -> Dict[str, Any]:
         "players_count": _safe_count(User.objects),
         "tournaments_count": _safe_count_model('tournaments', 'Tournament', status__in=['live', 'registration_open', 'published']),
         "teams_count": _safe_count_model('teams', 'Team', is_active=True),
+        "matches_count": _safe_count_model('matches', 'Match'),
         "games_count": 11,  # Static official count
         "total_prize_pool": _calculate_total_prize_pool(),
     }

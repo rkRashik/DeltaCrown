@@ -5,7 +5,6 @@
 {% block title %}{{ organization.name }} | Command Hub | DeltaCrown Enterprise{% endblock %}
 
 {% block extra_css %}
-<script src="https://cdn.tailwindcss.com"></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -207,32 +206,11 @@
         box-shadow: 0 10px 20px rgba(0,0,0,0.5);
     }
 
-    /* Role-based visibility - UPDATE: use #org-detail-root instead of body */
-    #org-detail-root[data-role="PUBLIC"] .role-owner-only {
-        display: none !important;
-    }
-    #org-detail-root[data-role="OWNER"] .role-public-only {
-        display: none !important;
-    }
-
-    /* Type-based visibility */
-    #org-detail-root[data-type="PRO"] .type-guild-only,
-    #org-detail-root[data-type="PRO"] .type-club-only {
-        display: none !important;
-    }
-    #org-detail-root[data-type="GUILD"] .type-pro-only,
-    #org-detail-root[data-type="GUILD"] .type-club-only {
-        display: none !important;
-    }
-    #org-detail-root[data-type="CLUB"] .type-pro-only,
-    #org-detail-root[data-type="CLUB"] .type-guild-only {
-        display: none !important;
-    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div id="org-detail-root" data-role="{{ ui_role }}" data-type="{{ ui_type }}">
+<div id="org-detail-root">
 
     <div class="fixed inset-0 z-0 pointer-events-none">
         <div class="absolute inset-0 bg-grid-pattern bg-[length:60px_60px] opacity-[0.03]"></div>
@@ -275,10 +253,12 @@
                             {{ organization.name|upper }}
                         </h1>
                         <div class="flex gap-2 mt-2 md:mt-0">
-                            <span class="px-3 py-1 rounded bg-white/5 border border-white/10 text-xs font-mono text-slate-300 uppercase tracking-widest backdrop-blur-sm">Est. {% if organization.founded_date %}{{ organization.founded_date|date:"Y" }}{% else %}2024{% endif %}</span>
-                            <span class="px-3 py-1 rounded bg-delta-gold/10 border border-delta-gold/20 text-xs font-mono text-delta-gold uppercase tracking-widest flex items-center gap-2 backdrop-blur-sm type-pro-only">
+                            <span class="px-3 py-1 rounded bg-white/5 border border-white/10 text-xs font-mono text-slate-300 uppercase tracking-widest backdrop-blur-sm">Est. {% if organization.profile and organization.profile.founded_year %}{{ organization.profile.founded_year }}{% else %}{{ organization.created_at|date:"Y" }}{% endif %}</span>
+                            {% if ui_type == 'PRO' %}
+                            <span class="px-3 py-1 rounded bg-delta-gold/10 border border-delta-gold/20 text-xs font-mono text-delta-gold uppercase tracking-widest flex items-center gap-2 backdrop-blur-sm">
                                 <span class="w-1.5 h-1.5 bg-delta-gold rounded-full animate-pulse"></span> Pro Organization
                             </span>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -316,7 +296,8 @@
                     </div>
                 </div>
 
-                <div class="pb-12 flex flex-col items-end gap-3 min-w-[220px] animate-enter delay-200 role-owner-only">
+                {% if can_manage_org %}
+                <div class="pb-12 flex flex-col items-end gap-3 min-w-[220px] animate-enter delay-200">
                     <a href="{% url 'organizations:org_control_plane' org_slug=organization.slug %}" class="w-full px-6 py-4 bg-delta-gold hover:bg-white text-black font-tech font-bold uppercase tracking-widest text-sm rounded-xl shadow-glow-gold transition-all flex items-center justify-center gap-2 group transform hover:-translate-y-1">
                         <svg class="w-5 h-5 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Open Control Plane
@@ -332,6 +313,7 @@
                         </button>
                     </div>
                 </div>
+                {% endif %}
 
             </div>
         </div>
@@ -350,11 +332,13 @@
                     Media / Streams <span class="w-1.5 h-1.5 rounded-full bg-delta-danger animate-pulse"></span>
                 </a>
                 <a href="#matches" class="nav-link py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors relative border-b-2 border-transparent hover:border-white/20">
-                    Operations Log
+                    Operations Log {% if activity_logs %}<span class="bg-white/10 px-1.5 py-0.5 rounded text-[10px] ml-1 text-white">{{ activity_logs|length }}</span>{% endif %}
                 </a>
-                <a href="#finance" class="nav-link py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors relative border-b-2 border-transparent hover:border-white/20 role-owner-only">
+                {% if can_manage_org %}
+                <a href="#finance" class="nav-link py-4 text-sm font-tech font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors relative border-b-2 border-transparent hover:border-white/20">
                     Financials <i class="fas fa-lock text-[10px] ml-1 opacity-50"></i>
                 </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -374,14 +358,16 @@
                             </div>
                             <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Global Standing</p>
                             <div class="flex items-baseline gap-2">
-                                <span class="text-4xl font-tech font-bold text-white">#{{ organization.rank|default:"--" }}</span>
+                                <span class="text-4xl font-tech font-bold text-white">#{{ org_empire_score.rank|default:"--" }}</span>
+                                {% if org_empire_score.percentile %}
                                 <span class="text-xs font-mono text-delta-success flex items-center gap-1">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                                    TOP 1%
+                                    TOP {{ org_empire_score.percentile }}%
                                 </span>
+                                {% endif %}
                             </div>
                             <div class="w-full bg-white/5 h-1 mt-4 rounded-full overflow-hidden">
-                                <div class="bg-delta-gold h-full w-[95%] shadow-[0_0_10px_#FFD700]"></div>
+                                <div class="bg-delta-gold h-full shadow-[0_0_10px_#FFD700]" style="width: {{ org_empire_score.bar_width|default:'0' }}%"></div>
                             </div>
                         </div>
 
@@ -391,7 +377,7 @@
                             </div>
                             <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Total Earnings</p>
                             <div class="flex items-baseline gap-2">
-                                <span class="text-4xl font-tech font-bold text-white">$2.4M</span>
+                                <span class="text-4xl font-tech font-bold text-white">{{ org_empire_score.total_earnings|default:"N/A" }}</span>
                             </div>
                             <p class="text-[10px] text-slate-400 mt-2 font-mono">lifetime gross revenue</p>
                         </div>
@@ -421,10 +407,12 @@
                             </div>
                             <p class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Trophy Cabinet</p>
                             <div class="flex items-baseline gap-2">
-                                <span class="text-4xl font-tech font-bold text-white">42</span>
-                                <span class="text-xs text-delta-gold font-mono mb-1"><i class="fas fa-plus"></i> 3 This Season</span>
+                                <span class="text-4xl font-tech font-bold text-white">{{ org_empire_score.trophies|default:"0" }}</span>
+                                {% if org_empire_score.trophies_this_season %}
+                                <span class="text-xs text-delta-gold font-mono mb-1"><i class="fas fa-plus"></i> {{ org_empire_score.trophies_this_season }} This Season</span>
+                                {% endif %}
                             </div>
-                            <p class="text-[10px] text-slate-400 mt-2 font-mono">12 Major Titles</p>
+                            <p class="text-[10px] text-slate-400 mt-2 font-mono">{{ org_empire_score.major_titles|default:"0" }} Major Titles</p>
                         </div>
 
                     </div>
@@ -437,21 +425,39 @@
                                 <span class="text-delta-electric">>></span> Active Squads
                             </h2>
                         </div>
-                        <button class="text-xs font-mono font-bold text-slate-400 hover:text-white uppercase tracking-wider flex items-center gap-2 group role-owner-only">
+                        {% if can_manage_org %}
+                        <button class="text-xs font-mono font-bold text-slate-400 hover:text-white uppercase tracking-wider flex items-center gap-2 group">
                             Manage All <svg class="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                         </button>
+                        {% endif %}
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {% for squad in squads %}
                         <div class="glass-panel rounded-2xl overflow-hidden group border border-white/5 hover:border-delta-electric/50 transition-all duration-300 hover:-translate-y-1">
                             <div class="h-40 bg-slate-900 relative">
-                                <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700">
+                                {% if squad.team.logo %}
+                                <img src="{{ squad.team.logo.url }}" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700">
+                                {% else %}
+                                <div class="w-full h-full bg-gradient-to-br from-delta-surface to-delta-base flex items-center justify-center">
+                                    <span class="text-5xl font-tech font-bold text-white/10">{{ squad.game_short_code|default:squad.game_label|slice:":3"|upper }}</span>
+                                </div>
+                                {% endif %}
                                 <div class="absolute inset-0 bg-gradient-to-t from-delta-highlight to-transparent"></div>
 
-                                <div class="absolute -bottom-8 left-6 w-20 h-20 bg-delta-surface rounded-2xl border-4 border-delta-highlight shadow-2xl p-3 flex items-center justify-center z-10 group-hover:border-delta-electric transition-colors">
-                                    <span class="text-2xl font-tech font-bold text-white">{{ squad.game_label|slice:":2"|upper }}</span>
+                                <div class="absolute -bottom-8 left-6 w-20 h-20 bg-delta-surface rounded-2xl border-4 border-delta-highlight shadow-2xl flex items-center justify-center z-10 group-hover:border-delta-electric transition-colors overflow-hidden">
+                                    {% if squad.game_icon %}
+                                    <img src="{{ squad.game_icon }}" class="w-full h-full object-cover" alt="{{ squad.game_label }}">
+                                    {% else %}
+                                    <span class="text-2xl font-tech font-bold text-white">{{ squad.game_short_code|default:squad.game_label|slice:":3"|upper }}</span>
+                                    {% endif %}
                                 </div>
+
+                                {% if squad.game_label and squad.game_label != "—" %}
+                                <div class="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10">
+                                    <span class="text-[10px] font-mono font-bold text-delta-electric uppercase tracking-wider">{{ squad.game_short_code|default:squad.game_label }}</span>
+                                </div>
+                                {% endif %}
                             </div>
 
                             <div class="pt-10 px-6 pb-6">
@@ -601,7 +607,8 @@
 
 <div class="lg:col-span-3 space-y-8">
 
-                <div id="finance" class="glass-panel p-6 rounded-2xl border border-delta-gold/20 relative overflow-hidden group role-owner-only">
+                {% if can_manage_org %}
+                <div id="finance" class="glass-panel p-6 rounded-2xl border border-delta-gold/20 relative overflow-hidden group">
                     <div class="absolute top-0 right-0 p-8 opacity-5 text-delta-gold transform rotate-12 group-hover:scale-110 transition-transform duration-700">
                         <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.15-1.46-3.27-3.4h1.96c.1 1.05 1.18 1.91 2.53 1.91 1.29 0 2.13-.81 2.13-1.88 0-1.09-.92-1.49-2.6-1.92-2.31-.56-3.37-1.73-3.37-3.41 0-1.72 1.34-2.88 3.12-3.21V4h2.67v1.95c1.4.3 2.65 1.21 2.91 2.99h-1.99c-.15-.8-.92-1.53-2.12-1.53-1.16 0-1.88.75-1.88 1.63 0 .97.86 1.45 2.54 1.86 2.37.58 3.42 1.67 3.42 3.48 0 1.92-1.47 3.18-3.37 3.34z"/></svg>
                     </div>
@@ -616,18 +623,18 @@
                     <div class="relative z-10">
                         <span class="text-[10px] text-slate-400 font-mono uppercase">Available Liquidity</span>
                         <div class="flex items-baseline gap-2 mt-1 mb-6">
-                            <span class="text-4xl font-mono font-bold text-white tracking-tighter">৳ 4,25,000</span>
-                            <span class="text-xs text-slate-500 font-mono">BDT</span>
+                            <span class="text-4xl font-mono font-bold text-white tracking-tighter">{{ treasury_balance|default:"0.00" }}</span>
+                            <span class="text-xs text-slate-500 font-mono">{{ organization.profile.currency|default:"BDT" }}</span>
                         </div>
 
                         <div class="space-y-3 border-t border-white/5 pt-4 mb-6">
                             <div class="flex justify-between items-center text-xs">
                                 <span class="text-slate-400">Pending Payouts</span>
-                                <span class="text-white font-mono">$1,200.00</span>
+                                <span class="text-white font-mono">{{ pending_payouts|default:"0.00" }}</span>
                             </div>
                             <div class="flex justify-between items-center text-xs">
                                 <span class="text-slate-400">Last Withdrawal</span>
-                                <span class="text-slate-500 font-mono">2 days ago</span>
+                                <span class="text-slate-500 font-mono">{% if last_withdrawal_date %}{{ last_withdrawal_date|timesince }} ago{% else %}No withdrawals yet{% endif %}</span>
                             </div>
                         </div>
 
@@ -641,16 +648,17 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
 
                 <div class="glass-panel p-6 rounded-2xl border border-white/5">
                     <div class="flex items-center justify-between mb-6">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Management</h3>
-                        <button class="text-[10px] text-delta-electric font-bold uppercase hover:underline role-owner-only">Edit Staff</button>
+                        {% if can_manage_org %}<button id="editStaffBtn" class="text-[10px] text-delta-electric font-bold uppercase hover:underline">Edit Staff</button>{% endif %}
                     </div>
 
-                    <div class="space-y-4">
+                    <div class="space-y-4" id="staffList">
                         {% for staff in staff_members %}
-                        <div class="flex items-center gap-3 group cursor-pointer">
+                        <div class="flex items-center gap-3 group cursor-pointer" data-member-id="{{ staff.id }}" data-member-username="{{ staff.username }}" data-member-role="{{ staff.role }}">
                             <div class="w-10 h-10 rounded-lg bg-delta-surface p-0.5 border border-{% if staff.is_ceo %}delta-gold{% else %}white{% endif %}/30">
                                 <img src="{{ staff.avatar|safe_file_url:'https://api.dicebear.com/7.x/avataaars/svg?seed='|add:staff.username }}" class="w-full h-full rounded bg-black">
                             </div>
@@ -663,6 +671,16 @@
                                 </div>
                                 <span class="text-[10px] text-{% if staff.is_ceo %}delta-gold{% else %}slate-500{% endif %} font-mono uppercase">{{ staff.role }}</span>
                             </div>
+                            {% if can_manage_org and not staff.is_ceo %}
+                            <div class="member-actions hidden flex items-center gap-1">
+                                <button class="btn-change-role p-1.5 rounded bg-white/5 hover:bg-delta-electric/20 text-slate-400 hover:text-delta-electric transition" title="Change Role">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                </button>
+                                <button class="btn-remove-member p-1.5 rounded bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition" title="Remove">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+                            {% endif %}
                         </div>
                         {% empty %}
                         <div class="text-center py-6">
@@ -671,118 +689,67 @@
                         {% endfor %}
                     </div>
 
-                    <button class="w-full mt-6 py-3 border border-white/10 rounded-lg text-xs font-bold text-slate-400 uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all flex items-center justify-center gap-2 role-owner-only">
+                    {% if can_manage_org %}
+                    <button id="inviteStaffBtn" class="w-full mt-6 py-3 border border-white/10 rounded-lg text-xs font-bold text-slate-400 uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all flex items-center justify-center gap-2">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
                         Invite Staff
                     </button>
+                    {% endif %}
                 </div>
 
-                <div class="glass-panel p-6 rounded-2xl border border-white/5 role-owner-only">
+                {% if can_manage_org %}
+                <div class="glass-panel p-6 rounded-2xl border border-white/5">
                     <div class="flex items-center justify-between mb-6">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Pending Actions</h3>
-                        <span class="px-2 py-0.5 rounded bg-delta-danger/20 text-delta-danger text-[10px] font-bold border border-delta-danger/30">3 New</span>
+                        {% if pending_actions_count %}<span class="px-2 py-0.5 rounded bg-delta-danger/20 text-delta-danger text-[10px] font-bold border border-delta-danger/30">{{ pending_actions_count }} New</span>{% endif %}
                     </div>
 
                     <div class="space-y-4">
+                        {% for action in pending_actions %}
                         <div class="p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors cursor-pointer">
                             <div class="flex gap-3 mb-3">
                                 <div class="w-8 h-8 rounded bg-black flex items-center justify-center text-delta-electric shrink-0">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-xs text-white leading-tight mb-1"><strong>Player 'ProGamer23'</strong> requested to join <span class="text-delta-electric">Protocol V</span>.</p>
-                                    <span class="text-[10px] text-slate-500 font-mono">Valorant • Ascendant 3 • 2 mins ago</span>
+                                    <p class="text-xs text-white leading-tight mb-1">{{ action.message }}</p>
+                                    <span class="text-[10px] text-slate-500 font-mono">{{ action.created_at|timesince }} ago</span>
                                 </div>
                             </div>
-                            <div class="flex gap-2">
-                                <button class="flex-1 py-1.5 bg-delta-success/10 border border-delta-success/30 text-delta-success rounded text-[10px] font-bold uppercase hover:bg-delta-success/20 transition">Accept</button>
-                                <button class="flex-1 py-1.5 bg-white/5 border border-white/10 text-slate-400 rounded text-[10px] font-bold uppercase hover:bg-white/10 transition">Decline</button>
-                            </div>
                         </div>
+                        {% empty %}
+                        <div class="text-center py-8">
+                            <svg class="w-10 h-10 mx-auto text-slate-700 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <p class="text-xs text-slate-500 font-mono">No pending actions</p>
+                            <p class="text-[10px] text-slate-600 font-mono mt-1">All caught up!</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
 
-                        <div class="p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors cursor-pointer">
-                            <div class="flex gap-3 mb-3">
-                                <div class="w-8 h-8 rounded bg-black flex items-center justify-center text-delta-violet shrink-0">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-xs text-white leading-tight mb-1">Roster change request for <strong>Syntax CS</strong> requires approval.</p>
-                                    <span class="text-[10px] text-slate-500 font-mono">Manager: Tactical_X • 1 hour ago</span>
-                                </div>
-                            </div>
-                            <button class="w-full py-1.5 bg-delta-violet/10 border border-delta-violet/30 text-delta-violet rounded text-[10px] font-bold uppercase hover:bg-delta-violet/20 transition">Review Request</button>
-                        </div>
+                <div class="glass-panel p-6 rounded-2xl border border-white/5">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Official Partners</h3>
+                    <div class="text-center py-6">
+                        <svg class="w-10 h-10 mx-auto text-slate-700 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        <p class="text-xs text-slate-500 font-mono">No partners yet</p>
+                        <p class="text-[10px] text-slate-600 font-mono mt-1">Partnership features coming soon</p>
+                    </div>
+                </div>
 
-                        <div class="p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors cursor-pointer">
-                            <div class="flex gap-3 mb-3">
-                                <div class="w-8 h-8 rounded bg-black flex items-center justify-center text-delta-warning shrink-0">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-xs text-white leading-tight mb-1">Potential sponsor conflict detected with <strong>HyperX</strong>.</p>
-                                    <span class="text-[10px] text-slate-500 font-mono">Contract Review • 3 hours ago</span>
-                                </div>
-                            </div>
-                            <button class="w-full py-1.5 bg-delta-warning/10 border border-delta-warning/30 text-delta-warning rounded text-[10px] font-bold uppercase hover:bg-delta-warning/20 transition">Resolve Conflict</button>
-                        </div>
+                {% if not can_manage_org %}
+                <div class="glass-panel p-6 rounded-2xl border border-white/5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Official Merch</h3>
+                    </div>
+                    <div class="text-center py-8">
+                        <svg class="w-10 h-10 mx-auto text-slate-700 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                        <p class="text-xs text-slate-500 font-mono">Merch store coming soon</p>
+                        <p class="text-[10px] text-slate-600 font-mono mt-1">Stay tuned for official {{ organization.name }} gear</p>
                     </div>
                 </div>
 
                 <div class="glass-panel p-6 rounded-2xl border border-white/5">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Official Partners</h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="h-16 bg-white/5 rounded border border-white/5 flex items-center justify-center grayscale hover:grayscale-0 opacity-50 hover:opacity-100 transition-all cursor-pointer group relative overflow-hidden">
-                            <div class="absolute inset-0 bg-gradient-to-br from-delta-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <svg class="w-8 h-8 text-slate-400 group-hover:text-white transition-colors relative z-10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        </div>
-                        <div class="h-16 bg-white/5 rounded border border-white/5 flex items-center justify-center grayscale hover:grayscale-0 opacity-50 hover:opacity-100 transition-all cursor-pointer group relative overflow-hidden">
-                            <div class="absolute inset-0 bg-gradient-to-br from-delta-electric/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <svg class="w-8 h-8 text-slate-400 group-hover:text-white transition-colors relative z-10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.15-1.46-3.27-3.4h1.96c.1 1.05 1.18 1.91 2.53 1.91 1.29 0 2.13-.81 2.13-1.88 0-1.09-.92-1.49-2.6-1.92-2.31-.56-3.37-1.73-3.37-3.41 0-1.72 1.34-2.88 3.12-3.21V4h2.67v1.95c1.4.3 2.65 1.21 2.91 2.99h-1.99c-.15-.8-.92-1.53-2.12-1.53-1.16 0-1.88.75-1.88 1.63 0 .97.86 1.45 2.54 1.86 2.37.58 3.42 1.67 3.42 3.48 0 1.92-1.47 3.18-3.37 3.34z"/></svg>
-                        </div>
-                        <div class="h-16 bg-white/5 rounded border border-white/5 flex items-center justify-center grayscale hover:grayscale-0 opacity-50 hover:opacity-100 transition-all cursor-pointer group relative overflow-hidden">
-                            <div class="absolute inset-0 bg-gradient-to-br from-delta-violet/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <svg class="w-8 h-8 text-slate-400 group-hover:text-white transition-colors relative z-10" fill="currentColor" viewBox="0 0 24 24"><path d="M20.2 2H3.8L2 4.2l1.6 1.8H5v5c0 3.86 3.14 7 7 7s7-3.14 7-7V6h1.4L22 4.2 20.2 2zm-7 13c-2.76 0-5-2.24-5-5V6h10v4c0 2.76-2.24 5-5 5zM4 4l.9 1h-.9V4zm16 1l-.9-1h.9v1z"/></svg>
-                        </div>
-                        <div class="h-16 border border-dashed border-white/10 rounded flex items-center justify-center text-slate-600 hover:text-white hover:border-white/30 hover:bg-white/5 transition-all cursor-pointer text-xs font-bold uppercase">
-                            + Add
-                        </div>
-                    </div>
-                </div>
-
-                <div class="glass-panel p-6 rounded-2xl border border-white/5 role-public-only">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Official Merch</h3>
-                        <a href="#" class="text-[10px] text-delta-electric font-bold hover:underline uppercase">Visit Store</a>
-                    </div>
-                    <div class="space-y-3">
-                        <div class="flex gap-3 items-center p-3 bg-white/5 rounded-xl border border-white/5 hover:border-delta-electric/30 transition-colors cursor-pointer group">
-                            <div class="w-12 h-12 bg-black rounded-lg flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">👕</div>
-                            <div class="flex-1 min-w-0">
-                                <div class="text-sm font-bold text-white truncate">2026 Pro Jersey</div>
-                                <div class="text-xs text-delta-gold font-mono">$59.99</div>
-                            </div>
-                            <svg class="w-4 h-4 text-slate-500 group-hover:text-delta-electric transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                        </div>
-                        <div class="flex gap-3 items-center p-3 bg-white/5 rounded-xl border border-white/5 hover:border-delta-electric/30 transition-colors cursor-pointer group">
-                            <div class="w-12 h-12 bg-black rounded-lg flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">🧢</div>
-                            <div class="flex-1 min-w-0">
-                                <div class="text-sm font-bold text-white truncate">{{ organization.name }} Cap</div>
-                                <div class="text-xs text-delta-gold font-mono">$24.99</div>
-                            </div>
-                            <svg class="w-4 h-4 text-slate-500 group-hover:text-delta-electric transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                        </div>
-                        <div class="flex gap-3 items-center p-3 bg-white/5 rounded-xl border border-white/5 hover:border-delta-electric/30 transition-colors cursor-pointer group">
-                            <div class="w-12 h-12 bg-black rounded-lg flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">🎮</div>
-                            <div class="flex-1 min-w-0">
-                                <div class="text-sm font-bold text-white truncate">Gaming Mousepad</div>
-                                <div class="text-xs text-delta-gold font-mono">$19.99</div>
-                            </div>
-                            <svg class="w-4 h-4 text-slate-500 group-hover:text-delta-electric transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="glass-panel p-6 rounded-2xl border border-white/5 role-public-only">
                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Partner with Us</h3>
                     <div class="space-y-4">
                         <p class="text-sm text-slate-400">Interested in sponsoring our organization? Download our media kit and get in touch.</p>
@@ -792,17 +759,100 @@
                         </button>
                     </div>
                 </div>
+                {% endif %}
 
             </div>
         </div>
     </main>
 
 </div>
+
+{% if can_manage_org %}
+<!-- ==================== MEMBER MANAGEMENT MODALS ==================== -->
+
+<!-- Add Member Modal -->
+<div id="addMemberModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div class="bg-[#12121A] border border-white/10 rounded-2xl p-8 w-full max-w-md shadow-2xl mx-4">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-tech font-bold text-white uppercase tracking-wider">Add Staff Member</h3>
+            <button type="button" class="modal-close text-slate-400 hover:text-white transition"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="addMemberForm" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Username</label>
+                <input type="text" id="newMemberUsername" class="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:border-delta-gold focus:outline-none" placeholder="Enter username" required>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Role</label>
+                <select id="newMemberRole" class="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:border-delta-gold focus:outline-none appearance-none">
+                    <option value="MANAGER">Manager</option>
+                    <option value="SCOUT">Scout</option>
+                    <option value="ANALYST">Analyst</option>
+                </select>
+            </div>
+            <div id="addMemberError" class="hidden p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-300 font-mono"></div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" class="modal-close flex-1 py-3 bg-white/5 border border-white/10 text-slate-400 rounded-lg text-sm font-bold uppercase hover:bg-white/10 transition">Cancel</button>
+                <button type="submit" class="flex-1 py-3 bg-delta-gold text-black rounded-lg text-sm font-bold uppercase hover:bg-yellow-400 transition">Add Member</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Change Role Modal -->
+<div id="changeRoleModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div class="bg-[#12121A] border border-white/10 rounded-2xl p-8 w-full max-w-md shadow-2xl mx-4">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-tech font-bold text-white uppercase tracking-wider">Change Role</h3>
+            <button type="button" class="modal-close text-slate-400 hover:text-white transition"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="changeRoleForm" class="space-y-4">
+            <input type="hidden" id="changeMemberId">
+            <p class="text-sm text-slate-300">Update role for <strong id="changeMemberName" class="text-white"></strong>:</p>
+            <div>
+                <select id="changeRoleSelect" class="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg text-white text-sm focus:border-delta-gold focus:outline-none appearance-none">
+                    <option value="MANAGER">Manager</option>
+                    <option value="SCOUT">Scout</option>
+                    <option value="ANALYST">Analyst</option>
+                </select>
+            </div>
+            <div id="changeRoleError" class="hidden p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-300 font-mono"></div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" class="modal-close flex-1 py-3 bg-white/5 border border-white/10 text-slate-400 rounded-lg text-sm font-bold uppercase hover:bg-white/10 transition">Cancel</button>
+                <button type="submit" class="flex-1 py-3 bg-delta-electric text-black rounded-lg text-sm font-bold uppercase hover:brightness-110 transition">Update Role</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Remove Member Modal -->
+<div id="removeMemberModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div class="bg-[#12121A] border border-white/10 rounded-2xl p-8 w-full max-w-md shadow-2xl mx-4">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-tech font-bold text-white uppercase tracking-wider text-delta-danger">Remove Member</h3>
+            <button type="button" class="modal-close text-slate-400 hover:text-white transition"><i class="fas fa-times"></i></button>
+        </div>
+        <p class="text-sm text-slate-300 mb-6">Are you sure you want to remove <strong id="removeMemberName" class="text-white"></strong> from the organization? This action cannot be undone.</p>
+        <div id="removeMemberError" class="hidden mb-4 p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-300 font-mono"></div>
+        <div class="flex gap-3">
+            <button type="button" class="modal-close flex-1 py-3 bg-white/5 border border-white/10 text-slate-400 rounded-lg text-sm font-bold uppercase hover:bg-white/10 transition">Cancel</button>
+            <button type="button" id="confirmRemoveBtn" class="flex-1 py-3 bg-red-600 text-white rounded-lg text-sm font-bold uppercase hover:bg-red-500 transition">Remove</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+
+        // --- BOOTSTRAP CONFIG ---
+        const ORG_SLUG = '{{ organization.slug }}';
+        const CAN_MANAGE = {{ can_manage_org|yesno:"true,false" }};
+        const CSRF_TOKEN = '{{ csrf_token }}';
+        let editMode = false;
 
         // --- 1. NAVIGATION TAB FILTERING ---
         const links = document.querySelectorAll('.nav-link');
@@ -861,6 +911,201 @@
         }, observerOptions);
 
         sections.forEach(section => observer.observe(section));
+
+        // --- 3. MEMBER MANAGEMENT (requires CAN_MANAGE) ---
+        if (!CAN_MANAGE) return;
+
+        // Toast helper (uses Toastify if available, falls back to alert)
+        function showToast(message, type = 'success') {
+            if (typeof Toastify === 'function') {
+                Toastify({
+                    text: message,
+                    duration: 3000,
+                    gravity: 'top',
+                    position: 'right',
+                    style: {
+                        background: type === 'success'
+                            ? 'linear-gradient(135deg, #10B981, #059669)'
+                            : 'linear-gradient(135deg, #EF4444, #DC2626)',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                    }
+                }).showToast();
+            } else {
+                console.log(`[${type}] ${message}`);
+            }
+        }
+
+        // Modal helpers
+        function openModal(id) {
+            document.getElementById(id)?.classList.remove('hidden');
+        }
+        function closeModal(id) {
+            document.getElementById(id)?.classList.add('hidden');
+        }
+        function closeAllModals() {
+            document.querySelectorAll('#addMemberModal, #changeRoleModal, #removeMemberModal').forEach(m => m.classList.add('hidden'));
+        }
+
+        // Close modal on backdrop click or close button
+        document.querySelectorAll('.modal-close').forEach(btn => {
+            btn.addEventListener('click', closeAllModals);
+        });
+        document.querySelectorAll('#addMemberModal, #changeRoleModal, #removeMemberModal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeAllModals();
+            });
+        });
+
+        // Edit Staff toggle — show/hide action buttons
+        const editStaffBtn = document.getElementById('editStaffBtn');
+        if (editStaffBtn) {
+            editStaffBtn.addEventListener('click', () => {
+                editMode = !editMode;
+                editStaffBtn.textContent = editMode ? 'Done' : 'Edit Staff';
+                document.querySelectorAll('.member-actions').forEach(el => {
+                    el.classList.toggle('hidden', !editMode);
+                });
+            });
+        }
+
+        // Invite Staff → open Add Member modal
+        const inviteStaffBtn = document.getElementById('inviteStaffBtn');
+        if (inviteStaffBtn) {
+            inviteStaffBtn.addEventListener('click', () => {
+                document.getElementById('newMemberUsername').value = '';
+                document.getElementById('newMemberRole').value = 'MANAGER';
+                document.getElementById('addMemberError').classList.add('hidden');
+                openModal('addMemberModal');
+            });
+        }
+
+        // Change Role buttons (delegated)
+        document.getElementById('staffList')?.addEventListener('click', (e) => {
+            const changeBtn = e.target.closest('.btn-change-role');
+            const removeBtn = e.target.closest('.btn-remove-member');
+            const memberRow = e.target.closest('[data-member-id]');
+            if (!memberRow) return;
+
+            const memberId = memberRow.dataset.memberId;
+            const username = memberRow.dataset.memberUsername;
+            const role = memberRow.dataset.memberRole;
+
+            if (changeBtn) {
+                document.getElementById('changeMemberId').value = memberId;
+                document.getElementById('changeMemberName').textContent = username;
+                document.getElementById('changeRoleSelect').value = role;
+                document.getElementById('changeRoleError').classList.add('hidden');
+                openModal('changeRoleModal');
+            }
+
+            if (removeBtn) {
+                document.getElementById('removeMemberName').textContent = username;
+                document.getElementById('removeMemberModal').dataset.memberId = memberId;
+                document.getElementById('removeMemberError').classList.add('hidden');
+                openModal('removeMemberModal');
+            }
+        });
+
+        // --- API: Add Member ---
+        document.getElementById('addMemberForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorEl = document.getElementById('addMemberError');
+            errorEl.classList.add('hidden');
+
+            const username = document.getElementById('newMemberUsername').value.trim();
+            const role = document.getElementById('newMemberRole').value;
+
+            if (!username) {
+                errorEl.textContent = 'Username is required.';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/vnext/orgs/${ORG_SLUG}/members/add/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF_TOKEN,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ username, role }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.message || data.safe_message || 'Failed to add member');
+
+                showToast(`${username} added as ${role}`);
+                closeAllModals();
+                window.location.reload();  // Refresh to show updated server-rendered list
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.classList.remove('hidden');
+            }
+        });
+
+        // --- API: Change Role ---
+        document.getElementById('changeRoleForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorEl = document.getElementById('changeRoleError');
+            errorEl.classList.add('hidden');
+
+            const memberId = document.getElementById('changeMemberId').value;
+            const newRole = document.getElementById('changeRoleSelect').value;
+
+            try {
+                const res = await fetch(`/api/vnext/orgs/${ORG_SLUG}/members/${memberId}/role/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF_TOKEN,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ role: newRole }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.message || data.safe_message || 'Failed to update role');
+
+                showToast('Role updated successfully');
+                closeAllModals();
+                window.location.reload();
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.classList.remove('hidden');
+            }
+        });
+
+        // --- API: Remove Member ---
+        document.getElementById('confirmRemoveBtn')?.addEventListener('click', async () => {
+            const errorEl = document.getElementById('removeMemberError');
+            errorEl.classList.add('hidden');
+
+            const memberId = document.getElementById('removeMemberModal').dataset.memberId;
+
+            try {
+                const res = await fetch(`/api/vnext/orgs/${ORG_SLUG}/members/${memberId}/remove/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF_TOKEN,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.message || data.safe_message || 'Failed to remove member');
+
+                showToast('Member removed');
+                closeAllModals();
+                window.location.reload();
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.classList.remove('hidden');
+            }
+        });
 
     });
 </script>

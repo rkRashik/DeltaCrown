@@ -199,26 +199,26 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="space-y-2">
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Organization Name</label>
-                <input type="text" class="corp-input track-change" value="SYNTAX Esports">
+                <input type="text" class="corp-input track-change" name="name" value="{{ organization.name }}">
               </div>
 
               <div class="space-y-2">
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Short Ticker (Tag)</label>
-                <input type="text" class="corp-input track-change" value="SYN" maxlength="5">
+                <input type="text" class="corp-input track-change" value="" maxlength="5" placeholder="e.g. SYN">
               </div>
 
               <div class="md:col-span-2 space-y-2">
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Public Handle (URL Slug)</label>
                 <div class="flex items-center">
                   <span class="bg-white/5 border border-r-0 border-white/10 px-4 py-2 rounded-l-lg text-xs font-mono text-slate-500">deltacrown.gg/org/</span>
-                  <input id="slugInput" type="text" class="corp-input rounded-l-none track-change" value="syntax-official">
+                  <input id="slugInput" type="text" class="corp-input rounded-l-none track-change" name="slug" value="{{ organization.slug }}" readonly>
                 </div>
                 <p class="text-[10px] text-slate-500">Slug changes can be rate-limited (cooldown) to protect legacy links.</p>
               </div>
 
               <div class="md:col-span-2 space-y-2">
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Organization Manifesto</label>
-                <textarea class="corp-input h-32 resize-none track-change" placeholder="We define the code of competitive excellence...">Dominating the South Asian competitive scene. Home to champions in Valorant, CS2, and Mobile Legends.</textarea>
+                <textarea class="corp-input h-32 resize-none track-change" name="description" placeholder="We define the code of competitive excellence...">{{ organization.description }}</textarea>
               </div>
             </div>
           </div>
@@ -234,19 +234,19 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="relative">
                 <i class="fab fa-discord absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                <input type="text" class="corp-input pl-12 track-change" placeholder="Discord Server Invite">
+                <input type="text" class="corp-input pl-12 track-change" name="discord_link" placeholder="Discord Server Invite" value="{{ organization.profile.discord_link }}">
               </div>
               <div class="relative">
                 <i class="fab fa-facebook absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                <input type="text" class="corp-input pl-12 track-change" placeholder="Facebook Page URL">
+                <input type="text" class="corp-input pl-12 track-change" name="facebook" placeholder="Facebook Page URL" value="{{ organization.profile.facebook }}">
               </div>
               <div class="relative">
                 <i class="fab fa-instagram absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                <input type="text" class="corp-input pl-12 track-change" placeholder="Instagram Handle">
+                <input type="text" class="corp-input pl-12 track-change" name="instagram" placeholder="Instagram Handle" value="{{ organization.profile.instagram }}">
               </div>
               <div class="relative">
                 <i class="fas fa-globe absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                <input type="text" class="corp-input pl-12 track-change" placeholder="Official Website">
+                <input type="text" class="corp-input pl-12 track-change" name="website" placeholder="Official Website" value="{{ organization.website }}">
               </div>
             </div>
           </div>
@@ -262,7 +262,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="space-y-2 md:col-span-2">
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Meta Title</label>
-                <input type="text" class="corp-input track-change" placeholder="SYNTAX Esports | Official Org on DeltaCrown">
+                <input type="text" class="corp-input track-change" placeholder="{{ organization.name }} | Official Org on DeltaCrown">
               </div>
 
               <div class="space-y-2 md:col-span-2">
@@ -318,7 +318,7 @@
               <div class="space-y-4">
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Corporate Emblem</label>
                 <div class="relative group aspect-square rounded-xl bg-delta-base border-2 border-dashed border-white/10 flex items-center justify-center cursor-pointer overflow-hidden hover:border-delta-gold transition">
-                  <img id="logo-prev" src="https://api.dicebear.com/7.x/identicon/svg?seed=Syntax" class="w-full h-full object-cover">
+                  <img id="logo-prev" src="{% if organization.logo %}{{ organization.logo.url }}{% else %}https://api.dicebear.com/7.x/identicon/svg?seed={{ organization.slug }}{% endif %}" class="w-full h-full object-cover">
                   <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
                     <i class="fas fa-camera text-white"></i>
                   </div>
@@ -330,7 +330,7 @@
               <div class="md:col-span-2 space-y-4">
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Empire Banner</label>
                 <div class="relative group h-48 rounded-xl bg-delta-base border-2 border-dashed border-white/10 flex items-center justify-center cursor-pointer overflow-hidden hover:border-delta-gold transition">
-                  <img id="banner-prev" src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="w-full h-full object-cover">
+                  <img id="banner-prev" src="{% if organization.banner %}{{ organization.banner.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070{% endif %}" class="w-full h-full object-cover">
                   <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
                     <i class="fas fa-image text-white text-2xl"></i>
                   </div>
@@ -352,11 +352,11 @@
                   <div class="text-[10px] text-slate-500 uppercase tracking-[0.22em] font-bold mb-3">Org Card</div>
                   <div class="flex items-center gap-4">
                     <div class="w-14 h-14 rounded-xl overflow-hidden border border-white/10 bg-delta-base">
-                      <img id="hubLogo" src="https://api.dicebear.com/7.x/identicon/svg?seed=Syntax" class="w-full h-full object-cover">
+                      <img id="hubLogo" src="{% if organization.logo %}{{ organization.logo.url }}{% else %}https://api.dicebear.com/7.x/identicon/svg?seed={{ organization.slug }}{% endif %}" class="w-full h-full object-cover">
                     </div>
                     <div>
-                      <div class="text-white font-bold uppercase tracking-wide">SYNTAX Esports <span class="text-delta-gold">✓</span></div>
-                      <div class="text-[10px] text-slate-500 font-mono">deltacrown.gg/org/syntax-official</div>
+                      <div class="text-white font-bold uppercase tracking-wide">{{ organization.name }} {% if organization.is_verified %}<span class="text-delta-gold">✓</span>{% endif %}</div>
+                      <div class="text-[10px] text-slate-500 font-mono">deltacrown.gg/org/{{ organization.slug }}</div>
                     </div>
                   </div>
                 </div>
@@ -364,7 +364,7 @@
                 <div class="p-5 rounded-2xl bg-black/40 border border-white/5 overflow-hidden">
                   <div class="text-[10px] text-slate-500 uppercase tracking-[0.22em] font-bold mb-3">Banner Strip</div>
                   <div class="h-20 rounded-xl overflow-hidden border border-white/10 bg-delta-base">
-                    <img id="hubBanner" src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070" class="w-full h-full object-cover">
+                    <img id="hubBanner" src="{% if organization.banner %}{{ organization.banner.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070{% endif %}" class="w-full h-full object-cover">
                   </div>
                 </div>
               </div>
@@ -387,8 +387,8 @@
               <div class="flex-1 min-w-[220px] space-y-2">
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Primary Color</label>
                 <div class="flex items-center gap-3 bg-black rounded-lg p-2 border border-white/10">
-                  <input id="primaryColor" type="color" class="w-8 h-8 rounded border-0 bg-transparent cursor-pointer track-change" value="#FFD700">
-                  <span id="primaryHex" class="text-xs font-mono">#FFD700</span>
+                  <input id="primaryColor" type="color" class="w-8 h-8 rounded border-0 bg-transparent cursor-pointer track-change" name="brand_color" value="{{ organization.profile.brand_color|default:'#FFD700' }}">
+                  <span id="primaryHex" class="text-xs font-mono">{{ organization.profile.brand_color|default:'#FFD700' }}</span>
                 </div>
               </div>
 
@@ -396,7 +396,7 @@
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Banner Inheritance</label>
                 <div class="flex items-center gap-3 h-12">
                   <label class="inline-flex items-center cursor-pointer">
-                    <input type="checkbox" checked class="toggle-checkbox hidden track-change">
+                    <input type="checkbox" {% if enforce_brand %}checked{% endif %} class="toggle-checkbox hidden track-change" name="enforce_brand">
                     <div class="w-10 h-5 bg-white/10 rounded-full relative transition-all toggle-label">
                       <div class="absolute w-4 h-4 bg-white rounded-full top-0.5 left-0.5 transition-all"></div>
                     </div>
@@ -434,37 +434,37 @@
             </div>
 
             <div class="space-y-4">
-              <div class="flex items-center justify-between p-4 bg-black/40 rounded-xl border border-white/5 hover:border-delta-gold/20 transition group">
+              {% for squad in squads %}
+              <div class="flex items-center justify-between p-4 bg-black/40 rounded-xl border border-white/5 hover:border-delta-gold/20 transition group" data-team-id="{{ squad.team.id }}">
                 <div class="flex items-center gap-4">
                   <div class="w-12 h-12 rounded-lg bg-delta-surface flex items-center justify-center p-2 border border-white/5 shadow-xl">
-                    <img src="https://img.icons8.com/color/48/valorant.png" class="w-8 h-8">
+                    {% if squad.team.logo %}
+                      <img src="{{ squad.team.logo.url }}" class="w-8 h-8 rounded object-cover" alt="{{ squad.team_name }}">
+                    {% else %}
+                      <i class="fas fa-shield-alt text-delta-gold text-xl"></i>
+                    {% endif %}
                   </div>
                   <div>
-                    <h4 class="text-white font-bold text-sm uppercase tracking-wide">Protocol V (Valorant)</h4>
-                    <p class="text-[10px] text-slate-500 font-mono">DCRS Rank: #1 Regional • 5 Active Members</p>
+                    <h4 class="text-white font-bold text-sm uppercase tracking-wide">{{ squad.team_name }}</h4>
+                    <p class="text-[10px] text-slate-500 font-mono">
+                      {% if squad.rank %}DCRS Rank: #{{ squad.rank }} • {% endif %}{{ squad.game_label }} • {{ squad.tier }}
+                    </p>
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
-                  <button class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-white transition flex items-center justify-center"><i class="fas fa-external-link-alt text-xs"></i></button>
-                  <button class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-delta-danger transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button>
+                  <a href="/teams/{{ squad.team_slug }}/" class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-white transition flex items-center justify-center"><i class="fas fa-external-link-alt text-xs"></i></a>
+                  {% if can_manage_org %}
+                  <button class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-delta-danger transition flex items-center justify-center btn-remove-team" data-team-id="{{ squad.team.id }}" data-team-name="{{ squad.team_name }}"><i class="fas fa-trash-alt text-xs"></i></button>
+                  {% endif %}
                 </div>
               </div>
-
-              <div class="flex items-center justify-between p-4 bg-black/40 rounded-xl border border-white/5 hover:border-delta-gold/20 transition group">
-                <div class="flex items-center gap-4">
-                  <div class="w-12 h-12 rounded-lg bg-delta-surface flex items-center justify-center p-2 border border-white/5 shadow-xl">
-                    <i class="fas fa-futbol text-delta-gold text-2xl"></i>
-                  </div>
-                  <div>
-                    <h4 class="text-white font-bold text-sm uppercase tracking-wide">Syntax FC (eFootball)</h4>
-                    <p class="text-[10px] text-slate-500 font-mono">DCRS Rank: #14 Regional • 2 Active Members</p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <button class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-white transition flex items-center justify-center"><i class="fas fa-external-link-alt text-xs"></i></button>
-                  <button class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-delta-danger transition flex items-center justify-center"><i class="fas fa-trash-alt text-xs"></i></button>
-                </div>
+              {% empty %}
+              <div class="text-center py-12 text-slate-500">
+                <i class="fas fa-layer-group text-3xl mb-3 opacity-30"></i>
+                <p class="text-sm font-bold uppercase tracking-widest">No Teams Registered</p>
+                <p class="text-[10px] mt-1">Register your first team to get started.</p>
               </div>
+              {% endfor %}
             </div>
           </div>
 
@@ -532,28 +532,16 @@
                 </div>
 
                 <div class="space-y-3">
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <select class="corp-input track-change">
-                      <option>Protocol V (Valorant)</option>
-                      <option>Syntax FC (eFootball)</option>
-                    </select>
-                    <input type="number" class="corp-input track-change" value="120000" placeholder="Minimum buyout (BDT)">
-                    <select class="corp-input track-change">
-                      <option>Offer Type: Player Buyout</option>
-                      <option>Offer Type: Team Acquisition</option>
-                      <option>Offer Type: Both</option>
-                    </select>
+                  {% if squads %}
+                  <div class="text-center py-4 text-slate-500">
+                    <p class="text-[10px]">Per-team buyout overrides will be configurable once the transfer marketplace is active.</p>
+                    <span class="inline-block mt-2 px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-delta-gold/10 text-delta-gold border border-delta-gold/20 rounded-full">Coming Soon</span>
                   </div>
-
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 opacity-70">
-                    <select class="corp-input">
-                      <option>Syntax FC (eFootball)</option>
-                    </select>
-                    <input type="number" class="corp-input" value="25000" placeholder="Minimum buyout (BDT)">
-                    <select class="corp-input">
-                      <option>Offer Type: Player Buyout</option>
-                    </select>
+                  {% else %}
+                  <div class="text-center py-4 text-slate-500">
+                    <p class="text-[10px]">Register teams first to configure per-team buyout overrides.</p>
                   </div>
+                  {% endif %}
                 </div>
               </div>
             </div>
@@ -918,178 +906,81 @@
               <!-- Staff List + Permission Matrix -->
               <div class="mt-8 pt-8 border-t border-white/5">
                 <div class="flex items-center justify-between mb-5">
-                  <label class="text-xs font-bold text-white uppercase tracking-widest">Command Staff</label>
+                  <label class="text-xs font-bold text-white uppercase tracking-widest">Command Staff ({{ org_members|length }})</label>
                   <span class="chip electric"><i class="fas fa-sitemap"></i> Permission Matrix</span>
                 </div>
 
                 <div class="space-y-4">
-                  <!-- Staff Card 1 -->
-                  <div class="p-6 bg-black/40 rounded-2xl border border-white/5">
+                  {% for member in org_members %}
+                  <!-- Staff Card: {{ member.username }} -->
+                  <div class="p-6 bg-black/40 rounded-2xl border border-white/5" data-member-id="{{ member.id }}">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                       <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-lg bg-delta-surface p-1 border border-white/5">
-                          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Manager" class="w-full h-full rounded bg-black" />
+                          {% if member.avatar %}
+                            <img src="{{ member.avatar }}" class="w-full h-full rounded bg-black object-cover" alt="{{ member.username }}" />
+                          {% else %}
+                            <div class="w-full h-full rounded bg-gradient-to-br from-delta-gold/30 to-delta-electric/30 flex items-center justify-center text-white font-bold text-sm">{{ member.username|first|upper }}</div>
+                          {% endif %}
                         </div>
                         <div>
                           <div class="flex flex-wrap items-center gap-2">
-                            <h4 class="text-white font-bold text-sm">Tactical_X</h4>
-                            <span class="text-[8px] bg-delta-gold/20 text-delta-gold px-1.5 py-0.5 rounded font-bold border border-delta-gold/30">GENERAL MANAGER</span>
-                            <span class="chip gold"><i class="fas fa-globe"></i> Org-wide</span>
+                            <h4 class="text-white font-bold text-sm">{{ member.username }}</h4>
+                            <span class="text-[8px] {% if member.is_ceo %}bg-delta-gold/20 text-delta-gold border-delta-gold/30{% else %}bg-delta-electric/20 text-delta-electric border-delta-electric/30{% endif %} px-1.5 py-0.5 rounded font-bold border uppercase">{{ member.role }}</span>
                           </div>
-                          <p class="text-[10px] text-slate-500 font-mono mt-1">Appointed: Dec 12, 2025 • Last action: 3h ago</p>
+                          <p class="text-[10px] text-slate-500 font-mono mt-1">Joined: {{ member.joined_at|date:"M d, Y" }}</p>
                         </div>
                       </div>
 
+                      {% if can_manage_org and not member.is_ceo %}
                       <div class="flex items-center gap-2">
-                        <button class="px-4 py-2 text-[10px] font-bold uppercase bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition">Apply Template</button>
-                        <button class="w-10 h-10 rounded-lg bg-white/5 text-slate-500 hover:text-white transition"><i class="fas fa-ellipsis-v"></i></button>
+                        <select class="corp-input w-[160px] staff-role-select" data-member-id="{{ member.id }}" data-user-id="{{ member.user_id }}">
+                          <option value="MANAGER" {% if member.role == 'MANAGER' %}selected{% endif %}>Manager</option>
+                          <option value="SCOUT" {% if member.role == 'SCOUT' %}selected{% endif %}>Scout</option>
+                          <option value="ANALYST" {% if member.role == 'ANALYST' %}selected{% endif %}>Analyst</option>
+                        </select>
+                        <button class="w-10 h-10 rounded-lg bg-delta-danger/10 text-delta-danger hover:bg-delta-danger hover:text-white transition btn-remove-member" data-member-id="{{ member.id }}" data-user-id="{{ member.user_id }}" data-username="{{ member.username }}" title="Remove member"><i class="fas fa-user-minus"></i></button>
                       </div>
+                      {% endif %}
                     </div>
 
+                    <!-- Permission Matrix -->
                     <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div class="p-4 rounded-xl border border-white/10 bg-white/5">
                         <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Roster</div>
                         <div class="space-y-3">
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Edit Roster</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Approve Transfers</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Emergency Subs</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300"><span>Edit Roster</span><input type="checkbox" {% if member.is_ceo %}checked{% endif %} class="track-change"></label>
+                          <label class="flex items-center justify-between text-xs text-slate-300"><span>Approve Transfers</span><input type="checkbox" {% if member.is_ceo %}checked{% endif %} class="track-change"></label>
+                          <label class="flex items-center justify-between text-xs text-slate-300"><span>Emergency Subs</span><input type="checkbox" {% if member.is_ceo %}checked{% endif %} class="track-change"></label>
                         </div>
                       </div>
-
                       <div class="p-4 rounded-xl border border-white/10 bg-white/5">
                         <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Treasury</div>
                         <div class="space-y-3">
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Withdraw Funds</span>
-                            <input type="checkbox" class="track-change" />
-                          </label>
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Approve Payouts</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Edit Split Rules</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300"><span>Withdraw Funds</span><input type="checkbox" class="track-change"></label>
+                          <label class="flex items-center justify-between text-xs text-slate-300"><span>Approve Payouts</span><input type="checkbox" {% if member.is_ceo %}checked{% endif %} class="track-change"></label>
+                          <label class="flex items-center justify-between text-xs text-slate-300"><span>Edit Split Rules</span><input type="checkbox" {% if member.is_ceo %}checked{% endif %} class="track-change"></label>
                         </div>
                       </div>
-
                       <div class="p-4 rounded-xl border border-white/10 bg-white/5">
                         <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Operations</div>
                         <div class="space-y-3">
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Accept Scrims</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Resolve Disputes</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Manage Sponsors</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="mt-5 text-[10px] text-slate-500 font-mono">
-                      Principle: least privilege. Use approvals for high-risk actions (withdrawals, transfer approvals, roster locks). :contentReference[oaicite:0]{index=0}
-                    </div>
-                  </div>
-
-                  <!-- Staff Card 2 -->
-                  <div class="p-6 bg-black/40 rounded-2xl border border-white/5">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                      <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-lg bg-delta-surface p-1 border border-white/5">
-                          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Scout" class="w-full h-full rounded bg-black" />
-                        </div>
-                        <div>
-                          <div class="flex flex-wrap items-center gap-2">
-                            <h4 class="text-white font-bold text-sm">EagleEye_101</h4>
-                            <span class="text-[8px] bg-delta-electric/20 text-delta-electric px-1.5 py-0.5 rounded font-bold border border-delta-electric/30 uppercase">Lead Scout</span>
-                            <span class="chip electric"><i class="fas fa-layer-group"></i> Scoped</span>
-                          </div>
-                          <p class="text-[10px] text-slate-500 font-mono mt-1">Appointed: Jan 02, 2026 • Scope: Protocol V</p>
-                        </div>
-                      </div>
-
-                      <div class="flex items-center gap-2">
-                        <select class="corp-input w-[220px] track-change">
-                          <option>Scope: Org-wide</option>
-                          <option selected>Scope: Protocol V (Valorant)</option>
-                          <option>Scope: Syntax FC (eFootball)</option>
-                        </select>
-                        <button class="w-10 h-10 rounded-lg bg-white/5 text-slate-500 hover:text-white transition"><i class="fas fa-ellipsis-v"></i></button>
-                      </div>
-                    </div>
-
-                    <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
-                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Recruitment</div>
-                        <div class="space-y-3">
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Review Applications</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Move Pipeline Stages</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Schedule Tryouts</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
-                        </div>
-                      </div>
-
-                      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
-                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Roster</div>
-                        <div class="space-y-3">
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Invite Players</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Kick Players</span>
-                            <input type="checkbox" class="track-change" />
-                          </label>
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Approve Transfers</span>
-                            <input type="checkbox" class="track-change" />
-                          </label>
-                        </div>
-                      </div>
-
-                      <div class="p-4 rounded-xl border border-white/10 bg-white/5">
-                        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Visibility</div>
-                        <div class="space-y-3">
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>View Analytics</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Export Candidate List</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
-                          <label class="flex items-center justify-between text-xs text-slate-300">
-                            <span>Contact Applicants</span>
-                            <input type="checkbox" checked class="track-change" />
-                          </label>
+                          <label class="flex items-center justify-between text-xs text-slate-300"><span>Accept Scrims</span><input type="checkbox" {% if member.is_ceo %}checked{% endif %} class="track-change"></label>
+                          <label class="flex items-center justify-between text-xs text-slate-300"><span>Resolve Disputes</span><input type="checkbox" {% if member.is_ceo %}checked{% endif %} class="track-change"></label>
+                          <label class="flex items-center justify-between text-xs text-slate-300"><span>Manage Sponsors</span><input type="checkbox" {% if member.is_ceo %}checked{% endif %} class="track-change"></label>
                         </div>
                       </div>
                     </div>
                   </div>
+                  {% empty %}
+                  <div class="text-center py-12 text-slate-500">
+                    <i class="fas fa-users text-3xl mb-3 opacity-30"></i>
+                    <p class="text-sm font-bold uppercase tracking-widest">No Staff Members</p>
+                    <p class="text-[10px] mt-1">Appoint staff to delegate organization management.</p>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
 
                   <!-- Approval Rules -->
                   <div class="p-6 bg-black/40 rounded-2xl border border-white/5">
@@ -1136,8 +1027,6 @@
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
             </div>
           </section>
 
@@ -1160,16 +1049,16 @@
                       <div class="flex mb-2 items-center justify-between">
                         <div>
                           <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-delta-gold bg-delta-gold/10 border border-delta-gold/20">
-                            Organization Take: <span id="orgTakeLabel">20</span>%
+                            Organization Take: <span id="orgTakeLabel">{{ org_take_pct }}</span>%
                           </span>
                         </div>
                         <div class="text-right">
                           <span class="text-xs font-semibold inline-block text-delta-electric">
-                            Players: <span id="playerTakeLabel">80</span>%
+                            Players: <span id="playerTakeLabel">{{ player_take_pct }}</span>%
                           </span>
                         </div>
                       </div>
-                      <input id="splitRange" type="range" min="0" max="100" value="20" class="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-delta-gold track-change">
+                      <input id="splitRange" type="range" min="0" max="100" value="{{ org_take_pct }}" class="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-delta-gold track-change" name="org_take">
                     </div>
                     <p class="text-[10px] text-slate-500 leading-relaxed italic">Automated prize disbursements can inherit this split unless overridden per squad. :contentReference[oaicite:1]{index=1}</p>
                   </div>
@@ -1177,8 +1066,8 @@
                   <div class="space-y-4">
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Primary Ledger Currency</label>
                     <select class="corp-input appearance-none cursor-pointer track-change">
-                      <option selected>BDT - Bangladeshi Taka (Default)</option>
-                      <option>USD - United States Dollar</option>
+                      <option {% if organization.profile.currency == 'BDT' or not organization.profile.currency %}selected{% endif %}>BDT - Bangladeshi Taka (Default)</option>
+                      <option {% if organization.profile.currency == 'USD' %}selected{% endif %}>USD - United States Dollar</option>
                     </select>
                     <p class="text-[10px] text-slate-500">Visual currency on match winnings, salaries, invoices, and reports.</p>
                   </div>
@@ -1204,10 +1093,13 @@
 
                     <div class="space-y-3">
                       <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        {% for squad in squads %}
                         <select class="corp-input track-change">
-                          <option selected>Protocol V (Valorant)</option>
-                          <option>Syntax FC (eFootball)</option>
+                          <option selected>{{ squad.team_name }}</option>
                         </select>
+                        {% empty %}
+                        <select class="corp-input"><option>No teams yet</option></select>
+                        {% endfor %}
                         <input type="number" min="0" max="100" value="10" class="corp-input track-change" placeholder="Org %">
                         <input type="number" min="0" max="100" value="90" class="corp-input track-change" placeholder="Player %">
                         <select class="corp-input track-change">
@@ -1216,21 +1108,10 @@
                           <option>Apply: Scrim Rewards Only</option>
                         </select>
                       </div>
-
-                      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 opacity-70">
-                        <select class="corp-input">
-                          <option selected>Syntax FC (eFootball)</option>
-                        </select>
-                        <input type="number" value="0" class="corp-input" placeholder="Org %">
-                        <input type="number" value="100" class="corp-input" placeholder="Player %">
-                        <select class="corp-input">
-                          <option selected>Apply: Tournament Winnings Only</option>
-                        </select>
-                      </div>
                     </div>
 
                     <p class="text-[10px] text-slate-500 mt-4">
-                      Server should validate sums = 100 and store rules in config (JSONB) for flexibility. :contentReference[oaicite:2]{index=2}
+                      Server should validate sums = 100 and store rules in config (JSONB) for flexibility.
                     </p>
                   </div>
                 </div>
@@ -1279,10 +1160,13 @@
 
                     <div class="space-y-3">
                       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {% for squad in squads %}
                         <select class="corp-input track-change">
-                          <option selected>Protocol V (Valorant)</option>
-                          <option>Syntax FC (eFootball)</option>
+                          <option selected>{{ squad.team_name }}</option>
                         </select>
+                        {% empty %}
+                        <select class="corp-input"><option>No teams yet</option></select>
+                        {% endfor %}
                         <input type="number" value="40000" class="corp-input track-change" placeholder="Pool Amount (BDT)">
                         <select class="corp-input track-change">
                           <option selected>Distribution: Manual per player</option>
@@ -1290,20 +1174,10 @@
                           <option>Distribution: Performance weighted</option>
                         </select>
                       </div>
-
-                      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 opacity-70">
-                        <select class="corp-input">
-                          <option selected>Syntax FC (eFootball)</option>
-                        </select>
-                        <input type="number" value="8000" class="corp-input" placeholder="Pool Amount (BDT)">
-                        <select class="corp-input">
-                          <option selected>Distribution: Equal split</option>
-                        </select>
-                      </div>
                     </div>
 
                     <p class="text-[10px] text-slate-500 mt-4">
-                      Payroll execution should create immutable transaction rows (append-only) for auditability. :contentReference[oaicite:3]{index=3}
+                      Payroll execution should create immutable transaction rows (append-only) for auditability.
                     </p>
                   </div>
                 </div>
@@ -1606,12 +1480,12 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-2">
                   <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Org Twitch Channel</label>
-                  <input type="text" class="corp-input track-change" placeholder="https://twitch.tv/syntaxesports">
+                  <input type="text" name="twitch_url" class="corp-input track-change" placeholder="https://twitch.tv/yourorg" value="">
                 </div>
 
                 <div class="space-y-2">
                   <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Org YouTube Channel</label>
-                  <input type="text" class="corp-input track-change" placeholder="https://youtube.com/@syntaxesports">
+                  <input type="text" name="youtube_url" class="corp-input track-change" placeholder="https://youtube.com/@yourorg" value="{{ organization.profile.youtube|default:'' }}">
                 </div>
 
                 <div class="p-6 bg-black/40 border border-white/5 rounded-2xl md:col-span-2">
@@ -1855,8 +1729,8 @@
                   </div>
 
                   <div class="mt-4 flex flex-wrap gap-2">
-                    <span class="chip"><i class="fas fa-location-dot"></i> 103.12.34.0/24</span>
-                    <span class="chip"><i class="fas fa-location-dot"></i> 45.11.92.10</span>
+                    <span class="chip electric"><i class="fas fa-network-wired mr-1"></i> 103.12.34.0/24 <button class="ml-2 text-delta-danger hover:text-red-400"><i class="fas fa-xmark"></i></button></span>
+                    <span class="chip electric"><i class="fas fa-network-wired mr-1"></i> 45.11.92.10 <button class="ml-2 text-delta-danger hover:text-red-400"><i class="fas fa-xmark"></i></button></span>
                   </div>
                 </div>
 
@@ -2104,10 +1978,6 @@
                     </tr>
                   </tbody>
                 </table>
-
-                <p class="text-[10px] text-slate-500 mt-5">
-                  Audit logs should be immutable and cover all state-changing operations (tournament ops, disputes, payments, roles). :contentReference[oaicite:9]{index=9}
-                </p>
               </div>
             </div>
           </section>
@@ -2125,7 +1995,7 @@
                     <h4 class="text-white font-bold mb-1">Transfer Ownership</h4>
                     <p class="text-xs text-slate-500">Permanently transfer the Organization CEO role to another verified user. This cannot be undone.</p>
                   </div>
-                  <button class="px-6 py-2 bg-delta-danger text-white text-[10px] font-bold uppercase rounded-lg hover:brightness-110">Initiate Transfer</button>
+                  <button id="btnTransferOwnership" class="px-6 py-2 bg-delta-danger text-white text-[10px] font-bold uppercase rounded-lg hover:brightness-110">Initiate Transfer</button>
                 </div>
 
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 bg-delta-danger/10 border border-delta-danger/30 rounded-xl">
@@ -2138,7 +2008,7 @@
                       <span class="chip"><i class="fas fa-key"></i> 2FA Required</span>
                     </div>
                   </div>
-                  <button class="px-6 py-2 border border-delta-danger text-delta-danger text-[10px] font-bold uppercase rounded-lg hover:bg-delta-danger hover:text-white transition">Full Purge</button>
+                  <button id="btnDecommission" class="px-6 py-2 border border-delta-danger text-delta-danger text-[10px] font-bold uppercase rounded-lg hover:bg-delta-danger hover:text-white transition">Full Purge</button>
                 </div>
               </div>
             </div>
@@ -2146,12 +2016,39 @@
 
         </div>
       </div>
-    </div>
   </main>{% endblock %}
 
 {% block extra_js %}
 
   <script>
+    // ---- Config injected from Django ----
+    const ORG_SLUG = "{{ org_slug|escapejs }}";
+
+    function getCsrfToken() {
+      const cookie = document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='));
+      return cookie ? cookie.split('=')[1] : '';
+    }
+
+    function showToast(message, type) {
+      if (typeof Toastify !== 'undefined') {
+        Toastify({
+          text: message,
+          duration: 3000,
+          gravity: "top",
+          position: "right",
+          style: {
+            background: type === 'success' ? 'linear-gradient(to right, #00b09b, #96c93d)'
+                       : type === 'error' ? 'linear-gradient(to right, #ff5f6d, #ffc371)'
+                       : '#333',
+            borderRadius: '8px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+          },
+        }).showToast();
+      }
+    }
+
     // ---- Unsaved changes indicator ----
     const unsavedIndicator = document.getElementById("unsavedIndicator");
     const saveBtn = document.getElementById("saveBtn");
@@ -2171,17 +2068,84 @@
       el.addEventListener("change", () => setUnsaved(true));
     });
 
+    // ---- Save button → POST to API ----
     if (saveBtn) {
-      saveBtn.addEventListener("click", () => {
-        // TODO: wire to backend
-        setUnsaved(false);
+      saveBtn.addEventListener("click", async () => {
+        const payload = {};
+        trackables().forEach(el => {
+          if (!el.name) return;
+          if (el.type === 'checkbox') {
+            payload[el.name] = el.checked;
+          } else if (el.type === 'range') {
+            payload[el.name] = parseInt(el.value, 10);
+          } else if (el.tagName === 'TEXTAREA') {
+            payload[el.name] = el.value;
+          } else if (el.tagName === 'SELECT') {
+            // Extract currency code from "BDT - Bangladeshi Taka (Default)"
+            const val = el.value || '';
+            payload[el.name] = val.split(' - ')[0].trim();
+          } else {
+            payload[el.name] = el.value;
+          }
+        });
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        // Check if logo/banner files are selected
+        const logoFileInput = document.getElementById('logoFile');
+        const bannerFileInput = document.getElementById('bannerFile');
+        const hasFiles = (logoFileInput && logoFileInput.files.length > 0) || (bannerFileInput && bannerFileInput.files.length > 0);
+
+        let fetchOptions;
+        if (hasFiles) {
+          // Use FormData for multipart upload
+          const formData = new FormData();
+          Object.entries(payload).forEach(([key, val]) => {
+            if (val !== null && val !== undefined && val !== '') formData.append(key, val);
+          });
+          if (logoFileInput && logoFileInput.files[0]) formData.append('logo', logoFileInput.files[0]);
+          if (bannerFileInput && bannerFileInput.files[0]) formData.append('banner', bannerFileInput.files[0]);
+          fetchOptions = {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() },
+            body: formData,
+          };
+        } else {
+          fetchOptions = {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCsrfToken(),
+            },
+            body: JSON.stringify(payload),
+          };
+        }
+
+        try {
+          const resp = await fetch(`/api/vnext/orgs/${ORG_SLUG}/settings/`, fetchOptions);
+          const data = await resp.json();
+
+          if (resp.ok && data.success) {
+            setUnsaved(false);
+            showToast('Settings saved successfully', 'success');
+          } else {
+            showToast(data.message || 'Failed to save settings', 'error');
+          }
+        } catch (err) {
+          showToast('Network error — please try again', 'error');
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save Changes';
+        }
       });
     }
 
+    // ---- Discard button → reload page ----
     if (discardBtn) {
       discardBtn.addEventListener("click", () => {
-        // TODO: reload values from backend
-        setUnsaved(false);
+        if (unsavedIndicator && unsavedIndicator.textContent === 'All changes saved') return;
+        window.location.reload();
       });
     }
 
@@ -2228,6 +2192,53 @@
       primaryColor.addEventListener("input", () => primaryHex.textContent = primaryColor.value.toUpperCase());
     }
 
+    // ---- Staff role change ----
+    document.querySelectorAll('.staff-role-select').forEach(select => {
+      select.addEventListener('change', async function() {
+        const userId = this.dataset.userId;
+        const newRole = this.value;
+        try {
+          const resp = await fetch(`/api/vnext/orgs/${ORG_SLUG}/members/${userId}/role/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+            body: JSON.stringify({ role: newRole }),
+          });
+          const data = await resp.json();
+          if (resp.ok && data.success) {
+            showToast(`Role updated to ${newRole}`, 'success');
+          } else {
+            showToast(data.message || 'Failed to update role', 'error');
+          }
+        } catch (err) {
+          showToast('Network error', 'error');
+        }
+      });
+    });
+
+    // ---- Remove staff member ----
+    document.querySelectorAll('.btn-remove-member').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const userId = this.dataset.userId;
+        const username = this.dataset.username;
+        if (!confirm(`Remove ${username} from organization? This cannot be undone.`)) return;
+        try {
+          const resp = await fetch(`/api/vnext/orgs/${ORG_SLUG}/members/${userId}/remove/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+          });
+          const data = await resp.json();
+          if (resp.ok && data.success) {
+            showToast(`${username} removed`, 'success');
+            this.closest('[data-member-id]').remove();
+          } else {
+            showToast(data.message || 'Failed to remove member', 'error');
+          }
+        } catch (err) {
+          showToast('Network error', 'error');
+        }
+      });
+    });
+
     // ---- Tabs ----
     function switchTab(tabId) {
       document.querySelectorAll(".section-tab").forEach(tab => tab.classList.remove("active"));
@@ -2253,6 +2264,28 @@
       }
 
       history.replaceState(null, "", "#" + tabId);
+    }
+
+    // ---- Danger Zone: Transfer Ownership ----
+    const btnTransfer = document.getElementById('btnTransferOwnership');
+    if (btnTransfer) {
+      btnTransfer.addEventListener('click', () => {
+        const targetUser = prompt('Enter the username of the new CEO to transfer ownership to:');
+        if (!targetUser || !targetUser.trim()) return;
+        if (!confirm(`WARNING: You are about to transfer CEO ownership to "${targetUser.trim()}". This is irreversible. Are you certain?`)) return;
+        showToast('Ownership transfer API is not yet available. This feature is coming soon.', 'error');
+      });
+    }
+
+    // ---- Danger Zone: Decommission Organization ----
+    const btnDecommission = document.getElementById('btnDecommission');
+    if (btnDecommission) {
+      btnDecommission.addEventListener('click', () => {
+        const orgName = prompt('To confirm decommission, type the exact organization name:');
+        if (!orgName || !orgName.trim()) return;
+        if (!confirm(`FINAL WARNING: This will permanently delete "${orgName.trim()}" and all associated data. Continue?`)) return;
+        showToast('Decommission API is not yet available. This feature is coming soon.', 'error');
+      });
     }
 
     window.addEventListener("DOMContentLoaded", () => {
