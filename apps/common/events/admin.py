@@ -12,6 +12,7 @@ Reference: ROADMAP_AND_EPICS_PART_4.md - Phase 8, Epic 8.1
 """
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 from django.utils.html import format_html
 from django.contrib import messages
 
@@ -19,7 +20,7 @@ from apps.common.events.models import EventLog
 from apps.common.events.replay_service import EventReplayService
 
 
-class EventLogAdmin(admin.ModelAdmin):
+class EventLogAdmin(ModelAdmin):
     """
     Django admin interface for EventLog model with Epic 8.1 enhancements.
     """

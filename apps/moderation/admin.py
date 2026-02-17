@@ -2,11 +2,12 @@
 Django Admin for Moderation App
 """
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 from apps.moderation.models import ModerationSanction, ModerationAudit, AbuseReport
 
 
 @admin.register(ModerationSanction)
-class ModerationSanctionAdmin(admin.ModelAdmin):
+class ModerationSanctionAdmin(ModelAdmin):
     list_display = ['id', 'subject_profile_id', 'type', 'scope', 'scope_id', 'starts_at', 'ends_at', 'revoked_at', 'created_at']
     list_filter = ['type', 'scope', 'revoked_at']
     search_fields = ['subject_profile_id', 'reason_code']
@@ -15,7 +16,7 @@ class ModerationSanctionAdmin(admin.ModelAdmin):
 
 
 @admin.register(ModerationAudit)
-class ModerationAuditAdmin(admin.ModelAdmin):
+class ModerationAuditAdmin(ModelAdmin):
     list_display = ['id', 'event', 'actor_id', 'subject_profile_id', 'ref_type', 'ref_id', 'created_at']
     list_filter = ['event', 'ref_type']
     search_fields = ['actor_id', 'subject_profile_id', 'ref_id']
@@ -32,7 +33,7 @@ class ModerationAuditAdmin(admin.ModelAdmin):
 
 
 @admin.register(AbuseReport)
-class AbuseReportAdmin(admin.ModelAdmin):
+class AbuseReportAdmin(ModelAdmin):
     list_display = ['id', 'reporter_profile_id', 'category', 'ref_type', 'ref_id', 'state', 'priority', 'created_at']
     list_filter = ['state', 'category', 'priority']
     search_fields = ['reporter_profile_id', 'subject_profile_id', 'ref_id']

@@ -1,4 +1,5 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -9,7 +10,7 @@ from .models import (
 )
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(ModelAdmin):
     list_display = ['name', 'category_type', 'is_active', 'sort_order']
     list_filter = ['category_type', 'is_active']
     search_fields = ['name', 'description']
@@ -17,24 +18,24 @@ class CategoryAdmin(admin.ModelAdmin):
     ordering = ['sort_order', 'name']
 
 @admin.register(Brand)
-class BrandAdmin(admin.ModelAdmin):
+class BrandAdmin(ModelAdmin):
     list_display = ['name', 'is_featured', 'is_active']
     list_filter = ['is_featured', 'is_active']
     search_fields = ['name', 'description']
     prepopulated_fields = {'slug': ('name',)}
 
-class ProductImageInline(admin.TabularInline):
+class ProductImageInline(TabularInline):
     model = ProductImage
     extra = 1
     fields = ['image', 'alt_text', 'is_featured', 'sort_order']
 
-class ProductVariantInline(admin.TabularInline):
+class ProductVariantInline(TabularInline):
     model = ProductVariant
     extra = 1
     fields = ['name', 'value', 'price_adjustment', 'stock', 'sku', 'is_active']
 
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(ModelAdmin):
     list_display = [
         'name', 'category', 'brand', 'price', 'stock', 'is_featured', 
         'is_active', 'product_type', 'rarity'
@@ -80,13 +81,13 @@ class ProductAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('category', 'brand')
 
-class OrderItemInline(admin.TabularInline):
+class OrderItemInline(TabularInline):
     model = OrderItem
     extra = 0
     readonly_fields = ['product_name', 'unit_price', 'total_price']
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(ModelAdmin):
     list_display = [
         'order_number', 'user', 'status', 'payment_method', 
         'total_price', 'created_at'
@@ -130,12 +131,12 @@ class OrderAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user')
 
-class CartItemInline(admin.TabularInline):
+class CartItemInline(TabularInline):
     model = CartItem
     extra = 0
 
 @admin.register(Cart)
-class CartAdmin(admin.ModelAdmin):
+class CartAdmin(ModelAdmin):
     list_display = ['user', 'total_items', 'total_price', 'created_at']
     search_fields = ['user__display_name']
     inlines = [CartItemInline]
@@ -149,7 +150,7 @@ class CartAdmin(admin.ModelAdmin):
     total_price.short_description = 'Total Price'
 
 @admin.register(Review)
-class ReviewAdmin(admin.ModelAdmin):
+class ReviewAdmin(ModelAdmin):
     list_display = ['product', 'user', 'rating', 'is_verified_purchase', 'is_approved', 'created_at']
     list_filter = ['rating', 'is_verified_purchase', 'is_approved', 'created_at']
     search_fields = ['product__name', 'user__display_name', 'title', 'comment']
@@ -164,7 +165,7 @@ class ReviewAdmin(admin.ModelAdmin):
     disapprove_reviews.short_description = "Disapprove selected reviews"
 
 @admin.register(Coupon)
-class CouponAdmin(admin.ModelAdmin):
+class CouponAdmin(ModelAdmin):
     list_display = [
         'code', 'discount_type', 'discount_value', 'used_count', 
         'maximum_uses', 'valid_from', 'valid_to', 'is_active'
@@ -174,14 +175,14 @@ class CouponAdmin(admin.ModelAdmin):
     readonly_fields = ['used_count']
 
 @admin.register(LoyaltyProgram)
-class LoyaltyProgramAdmin(admin.ModelAdmin):
+class LoyaltyProgramAdmin(ModelAdmin):
     list_display = ['user', 'tier', 'points', 'total_spent']
     list_filter = ['tier']
     search_fields = ['user__display_name']
     readonly_fields = ['total_spent']
 
 @admin.register(Wishlist)
-class WishlistAdmin(admin.ModelAdmin):
+class WishlistAdmin(ModelAdmin):
     list_display = ['user', 'product_count', 'created_at']
     search_fields = ['user__display_name']
     filter_horizontal = ['products']

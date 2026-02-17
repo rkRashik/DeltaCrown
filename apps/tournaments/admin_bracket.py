@@ -24,6 +24,8 @@ Source: Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md
 """
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
+from unfold.decorators import display
 from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Count, Q
@@ -31,7 +33,7 @@ from django.contrib import messages
 from apps.tournaments.models import Bracket, BracketNode
 
 
-class BracketNodeInline(admin.TabularInline):
+class BracketNodeInline(TabularInline):
     """
     Inline display of bracket nodes (limited to first round for preview).
     """
@@ -94,7 +96,7 @@ class BracketNodeInline(admin.TabularInline):
 
 
 @admin.register(Bracket)
-class BracketAdmin(admin.ModelAdmin):
+class BracketAdmin(ModelAdmin):
     """
     Admin interface for Bracket model.
     
@@ -174,35 +176,25 @@ class BracketAdmin(admin.ModelAdmin):
     tournament_link.short_description = "Tournament"
     tournament_link.admin_order_field = 'tournament__name'
     
+    @display(
+        description='Format',
+        ordering='format',
+        label={
+            'single-elimination': 'success',
+            'double-elimination': 'warning',
+            'round-robin': 'info',
+            'swiss': 'primary',
+            'group-stage': 'danger',
+        },
+    )
     def format_badge(self, obj):
-        """Display bracket format with color badge"""
-        format_colors = {
-            'single-elimination': '#4CAF50',
-            'double-elimination': '#FF9800',
-            'round-robin': '#2196F3',
-            'swiss': '#9C27B0',
-            'group-stage': '#F44336'
-        }
-        color = format_colors.get(obj.format, '#757575')
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 3px 10px; border-radius: 3px;">{}</span>',
-            color,
-            obj.get_format_display()
-        )
-    format_badge.short_description = "Format"
-    format_badge.admin_order_field = 'format'
-    
+        """Display bracket format with Unfold color badge."""
+        return obj.format
+
+    @display(description='Finalized', ordering='is_finalized', boolean=True)
     def is_finalized_badge(self, obj):
-        """Display finalized status with icon"""
-        if obj.is_finalized:
-            return format_html(
-                '<span style="color: green;" title="Bracket is locked">🔒 Yes</span>'
-            )
-        return format_html(
-            '<span style="color: orange;" title="Bracket can be regenerated">🔓 No</span>'
-        )
-    is_finalized_badge.short_description = "Finalized"
-    is_finalized_badge.admin_order_field = 'is_finalized'
+        """Display finalized status."""
+        return obj.is_finalized
     
     def progress_bar(self, obj):
         """Show bracket completion progress"""
@@ -345,7 +337,7 @@ class BracketAdmin(admin.ModelAdmin):
 
 
 @admin.register(BracketNode)
-class BracketNodeAdmin(admin.ModelAdmin):
+class BracketNodeAdmin(ModelAdmin):
     """
     Admin interface for BracketNode model.
     

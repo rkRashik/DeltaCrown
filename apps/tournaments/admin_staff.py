@@ -16,6 +16,8 @@ Provides admin interfaces for managing tournament staff roles and assignments.
 """
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
+from unfold.decorators import display
 from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Count
@@ -25,7 +27,7 @@ from apps.tournaments.models import TournamentStaffRole, TournamentStaff
 
 
 @admin.register(TournamentStaffRole)
-class TournamentStaffRoleAdmin(admin.ModelAdmin):
+class TournamentStaffRoleAdmin(ModelAdmin):
     """Admin interface for managing staff roles and permissions."""
     
     list_display = [
@@ -174,7 +176,7 @@ class TournamentStaffRoleAdmin(admin.ModelAdmin):
 
 
 @admin.register(TournamentStaff)
-class TournamentStaffAdmin(admin.ModelAdmin):
+class TournamentStaffAdmin(ModelAdmin):
     """Admin interface for managing staff assignments."""
     
     list_display = [
@@ -226,20 +228,10 @@ class TournamentStaffAdmin(admin.ModelAdmin):
     tournament_link.short_description = 'Tournament'
     tournament_link.admin_order_field = 'tournament__name'
     
+    @display(description='Status', ordering='is_active', boolean=True)
     def status_badge(self, obj):
-        """Display active/inactive status as colored badge."""
-        if obj.is_active:
-            return format_html(
-                '<span style="background: #4CAF50; color: white; padding: 3px 10px; '
-                'border-radius: 3px; font-weight: bold;">✓ Active</span>'
-            )
-        else:
-            return format_html(
-                '<span style="background: #9E9E9E; color: white; padding: 3px 10px; '
-                'border-radius: 3px;">✗ Inactive</span>'
-            )
-    status_badge.short_description = 'Status'
-    status_badge.admin_order_field = 'is_active'
+        """Display active/inactive status as boolean icon."""
+        return obj.is_active
     
     def quick_actions(self, obj):
         """Display quick action buttons."""
@@ -282,7 +274,7 @@ class TournamentStaffAdmin(admin.ModelAdmin):
 
 
 # Inline for TournamentAdmin
-class TournamentStaffInline(admin.TabularInline):
+class TournamentStaffInline(TabularInline):
     """Inline editor for staff assignments within Tournament admin."""
     model = TournamentStaff
     extra = 0

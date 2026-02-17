@@ -1,8 +1,9 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 from django.contrib.admin.sites import AlreadyRegistered
 from apps.user_profile.models import UserProfile
 
-class UserProfileAdmin(admin.ModelAdmin):
+class UserProfileAdmin(ModelAdmin):
     list_display = ("user", "is_private", "show_email", "show_phone", "show_socials")
     list_filter = ("is_private", "show_email", "show_phone", "show_socials")
     search_fields = ("user__username", "user__email")

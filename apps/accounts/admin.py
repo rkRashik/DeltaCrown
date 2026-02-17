@@ -1,12 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils import timezone
+from unfold.admin import ModelAdmin, TabularInline
 
 from .models import EmailOTP, PendingSignup, User, AccountDeletionRequest
 from apps.user_profile.models import SocialLink
 
 
-class SocialLinkInline(admin.TabularInline):
+class SocialLinkInline(TabularInline):
     """Inline social links editor for Discord Link + other platforms"""
     model = SocialLink
     extra = 0
@@ -17,7 +18,7 @@ class SocialLinkInline(admin.TabularInline):
 
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(BaseUserAdmin, ModelAdmin):
     list_display = ("username", "email", "is_active", "is_verified", "is_staff")
     inlines = [SocialLinkInline]
     list_filter = ("is_verified", "is_active", "is_staff")
@@ -53,7 +54,7 @@ class UserAdmin(BaseUserAdmin):
 
 
 @admin.register(PendingSignup)
-class PendingSignupAdmin(admin.ModelAdmin):
+class PendingSignupAdmin(ModelAdmin):
     list_display = ("email", "username", "created_at")
     search_fields = ("email", "username")
     readonly_fields = ("created_at",)
@@ -61,7 +62,7 @@ class PendingSignupAdmin(admin.ModelAdmin):
 
 
 @admin.register(EmailOTP)
-class EmailOTPAdmin(admin.ModelAdmin):
+class EmailOTPAdmin(ModelAdmin):
     list_display = ("target", "purpose", "code", "created_at", "expires_at", "is_used", "attempts")
     search_fields = (
         "user__username",
@@ -89,7 +90,7 @@ class EmailOTPAdmin(admin.ModelAdmin):
 
 
 @admin.register(AccountDeletionRequest)
-class AccountDeletionRequestAdmin(admin.ModelAdmin):
+class AccountDeletionRequestAdmin(ModelAdmin):
     list_display = ('user_username', 'status', 'requested_at', 'scheduled_for', 'days_remaining_display', 'can_cancel_display')
     list_filter = ('status', 'requested_at', 'scheduled_for')
     search_fields = ('user__username', 'user__email', 'reason')

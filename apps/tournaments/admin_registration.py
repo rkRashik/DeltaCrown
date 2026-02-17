@@ -28,6 +28,8 @@ Architecture Decisions:
 """
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin, StackedInline
+from unfold.decorators import display
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -35,7 +37,7 @@ from apps.tournaments.models import Registration, Payment
 from apps.tournaments.services import RegistrationService
 
 
-class PaymentInline(admin.StackedInline):
+class PaymentInline(StackedInline):
     """
     Inline editor for Payment within Registration admin.
     
@@ -84,7 +86,7 @@ class PaymentInline(admin.StackedInline):
 
 
 @admin.register(Registration)
-class RegistrationAdmin(admin.ModelAdmin):
+class RegistrationAdmin(ModelAdmin):
     """
     Admin interface for Registration model.
     
@@ -262,7 +264,7 @@ class RegistrationAdmin(admin.ModelAdmin):
 
 
 @admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
+class PaymentAdmin(ModelAdmin):
     """
     Admin interface for Payment model.
     
@@ -336,23 +338,20 @@ class PaymentAdmin(admin.ModelAdmin):
     tournament_display.short_description = "Tournament"
     tournament_display.admin_order_field = 'registration__tournament__name'
     
+    @display(
+        description='Status',
+        ordering='status',
+        label={
+            'pending': 'warning',
+            'submitted': 'warning',
+            'verified': 'success',
+            'rejected': 'danger',
+            'refunded': 'info',
+        },
+    )
     def status_display(self, obj):
-        """Display payment status with color coding."""
-        color_map = {
-            'pending': 'gray',
-            'submitted': 'orange',
-            'verified': 'green',
-            'rejected': 'red',
-            'refunded': 'blue'
-        }
-        color = color_map.get(obj.status, 'black')
-        return format_html(
-            '<span style="color: {}; font-weight: bold;">{}</span>',
-            color,
-            obj.get_status_display()
-        )
-    status_display.short_description = "Status"
-    status_display.admin_order_field = 'status'
+        """Display payment status with Unfold color badge."""
+        return obj.status
     
     def payment_proof_display(self, obj):
         """Display payment proof file if available (Module 3.2: enhanced with file type handling)."""

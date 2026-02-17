@@ -19,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 
 from django.contrib import admin, messages
+from unfold.admin import ModelAdmin, TabularInline, StackedInline
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -77,7 +78,7 @@ from .admin.forms import UserProfileAdminForm, GameProfileAdminForm
 # INLINE ADMINS
 # ============================================================================
 
-class PrivacySettingsInline(admin.StackedInline):
+class PrivacySettingsInline(StackedInline):
     """Inline privacy settings editor"""
     model = PrivacySettings
     can_delete = False
@@ -92,7 +93,7 @@ class PrivacySettingsInline(admin.StackedInline):
     ]
 
 
-class SocialLinkInline(admin.TabularInline):
+class SocialLinkInline(TabularInline):
     """Inline social links editor"""
     model = SocialLink
     extra = 0
@@ -100,7 +101,7 @@ class SocialLinkInline(admin.TabularInline):
     readonly_fields = ['is_verified']
 
 
-class GameProfileInline(admin.TabularInline):
+class GameProfileInline(TabularInline):
     """Inline game profiles editor - replaces JSON field"""
     model = GameProfile
     extra = 1
@@ -110,7 +111,7 @@ class GameProfileInline(admin.TabularInline):
     verbose_name_plural = "Game Profiles (Normalized Model)"
 
 
-class GameProfileAliasInline(admin.TabularInline):
+class GameProfileAliasInline(TabularInline):
     """
     GP-0 Inline for identity change history
     
@@ -163,7 +164,7 @@ class GameProfileAliasInline(admin.TabularInline):
         return False
 
 
-class UserBadgeInline(admin.TabularInline):
+class UserBadgeInline(TabularInline):
     """Inline user badges editor"""
     model = UserBadge
     extra = 0
@@ -171,7 +172,7 @@ class UserBadgeInline(admin.TabularInline):
     readonly_fields = ['earned_at']
 
 
-class NotificationPreferencesInline(admin.StackedInline):
+class NotificationPreferencesInline(StackedInline):
     """
     UP-PHASE6-C: Inline notification preferences editor
     
@@ -203,7 +204,7 @@ class NotificationPreferencesInline(admin.StackedInline):
     ]
 
 
-class WalletSettingsInline(admin.StackedInline):
+class WalletSettingsInline(StackedInline):
     """
     UP-PHASE6-C: Inline wallet settings editor
     
@@ -245,7 +246,7 @@ class WalletSettingsInline(admin.StackedInline):
 
 
 @admin.register(PrivacySettings)
-class PrivacySettingsAdmin(admin.ModelAdmin):
+class PrivacySettingsAdmin(ModelAdmin):
     """Privacy settings standalone admin"""
     
     list_display = [
@@ -308,7 +309,7 @@ class PrivacySettingsAdmin(admin.ModelAdmin):
 
 
 @admin.register(VerificationRecord)
-class VerificationRecordAdmin(admin.ModelAdmin):
+class VerificationRecordAdmin(ModelAdmin):
     """KYC verification records admin"""
     
     list_display = [
@@ -404,7 +405,7 @@ class VerificationRecordAdmin(admin.ModelAdmin):
 
 
 @admin.register(Badge)
-class BadgeAdmin(admin.ModelAdmin):
+class BadgeAdmin(ModelAdmin):
     """Badge system admin"""
     
     list_display = ['icon', 'name', 'rarity', 'category', 'xp_reward', 'is_active', 'is_hidden']
@@ -429,7 +430,7 @@ class BadgeAdmin(admin.ModelAdmin):
 
 
 @admin.register(UserBadge)
-class UserBadgeAdmin(admin.ModelAdmin):
+class UserBadgeAdmin(ModelAdmin):
     """User badges admin"""
     
     list_display = ['user', 'badge', 'earned_at', 'is_pinned']
@@ -453,7 +454,7 @@ class UserBadgeAdmin(admin.ModelAdmin):
 # ============================================================================
 
 # @admin.register(SocialLink) - REMOVED: Orphaned model, no views use it
-# class SocialLinkAdmin(admin.ModelAdmin):
+# class SocialLinkAdmin(ModelAdmin):
 #     """Social links admin - ORPHANED, unregistered in Phase 5B"""
 #     pass
 
@@ -463,7 +464,7 @@ class UserBadgeAdmin(admin.ModelAdmin):
 # New custom admin provides modern interface with better UX
 
 # @admin.register(GameProfile)
-# class GameProfileAdmin(admin.ModelAdmin):
+# class GameProfileAdmin(ModelAdmin):
 #     """
 #     Game Passport Admin (Phase 9A-14) - DISABLED
 #     
@@ -922,7 +923,7 @@ if False:  # Disabled - use custom admin instead
 
 
 @admin.register(GameProfileAlias)
-class GameProfileAliasAdmin(admin.ModelAdmin):
+class GameProfileAliasAdmin(ModelAdmin):
     """
     Game Passport Alias History Admin
     
@@ -1011,7 +1012,7 @@ class GameProfileAliasAdmin(admin.ModelAdmin):
 
 
 @admin.register(Achievement)
-class AchievementAdmin(admin.ModelAdmin):
+class AchievementAdmin(ModelAdmin):
     """Achievements admin"""
     
     list_display = ['user', 'emoji', 'name', 'rarity', 'earned_at']
@@ -1032,12 +1033,12 @@ class AchievementAdmin(admin.ModelAdmin):
 
 # @admin.register(Match) - REMOVED: Placeholder admin, unregistered until tournament system writes data
 # Match model kept for future but admin hidden in Phase 5B
-# class MatchAdmin(admin.ModelAdmin):
+# class MatchAdmin(ModelAdmin):
 #     pass
 
 
 @admin.register(Certificate)
-class CertificateAdmin(admin.ModelAdmin):
+class CertificateAdmin(ModelAdmin):
     """Certificates admin"""
     
     list_display = [
@@ -1082,13 +1083,13 @@ class CertificateAdmin(admin.ModelAdmin):
 
 # @admin.register(UserActivity) - REMOVED: Orphaned model, no views write events
 # UserActivity model exists but never used - unregistered in Phase 5B
-# class UserActivityAdmin(admin.ModelAdmin):
+# class UserActivityAdmin(ModelAdmin):
 #     pass
 
 
 # @admin.register(UserProfileStats) - REMOVED: Orphaned model, no views read stats
 # UserProfileStats model exists but never queried by views - unregistered in Phase 5B
-# class UserProfileStatsAdmin(admin.ModelAdmin):
+# class UserProfileStatsAdmin(ModelAdmin):
 #     pass
 
 
@@ -1097,7 +1098,7 @@ class CertificateAdmin(admin.ModelAdmin):
 # ============================================================================
 
 @admin.register(UserAuditEvent)
-class UserAuditEventAdmin(admin.ModelAdmin):
+class UserAuditEventAdmin(ModelAdmin):
     """Audit event admin - completely immutable, read-only compliance log"""
     
     list_display = [
@@ -1249,7 +1250,7 @@ class UserAuditEventAdmin(admin.ModelAdmin):
 # ============================================================================
 
 @admin.register(GameProfileConfig)
-class GameProfileConfigAdmin(admin.ModelAdmin):
+class GameProfileConfigAdmin(ModelAdmin):
     """
     GP-0 Game Passport Configuration (Singleton)
     
@@ -1327,7 +1328,7 @@ class GameProfileConfigAdmin(admin.ModelAdmin):
 # ============================================================================
 
 @admin.register(NotificationPreferences)
-class NotificationPreferencesAdmin(admin.ModelAdmin):
+class NotificationPreferencesAdmin(ModelAdmin):
     """
     Admin for NotificationPreferences model.
     
@@ -1398,7 +1399,7 @@ class NotificationPreferencesAdmin(admin.ModelAdmin):
 
 
 @admin.register(WalletSettings)
-class WalletSettingsAdmin(admin.ModelAdmin):
+class WalletSettingsAdmin(ModelAdmin):
     """
     Admin for WalletSettings model.
     
@@ -1504,7 +1505,7 @@ class WalletSettingsAdmin(admin.ModelAdmin):
 # ============================================================================
 
 @admin.register(TrophyShowcaseConfig)
-class TrophyShowcaseConfigAdmin(admin.ModelAdmin):
+class TrophyShowcaseConfigAdmin(ModelAdmin):
     """
     Admin for user's equipped cosmetics (borders, frames, pinned badges).
     
@@ -1634,7 +1635,7 @@ class TrophyShowcaseConfigAdmin(admin.ModelAdmin):
 # ============================================================================
 
 @admin.register(SkillEndorsement)
-class SkillEndorsementAdmin(admin.ModelAdmin):
+class SkillEndorsementAdmin(ModelAdmin):
     """
     Admin for post-match skill endorsements.
     
@@ -1816,7 +1817,7 @@ class SkillEndorsementAdmin(admin.ModelAdmin):
 
 
 @admin.register(EndorsementOpportunity)
-class EndorsementOpportunityAdmin(admin.ModelAdmin):
+class EndorsementOpportunityAdmin(ModelAdmin):
     """
     Admin for endorsement opportunity tracking.
     
@@ -1899,7 +1900,7 @@ class EndorsementOpportunityAdmin(admin.ModelAdmin):
 # ============================================================================
 
 @admin.register(Bounty)
-class BountyAdmin(admin.ModelAdmin):
+class BountyAdmin(ModelAdmin):
     """
     Admin interface for Bounty challenges.
     
@@ -2124,7 +2125,7 @@ class BountyAdmin(admin.ModelAdmin):
 
 
 @admin.register(BountyAcceptance)
-class BountyAcceptanceAdmin(admin.ModelAdmin):
+class BountyAcceptanceAdmin(ModelAdmin):
     """Admin interface for bounty acceptances."""
     
     list_display = [
@@ -2164,7 +2165,7 @@ class BountyAcceptanceAdmin(admin.ModelAdmin):
 
 
 @admin.register(BountyProof)
-class BountyProofAdmin(admin.ModelAdmin):
+class BountyProofAdmin(ModelAdmin):
     """Admin interface for bounty proof submissions."""
     
     list_display = [
@@ -2242,7 +2243,7 @@ class BountyProofAdmin(admin.ModelAdmin):
 
 
 @admin.register(BountyDispute)
-class BountyDisputeAdmin(admin.ModelAdmin):
+class BountyDisputeAdmin(ModelAdmin):
     """
     Admin interface for bounty disputes.
     
@@ -2409,7 +2410,7 @@ class BountyDisputeAdmin(admin.ModelAdmin):
 # ==============================================================================
 
 @admin.register(StreamConfig)
-class StreamConfigAdmin(admin.ModelAdmin):
+class StreamConfigAdmin(ModelAdmin):
     """Admin for user stream configurations (Twitch, YouTube, Facebook)."""
     
     list_display = ['user', 'platform', 'channel_id', 'is_active', 'created_at']
@@ -2436,7 +2437,7 @@ class StreamConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(HighlightClip)
-class HighlightClipAdmin(admin.ModelAdmin):
+class HighlightClipAdmin(ModelAdmin):
     """Admin for user highlight clips (YouTube, Twitch, Medal.tv)."""
     
     list_display = ['user', 'title', 'platform', 'game', 'display_order', 'created_at']
@@ -2464,7 +2465,7 @@ class HighlightClipAdmin(admin.ModelAdmin):
 
 
 @admin.register(PinnedHighlight)
-class PinnedHighlightAdmin(admin.ModelAdmin):
+class PinnedHighlightAdmin(ModelAdmin):
     """Admin for pinned highlight clips (featured on profile)."""
     
     list_display = ['user', 'clip', 'created_at']
@@ -2492,7 +2493,7 @@ class PinnedHighlightAdmin(admin.ModelAdmin):
 # ==============================================================================
 
 @admin.register(HardwareGear)
-class HardwareGearAdmin(admin.ModelAdmin):
+class HardwareGearAdmin(ModelAdmin):
     """Admin for user hardware gear (mouse, keyboard, headset, monitor, mousepad)."""
     
     list_display = ['user', 'category', 'brand', 'model', 'is_public', 'updated_at']
@@ -2520,7 +2521,7 @@ class HardwareGearAdmin(admin.ModelAdmin):
 
 
 @admin.register(GameConfig)
-class GameConfigAdmin(admin.ModelAdmin):
+class GameConfigAdmin(ModelAdmin):
     """Admin for per-game configuration settings (sensitivity, crosshair, keybinds)."""
     
     list_display = ['user', 'game', 'is_public', 'updated_at']
@@ -2552,7 +2553,7 @@ class GameConfigAdmin(admin.ModelAdmin):
 # ==============================================================================
 
 @admin.register(ProfileShowcase)
-class ProfileShowcaseAdmin(admin.ModelAdmin):
+class ProfileShowcaseAdmin(ModelAdmin):
     """Admin for profile showcase configuration (About section toggles)."""
     
     list_display = ['user_profile', 'featured_team_id', 'featured_passport_id', 'updated_at']
@@ -2582,7 +2583,7 @@ class ProfileShowcaseAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProfileAboutItem)
-class ProfileAboutItemAdmin(admin.ModelAdmin):
+class ProfileAboutItemAdmin(ModelAdmin):
     """Admin for profile About section items (Facebook-style)."""
     
     list_display = ['user_profile', 'item_type', 'visibility', 'display_order', 'created_at']

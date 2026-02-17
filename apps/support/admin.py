@@ -1,11 +1,12 @@
 # apps/support/admin.py
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 from django.utils.html import format_html
 from .models import FAQ, Testimonial, ContactMessage
 
 
 @admin.register(FAQ)
-class FAQAdmin(admin.ModelAdmin):
+class FAQAdmin(ModelAdmin):
     list_display = ['question_preview', 'category', 'is_active', 'is_featured', 'order', 'updated_at']
     list_filter = ['category', 'is_active', 'is_featured', 'created_at']
     search_fields = ['question', 'answer']
@@ -55,7 +56,7 @@ class FAQAdmin(admin.ModelAdmin):
 
 
 @admin.register(Testimonial)
-class TestimonialAdmin(admin.ModelAdmin):
+class TestimonialAdmin(ModelAdmin):
     list_display = ['name', 'team_name', 'rating_display', 'show_on_homepage', 'is_verified', 'order', 'created_at']
     list_filter = ['rating', 'show_on_homepage', 'is_verified', 'created_at']
     search_fields = ['name', 'team_name', 'testimonial_text']
@@ -109,7 +110,7 @@ class TestimonialAdmin(admin.ModelAdmin):
 
 
 @admin.register(ContactMessage)
-class ContactMessageAdmin(admin.ModelAdmin):
+class ContactMessageAdmin(ModelAdmin):
     list_display = ['name', 'email', 'subject_preview', 'status', 'priority', 'created_at']
     list_filter = ['status', 'priority', 'created_at']
     search_fields = ['name', 'email', 'subject', 'message']

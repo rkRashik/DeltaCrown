@@ -21,6 +21,7 @@ from datetime import datetime
 from pathlib import Path
 
 from django.contrib import admin, messages
+from unfold.admin import ModelAdmin, TabularInline, StackedInline
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -64,7 +65,7 @@ from .exports import export_userprofiles_csv
 # INLINE ADMINS - For Child/Technical Models
 # ==============================================================================
 
-class PinnedHighlightInline(admin.TabularInline):
+class PinnedHighlightInline(TabularInline):
     """Inline for users who pinned this clip."""
     model = PinnedHighlight
     extra = 0
@@ -78,7 +79,7 @@ class PinnedHighlightInline(admin.TabularInline):
         return False
 
 
-class BountyAcceptanceInline(admin.TabularInline):
+class BountyAcceptanceInline(TabularInline):
     """Inline for bounty acceptance record."""
     model = BountyAcceptance
     extra = 0
@@ -93,7 +94,7 @@ class BountyAcceptanceInline(admin.TabularInline):
         return False
 
 
-class BountyProofInline(admin.TabularInline):
+class BountyProofInline(TabularInline):
     """Inline for proof submissions."""
     model = BountyProof
     extra = 0
@@ -107,7 +108,7 @@ class BountyProofInline(admin.TabularInline):
         return False
 
 
-class BountyDisputeInline(admin.StackedInline):
+class BountyDisputeInline(StackedInline):
     """Inline for dispute (if any)."""
     model = BountyDispute
     extra = 0
@@ -123,7 +124,7 @@ class BountyDisputeInline(admin.StackedInline):
 
 
 # UP.2 FIX PASS #4: SocialLink inline for UserProfile admin
-class SocialLinkInline(admin.TabularInline):
+class SocialLinkInline(TabularInline):
     """Inline social links editor for Discord Link + other platforms"""
     model = SocialLink
     extra = 0
@@ -138,7 +139,7 @@ class SocialLinkInline(admin.TabularInline):
 # ==============================================================================
 
 @admin.register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
+class UserProfileAdmin(ModelAdmin):
     list_display = ("id", "user", "display_name", "public_id", "kyc_status_badge", "coin_balance", "created_at")
     search_fields = ("user__username", "display_name", "user__email", "phone", "real_full_name", "public_id")
     list_filter = ("kyc_status", "region", "gender", "created_at")
@@ -307,7 +308,7 @@ class UserProfileAdmin(admin.ModelAdmin):
 
 
 @admin.register(PrivacySettings)
-class PrivacySettingsAdmin(admin.ModelAdmin):
+class PrivacySettingsAdmin(ModelAdmin):
     list_display = ('id', 'user_profile', 'privacy_summary', 'interaction_summary', 'updated_at')
     search_fields = ('user_profile__user__username', 'user_profile__display_name')
     list_filter = ('allow_team_invites', 'allow_friend_requests', 'allow_direct_messages', 'created_at')
@@ -374,7 +375,7 @@ class PrivacySettingsAdmin(admin.ModelAdmin):
 
 
 @admin.register(KYCSubmission)
-class KYCSubmissionAdmin(admin.ModelAdmin):
+class KYCSubmissionAdmin(ModelAdmin):
     """Admin interface for modern KYC verification submissions"""
     
     list_display = ('id', 'user_profile_link', 'document_type', 'status_badge', 'submitted_at', 'reviewed_at', 'reviewed_by')
@@ -535,7 +536,7 @@ class KYCSubmissionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Badge)
-class BadgeAdmin(admin.ModelAdmin):
+class BadgeAdmin(ModelAdmin):
     """Admin interface for achievement badges"""
     
     list_display = ('badge_display', 'slug', 'category', 'rarity_badge', 'xp_reward', 'earned_count', 'is_active')
@@ -605,7 +606,7 @@ class BadgeAdmin(admin.ModelAdmin):
 
 
 @admin.register(UserBadge)
-class UserBadgeAdmin(admin.ModelAdmin):
+class UserBadgeAdmin(ModelAdmin):
     """Admin interface for user badge ownership"""
     
     list_display = ('user_link', 'badge_display', 'earned_at', 'is_pinned', 'progress_display')
@@ -681,7 +682,7 @@ class UserBadgeAdmin(admin.ModelAdmin):
 # ============================================================================
 
 @admin.register(UserActivity)
-class UserActivityAdmin(admin.ModelAdmin):
+class UserActivityAdmin(ModelAdmin):
     """User activity log admin - read-only audit trail"""
     
     list_display = [
@@ -747,7 +748,7 @@ class UserActivityAdmin(admin.ModelAdmin):
 
 
 @admin.register(UserProfileStats)
-class UserProfileStatsAdmin(admin.ModelAdmin):
+class UserProfileStatsAdmin(ModelAdmin):
     """User profile stats admin - read-only derived data with recompute action"""
     
     list_display = [
@@ -1042,7 +1043,7 @@ class UserProfileStatsAdmin(admin.ModelAdmin):
 # ============================================================================
 
 @admin.register(UserAuditEvent)
-class UserAuditEventAdmin(admin.ModelAdmin):
+class UserAuditEventAdmin(ModelAdmin):
     """Audit event admin - completely immutable, read-only compliance log"""
     
     list_display = [
@@ -1194,7 +1195,7 @@ class UserAuditEventAdmin(admin.ModelAdmin):
 # ==============================================================================
 
 @admin.register(StreamConfig)
-class StreamConfigAdmin(admin.ModelAdmin):
+class StreamConfigAdmin(ModelAdmin):
     """Admin for user stream configurations (Twitch, YouTube, Facebook)."""
     
     list_display = ['user', 'platform', 'channel_id', 'is_active', 'created_at']
@@ -1217,7 +1218,7 @@ class StreamConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(HighlightClip)
-class HighlightClipAdmin(admin.ModelAdmin):
+class HighlightClipAdmin(ModelAdmin):
     """Admin for user highlight clips (YouTube, Twitch, Medal.tv)."""
     
     list_display = ['user', 'title', 'platform', 'game', 'display_order', 'created_at']
@@ -1246,7 +1247,7 @@ class HighlightClipAdmin(admin.ModelAdmin):
 
 
 @admin.register(PinnedHighlight)
-class PinnedHighlightAdmin(admin.ModelAdmin):
+class PinnedHighlightAdmin(ModelAdmin):
     """Admin for pinned highlights. HIDDEN from sidebar - use HighlightClipAdmin inline."""
     
     list_display = ['user', 'clip', 'pinned_at']
@@ -1274,7 +1275,7 @@ class PinnedHighlightAdmin(admin.ModelAdmin):
 # ==============================================================================
 
 @admin.register(HardwareGear)
-class HardwareGearAdmin(admin.ModelAdmin):
+class HardwareGearAdmin(ModelAdmin):
     """Admin for user hardware gear (mouse, keyboard, headset, monitor, mousepad)."""
     
     list_display = ['user', 'category', 'brand', 'model', 'is_public', 'updated_at']
@@ -1302,7 +1303,7 @@ class HardwareGearAdmin(admin.ModelAdmin):
 
 
 @admin.register(GameConfig)
-class GameConfigAdmin(admin.ModelAdmin):
+class GameConfigAdmin(ModelAdmin):
     """Admin for per-game configuration settings (sensitivity, crosshair, keybinds).
     
     HIDDEN FROM SIDEBAR - Per-user per-game configs, access via user search.
@@ -1341,7 +1342,7 @@ class GameConfigAdmin(admin.ModelAdmin):
 # ==============================================================================
 
 @admin.register(ProfileShowcase)
-class ProfileShowcaseAdmin(admin.ModelAdmin):
+class ProfileShowcaseAdmin(ModelAdmin):
     """Admin for profile showcase configuration (About section toggles)."""
     
     list_display = ['user_profile', 'featured_team_id', 'featured_passport_id', 'updated_at']
@@ -1367,7 +1368,7 @@ class ProfileShowcaseAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProfileAboutItem)
-class ProfileAboutItemAdmin(admin.ModelAdmin):
+class ProfileAboutItemAdmin(ModelAdmin):
     """Admin for profile About section items (Facebook-style).
     
     HIDDEN FROM SIDEBAR - User-curated items, access via ProfileShowcase or user search.
@@ -1406,7 +1407,7 @@ class ProfileAboutItemAdmin(admin.ModelAdmin):
 # ==============================================================================
 
 @admin.register(TrophyShowcaseConfig)
-class TrophyShowcaseConfigAdmin(admin.ModelAdmin):
+class TrophyShowcaseConfigAdmin(ModelAdmin):
     """Admin for trophy showcase configuration."""
     
     list_display = ['user', 'border', 'frame', 'updated_at']
@@ -1429,7 +1430,7 @@ class TrophyShowcaseConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(SkillEndorsement)
-class SkillEndorsementAdmin(admin.ModelAdmin):
+class SkillEndorsementAdmin(ModelAdmin):
     """Admin for skill endorsements."""
     
     list_display = ['receiver', 'endorser', 'skill_name', 'is_flagged', 'created_at']
@@ -1452,7 +1453,7 @@ class SkillEndorsementAdmin(admin.ModelAdmin):
 
 
 @admin.register(EndorsementOpportunity)
-class EndorsementOpportunityAdmin(admin.ModelAdmin):
+class EndorsementOpportunityAdmin(ModelAdmin):
     """Admin for endorsement opportunities. HIDDEN from sidebar - system-generated."""
     
     list_display = ['player', 'match', 'is_used', 'expires_at', 'created_at']
@@ -1479,7 +1480,7 @@ class EndorsementOpportunityAdmin(admin.ModelAdmin):
 
 
 @admin.register(Bounty)
-class BountyAdmin(admin.ModelAdmin):
+class BountyAdmin(ModelAdmin):
     """Admin for bounties with full lifecycle management."""
     
     list_display = ['id', 'title', 'creator', 'acceptor', 'status', 'stake_amount', 'created_at']
@@ -1506,7 +1507,7 @@ class BountyAdmin(admin.ModelAdmin):
 
 
 @admin.register(BountyAcceptance)
-class BountyAcceptanceAdmin(admin.ModelAdmin):
+class BountyAcceptanceAdmin(ModelAdmin):
     """Admin for bounty acceptances. HIDDEN from sidebar - use BountyAdmin inline."""
     
     list_display = ['bounty', 'acceptor', 'accepted_at']
@@ -1530,7 +1531,7 @@ class BountyAcceptanceAdmin(admin.ModelAdmin):
 
 
 @admin.register(BountyProof)
-class BountyProofAdmin(admin.ModelAdmin):
+class BountyProofAdmin(ModelAdmin):
     """Admin for bounty proof submissions. HIDDEN from sidebar - use BountyAdmin inline."""
     
     list_display = ['bounty', 'submitted_by', 'claimed_winner', 'proof_type', 'submitted_at']
@@ -1557,7 +1558,7 @@ class BountyProofAdmin(admin.ModelAdmin):
 
 
 @admin.register(BountyDispute)
-class BountyDisputeAdmin(admin.ModelAdmin):
+class BountyDisputeAdmin(ModelAdmin):
     """Admin for bounty disputes. HIDDEN from sidebar - use BountyAdmin inline."""
     
     list_display = ['bounty', 'disputer', 'status', 'assigned_moderator', 'created_at']

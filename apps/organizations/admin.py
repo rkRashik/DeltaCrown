@@ -7,6 +7,7 @@ QUERY OPTIMIZATION: Uses select_related and raw_id_fields to prevent N+1 queries
 
 from django import forms
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline, StackedInline
 from django.db.models import Count, Q
 from django.utils.html import format_html
 
@@ -22,7 +23,7 @@ from apps.organizations.models import (
 )
 
 
-class TeamInline(admin.TabularInline):
+class TeamInline(TabularInline):
     """Inline display of Teams owned by Organization."""
     model = Team
     extra = 0
@@ -54,7 +55,7 @@ class OrganizationAdminForm(forms.ModelForm):
         }
 
 
-class OrganizationProfileInline(admin.StackedInline):
+class OrganizationProfileInline(StackedInline):
     """Inline editor for OrganizationProfile fields."""
     model = OrganizationProfile
     can_delete = False
@@ -81,7 +82,7 @@ class OrganizationProfileInline(admin.StackedInline):
 
 
 @admin.register(Organization)
-class OrganizationAdmin(admin.ModelAdmin):
+class OrganizationAdmin(ModelAdmin):
     """
     Admin interface for vNext Organizations.
     
@@ -167,7 +168,7 @@ class OrganizationAdmin(admin.ModelAdmin):
 
 
 @admin.register(OrganizationMembership)
-class OrganizationMembershipAdmin(admin.ModelAdmin):
+class OrganizationMembershipAdmin(ModelAdmin):
     """Admin interface for Organization Memberships."""
     
     list_display = ['user_link', 'organization_link', 'role', 'joined_at']
@@ -195,7 +196,7 @@ class OrganizationMembershipAdmin(admin.ModelAdmin):
 
 
 @admin.register(OrganizationRanking)
-class OrganizationRankingAdmin(admin.ModelAdmin):
+class OrganizationRankingAdmin(ModelAdmin):
     """Admin interface for Organization Rankings."""
     
     list_display = ['organization_link', 'empire_score', 'global_rank', 'total_trophies', 'last_calculated']
@@ -218,7 +219,7 @@ class OrganizationRankingAdmin(admin.ModelAdmin):
 
 # ENABLED: Team admin (vNext canonical model)
 @admin.register(Team)
-class TeamAdmin(admin.ModelAdmin):
+class TeamAdmin(ModelAdmin):
     """Admin interface for vNext Teams."""
     
     list_display = ['name', 'slug', 'game_id_display', 'region', 'created_by_link', 'organization_link', 'status', 'created_at']
@@ -287,7 +288,7 @@ class TeamAdmin(admin.ModelAdmin):
 
 
 @admin.register(TeamMembership)
-class TeamMembershipAdmin(admin.ModelAdmin):
+class TeamMembershipAdmin(ModelAdmin):
     """Admin interface for Team Memberships."""
     
     list_display = ['user_link', 'team_link', 'role', 'status', 'roster_slot', 'is_tournament_captain', 'joined_at']
@@ -327,7 +328,7 @@ class TeamMembershipAdmin(admin.ModelAdmin):
 
 
 @admin.register(TeamActivityLog)
-class TeamActivityLogAdmin(admin.ModelAdmin):
+class TeamActivityLogAdmin(ModelAdmin):
     """
     Read-only admin interface for Team Activity Logs.
     
@@ -414,7 +415,7 @@ class CPRangeFilter(admin.SimpleListFilter):
 
 
 @admin.register(TeamRanking)
-class TeamRankingAdmin(admin.ModelAdmin):
+class TeamRankingAdmin(ModelAdmin):
     """
     Admin interface for vNext Team Rankings (DCRS).
     
@@ -556,7 +557,7 @@ class TeamAdminProxy(Team):
 
 
 @admin.register(TeamAdminProxy)
-class TeamAdminProxyAdmin(admin.ModelAdmin):
+class TeamAdminProxyAdmin(ModelAdmin):
     """
     Admin interface for vNext Teams displayed in Organizations section.
     

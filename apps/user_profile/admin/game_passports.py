@@ -8,6 +8,7 @@ Admins for:
 - GameProfileConfig (Singleton configuration)
 """
 from django.contrib import admin, messages
+from unfold.admin import ModelAdmin, TabularInline
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -21,7 +22,7 @@ from .forms import GameProfileAdminForm
 # INLINE ADMINS
 # ============================================================================
 
-class GameProfileAliasInline(admin.TabularInline):
+class GameProfileAliasInline(TabularInline):
     """
     Inline display of alias history for a game passport.
     Read-only view of all identity changes.
@@ -78,7 +79,7 @@ class GameProfileAliasInline(admin.TabularInline):
 # ============================================================================
 
 @admin.register(GameProfile)
-class GameProfileAdmin(admin.ModelAdmin):
+class GameProfileAdmin(ModelAdmin):
     """
     GP-2D Game Passport Admin with Schema-Driven Dynamic Form
     
@@ -549,7 +550,7 @@ class GameProfileAdmin(admin.ModelAdmin):
 # ============================================================================
 
 @admin.register(GameProfileAlias)
-class GameProfileAliasAdmin(admin.ModelAdmin):
+class GameProfileAliasAdmin(ModelAdmin):
     """
     Game Passport Alias History Admin
     
@@ -642,7 +643,7 @@ class GameProfileAliasAdmin(admin.ModelAdmin):
 # ============================================================================
 
 @admin.register(GameProfileConfig)
-class GameProfileConfigAdmin(admin.ModelAdmin):
+class GameProfileConfigAdmin(ModelAdmin):
     """
     GP-0 Game Passport Configuration (Singleton)
     

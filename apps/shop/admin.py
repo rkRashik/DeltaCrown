@@ -5,11 +5,12 @@ Lightweight admin for ShopItem catalog management.
 """
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 from .models import ShopItem, ReservationHold
 
 
 @admin.register(ShopItem)
-class ShopItemAdmin(admin.ModelAdmin):
+class ShopItemAdmin(ModelAdmin):
     """Admin interface for ShopItem catalog."""
     
     list_display = ['sku', 'name', 'price', 'active', 'created_at']
@@ -20,7 +21,7 @@ class ShopItemAdmin(admin.ModelAdmin):
 
 
 @admin.register(ReservationHold)
-class ReservationHoldAdmin(admin.ModelAdmin):
+class ReservationHoldAdmin(ModelAdmin):
     """Admin interface for ReservationHold (read-only monitoring)."""
     
     list_display = ['id', 'wallet', 'sku', 'amount', 'status', 'expires_at', 'created_at']

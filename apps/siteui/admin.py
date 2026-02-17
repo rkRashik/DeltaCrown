@@ -5,13 +5,14 @@ Provides admin interface for managing homepage content and other site-wide conte
 """
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 from django.utils.html import format_html
 from django.core.exceptions import ValidationError
 from .models import HomePageContent
 
 
 @admin.register(HomePageContent)
-class HomePageContentAdmin(admin.ModelAdmin):
+class HomePageContentAdmin(ModelAdmin):
     """
     Admin interface for managing homepage content.
     

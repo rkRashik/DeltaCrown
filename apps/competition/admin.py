@@ -6,6 +6,7 @@ COMPETITION_APP_ENABLED=1 but migrations not applied.
 CRITICAL: Do NOT access database during module import - that breaks migrations!
 """
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 from django.shortcuts import render
 from django.contrib import messages
 from django.utils.html import format_html
@@ -82,7 +83,7 @@ except Exception as e:
 # Only register admin if models were successfully imported
 if MODELS_IMPORTED:
     @admin.register(GameRankingConfig)
-    class GameRankingConfigAdmin(admin.ModelAdmin):
+    class GameRankingConfigAdmin(ModelAdmin):
         """Admin interface for GameRankingConfig."""
         
         list_display = ['game_id', 'game_name', 'is_active', 'updated_at']
@@ -118,7 +119,7 @@ if MODELS_IMPORTED:
     
     
     @admin.register(MatchReport)
-    class MatchReportAdmin(admin.ModelAdmin):
+    class MatchReportAdmin(ModelAdmin):
         """Admin interface for MatchReport."""
         
         list_display = ['id', 'game_id', 'team1', 'team2', 'result', 'match_type', 'played_at', 'submitted_at']
@@ -145,7 +146,7 @@ if MODELS_IMPORTED:
     
     
     @admin.register(MatchVerification)
-    class MatchVerificationAdmin(admin.ModelAdmin):
+    class MatchVerificationAdmin(ModelAdmin):
         """Admin interface for MatchVerification."""
         
         list_display = ['match_report', 'status', 'confidence_level', 'verified_at', 'verified_by']
@@ -213,7 +214,7 @@ if MODELS_IMPORTED:
     
     
     @admin.register(TeamGameRankingSnapshot)
-    class TeamGameRankingSnapshotAdmin(admin.ModelAdmin):
+    class TeamGameRankingSnapshotAdmin(ModelAdmin):
         """Admin interface for TeamGameRankingSnapshot."""
         
         list_display = ['team', 'game_id', 'tier', 'score', 'rank', 'verified_match_count', 'confidence_level', 'snapshot_date']
@@ -277,7 +278,7 @@ if MODELS_IMPORTED:
     
     
     @admin.register(TeamGlobalRankingSnapshot)
-    class TeamGlobalRankingSnapshotAdmin(admin.ModelAdmin):
+    class TeamGlobalRankingSnapshotAdmin(ModelAdmin):
         """Admin interface for TeamGlobalRankingSnapshot."""
         
         list_display = ['team', 'global_tier', 'global_score', 'global_rank', 'games_played', 'snapshot_date']
@@ -338,7 +339,7 @@ if MODELS_IMPORTED:
 
     # ── Challenge Admin ──────────────────────────────────────────────────
     @admin.register(Challenge)
-    class ChallengeAdmin(admin.ModelAdmin):
+    class ChallengeAdmin(ModelAdmin):
         """Admin interface for Challenge."""
         
         list_display = [
@@ -387,7 +388,7 @@ if MODELS_IMPORTED:
 
     # ── Bounty Admin ─────────────────────────────────────────────────────
     @admin.register(Bounty)
-    class BountyAdmin(admin.ModelAdmin):
+    class BountyAdmin(ModelAdmin):
         """Admin interface for Bounty."""
         
         list_display = [
@@ -427,7 +428,7 @@ if MODELS_IMPORTED:
             }),
         ]
 
-    class BountyClaimInline(admin.TabularInline):
+    class BountyClaimInline(TabularInline):
         model = BountyClaim
         extra = 0
         readonly_fields = ['id', 'claimed_at', 'verified_at']
@@ -435,7 +436,7 @@ if MODELS_IMPORTED:
         fields = ['claiming_team', 'status', 'evidence_url', 'claimed_by', 'claimed_at', 'verified_by', 'verified_at']
 
     @admin.register(BountyClaim)
-    class BountyClaimAdmin(admin.ModelAdmin):
+    class BountyClaimAdmin(ModelAdmin):
         """Admin interface for BountyClaim."""
         
         list_display = ['bounty', 'claiming_team', 'status', 'claimed_at', 'verified_at']

@@ -1,10 +1,11 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from .models import Challenge
 
 
 @admin.register(Challenge)
-class ChallengeAdmin(admin.ModelAdmin):
+class ChallengeAdmin(ModelAdmin):
     list_display = ('title', 'team', 'challenge_type', 'status', 'prize_amount', 'created_at')
     list_filter = ('status', 'challenge_type')
     search_fields = ('title', 'team__name')

@@ -218,6 +218,10 @@ INSTALLED_APPS = [
     # Monitoring (must be FIRST for middleware timing)
     "django_prometheus",  # Prometheus metrics (Phase 3 Prep)
     
+    # Admin theme (must be BEFORE django.contrib.admin)
+    "unfold",
+    "unfold.contrib.forms",
+
     # Django core
     "django.contrib.admin",
     "django.contrib.auth",
@@ -1200,3 +1204,233 @@ USER_PROFILE_INTEGRATION_ENABLED = os.getenv('USER_PROFILE_INTEGRATION_ENABLED',
 # Rollback: Set to False to revert to old settings page
 # Reference: PHASE_1A_QA_REPORT.md, SETTINGS_PAGE_IMPLEMENTATION_PLAN.md
 SETTINGS_CONTROL_DECK_ENABLED = os.getenv('SETTINGS_CONTROL_DECK_ENABLED', 'True').lower() == 'true'
+
+# -----------------------------------------------------------------------------
+# Django Unfold Admin Theme (Phase 1.5)
+# -----------------------------------------------------------------------------
+from django.urls import reverse_lazy
+from django.templatetags.static import static as static_url
+
+UNFOLD = {
+    "SITE_TITLE": "DeltaCrown Admin",
+    "SITE_HEADER": "DeltaCrown",
+    "SITE_SUBHEADER": "Tournament Platform Console",
+    "SITE_URL": "/",
+    "SITE_SYMBOL": "trophy",  # Material Symbols icon
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "SHOW_BACK_BUTTON": True,
+
+    # ---------------------------------------------------------------------------
+    # Environment badge (top bar)
+    # ---------------------------------------------------------------------------
+    "ENVIRONMENT": "deltacrown.admin_callbacks.environment_callback",
+    "ENVIRONMENT_TITLE_PREFIX": "deltacrown.admin_callbacks.environment_title",
+
+    # ---------------------------------------------------------------------------
+    # DeltaCrown color system — Cyan primary (dc-cyan #06b6d4)
+    # oklch values from Tailwind CSS v4 cyan palette
+    # ---------------------------------------------------------------------------
+    "COLORS": {
+        "base": {
+            "50": "oklch(98.5% .002 247.839)",
+            "100": "oklch(96.7% .003 264.542)",
+            "200": "oklch(92.8% .006 264.531)",
+            "300": "oklch(87.2% .01 258.338)",
+            "400": "oklch(70.7% .022 261.325)",
+            "500": "oklch(55.1% .027 264.364)",
+            "600": "oklch(44.6% .03 256.802)",
+            "700": "oklch(37.3% .034 259.733)",
+            "800": "oklch(27.8% .033 256.848)",
+            "900": "oklch(21% .034 264.665)",
+            "950": "oklch(13% .028 261.692)",
+        },
+        "primary": {
+            "50": "oklch(98.4% .019 200.873)",
+            "100": "oklch(95.6% .045 203.388)",
+            "200": "oklch(90.1% .076 205.101)",
+            "300": "oklch(82.8% .111 205.395)",
+            "400": "oklch(74.6% .136 202.009)",
+            "500": "oklch(65.5% .163 195.768)",
+            "600": "oklch(55.3% .146 195.326)",
+            "700": "oklch(48.8% .118 196.839)",
+            "800": "oklch(42% .096 197.859)",
+            "900": "oklch(37.3% .076 200.386)",
+            "950": "oklch(28.2% .058 204.071)",
+        },
+        "font": {
+            "subtle-light": "var(--color-base-500)",
+            "subtle-dark": "var(--color-base-400)",
+            "default-light": "var(--color-base-600)",
+            "default-dark": "var(--color-base-300)",
+            "important-light": "var(--color-base-900)",
+            "important-dark": "var(--color-base-100)",
+        },
+    },
+
+    # ---------------------------------------------------------------------------
+    # Sidebar navigation — grouped by domain
+    # ---------------------------------------------------------------------------
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "Navigation",
+                "items": [
+                    {
+                        "title": "Dashboard",
+                        "icon": "dashboard",
+                        "link": reverse_lazy("admin:index"),
+                    },
+                ],
+            },
+            {
+                "title": "Tournaments",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Tournaments",
+                        "icon": "emoji_events",
+                        "link": reverse_lazy("admin:tournaments_tournament_changelist"),
+                    },
+                    {
+                        "title": "Registrations",
+                        "icon": "how_to_reg",
+                        "link": reverse_lazy("admin:tournaments_registration_changelist"),
+                    },
+                    {
+                        "title": "Matches",
+                        "icon": "sports_esports",
+                        "link": reverse_lazy("admin:tournaments_match_changelist"),
+                    },
+                    {
+                        "title": "Brackets",
+                        "icon": "account_tree",
+                        "link": reverse_lazy("admin:tournaments_bracket_changelist"),
+                    },
+                    {
+                        "title": "Results",
+                        "icon": "leaderboard",
+                        "link": reverse_lazy("admin:tournaments_tournamentresult_changelist"),
+                    },
+                    {
+                        "title": "Prizes",
+                        "icon": "paid",
+                        "link": reverse_lazy("admin:tournaments_prizetransaction_changelist"),
+                    },
+                    {
+                        "title": "Certificates",
+                        "icon": "workspace_premium",
+                        "link": reverse_lazy("admin:tournaments_certificate_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Organizations & Teams",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Organizations",
+                        "icon": "corporate_fare",
+                        "link": reverse_lazy("admin:organizations_organization_changelist"),
+                    },
+                    {
+                        "title": "Memberships",
+                        "icon": "group",
+                        "link": reverse_lazy("admin:organizations_organizationmembership_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Economy",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Wallets",
+                        "icon": "account_balance_wallet",
+                        "link": reverse_lazy("admin:economy_deltacrownwallet_changelist"),
+                    },
+                    {
+                        "title": "Transactions",
+                        "icon": "receipt_long",
+                        "link": reverse_lazy("admin:economy_deltacrowntransaction_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Users & Profiles",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Users",
+                        "icon": "person",
+                        "link": reverse_lazy("admin:accounts_user_changelist"),
+                    },
+                    {
+                        "title": "User Profiles",
+                        "icon": "badge",
+                        "link": reverse_lazy("admin:user_profile_userprofile_changelist"),
+                    },
+                    {
+                        "title": "Game Profiles",
+                        "icon": "stadia_controller",
+                        "link": reverse_lazy("admin:user_profile_gameprofile_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Content & Support",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Home Page",
+                        "icon": "home",
+                        "link": reverse_lazy("admin:siteui_homepagecontent_changelist"),
+                    },
+                    {
+                        "title": "FAQs",
+                        "icon": "help",
+                        "link": reverse_lazy("admin:support_faq_changelist"),
+                    },
+                    {
+                        "title": "Contact Messages",
+                        "icon": "mail",
+                        "link": reverse_lazy("admin:support_contactmessage_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Platform",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Games",
+                        "icon": "sports_esports",
+                        "link": reverse_lazy("admin:games_game_changelist"),
+                    },
+                    {
+                        "title": "Notifications",
+                        "icon": "notifications",
+                        "link": reverse_lazy("admin:notifications_notification_changelist"),
+                    },
+                    {
+                        "title": "Moderation",
+                        "icon": "shield",
+                        "link": reverse_lazy("admin:moderation_moderationsanction_changelist"),
+                    },
+                    {
+                        "title": "Challenges",
+                        "icon": "local_fire_department",
+                        "link": reverse_lazy("admin:challenges_challenge_changelist"),
+                    },
+                ],
+            },
+        ],
+    },
+
+    # ---------------------------------------------------------------------------
+    # Dashboard callback (Phase 1.5.2)
+    # ---------------------------------------------------------------------------
+    "DASHBOARD_CALLBACK": "deltacrown.admin_callbacks.dashboard_callback",
+}

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from django import forms
 from django.contrib import admin, messages
+from unfold.admin import ModelAdmin, StackedInline
 from django.db.models import Sum
 from django.http import HttpRequest
 from django.utils.html import format_html
@@ -17,7 +18,7 @@ from .models import CoinPolicy, DeltaCrownTransaction, DeltaCrownWallet, TopUpRe
 
 
 @admin.register(DeltaCrownWallet)
-class DeltaCrownWalletAdmin(admin.ModelAdmin):
+class DeltaCrownWalletAdmin(ModelAdmin):
     list_display = ("id", "profile_display", "cached_balance", "updated_at")
     search_fields = ("profile__user__username", "profile__user__email", "profile__public_id")
     readonly_fields = ("created_at", "updated_at", "cached_balance")
@@ -36,7 +37,7 @@ class DeltaCrownWalletAdmin(admin.ModelAdmin):
 
 
 @admin.register(WalletPINOTP)
-class WalletPINOTPAdmin(admin.ModelAdmin):
+class WalletPINOTPAdmin(ModelAdmin):
     """UP-PHASE7.7: Read-only admin for OTP audit trail"""
     list_display = ("id", "wallet_user", "purpose", "is_used", "attempt_count", "created_at", "expires_at", "validity_status")
     list_filter = ("purpose", "is_used", "created_at")
@@ -77,7 +78,7 @@ class WalletPINOTPAdmin(admin.ModelAdmin):
 
 
 @admin.register(TopUpRequest)
-class TopUpRequestAdmin(admin.ModelAdmin):
+class TopUpRequestAdmin(ModelAdmin):
     list_display = ['id', 'wallet_link', 'amount', 'bdt_display', 'payment_method', 'status_badge', 'requested_at', 'reviewed_by_display']
     list_filter = ['status', 'payment_method', 'requested_at', 'reviewed_at']
     search_fields = ['wallet__profile__user__username', 'wallet__profile__user__email', 'wallet__profile__real_full_name', 'payment_number', 'admin_note']
@@ -216,7 +217,7 @@ class AdjustForm(forms.Form):
 
 
 @admin.register(DeltaCrownTransaction)
-class DeltaCrownTransactionAdmin(admin.ModelAdmin):
+class DeltaCrownTransactionAdmin(ModelAdmin):
     list_display = (
         "id",
         "wallet",
@@ -327,7 +328,7 @@ class DeltaCrownTransactionAdmin(admin.ModelAdmin):
 # This inline was used to attach CoinPolicy to Tournament admin
 # Will be reimplemented when new Tournament Engine is built
 
-# class CoinPolicyInline(admin.StackedInline):
+# class CoinPolicyInline(StackedInline):
 #     model = CoinPolicy
 #     can_delete = False
 #     extra = 0
@@ -341,7 +342,7 @@ class DeltaCrownTransactionAdmin(admin.ModelAdmin):
 
 
 @admin.register(WithdrawalRequest)
-class WithdrawalRequestAdmin(admin.ModelAdmin):
+class WithdrawalRequestAdmin(ModelAdmin):
     list_display = ['id', 'wallet_link', 'amount', 'bdt_display', 'payment_method', 'status_badge', 'requested_at', 'reviewed_by_display']
     list_filter = ['status', 'payment_method', 'requested_at', 'reviewed_at']
     search_fields = ['wallet__profile__user__username', 'wallet__profile__user__email', 'wallet__profile__real_full_name', 'payment_number', 'admin_note']
@@ -464,7 +465,7 @@ class WithdrawalRequestAdmin(admin.ModelAdmin):
 
 
 @admin.register(CoinPolicy)
-class CoinPolicyAdmin(admin.ModelAdmin):
+class CoinPolicyAdmin(ModelAdmin):
     list_display = ['tournament_id', 'enabled', 'participation', 'top4', 'runner_up', 'winner', 'created_at']
     list_filter = ['enabled', 'created_at']
     search_fields = ['tournament_id']
@@ -493,7 +494,7 @@ from .models import InventoryItem, UserInventoryItem, GiftRequest, TradeRequest
 
 
 @admin.register(InventoryItem)
-class InventoryItemAdmin(admin.ModelAdmin):
+class InventoryItemAdmin(ModelAdmin):
     list_display = ('slug', 'name', 'item_type', 'rarity', 'tradable', 'giftable', 'created_at')
     list_filter = ('item_type', 'rarity', 'tradable', 'giftable')
     search_fields = ('slug', 'name', 'description')
@@ -525,7 +526,7 @@ class InventoryItemAdmin(admin.ModelAdmin):
 
 
 @admin.register(UserInventoryItem)
-class UserInventoryItemAdmin(admin.ModelAdmin):
+class UserInventoryItemAdmin(ModelAdmin):
     list_display = ('id', 'profile_display', 'item', 'quantity', 'locked', 'acquired_from', 'acquired_at')
     list_filter = ('locked', 'acquired_from', 'item__item_type', 'item__rarity')
     search_fields = ('profile__user__username', 'item__name', 'item__slug')
@@ -551,7 +552,7 @@ class UserInventoryItemAdmin(admin.ModelAdmin):
 
 
 @admin.register(GiftRequest)
-class GiftRequestAdmin(admin.ModelAdmin):
+class GiftRequestAdmin(ModelAdmin):
     list_display = ('id', 'sender_display', 'receiver_display', 'item', 'quantity', 'status', 'created_at')
     list_filter = ('status', 'created_at')
     search_fields = ('sender_profile__user__username', 'receiver_profile__user__username', 'item__name')
@@ -580,7 +581,7 @@ class GiftRequestAdmin(admin.ModelAdmin):
 
 
 @admin.register(TradeRequest)
-class TradeRequestAdmin(admin.ModelAdmin):
+class TradeRequestAdmin(ModelAdmin):
     list_display = ('id', 'initiator_display', 'target_display', 'offered_item', 'requested_item', 'status', 'created_at')
     list_filter = ('status', 'created_at')
     search_fields = ('initiator_profile__user__username', 'target_profile__user__username', 'offered_item__name', 'requested_item__name')

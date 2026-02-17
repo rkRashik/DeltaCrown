@@ -27,6 +27,8 @@ Admin Features:
 """
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin
+from unfold.decorators import display
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -43,7 +45,7 @@ from apps.tournaments.services.match_service import MatchService
 # ===========================
 
 @admin.register(Match)
-class MatchAdmin(admin.ModelAdmin):
+class MatchAdmin(ModelAdmin):
     """
     Admin interface for Match model with state management.
     
@@ -90,6 +92,7 @@ class MatchAdmin(admin.ModelAdmin):
         'deleted_at',
         'deleted_by',
     ]
+    autocomplete_fields = ['tournament', 'bracket']
     
     fieldsets = (
         (_('Match Identification'), {
@@ -195,26 +198,24 @@ class MatchAdmin(admin.ModelAdmin):
             return score
         return "-"
     
-    @admin.display(description='State')
+    @display(
+        description='State',
+        ordering='state',
+        label={
+            'scheduled': 'secondary',
+            'check_in': 'info',
+            'ready': 'primary',
+            'live': 'success',
+            'pending_result': 'warning',
+            'completed': 'success',
+            'disputed': 'danger',
+            'forfeit': 'warning',
+            'cancelled': 'secondary',
+        },
+    )
     def state_badge(self, obj):
-        """Display state with color-coded badge"""
-        colors = {
-            Match.SCHEDULED: 'gray',
-            Match.CHECK_IN: 'blue',
-            Match.READY: 'cyan',
-            Match.LIVE: 'green',
-            Match.PENDING_RESULT: 'orange',
-            Match.COMPLETED: 'darkgreen',
-            Match.DISPUTED: 'red',
-            Match.FORFEIT: 'brown',
-            Match.CANCELLED: 'darkgray',
-        }
-        color = colors.get(obj.state, 'black')
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 3px 8px; border-radius: 3px; font-weight: bold;">{}</span>',
-            color,
-            obj.get_state_display()
-        )
+        """Display state with Unfold color-coded label badge."""
+        return obj.state
     
     @admin.display(description='Check-in', boolean=True)
     def check_in_status(self, obj):
@@ -316,7 +317,7 @@ class MatchAdmin(admin.ModelAdmin):
 # ===========================
 
 @admin.register(Dispute)
-class DisputeAdmin(admin.ModelAdmin):
+class DisputeAdmin(ModelAdmin):
     """
     Admin interface for Dispute model with resolution management.
     
@@ -426,21 +427,19 @@ class DisputeAdmin(admin.ModelAdmin):
         icon = icons.get(obj.reason, '❓')
         return f"{icon} {obj.get_reason_display()}"
     
-    @admin.display(description='Status')
+    @display(
+        description='Status',
+        ordering='status',
+        label={
+            'open': 'danger',
+            'under_review': 'warning',
+            'resolved': 'success',
+            'escalated': 'info',
+        },
+    )
     def status_badge(self, obj):
-        """Display status with color-coded badge"""
-        colors = {
-            Dispute.OPEN: 'red',
-            Dispute.UNDER_REVIEW: 'orange',
-            Dispute.RESOLVED: 'green',
-            Dispute.ESCALATED: 'purple',
-        }
-        color = colors.get(obj.status, 'gray')
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 3px 8px; border-radius: 3px; font-weight: bold;">{}</span>',
-            color,
-            obj.get_status_display()
-        )
+        """Display status with Unfold color-coded label badge."""
+        return obj.status
     
     @admin.display(description='Initiated By')
     def initiator_display(self, obj):

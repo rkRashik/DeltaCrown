@@ -22,6 +22,7 @@ Implements: phase_5:module_5_1
 """
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -32,7 +33,7 @@ from .models import TournamentResult
 
 
 @admin.register(TournamentResult)
-class TournamentResultAdmin(admin.ModelAdmin):
+class TournamentResultAdmin(ModelAdmin):
     """
     Admin interface for TournamentResult.
     

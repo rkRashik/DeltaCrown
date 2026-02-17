@@ -18,6 +18,8 @@ Security:
     Revocation is allowed via admin action for disputed results.
 """
 from django.contrib import admin
+from unfold.admin import ModelAdmin
+from unfold.decorators import display
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
@@ -25,7 +27,7 @@ from .models import Certificate
 
 
 @admin.register(Certificate)
-class CertificateAdmin(admin.ModelAdmin):
+class CertificateAdmin(ModelAdmin):
     """
     View-only admin interface for certificate audit trail.
     
@@ -173,34 +175,24 @@ class CertificateAdmin(admin.ModelAdmin):
     participant_name_display.short_description = 'Participant'
     participant_name_display.admin_order_field = 'participant__user__username'
     
+    @display(
+        description='Type',
+        ordering='certificate_type',
+        label={
+            'winner': 'warning',
+            'runner_up': 'info',
+            'third_place': 'primary',
+            'participant': 'secondary',
+        },
+    )
     def certificate_type_badge(self, obj):
-        """Display certificate type with color badge."""
-        colors = {
-            'winner': '#FFD700',       # Gold
-            'runner_up': '#C0C0C0',    # Silver
-            'third_place': '#CD7F32',  # Bronze
-            'participant': '#6C757D',  # Gray
-        }
-        color = colors.get(obj.certificate_type, '#6C757D')
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 3px 10px; border-radius: 3px;">{}</span>',
-            color,
-            obj.get_certificate_type_display()
-        )
-    certificate_type_badge.short_description = 'Type'
-    certificate_type_badge.admin_order_field = 'certificate_type'
-    
+        """Display certificate type with Unfold color badge."""
+        return obj.certificate_type
+
+    @display(description='Status', ordering='revoked_at', boolean=True)
     def revoked_status(self, obj):
-        """Display revocation status with icon."""
-        if obj.is_revoked:
-            return format_html(
-                '<span style="color: #DC3545; font-weight: bold;">✗ REVOKED</span>'
-            )
-        return format_html(
-            '<span style="color: #28A745;">✓ Active</span>'
-        )
-    revoked_status.short_description = 'Status'
-    revoked_status.admin_order_field = 'revoked_at'
+        """Display revocation status — True = active, False = revoked."""
+        return not obj.is_revoked
     
     def verification_link(self, obj):
         """Link to public verification endpoint."""

@@ -10,6 +10,10 @@ Architecture:
 """
 
 from django.contrib import admin
+from django.db import models
+from unfold.admin import ModelAdmin, TabularInline, StackedInline
+from unfold.decorators import display
+from unfold.widgets import UnfoldBooleanSwitchWidget
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -49,7 +53,7 @@ from apps.tournaments.admin_staff import TournamentStaffInline  # Import staff i
 # INLINE ADMINS
 # ============================================================================
 
-class CustomFieldInline(admin.TabularInline):
+class CustomFieldInline(TabularInline):
     """Inline editor for CustomField within Tournament admin"""
     model = CustomField
     extra = 0
@@ -57,7 +61,7 @@ class CustomFieldInline(admin.TabularInline):
     prepopulated_fields = {'field_key': ('field_name',)}
 
 
-class TournamentVersionInline(admin.TabularInline):
+class TournamentVersionInline(TabularInline):
     """Inline display for TournamentVersion within Tournament admin (read-only audit trail)"""
     model = TournamentVersion
     extra = 0
@@ -70,7 +74,7 @@ class TournamentVersionInline(admin.TabularInline):
         return False
 
 
-class TournamentFormConfigurationInline(admin.StackedInline):
+class TournamentFormConfigurationInline(StackedInline):
     """
     Inline editor for registration form configuration.
     Allows organizers to customize which fields appear in the registration form.
@@ -117,7 +121,7 @@ class TournamentFormConfigurationInline(admin.StackedInline):
     )
 
 
-class TournamentPaymentMethodInline(admin.StackedInline):
+class TournamentPaymentMethodInline(StackedInline):
     """
     Inline editor for configuring payment methods.
     Each method (bKash, Nagad, etc.) has its own collapsible section.
@@ -178,7 +182,7 @@ class TournamentPaymentMethodInline(admin.StackedInline):
 # NOTE: Game admin is registered in apps/games/admin.py (removed duplicate)
 
 @admin.register(Tournament)
-class TournamentAdmin(admin.ModelAdmin):
+class TournamentAdmin(ModelAdmin):
     """Comprehensive tournament management - similar to Teams admin quality"""
     
     list_display = [
@@ -197,48 +201,73 @@ class TournamentAdmin(admin.ModelAdmin):
         'deleted_at', 'deleted_by'
     ]
     prepopulated_fields = {'slug': ('name',)}
+    autocomplete_fields = ['game', 'organizer']
+    formfield_overrides = {
+        models.BooleanField: {"widget": UnfoldBooleanSwitchWidget},
+    }
     inlines = [TournamentFormConfigurationInline, TournamentPaymentMethodInline, TournamentStaffInline, CustomFieldInline, TournamentVersionInline]
     ordering = ['-created_at']
     date_hierarchy = 'tournament_start'
     
     fieldsets = (
-        ('🎮 Basic Information', {
+        ('Basic Information', {
             'fields': ('name', 'slug', 'game', 'platform', 'mode', 'venue_name', 'venue_address', 'venue_city', 'venue_map_url', 'description', 'organizer', 'is_official', 'is_featured', 'organizer_console_button'),
-            'description': 'Core tournament identity and description'
+            'description': (
+                'Core tournament identity. <strong>Name</strong> appears in listings and search. '
+                '<strong>Game</strong> determines icon/color theming. '
+                '<strong>Organizer</strong> gets full management access via the Organizer Console.'
+            ),
         }),
-        ('📅 Schedule & Timeline', {
+        ('Schedule & Timeline', {
             'fields': (
                 'registration_start', 'registration_end', 
                 'tournament_start', 'tournament_end',
                 'enable_check_in', 'check_in_minutes_before', 'check_in_closes_minutes_before'
             ),
-            'description': 'Registration windows, tournament dates, and check-in settings'
+            'description': (
+                'Set registration windows and tournament dates. '
+                '<strong>Check-in</strong>: When enabled, participants must check in before match start. '
+                'Set the window (e.g., 30 min before) and close time (e.g., 5 min before).'
+            ),
         }),
-        ('💰 Entry Fee & Payments', {
+        ('Entry Fee & Payments', {
             'fields': (
                 'has_entry_fee', 'entry_fee_amount', 'entry_fee_currency', 
                 'entry_fee_deltacoin', 'payment_methods',
                 'enable_fee_waiver', 'fee_waiver_top_n_teams',
                 'prize_pool', 'prize_currency', 'prize_deltacoin', 'prize_distribution'
             ),
-            'description': 'Entry fees, payment methods, and prize distribution (payment methods configured in inlines below)'
+            'description': (
+                'Configure entry fees and prize distribution. '
+                '<strong>Fee waiver</strong>: Top N teams from previous season get free entry. '
+                '<strong>Prize distribution</strong>: JSON object mapping placements to amounts '
+                '(e.g., {"1": 500, "2": 250, "3": 125}). '
+                'Payment methods are configured in the inline section below.'
+            ),
         }),
-        ('📜 Rules & Terms', {
+        ('Rules & Terms', {
             'fields': (
                 'rules_text', 'rules_pdf',
                 'terms_and_conditions', 'terms_pdf', 'require_terms_acceptance'
             ),
-            'description': 'Tournament rules, terms & conditions, and legal requirements'
+            'description': (
+                'Provide rules as rich text or PDF upload. '
+                'When <strong>Require Terms Acceptance</strong> is enabled, participants must '
+                'agree to terms before completing registration.'
+            ),
         }),
-        ('📋 Registration Form Configuration', {
-            'description': 'Customize registration form fields and auto-fill settings (configured in inline below)',
+        ('Registration Form', {
+            'description': 'Registration form fields are configured in the inline section below.',
             'fields': ()
         }),
-        ('👥 Staff & Permissions', {
-            'description': 'Tournament staff roles and permissions (configured in inline below)',
+        ('Staff & Permissions', {
+            'description': (
+                'Assign staff roles (caster, referee, moderator) in the inline section below. '
+                'Staff members get access to the Organizer Console for their assigned permissions.'
+            ),
             'fields': ()
         }),
-        ('⚙️ Advanced Configuration', {
+        ('Advanced Configuration', {
             'fields': (
                 'format', 'participation_type', 'max_participants', 'min_participants',
                 'enable_dynamic_seeding', 'enable_live_updates', 
@@ -246,29 +275,39 @@ class TournamentAdmin(admin.ModelAdmin):
                 'status', 'published_at'
             ),
             'classes': ('collapse',),
-            'description': 'Tournament format, participant limits, and feature toggles'
+            'description': (
+                '<strong>Format</strong>: Single/Double Elimination, Round Robin, Swiss, or Group+Playoffs. '
+                '<strong>Status workflow</strong>: Draft → Published → Registration Open → Live → Completed. '
+                'Change status carefully — some transitions trigger automated actions (notifications, bracket generation).'
+            ),
         }),
-        ('🎬 Media & Streaming', {
+        ('Media & Streaming', {
             'fields': (
                 'banner_image', 'thumbnail_image',
                 'promo_video_url', 'stream_youtube_url', 'stream_twitch_url'
             ),
             'classes': ('collapse',),
-            'description': 'Visual assets and streaming links'
+            'description': (
+                'Upload banner (1920x480 recommended) and thumbnail (400x400) images. '
+                'Add YouTube/Twitch stream URLs for live tournament viewing.'
+            ),
         }),
-        ('📊 Status & Statistics', {
+        ('Status & Statistics', {
             'fields': (
                 'registration_count_display', 'match_count', 'created_at', 'updated_at'
             ),
-            'classes': ('collapse',)
+            'classes': ('collapse',),
+            'description': 'Read-only statistics. Click links to view related records.',
         }),
-        ('🔍 SEO & Metadata', {
+        ('SEO & Metadata', {
             'fields': ('meta_description', 'meta_keywords'),
-            'classes': ('collapse',)
+            'classes': ('collapse',),
+            'description': 'Optional. Overrides auto-generated meta tags for search engines.',
         }),
-        ('🗑️ Soft Delete', {
+        ('Soft Delete', {
             'fields': ('is_deleted', 'deleted_at', 'deleted_by'),
-            'classes': ('collapse',)
+            'classes': ('collapse',),
+            'description': 'Soft-deleted tournaments are hidden from public views but preserved in the database.',
         }),
     )
     
@@ -296,27 +335,15 @@ class TournamentAdmin(admin.ModelAdmin):
         )
     game_badge.short_description = 'Game'
     
+    @display(description="Official", ordering="is_official", boolean=True)
     def official_badge(self, obj):
-        """Display official tournament badge"""
-        if obj.is_official:
-            return format_html(
-                '<span style="background: #FFD700; color: #000; padding: 3px 8px; '
-                'border-radius: 3px; font-size: 11px; font-weight: bold;">⭐ OFFICIAL</span>'
-            )
-        return format_html('<span style="color: #ccc;">—</span>')
-    official_badge.short_description = 'Type'
-    official_badge.admin_order_field = 'is_official'
+        """Display official tournament badge."""
+        return obj.is_official
     
+    @display(description="Featured", ordering="is_featured", boolean=True)
     def featured_badge(self, obj):
-        """Display featured tournament badge"""
-        if obj.is_featured:
-            return format_html(
-                '<span style="background: #8b5cf6; color: #fff; padding: 3px 8px; '
-                'border-radius: 3px; font-size: 11px; font-weight: bold;">⭐ FEATURED</span>'
-            )
-        return format_html('<span style="color: #ccc;">—</span>')
-    featured_badge.short_description = 'Featured'
-    featured_badge.admin_order_field = 'is_featured'
+        """Display featured tournament badge."""
+        return obj.is_featured
     
     def organizer_link(self, obj):
         """Link to organizer's user profile"""
@@ -326,26 +353,24 @@ class TournamentAdmin(admin.ModelAdmin):
         return '—'
     organizer_link.short_description = 'Organizer'
     
+    @display(
+        description="Status",
+        ordering="status",
+        label={
+            "draft": "secondary",
+            "pending_approval": "warning",
+            "published": "info",
+            "registration_open": "success",
+            "registration_closed": "warning",
+            "live": "danger",
+            "completed": "success",
+            "cancelled": "secondary",
+            "archived": "secondary",
+        },
+    )
     def status_badge(self, obj):
-        """Display status with colored badge"""
-        colors = {
-            'draft': '#9E9E9E',
-            'pending_approval': '#FF9800',
-            'published': '#2196F3',
-            'registration_open': '#4CAF50',
-            'registration_closed': '#FF9800',
-            'live': '#F44336',
-            'completed': '#4CAF50',
-            'cancelled': '#9E9E9E',
-            'archived': '#9E9E9E',
-        }
-        color = colors.get(obj.status, '#666')
-        return format_html(
-            '<span style="background: {}; color: white; padding: 3px 8px; '
-            'border-radius: 3px; font-size: 11px;">{}</span>',
-            color, obj.get_status_display()
-        )
-    status_badge.short_description = 'Status'
+        """Display status with Unfold colored label badge."""
+        return obj.status
     
     def registration_count(self, obj):
         """Display registration count"""
@@ -638,7 +663,7 @@ class TournamentAdmin(admin.ModelAdmin):
 
 
 @admin.register(CustomField)
-class CustomFieldAdmin(admin.ModelAdmin):
+class CustomFieldAdmin(ModelAdmin):
     """Standalone management of custom fields"""
     
     list_display = [
@@ -684,7 +709,7 @@ class CustomFieldAdmin(admin.ModelAdmin):
 
 
 @admin.register(TournamentVersion)
-class TournamentVersionAdmin(admin.ModelAdmin):
+class TournamentVersionAdmin(ModelAdmin):
     """Read-only version history for audit trail"""
     
     list_display = [
@@ -733,7 +758,7 @@ class TournamentVersionAdmin(admin.ModelAdmin):
 
 
 @admin.register(TournamentTemplate)
-class TournamentTemplateAdmin(admin.ModelAdmin):
+class TournamentTemplateAdmin(ModelAdmin):
     """Template management for quick tournament creation"""
     
     list_display = [
@@ -799,7 +824,7 @@ class TournamentTemplateAdmin(admin.ModelAdmin):
 # ============================================================================
 
 @admin.register(TournamentAnnouncement)
-class TournamentAnnouncementAdmin(admin.ModelAdmin):
+class TournamentAnnouncementAdmin(ModelAdmin):
     """
     Admin interface for tournament announcements.
     Allows organizers to create and manage announcements for participants.
@@ -883,7 +908,7 @@ class TournamentAnnouncementAdmin(admin.ModelAdmin):
 # ============================================================================
 
 @admin.register(RegistrationFormTemplate)
-class RegistrationFormTemplateAdmin(admin.ModelAdmin):
+class RegistrationFormTemplateAdmin(ModelAdmin):
     """Admin for registration form templates"""
     list_display = [
         'template_badge', 'name', 'participation_type', 'game',
@@ -980,7 +1005,7 @@ class RegistrationFormTemplateAdmin(admin.ModelAdmin):
 
 
 @admin.register(TournamentRegistrationForm)
-class TournamentRegistrationFormAdmin(admin.ModelAdmin):
+class TournamentRegistrationFormAdmin(ModelAdmin):
     """Admin for tournament registration forms"""
     list_display = [
         'tournament_link', 'template_used', 'analytics_badge',
@@ -1066,7 +1091,7 @@ class TournamentRegistrationFormAdmin(admin.ModelAdmin):
 
 
 @admin.register(FormResponse)
-class FormResponseAdmin(admin.ModelAdmin):
+class FormResponseAdmin(ModelAdmin):
     """Admin for form responses"""
     list_display = [
         'id', 'user_link', 'tournament_link', 'status_badge',
@@ -1178,7 +1203,7 @@ from apps.tournaments.models.webhooks import FormWebhook, WebhookDelivery
 
 
 @admin.register(FormWebhook)
-class FormWebhookAdmin(admin.ModelAdmin):
+class FormWebhookAdmin(ModelAdmin):
     """Admin for form webhooks"""
     
     list_display = ['id', 'tournament_form', 'url', 'event_count', 'is_active', 'delivery_stats', 'created_at']
@@ -1218,7 +1243,7 @@ class FormWebhookAdmin(admin.ModelAdmin):
 
 
 @admin.register(WebhookDelivery)
-class WebhookDeliveryAdmin(admin.ModelAdmin):
+class WebhookDeliveryAdmin(ModelAdmin):
     """Admin for webhook deliveries"""
     
     list_display = ['id', 'webhook', 'event', 'status_badge', 'status_code', 'attempts', 'created_at']

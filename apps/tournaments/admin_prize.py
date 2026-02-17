@@ -17,13 +17,15 @@ Security:
     idempotency, reconciliation, and audit trail generation.
 """
 from django.contrib import admin
+from unfold.admin import ModelAdmin
+from unfold.decorators import display
 from django.utils.html import format_html
 
 from .models import PrizeTransaction
 
 
 @admin.register(PrizeTransaction)
-class PrizeTransactionAdmin(admin.ModelAdmin):
+class PrizeTransactionAdmin(ModelAdmin):
     """
     View-only admin interface for prize transaction audit trail.
     
@@ -156,22 +158,19 @@ class PrizeTransactionAdmin(admin.ModelAdmin):
     amount_display.short_description = 'Amount'
     amount_display.admin_order_field = 'amount'
     
+    @display(
+        description='Status',
+        ordering='status',
+        label={
+            'pending': 'warning',
+            'completed': 'success',
+            'failed': 'danger',
+            'refunded': 'secondary',
+        },
+    )
     def status_badge(self, obj):
-        """Display status with color badge."""
-        colors = {
-            'pending': '#FFA500',    # Orange
-            'completed': '#28A745',  # Green
-            'failed': '#DC3545',     # Red
-            'refunded': '#6C757D',   # Gray
-        }
-        color = colors.get(obj.status, '#6C757D')
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 3px 10px; border-radius: 3px;">{}</span>',
-            color,
-            obj.get_status_display()
-        )
-    status_badge.short_description = 'Status'
-    status_badge.admin_order_field = 'status'
+        """Display status with Unfold color badge."""
+        return obj.status
     
     def coin_transaction_link(self, obj):
         """

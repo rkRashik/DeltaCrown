@@ -1,24 +1,133 @@
 {% extends "admin/index.html" %}
-{% load i18n static %}
+{% load i18n unfold %}
 
 {% block content %}
-{{ block.super }}
 
-{# Inject Competition section even if models not registered #}
-<div class="module">
-    <table>
-        <caption>
-            <a href="{% url 'admin:app_list' app_label='competition' %}" class="section" title="Models in the Competition application">Competition</a>
-        </caption>
-        <tr>
-            <th scope="row">
-                <a href="{% url 'competition_status' %}">Competition Status</a>
-            </th>
-            <td>
-                Check competition schema and model registration status
-            </td>
-        </tr>
-    </table>
+{# ─────────────────────────────────────────────────────────────────────────── #}
+{# DELTACROWN COMMAND CENTER                                                  #}
+{# Phase 1.5.2 — Admin Dashboard                                             #}
+{# ─────────────────────────────────────────────────────────────────────────── #}
+
+<div class="mb-8">
+
+    {# ── Row 1: Tournament & Registration Stats ──────────────────────── #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+        {% component "unfold/components/card.html" with title="Tournaments" icon="emoji_events" footer="total across all statuses" %}
+            <div class="text-4xl font-bold text-primary-600 dark:text-primary-400">
+                {{ dc_total_tournaments }}
+            </div>
+            <div class="flex gap-4 mt-2 text-sm text-base-500">
+                <span>🟢 {{ dc_live_tournaments }} live</span>
+                <span>📝 {{ dc_draft_tournaments }} draft</span>
+                <span>📖 {{ dc_open_reg }} open reg</span>
+            </div>
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="Registrations" icon="how_to_reg" footer="total registrations" %}
+            <div class="text-4xl font-bold text-primary-600 dark:text-primary-400">
+                {{ dc_total_registrations }}
+            </div>
+            <div class="flex gap-4 mt-2 text-sm text-base-500">
+                <span>⏳ {{ dc_pending_registrations }} pending</span>
+                <span>✅ {{ dc_confirmed_registrations }} confirmed</span>
+            </div>
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="Matches" icon="sports_esports" footer="total matches" %}
+            <div class="text-4xl font-bold text-primary-600 dark:text-primary-400">
+                {{ dc_total_matches }}
+            </div>
+            <div class="flex gap-4 mt-2 text-sm text-base-500">
+                <span>🔴 {{ dc_live_matches }} live</span>
+                <span>⚠️ {{ dc_disputed_matches }} disputed</span>
+                <span>✅ {{ dc_completed_matches }} done</span>
+            </div>
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="Users" icon="group" footer="registered accounts" %}
+            <div class="text-4xl font-bold text-primary-600 dark:text-primary-400">
+                {{ dc_total_users }}
+            </div>
+            <div class="flex gap-4 mt-2 text-sm text-base-500">
+                <span>🟢 {{ dc_active_users }} active</span>
+                <span>🆕 {{ dc_new_users_month }} this month</span>
+            </div>
+        {% endcomponent %}
+
+    </div>
+
+    {# ── Row 2: Secondary Stats ──────────────────────────────────────── #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+        {% component "unfold/components/card.html" with title="Completed" icon="check_circle" %}
+            <div class="text-3xl font-bold text-green-600 dark:text-green-400">
+                {{ dc_completed_tournaments }}
+            </div>
+            <div class="text-sm text-base-500 mt-1">tournaments finished</div>
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="Recent (30d)" icon="schedule" %}
+            <div class="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                {{ dc_recent_registrations }}
+            </div>
+            <div class="text-sm text-base-500 mt-1">new registrations</div>
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="This Week" icon="event" %}
+            <div class="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
+                {{ dc_recent_matches }}
+            </div>
+            <div class="text-sm text-base-500 mt-1">matches played</div>
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="Economy" icon="account_balance_wallet" %}
+            <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                {{ dc_total_wallets }}
+            </div>
+            <div class="text-sm text-base-500 mt-1">wallets · {{ dc_recent_transactions }} txns this week</div>
+        {% endcomponent %}
+
+    </div>
+
+    {# ── Row 3: Chart + Recent Registrations ─────────────────────────── #}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+
+        {% component "unfold/components/chart/bar.html" with data=dc_tournament_chart class="h-64" %}
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="Recent Registrations" icon="list" %}
+            {% if dc_reg_table.rows %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-base-200 dark:border-base-700">
+                            {% for header in dc_reg_table.headers %}
+                            <th class="text-left py-2 px-2 font-medium text-base-500">{{ header }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in dc_reg_table.rows %}
+                        <tr class="border-b border-base-100 dark:border-base-800 hover:bg-base-50 dark:hover:bg-base-900">
+                            {% for cell in row %}
+                            <td class="py-2 px-2">{{ cell }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-base-500 text-sm py-4">No registrations yet.</p>
+            {% endif %}
+        {% endcomponent %}
+
+    </div>
+
 </div>
+
+{# ── Standard Unfold app list + history ──────────────────────────────────── #}
+{{ block.super }}
 
 {% endblock %}
