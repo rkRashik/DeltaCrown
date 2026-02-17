@@ -137,13 +137,11 @@ class Game(models.Model):
     result_logic = models.JSONField(default=dict, blank=True, help_text='Result calculation logic (JSONB)')
     
     class Meta:
+        managed = False
+        db_table = 'games_game'
         ordering = ['name']
         verbose_name = 'Game'
         verbose_name_plural = 'Games'
-        indexes = [
-            models.Index(fields=['slug']),
-            models.Index(fields=['is_active', 'name']),
-        ]
     
     def __str__(self) -> str:
         return self.name

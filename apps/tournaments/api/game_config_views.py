@@ -25,7 +25,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
 from django.core.exceptions import ValidationError as DjangoValidationError
 
-from apps.tournaments.models.tournament import Game
+from apps.games.models.game import Game
 from apps.tournaments.api.game_config_serializers import (
     GameConfigSerializer,
     GameConfigUpdateSerializer,

@@ -75,7 +75,7 @@ def game_passport_admin_dashboard(request):
         passport.cooldown_days = cooldown_obj.days_remaining() if has_cooldown and cooldown_obj else 0
         
         # Add days_locked for UI display
-        if passport.is_identity_locked:
+        if passport.is_identity_locked and passport.locked_until is not None:
             passport.days_locked = (passport.locked_until - timezone.now()).days
         else:
             passport.days_locked = 0

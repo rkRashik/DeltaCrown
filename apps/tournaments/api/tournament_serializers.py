@@ -19,7 +19,8 @@ from decimal import Decimal
 from typing import Dict, Any
 from rest_framework import serializers
 from django.contrib.postgres.fields import ArrayField
-from apps.tournaments.models.tournament import Tournament, Game
+from apps.tournaments.models.tournament import Tournament
+from apps.games.models.game import Game
 from apps.tournaments.services.tournament_service import TournamentService
 
 
@@ -28,8 +29,8 @@ class GameSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Game
-        fields = ['id', 'name', 'slug', 'icon', 'default_team_size', 'is_active']
-        read_only_fields = ['id', 'name', 'slug', 'icon', 'default_team_size', 'is_active']
+        fields = ['id', 'name', 'display_name', 'slug', 'icon', 'is_active']
+        read_only_fields = ['id', 'name', 'display_name', 'slug', 'icon', 'is_active']
 
 
 class TournamentListSerializer(serializers.ModelSerializer):

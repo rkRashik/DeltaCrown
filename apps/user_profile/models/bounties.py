@@ -97,7 +97,7 @@ class Bounty(models.Model):
     
     # Game Context
     game = models.ForeignKey(
-        'tournaments.Game',
+        'games.Game',
         on_delete=models.PROTECT,
         help_text="Game for this challenge"
     )

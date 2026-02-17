@@ -63,8 +63,8 @@ def get_homepage_context() -> Dict[str, Any]:
     live_stats = {
         "players_count": _safe_count(User.objects),
         "tournaments_count": _safe_count_model('tournaments', 'Tournament', status__in=['live', 'registration_open', 'published']),
-        "teams_count": _safe_count_model('teams', 'Team', is_active=True),
-        "matches_count": _safe_count_model('matches', 'Match'),
+        "teams_count": _safe_count_model('organizations', 'Team', status='ACTIVE'),
+        "matches_count": _safe_count_model('tournaments', 'Match'),
         "games_count": 11,  # Static official count
         "total_prize_pool": _calculate_total_prize_pool(),
     }
@@ -574,8 +574,14 @@ def _get_top_teams(limit=5):
             # Calculate weekly change (placeholder - would need historical data)
             weekly_change = 0  # TODO: Track point changes over time
             
-            # Get game display name
-            game_display = dict(team._meta.get_field('game').choices).get(team.game, team.game) if hasattr(team, 'game') else 'N/A'
+            # Get game display name from game_id
+            game_display = 'N/A'
+            try:
+                from apps.games.models.game import Game as GameModel
+                game_obj = GameModel.objects.filter(id=team.game_id).first()
+                game_display = game_obj.display_name if game_obj else 'N/A'
+            except Exception:
+                pass
             
             result.append({
                 'rank': rank,
@@ -584,7 +590,7 @@ def _get_top_teams(limit=5):
                 'slug': team.slug,
                 'tag': team.tag if hasattr(team, 'tag') else '',
                 'logo': team.logo.url if team.logo else None,
-                'game': team.game if hasattr(team, 'game') else 'N/A',
+                'game': game_display,
                 'game_display': game_display,
                 'elo_rating': getattr(team, 'elo_rating', 1500),
                 'total_points': getattr(team, 'total_points', 0),
@@ -745,11 +751,7 @@ def _get_active_games():
     try:
         from django.apps import apps
         
-        # Try tournaments.Game first, then games.Game
-        try:
-            Game = apps.get_model('games', 'Game')
-        except LookupError:
-            Game = apps.get_model('tournaments', 'Game')
+        Game = apps.get_model('games', 'Game')
         
         games = Game.objects.filter(is_active=True).order_by('name')
         

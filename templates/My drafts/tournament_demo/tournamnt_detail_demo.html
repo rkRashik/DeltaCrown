@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valorant Winter Major | DeltaCrown Command Center</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Rajdhani:wght@500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'dc-cyan': '#06b6d4',
+                        'dc-purple': '#8b5cf6',
+                        'dc-gold': '#facc15',
+                        'dc-bg': '#030303',         /* Darker than before */
+                        'dc-surface': '#0A0A0A',
+                        'dc-card': '#111111',
+                        'dc-border': 'rgba(255, 255, 255, 0.08)',
+                        'val-red': '#ff4655',
+                        'val-dark': '#1f2326',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'gaming': ['Rajdhani', 'sans-serif'],
+                        'display': ['Space Grotesk', 'sans-serif'],
+                    },
+                    backgroundImage: {
+                        'hero-gradient': 'linear-gradient(to bottom, rgba(3,3,3,0) 0%, #030303 100%)',
+                        'card-gradient': 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%)',
+                        'noise': "url('data:image/svg+xml,%3Csvg viewBox=\"0 0 200 200\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cfilter id=\"noiseFilter\"%3E%3CfeTurbulence type=\"fractalNoise\" baseFrequency=\"0.65\" numOctaves=\"3\" stitchTiles=\"stitch\"/%3E%3C/filter%3E%3Crect width=\"100%25\" height=\"100%25\" filter=\"url(%23noiseFilter)\" opacity=\"0.05\"/%3E%3C/svg%3E')",
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'shimmer': 'shimmer 2.5s linear infinite',
+                        'scan': 'scan 4s linear infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-1000px 0' },
+                            '100%': { backgroundPosition: '1000px 0' }
+                        },
+                        scan: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(100%)' }
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        /* =========================================
+           1. CORE PHYSICS & TYPOGRAPHY
+           ========================================= */
+        :root {
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-surface: rgba(15, 15, 15, 0.7);
+            --neon-red: rgba(255, 70, 85, 0.6);
+            --neon-cyan: rgba(6, 182, 212, 0.6);
+        }
+
+        body {
+            background-color: #030303;
+            color: #e5e5e5;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Cinematic Noise Overlay */
+        .noise-overlay {
+            position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0.035;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        /* Scrollbar Customization */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #030303; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff4655; }
+
+        /* =========================================
+           2. ADVANCED GLASSMORPHISM & UTILS
+           ========================================= */
+        .glass {
+            background: rgba(18, 18, 18, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+        }
+        .glass-strong {
+            background: rgba(8, 8, 8, 0.85);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-panel {
+            background: rgba(25, 25, 25, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Text Effects */
+        .text-glow-red { text-shadow: 0 0 20px rgba(255, 70, 85, 0.5); }
+        .text-glow-cyan { text-shadow: 0 0 20px rgba(6, 182, 212, 0.5); }
+        .text-glow-gold { text-shadow: 0 0 20px rgba(250, 204, 21, 0.5); }
+
+        /* =========================================
+           3. HERO SECTION (CINEMATIC)
+           ========================================= */
+        .hero-container {
+            position: relative;
+            height: 70vh;
+            min-height: 600px;
+            max-height: 850px;
+            width: 100%;
+            overflow: hidden;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        /* The Banner Image itself */
+        .hero-banner-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center 20%; /* Focus on top-center for faces/logos */
+            transform: scale(1.05);
+            transition: transform 10s ease-out;
+            animation: slowPan 20s infinite alternate;
+        }
+
+        @keyframes slowPan {
+            0% { transform: scale(1.05) translateY(0); }
+            100% { transform: scale(1.1) translateY(-20px); }
+        }
+
+        /* Complex Gradient Masking for Text Readability */
+        .hero-gradient-overlay {
+            background: radial-gradient(circle at top right, rgba(255, 70, 85, 0.1), transparent 50%),
+                        linear-gradient(to top, #030303 10%, rgba(3,3,3,0.8) 25%, rgba(3,3,3,0.2) 60%, rgba(3,3,3,0.4) 100%),
+                        linear-gradient(to right, #030303 0%, rgba(3,3,3,0.6) 20%, transparent 50%);
+        }
+
+        /* Decorative Grid Lines */
+        .grid-lines {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+        }
+
+        /* =========================================
+           4. TAB NAVIGATION
+           ========================================= */
+        .sticky-nav-wrapper {
+            position: sticky;
+            top: 64px; /* Height of main nav */
+            z-index: 40;
+            background: rgba(3, 3, 3, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .tab-btn {
+            position: relative;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            padding: 1.25rem 0.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tab-btn:hover { color: #e5e5e5; }
+
+        .tab-btn.active {
+            color: #fff;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #ff4655;
+            box-shadow: 0 -4px 15px rgba(255, 70, 85, 0.8);
+            animation: widthGrow 0.3s ease-out forwards;
+        }
+
+        @keyframes widthGrow { from { width: 0; left: 50%; } to { width: 100%; left: 0; } }
+
+        /* =========================================
+           5. UI COMPONENTS
+           ========================================= */
+        .badge-live {
+            background: rgba(255, 70, 85, 0.9);
+            color: white;
+            box-shadow: 0 0 15px rgba(255, 70, 85, 0.4);
+        }
+
+        .organizer-avatar {
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        .organizer-avatar:hover {
+            box-shadow: 0 0 0 2px #06b6d4, 0 0 15px rgba(6, 182, 212, 0.4);
+        }
+
+        /* Glitch Effect Class */
+        .glitch-hover:hover {
+            animation: glitch-anim 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+            color: #ff4655;
+        }
+        @keyframes glitch-anim {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) }
+            60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) }
+            100% { transform: translate(0) }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen selection:bg-val-red selection:text-white">
+
+    <div class="noise-overlay"></div>
+
+    <nav class="sticky top-0 z-[100] glass-strong h-16 w-full">
+        <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
+
+            <div class="flex items-center gap-8">
+                <a href="#" class="flex items-center gap-3 group">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-dc-cyan to-dc-purple flex items-center justify-center font-black text-white text-lg shadow-[0_0_20px_rgba(6,182,212,0.3)] group-hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] transition-all duration-500">
+                        D
+                    </div>
+                    <span class="font-display font-bold text-xl tracking-tight text-white hidden md:block group-hover:text-glow-cyan transition-all">
+                        Delta<span class="text-dc-cyan">Crown</span>
+                    </span>
+                </a>
+
+                <div class="h-6 w-px bg-white/10 hidden md:block"></div>
+
+                <div class="hidden md:flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500">
+                    <a href="#" class="hover:text-white transition-colors flex items-center gap-1">
+                        <i data-lucide="layout-grid" class="w-3 h-3"></i> Tournaments
+                    </a>
+                    <i data-lucide="chevron-right" class="w-3 h-3 text-gray-700"></i>
+                    <a href="#" class="hover:text-val-red transition-colors flex items-center gap-1">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Valorant_logo_-_pink_color_version.svg/1200px-Valorant_logo_-_pink_color_version.svg.png" class="w-3 h-3 opacity-60"> Valorant
+                    </a>
+                    <i data-lucide="chevron-right" class="w-3 h-3 text-gray-700"></i>
+                    <span class="text-white">Winter Major</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-5">
+                <button class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="search" class="w-5 h-5"></i>
+                </button>
+
+                <button class="relative text-gray-400 hover:text-white transition-colors group">
+                    <i data-lucide="bell" class="w-5 h-5 group-hover:animate-swing"></i>
+                    <span class="absolute top-0 right-0 w-2 h-2 bg-val-red rounded-full border border-black animate-pulse"></span>
+                </button>
+
+                <div class="flex items-center gap-3 pl-4 border-l border-white/10 cursor-pointer group">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-xs font-bold text-white group-hover:text-dc-cyan transition-colors">MahirGG</p>
+                        <p class="text-[10px] text-gray-500 font-mono">Lvl 42</p>
+                    </div>
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-dc-cyan to-dc-purple p-[1px] group-hover:shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all">
+                        <img src="https://ui-avatars.com/api/?name=Mahir+GG&background=000&color=fff" class="w-full h-full rounded-full object-cover border-2 border-black">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero-container group">
+
+        <div class="absolute inset-0 z-0">
+            <img src="https://images.unsplash.com/photo-1624138784181-dc7f5b75e52e?q=80&w=2670&auto=format&fit=crop"
+                 class="hero-banner-img"
+                 alt="Valorant Winter Major Banner">
+        </div>
+
+        <div class="absolute inset-0 z-10 grid-lines opacity-30"></div>
+
+        <div class="absolute inset-0 z-20 hero-gradient-overlay"></div>
+
+        <div class="relative z-30 max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-end pb-16">
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-end">
+
+                <div class="lg:col-span-8 space-y-8">
+
+                    <div class="flex flex-wrap items-center gap-3 animate-float" style="animation-duration: 4s;">
+
+                        <div class="badge-live px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                            <span class="relative flex h-2 w-2">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                            </span>
+                            Registration Live
+                        </div>
+
+                        <div class="px-3 py-1.5 rounded bg-black/40 border border-white/10 backdrop-blur-md text-gray-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="monitor" class="w-3 h-3 text-val-red"></i> PC Platform
+                        </div>
+
+                        <div class="px-3 py-1.5 rounded bg-black/40 border border-white/10 backdrop-blur-md text-gray-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="users" class="w-3 h-3 text-dc-cyan"></i> 5v5 Team
+                        </div>
+                    </div>
+
+                    <div>
+                        <h1 class="font-display font-black text-6xl md:text-8xl text-white leading-[0.85] tracking-tight drop-shadow-2xl mb-4">
+                            WINTER <br>
+                            <span class="text-transparent bg-clip-text bg-gradient-to-r from-val-red via-red-500 to-orange-500 text-glow-red">MAJOR</span>
+                        </h1>
+                        <p class="text-lg text-gray-300 max-w-2xl font-light leading-relaxed border-l-2 border-val-red pl-6 py-1">
+                            The proving grounds for South Asia's elite. 64 Teams. One Trophy.
+                            Battle through the open bracket to face the pros in the Grand Finals.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-8 md:gap-16 border-t border-white/10 pt-6">
+                        <div class="group/stat cursor-default">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i data-lucide="trophy" class="w-4 h-4 text-dc-gold"></i>
+                                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover/stat:text-white transition-colors">Prize Pool</span>
+                            </div>
+                            <div class="text-3xl md:text-4xl font-display font-bold text-white text-glow-gold group-hover/stat:scale-105 transition-transform">
+                                ৳100,000
+                            </div>
+                        </div>
+
+                        <div class="group/stat cursor-default">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i data-lucide="calendar-clock" class="w-4 h-4 text-dc-cyan"></i>
+                                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover/stat:text-white transition-colors">Start Date</span>
+                            </div>
+                            <div class="text-2xl md:text-3xl font-display font-bold text-white group-hover/stat:text-dc-cyan transition-colors">
+                                Dec 25 <span class="text-sm text-gray-500 font-sans font-medium">2:00 PM</span>
+                            </div>
+                        </div>
+
+                        <div class="group/stat cursor-pointer">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i data-lucide="shield-check" class="w-4 h-4 text-green-500"></i>
+                                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover/stat:text-white transition-colors">Hosted By</span>
+                            </div>
+                            <div class="flex items-center gap-3 mt-1">
+                                <div class="w-8 h-8 rounded bg-white text-black flex items-center justify-center font-black text-xs organizer-avatar">GH</div>
+                                <span class="font-bold text-white text-lg underline decoration-gray-600 underline-offset-4 group-hover/stat:decoration-white transition-all">GamerHub BD</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-4 flex flex-col items-start lg:items-end justify-end pb-2 gap-4">
+
+                    <button class="media-card-hover group relative pl-2 pr-6 py-2 rounded-full bg-black/60 border border-white/10 backdrop-blur-md flex items-center gap-4 transition-all hover:bg-black/80 hover:border-white/30">
+                        <div class="play-btn w-12 h-12 rounded-full border border-white text-white flex items-center justify-center transition-all duration-300">
+                            <i data-lucide="play" class="w-5 h-5 fill-current ml-1"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Media</span>
+                            <span class="block text-sm font-bold text-white group-hover:text-val-red transition-colors">Watch Trailer</span>
+                        </div>
+                    </button>
+
+                    <div class="flex gap-2">
+                        <button class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white transition-all" title="Share">
+                            <i data-lucide="share-2" class="w-4 h-4"></i>
+                        </button>
+                        <button class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white transition-all" title="Discord">
+                            <i data-lucide="message-circle" class="w-4 h-4"></i>
+                        </button>
+                        <button class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white transition-all" title="Report">
+                            <i data-lucide="flag" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky-nav-wrapper w-full border-b border-dc-border shadow-2xl">
+        <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+
+                <div class="flex items-center gap-8 overflow-x-auto no-scrollbar">
+                    <button class="tab-btn active" onclick="switchTab('overview', this)">
+                        Overview
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('participants', this)">
+                        Participants
+                        <span class="ml-1 text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-400 font-mono">42/64</span>
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('bracket', this)">
+                        Bracket
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('rules', this)">
+                        Rules & Docs
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('media', this)">
+                        Media
+                    </button>
+                </div>
+
+                <div class="hidden lg:flex items-center gap-4 py-2 opacity-80 hover:opacity-100 transition-opacity">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                        Registration Closes In:
+                    </span>
+                    <span class="font-mono text-sm font-bold text-val-red bg-val-red/10 px-2 py-1 rounded border border-val-red/20">
+                        02d 14h 32m
+                    </span>
+                    <button class="bg-white text-black text-xs font-black uppercase px-4 py-2 rounded hover:bg-gray-200 transition-colors">
+                        Join Now
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 relative">
+
+<div class="lg:col-span-8 space-y-8 min-h-[800px]">
+
+                <div id="tab-overview" class="tab-content block space-y-8 animate-fade-in">
+
+                    <div class="glass-panel p-8 rounded-2xl relative overflow-hidden group border-t border-white/10">
+                        <div class="absolute top-0 right-0 p-32 bg-val-red/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 relative z-10">
+                            <div>
+                                <h3 class="font-gaming font-bold text-2xl text-white flex items-center gap-3">
+                                    <i data-lucide="activity" class="w-6 h-6 text-val-red"></i>
+                                    Event Status
+                                </h3>
+                                <p class="text-xs text-gray-400 mt-1 font-mono uppercase tracking-widest">
+                                    Phase 1: Registration Protocol Active
+                                </p>
+                            </div>
+                            <div class="mt-4 md:mt-0 flex items-center gap-3 bg-black/40 border border-val-red/30 px-4 py-2 rounded-lg backdrop-blur-md">
+                                <span class="relative flex h-2 w-2">
+                                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-val-red opacity-75"></span>
+                                  <span class="relative inline-flex rounded-full h-2 w-2 bg-val-red"></span>
+                                </span>
+                                <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">Reg Closes In:</span>
+                                <span class="font-mono text-lg font-bold text-white">02d 14h 32m</span>
+                            </div>
+                        </div>
+
+                        <div class="relative px-2">
+                            <div class="absolute top-1/2 left-0 w-full h-1 bg-white/5 -translate-y-1/2 rounded-full"></div>
+                            <div class="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-dc-cyan to-val-red -translate-y-1/2 rounded-full shadow-[0_0_15px_rgba(255,70,85,0.5)]" style="width: 35%"></div>
+
+                            <div class="grid grid-cols-4 gap-4 relative z-10">
+                                <div class="flex flex-col items-center group/node">
+                                    <div class="w-10 h-10 rounded-full bg-dc-bg border-2 border-val-red text-val-red flex items-center justify-center shadow-[0_0_20px_rgba(255,70,85,0.4)] transition-transform group-hover/node:scale-110">
+                                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                    </div>
+                                    <div class="text-center mt-4 opacity-100 transition-opacity">
+                                        <p class="text-xs font-bold text-white">Registration</p>
+                                        <p class="text-[10px] text-val-red font-bold uppercase tracking-wide">Live Now</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col items-center group/node opacity-50 hover:opacity-100 transition-opacity">
+                                    <div class="w-8 h-8 rounded-full bg-dc-bg border-2 border-white/20 text-gray-400 flex items-center justify-center mb-1 group-hover/node:border-dc-cyan group-hover/node:text-dc-cyan transition-colors">
+                                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                                    </div>
+                                    <div class="text-center mt-4">
+                                        <p class="text-xs font-bold text-gray-300">Check-In</p>
+                                        <p class="text-[10px] text-gray-500 font-mono">Dec 25, 13:30</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col items-center group/node opacity-50 hover:opacity-100 transition-opacity">
+                                    <div class="w-8 h-8 rounded-full bg-dc-bg border-2 border-white/20 text-gray-400 flex items-center justify-center mb-1 group-hover/node:border-dc-cyan group-hover/node:text-dc-cyan transition-colors">
+                                        <i data-lucide="git-branch" class="w-3.5 h-3.5"></i>
+                                    </div>
+                                    <div class="text-center mt-4">
+                                        <p class="text-xs font-bold text-gray-300">Bracket Live</p>
+                                        <p class="text-[10px] text-gray-500 font-mono">Dec 25, 14:00</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col items-center group/node opacity-30 hover:opacity-100 transition-opacity">
+                                    <div class="w-8 h-8 rounded-full bg-dc-bg border-2 border-white/20 text-gray-400 flex items-center justify-center mb-1">
+                                        <i data-lucide="trophy" class="w-3.5 h-3.5"></i>
+                                    </div>
+                                    <div class="text-center mt-4">
+                                        <p class="text-xs font-bold text-gray-300">Finals</p>
+                                        <p class="text-[10px] text-gray-500 font-mono">Dec 30</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-6">
+                        <div class="glass-panel p-1 rounded-2xl overflow-hidden">
+                            <div class="bg-dc-surface/50 p-4 border-b border-white/5 flex justify-between items-center">
+                                <h3 class="font-gaming font-bold text-lg text-white flex items-center gap-2">
+                                    <i data-lucide="sliders-horizontal" class="w-4 h-4 text-dc-cyan"></i>
+                                    Match Configuration
+                                </h3>
+                                <span class="px-2 py-1 rounded bg-white/5 text-[10px] text-gray-400 font-mono border border-white/5">
+                                    ID: VAL-WIN-26
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/5">
+                                <div class="bg-dc-card p-5 group hover:bg-white/5 transition-colors">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i data-lucide="swords" class="w-4 h-4 text-gray-500 group-hover:text-dc-cyan transition-colors"></i>
+                                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Format</span>
+                                    </div>
+                                    <div class="text-sm font-bold text-white">5v5 Team</div>
+                                    <div class="text-[10px] text-gray-500 mt-1">Single Elimination</div>
+                                </div>
+
+                                <div class="bg-dc-card p-5 group hover:bg-white/5 transition-colors">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i data-lucide="globe" class="w-4 h-4 text-gray-500 group-hover:text-dc-cyan transition-colors"></i>
+                                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Server</span>
+                                    </div>
+                                    <div class="text-sm font-bold text-white flex items-center gap-2">
+                                        <img src="https://flagcdn.com/16x12/bd.png" class="rounded-[1px] opacity-80"> Mumbai/Dhaka
+                                    </div>
+                                    <div class="text-[10px] text-gray-500 mt-1">Max Ping: 60ms</div>
+                                </div>
+
+                                <div class="bg-dc-card p-5 group hover:bg-white/5 transition-colors">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i data-lucide="monitor" class="w-4 h-4 text-gray-500 group-hover:text-dc-cyan transition-colors"></i>
+                                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Platform</span>
+                                    </div>
+                                    <div class="text-sm font-bold text-white">PC Windows</div>
+                                    <div class="text-[10px] text-gray-500 mt-1">No Console Support</div>
+                                </div>
+
+                                <div class="bg-dc-card p-5 group hover:bg-val-red/5 transition-colors">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i data-lucide="shield-alert" class="w-4 h-4 text-val-red"></i>
+                                        <span class="text-[10px] font-bold text-val-red uppercase tracking-widest">Security</span>
+                                    </div>
+                                    <div class="text-sm font-bold text-white">Vanguard</div>
+                                    <div class="text-[10px] text-gray-500 mt-1">Strict Enforcement</div>
+                                </div>
+
+                                <div class="bg-dc-card p-5 group hover:bg-white/5 transition-colors">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i data-lucide="layers" class="w-4 h-4 text-gray-500 group-hover:text-dc-cyan transition-colors"></i>
+                                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Series</span>
+                                    </div>
+                                    <div class="text-sm font-bold text-white">BO1 & BO3</div>
+                                    <div class="text-[10px] text-gray-500 mt-1">Finals are BO5</div>
+                                </div>
+
+                                <div class="bg-dc-card p-5 group hover:bg-white/5 transition-colors">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i data-lucide="users" class="w-4 h-4 text-gray-500 group-hover:text-dc-cyan transition-colors"></i>
+                                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Roster</span>
+                                    </div>
+                                    <div class="text-sm font-bold text-white">5 Main + 2 Sub</div>
+                                    <div class="text-[10px] text-gray-500 mt-1">Locked at Check-in</div>
+                                </div>
+
+                                <div class="bg-dc-card p-5 group hover:bg-white/5 transition-colors">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i data-lucide="map" class="w-4 h-4 text-gray-500 group-hover:text-dc-cyan transition-colors"></i>
+                                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Map Pool</span>
+                                    </div>
+                                    <div class="text-sm font-bold text-white">Active Duty</div>
+                                    <div class="text-[10px] text-gray-500 mt-1">Pick/Ban System</div>
+                                </div>
+
+                                <div class="bg-dc-card p-5 group hover:bg-white/5 transition-colors cursor-pointer">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i data-lucide="life-buoy" class="w-4 h-4 text-gray-500 group-hover:text-dc-cyan transition-colors"></i>
+                                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Support</span>
+                                    </div>
+                                    <div class="text-sm font-bold text-white text-dc-cyan underline decoration-dc-cyan/30 underline-offset-2">Open Ticket</div>
+                                    <div class="text-[10px] text-gray-500 mt-1">Avg Response: 5m</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass p-8 rounded-2xl">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="font-gaming font-bold text-2xl text-white flex items-center gap-2">
+                                <i data-lucide="file-text" class="w-6 h-6 text-gray-400"></i>
+                                Event Briefing
+                            </h3>
+                            <div class="flex gap-2">
+                                <button class="p-2 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white transition">
+                                    <i data-lucide="share-2" class="w-4 h-4"></i>
+                                </button>
+                                <button class="p-2 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white transition">
+                                    <i data-lucide="printer" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed font-sans">
+                            <p class="text-lg text-white font-medium mb-4">
+                                The <span class="text-val-red">Winter Major Championship</span> is the crown jewel of DeltaCrown's Season 1 roadmap.
+                                We are inviting the top 64 teams from across South Asia to compete for a massive
+                                <span class="text-dc-gold font-bold">৳100,000 Prize Pool</span> and direct seeding points for the Regional Finals.
+                            </p>
+
+                            <h4 class="text-white font-bold text-sm mt-6 mb-2 uppercase tracking-wider flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 bg-dc-cyan rounded-full"></span>
+                                Why Compete?
+                            </h4>
+                            <p>
+                                Whether you are a seasoned squad looking to cement your legacy or underdogs ready to upset the giants, the stage is set.
+                                Matches will be broadcast live with professional commentary, analysis, and drops for viewers.
+                                This is your path to the pro circuit.
+                            </p>
+
+                            <div class="my-8 p-6 bg-gradient-to-r from-dc-card to-transparent border-l-2 border-dc-gold rounded-r-xl flex items-start gap-4">
+                                <div class="p-3 bg-white/5 rounded-lg border border-white/10 text-dc-gold">
+                                    <i data-lucide="star" class="w-6 h-6 fill-current"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-white font-bold text-base mb-1">Powered by Logitech G</h4>
+                                    <p class="text-sm text-gray-400">
+                                        MVPs of the Grand Final will receive the latest
+                                        <span class="text-white font-bold">Pro X Superlight 2</span> and exclusive DeltaCrown merchandise.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="w-full text-center border-t border-white/5 pt-4 mt-2">
+                            <button class="text-xs font-bold text-gray-500 hover:text-white uppercase tracking-widest flex items-center justify-center gap-1 transition-colors">
+                                Expand Briefing <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-8 rounded-2xl relative overflow-hidden">
+                        <div class="flex items-center justify-between mb-10 relative z-10">
+                            <h3 class="font-gaming font-bold text-2xl text-white flex items-center gap-2">
+                                <i data-lucide="calendar-days" class="w-6 h-6 text-dc-purple"></i>
+                                Operations Schedule
+                            </h3>
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                <span class="text-xs font-bold text-gray-400">Current Time: 14:35 GMT+6</span>
+                            </div>
+                        </div>
+
+                        <div class="relative space-y-12 pl-4">
+                            <div class="absolute top-4 bottom-4 left-[29px] w-px bg-gradient-to-b from-val-red via-white/10 to-transparent"></div>
+
+                            <div class="relative">
+                                <div class="absolute left-0 top-0 w-14 h-14 bg-dc-card border border-val-red/50 rounded-xl flex flex-col items-center justify-center z-10 shadow-[0_0_15px_rgba(255,70,85,0.2)]">
+                                    <span class="text-[10px] text-val-red uppercase font-bold">Dec</span>
+                                    <span class="text-lg font-bold text-white leading-none">25</span>
+                                </div>
+
+                                <div class="pl-20">
+                                    <h4 class="text-white font-bold text-lg mb-1">Qualifiers (Day 1)</h4>
+                                    <p class="text-xs text-gray-500 mb-4">Online • Best of 1</p>
+
+                                    <div class="space-y-3">
+                                        <div class="flex items-center gap-4 p-4 bg-val-red/5 border-l-2 border-l-val-red rounded-r-lg border-y border-r border-white/5 group">
+                                            <div class="text-center w-12 shrink-0">
+                                                <span class="block text-sm font-mono text-val-red font-bold">13:30</span>
+                                            </div>
+                                            <div class="h-8 w-px bg-white/10"></div>
+                                            <div class="flex-1">
+                                                <div class="flex justify-between items-center">
+                                                    <span class="text-sm font-bold text-white group-hover:text-val-red transition-colors">Check-in Required</span>
+                                                    <span class="text-[10px] bg-val-red text-white px-2 py-0.5 rounded font-bold uppercase">Critical</span>
+                                                </div>
+                                                <p class="text-[11px] text-gray-400 mt-0.5">Captains must click "Ready" in lobby.</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center gap-4 p-4 bg-white/5 border-l-2 border-l-white/20 rounded-r-lg border-y border-r border-white/5 group hover:bg-white/10 transition-colors">
+                                            <div class="text-center w-12 shrink-0">
+                                                <span class="block text-sm font-mono text-white font-bold">14:00</span>
+                                            </div>
+                                            <div class="h-8 w-px bg-white/10"></div>
+                                            <div class="flex-1">
+                                                <span class="text-sm font-bold text-gray-300 group-hover:text-white transition-colors">Round of 64 Begins</span>
+                                                <p class="text-[11px] text-gray-500 mt-0.5">Map veto via chat.</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center gap-4 p-4 bg-white/5 border-l-2 border-l-white/20 rounded-r-lg border-y border-r border-white/5 group hover:bg-white/10 transition-colors">
+                                            <div class="text-center w-12 shrink-0">
+                                                <span class="block text-sm font-mono text-white font-bold">15:30</span>
+                                            </div>
+                                            <div class="h-8 w-px bg-white/10"></div>
+                                            <div class="flex-1">
+                                                <span class="text-sm font-bold text-gray-300 group-hover:text-white transition-colors">Round of 32</span>
+                                                <p class="text-[11px] text-gray-500 mt-0.5">Winners proceed immediately.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="relative opacity-70 hover:opacity-100 transition-opacity">
+                                <div class="absolute left-0 top-0 w-14 h-14 bg-dc-card border border-white/10 rounded-xl flex flex-col items-center justify-center z-10 bg-dc-surface">
+                                    <span class="text-[10px] text-gray-500 uppercase font-bold">Dec</span>
+                                    <span class="text-lg font-bold text-white leading-none">26</span>
+                                </div>
+
+                                <div class="pl-20">
+                                    <h4 class="text-white font-bold text-lg mb-1">Playoffs</h4>
+                                    <p class="text-xs text-gray-500 mb-4">Streamed • Best of 3</p>
+
+                                    <div class="space-y-3">
+                                        <div class="flex items-center gap-4 p-4 bg-dc-surface border border-white/5 rounded-lg">
+                                            <div class="text-center w-12 shrink-0">
+                                                <span class="block text-sm font-mono text-gray-400 font-bold">18:00</span>
+                                            </div>
+                                            <div class="h-8 w-px bg-white/5"></div>
+                                            <div class="flex-1">
+                                                <span class="text-sm font-bold text-gray-400">Quarter Finals</span>
+                                                <p class="text-[11px] text-gray-600 mt-0.5">Broadcast starts.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="glass-panel p-8 rounded-2xl relative overflow-hidden border border-dc-gold/10 group">
+                        <div class="absolute top-0 right-0 w-96 h-96 bg-dc-gold/5 rounded-full blur-[120px] pointer-events-none group-hover:bg-dc-gold/10 transition-colors duration-1000"></div>
+
+                        <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 relative z-10 gap-4">
+                            <div>
+                                <h3 class="font-gaming font-bold text-2xl text-white flex items-center gap-3">
+                                    <i data-lucide="crown" class="w-6 h-6 text-dc-gold"></i>
+                                    Prize Pool Breakdown
+                                </h3>
+                                <p class="text-sm text-gray-400 mt-1">Total combined value including digital assets.</p>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <div class="text-right">
+                                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Fiat Total</p>
+                                    <p class="font-display font-bold text-2xl text-white leading-none">৳100,000</p>
+                                </div>
+                                <div class="h-8 w-px bg-white/10"></div>
+                                <div class="text-right">
+                                    <p class="text-[10px] font-bold text-dc-cyan uppercase tracking-widest">Bonus</p>
+                                    <p class="font-display font-bold text-xl text-dc-cyan leading-none flex items-center gap-1">
+                                        <i data-lucide="coins" class="w-4 h-4"></i> 5,000 DC
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 relative z-10 items-end">
+
+                            <div class="order-2 md:order-1 bg-gradient-to-b from-gray-800/50 to-dc-surface border border-white/5 rounded-2xl p-6 text-center transform md:translate-y-4 hover:-translate-y-1 transition-transform duration-300">
+                                <div class="w-16 h-16 mx-auto bg-gray-700/30 rounded-full flex items-center justify-center border border-gray-600 mb-3 shadow-[0_0_20px_rgba(156,163,175,0.2)]">
+                                    <span class="font-display font-bold text-2xl text-gray-300">2</span>
+                                </div>
+                                <h4 class="text-gray-300 font-bold text-sm uppercase tracking-wider mb-1">Runner Up</h4>
+                                <div class="font-display font-bold text-2xl text-white">৳25,000</div>
+                                <div class="text-xs font-bold text-dc-cyan mt-1">+ 1,500 DC</div>
+                            </div>
+
+                            <div class="order-1 md:order-2 bg-gradient-to-b from-dc-gold/10 to-dc-surface border border-dc-gold/30 rounded-2xl p-8 text-center relative shadow-[0_0_30px_rgba(250,204,21,0.1)] hover:shadow-[0_0_50px_rgba(250,204,21,0.2)] transition-shadow duration-300">
+                                <div class="absolute -top-4 left-1/2 -translate-x-1/2">
+                                    <i data-lucide="trophy" class="w-8 h-8 text-dc-gold fill-current drop-shadow-lg"></i>
+                                </div>
+                                <div class="w-20 h-20 mx-auto bg-dc-gold/20 rounded-full flex items-center justify-center border border-dc-gold mb-4 mt-2">
+                                    <span class="font-display font-black text-4xl text-dc-gold">1</span>
+                                </div>
+                                <h4 class="text-dc-gold font-bold text-base uppercase tracking-wider mb-1">Champion</h4>
+                                <div class="font-display font-black text-3xl text-white">৳50,000</div>
+                                <div class="text-sm font-bold text-dc-cyan mt-1 flex items-center justify-center gap-1">
+                                    <i data-lucide="gem" class="w-3 h-3"></i> + 2,500 DC
+                                </div>
+                            </div>
+
+                            <div class="order-3 md:order-3 bg-gradient-to-b from-orange-900/20 to-dc-surface border border-orange-700/30 rounded-2xl p-6 text-center transform md:translate-y-8 hover:translate-y-4 transition-transform duration-300">
+                                <div class="w-16 h-16 mx-auto bg-orange-900/30 rounded-full flex items-center justify-center border border-orange-800 mb-3 shadow-[0_0_20px_rgba(194,65,12,0.2)]">
+                                    <span class="font-display font-bold text-2xl text-orange-400">3</span>
+                                </div>
+                                <h4 class="text-orange-400 font-bold text-sm uppercase tracking-wider mb-1">Third Place</h4>
+                                <div class="font-display font-bold text-2xl text-white">৳15,000</div>
+                                <div class="text-xs font-bold text-dc-cyan mt-1">+ 1,000 DC</div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 relative z-10">
+                            <div class="flex items-center justify-between px-6 py-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
+                                <div class="flex items-center gap-4">
+                                    <span class="font-mono text-gray-500 font-bold">4th</span>
+                                    <span class="text-sm font-bold text-gray-300">Semi-Finalist</span>
+                                </div>
+                                <div class="text-right flex items-center gap-4">
+                                    <span class="text-sm font-bold text-white">৳7,500</span>
+                                    <span class="text-xs font-bold text-dc-cyan/70">500 DC</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between px-6 py-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
+                                <div class="flex items-center gap-4">
+                                    <span class="font-mono text-gray-500 font-bold">5th - 8th</span>
+                                    <span class="text-sm font-bold text-gray-300">Quarter-Finalists</span>
+                                </div>
+                                <div class="text-right flex items-center gap-4">
+                                    <span class="text-sm font-bold text-white">৳2,500</span>
+                                    <span class="text-xs font-bold text-gray-600">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-4 px-2">
+                            <h3 class="font-gaming font-bold text-2xl text-white tracking-wider flex items-center gap-3">
+                                <i data-lucide="shield-check" class="w-6 h-6 text-green-500"></i>
+                                ENTRY & LOGISTICS
+                            </h3>
+                            <div class="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+                            <div class="md:col-span-7 space-y-4">
+                                <div class="glass-panel p-8 rounded-3xl relative overflow-hidden group">
+                                    <div class="absolute -right-4 -bottom-8 font-display font-black text-9xl text-white/[0.02] pointer-events-none select-none">500</div>
+
+                                    <div class="relative z-10">
+                                        <div class="flex justify-between items-start mb-6">
+                                            <div>
+                                                <span class="text-[10px] font-black text-dc-cyan uppercase tracking-[0.2em] mb-2 block">Standard Registration</span>
+                                                <div class="flex items-baseline gap-3">
+                                                    <span class="text-5xl font-display font-black text-white">৳500</span>
+                                                    <span class="text-lg text-gray-500 font-bold">BDT</span>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="bg-dc-cyan/10 border border-dc-cyan/30 rounded-xl p-3 backdrop-blur-md">
+                                                    <p class="text-[9px] font-bold text-dc-cyan uppercase tracking-widest mb-1">Ecosystem Price</p>
+                                                    <p class="text-xl font-display font-black text-white flex items-center justify-end gap-1">
+                                                        450 <i data-lucide="coins" class="w-4 h-4 text-dc-cyan"></i>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-4 pt-4 border-t border-white/5">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400">
+                                                    <i data-lucide="users-2" class="w-5 h-5"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-bold text-white">Full Squad Access</p>
+                                                    <p class="text-xs text-gray-500 italic leading-none">Covers 5 starters + 2 tactical substitutes</p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400">
+                                                    <i data-lucide="Zap" class="w-5 h-5"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-bold text-white">Instant Verification</p>
+                                                    <p class="text-xs text-gray-500 italic leading-none">Slots are locked immediately after transaction</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-gradient-to-r from-dc-gold/20 via-dc-gold/5 to-transparent border border-dc-gold/30 rounded-2xl p-6 relative group overflow-hidden">
+                                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-dc-gold/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000"></div>
+
+                                    <div class="flex items-start gap-5 relative z-10">
+                                        <div class="w-12 h-12 rounded-2xl bg-dc-gold flex items-center justify-center text-black shadow-[0_0_20px_rgba(250,204,21,0.3)]">
+                                            <i data-lucide="gift" class="w-6 h-6"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h4 class="font-display font-bold text-lg text-white mb-1 uppercase tracking-tight">Fee Waiver Protocol</h4>
+                                            <p class="text-sm text-dc-gold/80 leading-snug">
+                                                Teams ranked in the <span class="text-white font-black">Top 4</span> of the "Pro Qualifier Season 5" are eligible for
+                                                <span class="px-1.5 py-0.5 bg-dc-gold text-black font-black rounded mx-1">FREE ENTRY</span>.
+                                            </p>
+                                            <button class="mt-3 text-[10px] font-black text-white uppercase tracking-[0.15em] flex items-center gap-1.5 hover:gap-3 transition-all">
+                                                Check My Team Eligibility <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-5 flex flex-col gap-4">
+                                <div class="bg-dc-card border border-white/5 rounded-3xl p-6 flex-1 flex flex-col justify-between">
+                                    <div>
+                                        <h4 class="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                                            <i data-lucide="lock" class="w-3.5 h-3.5"></i> Secure Payment Gateway
+                                        </h4>
+
+                                        <div class="space-y-3">
+                                            <div class="group relative bg-white/[0.02] border border-white/5 rounded-2xl p-4 cursor-pointer hover:border-dc-cyan/40 hover:bg-white/[0.05] transition-all">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center gap-4">
+                                                        <div class="w-10 h-10 rounded-xl bg-pink-600/10 border border-pink-600/20 flex items-center justify-center">
+                                                            <i data-lucide="smartphone" class="w-5 h-5 text-pink-500"></i>
+                                                        </div>
+                                                        <div>
+                                                            <span class="block text-sm font-bold text-white group-hover:text-dc-cyan transition-colors">Local Gateways</span>
+                                                            <div class="flex items-center gap-2 mt-0.5">
+                                                                <span class="text-[9px] font-black text-pink-500 uppercase">bKash</span>
+                                                                <span class="text-[9px] font-black text-orange-500 uppercase">Nagad</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <span class="text-sm font-mono font-bold text-white">৳500</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="group relative bg-dc-cyan/5 border border-dc-cyan/20 rounded-2xl p-4 cursor-pointer hover:border-dc-cyan/50 hover:bg-dc-cyan/10 transition-all overflow-hidden">
+                                                <div class="absolute -right-2 -top-2 bg-dc-cyan text-black text-[8px] font-black px-4 py-3 rotate-12 shadow-lg">-10%</div>
+
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center gap-4">
+                                                        <div class="w-10 h-10 rounded-xl bg-dc-cyan/20 border border-dc-cyan/30 flex items-center justify-center">
+                                                            <i data-lucide="wallet" class="w-5 h-5 text-dc-cyan"></i>
+                                                        </div>
+                                                        <div>
+                                                            <span class="block text-sm font-bold text-white">DeltaWallet</span>
+                                                            <span class="block text-[9px] font-bold text-dc-cyan/80 uppercase mt-0.5">Instant Balance Apply</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <span class="text-sm font-mono font-bold text-dc-cyan">450 DC</span>
+                                                        <span class="block text-[8px] text-gray-600 line-through">500 DC</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-6 pt-6 border-t border-white/5 space-y-3">
+                                        <button class="w-full py-4 bg-white text-black font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-gray-200 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+                                            Initiate Registration <i data-lucide="credit-card" class="w-4 h-4"></i>
+                                        </button>
+                                        <div class="flex items-center justify-center gap-4 grayscale opacity-40">
+                                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/SSLCommerz_Logo.png/1200px-SSLCommerz_Logo.png" class="h-4">
+                                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Visa_Logo.png/1200px-Visa_Logo.png" class="h-3">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="glass-panel px-6 py-4 rounded-2xl flex items-center justify-between border border-white/5">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="shield-check" class="w-5 h-5 text-dc-cyan"></i>
+                                        <div>
+                                            <p class="text-[10px] font-black text-white uppercase leading-none">DeltaCrown Secured</p>
+                                            <p class="text-[9px] text-gray-500 leading-none mt-1">Escrow Prize Protection Active</p>
+                                        </div>
+                                    </div>
+                                    <i data-lucide="info" class="w-4 h-4 text-gray-700 cursor-help" title="Funds are held by DeltaCrown until tournament completion to ensure prize payout."></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-0 rounded-2xl relative overflow-hidden border border-white/10">
+                        <div class="absolute inset-0 bg-dc-surface z-0"></div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-12 h-full relative z-10">
+                            <div class="md:col-span-7 relative min-h-[250px] group overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?q=80&w=2662&auto=format&fit=crop" class="w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700">
+
+                                <div class="absolute inset-0 bg-gradient-to-r from-transparent to-dc-card/90 md:bg-gradient-to-r md:from-transparent md:via-transparent md:to-dc-card"></div>
+                                <div class="absolute inset-0 bg-gradient-to-t from-dc-card to-transparent md:hidden"></div>
+
+                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+                                    <div class="w-4 h-4 bg-val-red rounded-full animate-ping absolute"></div>
+                                    <div class="w-8 h-8 bg-val-red text-white rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(255,70,85,0.6)] relative z-10">
+                                        <i data-lucide="map-pin" class="w-4 h-4 fill-current"></i>
+                                    </div>
+                                </div>
+
+                                <a href="https://maps.google.com" target="_blank" class="absolute bottom-4 left-4 bg-white text-black px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-gray-200 transition shadow-lg opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 duration-300">
+                                    <i data-lucide="external-link" class="w-3 h-3"></i> Open in Google Maps
+                                </a>
+                            </div>
+
+                            <div class="md:col-span-5 p-8 flex flex-col justify-center bg-dc-card border-l border-white/5">
+                                <div class="mb-6">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 text-[9px] font-bold uppercase border border-purple-500/20">Grand Finals Location</span>
+                                    </div>
+                                    <h3 class="font-display font-bold text-2xl text-white leading-tight">Jamuna Future Park</h3>
+                                    <p class="text-sm text-gray-400 mt-1">Level 5, Gamer's Zone Atrium</p>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <div class="flex items-start gap-3">
+                                        <i data-lucide="navigation" class="w-4 h-4 text-dc-cyan mt-0.5"></i>
+                                        <div>
+                                            <p class="text-xs font-bold text-white">Address</p>
+                                            <p class="text-xs text-gray-500 leading-relaxed">Ka-244, Pragati Ave, Dhaka 1229, Bangladesh</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-3">
+                                        <i data-lucide="clock" class="w-4 h-4 text-dc-cyan mt-0.5"></i>
+                                        <div>
+                                            <p class="text-xs font-bold text-white">Reporting Time</p>
+                                            <p class="text-xs text-gray-500">Dec 30 • 10:00 AM (Check-in)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+
+<div id="tab-participants" class="tab-content hidden space-y-6 animate-fade-in">
+
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-dc-surface/50 p-4 rounded-xl border border-white/5 backdrop-blur-md">
+                        <div class="flex items-center gap-3">
+                            <h3 class="font-gaming font-bold text-xl text-white">Registered Teams</h3>
+                            <span class="bg-white/10 text-white text-xs font-bold px-2.5 py-1 rounded-md border border-white/5">42 / 64</span>
+                        </div>
+
+                        <div class="flex gap-3 w-full md:w-auto">
+                            <div class="relative flex-1 md:w-64">
+                                <input type="text" placeholder="Search team name..." class="w-full bg-black/40 border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white focus:border-dc-cyan/50 focus:ring-1 focus:ring-dc-cyan/50 outline-none transition-all placeholder-gray-600">
+                                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"></i>
+                            </div>
+                            <button class="p-2.5 bg-black/40 border border-white/10 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition">
+                                <i data-lucide="filter" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                        <div class="glass p-4 rounded-xl flex items-center justify-between border-l-2 border-l-green-500 hover:bg-white/5 transition-colors group cursor-pointer">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center text-white font-black text-sm tracking-tighter shadow-lg group-hover:scale-105 transition-transform">
+                                    TRX
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-white text-sm group-hover:text-dc-cyan transition-colors">T-Rex Esports</h4>
+                                    <div class="flex items-center gap-2 text-[10px] text-gray-500 mt-0.5">
+                                        <span>Rank:</span>
+                                        <span class="text-val-red font-bold">Ascendant 2</span>
+                                        <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+                                        <span>5 Members</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-1">
+                                <i data-lucide="check-circle-2" class="w-5 h-5 text-green-500"></i>
+                                <span class="text-[9px] font-bold text-green-500 uppercase">Ready</span>
+                            </div>
+                        </div>
+
+                        <div class="glass p-4 rounded-xl flex items-center justify-between border-l-2 border-l-yellow-500 hover:bg-white/5 transition-colors group cursor-pointer opacity-80 hover:opacity-100">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center text-gray-500 font-black text-sm tracking-tighter shadow-lg">
+                                    GX
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-300 text-sm group-hover:text-white transition-colors">GenX Gaming</h4>
+                                    <div class="flex items-center gap-2 text-[10px] text-gray-500 mt-0.5">
+                                        <span>Rank:</span>
+                                        <span class="text-dc-cyan font-bold">Diamond 3</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-1">
+                                <i data-lucide="clock" class="w-5 h-5 text-yellow-500"></i>
+                                <span class="text-[9px] font-bold text-yellow-500 uppercase">Pending</span>
+                            </div>
+                        </div>
+
+                        <div class="glass p-4 rounded-xl flex items-center justify-center border border-dashed border-white/10 text-gray-500 text-sm font-medium hover:text-white hover:border-white/30 transition-all cursor-pointer h-[84px] group">
+                            <span class="group-hover:scale-105 transition-transform">+ 39 Other Teams</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-rules" class="tab-content hidden space-y-6 animate-fade-in">
+                    <div class="glass p-8 rounded-2xl border border-white/5">
+
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/10 pb-6 mb-6 gap-4">
+                            <div>
+                                <h3 class="font-gaming font-bold text-2xl text-white">Official Rulebook</h3>
+                                <p class="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                    v2.4 • Updated: Dec 12, 2026
+                                </p>
+                            </div>
+                            <button class="flex items-center gap-2 px-4 py-2.5 bg-dc-surface border border-white/10 rounded-lg text-xs font-bold text-white hover:border-dc-cyan hover:text-dc-cyan transition-colors group">
+                                <i data-lucide="file-down" class="w-4 h-4 group-hover:animate-bounce"></i> Download PDF
+                            </button>
+                        </div>
+
+                        <div class="space-y-8 prose prose-invert max-w-none text-sm text-gray-300 font-sans leading-relaxed">
+                            <div class="space-y-3">
+                                <h4 class="text-white font-bold text-base flex items-center gap-3 bg-white/5 p-2 rounded-lg">
+                                    <span class="w-6 h-6 rounded bg-dc-cyan text-black flex items-center justify-center text-xs font-black">1</span>
+                                    General Eligibility
+                                </h4>
+                                <ul class="list-disc pl-12 space-y-2 marker:text-gray-600">
+                                    <li>All players must reside in the South Asia region (BD, IN, PK, NP, LK).</li>
+                                    <li>Accounts must be Level 20+ and have 2FA enabled.</li>
+                                    <li>No history of VAC or Vanguard bans in the last 365 days.</li>
+                                </ul>
+                            </div>
+
+                            <div class="space-y-3">
+                                <h4 class="text-white font-bold text-base flex items-center gap-3 bg-white/5 p-2 rounded-lg">
+                                    <span class="w-6 h-6 rounded bg-dc-cyan text-black flex items-center justify-center text-xs font-black">2</span>
+                                    Match Procedures
+                                </h4>
+                                <ul class="list-disc pl-12 space-y-2 marker:text-gray-600">
+                                    <li>Captains must check-in on the match page 15 minutes prior.</li>
+                                    <li>Map veto is performed via the automated lobby system.</li>
+                                    <li>Each team gets two (2) tactical pauses of 60 seconds per map.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div> <div class="lg:col-span-4 relative">
+                <div class="sticky top-24 space-y-6">
+
+                    <div class="glass-strong rounded-3xl overflow-hidden border-t-4 border-t-val-red relative shadow-2xl">
+                        <div class="absolute inset-0 bg-gradient-to-b from-val-red/5 to-transparent pointer-events-none"></div>
+
+                        <div class="p-6">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <p class="text-[10px] font-bold text-val-red uppercase tracking-widest mb-1">Current Status</p>
+                                    <div class="flex items-center gap-2">
+                                        <span class="relative flex h-3 w-3">
+                                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                          <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                        </span>
+                                        <span class="font-bold text-white text-lg tracking-tight">Registration Open</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Closes In</p>
+                                    <p class="font-mono font-bold text-white text-lg">02d 14h</p>
+                                </div>
+                            </div>
+
+                            <div class="mb-6">
+                                <div class="flex justify-between text-xs font-bold mb-2">
+                                    <span class="text-gray-400">Slots Filled</span>
+                                    <span class="text-white">42 <span class="text-gray-600">/ 64</span></span>
+                                </div>
+                                <div class="w-full bg-black h-2.5 rounded-full overflow-hidden border border-white/10">
+                                    <div class="bg-gradient-to-r from-val-red to-orange-500 h-full rounded-full shadow-[0_0_10px_rgba(255,70,85,0.5)]" style="width: 65%"></div>
+                                </div>
+                            </div>
+
+                            <div class="bg-black/40 rounded-xl p-4 mb-6 border border-white/5 space-y-3">
+                                <div class="flex items-center justify-between mb-2 pb-2 border-b border-white/5">
+                                    <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Eligibility Check</h4>
+                                    <span class="text-[10px] text-gray-500 font-mono">ID: MahirGG</span>
+                                </div>
+
+                                <div class="flex items-center justify-between group">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/20 text-green-500">
+                                            <i data-lucide="check" class="w-3 h-3"></i>
+                                        </div>
+                                        <span class="text-xs font-medium text-gray-300 group-hover:text-white transition-colors">Riot ID Linked</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between group">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/20 text-green-500">
+                                            <i data-lucide="check" class="w-3 h-3"></i>
+                                        </div>
+                                        <span class="text-xs font-medium text-gray-300 group-hover:text-white transition-colors">Region: Bangladesh</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between group">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-5 h-5 rounded-full bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20 text-yellow-500">
+                                            <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                                        </div>
+                                        <span class="text-xs font-medium text-gray-300 group-hover:text-white transition-colors">Min Rank: Ascendant</span>
+                                    </div>
+                                    <span class="text-[9px] text-yellow-500 font-bold uppercase">Check</span>
+                                </div>
+                            </div>
+
+                            <button class="w-full py-4 bg-val-red hover:bg-red-600 text-white font-black uppercase tracking-[0.15em] rounded-xl transition-all shadow-lg shadow-val-red/20 hover:shadow-val-red/40 flex items-center justify-center gap-3 group relative overflow-hidden">
+                                <div class="absolute inset-0 bg-white/20 -translate-x-full group-hover:animate-[shimmer_1s_infinite]"></div>
+                                Register Team <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+                            </button>
+
+                            <p class="text-[10px] text-gray-500 text-center mt-3">
+                                By registering, you agree to the <a href="#" class="text-gray-400 hover:text-white underline">Terms & Conditions</a>.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="glass p-6 rounded-2xl">
+                        <h3 class="font-gaming font-bold text-lg text-white mb-4 flex items-center gap-2">
+                            <i data-lucide="users-2" class="w-5 h-5 text-blue-400"></i> Tournament Staff
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
+                                <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center overflow-hidden border border-white/10 group-hover:border-dc-cyan/50">
+                                    <img src="https://ui-avatars.com/api/?name=Redwanul&background=random" class="w-full h-full">
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-white group-hover:text-dc-cyan transition-colors">Redwanul</p>
+                                    <p class="text-[10px] text-gray-500 uppercase tracking-wider">Head Admin</p>
+                                </div>
+                                <button class="ml-auto p-1.5 text-gray-500 hover:text-white hover:bg-white/10 rounded">
+                                    <i data-lucide="message-square" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
+                                <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center overflow-hidden border border-white/10 group-hover:border-blue-400/50">
+                                    <img src="https://ui-avatars.com/api/?name=Rafid&background=random" class="w-full h-full">
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">Rafid</p>
+                                    <p class="text-[10px] text-gray-500 uppercase tracking-wider">Referee</p>
+                                </div>
+                                <button class="ml-auto p-1.5 text-gray-500 hover:text-white hover:bg-white/10 rounded">
+                                    <i data-lucide="message-square" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass p-5 rounded-2xl flex items-center gap-4 group cursor-pointer hover:bg-white/5 transition-colors">
+                        <div class="w-14 h-14 bg-white rounded-xl flex items-center justify-center text-black font-black text-xl shadow-lg relative">
+                            G
+                            <div class="absolute -bottom-1 -right-1 bg-blue-500 text-white p-0.5 rounded-full border-2 border-dc-card">
+                                <i data-lucide="check" class="w-2.5 h-2.5"></i>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Organized By</p>
+                            <p class="font-bold text-white text-lg leading-tight group-hover:text-dc-cyan transition-colors">GamerHub BD</p>
+                            <div class="flex items-center gap-2 text-[10px] text-gray-400 mt-1">
+                                <span class="flex items-center gap-0.5 text-dc-gold font-bold">
+                                    <i data-lucide="star" class="w-3 h-3 fill-current"></i> 4.9
+                                </span>
+                                <span>•</span>
+                                <span>24 Events Hosted</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="py-3 bg-dc-surface border border-dc-border rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:border-white/20 transition flex items-center justify-center gap-2 group">
+                            <i data-lucide="share-2" class="w-4 h-4 group-hover:text-dc-cyan transition-colors"></i> Share
+                        </button>
+                        <button class="py-3 bg-dc-surface border border-dc-border rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:border-white/20 transition flex items-center justify-center gap-2 group">
+                            <i data-lucide="flag" class="w-4 h-4 group-hover:text-red-500 transition-colors"></i> Report
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+        </div> </div> <footer class="bg-black py-8 border-t border-white/10 mt-auto relative z-10">
+        <div class="max-w-[1800px] mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 bg-gradient-to-br from-dc-cyan to-dc-purple rounded-md"></div>
+                <p class="text-gray-500 text-sm font-medium">© 2026 DeltaCrown. All rights reserved.</p>
+            </div>
+            <div class="flex gap-8 text-xs font-bold text-gray-500 uppercase tracking-widest">
+                <a href="#" class="hover:text-white transition-colors">Privacy</a>
+                <a href="#" class="hover:text-white transition-colors">Terms</a>
+                <a href="#" class="hover:text-white transition-colors">Support</a>
+            </div>
+        </div>
+    </footer>
+
+    <div class="lg:hidden fixed bottom-0 left-0 w-full bg-dc-surface/90 backdrop-blur-xl border-t border-white/10 p-4 z-[100] flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+        <div>
+            <p class="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Entry Fee</p>
+            <div class="flex items-baseline gap-1">
+                <p class="text-xl font-display font-bold text-white">৳500</p>
+                <span class="text-[10px] text-dc-cyan font-bold">/ Team</span>
+            </div>
+        </div>
+        <button class="px-8 py-3 bg-val-red text-white font-black rounded-xl shadow-lg shadow-val-red/20 uppercase tracking-wider text-xs flex items-center gap-2">
+            Register <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function switchTab(tabId, btn) {
+            // Hide all contents
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('block');
+            });
+            // Show target
+            const target = document.getElementById('tab-' + tabId);
+            if(target) {
+                target.classList.remove('hidden');
+                target.classList.add('block');
+                target.classList.add('animate-fade-in'); // Re-trigger animation
+            }
+
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+        }
+    </script>
+</body>
+</html>
+                </div>
+
+
+

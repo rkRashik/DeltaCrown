@@ -24,16 +24,16 @@ def normalize_owner_to_manager(apps, schema_editor):
     if owner_count > 0:
         # Update all OWNER roles to MANAGER
         updated = TeamMembership.objects.filter(role='OWNER').update(role='MANAGER')
-        print(f"✅ Normalized {updated} OWNER memberships → MANAGER")
+        print(f"[OK] Normalized {updated} OWNER memberships -> MANAGER")
     else:
-        print("✅ No OWNER memberships found, migration is no-op")
+        print("[OK] No OWNER memberships found, migration is no-op")
 
 
 def reverse_normalize(apps, schema_editor):
     """Reverse migration: MANAGER → OWNER (for rollback only, not recommended)"""
     # Note: We cannot safely determine which MANAGERs were originally OWNERs
     # This reverse is provided for Django migration system compatibility only
-    print("⚠️  Reverse migration does not restore OWNER roles (cannot determine originals)")
+    print("[WARN] Reverse migration does not restore OWNER roles (cannot determine originals)")
 
 
 class Migration(migrations.Migration):

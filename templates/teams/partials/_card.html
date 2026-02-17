@@ -1,0 +1,23 @@
+{% load static %}
+{# Lightweight team card — used by search results, player detail, etc. #}
+<a href="/teams/{{ team.slug }}/"
+   class="glass-card p-4 rounded-xl hover:ring-2 ring-primary transition block">
+  <div class="flex items-center gap-3">
+    {% if team.logo %}
+      <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="w-10 h-10 rounded-full object-cover">
+    {% else %}
+      <div class="w-10 h-10 rounded-full bg-surface-700 flex items-center justify-center text-xs font-bold text-white">
+        {{ team.tag|default:team.name|truncatechars:3 }}
+      </div>
+    {% endif %}
+    <div class="min-w-0">
+      <h4 class="font-semibold text-white truncate">{{ team.name }}</h4>
+      {% if team.tag %}
+        <span class="text-xs text-muted">[{{ team.tag }}]</span>
+      {% endif %}
+      {% if team.tagline %}
+        <p class="text-xs text-muted truncate mt-0.5">{{ team.tagline }}</p>
+      {% endif %}
+    </div>
+  </div>
+</a>

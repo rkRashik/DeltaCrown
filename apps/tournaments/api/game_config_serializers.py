@@ -16,7 +16,7 @@ Architecture Decisions:
 """
 
 from rest_framework import serializers
-from apps.tournaments.models.tournament import Game
+from apps.games.models.game import Game
 from apps.tournaments.services.game_config_service import GameConfigService
 
 

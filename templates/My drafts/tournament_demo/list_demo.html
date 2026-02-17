@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournaments | DeltaCrown</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'dc-cyan': '#06b6d4',   /* Primary Brand */
+                        'dc-purple': '#8b5cf6', /* Secondary */
+                        'dc-gold': '#facc15',   /* Accents/Prizes */
+                        'dc-dark': '#050505',   /* Background */
+                        'dc-card': '#0a0a0a',   /* Card BG */
+                        'dc-border': 'rgba(255, 255, 255, 0.08)',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'display': ['Space Grotesk', 'sans-serif'],
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        /* --- GLOBAL AESTHETICS --- */
+        body {
+            background-color: #050505;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        /* Subtle Grain Overlay */
+        body::before {
+            content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        /* Glassmorphism Classes */
+        .glass { background: rgba(10, 10, 10, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-strong { background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
+
+        /* --- COMPONENTS --- */
+
+        /* Navigation Pills */
+        .nav-pill {
+            display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+            border-radius: 12px; color: #9ca3af; transition: all 0.2s ease;
+            border: 1px solid transparent; width: 100%; text-align: left;
+        }
+        .nav-pill:hover { background: rgba(255,255,255,0.03); color: #fff; border-color: rgba(255,255,255,0.05); }
+        .nav-pill.active { background: rgba(6, 182, 212, 0.1); color: #06b6d4; border-color: rgba(6, 182, 212, 0.25); box-shadow: 0 0 15px rgba(6,182,212,0.1); }
+
+        /* Game Icons (Simulated Logos) */
+        .game-icon {
+            width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 900; color: #000; flex-shrink: 0;
+        }
+
+        /* HERO CAROUSEL */
+        .hero-slide {
+            position: absolute; inset: 0; opacity: 0; transition: opacity 0.8s ease-in-out;
+            background-size: cover; background-position: center;
+        }
+        .hero-slide.active { opacity: 1; }
+        .hero-overlay {
+            background: linear-gradient(90deg, #050505 0%, rgba(5,5,5,0.8) 40%, rgba(5,5,5,0.2) 100%);
+        }
+
+        /* TOURNAMENT CARDS */
+        .card-modern {
+            background: #0a0a0a; border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px; overflow: hidden; position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .card-modern:hover {
+            transform: translateY(-4px);
+            border-color: rgba(6, 182, 212, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(6, 182, 212, 0.15);
+        }
+        .card-img-wrap {
+            height: 160px; position: relative; overflow: hidden;
+        }
+        .card-img-wrap img {
+            transition: transform 0.6s ease;
+        }
+        .card-modern:hover .card-img-wrap img { transform: scale(1.08); }
+        .card-img-wrap::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(to bottom, transparent 0%, #0a0a0a 100%);
+        }
+
+        /* Scrollbar Hide */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <nav class="sticky top-0 z-[100] glass-strong border-b border-dc-border h-16">
+        <div class="max-w-[1600px] mx-auto px-4 h-full flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-dc-cyan to-dc-purple flex items-center justify-center font-black text-white shadow-[0_0_15px_rgba(6,182,212,0.4)]">D</div>
+                <span class="font-display font-bold text-xl tracking-tight text-white">Delta<span class="text-dc-cyan">Crown</span></span>
+            </div>
+
+            <div class="hidden md:flex items-center bg-white/5 rounded-full p-1 border border-white/5">
+                <a href="#" class="px-5 py-1.5 text-sm font-medium text-gray-400 hover:text-white transition-colors">Home</a>
+                <a href="#" class="px-5 py-1.5 text-sm font-bold text-dc-cyan bg-white/5 rounded-full shadow-sm">Tournaments</a>
+                <a href="#" class="px-5 py-1.5 text-sm font-medium text-gray-400 hover:text-white transition-colors">Teams</a>
+                <a href="#" class="px-5 py-1.5 text-sm font-medium text-gray-400 hover:text-white transition-colors">Rankings</a>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <button class="text-gray-400 hover:text-white transition"><i data-lucide="search" class="w-5 h-5"></i></button>
+                <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-dc-gold to-orange-500 p-[1px] cursor-pointer hover:scale-105 transition">
+                    <img src="https://ui-avatars.com/api/?name=User&background=000&color=fff" class="w-full h-full rounded-full object-cover">
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="relative w-full h-[300px] md:h-[380px] overflow-hidden border-b border-dc-border group">
+
+        <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1624138784181-dc7f5b75e52e?q=80&w=2670&auto=format&fit=crop');">
+            <div class="absolute inset-0 hero-overlay flex items-center">
+                <div class="max-w-[1600px] mx-auto px-6 w-full pt-10">
+                    <div class="max-w-2xl space-y-4">
+                        <div class="flex items-center gap-3">
+                            <span class="px-3 py-1 rounded bg-red-600/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg animate-pulse">Live Now</span>
+                            <span class="text-xs font-bold text-gray-300 flex items-center gap-1"><i data-lucide="monitor" class="w-3 h-3 text-red-500"></i> PC &bull; Valorant</span>
+                        </div>
+                        <h1 class="font-display font-black text-4xl md:text-6xl text-white leading-none drop-shadow-2xl">
+                            WINTER <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">MAJOR</span><br>FINALS
+                        </h1>
+                        <p class="text-gray-300 text-sm md:text-base max-w-lg line-clamp-2">
+                            The top 16 teams in South Asia clash for the crown. Watch Dhaka Defenders take on Team Vitality in the Grand Finals.
+                        </p>
+                        <div class="flex items-center gap-4 pt-2">
+                            <button class="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition flex items-center gap-2">
+                                <i data-lucide="play" class="w-4 h-4 fill-black"></i> Watch Stream
+                            </button>
+                            <div class="text-sm font-medium text-white bg-black/50 px-4 py-2 rounded-lg border border-white/10">
+                                <span class="text-gray-400">Prize:</span> <span class="text-dc-gold font-bold">৳100,000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+            <div class="w-8 h-1 bg-white rounded-full"></div>
+            <div class="w-2 h-1 bg-white/30 rounded-full"></div>
+            <div class="w-2 h-1 bg-white/30 rounded-full"></div>
+        </div>
+    </div>
+
+    <div class="max-w-[1600px] mx-auto px-4 lg:px-6 py-8 flex-1 w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <div class="hidden lg:block lg:col-span-2 space-y-8 sticky top-24 h-fit">
+
+                <div class="relative group">
+                    <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-dc-cyan transition-colors"></i>
+                    <input type="text" placeholder="Search events..." class="w-full bg-dc-card border border-dc-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-dc-cyan/50 focus:ring-1 focus:ring-dc-cyan/50 outline-none transition-all shadow-sm">
+                </div>
+
+                <div>
+                    <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 px-2">Select Game</h3>
+                    <div class="space-y-1">
+                        <button class="nav-pill active">
+                            <div class="game-icon bg-dc-cyan/20 text-dc-cyan"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i></div>
+                            <span class="text-sm font-semibold">All Games</span>
+                        </button>
+
+                        <button class="nav-pill group">
+                            <div class="game-icon bg-red-500 text-white">V</div>
+                            <span class="text-sm font-medium group-hover:text-white">Valorant</span>
+                        </button>
+
+                        <button class="nav-pill group">
+                            <div class="game-icon bg-yellow-500 text-black">P</div>
+                            <span class="text-sm font-medium group-hover:text-white">PUBG Mobile</span>
+                        </button>
+
+                        <button class="nav-pill group">
+                            <div class="game-icon bg-orange-500 text-black">C</div>
+                            <span class="text-sm font-medium group-hover:text-white">CS2</span>
+                        </button>
+
+                        <button class="nav-pill group">
+                            <div class="game-icon bg-green-600 text-white">F</div>
+                            <span class="text-sm font-medium group-hover:text-white">Free Fire</span>
+                        </button>
+
+                        <button class="nav-pill group">
+                            <div class="game-icon bg-blue-600 text-white">M</div>
+                            <span class="text-sm font-medium group-hover:text-white">Mobile Legends</span>
+                        </button>
+
+                        <button class="nav-pill group">
+                            <div class="game-icon bg-black border border-white/20 text-white">FC</div>
+                            <span class="text-sm font-medium group-hover:text-white">EA Sports FC 26</span>
+                        </button>
+
+                        <button class="nav-pill group">
+                            <div class="game-icon bg-blue-900 text-white">e</div>
+                            <span class="text-sm font-medium group-hover:text-white">eFootball 2026</span>
+                        </button>
+
+                        <button class="nav-pill group">
+                            <div class="game-icon bg-red-800 text-white">D</div>
+                            <span class="text-sm font-medium group-hover:text-white">Dota 2</span>
+                        </button>
+
+                         <button class="nav-pill group">
+                            <div class="game-icon bg-indigo-500 text-white">R6</div>
+                            <span class="text-sm font-medium group-hover:text-white">Rainbow Six</span>
+                        </button>
+
+                         <button class="nav-pill group">
+                            <div class="game-icon bg-sky-500 text-white">RL</div>
+                            <span class="text-sm font-medium group-hover:text-white">Rocket League</span>
+                        </button>
+                         <button class="nav-pill group">
+                            <div class="game-icon bg-zinc-700 text-white">COD</div>
+                            <span class="text-sm font-medium group-hover:text-white">Call of Duty: M</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 px-2">Format</h3>
+                    <div class="flex flex-wrap gap-2 px-1">
+                        <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs text-gray-300 hover:border-dc-cyan/40 hover:text-white transition">5v5 Team</button>
+                        <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs text-gray-300 hover:border-dc-cyan/40 hover:text-white transition">Squad</button>
+                        <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs text-gray-300 hover:border-dc-cyan/40 hover:text-white transition">1v1 Solo</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-1 lg:col-span-7 space-y-6">
+
+                <div class="flex items-center justify-between pb-4 border-b border-dc-border">
+                    <h2 class="font-display font-bold text-2xl text-white">Explore Tournaments</h2>
+                    <div class="flex items-center gap-3">
+                        <select class="bg-dc-card border border-dc-border text-xs text-gray-300 rounded-lg px-3 py-2 outline-none focus:border-dc-cyan/50">
+                            <option>Sort: Trending</option>
+                            <option>Sort: Soonest</option>
+                            <option>Prize: High to Low</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="lg:hidden flex gap-2 overflow-x-auto pb-4 no-scrollbar">
+                    <button class="px-4 py-2 rounded-lg bg-dc-cyan text-black text-xs font-bold whitespace-nowrap">All</button>
+                    <button class="px-4 py-2 rounded-lg bg-dc-card border border-dc-border text-gray-400 text-xs font-medium whitespace-nowrap">Valorant</button>
+                    <button class="px-4 py-2 rounded-lg bg-dc-card border border-dc-border text-gray-400 text-xs font-medium whitespace-nowrap">PUBG M</button>
+                    <button class="px-4 py-2 rounded-lg bg-dc-card border border-dc-border text-gray-400 text-xs font-medium whitespace-nowrap">Free Fire</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                    <div class="card-modern group cursor-pointer">
+                        <div class="card-img-wrap">
+                            <img src="https://images.unsplash.com/photo-1593305841991-05c297bb45ec?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover">
+                            <div class="absolute top-3 left-3 flex gap-2">
+                                <span class="bg-black/60 backdrop-blur border border-white/10 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1"><i data-lucide="users" class="w-3 h-3 text-dc-cyan"></i> Squad</span>
+                            </div>
+                            <div class="absolute top-3 right-3">
+                                <span class="bg-green-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">Open</span>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] font-bold text-yellow-500 uppercase tracking-wider">PUBG Mobile</span>
+                                <span class="text-[10px] text-gray-500">Starts Dec 21</span>
+                            </div>
+                            <h3 class="font-display font-bold text-lg text-white mb-4 group-hover:text-dc-cyan transition-colors line-clamp-1">Erangel Survival Series S4</h3>
+
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5 mb-4">
+                                <div class="text-center">
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold">Prize</div>
+                                    <div class="text-dc-gold font-bold font-display">৳25,000</div>
+                                </div>
+                                <div class="w-px h-6 bg-white/10"></div>
+                                <div class="text-center">
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold">Entry</div>
+                                    <div class="text-white font-bold font-display">Free</div>
+                                </div>
+                                <div class="w-px h-6 bg-white/10"></div>
+                                <div class="text-center">
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold">Slots</div>
+                                    <div class="text-white font-bold font-display">48/64</div>
+                                </div>
+                            </div>
+
+                            <button class="w-full py-2.5 rounded-lg bg-dc-cyan hover:bg-dc-cyan/90 text-black font-bold text-sm transition-all flex items-center justify-center gap-2">
+                                Register Team <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-modern group cursor-pointer border-red-500/20">
+                        <div class="card-img-wrap">
+                            <img src="https://images.unsplash.com/photo-1624138784181-dc7f5b75e52e?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover">
+                            <div class="absolute top-3 right-3">
+                                <span class="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase animate-pulse">● Live</span>
+                            </div>
+                        </div>
+                        <div class="p-5 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] font-bold text-red-400 uppercase tracking-wider">Valorant</span>
+                                <span class="text-[10px] text-red-400 flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i> 1.2k Watching</span>
+                            </div>
+                            <h3 class="font-display font-bold text-lg text-white mb-4 group-hover:text-red-500 transition-colors">Dhaka City Cup: Finals</h3>
+
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-red-500/5 border border-red-500/10 mb-4">
+                                <div class="flex items-center gap-3 w-full justify-center">
+                                    <div class="text-center">
+                                        <div class="font-bold text-white text-lg">13</div>
+                                        <div class="text-[10px] text-gray-500">TRX</div>
+                                    </div>
+                                    <div class="text-[10px] font-mono text-red-500 font-bold">VS</div>
+                                    <div class="text-center">
+                                        <div class="font-bold text-gray-400 text-lg">9</div>
+                                        <div class="text-[10px] text-gray-500">BLD</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 hover:bg-red-600 hover:border-red-600 hover:text-white text-gray-300 font-bold text-sm transition-all flex items-center justify-center gap-2">
+                                <i data-lucide="tv" class="w-4 h-4"></i> Watch Stream
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-modern group cursor-pointer opacity-75 hover:opacity-100 grayscale hover:grayscale-0">
+                        <div class="card-img-wrap">
+                            <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover">
+                            <div class="absolute top-3 right-3">
+                                <span class="bg-gray-800 text-gray-300 text-[10px] font-bold px-2 py-1 rounded uppercase">Ended</span>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] font-bold text-orange-500 uppercase tracking-wider">Counter-Strike 2</span>
+                                <span class="text-[10px] text-gray-500">Yesterday</span>
+                            </div>
+                            <h3 class="font-display font-bold text-lg text-white mb-4">Tactical Shooter Weekly</h3>
+
+                            <div class="p-3 rounded-lg bg-gradient-to-r from-dc-gold/10 to-transparent border border-dc-gold/20 mb-4 flex items-center gap-3">
+                                <div class="w-8 h-8 rounded bg-dc-gold/20 flex items-center justify-center text-dc-gold"><i data-lucide="crown" class="w-4 h-4 fill-current"></i></div>
+                                <div>
+                                    <div class="text-[10px] font-bold text-dc-gold uppercase">Winner</div>
+                                    <div class="text-sm font-bold text-white">Team 71</div>
+                                </div>
+                            </div>
+
+                            <button class="w-full py-2.5 rounded-lg bg-transparent border border-white/10 hover:bg-white/5 text-gray-400 hover:text-white font-bold text-sm transition-all">
+                                View Results
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-modern group cursor-pointer">
+                        <div class="card-img-wrap">
+                            <img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover">
+                            <div class="absolute top-3 left-3 flex gap-2">
+                                <span class="bg-black/60 backdrop-blur border border-white/10 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1"><i data-lucide="user" class="w-3 h-3 text-dc-cyan"></i> 1v1</span>
+                            </div>
+                            <div class="absolute top-3 right-3">
+                                <span class="bg-dc-purple text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">Dec 25</span>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] font-bold text-purple-400 uppercase tracking-wider">EA FC 26</span>
+                            </div>
+                            <h3 class="font-display font-bold text-lg text-white mb-4 group-hover:text-dc-purple transition-colors">Weekend League: Pro Edition</h3>
+
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5 mb-4">
+                                <div class="text-center">
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold">Prize</div>
+                                    <div class="text-dc-gold font-bold font-display">৳5k</div>
+                                </div>
+                                <div class="w-px h-6 bg-white/10"></div>
+                                <div class="text-center">
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold">Fee</div>
+                                    <div class="text-white font-bold font-display">৳100</div>
+                                </div>
+                                <div class="w-px h-6 bg-white/10"></div>
+                                <div class="text-center">
+                                    <div class="text-[10px] text-gray-500 uppercase font-bold">Slots</div>
+                                    <div class="text-white font-bold font-display">12/32</div>
+                                </div>
+                            </div>
+
+                            <button class="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 hover:bg-dc-purple hover:border-dc-purple text-white font-bold text-sm transition-all">
+                                Pre-Register
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="w-full py-4 rounded-xl border border-white/5 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all font-medium flex items-center justify-center gap-2">
+                    Load More Events <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div class="hidden lg:block lg:col-span-3 space-y-6">
+
+                <div class="bg-dc-card border border-dc-border rounded-2xl p-5 shadow-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="user" class="w-3.5 h-3.5 text-dc-cyan"></i> My Tournaments
+                        </h3>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="p-3 rounded-xl bg-gradient-to-r from-dc-cyan/10 to-transparent border border-dc-cyan/20 cursor-pointer hover:border-dc-cyan/50 transition">
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="text-sm font-bold text-white">Rookie Cup #44</span>
+                                <span class="relative flex h-2 w-2">
+                                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                                  <span class="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between mt-2">
+                                <span class="text-[10px] text-gray-400">Match in 15m</span>
+                                <button class="px-3 py-1 bg-yellow-500 text-black text-[10px] font-bold rounded hover:bg-yellow-400">Check In</button>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition">
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="text-sm font-bold text-white">Valorant Night</span>
+                            </div>
+                            <div class="flex items-center justify-between mt-2">
+                                <span class="text-[10px] text-gray-400">Dec 28 &bull; 8:00 PM</span>
+                                <span class="text-[10px] text-green-400 font-bold">Ready</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative overflow-hidden rounded-2xl p-6 group cursor-pointer border border-dc-purple/30">
+                    <div class="absolute inset-0 bg-gradient-to-br from-dc-purple/20 to-black transition opacity-80 group-hover:opacity-100"></div>
+                    <div class="relative z-10 text-center">
+                        <div class="w-12 h-12 mx-auto bg-dc-purple rounded-full flex items-center justify-center mb-3 shadow-[0_0_20px_rgba(139,92,246,0.3)] group-hover:scale-110 transition-transform">
+                            <i data-lucide="trophy" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-white text-lg mb-1">Host a Tournament</h3>
+                        <p class="text-xs text-gray-300 mb-4 px-2">Automated brackets, payments, and scoring. Free for community events.</p>
+                        <button class="w-full py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 transition-colors">
+                            Create Now
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-dc-card border border-dc-border rounded-2xl p-5">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <i data-lucide="crown" class="w-3.5 h-3.5 text-dc-gold"></i> Latest Winners
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded bg-white/10 flex items-center justify-center font-bold text-[10px] text-white">T71</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold text-white truncate">Team 71</div>
+                                <div class="text-[10px] text-gray-500 truncate">CS2 Weekly #42</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs font-bold text-dc-gold">৳10k</div>
+                            </div>
+                        </div>
+                        <div class="w-full h-px bg-white/5"></div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded bg-red-900/30 text-red-400 flex items-center justify-center font-bold text-[10px]">DR</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold text-white truncate">Dark Reign</div>
+                                <div class="text-[10px] text-gray-500 truncate">Valo Cup S3</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs font-bold text-dc-gold">৳50k</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="w-full mt-4 py-2 text-xs text-gray-500 hover:text-white transition">View Leaderboard</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Simple Carousel Logic (Auto-slide)
+        const slides = document.querySelectorAll('.hero-slide');
+        let currentSlide = 0;
+
+        // In a real implementation, add more slides to HTML and uncomment this:
+        /*
+        setInterval(() => {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }, 5000);
+        */
+
+        // Game Filter Logic (Visual Only for Demo)
+        const pills = document.querySelectorAll('.nav-pill');
+        pills.forEach(pill => {
+            pill.addEventListener('click', () => {
+                pills.forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>
