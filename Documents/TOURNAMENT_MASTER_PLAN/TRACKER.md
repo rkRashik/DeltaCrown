@@ -9,8 +9,8 @@
 
 | Metric | Value |
 |--------|-------|
-| **Current Phase** | Phase 0 — Complete ✅ |
-| **Overall Progress** | 14% (7/50 tasks) |
+| **Current Phase** | Phase 1 — Complete ✅ |
+| **Overall Progress** | 26% (13/50 tasks) |
 | **Last Updated** | February 17, 2026 |
 | **Blockers** | None |
 | **Active Plan** | `02_UPDATED_EXECUTION_PLAN.md` (v2) |
@@ -22,7 +22,7 @@
 | Phase | Name | Status | Progress | Tasks Done / Total |
 |-------|------|--------|----------|-------------------|
 | 0 | Cleanup | ✅ Complete | 100% | 7 / 7 |
-| 1 | Foundation Wiring | ⬜ Not Started | 0% | 0 / 6 |
+| 1 | Foundation Wiring | ✅ Complete | 100% | 6 / 6 |
 | 1.5 | Admin Modernization | ⬜ Not Started | 0% | 0 / 6 |
 | 2 | Service Consolidation | ⬜ Not Started | 0% | 0 / 6 |
 | 3 | Views & URL Restructure | ⬜ Not Started | 0% | 0 / 5 |
@@ -50,12 +50,12 @@
 
 | ID | Task | Status | Notes |
 |----|------|--------|-------|
-| 1.1 | Wire EconomyAdapter to economy.services | ⬜ | `charge()` → `debit()`, `refund()` → `credit()`, `get_balance()` |
-| 1.2 | Wire NotificationAdapter to notifications.services | ⬜ | Map to `notify()` with 30+ existing types |
-| 1.3 | Verify & fix TeamAdapter (organizations) | ⬜ | Dual-source: organizations (primary) + legacy teams (fallback) |
-| 1.4 | Verify & fix UserAdapter (GameProfile) | ⬜ | Replace profile.riot_id → GameProfile queries |
-| 1.5 | Wire event publishing (EventBus) | ⬜ | `match.completed`, lifecycle events |
-| 1.6 | Add Celery beat task scheduling | ⬜ | 3 tasks: reminder, escalation, auto-confirm |
+| 1.1 | Wire EconomyAdapter to economy.services | ✅ | `charge_registration_fee()` → `debit()` with idempotency keys, `refund_registration_fee()` → `credit()`, `get_balance()` → real balance, `verify_payment()` → DeltaCrownTransaction lookup, `check_health()` → DeltaCrownWallet exists |
+| 1.2 | Wire NotificationAdapter to notifications.services | ✅ | `_notify()` central dispatcher → `notifications.services.notify()`, 5 methods: submission_created, dispute_created, evidence_added, dispute_resolved, auto_confirmed. Fire-and-forget with logging |
+| 1.3 | Verify & fix TeamAdapter (organizations) | ✅ | Adapter code already clean (uses `get_team_by_any_id`, `organizations.models.Team`). Fixed all test mock targets: `apps.teams.services.team_service.TeamService` → `apps.organizations.services.compat.get_team_by_any_id`, `apps.teams.models._legacy.Team.objects` → `apps.organizations.models.Team.objects`. SimpleNamespace fakes for `from_model()` compat |
+| 1.4 | Verify & fix UserAdapter (GameProfile) | ✅ | Adapter code already correct (Phase 0.7 fixed `from_model()`). Fixed test mocks: patched `UserProfileDTO.from_model` + `UserAdapter.get_user_profile` to isolate adapter logic from ORM internals (allauth, SocialLink, GameProfile queries) |
+| 1.5 | Wire event publishing (EventBus) | ✅ | Created `events/publishers.py` with 10 helper functions bridging to `apps.core.events` EventBus: tournament (created/published/started/completed), registration (created/confirmed), match (scheduled/completed/result_verified), payment (verified). Discovered 3 separate EventBus singletons (core, common, apps.common) — publishers standardize on core bus |
+| 1.6 | Add Celery beat task scheduling | ✅ | Added 3 tasks to `deltacrown/celery.py` beat_schedule: `auto_confirm_submission_task` (every 30 min), `opponent_response_reminder_task` (hourly at :20), `dispute_escalation_task` (every 6h at :45) |
 
 ## Phase 1.5: Admin Modernization (3-5 days) — NEW
 
@@ -140,6 +140,11 @@
 | 2026-02-17 | 0.5 | — | `match.py` (Dispute deprecation), `staff.py` (TournamentStaffRole deprecation) | — |
 | 2026-02-17 | 0.6 | migration `0008_decouple_cross_app_fks` | `dispute.py`, `form_template.py`, `group.py`, `lobby.py`, `result_submission.py`, `team_invitation.py`, `permission_request.py` | — |
 | 2026-02-17 | 0.7 | — | `dtos/team.py` (from_model rewrite), `dtos/user.py` (from_model rewrite) | — |
+| 2026-02-17 | 1.1 | — | `adapters/economy_adapter.py` (full rewrite: stubs → debit/credit/get_balance wiring) | — |
+| 2026-02-17 | 1.2 | — | `adapters/notification_adapter.py` (full rewrite: pass stubs → notify() wiring) | — |
+| 2026-02-17 | 1.3-1.4 | — | `tests/test_adapters.py` (fixed all mock targets: team, user, economy, architecture guards) | — |
+| 2026-02-17 | 1.5 | `events/publishers.py` | `events/__init__.py` (added publisher exports) | — |
+| 2026-02-17 | 1.6 | — | `deltacrown/celery.py` (added 3 tournament_ops beat tasks) | — |
 
 ---
 
@@ -179,9 +184,10 @@
 | 158 tournament templates with duplicates/legacy versions | HIGH | Phase 4.0 (archive) + Phase 4.1-4.10 (rebuild) |
 | 49 scattered tournament static files (CSS/JS) | HIGH | Phase 4.0 (archive) + Phase 4.1-4.10 (rebuild) |
 | `init_default_games.py` mgmt command is entirely broken (refs Game fields that don't exist) | MEDIUM | Phase 1 |
-| `test_adapters.py` has stale mock targets (patches `apps.teams.services.team_service.TeamService` which doesn't exist) | MEDIUM | Phase 6, Task 6.1 |
-| EconomyAdapter is fully stubbed (hardcoded fake balance, mock transactions) | HIGH | Phase 1, Task 1.1 |
-| NotificationAdapter is fully no-op (all `pass` stubs) | MEDIUM | Phase 1, Task 1.2 |
+| ~~`test_adapters.py` has stale mock targets~~ | ~~MEDIUM~~ | ✅ Fixed in Phase 1 (Tasks 1.3-1.4) |
+| ~~EconomyAdapter is fully stubbed~~ | ~~HIGH~~ | ✅ Fixed in Phase 1, Task 1.1 |
+| ~~NotificationAdapter is fully no-op~~ | ~~MEDIUM~~ | ✅ Fixed in Phase 1, Task 1.2 |
+| 3 separate EventBus singletons (core, common, apps.common) — events fragmented | HIGH | Phase 2 (standardize on core bus) |
 | Legacy Dispute model still has 8+ production import sites | MEDIUM | Phase 2 |
 | Legacy TournamentStaffRole still has 6 import sites | MEDIUM | Phase 2 |
 

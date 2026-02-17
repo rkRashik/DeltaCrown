@@ -4,12 +4,15 @@ Economy service adapter for cross-domain payment/balance operations.
 Provides TournamentOps with access to DeltaCoin economy operations (payments,
 refunds, balance queries) without direct imports from apps.economy.models.
 
-Reference: ROADMAP_AND_EPICS_PART_4.md - Phase 1, Epic 1.1
+Wired to apps.economy.services (credit/debit/get_balance) in Phase 1.
 """
 
 from typing import Protocol, runtime_checkable, Dict, Any, Optional
+import logging
 
 from .base import BaseAdapter
+
+logger = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -109,17 +112,17 @@ class EconomyAdapter(BaseAdapter):
     """
     Concrete economy adapter implementation.
     
-    This adapter is the ONLY way for TournamentOps to interact with the
-    DeltaCoin economy system. It handles payments, refunds, and balance queries.
-    
-    Implementation Note:
-    - Phase 1, Epic 1.1: Create adapter skeleton (this file)
-    - Phase 1, Epic 1.3: Wire up DTOs
-    - Phase 1, Epic 1.4: Implement actual payment operations via economy service
-    - Phase 1, Epic 1.1: Add unit tests with mocked economy service
-    
-    Reference: CLEANUP_AND_TESTING_PART_6.md - §4.4 (Service-Based APIs)
+    Wired to apps.economy.services for real DeltaCoin operations:
+    - charge_registration_fee() → economy.services.debit()
+    - refund_registration_fee() → economy.services.credit()
+    - get_balance() → economy.services.get_balance()
+    - verify_payment() → economy.models.DeltaCrownTransaction lookup
     """
+    
+    def _resolve_profile(self, user_id: int):
+        """Resolve user_id → UserProfile for economy service calls."""
+        from apps.user_profile.models import UserProfile
+        return UserProfile.objects.get(user_id=user_id)
     
     def charge_registration_fee(
         self,
@@ -129,12 +132,7 @@ class EconomyAdapter(BaseAdapter):
         currency: str = "DC"
     ) -> Dict[str, Any]:
         """
-        Charge registration fee to user's DeltaCoin account.
-        
-        TODO: Implement via WalletService.charge() (Phase 1, Epic 1.4).
-        TODO: Return PaymentResultDTO instead of dict.
-        
-        For Phase 1, returns mock success response.
+        Charge registration fee via economy.services.debit().
         
         Args:
             user_id: User to charge
@@ -143,41 +141,49 @@ class EconomyAdapter(BaseAdapter):
             currency: Currency code (default: DC)
         
         Returns:
-            Dict containing transaction details
+            Dict with transaction_id, user_id, amount, currency, status, metadata
         
         Raises:
-            PaymentFailedError: If payment processing fails
+            PaymentFailedError: If payment fails (insufficient funds, invalid amount, etc.)
         """
         from apps.tournament_ops.exceptions import PaymentFailedError
-        import uuid
-        from datetime import datetime, timezone
         
-        # TODO: Replace with actual WalletService.charge() call
-        # from apps.economy.services.wallet_service import WalletService
-        # result = WalletService.charge(
-        #     user_id=user_id,
-        #     amount=amount,
-        #     currency=currency,
-        #     metadata={'tournament_id': tournament_id, 'type': 'registration_fee'}
-        # )
-        # return PaymentResultDTO.from_model(result)
-        
-        # Phase 1 mock implementation
-        if amount < 0:
+        if amount <= 0:
             raise PaymentFailedError("Invalid amount: must be positive")
         
-        return {
-            'transaction_id': str(uuid.uuid4()),
-            'user_id': user_id,
-            'amount': amount,
-            'currency': currency,
-            'status': 'completed',
-            'created_at': datetime.now(timezone.utc).isoformat(),
-            'metadata': {
-                'tournament_id': tournament_id,
-                'type': 'registration_fee'
+        try:
+            from apps.economy.services import debit
+            
+            profile = self._resolve_profile(user_id)
+            result = debit(
+                profile,
+                amount,
+                reason=f"Tournament registration fee (tournament #{tournament_id})",
+                idempotency_key=f"reg-fee-{user_id}-{tournament_id}",
+                meta={'tournament_id': tournament_id, 'type': 'registration_fee'},
+            )
+            
+            return {
+                'transaction_id': str(result.get('transaction_id', '')),
+                'user_id': user_id,
+                'amount': amount,
+                'currency': currency,
+                'status': 'completed',
+                'balance_after': result.get('balance_after', 0),
+                'metadata': {
+                    'tournament_id': tournament_id,
+                    'type': 'registration_fee',
+                    'idempotency_key': result.get('idempotency_key'),
+                },
             }
-        }
+        except Exception as e:
+            err_str = str(e).lower()
+            if 'insufficient' in err_str:
+                raise PaymentFailedError(f"Insufficient DeltaCoin balance for {amount} DC fee")
+            if 'idempotency' in err_str:
+                raise PaymentFailedError(f"Duplicate charge attempt for tournament #{tournament_id}")
+            logger.error("EconomyAdapter.charge_registration_fee failed: %s", e)
+            raise PaymentFailedError(f"Payment failed: {e}")
     
     def refund_registration_fee(
         self,
@@ -188,12 +194,7 @@ class EconomyAdapter(BaseAdapter):
         reason: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Refund registration fee to user's DeltaCoin account.
-        
-        TODO: Implement via WalletService.refund() (Phase 1, Epic 1.4).
-        TODO: Return PaymentResultDTO instead of dict.
-        
-        For Phase 1, returns mock success response.
+        Refund registration fee via economy.services.credit().
         
         Args:
             user_id: User to refund
@@ -203,104 +204,105 @@ class EconomyAdapter(BaseAdapter):
             reason: Optional refund reason
         
         Returns:
-            Dict containing refund transaction details
+            Dict with transaction details
         
         Raises:
-            PaymentFailedError: If refund processing fails
+            PaymentFailedError: If refund fails
         """
         from apps.tournament_ops.exceptions import PaymentFailedError
-        import uuid
-        from datetime import datetime, timezone
         
-        # TODO: Replace with actual WalletService.refund() call
-        # from apps.economy.services.wallet_service import WalletService
-        # result = WalletService.refund(
-        #     user_id=user_id,
-        #     amount=amount,
-        #     currency=currency,
-        #     metadata={'tournament_id': tournament_id, 'reason': reason}
-        # )
-        # return PaymentResultDTO.from_model(result)
-        
-        # Phase 1 mock implementation
-        if amount < 0:
+        if amount <= 0:
             raise PaymentFailedError("Invalid refund amount: must be positive")
         
-        return {
-            'transaction_id': str(uuid.uuid4()),
-            'user_id': user_id,
-            'amount': amount,
-            'currency': currency,
-            'status': 'refunded',
-            'created_at': datetime.now(timezone.utc).isoformat(),
-            'metadata': {
-                'tournament_id': tournament_id,
-                'type': 'refund',
-                'reason': reason or 'Tournament cancellation'
+        reason_str = reason or "Tournament cancellation"
+        
+        try:
+            from apps.economy.services import credit
+            
+            profile = self._resolve_profile(user_id)
+            result = credit(
+                profile,
+                amount,
+                reason=f"Refund: {reason_str} (tournament #{tournament_id})",
+                idempotency_key=f"refund-{user_id}-{tournament_id}",
+                meta={'tournament_id': tournament_id, 'type': 'refund', 'reason': reason_str},
+            )
+            
+            return {
+                'transaction_id': str(result.get('transaction_id', '')),
+                'user_id': user_id,
+                'amount': amount,
+                'currency': currency,
+                'status': 'refunded',
+                'balance_after': result.get('balance_after', 0),
+                'metadata': {
+                    'tournament_id': tournament_id,
+                    'type': 'refund',
+                    'reason': reason_str,
+                    'idempotency_key': result.get('idempotency_key'),
+                },
             }
-        }
+        except Exception as e:
+            logger.error("EconomyAdapter.refund_registration_fee failed: %s", e)
+            raise PaymentFailedError(f"Refund failed: {e}")
     
     def get_balance(self, user_id: int) -> Dict[str, Any]:
         """
-        Get user's current DeltaCoin balance.
-        
-        TODO: Implement via WalletService.get_balance() (Phase 1, Epic 1.4).
-        TODO: Return BalanceDTO instead of dict.
-        
-        For Phase 1, returns mock balance data.
+        Get user's current DeltaCoin balance via economy.services.get_balance().
         
         Args:
             user_id: User identifier
         
         Returns:
-            Dict containing balance data
+            Dict with user_id, balance, currency, frozen_balance
         """
-        # TODO: Replace with actual WalletService.get_balance() call
-        # from apps.economy.services.wallet_service import WalletService
-        # balance = WalletService.get_balance(user_id)
-        # return BalanceDTO.from_model(balance)
-        
-        # Phase 1 mock implementation
-        return {
-            'user_id': user_id,
-            'balance': 10000,  # Mock balance: 10,000 DC
-            'currency': 'DC',
-            'frozen_balance': 0,
-        }
+        try:
+            from apps.economy.services import get_balance
+            
+            profile = self._resolve_profile(user_id)
+            balance = get_balance(profile)
+            
+            return {
+                'user_id': user_id,
+                'balance': balance,
+                'currency': 'DC',
+                'frozen_balance': 0,  # TODO: Wire holds when available
+            }
+        except Exception as e:
+            logger.warning("EconomyAdapter.get_balance failed for user %d: %s", user_id, e)
+            return {
+                'user_id': user_id,
+                'balance': 0,
+                'currency': 'DC',
+                'frozen_balance': 0,
+            }
     
     def verify_payment(self, transaction_id: str) -> bool:
         """
-        Verify that a payment transaction completed successfully.
-        
-        TODO: Implement via WalletService.verify_transaction() (Phase 1, Epic 1.4).
-        
-        For Phase 1, returns True (mock verification).
+        Verify payment by checking DeltaCrownTransaction exists.
         
         Args:
-            transaction_id: Payment transaction identifier
+            transaction_id: Transaction ID (integer stored as string)
         
         Returns:
-            bool: True if payment verified, False otherwise
+            bool: True if transaction exists and is valid
         """
-        # TODO: Replace with actual WalletService.verify_transaction() call
-        # from apps.economy.services.wallet_service import WalletService
-        # return WalletService.verify_transaction(transaction_id)
-        
-        # Phase 1 mock implementation - verify UUID format
-        import uuid
         try:
-            uuid.UUID(transaction_id)
-            return True
-        except (ValueError, AttributeError):
+            from apps.economy.models import DeltaCrownTransaction
+            txn_id = int(transaction_id)
+            return DeltaCrownTransaction.objects.filter(pk=txn_id).exists()
+        except (ValueError, TypeError):
+            return False
+        except Exception:
             return False
     
     def check_health(self) -> bool:
         """
-        Check if economy service is accessible.
-        
-        TODO: Implement actual health check when economy models/services exist.
-        For Phase 1, always returns True (no economy service dependency yet).
+        Check if economy service is accessible by testing wallet model.
         """
-        # TODO: Check WalletService.check_health() when available
-        # For Phase 1, assume healthy
-        return True
+        try:
+            from apps.economy.models import DeltaCrownWallet
+            DeltaCrownWallet.objects.exists()
+            return True
+        except Exception:
+            return False

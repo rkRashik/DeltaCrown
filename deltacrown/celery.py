@@ -82,6 +82,37 @@ app.conf.beat_schedule = {
             'expires': 3600,
         }
     },
+
+    # ========================================================================
+    # TournamentOps Periodic Tasks (Phase 1 - Foundation Wiring)
+    # ========================================================================
+
+    # Auto-confirm unresponded result submissions every 30 minutes
+    'tournament-ops-auto-confirm-stale': {
+        'task': 'apps.tournament_ops.tasks_result_submission.auto_confirm_submission_task',
+        'schedule': crontab(minute='*/30'),
+        'options': {
+            'expires': 1800,  # 30 minutes
+        },
+    },
+
+    # Send opponent response reminders every hour
+    'tournament-ops-opponent-reminder': {
+        'task': 'tournament_ops.opponent_response_reminder_task',
+        'schedule': crontab(minute=20),  # Every hour at :20
+        'options': {
+            'expires': 3600,
+        },
+    },
+
+    # Auto-escalate overdue disputes every 6 hours
+    'tournament-ops-dispute-escalation': {
+        'task': 'tournament_ops.dispute_escalation_task',
+        'schedule': crontab(hour='*/6', minute=45),
+        'options': {
+            'expires': 3600,
+        },
+    },
 }
 
 # Celery configuration

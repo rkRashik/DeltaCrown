@@ -13,6 +13,7 @@ Reference: CLEANUP_AND_TESTING_PART_6.md - §9.1 (Adapter Testing)
 """
 
 import pytest
+from types import SimpleNamespace
 from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime, timezone
 import uuid
@@ -35,6 +36,20 @@ from apps.tournament_ops.exceptions import (
 )
 
 
+def _fake_team(**overrides):
+    """Build a SimpleNamespace fake team (no vnext_memberships → from_model
+    uses the simple-attribute path)."""
+    defaults = dict(
+        id=1, name="Test Team", tag="TST", slug="test-team",
+        game="valorant", captain_id=100, captain_name="Captain",
+        member_ids=[100, 101, 102], member_names=["Captain", "M1", "M2"],
+        is_verified=True, is_active=True, logo_url=None,
+        created_at=datetime.now(timezone.utc),
+    )
+    defaults.update(overrides)
+    return SimpleNamespace(**defaults)
+
+
 # ============================================================================
 # TEAM ADAPTER TESTS
 # ============================================================================
@@ -47,23 +62,11 @@ class TestTeamAdapter:
         """Set up test fixtures."""
         self.adapter = TeamAdapter()
 
-    @patch('apps.teams.services.team_service.TeamService')
-    def test_get_team_returns_dto(self, mock_service_class):
-        """Test get_team() calls TeamService and returns TeamDTO."""
+    @patch('apps.organizations.services.compat.get_team_by_any_id')
+    def test_get_team_returns_dto(self, mock_get_team):
+        """Test get_team() calls get_team_by_any_id and returns TeamDTO."""
         # Arrange
-        mock_team = Mock()
-        mock_team.id = 1
-        mock_team.name = "Test Team"
-        mock_team.tag = "TST"
-        mock_team.slug = "test-team"
-        mock_team.game = "valorant"
-        mock_team.captain_id = 100
-        mock_team.member_ids = [100, 101, 102]
-        mock_team.is_verified = True
-        mock_team.is_active = True
-        mock_team.created_at = datetime.now(timezone.utc)
-
-        mock_service_class.get_team_by_id.return_value = mock_team
+        mock_get_team.return_value = _fake_team()
 
         # Act
         result = self.adapter.get_team(team_id=1)
@@ -75,35 +78,26 @@ class TestTeamAdapter:
         assert result.game == "valorant"
         assert result.captain_id == 100
         assert len(result.member_ids) == 3
-        mock_service_class.get_team_by_id.assert_called_once_with(1)
+        mock_get_team.assert_called_once_with(1)
 
-    @patch('apps.teams.services.team_service.TeamService')
-    def test_get_team_not_found_raises_exception(self, mock_service_class):
+    @patch('apps.organizations.services.compat.get_team_by_any_id')
+    def test_get_team_not_found_raises_exception(self, mock_get_team):
         """Test get_team() raises TeamNotFoundError when team doesn't exist."""
         # Arrange
-        mock_service_class.get_team_by_id.return_value = None
+        mock_get_team.return_value = None
 
         # Act & Assert
         with pytest.raises(TeamNotFoundError, match="Team 999 not found"):
             self.adapter.get_team(team_id=999)
 
-    @patch('apps.teams.services.team_service.TeamService')
-    def test_list_team_members_returns_member_ids(self, mock_service_class):
+    @patch('apps.organizations.services.compat.get_team_by_any_id')
+    def test_list_team_members_returns_member_ids(self, mock_get_team):
         """Test list_team_members() returns list of member IDs."""
         # Arrange
-        mock_team = Mock()
-        mock_team.id = 1
-        mock_team.name = "Test Team"
-        mock_team.tag = "TST"
-        mock_team.slug = "test-team"
-        mock_team.game = "valorant"
-        mock_team.captain_id = 100
-        mock_team.member_ids = [100, 101, 102, 103]
-        mock_team.is_verified = True
-        mock_team.is_active = True
-        mock_team.created_at = datetime.now(timezone.utc)
-
-        mock_service_class.get_team_by_id.return_value = mock_team
+        mock_get_team.return_value = _fake_team(
+            member_ids=[100, 101, 102, 103],
+            member_names=["Cap", "M1", "M2", "M3"],
+        )
 
         # Act
         result = self.adapter.list_team_members(team_id=1)
@@ -112,23 +106,11 @@ class TestTeamAdapter:
         assert result == [100, 101, 102, 103]
         assert len(result) == 4
 
-    @patch('apps.teams.services.team_service.TeamService')
-    def test_validate_membership_true_for_member(self, mock_service_class):
+    @patch('apps.organizations.services.compat.get_team_by_any_id')
+    def test_validate_membership_true_for_member(self, mock_get_team):
         """Test validate_membership() returns True when user is team member."""
         # Arrange
-        mock_team = Mock()
-        mock_team.id = 1
-        mock_team.name = "Test Team"
-        mock_team.tag = "TST"
-        mock_team.slug = "test-team"
-        mock_team.game = "valorant"
-        mock_team.captain_id = 100
-        mock_team.member_ids = [100, 101, 102]
-        mock_team.is_verified = True
-        mock_team.is_active = True
-        mock_team.created_at = datetime.now(timezone.utc)
-
-        mock_service_class.get_team_by_id.return_value = mock_team
+        mock_get_team.return_value = _fake_team()
 
         # Act
         result = self.adapter.validate_membership(team_id=1, user_id=101)
@@ -136,23 +118,11 @@ class TestTeamAdapter:
         # Assert
         assert result is True
 
-    @patch('apps.teams.services.team_service.TeamService')
-    def test_validate_membership_false_for_non_member(self, mock_service_class):
+    @patch('apps.organizations.services.compat.get_team_by_any_id')
+    def test_validate_membership_false_for_non_member(self, mock_get_team):
         """Test validate_membership() returns False when user is not team member."""
         # Arrange
-        mock_team = Mock()
-        mock_team.id = 1
-        mock_team.name = "Test Team"
-        mock_team.tag = "TST"
-        mock_team.slug = "test-team"
-        mock_team.game = "valorant"
-        mock_team.captain_id = 100
-        mock_team.member_ids = [100, 101, 102]
-        mock_team.is_verified = True
-        mock_team.is_active = True
-        mock_team.created_at = datetime.now(timezone.utc)
-
-        mock_service_class.get_team_by_id.return_value = mock_team
+        mock_get_team.return_value = _fake_team()
 
         # Act
         result = self.adapter.validate_membership(team_id=1, user_id=999)
@@ -161,27 +131,18 @@ class TestTeamAdapter:
         assert result is False
 
     @patch('apps.games.services.game_service.GameService')
-    @patch('apps.teams.services.team_service.TeamService')
-    def test_validate_team_eligibility_success(self, mock_team_service, mock_game_service):
+    @patch('apps.organizations.services.compat.get_team_by_any_id')
+    def test_validate_team_eligibility_success(self, mock_get_team, mock_game_service):
         """Test validate_team_eligibility() returns valid when all checks pass."""
         # Arrange
-        mock_team = Mock()
-        mock_team.id = 1
-        mock_team.name = "Test Team"
-        mock_team.tag = "TST"
-        mock_team.slug = "test-team"
-        mock_team.game = "valorant"
-        mock_team.captain_id = 100
-        mock_team.member_ids = [100, 101, 102, 103, 104]  # 5 members
-        mock_team.is_verified = True
-        mock_team.is_active = True
-        mock_team.created_at = datetime.now(timezone.utc)
+        mock_get_team.return_value = _fake_team(
+            member_ids=[100, 101, 102, 103, 104],
+            member_names=["C", "M1", "M2", "M3", "M4"],
+        )
 
         mock_game = Mock()
         mock_game.slug = "valorant"
         mock_game.name = "Valorant"
-
-        mock_team_service.get_team_by_id.return_value = mock_team
         mock_game_service.get_game_by_id.return_value = mock_game
 
         # Act
@@ -198,28 +159,20 @@ class TestTeamAdapter:
         assert len(result.errors) == 0
 
     @patch('apps.games.services.game_service.GameService')
-    @patch('apps.teams.services.team_service.TeamService')
+    @patch('apps.organizations.services.compat.get_team_by_any_id')
     def test_validate_team_eligibility_fails_on_unverified_team(
-        self, mock_team_service, mock_game_service
+        self, mock_get_team, mock_game_service
     ):
         """Test validate_team_eligibility() fails when team is not verified."""
         # Arrange
-        mock_team = Mock()
-        mock_team.id = 1
-        mock_team.name = "Test Team"
-        mock_team.tag = "TST"
-        mock_team.slug = "test-team"
-        mock_team.game = "valorant"
-        mock_team.captain_id = 100
-        mock_team.member_ids = [100, 101, 102, 103, 104]
-        mock_team.is_verified = False  # NOT VERIFIED
-        mock_team.is_active = True
-        mock_team.created_at = datetime.now(timezone.utc)
+        mock_get_team.return_value = _fake_team(
+            is_verified=False,
+            member_ids=[100, 101, 102, 103, 104],
+            member_names=["C", "M1", "M2", "M3", "M4"],
+        )
 
         mock_game = Mock()
         mock_game.slug = "valorant"
-
-        mock_team_service.get_team_by_id.return_value = mock_team
         mock_game_service.get_game_by_id.return_value = mock_game
 
         # Act
@@ -235,28 +188,16 @@ class TestTeamAdapter:
         assert "Team must be verified to register for tournaments" in result.errors
 
     @patch('apps.games.services.game_service.GameService')
-    @patch('apps.teams.services.team_service.TeamService')
+    @patch('apps.organizations.services.compat.get_team_by_any_id')
     def test_validate_team_eligibility_fails_on_insufficient_members(
-        self, mock_team_service, mock_game_service
+        self, mock_get_team, mock_game_service
     ):
         """Test validate_team_eligibility() fails when team size too small."""
         # Arrange
-        mock_team = Mock()
-        mock_team.id = 1
-        mock_team.name = "Test Team"
-        mock_team.tag = "TST"
-        mock_team.slug = "test-team"
-        mock_team.game = "valorant"
-        mock_team.captain_id = 100
-        mock_team.member_ids = [100, 101, 102]  # Only 3 members
-        mock_team.is_verified = True
-        mock_team.is_active = True
-        mock_team.created_at = datetime.now(timezone.utc)
+        mock_get_team.return_value = _fake_team()  # 3 members by default
 
         mock_game = Mock()
         mock_game.slug = "valorant"
-
-        mock_team_service.get_team_by_id.return_value = mock_team
         mock_game_service.get_game_by_id.return_value = mock_game
 
         # Act
@@ -271,23 +212,11 @@ class TestTeamAdapter:
         assert result.is_valid is False
         assert any("has" in err and "members but tournament requires" in err for err in result.errors)
 
-    @patch('apps.teams.services.team_service.TeamService')
-    def test_check_tournament_permission_true_for_captain(self, mock_service_class):
+    @patch('apps.organizations.services.compat.get_team_by_any_id')
+    def test_check_tournament_permission_true_for_captain(self, mock_get_team):
         """Test check_tournament_permission() returns True for team captain."""
         # Arrange
-        mock_team = Mock()
-        mock_team.id = 1
-        mock_team.name = "Test Team"
-        mock_team.tag = "TST"
-        mock_team.slug = "test-team"
-        mock_team.game = "valorant"
-        mock_team.captain_id = 100
-        mock_team.member_ids = [100, 101, 102]
-        mock_team.is_verified = True
-        mock_team.is_active = True
-        mock_team.created_at = datetime.now(timezone.utc)
-
-        mock_service_class.get_team_by_id.return_value = mock_team
+        mock_get_team.return_value = _fake_team()
 
         # Act
         result = self.adapter.check_tournament_permission(user_id=100, team_id=1)
@@ -295,23 +224,11 @@ class TestTeamAdapter:
         # Assert
         assert result is True
 
-    @patch('apps.teams.services.team_service.TeamService')
-    def test_check_tournament_permission_false_for_non_captain(self, mock_service_class):
+    @patch('apps.organizations.services.compat.get_team_by_any_id')
+    def test_check_tournament_permission_false_for_non_captain(self, mock_get_team):
         """Test check_tournament_permission() returns False for non-captain."""
         # Arrange
-        mock_team = Mock()
-        mock_team.id = 1
-        mock_team.name = "Test Team"
-        mock_team.tag = "TST"
-        mock_team.slug = "test-team"
-        mock_team.game = "valorant"
-        mock_team.captain_id = 100
-        mock_team.member_ids = [100, 101, 102]
-        mock_team.is_verified = True
-        mock_team.is_active = True
-        mock_team.created_at = datetime.now(timezone.utc)
-
-        mock_service_class.get_team_by_id.return_value = mock_team
+        mock_get_team.return_value = _fake_team()
 
         # Act
         result = self.adapter.check_tournament_permission(user_id=101, team_id=1)
@@ -319,7 +236,7 @@ class TestTeamAdapter:
         # Assert
         assert result is False
 
-    @patch('apps.teams.models._legacy.Team.objects')
+    @patch('apps.organizations.models.Team.objects')
     def test_check_health_returns_true_when_accessible(self, mock_team_objects):
         """Test check_health() returns True when Team model is accessible."""
         # Arrange
@@ -332,7 +249,7 @@ class TestTeamAdapter:
         assert result is True
         mock_team_objects.exists.assert_called_once()
 
-    @patch('apps.teams.models._legacy.Team.objects')
+    @patch('apps.organizations.models.Team.objects')
     def test_check_health_returns_false_on_exception(self, mock_team_objects):
         """Test check_health() returns False when database error occurs."""
         # Arrange
@@ -357,27 +274,19 @@ class TestUserAdapter:
         """Set up test fixtures."""
         self.adapter = UserAdapter()
 
+    @patch.object(UserProfileDTO, 'from_model')
     @patch('apps.user_profile.models.UserProfile.objects')
-    def test_get_user_profile_returns_dto(self, mock_profile_objects):
+    def test_get_user_profile_returns_dto(self, mock_profile_objects, mock_from_model):
         """Test get_user_profile() fetches UserProfile and returns DTO."""
         # Arrange
-        mock_user = Mock()
-        mock_user.id = 1
-        mock_user.username = "testuser"
-        mock_user.email = "test@example.com"
+        mock_profile_objects.select_related.return_value.get.return_value = Mock()
 
-        mock_profile = Mock()
-        mock_profile.user_id = 1
-        mock_profile.user = mock_user
-        mock_profile.email = "test@example.com"
-        mock_profile.email_verified = True
-        mock_profile.phone = None
-        mock_profile.phone_verified = False
-        mock_profile.discord = None
-        mock_profile.age = 25
-        mock_profile.region = "US"
-
-        mock_profile_objects.select_related.return_value.get.return_value = mock_profile
+        expected_dto = UserProfileDTO(
+            email="test@example.com", email_verified=True,
+            phone=None, phone_verified=False, discord=None,
+            game_ids={}, age=25, region="US",
+        )
+        mock_from_model.return_value = expected_dto
 
         # Act
         result = self.adapter.get_user_profile(user_id=1)
@@ -402,27 +311,15 @@ class TestUserAdapter:
         with pytest.raises(UserNotFoundError, match="User 999 not found"):
             self.adapter.get_user_profile(user_id=999)
 
-    @patch('apps.user_profile.models.UserProfile.objects')
-    def test_is_user_eligible_true_for_verified_user(self, mock_profile_objects):
+    @patch.object(UserAdapter, 'get_user_profile')
+    def test_is_user_eligible_true_for_verified_user(self, mock_get_profile):
         """Test is_user_eligible() returns True for verified user."""
         # Arrange
-        mock_user = Mock()
-        mock_user.id = 1
-        mock_user.username = "testuser"
-        mock_user.email = "test@example.com"
-
-        mock_profile = Mock()
-        mock_profile.user_id = 1
-        mock_profile.user = mock_user
-        mock_profile.email = "test@example.com"
-        mock_profile.email_verified = True
-        mock_profile.phone = None
-        mock_profile.phone_verified = False
-        mock_profile.discord = None
-        mock_profile.age = 25
-        mock_profile.region = "US"
-
-        mock_profile_objects.select_related.return_value.get.return_value = mock_profile
+        mock_get_profile.return_value = UserProfileDTO(
+            email="test@example.com", email_verified=True,
+            phone=None, phone_verified=False, discord=None,
+            game_ids={}, age=25, region="US",
+        )
 
         # Act
         result = self.adapter.is_user_eligible(user_id=1, tournament_id=1)
@@ -430,27 +327,15 @@ class TestUserAdapter:
         # Assert
         assert result is True
 
-    @patch('apps.user_profile.models.UserProfile.objects')
-    def test_is_user_eligible_false_for_unverified_email(self, mock_profile_objects):
+    @patch.object(UserAdapter, 'get_user_profile')
+    def test_is_user_eligible_false_for_unverified_email(self, mock_get_profile):
         """Test is_user_eligible() returns False when email not verified."""
         # Arrange
-        mock_user = Mock()
-        mock_user.id = 1
-        mock_user.username = "testuser"
-        mock_user.email = "test@example.com"
-
-        mock_profile = Mock()
-        mock_profile.user_id = 1
-        mock_profile.user = mock_user
-        mock_profile.email = "test@example.com"
-        mock_profile.email_verified = False  # NOT VERIFIED
-        mock_profile.phone = None
-        mock_profile.phone_verified = False
-        mock_profile.discord = None
-        mock_profile.age = 25
-        mock_profile.region = "US"
-
-        mock_profile_objects.select_related.return_value.get.return_value = mock_profile
+        mock_get_profile.return_value = UserProfileDTO(
+            email="test@example.com", email_verified=False,
+            phone=None, phone_verified=False, discord=None,
+            game_ids={}, age=25, region="US",
+        )
 
         # Act
         result = self.adapter.is_user_eligible(user_id=1, tournament_id=1)
@@ -458,13 +343,11 @@ class TestUserAdapter:
         # Assert
         assert result is False
 
-    @patch('apps.user_profile.models.UserProfile.objects')
-    def test_is_user_eligible_false_when_user_not_found(self, mock_profile_objects):
+    @patch.object(UserAdapter, 'get_user_profile')
+    def test_is_user_eligible_false_when_user_not_found(self, mock_get_profile):
         """Test is_user_eligible() returns False when user doesn't exist."""
         # Arrange
-        from apps.user_profile.models import UserProfile
-        mock_profile_objects.select_related.return_value.get.side_effect = \
-            UserProfile.DoesNotExist
+        mock_get_profile.side_effect = UserNotFoundError("User 999 not found")
 
         # Act
         result = self.adapter.is_user_eligible(user_id=999, tournament_id=1)
@@ -800,8 +683,21 @@ class TestEconomyAdapter:
         """Set up test fixtures."""
         self.adapter = EconomyAdapter()
 
-    def test_charge_registration_fee_returns_transaction_dict(self):
-        """Test charge_registration_fee() returns transaction details."""
+    @patch('apps.economy.services.debit')
+    @patch.object(EconomyAdapter, '_resolve_profile')
+    def test_charge_registration_fee_returns_transaction_dict(
+        self, mock_resolve, mock_debit
+    ):
+        """Test charge_registration_fee() calls debit and returns dict."""
+        # Arrange
+        mock_resolve.return_value = Mock()
+        mock_debit.return_value = {
+            'wallet_id': 42,
+            'balance_after': 900,
+            'transaction_id': 77,
+            'idempotency_key': 'reg-fee-1-10',
+        }
+
         # Act
         result = self.adapter.charge_registration_fee(
             user_id=1,
@@ -816,9 +712,9 @@ class TestEconomyAdapter:
         assert result['amount'] == 100
         assert result['currency'] == "DC"
         assert result['status'] == 'completed'
-        assert 'transaction_id' in result
-        assert 'metadata' in result
+        assert result['transaction_id'] == '77'
         assert result['metadata']['tournament_id'] == 10
+        mock_debit.assert_called_once()
 
     def test_charge_registration_fee_raises_error_on_negative_amount(self):
         """Test charge_registration_fee() raises PaymentFailedError for negative amount."""
@@ -831,8 +727,35 @@ class TestEconomyAdapter:
                 currency="DC"
             )
 
-    def test_refund_registration_fee_returns_transaction_dict(self):
-        """Test refund_registration_fee() returns refund transaction details."""
+    @patch('apps.economy.services.debit')
+    @patch.object(EconomyAdapter, '_resolve_profile')
+    def test_charge_raises_insufficient_funds(self, mock_resolve, mock_debit):
+        """Test charge_registration_fee() maps InsufficientFunds to PaymentFailedError."""
+        # Arrange
+        mock_resolve.return_value = Mock()
+        mock_debit.side_effect = Exception("InsufficientFunds: not enough DC")
+
+        # Act & Assert
+        with pytest.raises(PaymentFailedError, match="Insufficient"):
+            self.adapter.charge_registration_fee(
+                user_id=1, tournament_id=10, amount=100
+            )
+
+    @patch('apps.economy.services.credit')
+    @patch.object(EconomyAdapter, '_resolve_profile')
+    def test_refund_registration_fee_returns_transaction_dict(
+        self, mock_resolve, mock_credit
+    ):
+        """Test refund_registration_fee() calls credit and returns dict."""
+        # Arrange
+        mock_resolve.return_value = Mock()
+        mock_credit.return_value = {
+            'wallet_id': 42,
+            'balance_after': 1100,
+            'transaction_id': 78,
+            'idempotency_key': 'refund-1-10',
+        }
+
         # Act
         result = self.adapter.refund_registration_fee(
             user_id=1,
@@ -848,8 +771,8 @@ class TestEconomyAdapter:
         assert result['amount'] == 100
         assert result['currency'] == "DC"
         assert result['status'] == 'refunded'
-        assert 'transaction_id' in result
         assert result['metadata']['reason'] == "Tournament cancelled"
+        mock_credit.assert_called_once()
 
     def test_refund_registration_fee_raises_error_on_negative_amount(self):
         """Test refund_registration_fee() raises PaymentFailedError for negative amount."""
@@ -862,44 +785,67 @@ class TestEconomyAdapter:
                 currency="DC"
             )
 
-    def test_get_balance_returns_balance_dict(self):
-        """Test get_balance() returns user balance data."""
+    @patch('apps.economy.services.get_balance')
+    @patch.object(EconomyAdapter, '_resolve_profile')
+    def test_get_balance_returns_balance_dict(self, mock_resolve, mock_get_bal):
+        """Test get_balance() returns user balance data from economy service."""
+        # Arrange
+        mock_resolve.return_value = Mock()
+        mock_get_bal.return_value = 5000
+
         # Act
         result = self.adapter.get_balance(user_id=1)
 
         # Assert
         assert isinstance(result, dict)
         assert result['user_id'] == 1
-        assert 'balance' in result
+        assert result['balance'] == 5000
         assert result['currency'] == "DC"
-        assert result['balance'] > 0  # Mock balance
 
-    def test_verify_payment_returns_true_for_valid_uuid(self):
-        """Test verify_payment() returns True for valid transaction ID."""
+    @patch('apps.economy.models.DeltaCrownTransaction.objects')
+    def test_verify_payment_returns_true_for_existing_txn(self, mock_txn_objects):
+        """Test verify_payment() returns True when transaction exists."""
         # Arrange
-        transaction_id = str(uuid.uuid4())
+        mock_txn_objects.filter.return_value.exists.return_value = True
 
         # Act
-        result = self.adapter.verify_payment(transaction_id)
+        result = self.adapter.verify_payment("42")
 
         # Assert
         assert result is True
+        mock_txn_objects.filter.assert_called_once_with(pk=42)
 
-    def test_verify_payment_returns_false_for_invalid_uuid(self):
-        """Test verify_payment() returns False for invalid transaction ID."""
+    def test_verify_payment_returns_false_for_non_numeric_id(self):
+        """Test verify_payment() returns False for non-numeric transaction ID."""
         # Act
-        result = self.adapter.verify_payment("invalid-transaction-id")
+        result = self.adapter.verify_payment("not-a-number")
 
         # Assert
         assert result is False
 
-    def test_check_health_returns_true(self):
-        """Test check_health() returns True (placeholder implementation)."""
+    @patch('apps.economy.models.DeltaCrownWallet.objects')
+    def test_check_health_returns_true_when_accessible(self, mock_wallet_objects):
+        """Test check_health() returns True when DeltaCrownWallet is accessible."""
+        # Arrange
+        mock_wallet_objects.exists.return_value = True
+
         # Act
         result = self.adapter.check_health()
 
         # Assert
-        assert result is True  # Phase 1: always returns True
+        assert result is True
+
+    @patch('apps.economy.models.DeltaCrownWallet.objects')
+    def test_check_health_returns_false_on_exception(self, mock_wallet_objects):
+        """Test check_health() returns False when database error occurs."""
+        # Arrange
+        mock_wallet_objects.exists.side_effect = Exception("DB connection failed")
+
+        # Act
+        result = self.adapter.check_health()
+
+        # Assert
+        assert result is False
 
 
 # ============================================================================
@@ -932,8 +878,8 @@ class TestArchitectureGuards:
         assert "from apps.teams.models import Team" not in source
         assert "from apps.teams.models._legacy import Team" not in source.split("def check_health")[0]
         
-        # Should import TeamService
-        assert "TeamService" in source
+        # Should use organizations compat layer or service functions
+        assert "get_team_by_any_id" in source or "TeamService" in source
         
         # Should import TeamDTO
         assert "TeamDTO" in source
