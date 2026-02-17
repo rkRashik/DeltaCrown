@@ -16,6 +16,11 @@ User = get_user_model()
 
 class TournamentStaffRole(models.Model):
     """
+    DEPRECATED: Use StaffRole (staffing.py) instead.
+    This legacy model uses rigid boolean permission fields.
+    Phase 7 StaffRole uses flexible JSON capabilities.
+    Kept for backward-compat. Migration target: Phase 1+.
+    
     Defines staff roles with granular permissions for tournament management.
     
     Roles define what actions staff members can perform and what data they can access.

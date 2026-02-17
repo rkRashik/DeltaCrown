@@ -28,7 +28,6 @@ from apps.tournaments.models import Tournament, Registration, Payment
 from apps.tournaments.services.registration_service import RegistrationService
 from apps.tournaments.services.payment_service import PaymentService
 from apps.tournaments.services.registration_autofill import RegistrationAutoFillService
-from apps.games.services import game_service
 from apps.tournaments.services.registration_eligibility import RegistrationEligibilityService
 
 
@@ -238,7 +237,7 @@ class RegistrationWizardView(LoginRequiredMixin, View):
                 'display_name': request.POST.get('display_name', ''),
                 'age': request.POST.get('age', ''),
                 'country': request.POST.get('country', ''),
-                'riot_id': request.POST.get('riot_id', ''),
+                'game_id': request.POST.get('game_id', ''),
                 'platform_server': request.POST.get('platform_server', ''),
                 'rank': request.POST.get('rank', ''),
                 'email': request.POST.get('email', ''),
@@ -452,44 +451,18 @@ class RegistrationWizardView(LoginRequiredMixin, View):
                     age -= 1
                 auto_filled['age'] = str(age)
             
-            # Legacy game IDs (still supported for backward compatibility)
-            auto_filled.update({
-                'riot_id': profile.riot_id or '',
-                'pubg_mobile_id': profile.pubg_mobile_id or '',
-                'mobile_legends_id': profile.mlbb_id or '',
-                'free_fire_id': profile.free_fire_id or '',
-                'cod_mobile_id': profile.codm_uid or '',
-            })
-            
-            # Map game-specific ID based on tournament game
-            # TODO Phase 3.2: Replace with GamePlayerIdentityConfig-based lookup
-            game_slug = tournament.game.slug if tournament.game else ''
-            
-            # Try to get identity configs from Game app
-            identity_configs = game_service.get_identity_validation_rules(tournament.game)
-            if identity_configs:
-                # New approach: use configured identity fields
-                for config in identity_configs:
-                    if hasattr(profile, config.field_name):
-                        auto_filled['game_id'] = getattr(profile, config.field_name, '') or ''
-                        if auto_filled['game_id']:  # Use first non-empty value
-                            break
-            else:
-                # Legacy hardcoded mapping (backward compatibility)
-                if game_slug == 'valorant':
-                    auto_filled['game_id'] = profile.riot_id or ''
-                elif game_slug == 'pubg-mobile':
-                    auto_filled['game_id'] = profile.pubg_mobile_id or ''
-                elif game_slug == 'mobile-legends':
-                    auto_filled['game_id'] = profile.mlbb_id or ''
-                elif game_slug == 'free-fire':
-                    auto_filled['game_id'] = profile.free_fire_id or ''
-                elif game_slug == 'cod-mobile':
-                    auto_filled['game_id'] = profile.codm_uid or ''
-                elif game_slug == 'dota-2' or game_slug == 'cs2':
-                    auto_filled['game_id'] = profile.steam_id or ''
-                elif game_slug == 'efootball' or game_slug == 'ea-fc':
-                    auto_filled['game_id'] = profile.efootball_id or profile.ea_id or ''
+            # Look up the user's GameProfile (passport) for this tournament's game
+            game_id_value = ''
+            if tournament.game:
+                from apps.user_profile.models_main import GameProfile
+                game_profile = GameProfile.objects.filter(
+                    user=user, game=tournament.game
+                ).first()
+                if game_profile:
+                    game_id_value = game_profile.ign or ''
+                    if game_profile.discriminator:
+                        game_id_value = f"{game_id_value}#{game_profile.discriminator}"
+            auto_filled['game_id'] = game_id_value
                 
         except Exception:
             # UserProfile not found or error - use defaults
@@ -519,7 +492,7 @@ class RegistrationWizardView(LoginRequiredMixin, View):
         
         # Create registration using RegistrationService
         registration_data = {
-            'game_id': wizard_data.get('riot_id', ''),
+            'game_id': wizard_data.get('game_id', ''),
             'phone': wizard_data.get('phone', ''),
             'discord': wizard_data.get('discord', ''),
             'platform_server': wizard_data.get('platform_server', ''),

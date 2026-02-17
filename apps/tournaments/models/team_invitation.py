@@ -30,11 +30,10 @@ class TournamentTeamInvitation(models.Model):
         related_name='team_invitations',
         help_text="Tournament extending the invitation"
     )
-    team = models.ForeignKey(
-        'teams.Team',
-        on_delete=models.CASCADE,
-        related_name='tournament_invitations',
-        help_text="Team being invited"
+    team_id = models.IntegerField(
+        db_index=True,
+        db_column='team_id',
+        help_text="Team ID being invited"
     )
     
     # Invitation details
@@ -50,12 +49,12 @@ class TournamentTeamInvitation(models.Model):
     )
     
     # Metadata
-    invited_by = models.ForeignKey(
-        'user_profile.UserProfile',
-        on_delete=models.SET_NULL,
+    invited_by_id = models.IntegerField(
         null=True,
-        related_name='sent_tournament_invitations',
-        help_text="Organizer/staff who sent the invitation"
+        blank=True,
+        db_index=True,
+        db_column='invited_by_id',
+        help_text="UserProfile ID of organizer/staff who sent the invitation"
     )
     invited_at = models.DateTimeField(
         default=timezone.now,
@@ -68,13 +67,12 @@ class TournamentTeamInvitation(models.Model):
     )
     
     # Response tracking
-    responded_by = models.ForeignKey(
-        'user_profile.UserProfile',
-        on_delete=models.SET_NULL,
+    responded_by_id = models.IntegerField(
         null=True,
         blank=True,
-        related_name='responded_tournament_invitations',
-        help_text="Team member who responded to invitation"
+        db_index=True,
+        db_column='responded_by_id',
+        help_text="UserProfile ID of team member who responded to invitation"
     )
     responded_at = models.DateTimeField(
         null=True,
@@ -102,10 +100,10 @@ class TournamentTeamInvitation(models.Model):
     
     class Meta:
         ordering = ['-invited_at']
-        unique_together = [('tournament', 'team')]
+        unique_together = [('tournament', 'team_id')]
         indexes = [
             models.Index(fields=['tournament', 'status'], name='tournament_inv_status_idx'),
-            models.Index(fields=['team', 'status'], name='team_inv_status_idx'),
+            models.Index(fields=['team_id', 'status'], name='team_inv_status_idx'),
             models.Index(fields=['invited_at']), 
             models.Index(fields=['expires_at']),
         ]
@@ -174,17 +172,17 @@ class TournamentTeamInvitation(models.Model):
         
         # Mark as accepted
         self.status = self.Status.ACCEPTED
-        self.responded_by = responded_by
+        self.responded_by_id = responded_by.id if hasattr(responded_by, 'id') else responded_by
         self.responded_at = timezone.now()
         self.response_message = response_message
-        self.save(update_fields=['status', 'responded_by', 'responded_at', 'response_message'])
+        self.save(update_fields=['status', 'responded_by_id', 'responded_at', 'response_message'])
         
         # Auto-register if enabled
         if self.auto_register_on_accept and not self.registration:
             from .registration import Registration
             registration = Registration.objects.create(
                 tournament=self.tournament,
-                team=self.team,
+                team_id=self.team_id,
                 status=Registration.CONFIRMED,  # Invited teams skip approval
                 user=responded_by.user if hasattr(responded_by, 'user') else None,
                 registration_data={'invited': True, 'invitation_id': self.id},
@@ -204,10 +202,10 @@ class TournamentTeamInvitation(models.Model):
             raise ValidationError(f"Cannot decline invitation with status: {self.get_status_display()}")
         
         self.status = self.Status.DECLINED
-        self.responded_by = responded_by
+        self.responded_by_id = responded_by.id if hasattr(responded_by, 'id') else responded_by
         self.responded_at = timezone.now()
         self.response_message = response_message
-        self.save(update_fields=['status', 'responded_by', 'responded_at', 'response_message'])
+        self.save(update_fields=['status', 'responded_by_id', 'responded_at', 'response_message'])
     
     def cancel(self):
         """Cancel the invitation (organizer action)"""

@@ -54,7 +54,8 @@ from rest_framework.pagination import PageNumberPagination
 from django.utils.dateparse import parse_datetime
 from django.core.exceptions import ValidationError
 
-from apps.tournaments.models.tournament import Tournament, Game
+from apps.tournaments.models.tournament import Tournament
+from apps.games.models.game import Game
 from apps.tournaments.api.tournament_serializers import TournamentListSerializer
 from apps.tournaments.services.tournament_discovery_service import TournamentDiscoveryService
 

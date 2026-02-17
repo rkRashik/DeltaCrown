@@ -46,7 +46,8 @@ from decimal import Decimal
 from django.db.models import Q, QuerySet, Count, Prefetch
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.utils import timezone
-from apps.tournaments.models.tournament import Tournament, Game
+from apps.tournaments.models.tournament import Tournament
+from apps.games.models.game import Game
 
 
 class TournamentDiscoveryService:

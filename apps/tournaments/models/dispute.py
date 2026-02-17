@@ -91,13 +91,12 @@ class DisputeRecord(models.Model):
         help_text='User who opened the dispute'
     )
     
-    opened_by_team = models.ForeignKey(
-        'teams.Team',
-        on_delete=models.SET_NULL,
+    opened_by_team_id = models.IntegerField(
         null=True,
         blank=True,
-        related_name='disputes',
-        help_text='Team representing the disputer (if team tournament)'
+        db_index=True,
+        db_column='opened_by_team_id',
+        help_text='Team ID representing the disputer (if team tournament)'
     )
     
     resolved_by_user = models.ForeignKey(

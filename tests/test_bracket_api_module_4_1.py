@@ -24,7 +24,8 @@ from rest_framework.test import APIClient
 from rest_framework import status
 from unittest.mock import patch, MagicMock
 
-from apps.tournaments.models.tournament import Tournament, Game
+from apps.tournaments.models.tournament import Tournament
+from apps.games.models.game import Game
 from apps.tournaments.models.bracket import Bracket, BracketNode
 from apps.tournaments.models.registration import Registration
 from apps.tournaments.services.bracket_service import BracketService

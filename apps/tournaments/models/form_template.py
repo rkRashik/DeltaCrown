@@ -418,13 +418,12 @@ class FormResponse(models.Model):
     )
     
     # Team Registration (if applicable)
-    team = models.ForeignKey(
-        'teams.Team',
-        on_delete=models.SET_NULL,
+    team_id = models.IntegerField(
         null=True,
         blank=True,
-        related_name='form_tournament_registrations',
-        help_text="Team (if team tournament)"
+        db_index=True,
+        db_column='team_id',
+        help_text="Team ID (if team tournament)"
     )
     
     # Form Response Data

@@ -233,13 +233,12 @@ class CheckIn(TimestampedModel):
         verbose_name=_('User')
     )
     
-    team = models.ForeignKey(
-        'teams.Team',
-        on_delete=models.CASCADE,
+    team_id = models.IntegerField(
         null=True,
         blank=True,
-        related_name='tournament_check_ins',
-        verbose_name=_('Team')
+        db_index=True,
+        db_column='team_id',
+        verbose_name=_('Team ID')
     )
     
     is_checked_in = models.BooleanField(
@@ -304,12 +303,12 @@ class CheckIn(TimestampedModel):
             models.Index(fields=['tournament', 'is_forfeited']),
             models.Index(fields=['registration']),
             models.Index(fields=['user', 'tournament']),
-            models.Index(fields=['team', 'tournament']),
+            models.Index(fields=['team_id', 'tournament']),
         ]
         constraints = [
             CheckConstraint(
-                check=(Q(user__isnull=False) & Q(team__isnull=True)) | 
-                      (Q(user__isnull=True) & Q(team__isnull=False)),
+                check=(Q(user__isnull=False) & Q(team_id__isnull=True)) | 
+                      (Q(user__isnull=True) & Q(team_id__isnull=False)),
                 name='check_in_user_or_team_xor'
             ),
         ]

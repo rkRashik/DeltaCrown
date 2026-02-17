@@ -78,7 +78,7 @@ class SoloRegistrationDemoView(LoginRequiredMixin, View):
                 'display_name': request.POST.get('display_name', ''),
                 'age': request.POST.get('age', ''),
                 'country': request.POST.get('country', ''),
-                'riot_id': request.POST.get('riot_id', ''),
+                'game_id': request.POST.get('game_id', ''),
                 'platform_server': request.POST.get('platform_server', ''),
                 'rank': request.POST.get('rank', ''),
                 'email': request.POST.get('email', ''),
@@ -480,19 +480,19 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                             continue
                         elif position_num == 2:
                             team_data['player2_ign'] = player.get('display_name', '')
-                            team_data['player2_riot_id'] = player.get('full_name', '')  # Using full_name as riot_id equivalent
+                            team_data['player2_game_id'] = player.get('full_name', '')
                         elif position_num == 3:
                             team_data['player3_ign'] = player.get('display_name', '')
-                            team_data['player3_riot_id'] = player.get('full_name', '')
+                            team_data['player3_game_id'] = player.get('full_name', '')
                         elif position_num == 4:
                             team_data['player4_ign'] = player.get('display_name', '')
-                            team_data['player4_riot_id'] = player.get('full_name', '')
+                            team_data['player4_game_id'] = player.get('full_name', '')
                         elif position_num == 5:
                             team_data['player5_ign'] = player.get('display_name', '')
-                            team_data['player5_riot_id'] = player.get('full_name', '')
+                            team_data['player5_game_id'] = player.get('full_name', '')
                     elif player.get('position') == 'substitute':
                         team_data['substitute_ign'] = player.get('display_name', '')
-                        team_data['substitute_riot_id'] = player.get('full_name', '')
+                        team_data['substitute_game_id'] = player.get('full_name', '')
                 
                 request.session['registration_step_data'] = team_data
                 
@@ -602,19 +602,19 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                         continue
                     elif position_num == 2:
                         team_data['player2_ign'] = player.get('display_name', '')
-                        team_data['player2_riot_id'] = player.get('full_name', '')  # Using full_name as riot_id equivalent
+                        team_data['player2_game_id'] = player.get('full_name', '')
                     elif position_num == 3:
                         team_data['player3_ign'] = player.get('display_name', '')
-                        team_data['player3_riot_id'] = player.get('full_name', '')
+                        team_data['player3_game_id'] = player.get('full_name', '')
                     elif position_num == 4:
                         team_data['player4_ign'] = player.get('display_name', '')
-                        team_data['player4_riot_id'] = player.get('full_name', '')
+                        team_data['player4_game_id'] = player.get('full_name', '')
                     elif position_num == 5:
                         team_data['player5_ign'] = player.get('display_name', '')
-                        team_data['player5_riot_id'] = player.get('full_name', '')
+                        team_data['player5_game_id'] = player.get('full_name', '')
                 elif player.get('position') == 'substitute':
                     team_data['substitute_ign'] = player.get('display_name', '')
-                    team_data['substitute_riot_id'] = player.get('full_name', '')
+                    team_data['substitute_game_id'] = player.get('full_name', '')
             
             # Store registration type before clearing session
             request.session['registration_type'] = 'team'

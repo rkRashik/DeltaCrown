@@ -63,13 +63,12 @@ class MatchResultSubmission(models.Model):
         related_name='submitted_results',
         help_text='User who submitted the result'
     )
-    submitted_by_team = models.ForeignKey(
-        'teams.Team',
-        on_delete=models.SET_NULL,
+    submitted_by_team_id = models.IntegerField(
         null=True,
         blank=True,
-        related_name='submitted_results',
-        help_text='Team the submitter represents (if team tournament)'
+        db_index=True,
+        db_column='submitted_by_team_id',
+        help_text='Team ID the submitter represents (if team tournament)'
     )
     
     # Result payload (game-specific JSON)

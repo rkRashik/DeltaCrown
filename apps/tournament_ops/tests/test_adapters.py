@@ -374,9 +374,6 @@ class TestUserAdapter:
         mock_profile.phone = None
         mock_profile.phone_verified = False
         mock_profile.discord = None
-        mock_profile.riot_id = None
-        mock_profile.steam_id = None
-        mock_profile.pubg_mobile_id = None
         mock_profile.age = 25
         mock_profile.region = "US"
 
@@ -422,9 +419,6 @@ class TestUserAdapter:
         mock_profile.phone = None
         mock_profile.phone_verified = False
         mock_profile.discord = None
-        mock_profile.riot_id = None
-        mock_profile.steam_id = None
-        mock_profile.pubg_mobile_id = None
         mock_profile.age = 25
         mock_profile.region = "US"
 
@@ -453,9 +447,6 @@ class TestUserAdapter:
         mock_profile.phone = None
         mock_profile.phone_verified = False
         mock_profile.discord = None
-        mock_profile.riot_id = None
-        mock_profile.steam_id = None
-        mock_profile.pubg_mobile_id = None
         mock_profile.age = 25
         mock_profile.region = "US"
 

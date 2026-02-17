@@ -18,7 +18,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 
-from apps.tournaments.models.tournament import Game
+from apps.games.models.game import Game
 from apps.tournaments.services.game_config_service import GameConfigService
 
 User = get_user_model()

@@ -18,7 +18,8 @@ from django.utils import timezone
 from datetime import timedelta
 
 from apps.tournaments.services.dashboard_service import DashboardService
-from apps.tournaments.models.tournament import Tournament, Game
+from apps.tournaments.models.tournament import Tournament
+from apps.games.models.game import Game
 from apps.tournaments.models.registration import Registration, Payment
 from apps.tournaments.models.match import Match, Dispute
 from django.contrib.auth import get_user_model

@@ -8,7 +8,6 @@ to register the team for tournaments.
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from apps.organizations.models import Team
 from apps.tournaments.models import Tournament
 
 
@@ -30,11 +29,10 @@ class TeamRegistrationPermissionRequest(models.Model):
     ]
     
     # Relationships
-    team = models.ForeignKey(
-        Team,
-        on_delete=models.CASCADE,
-        related_name='registration_permission_requests',
-        help_text='Team for which permission is requested'
+    team_id = models.IntegerField(
+        db_index=True,
+        db_column='team_id',
+        help_text='Team ID for which permission is requested'
     )
     
     tournament = models.ForeignKey(
@@ -96,16 +94,16 @@ class TeamRegistrationPermissionRequest(models.Model):
         db_table = 'tournaments_team_permission_request'
         ordering = ['-created_at']
         unique_together = [
-            ('team', 'tournament', 'requester', 'status')
+            ('team_id', 'tournament', 'requester', 'status')
         ]
         indexes = [
             models.Index(fields=['status', 'created_at']),
-            models.Index(fields=['team', 'status']),
+            models.Index(fields=['team_id', 'status']),
             models.Index(fields=['requester', 'status']),
         ]
     
     def __str__(self):
-        return f"{self.requester.username} â†’ {self.team.name} ({self.tournament.title}) - {self.get_status_display()}"
+        return f"{self.requester.username} → Team#{self.team_id} ({self.tournament.title}) - {self.get_status_display()}"
     
     def approve(self, approved_by, message: str = ''):
         """Approve the permission request"""

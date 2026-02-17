@@ -21,7 +21,8 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.contrib.auth import get_user_model
 
-from apps.tournaments.models.tournament import Tournament, Game
+from apps.tournaments.models.tournament import Tournament
+from apps.games.models.game import Game
 from apps.tournaments.models.template import TournamentTemplate
 from apps.tournaments.services.template_service import TemplateService
 from apps.tournaments.services.tournament_service import TournamentService

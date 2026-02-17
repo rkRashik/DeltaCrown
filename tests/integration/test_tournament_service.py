@@ -17,7 +17,8 @@ from decimal import Decimal
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from apps.tournaments.services import TournamentService
-from apps.tournaments.models.tournament import Game, Tournament
+from apps.tournaments.models.tournament import Tournament
+from apps.games.models.game import Game
 
 
 @pytest.mark.django_db

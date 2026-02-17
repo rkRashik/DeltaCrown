@@ -177,13 +177,12 @@ class GroupStanding(TimestampedModel):
         verbose_name=_('User')
     )
     
-    team = models.ForeignKey(
-        'teams.Team',
-        on_delete=models.CASCADE,
+    team_id = models.IntegerField(
         null=True,
         blank=True,
-        related_name='group_standings',
-        verbose_name=_('Team')
+        db_index=True,
+        db_column='team_id',
+        verbose_name=_('Team ID')
     )
     
     # Universal standings fields (all games)
@@ -355,12 +354,12 @@ class GroupStanding(TimestampedModel):
             models.Index(fields=['group', 'rank']),
             models.Index(fields=['group', '-points', '-goal_difference']),
             models.Index(fields=['user', 'is_deleted']),
-            models.Index(fields=['team', 'is_deleted']),
+            models.Index(fields=['team_id', 'is_deleted']),
         ]
         constraints = [
             CheckConstraint(
-                check=(Q(user__isnull=False) & Q(team__isnull=True)) | 
-                      (Q(user__isnull=True) & Q(team__isnull=False)),
+                check=(Q(user__isnull=False) & Q(team_id__isnull=True)) | 
+                      (Q(user__isnull=True) & Q(team_id__isnull=False)),
                 name='group_standing_user_or_team_xor'
             ),
         ]

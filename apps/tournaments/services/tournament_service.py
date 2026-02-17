@@ -49,7 +49,8 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
-from apps.tournaments.models.tournament import Tournament, Game, TournamentVersion
+from apps.tournaments.models.tournament import Tournament, TournamentVersion
+from apps.games.models.game import Game
 import logging
 
 if TYPE_CHECKING:

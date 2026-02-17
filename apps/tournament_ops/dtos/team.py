@@ -45,29 +45,120 @@ class TeamDTO(DTOBase):
         """
         Create TeamDTO from a team model.
 
+        Handles:
+        - organizations.Team ORM instances (primary path — queries memberships)
+        - Plain dicts (test/serialization path)
+        - Simple attribute objects (test fakes with direct fields)
+
         Args:
             model: Team model instance or dict.
 
         Returns:
             TeamDTO instance.
         """
-        # Extract game slug from model.game or model.game.slug
-        game_value = getattr(model, "game", model.get("game") if hasattr(model, "get") else None)
-        if game_value:
-            game_slug = getattr(game_value, "slug", game_value.get("slug") if hasattr(game_value, "get") else str(game_value))
+        # Dict passthrough
+        if isinstance(model, dict):
+            return cls(
+                id=model.get("id", 0),
+                name=model.get("name", ""),
+                captain_id=model.get("captain_id", 0),
+                captain_name=model.get("captain_name", ""),
+                member_ids=model.get("member_ids", []),
+                member_names=model.get("member_names", []),
+                game=model.get("game", ""),
+                is_verified=model.get("is_verified", False),
+                logo_url=model.get("logo_url"),
+            )
+
+        # Resolve game slug — Team.game property returns slug string,
+        # test fakes may have game=FakeGameModel(slug="...")
+        game_slug = ""
+        game_value = getattr(model, "game", None)
+        if game_value is not None:
+            if isinstance(game_value, str):
+                game_slug = game_value
+            elif hasattr(game_value, "slug"):
+                game_slug = game_value.slug
+            else:
+                game_slug = str(game_value)
+
+        # Check if this is a real ORM Team (has vnext_memberships manager)
+        has_memberships_manager = hasattr(model, 'vnext_memberships')
+
+        if has_memberships_manager:
+            # ── ORM path: organizations.Team ──
+            # Captain: OWNER membership → created_by fallback
+            captain_id = 0
+            captain_name = ""
+            try:
+                owner = model.vnext_memberships.filter(
+                    role='OWNER', status='ACTIVE'
+                ).select_related('user').first()
+                if owner:
+                    captain_id = owner.user_id
+                    profile = getattr(owner.user, 'profile', None)
+                    captain_name = (
+                        getattr(profile, 'display_name', '') if profile
+                        else owner.user.username
+                    )
+            except Exception:
+                pass
+            if not captain_id and getattr(model, 'created_by_id', None):
+                captain_id = model.created_by_id
+                captain_name = (
+                    getattr(model.created_by, 'username', '')
+                    if model.created_by else ''
+                )
+
+            # Members: all active memberships
+            member_ids: List[int] = []
+            member_names: List[str] = []
+            try:
+                memberships = model.vnext_memberships.filter(
+                    status='ACTIVE'
+                ).select_related('user')
+                for m in memberships:
+                    member_ids.append(m.user_id)
+                    profile = getattr(m.user, 'profile', None)
+                    name = (
+                        getattr(profile, 'display_name', m.user.username)
+                        if profile else m.user.username
+                    )
+                    member_names.append(name)
+            except Exception:
+                pass
+
+            # Is verified: team status == ACTIVE
+            is_verified = getattr(model, 'status', '') == 'ACTIVE'
+
+            # Logo URL
+            logo_url = None
+            if hasattr(model, 'get_effective_logo_url'):
+                logo_url = model.get_effective_logo_url()
+            elif hasattr(model, 'logo') and model.logo:
+                try:
+                    logo_url = model.logo.url
+                except Exception:
+                    pass
         else:
-            game_slug = ""
+            # ── Simple attribute path: test fakes / plain objects ──
+            captain_id = getattr(model, "captain_id", 0)
+            captain_name = getattr(model, "captain_name", "")
+            member_ids = getattr(model, "member_ids", [])
+            member_names = getattr(model, "member_names", [])
+            is_verified = getattr(model, "is_verified", False)
+            logo_url = getattr(model, "logo_url", None)
 
         return cls(
-            id=getattr(model, "id", model.get("id") if hasattr(model, "get") else 0),
-            name=getattr(model, "name", model.get("name") if hasattr(model, "get") else ""),
-            captain_id=getattr(model, "captain_id", model.get("captain_id") if hasattr(model, "get") else 0),
-            captain_name=getattr(model, "captain_name", model.get("captain_name") if hasattr(model, "get") else ""),
-            member_ids=getattr(model, "member_ids", model.get("member_ids") if hasattr(model, "get") else []),
-            member_names=getattr(model, "member_names", model.get("member_names") if hasattr(model, "get") else []),
+            id=getattr(model, "id", 0),
+            name=getattr(model, "name", ""),
+            captain_id=captain_id,
+            captain_name=captain_name,
+            member_ids=member_ids,
+            member_names=member_names,
             game=game_slug,
-            is_verified=getattr(model, "is_verified", model.get("is_verified") if hasattr(model, "get") else False),
-            logo_url=getattr(model, "logo_url", model.get("logo_url") if hasattr(model, "get") else None),
+            is_verified=is_verified,
+            logo_url=logo_url,
         )
 
     def validate(self) -> List[str]:

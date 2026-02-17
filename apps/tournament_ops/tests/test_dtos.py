@@ -413,9 +413,7 @@ def test_user_profile_dto_validation_success():
         phone="+1234567890",
         phone_verified=True,
         discord="user#1234",
-        riot_id="Player#NA1",
-        steam_id="76561198000000000",
-        pubg_mobile_id="5551234567",
+        game_ids={"valorant": "Player#NA1", "cs2": "76561198000000000", "pubg-mobile": "5551234567"},
         age=25,
         region="NA",
     )
@@ -432,9 +430,6 @@ def test_user_profile_dto_validation_failures():
         phone=None,
         phone_verified=False,
         discord=None,
-        riot_id=None,
-        steam_id=None,
-        pubg_mobile_id=None,
         age=-5,  # Invalid age
         region=None,
     )

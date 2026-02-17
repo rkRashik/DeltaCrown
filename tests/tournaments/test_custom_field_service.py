@@ -21,7 +21,8 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 
-from apps.tournaments.models.tournament import Tournament, Game, CustomField
+from apps.tournaments.models.tournament import Tournament, CustomField
+from apps.games.models.game import Game
 from apps.tournaments.services.custom_field_service import CustomFieldService
 from apps.tournaments.services.tournament_service import TournamentService
 

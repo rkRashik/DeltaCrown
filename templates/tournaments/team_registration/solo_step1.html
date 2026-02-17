@@ -96,17 +96,17 @@
             </h3>
             
             <div class="space-y-4">
-                <!-- Riot ID -->
+                <!-- Game ID -->
                 <div>
-                    <label for="riot_id" class="block text-sm font-medium text-gray-300 mb-2">
-                        Riot ID (Valorant ID) <span class="text-red-500">*</span>
+                    <label for="game_id" class="block text-sm font-medium text-gray-300 mb-2">
+                        Game ID <span class="text-red-500">*</span>
                     </label>
                     <div class="text-xs text-gray-400 mb-2">
                         <i class="fas fa-info-circle mr-1"></i>
                         Format: PlayerName#TAG (example: Razor#BD01)
                     </div>
-                    <input type="text" id="riot_id" name="riot_id" required
-                        value="{{ player_data.riot_id|default:'' }}"
+                    <input type="text" id="game_id" name="game_id" required
+                        value="{{ player_data.game_id|default:'' }}"
                         placeholder="Razor#BD01"
                         pattern="^[a-zA-Z0-9]+#[a-zA-Z0-9]+$"
                         class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500">

@@ -56,7 +56,7 @@ class PaymentAPITestCase(TestCase):
         )
         
         # Create tournament (minimal fields only)
-        from apps.tournaments.models.tournament import Game
+        from apps.games.models.game import Game
         game = Game.objects.create(
             name='Valorant',
             slug='valorant',
@@ -666,7 +666,7 @@ class PaymentAPIDeltaCoinTestCase(TestCase):
         )
         
         # Create game
-        from apps.tournaments.models.tournament import Game
+        from apps.games.models.game import Game
         game = Game.objects.create(
             name='Valorant DC',
             slug='valorant-dc',
@@ -792,7 +792,7 @@ class PaymentPermissionTestCase(TestCase):
         )
         
         # Create game
-        from apps.tournaments.models.tournament import Game
+        from apps.games.models.game import Game
         game = Game.objects.create(
             name='Valorant Perm',
             slug='valorant-perm',
@@ -952,7 +952,7 @@ class PaymentValidationTestCase(TestCase):
         )
         
         # Create game
-        from apps.tournaments.models.tournament import Game
+        from apps.games.models.game import Game
         game = Game.objects.create(
             name='Valorant Val',
             slug='valorant-val',

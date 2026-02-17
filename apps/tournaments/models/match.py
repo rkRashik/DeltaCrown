@@ -372,6 +372,10 @@ class Match(SoftDeleteModel, TimestampedModel):
 
 class Dispute(TimestampedModel):
     """
+    DEPRECATED: Use DisputeRecord (dispute.py) instead.
+    This legacy model is kept for backward-compat with 8 production import sites.
+    Migration target: Phase 1+ will repoint all callers to DisputeRecord.
+    
     Match dispute resolution workflow.
     
     Features:

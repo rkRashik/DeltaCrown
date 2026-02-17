@@ -50,9 +50,9 @@ class Command(BaseCommand):
                             }
                         },
                         {
-                            "id": "riot_id",
+                            "id": "game_id",
                             "type": "text",
-                            "label": "Riot ID (with tagline)",
+                            "label": "Game ID (with tagline)",
                             "required": True,
                             "placeholder": "Example: PlayerName#APAC",
                             "validation": {

@@ -38,7 +38,7 @@ class PaymentWebSocketTestCase(TestCase):
         )
         
         # Create game
-        from apps.tournaments.models.tournament import Game
+        from apps.games.models.game import Game
         game = Game.objects.create(
             name='Valorant WS',
             slug='valorant-ws',

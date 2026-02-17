@@ -141,7 +141,7 @@ class TestGameModel:
     def test_game_has_required_fields(self):
         """Game model should have all required fields from PART_3.1 Section 3.2"""
         # Verify field existence without instantiation
-        from apps.tournaments.models.tournament import Game
+        from apps.games.models.game import Game
         
         assert hasattr(Game, 'name')
         assert hasattr(Game, 'slug')

@@ -20,7 +20,8 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from apps.tournaments.models.tournament import Tournament, Game, CustomField
+from apps.tournaments.models.tournament import Tournament, CustomField
+from apps.games.models.game import Game
 
 User = get_user_model()
 

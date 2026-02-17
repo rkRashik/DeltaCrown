@@ -25,7 +25,8 @@ from datetime import timedelta
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from apps.tournaments.models.tournament import Tournament, Game
+from apps.tournaments.models.tournament import Tournament
+from apps.games.models.game import Game
 from apps.tournaments.models.registration import Registration, Payment
 from apps.tournaments.models.match import Match
 from apps.tournaments.models.bracket import Bracket

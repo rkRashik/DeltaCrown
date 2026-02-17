@@ -117,7 +117,7 @@
                         Your in-game display name or username
                     </div>
                     <input type="text" id="captain_display_name" name="captain_display_name" required
-                        value="{% if user_profile and tournament.game.slug == 'valorant' %}{{ user_profile.riot_id }}{% elif user_profile %}{{ user_profile.display_name }}{% endif %}"
+                        value="{% if user_profile and tournament.game.slug == 'valorant' %}{{ user_profile.game_id }}{% elif user_profile %}{{ user_profile.display_name }}{% endif %}"
                         placeholder="CaptainRazor"
                         class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500">
                 </div>
@@ -207,7 +207,7 @@
                     <div class="member-card bg-gray-800/50 border border-gray-700 rounded-lg p-4 cursor-pointer hover:border-blue-500 transition-all"
                          data-member-id="{{ member.id }}"
                          data-member-name="{{ member.profile.user.get_full_name|default:member.profile.user.username }}"
-                         data-member-ign="{% if tournament.game.slug == 'valorant' and member.profile.riot_id %}{{ member.profile.riot_id }}{% else %}{{ member.profile.display_name|default:member.profile.user.username }}{% endif %}"
+                         data-member-ign="{% if tournament.game.slug == 'valorant' and member.profile.game_id %}{{ member.profile.game_id }}{% else %}{{ member.profile.display_name|default:member.profile.user.username }}{% endif %}"
                          data-member-email="{{ member.profile.user.email }}"
                          data-is-captain="{% if member.role == 'OWNER' or member.role == 'CAPTAIN' %}true{% else %}false{% endif %}"
                          onclick="selectMember(this)">
@@ -230,8 +230,8 @@
                                         {% endif %}
                                     </div>
                                     <div class="text-sm text-gray-400 font-mono mt-1">
-                                        {% if tournament.game.slug == 'valorant' and member.profile.riot_id %}
-                                            {{ member.profile.riot_id }}
+                                        {% if tournament.game.slug == 'valorant' and member.profile.game_id %}
+                                            {{ member.profile.game_id }}
                                         {% else %}
                                             {{ member.profile.display_name|default:member.profile.user.username }}
                                         {% endif %}

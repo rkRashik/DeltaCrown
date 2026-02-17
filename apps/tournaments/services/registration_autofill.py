@@ -201,32 +201,19 @@ class RegistrationAutoFillService:
                         confidence='high'
                     )
                 
-                # Player ID (game-specific identity fields)
-                # Map identity fields based on game
-                identity_field_map = {
-                    'valorant': ('riot_id', 'Riot ID'),
-                    'counter-strike-2': ('steam_id', 'Steam ID'),
-                    'dota-2': ('steam_id', 'Steam ID'),
-                    'mobile-legends': ('moonton_id', 'Moonton ID'),
-                    'pubg-mobile': ('pubg_id', 'PUBG ID'),
-                    'free-fire': ('garena_id', 'Garena ID'),
-                    'call-of-duty-mobile': ('activision_id', 'Activision ID'),
-                    'efootball': ('konami_id', 'Konami ID'),
-                    'ea-sports-fc-26': ('ea_id', 'EA ID'),
-                    'rainbow-six-siege': ('ubisoft_username', 'Ubisoft Username'),
-                    'rocket-league': ('epic_games_id', 'Epic Games ID'),
-                }
-                
-                if game.slug in identity_field_map:
-                    field_name, display_name = identity_field_map[game.slug]
-                    field_value = getattr(passport, field_name, None)
-                    if field_value:
-                        data['player_id'] = AutoFillField(
-                            field_name='player_id',
-                            value=field_value,
-                            source='game_passport',
-                            confidence='high'
-                        )
+                # Player ID (game-specific identity)
+                # GameProfile stores the identity in `ign` (in-game name)
+                # and optionally `discriminator` for tag-style IDs (e.g., Name#TAG)
+                if passport.ign:
+                    player_id_value = passport.ign
+                    if passport.discriminator:
+                        player_id_value = f"{passport.ign}#{passport.discriminator}"
+                    data['player_id'] = AutoFillField(
+                        field_name='player_id',
+                        value=player_id_value,
+                        source='game_passport',
+                        confidence='high'
+                    )
                 
                 # Rank
                 if passport.rank:

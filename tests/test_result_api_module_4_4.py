@@ -56,7 +56,8 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from apps.tournaments.models.tournament import Game, Tournament
+from apps.tournaments.models.tournament import Tournament
+from apps.games.models.game import Game
 from apps.tournaments.models.bracket import Bracket
 from apps.tournaments.models.match import Match, Dispute
 from apps.tournaments.security.audit import AuditAction
