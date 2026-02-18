@@ -65,6 +65,28 @@ from asgiref.sync import async_to_sync  # Module 6.1: Wrap async broadcast helpe
 logger = logging.getLogger(__name__)
 
 
+def _publish_match_event(event_name: str, **kwargs):
+    """Publish match lifecycle events via the core EventBus (fire-and-forget)."""
+    try:
+        from apps.tournament_ops.events.publishers import (
+            publish_match_scheduled,
+            publish_match_completed,
+            publish_match_result_verified,
+        )
+        if event_name == "match.scheduled":
+            publish_match_scheduled(**kwargs)
+        elif event_name == "match.completed":
+            publish_match_completed(**kwargs)
+        elif event_name == "match.result_verified":
+            publish_match_result_verified(**kwargs)
+        else:
+            from apps.core.events import event_bus
+            from apps.core.events.bus import Event
+            event_bus.publish(Event(event_type=event_name, data=kwargs, source="match_service"))
+    except Exception as exc:
+        logger.warning("Failed to publish %s event: %s", event_name, exc)
+
+
 class MatchService:
     """
     Service for match lifecycle management.
@@ -189,8 +211,17 @@ class MatchService:
             **kwargs
         )
         
-        # TODO: Send notification to participants (Module 2.x)
-        # TODO: WebSocket broadcast: match created (ADR-007)
+        # Publish match.scheduled event
+        _match_id = match.id
+        _tourney_id = tournament.id
+        def _emit_scheduled():
+            _publish_match_event(
+                "match.scheduled",
+                match_id=_match_id,
+                tournament_id=_tourney_id,
+                source="match_service",
+            )
+        transaction.on_commit(_emit_scheduled)
         
         return match
     
@@ -309,6 +340,13 @@ class MatchService:
                 exc_info=True,
                 extra={'match_id': match.id, 'tournament_id': match.tournament_id}
             )
+        
+        # Publish match.live event
+        _m_id = match.id
+        _t_id = match.tournament_id
+        def _emit_live():
+            _publish_match_event("match.live", match_id=_m_id, tournament_id=_t_id, source="match_service")
+        transaction.on_commit(_emit_live)
         
         return match
     
@@ -503,8 +541,19 @@ class MatchService:
                 extra={'match_id': match.id, 'tournament_id': match.tournament_id}
             )
         
-        # TODO: Award DeltaCoin for win (Module 2.x - EconomyService)
-        # TODO: Update player stats (Module 2.x - AnalyticsService)
+        # Publish match.completed event
+        _m_id = match.id
+        _t_id = match.tournament_id
+        _w_id = match.winner_id
+        def _emit_completed():
+            _publish_match_event(
+                "match.completed",
+                match_id=_m_id,
+                tournament_id=_t_id,
+                winner_id=_w_id,
+                source="match_service",
+            )
+        transaction.on_commit(_emit_completed)
         
         return match
     

@@ -1,444 +1,473 @@
-{% extends "base.html" %}
+{% extends "tournaments/base.html" %}
 {% load static humanize %}
 
-{% block title %}Tournaments - Bangladesh's Premier Esports Platform | DeltaCrown{% endblock %}
+{# ─────────────────────────────────────────────────────────
+   FE-T-001: Tournament List / Discovery Page
+   Phase 4 — Exact replica of user's list_demo.html design
+   ───────────────────────────────────────────────────────── #}
 
-{% block extra_head %}
-<link rel="stylesheet" href="{% static 'tournaments/css/tournaments-hub.css' %}">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% block title %}Tournaments | DeltaCrown{% endblock %}
+{% block og_title %}Tournaments | DeltaCrown{% endblock %}
+
+{% block tournament_css %}
+<style>
+    /* --- DISCOVERY PAGE AESTHETICS --- */
+
+    /* Glassmorphism */
+    .glass { background: rgba(10, 10, 10, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+    .glass-strong { background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
+
+    /* Navigation Pills */
+    .nav-pill {
+        display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+        border-radius: 12px; color: #9ca3af; transition: all 0.2s ease;
+        border: 1px solid transparent; width: 100%; text-align: left; cursor: pointer;
+    }
+    .nav-pill:hover { background: rgba(255,255,255,0.03); color: #fff; border-color: rgba(255,255,255,0.05); }
+    .nav-pill.active { background: rgba(6, 182, 212, 0.1); color: #06b6d4; border-color: rgba(6, 182, 212, 0.25); box-shadow: 0 0 15px rgba(6,182,212,0.1); }
+
+    /* Game Icons */
+    .game-icon {
+        width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+        font-size: 10px; font-weight: 900; color: #000; flex-shrink: 0;
+    }
+
+    /* Hero Carousel */
+    .hero-slide {
+        position: absolute; inset: 0; opacity: 0; transition: opacity 0.8s ease-in-out;
+        background-size: cover; background-position: center;
+    }
+    .hero-slide.active { opacity: 1; }
+    .hero-overlay {
+        background: linear-gradient(90deg, #050505 0%, rgba(5,5,5,0.8) 40%, rgba(5,5,5,0.2) 100%);
+    }
+
+    /* Tournament Cards */
+    .card-modern {
+        background: #0a0a0a; border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 16px; overflow: hidden; position: relative;
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+    .card-modern:hover {
+        transform: translateY(-4px);
+        border-color: rgba(6, 182, 212, 0.4);
+        box-shadow: 0 10px 30px -10px rgba(6, 182, 212, 0.15);
+    }
+    .card-img-wrap { height: 160px; position: relative; overflow: hidden; }
+    .card-img-wrap img { transition: transform 0.6s ease; }
+    .card-modern:hover .card-img-wrap img { transform: scale(1.08); }
+    .card-img-wrap::after {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(to bottom, transparent 0%, #0a0a0a 100%);
+    }
+
+    /* Live card border glow */
+    .card-modern.card-live { border-color: rgba(239, 68, 68, 0.2); }
+    .card-modern.card-live:hover { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 10px 30px -10px rgba(239,68,68,0.15); }
+
+    /* Completed card */
+    .card-modern.card-ended { opacity: 0.75; filter: grayscale(0.3); }
+    .card-modern.card-ended:hover { opacity: 1; filter: grayscale(0); }
+
+    /* Scrollbar Hide */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
 {% endblock %}
 
-{% block body_class %}tournament-hub{% endblock %}
+{% block tournament_content %}
 
-{% block content %}
-<!-- Hero Section -->
-<section class="dc-hub-hero">
-    <div class="hub-container">
-        <div class="dc-hero-content">
-            {% if paginator.count > 0 %}
-            <div class="dc-hero-badge">
-                <span class="dc-pulse-dot"></span>
-                <span>{{ paginator.count }} TOURNAMENT{{ paginator.count|pluralize }} AVAILABLE</span>
+{# ═══ Hero Carousel ═══ #}
+<div class="relative w-full h-[300px] md:h-[380px] overflow-hidden border-b border-dc-border group">
+  {% for t in featured_tournaments %}
+  <div class="hero-slide{% if forloop.first %} active{% endif %}"
+       style="background-image: url('{% if t.banner_image %}{{ t.banner_image.url }}{% else %}https://images.unsplash.com/photo-1624138784181-dc7f5b75e52e?q=80&w=2670&auto=format&fit=crop{% endif %}');">
+    <div class="absolute inset-0 hero-overlay flex items-center">
+      <div class="max-w-[1600px] mx-auto px-6 w-full pt-10">
+        <div class="max-w-2xl space-y-4">
+          <div class="flex items-center gap-3">
+            {% if t.status == 'live' %}
+            <span class="px-3 py-1 rounded bg-red-600/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg animate-pulse">Live Now</span>
+            {% elif t.status == 'registration_open' %}
+            <span class="px-3 py-1 rounded bg-green-600/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg">Open</span>
+            {% else %}
+            <span class="px-3 py-1 rounded bg-dc-purple/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg">Upcoming</span>
+            {% endif %}
+            <span class="text-xs font-bold text-gray-300 flex items-center gap-1">
+              <i data-lucide="monitor" class="w-3 h-3 text-{% if t.status == 'live' %}red-500{% else %}dc-cyan{% endif %}"></i>
+              {{ t.game.display_name }}
+            </span>
+          </div>
+          <h1 class="font-display font-black text-4xl md:text-6xl text-white leading-none drop-shadow-2xl">
+            {{ t.name|upper }}
+          </h1>
+          <p class="text-gray-300 text-sm md:text-base max-w-lg line-clamp-2">{{ t.description|truncatewords:25 }}</p>
+          <div class="flex items-center gap-4 pt-2">
+            <a href="{% url 'tournaments:detail' t.slug %}"
+               class="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition flex items-center gap-2">
+              <i data-lucide="{% if t.status == 'live' %}play{% else %}arrow-right{% endif %}" class="w-4 h-4 fill-black"></i>
+              {% if t.status == 'live' %}Watch Stream{% else %}View Details{% endif %}
+            </a>
+            {% if t.prize_pool %}
+            <div class="text-sm font-medium text-white bg-black/50 px-4 py-2 rounded-lg border border-white/10">
+              <span class="text-gray-400">Prize:</span>
+              <span class="text-dc-gold font-bold">৳{{ t.prize_pool|floatformat:0|intcomma }}</span>
             </div>
             {% endif %}
-            
-            <h1 class="dc-hero-title">Bangladesh's Premier Esports Platform</h1>
-            <p class="dc-hero-subtitle">Compete, Win, and Claim Your Crown in the Ultimate Gaming Arena</p>
-            
-            <div class="dc-hero-stats">
-                <div class="dc-stat-card">
-                    <div class="dc-stat-value">{{ games|length }}</div>
-                    <div class="dc-stat-label">Games</div>
-                </div>
-                <div class="dc-stat-card">
-                    <div class="dc-stat-value">{{ paginator.count|default:0 }}</div>
-                    <div class="dc-stat-label">Active Tournaments</div>
-                </div>
-                <div class="dc-stat-card">
-                    <div class="dc-stat-value">৳50L+</div>
-                    <div class="dc-stat-label">Prize Pool</div>
-                </div>
-            </div>
+          </div>
         </div>
+      </div>
     </div>
-</section>
+  </div>
+  {% empty %}
+  <div class="hero-slide active" style="background: linear-gradient(135deg, #050505, #0d1117);">
+    <div class="absolute inset-0 hero-overlay flex items-center">
+      <div class="max-w-[1600px] mx-auto px-6 w-full pt-10">
+        <div class="max-w-2xl space-y-4">
+          <h1 class="font-display font-black text-4xl md:text-6xl text-white leading-none drop-shadow-2xl">
+            <span class="text-dc-cyan">COMPETE</span> &amp; CONQUER
+          </h1>
+          <p class="text-gray-300 text-sm md:text-base max-w-lg">Browse tournaments, register your team, and climb the leaderboard.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
 
-<!-- Search Section -->
-<section class="dc-search-section">
-    <div class="hub-container">
-        <form method="get" action="{% url 'tournaments:list' %}">
-            <div class="dc-search-box">
-                <i class="fas fa-search dc-search-icon"></i>
-                <input 
-                    type="text" 
-                    name="search" 
-                    class="dc-search-input"
-                    placeholder="Search tournaments by name or description..."
-                    value="{{ current_search }}"
-                >
-                {% if current_game %}<input type="hidden" name="game" value="{{ current_game }}">{% endif %}
-                {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
-                {% if current_format %}<input type="hidden" name="format" value="{{ current_format }}">{% endif %}
-                <button type="submit" class="dc-search-btn">
-                    <span>Search</span>
-                    <i class="fas fa-arrow-right"></i>
-                </button>
+  {% if featured_tournaments %}
+  <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+    {% for t in featured_tournaments %}
+    <div class="h-1 rounded-full transition-all duration-300 {% if forloop.first %}w-8 bg-white{% else %}w-2 bg-white/30{% endif %}"></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+{# ═══ Main 3-Column Layout ═══ #}
+<div class="max-w-[1600px] mx-auto px-4 lg:px-6 py-8 flex-1 w-full">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+    {# ── Left Sidebar: Game + Format Filters ── #}
+    <div class="hidden lg:block lg:col-span-2 space-y-8 sticky top-24 h-fit">
+
+      {# Search #}
+      <form method="get" class="relative group">
+        {% for key, val in request.GET.items %}{% if key != 'search' and key != 'page' %}
+        <input type="hidden" name="{{ key }}" value="{{ val }}">
+        {% endif %}{% endfor %}
+        <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-dc-cyan transition-colors"></i>
+        <input type="text" name="search" value="{{ current_search }}" placeholder="Search events..."
+               class="w-full bg-dc-card border border-dc-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-dc-cyan/50 focus:ring-1 focus:ring-dc-cyan/50 outline-none transition-all shadow-sm">
+      </form>
+
+      {# Game filter #}
+      <div>
+        <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 px-2">Select Game</h3>
+        <div class="space-y-1">
+          <a href="?{% if current_status %}status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
+             class="nav-pill{% if not current_game %} active{% endif %}">
+            <div class="game-icon bg-dc-cyan/20 text-dc-cyan"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i></div>
+            <span class="text-sm font-semibold">All Games</span>
+          </a>
+          {% for game in games %}
+          <a href="?game={{ game.slug }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
+             class="nav-pill group{% if current_game == game.slug %} active{% endif %}">
+            {% if game.icon %}
+            <img src="{{ game.icon }}" class="w-6 h-6 rounded-md object-cover" alt="{{ game.name }}">
+            {% else %}
+            <div class="game-icon bg-dc-cyan text-white">{{ game.name|truncatechars:2 }}</div>
+            {% endif %}
+            <span class="text-sm font-medium group-hover:text-white">{{ game.name }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# Format filter #}
+      <div>
+        <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 px-2">Format</h3>
+        <div class="flex flex-wrap gap-2 px-1">
+          {% for opt in format_options %}
+          <a href="?format={{ opt.value }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}"
+             class="px-3 py-1.5 rounded-lg border text-xs transition
+               {% if current_format == opt.value %}bg-dc-cyan/10 border-dc-cyan/40 text-dc-cyan{% else %}border-white/10 bg-white/5 text-gray-300 hover:border-dc-cyan/40 hover:text-white{% endif %}">
+            {{ opt.label }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# Status filter #}
+      <div>
+        <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 px-2">Status</h3>
+        <div class="flex flex-wrap gap-2 px-1">
+          {% for opt in status_options %}
+          <a href="?status={{ opt.value }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
+             class="px-3 py-1.5 rounded-lg border text-xs transition
+               {% if current_status == opt.value %}bg-dc-cyan/10 border-dc-cyan/40 text-dc-cyan{% else %}border-white/10 bg-white/5 text-gray-300 hover:border-dc-cyan/40 hover:text-white{% endif %}">
+            {{ opt.label }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {# ── Main Content: Tournament Grid ── #}
+    <div class="col-span-1 lg:col-span-7 space-y-6">
+
+      {# Header bar #}
+      <div class="flex items-center justify-between pb-4 border-b border-dc-border">
+        <h2 class="font-display font-bold text-2xl text-white">Explore Tournaments</h2>
+        <div class="flex items-center gap-3">
+          <select onchange="window.location.search='?sort='+this.value"
+                  class="bg-dc-card border border-dc-border text-xs text-gray-300 rounded-lg px-3 py-2 outline-none focus:border-dc-cyan/50">
+            <option value="trending">Sort: Trending</option>
+            <option value="soonest">Sort: Soonest</option>
+            <option value="prize">Prize: High to Low</option>
+          </select>
+        </div>
+      </div>
+
+      {# Mobile game pills #}
+      <div class="lg:hidden flex gap-2 overflow-x-auto pb-4 no-scrollbar">
+        <a href="?{% if current_status %}status={{ current_status }}{% endif %}"
+           class="px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap {% if not current_game %}bg-dc-cyan text-black{% else %}bg-dc-card border border-dc-border text-gray-400{% endif %}">All</a>
+        {% for game in games %}
+        <a href="?game={{ game.slug }}{% if current_status %}&status={{ current_status }}{% endif %}"
+           class="px-4 py-2 rounded-lg text-xs font-medium whitespace-nowrap {% if current_game == game.slug %}bg-dc-cyan text-black{% else %}bg-dc-card border border-dc-border text-gray-400{% endif %}">{{ game.name }}</a>
+        {% endfor %}
+      </div>
+
+      {# Tournament card grid #}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {% for t in tournament_list %}
+        <a href="{% url 'tournaments:detail' t.slug %}"
+           class="card-modern group cursor-pointer {% if t.status == 'live' %}card-live{% elif t.status == 'completed' %}card-ended{% endif %}">
+          <div class="card-img-wrap">
+            <img src="{% if t.banner_image %}{{ t.banner_image.url }}{% else %}https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000&auto=format&fit=crop{% endif %}"
+                 class="w-full h-full object-cover" alt="{{ t.name }}">
+            {# Left badges #}
+            <div class="absolute top-3 left-3 flex gap-2 z-10">
+              {% if t.participation_type == 'team' %}
+              <span class="bg-black/60 backdrop-blur border border-white/10 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
+                <i data-lucide="users" class="w-3 h-3 text-dc-cyan"></i> Team
+              </span>
+              {% else %}
+              <span class="bg-black/60 backdrop-blur border border-white/10 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
+                <i data-lucide="user" class="w-3 h-3 text-dc-cyan"></i> Solo
+              </span>
+              {% endif %}
             </div>
-        </form>
-    </div>
-</section>
+            {# Right status badge #}
+            <div class="absolute top-3 right-3 z-10">
+              {% if t.status == 'live' %}
+              <span class="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase animate-pulse">● Live</span>
+              {% elif t.status == 'registration_open' %}
+              <span class="bg-green-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">Open</span>
+              {% elif t.status == 'completed' %}
+              <span class="bg-gray-800 text-gray-300 text-[10px] font-bold px-2 py-1 rounded uppercase">Ended</span>
+              {% else %}
+              <span class="bg-dc-purple text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">{{ t.tournament_start|date:"M j" }}</span>
+              {% endif %}
+            </div>
+          </div>
 
-<!-- Browse by Game -->
-<section class="dc-games-section">
-    <div class="hub-container">
-        <h2 class="dc-section-title">Browse by Game</h2>
-        
-        <div class="dc-games-grid">
-            <!-- All Games -->
-            <a href="{% url 'tournaments:list' %}" class="dc-game-card {% if not current_game %}active{% endif %}">
-                <div class="dc-game-overlay"></div>
-                <div class="dc-game-content">
-                    <i class="fas fa-th dc-game-icon" style="font-size: 48px; color: var(--dc-primary);"></i>
-                    <div class="dc-game-name">All Games</div>
-                    <div class="dc-game-count">{{ paginator.count }} Tournament{{ paginator.count|pluralize }}</div>
+          <div class="p-5 {% if t.status == 'live' %}relative overflow-hidden{% endif %}">
+            {% if t.status == 'live' %}
+            <div class="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+            {% endif %}
+
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-bold uppercase tracking-wider
+                {% if t.status == 'live' %}text-red-400{% elif t.status == 'completed' %}text-gray-500{% else %}text-dc-cyan{% endif %}">
+                {{ t.game.display_name }}
+              </span>
+              {% if t.status != 'live' %}
+              <span class="text-[10px] text-gray-500">
+                {% if t.status == 'completed' %}Ended{% else %}Starts {{ t.tournament_start|date:"M j" }}{% endif %}
+              </span>
+              {% endif %}
+            </div>
+
+            <h3 class="font-display font-bold text-lg text-white mb-4 transition-colors line-clamp-1
+              {% if t.status == 'live' %}group-hover:text-red-500{% elif t.status == 'completed' %}{% else %}group-hover:text-dc-cyan{% endif %}">
+              {{ t.name }}
+            </h3>
+
+            {# Stats bar #}
+            <div class="flex items-center justify-between p-3 rounded-lg mb-4
+              {% if t.status == 'live' %}bg-red-500/5 border border-red-500/10{% elif t.status == 'completed' %}bg-gradient-to-r from-dc-gold/10 to-transparent border border-dc-gold/20{% else %}bg-white/5 border border-white/5{% endif %}">
+              {% if t.status == 'completed' %}
+              <div class="flex items-center gap-3 w-full">
+                <div class="w-8 h-8 rounded bg-dc-gold/20 flex items-center justify-center text-dc-gold"><i data-lucide="crown" class="w-4 h-4 fill-current"></i></div>
+                <div>
+                  <div class="text-[10px] font-bold text-dc-gold uppercase">Completed</div>
+                  <div class="text-sm font-bold text-white">View Results</div>
                 </div>
+              </div>
+              {% else %}
+              <div class="text-center">
+                <div class="text-[10px] text-gray-500 uppercase font-bold">Prize</div>
+                <div class="text-dc-gold font-bold font-display">{% if t.prize_pool %}৳{{ t.prize_pool|floatformat:0|intcomma }}{% else %}TBD{% endif %}</div>
+              </div>
+              <div class="w-px h-6 bg-white/10"></div>
+              <div class="text-center">
+                <div class="text-[10px] text-gray-500 uppercase font-bold">Entry</div>
+                <div class="text-white font-bold font-display">{% if t.entry_fee and t.entry_fee > 0 %}৳{{ t.entry_fee|floatformat:0|intcomma }}{% else %}Free{% endif %}</div>
+              </div>
+              <div class="w-px h-6 bg-white/10"></div>
+              <div class="text-center">
+                <div class="text-[10px] text-gray-500 uppercase font-bold">Slots</div>
+                <div class="text-white font-bold font-display">{{ t.registration_count }}/{{ t.max_participants }}</div>
+              </div>
+              {% endif %}
+            </div>
+
+            {# Action button #}
+            {% if t.status == 'live' %}
+            <span class="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 group-hover:bg-red-600 group-hover:border-red-600 group-hover:text-white text-gray-300 font-bold text-sm transition-all flex items-center justify-center gap-2">
+              <i data-lucide="tv" class="w-4 h-4"></i> Watch Stream
+            </span>
+            {% elif t.status == 'completed' %}
+            <span class="w-full py-2.5 rounded-lg bg-transparent border border-white/10 group-hover:bg-white/5 text-gray-400 group-hover:text-white font-bold text-sm transition-all flex items-center justify-center">
+              View Results
+            </span>
+            {% elif t.status == 'registration_open' %}
+            <span class="w-full py-2.5 rounded-lg bg-dc-cyan hover:bg-dc-cyan/90 text-black font-bold text-sm transition-all flex items-center justify-center gap-2">
+              Register {% if t.participation_type == 'team' %}Team{% endif %} <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </span>
+            {% else %}
+            <span class="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 group-hover:bg-dc-purple group-hover:border-dc-purple text-white font-bold text-sm transition-all flex items-center justify-center">
+              Pre-Register
+            </span>
+            {% endif %}
+          </div>
+        </a>
+        {% empty %}
+        <div class="col-span-2 text-center py-20">
+          <i data-lucide="search" class="w-12 h-12 mx-auto text-gray-600 mb-4"></i>
+          <h3 class="font-display font-bold text-xl text-white mb-2">No tournaments found</h3>
+          <p class="text-sm text-gray-500">Try adjusting your filters or check back later for upcoming events.</p>
+          <a href="{% url 'tournaments:list' %}" class="inline-block mt-4 px-6 py-2 bg-dc-cyan text-black font-bold rounded-lg text-sm">Clear Filters</a>
+        </div>
+        {% endfor %}
+      </div>
+
+      {# Pagination / Load More #}
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}"
+         class="w-full py-4 rounded-xl border border-white/5 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all font-medium flex items-center justify-center gap-2">
+        Load More Events <i data-lucide="chevron-down" class="w-4 h-4"></i>
+      </a>
+      {% endif %}
+    </div>
+
+    {# ── Right Sidebar ── #}
+    <div class="hidden lg:block lg:col-span-3 space-y-6">
+
+      {# My Tournaments widget #}
+      {% if user.is_authenticated %}
+      <div class="bg-dc-card border border-dc-border rounded-2xl p-5 shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+            <i data-lucide="user" class="w-3.5 h-3.5 text-dc-cyan"></i> My Tournaments
+          </h3>
+        </div>
+        <div class="space-y-3">
+          {% for t in tournament_list %}
+            {% if t.id in user_registered_tournaments %}
+            <a href="{% url 'tournaments:detail' t.slug %}"
+               class="block p-3 rounded-xl bg-gradient-to-r from-dc-cyan/10 to-transparent border border-dc-cyan/20 cursor-pointer hover:border-dc-cyan/50 transition">
+              <div class="flex justify-between items-start mb-1">
+                <span class="text-sm font-bold text-white">{{ t.name|truncatewords:5 }}</span>
+                {% if t.status == 'live' %}
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+                </span>
+                {% endif %}
+              </div>
+              <div class="flex items-center justify-between mt-2">
+                <span class="text-[10px] text-gray-400">{{ t.tournament_start|date:"M j \a\t g:i A" }}</span>
+                <span class="text-[10px] text-green-400 font-bold">Registered</span>
+              </div>
             </a>
-            
-            <!-- Dynamic Games -->
-            {% for game in games %}
-            <a href="?game={{ game.slug }}" class="dc-game-card {% if current_game == game.slug %}active{% endif %}">
-                {% if game.card_image %}
-                <div class="dc-game-bg">
-                    <img src="{{ game.card_image.url }}" alt="{{ game.display_name }}" onerror="this.style.display='none'">
-                </div>
-                {% endif %}
-                <div class="dc-game-overlay"></div>
-                <div class="dc-game-content">
-                    {% if game.icon %}
-                        <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" class="dc-game-icon" onerror="this.src='/static/img/game_logos/{{ game.slug }}.png'; this.onerror=function(){this.style.display='none'; this.parentElement.innerHTML='<i class=\"fas fa-gamepad dc-game-icon\" style=\"font-size: 48px;\"></i>'};">
-                    {% else %}
-                        <i class="fas fa-gamepad dc-game-icon" style="font-size: 48px;"></i>
-                    {% endif %}
-                    <div class="dc-game-name">{{ game.display_name }}</div>
-                    <div class="dc-game-count">View Tournaments</div>
-                </div>
-            </a>
-            {% endfor %}
+            {% endif %}
+          {% endfor %}
         </div>
-    </div>
-</section>
+      </div>
+      {% endif %}
 
-<!-- Tournament Listing -->
-<section class="dc-listing-section">
-    <div class="hub-container">
-        <div class="dc-listing-layout">
-            <!-- Filters Panel -->
-            <aside class="dc-filters-panel" id="filters-panel">
-                <div class="dc-filters-header">
-                    <h3 class="dc-filters-title">Filters</h3>
-                    <button type="button" class="dc-close-filters" id="close-filters">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <form method="get" action="{% url 'tournaments:list' %}" id="filters-form">
-                    {% if current_search %}<input type="hidden" name="search" value="{{ current_search }}">{% endif %}
-                    {% if current_game %}<input type="hidden" name="game" value="{{ current_game }}">{% endif %}
-                    
-                    <!-- Status -->
-                    <div class="dc-filter-group">
-                        <label class="dc-filter-label">Status</label>
-                        {% for option in status_options %}
-                        <label class="dc-filter-option">
-                            <input type="radio" name="status" value="{{ option.value }}" {% if option.value == current_status %}checked{% endif %}>
-                            <span>{{ option.label }}</span>
-                            {% if option.value == '' %}
-                            <span class="dc-filter-count">{{ paginator.count }}</span>
-                            {% endif %}
-                        </label>
-                        {% endfor %}
-                    </div>
-                    
-                    <!-- Entry Fee -->
-                    <div class="dc-filter-group">
-                        <label class="dc-filter-label">Entry Fee</label>
-                        <label class="dc-filter-option">
-                            <input type="radio" name="fee" value="" {% if not request.GET.fee %}checked{% endif %}>
-                            <span>All</span>
-                        </label>
-                        <label class="dc-filter-option">
-                            <input type="radio" name="fee" value="free" {% if request.GET.fee == 'free' %}checked{% endif %}>
-                            <span>Free</span>
-                        </label>
-                        <label class="dc-filter-option">
-                            <input type="radio" name="fee" value="paid" {% if request.GET.fee == 'paid' %}checked{% endif %}>
-                            <span>Paid</span>
-                        </label>
-                    </div>
-                    
-                    <!-- Format -->
-                    <div class="dc-filter-group">
-                        <label class="dc-filter-label">Format</label>
-                        {% for option in format_options %}
-                        <label class="dc-filter-option">
-                            <input type="radio" name="format" value="{{ option.value }}" {% if option.value == current_format %}checked{% endif %}>
-                            <span>{{ option.label }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                    
-                    <button type="button" class="dc-reset-btn" id="reset-filters">
-                        <i class="fas fa-redo"></i>
-                        <span>Reset Filters</span>
-                    </button>
-                </form>
-            </aside>
-            
-            <!-- Main Content -->
-            <div class="dc-listing-main">
-                <!-- Header -->
-                <div class="dc-listing-header">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <h2 class="dc-listing-count">
-                            <span>{{ paginator.count }}</span> Tournament{{ paginator.count|pluralize }}
-                        </h2>
-                        <button type="button" class="dc-mobile-filter-btn" id="open-filters">
-                            <i class="fas fa-filter"></i>
-                            <span>Filters</span>
-                        </button>
-                    </div>
-                    
-                    <div class="dc-sort-dropdown">
-                        <label>Sort by</label>
-                        <select id="sort-select">
-                            <option value="newest" {% if request.GET.sort == 'newest' %}selected{% endif %}>Newest</option>
-                            <option value="starting_soon" {% if request.GET.sort == 'starting_soon' %}selected{% endif %}>Starting Soon</option>
-                            <option value="prize_high" {% if request.GET.sort == 'prize_high' %}selected{% endif %}>Highest Prize</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <!-- Tournament Cards -->
-                {% if tournament_list %}
-                <div class="dc-tournaments-grid">
-                    {% for tournament in tournament_list %}
-                    <article class="dc-tournament-card">
-                        <div class="dc-card-image">
-                            <a href="{% url 'tournaments:detail' slug=tournament.slug %}">
-                                {% if tournament.banner_image %}
-                                <img src="{{ tournament.banner_image.url }}" alt="{{ tournament.name }}">
-                                {% elif tournament.thumbnail_image %}
-                                <img src="{{ tournament.thumbnail_image.url }}" alt="{{ tournament.name }}">
-                                {% else %}
-                                <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 900; color: rgba(255,255,255,0.3);">
-                                    {{ tournament.name|slice:":1"|upper }}
-                                </div>
-                                {% endif %}
-                            </a>
-                            
-                            <!-- Game Logo Badge -->
-                            {% if tournament.game %}
-                            <div class="dc-game-logo-badge">
-                                {% if tournament.game.icon %}
-                                <img src="{{ tournament.game.icon.url }}" alt="{{ tournament.game.name }}" class="dc-game-logo">
-                                {% else %}
-                                <i class="fas fa-gamepad" style="color: var(--dc-primary);"></i>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                            
-                            <!-- Status Badges -->
-                            <div class="dc-card-badges">
-                                {% if tournament.status == 'live' %}
-                                <span class="dc-badge dc-badge-live">
-                                    <span class="dc-pulse-dot"></span>
-                                    LIVE
-                                </span>
-                                {% elif tournament.status == 'registration_open' %}
-                                <span class="dc-badge" style="background: rgba(0, 212, 255, 0.2); border: 1px solid var(--dc-primary); color: var(--dc-primary);">
-                                    <i class="fas fa-user-plus"></i>
-                                    OPEN
-                                </span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <div class="dc-card-body">
-                            <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-card-title">
-                                {{ tournament.name }}
-                            </a>
-                            
-                            <div class="dc-card-meta">
-                                <div class="dc-card-meta-item">
-                                    <div class="dc-meta-label">
-                                        <i class="far fa-calendar"></i>
-                                        <span>Starts</span>
-                                    </div>
-                                    <div class="dc-meta-value">{{ tournament.tournament_start|date:"M d, Y" }}</div>
-                                </div>
-                                <div class="dc-card-meta-item">
-                                    <div class="dc-meta-label">
-                                        <i class="fas fa-trophy"></i>
-                                        <span>Prize Pool</span>
-                                    </div>
-                                    <div class="dc-meta-value dc-meta-prize">
-                                        {% if tournament.prize_pool and tournament.prize_pool > 0 %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}
-                                    </div>
-                                </div>
-                                <div class="dc-card-meta-item">
-                                    <div class="dc-meta-label">
-                                        <i class="fas fa-users"></i>
-                                        <span>Participants</span>
-                                    </div>
-                                    <div class="dc-meta-value">
-                                        {% if tournament.max_participants %}
-                                            <span class="dc-current-count">{{ tournament.registration_count }}</span>
-                                            <span class="dc-progress-separator">/</span>
-                                            <span class="dc-total-count">{{ tournament.max_participants }}</span>
-                                        {% else %}
-                                            <span class="dc-registration-count">{{ tournament.registration_count }}</span>
-                                            <span class="dc-unlimited-text">registered</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="dc-card-meta-item">
-                                    <div class="dc-meta-label">
-                                        <i class="fas fa-coins"></i>
-                                        <span>Entry Fee</span>
-                                    </div>
-                                    <div class="dc-meta-value dc-meta-fee">
-                                        {% if tournament.has_entry_fee and tournament.entry_fee_amount %}৳{{ tournament.entry_fee_amount|floatformat:0 }}{% else %}<span class="dc-free-badge">FREE</span>{% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {% if tournament.max_participants %}
-                            <div class="dc-card-progress">
-                                <div class="dc-progress-header">
-                                    <div class="dc-progress-label">
-                                        <i class="fas fa-chart-line"></i>
-                                        <span>Registration Progress</span>
-                                    </div>
-                                    <div class="dc-progress-stats">
-                                        <span class="dc-current-count">{{ tournament.registration_count }}</span>
-                                        <span class="dc-progress-separator">/</span>
-                                        <span class="dc-total-count">{{ tournament.max_participants }}</span>
-                                        <span class="dc-progress-percent">({% widthratio tournament.registration_count tournament.max_participants 100 %}%)</span>
-                                    </div>
-                                </div>
-                                <div class="dc-progress-bar-wrap">
-                                    <div class="dc-progress-bar" style="width: {% widthratio tournament.registration_count tournament.max_participants 100 %}%"></div>
-                                </div>
-                                {% if tournament.registration_count >= tournament.max_participants %}
-                                <div class="dc-full-notice">
-                                    <i class="fas fa-check-circle"></i>
-                                    <span>Tournament is full!</span>
-                                </div>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                            
-                            <div class="dc-card-actions">
-                                {% if tournament.id in user_registered_tournaments %}
-                                    <!-- User Already Registered - Show Lobby Button -->
-                                    <a href="{% url 'tournaments:lobby' slug=tournament.slug %}" class="dc-btn dc-btn-success neon">
-                                        <i class="fas fa-check-circle"></i>
-                                        <span>Registered - Enter Lobby</span>
-                                    </a>
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
-                                        <i class="fas fa-circle-info"></i>
-                                        <span>View Details</span>
-                                    </a>
-                                {% elif tournament.status == 'completed' %}
-                                    <!-- Tournament Completed - Show Results -->
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline" style="border-color: rgb(251, 191, 36); color: rgb(251, 191, 36);">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: 8px;">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        <span>View Results</span>
-                                    </a>
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-secondary">
-                                        <i class="fas fa-medal"></i>
-                                        <span>Standings</span>
-                                    </a>
-                                {% elif tournament.status == 'live' %}
-                                    <!-- Tournament is Live - Show Watch Button -->
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-primary" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-color: #ef4444; position: relative; overflow: hidden;">
-                                        <span style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%); animation: pulse 2s ease-in-out infinite;"></span>
-                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: 8px; position: relative; z-index: 1;">
-                                            <path d="M8 5v14l11-7z"/>
-                                        </svg>
-                                        <span style="position: relative; z-index: 1;">Watch Live</span>
-                                    </a>
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
-                                        <i class="fas fa-sitemap"></i>
-                                        <span>Bracket</span>
-                                    </a>
-                                {% elif tournament.status == 'registration_closed' %}
-                                    <!-- Registration Closed but Not Live Yet - Show Schedule -->
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline" style="border-color: rgb(148, 163, 184); color: rgb(148, 163, 184);">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: 8px;">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                        </svg>
-                                        <span>View Schedule</span>
-                                    </a>
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-secondary">
-                                        <i class="fas fa-circle-info"></i>
-                                        <span>Details</span>
-                                    </a>
-                                {% else %}
-                                    <!-- Default: Always Show Registration Button (for draft, published, registration_open, etc.) -->
-                                    <a href="{% if tournament.participation_type == 'team' %}{% url 'tournaments:team_registration' slug=tournament.slug %}{% else %}{% url 'tournaments:register' tournament_slug=tournament.slug %}{% endif %}" class="dc-btn dc-btn-primary neon">
-                                        <i class="fas fa-user-plus"></i>
-                                        <span>Register Now</span>
-                                    </a>
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
-                                        <i class="fas fa-circle-info"></i>
-                                        <span>View Details</span>
-                                    </a>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </article>
-                    {% endfor %}
-                </div>
-                
-                <!-- Pagination -->
-                {% if is_paginated %}
-                <div class="dc-pagination">
-                    {% if page_obj.has_previous %}
-                        <a href="?page=1{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_format %}&format={{ current_format }}{% endif %}" class="dc-page-btn">
-                            <i class="fas fa-angle-double-left"></i>
-                        </a>
-                        <a href="?page={{ page_obj.previous_page_number }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_format %}&format={{ current_format }}{% endif %}" class="dc-page-btn">
-                            <i class="fas fa-angle-left"></i>
-                        </a>
-                    {% endif %}
+      {# Host a Tournament CTA #}
+      <div class="relative overflow-hidden rounded-2xl p-6 group cursor-pointer border border-dc-purple/30">
+        <div class="absolute inset-0 bg-gradient-to-br from-dc-purple/20 to-black transition opacity-80 group-hover:opacity-100"></div>
+        <div class="relative z-10 text-center">
+          <div class="w-12 h-12 mx-auto bg-dc-purple rounded-full flex items-center justify-center mb-3 shadow-[0_0_20px_rgba(139,92,246,0.3)] group-hover:scale-110 transition-transform">
+            <i data-lucide="trophy" class="w-6 h-6 text-white"></i>
+          </div>
+          <h3 class="font-display font-bold text-white text-lg mb-1">Host a Tournament</h3>
+          <p class="text-xs text-gray-300 mb-4 px-2">Automated brackets, payments, and scoring. Free for community events.</p>
+          <button class="w-full py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 transition-colors">
+            Create Now
+          </button>
+        </div>
+      </div>
 
-                    <span class="dc-page-btn active">
-                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                    </span>
-
-                    {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_format %}&format={{ current_format }}{% endif %}" class="dc-page-btn">
-                            <i class="fas fa-angle-right"></i>
-                        </a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_format %}&format={{ current_format }}{% endif %}" class="dc-page-btn">
-                            <i class="fas fa-angle-double-right"></i>
-                        </a>
-                    {% endif %}
-                </div>
-                {% endif %}
-                
-                {% else %}
-                <!-- Empty State -->
-                <div class="dc-empty-state">
-                    <div class="dc-empty-icon">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                    <h3 class="dc-empty-title">No Tournaments Found</h3>
-                    <p class="dc-empty-text">
-                        {% if current_search or current_game or current_status or current_format %}
-                            Try adjusting your filters or search query to find tournaments.
-                        {% else %}
-                            Check back soon for upcoming tournaments!
-                        {% endif %}
-                    </p>
-                    {% if current_search or current_game or current_status or current_format %}
-                    <a href="{% url 'tournaments:list' %}" class="dc-btn dc-btn-primary" style="max-width: 300px; margin: 0 auto; display: inline-flex;">
-                        <i class="fas fa-redo"></i>
-                        Clear All Filters
-                    </a>
-                    {% endif %}
-                </div>
-                {% endif %}
+      {# Latest Winners #}
+      <div class="bg-dc-card border border-dc-border rounded-2xl p-5">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <i data-lucide="crown" class="w-3.5 h-3.5 text-dc-gold"></i> Latest Winners
+        </h3>
+        <div class="space-y-4">
+          {% for t in tournament_list %}
+            {% if t.status == 'completed' and forloop.counter <= 3 %}
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded bg-white/10 flex items-center justify-center font-bold text-[10px] text-white">
+                {{ t.game.display_name|truncatechars:3 }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-bold text-white truncate">{{ t.name|truncatewords:4 }}</div>
+                <div class="text-[10px] text-gray-500 truncate">{{ t.game.display_name }}</div>
+              </div>
+              {% if t.prize_pool %}
+              <div class="text-right">
+                <div class="text-xs font-bold text-dc-gold">৳{{ t.prize_pool|floatformat:0|intcomma }}</div>
+              </div>
+              {% endif %}
             </div>
+            {% if not forloop.last %}
+            <div class="w-full h-px bg-white/5"></div>
+            {% endif %}
+            {% endif %}
+          {% endfor %}
         </div>
-    </div>
-</section>
-{% endblock %}
+      </div>
 
-{% block extra_js %}
-<script src="{% static 'tournaments/js/tournaments-hub.js' %}"></script>
+    </div>
+  </div>
+</div>
+
+{# ═══ Hero Carousel Script ═══ #}
+<script>
+  (function() {
+    const slides = document.querySelectorAll('.hero-slide');
+    if (slides.length > 1) {
+      let current = 0;
+      setInterval(() => {
+        slides[current].classList.remove('active');
+        current = (current + 1) % slides.length;
+        slides[current].classList.add('active');
+        // Update dots
+        const dots = document.querySelectorAll('.hero-slide ~ .absolute .h-1');
+        dots.forEach((d, i) => {
+          d.classList.toggle('w-8', i === current);
+          d.classList.toggle('bg-white', i === current);
+          d.classList.toggle('w-2', i !== current);
+          d.classList.toggle('bg-white/30', i !== current);
+        });
+      }, 5000);
+    }
+  })();
+</script>
+
 {% endblock %}

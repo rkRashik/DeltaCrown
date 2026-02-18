@@ -23,6 +23,12 @@
       headers["Content-Type"] = "application/json";
     }
     const res = await fetch(url, { credentials: "same-origin", ...opts, headers });
+    const ct = res.headers.get("content-type") || "";
+    if (!ct.includes("application/json")) {
+      if (res.status === 403) throw new Error("Permission denied (403). Please refresh and try again.");
+      if (res.status === 401 || res.redirected) throw new Error("Session expired. Please refresh the page and log in again.");
+      throw new Error(`Server returned non-JSON response (${res.status}). Please refresh the page.`);
+    }
     const data = await res.json();
     if (!res.ok || data.success === false) {
       throw new Error(data.error || data.message || `Request failed (${res.status})`);

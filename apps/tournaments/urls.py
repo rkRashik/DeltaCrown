@@ -54,7 +54,7 @@ from apps.tournaments.views.registration import (
 # Form Builder - Dynamic Registration (Sprint 1)
 from apps.tournaments.views.dynamic_registration import (
     DynamicRegistrationView,
-    RegistrationSuccessView,
+    RegistrationSuccessView as DynamicRegistrationSuccessView,
     RegistrationDashboardView,
 )
 # Permission Requests (Team Registration Permission Workflow)
@@ -140,7 +140,6 @@ from apps.tournaments.views.organizer_results import (
     override_match_result,
 )
 from apps.tournaments.views.tournament_team_registration import (
-    SoloRegistrationDemoView,
     TeamRegistrationView,
     RegistrationSuccessView,
 )
@@ -169,26 +168,28 @@ from apps.tournaments.views.health_metrics import (
 )
 from apps.tournaments.views.organizer import (
     OrganizerDashboardView,
-    OrganizerTournamentDetailView,
     OrganizerHubView,
+    create_tournament,
+)
+from apps.tournaments.views.organizer_participants import (
     approve_registration,
     reject_registration,
-    verify_payment,
-    reject_payment,
     toggle_checkin,
-    submit_match_score,
-    create_tournament,
-    # FE-T-022: Participant Management
     bulk_approve_registrations,
     bulk_reject_registrations,
     disqualify_participant,
     export_roster_csv,
-    # FE-T-023: Payment Management
+)
+from apps.tournaments.views.organizer_payments import (
+    verify_payment,
+    reject_payment,
     bulk_verify_payments,
     process_refund,
     export_payments_csv,
     payment_history,
-    # FE-T-024: Match Management
+)
+from apps.tournaments.views.organizer_matches import (
+    submit_match_score,
     reschedule_match,
     forfeit_match,
     override_match_score,
@@ -260,13 +261,6 @@ urlpatterns = [
     path('permissions/<int:request_id>/reject/', reject_permission, name='reject_permission'),
     path('permissions/<int:request_id>/cancel/', cancel_permission, name='cancel_permission'),
     
-    # === Template Marketplace - REMOVED (admin-only feature) ===
-    # path('marketplace/', TemplateMarketplaceView.as_view(), name='marketplace'),
-    # path('marketplace/<slug:slug>/', TemplateDetailView.as_view(), name='template_detail'),
-    # path('marketplace/<slug:slug>/clone/', CloneTemplateView.as_view(), name='clone_template'),
-    # path('marketplace/<slug:slug>/rate/', RateTemplateView.as_view(), name='rate_template'),
-    # path('ratings/<int:pk>/helpful/', MarkRatingHelpfulView.as_view(), name='rating_helpful'),
-    
     # FE-T-002: Tournament Detail Page (includes FE-T-003: CTA states)
     path('<slug:slug>/', views.TournamentDetailView.as_view(), name='detail'),
     
@@ -295,7 +289,7 @@ urlpatterns = [
     
     # FE-T-004: Dynamic Registration System (Form Builder - Marketplace System)
     path('<slug:tournament_slug>/register/', DynamicRegistrationView.as_view(), name='register'),
-    path('<slug:tournament_slug>/register/success/<int:response_id>/', RegistrationSuccessView.as_view(), name='registration_success'),
+    path('<slug:tournament_slug>/register/success/<int:response_id>/', DynamicRegistrationSuccessView.as_view(), name='dynamic_registration_success'),
     
     # Payment handling for tournament registration
     path('registration/<int:registration_id>/payment/upload/', PaymentProofUploadView.as_view(), name='payment_upload'),
@@ -369,7 +363,7 @@ urlpatterns = [
     path('<slug:tournament_slug>/api/validate-field/', ValidateFieldAPIView.as_view(), name='validate_field'),
     
     # === Registration Management Dashboard ===
-    path('<slug:tournament_slug>/manage/', RegistrationManagementDashboardView.as_view(), name='registration_dashboard'),
+    path('<slug:tournament_slug>/manage/', RegistrationManagementDashboardView.as_view(), name='registration_management'),
     path('responses/<int:response_id>/detail/', ResponseDetailAPIView.as_view(), name='response_detail'),
     path('responses/<int:response_id>/quick-action/', QuickActionAPIView.as_view(), name='quick_action'),
 ]

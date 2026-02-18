@@ -1,339 +1,146 @@
-{% extends "tournaments/organizer/hub_overview.html" %}
+{% extends "tournaments/organizer/_hub_base.html" %}
+{% load humanize %}
+
+{# ─────────────────────────────────────────────────────────
+   Organizer Hub — Brackets Tab
+   Bracket visualization, match list, result management
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
 
 {% block hub_content %}
-<div class="bg-white rounded-lg shadow-md p-6">
-    <!-- Header with Pending Results Link -->
-    <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold">Bracket & Match Management</h2>
-        <a href="{% url 'tournaments:pending_results' slug=tournament.slug %}" 
-           class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-medium flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
-            </svg>
-            Pending Results
-            {% if pending_results_count > 0 %}
-            <span class="ml-2 px-2 py-0.5 bg-white text-yellow-700 rounded-full text-xs font-bold">
-                {{ pending_results_count }}
-            </span>
-            {% endif %}
-        </a>
-    </div>
 
+{# ── Bracket Status ── #}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+  <div>
+    <h2 class="text-lg font-display font-bold text-white">Bracket &amp; Matches</h2>
     {% if bracket %}
-        <!-- Bracket Info -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h3 class="font-bold">Bracket: {{ bracket.get_format_display }}</h3>
-                    <p class="text-sm text-gray-600">Seeding: {{ bracket.get_seeding_method_display }}</p>
-                    <p class="text-sm text-gray-600">Rounds: {{ bracket.total_rounds }} | Matches: {{ bracket.total_matches }}</p>
-                </div>
-                {% if can_manage %}
-                <div class="flex gap-2">
-                    {% if not bracket.is_finalized %}
-                    <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                        Regenerate Bracket
-                    </button>
-                    <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                        Finalize Bracket
-                    </button>
-                    {% else %}
-                    <span class="text-green-600 font-medium">🔒 Finalized</span>
-                    {% endif %}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Match List -->
-        <h3 class="text-xl font-bold mb-4">Matches</h3>
-        <div class="space-y-4">
-            {% for match in matches %}
-            <div class="border rounded-lg p-4 hover:shadow-md transition">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <div class="text-sm text-gray-600 mb-2">
-                            Round {{ match.round_number }} - Match {{ match.match_number }}
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <div class="text-lg font-semibold">
-                                {{ match.participant1_name|default:"TBD" }}
-                            </div>
-                            <div class="text-gray-500">vs</div>
-                            <div class="text-lg font-semibold">
-                                {{ match.participant2_name|default:"TBD" }}
-                            </div>
-                        </div>
-                        {% if match.score1 is not None %}
-                        <div class="text-sm text-gray-600 mt-2">
-                            Score: {{ match.score1 }} - {{ match.score2 }}
-                        </div>
-                        {% endif %}
-                    </div>
-                    <div class="text-right">
-                        <span class="px-3 py-1 rounded-full text-sm {% if match.state == 'completed' %}bg-green-100 text-green-800{% elif match.state == 'live' %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-                            {{ match.get_state_display }}
-                        </span>
-                        {% if match.scheduled_time %}
-                        <div class="text-sm text-gray-600 mt-2">
-                            {{ match.scheduled_time|date:"M d, H:i" }}
-                        </div>
-                        {% endif %}
-                        {% if can_manage and match.state != 'completed' and match.participant1_id and match.participant2_id %}
-                        <div class="mt-2 flex gap-2 justify-end">
-                            <button onclick="openScoreModal({{ match.id }}, '{{ match.participant1_name }}', '{{ match.participant2_name }}')" 
-                                    class="px-4 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
-                                Enter Score
-                            </button>
-                            <!-- FE-T-024: Match Management Actions -->
-                            <button onclick="rescheduleMatch({{ match.id }})" 
-                                    class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-                                    title="Reschedule match">
-                                <i class="fas fa-clock"></i>
-                            </button>
-                            <button onclick="forfeitMatch({{ match.id }}, '{{ match.participant1_name }}', '{{ match.participant2_name }}')" 
-                                    class="px-3 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm"
-                                    title="Mark as forfeit">
-                                <i class="fas fa-flag"></i>
-                            </button>
-                            <button onclick="cancelMatch({{ match.id }})" 
-                                    class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-                                    title="Cancel match">
-                                <i class="fas fa-ban"></i>
-                            </button>
-                        </div>
-                        {% endif %}
-                        
-                        {% if can_manage and match.state == 'completed' %}
-                        <!-- FE-T-024: Override score for completed matches -->
-                        <button onclick="overrideScore({{ match.id }}, {{ match.score1|default:0 }}, {{ match.score2|default:0 }})" 
-                                class="mt-2 px-4 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm">
-                            Override Score
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <!-- No Bracket -->
-        <div class="text-center py-12">
-            <div class="text-6xl mb-4">🏆</div>
-            <h3 class="text-xl font-bold mb-2">No Bracket Generated</h3>
-            <p class="text-gray-600 mb-6">Generate a bracket to start organizing matches</p>
-            {% if can_manage %}
-            <button class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                Generate Bracket
-            </button>
-            {% endif %}
-        </div>
+      <p class="text-xs text-gray-500 mt-1">
+        {{ bracket.bracket_type|default:"Single Elimination"|title }} — Round {{ bracket.current_round|default:"1" }}
+      </p>
     {% endif %}
+  </div>
+
+  <div class="flex items-center gap-2">
+    {% if pending_results_count %}
+      <span class="text-xs px-3 py-2 bg-yellow-600/20 text-yellow-400 rounded-xl font-mono">
+        <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> {{ pending_results_count }} pending result{{ pending_results_count|pluralize }}
+      </span>
+    {% endif %}
+    {% if can_manage %}
+      <button class="text-xs px-3 py-2 bg-dc-cyan/10 text-dc-cyan rounded-xl hover:bg-dc-cyan/20 transition">
+        <i data-lucide="refresh-cw" class="w-3 h-3 inline mr-1"></i> Generate Bracket
+      </button>
+    {% endif %}
+  </div>
 </div>
 
-<!-- Score Entry Modal -->
-<div id="scoreModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 class="text-xl font-bold mb-4">Enter Match Score</h3>
-        <form id="scoreForm">
-            <input type="hidden" id="matchId">
-            <div class="mb-4">
-                <label class="block text-sm font-semibold mb-2" id="participant1Label">Participant 1</label>
-                <input type="number" id="score1" min="0" 
-                       class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                       placeholder="Score">
-            </div>
-            <div class="mb-4">
-                <label class="block text-sm font-semibold mb-2" id="participant2Label">Participant 2</label>
-                <input type="number" id="score2" min="0" 
-                       class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                       placeholder="Score">
-            </div>
-            <div class="flex justify-end gap-2">
-                <button type="button" onclick="closeScoreModal()" 
-                        class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
-                    Cancel
-                </button>
-                <button type="submit" 
-                        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                    Submit Score
-                </button>
-            </div>
-        </form>
+{# ── Bracket Visualization Placeholder ── #}
+{% if bracket %}
+  <div class="glass rounded-xl p-6 mb-6">
+    <div class="flex items-center gap-2 mb-4">
+      <i data-lucide="git-merge" class="w-5 h-5 text-dc-purple"></i>
+      <h3 class="text-sm font-display font-semibold text-white">Bracket View</h3>
     </div>
+    <div class="min-h-[200px] flex items-center justify-center border border-dashed border-dc-border rounded-lg">
+      <div class="text-center text-gray-600">
+        <i data-lucide="git-branch" class="w-8 h-8 mx-auto mb-2"></i>
+        <p class="text-sm">Interactive bracket visualization</p>
+        <p class="text-[10px] text-gray-700 mt-1">Coming in Phase 4.7</p>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="glass rounded-xl p-6 mb-6 text-center">
+    <i data-lucide="git-merge" class="w-10 h-10 text-gray-700 mx-auto mb-3"></i>
+    <p class="text-gray-400 mb-1">No bracket generated yet</p>
+    <p class="text-xs text-gray-600 mb-4">Generate a bracket to start creating matches.</p>
+    {% if can_manage %}
+      <button class="px-4 py-2.5 bg-dc-cyan text-black font-bold text-sm rounded-xl hover:bg-dc-cyan/90 transition">
+        <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i> Generate Bracket
+      </button>
+    {% endif %}
+  </div>
+{% endif %}
+
+{# ── Match List ── #}
+<div class="glass rounded-xl overflow-hidden">
+  <div class="px-6 py-4 border-b border-dc-border flex items-center justify-between">
+    <h3 class="text-sm font-display font-semibold text-white">Matches</h3>
+    <span class="text-[10px] text-gray-500 font-mono">{{ matches|length }} total</span>
+  </div>
+
+  {% if matches %}
+    <div class="divide-y divide-dc-border">
+      {% for match in matches %}
+        <div class="px-6 py-4 hover:bg-white/[0.02] transition">
+          <div class="flex items-center gap-4">
+            {# Round/Match Number #}
+            <div class="text-center flex-shrink-0 w-14">
+              <p class="text-[10px] text-gray-600">R{{ match.round_number }}</p>
+              <p class="text-xs font-mono text-gray-400">M{{ match.match_number }}</p>
+            </div>
+
+            {# Participants #}
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-white truncate {% if match.winner == match.participant1 %}font-bold{% endif %}">
+                  {{ match.participant1|default:"TBD" }}
+                </span>
+                <span class="text-[10px] text-gray-600">vs</span>
+                <span class="text-sm text-white truncate {% if match.winner == match.participant2 %}font-bold{% endif %}">
+                  {{ match.participant2|default:"TBD" }}
+                </span>
+              </div>
+              {% if match.scheduled_time %}
+                <p class="text-[10px] text-gray-600 mt-0.5">
+                  <i data-lucide="clock" class="w-3 h-3 inline"></i>
+                  {{ match.scheduled_time|date:"M d, Y H:i" }}
+                </p>
+              {% endif %}
+            </div>
+
+            {# Score #}
+            {% if match.score_participant1 is not None and match.score_participant2 is not None %}
+              <div class="text-center font-mono text-sm flex-shrink-0">
+                <span class="{% if match.score_participant1 > match.score_participant2 %}text-green-400{% else %}text-gray-400{% endif %}">{{ match.score_participant1 }}</span>
+                <span class="text-gray-600 mx-1">-</span>
+                <span class="{% if match.score_participant2 > match.score_participant1 %}text-green-400{% else %}text-gray-400{% endif %}">{{ match.score_participant2 }}</span>
+              </div>
+            {% endif %}
+
+            {# State badge #}
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-mono flex-shrink-0
+              {% if match.state == 'completed' %}bg-green-600/20 text-green-400
+              {% elif match.state == 'live' %}bg-red-600/20 text-red-400 animate-pulse
+              {% elif match.state == 'scheduled' %}bg-blue-600/20 text-blue-400
+              {% elif match.state == 'pending_result' %}bg-yellow-600/20 text-yellow-400
+              {% else %}bg-gray-600/20 text-gray-400{% endif %}">
+              {{ match.state|default:"Unknown"|title }}
+            </span>
+
+            {# Actions #}
+            {% if can_manage %}
+              <div class="flex items-center gap-1 flex-shrink-0">
+                {% if match.state == 'pending_result' or match.state == 'PENDING_RESULT' %}
+                  <button title="Submit Score" class="p-1.5 rounded-lg hover:bg-dc-cyan/20 text-gray-500 hover:text-dc-cyan transition">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                  </button>
+                {% endif %}
+                <button title="Details" class="p-1.5 rounded-lg hover:bg-white/10 text-gray-500 hover:text-white transition">
+                  <i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-center py-12 text-gray-600">
+      <i data-lucide="swords" class="w-8 h-8 mx-auto mb-2"></i>
+      <p class="text-sm">No matches yet</p>
+    </div>
+  {% endif %}
 </div>
 
-<script>
-let currentMatchId = null;
-
-function openScoreModal(matchId, participant1, participant2) {
-    currentMatchId = matchId;
-    document.getElementById('matchId').value = matchId;
-    document.getElementById('participant1Label').textContent = participant1;
-    document.getElementById('participant2Label').textContent = participant2;
-    document.getElementById('score1').value = '';
-    document.getElementById('score2').value = '';
-    document.getElementById('scoreModal').classList.remove('hidden');
-}
-
-function closeScoreModal() {
-    currentMatchId = null;
-    document.getElementById('scoreModal').classList.add('hidden');
-}
-
-document.getElementById('scoreForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const score1 = document.getElementById('score1').value;
-    const score2 = document.getElementById('score2').value;
-    
-    if (!score1 || !score2) {
-        alert('Please enter both scores');
-        return;
-    }
-    
-    if (score1 === score2) {
-        alert('Scores cannot be tied');
-        return;
-    }
-    
-    fetch(`/tournaments/organizer/{{ tournament.slug }}/submit-score/${currentMatchId}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ score1: score1, score2: score2 })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    });
-});
-
-// FE-T-024: Reschedule match
-function rescheduleMatch(matchId) {
-    const newTime = prompt('Enter new scheduled time (YYYY-MM-DD HH:MM format):');
-    if (!newTime) return;
-    
-    const reason = prompt('Reason for rescheduling (optional):');
-    
-    fetch(`/tournaments/organizer/{{ tournament.slug }}/reschedule-match/${matchId}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ scheduled_time: newTime, reason: reason || '' })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Match rescheduled successfully');
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    });
-}
-
-// FE-T-024: Forfeit match
-function forfeitMatch(matchId, participant1, participant2) {
-    const forfeiting = prompt(`Who is forfeiting?\n1: ${participant1}\n2: ${participant2}\n\nEnter 1 or 2:`);
-    if (!forfeiting || (forfeiting !== '1' && forfeiting !== '2')) {
-        alert('Please enter 1 or 2');
-        return;
-    }
-    
-    const reason = prompt('Forfeit reason (required):');
-    if (!reason || reason.trim() === '') {
-        alert('Forfeit reason is required');
-        return;
-    }
-    
-    if (!confirm(`Mark match as forfeit by participant ${forfeiting}?`)) return;
-    
-    fetch(`/tournaments/organizer/{{ tournament.slug }}/forfeit-match/${matchId}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ forfeiting_participant: parseInt(forfeiting), reason: reason })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    });
-}
-
-// FE-T-024: Override match score
-function overrideScore(matchId, currentScore1, currentScore2) {
-    const newScore1 = prompt(`Current score: ${currentScore1}-${currentScore2}\nEnter new score for participant 1:`, currentScore1);
-    if (newScore1 === null) return;
-    
-    const newScore2 = prompt(`Enter new score for participant 2:`, currentScore2);
-    if (newScore2 === null) return;
-    
-    const reason = prompt('Override reason (required):');
-    if (!reason || reason.trim() === '') {
-        alert('Override reason is required');
-        return;
-    }
-    
-    if (!confirm(`Override score to ${newScore1}-${newScore2}?`)) return;
-    
-    fetch(`/tournaments/organizer/{{ tournament.slug }}/override-score/${matchId}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ score1: parseInt(newScore1), score2: parseInt(newScore2), reason: reason })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    });
-}
-
-// FE-T-024: Cancel match
-function cancelMatch(matchId) {
-    const reason = prompt('Cancellation reason (required):');
-    if (!reason || reason.trim() === '') {
-        alert('Cancellation reason is required');
-        return;
-    }
-    
-    if (!confirm('Cancel this match? This action cannot be undone.')) return;
-    
-    fetch(`/tournaments/organizer/{{ tournament.slug }}/cancel-match/${matchId}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ reason: reason })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    });
-}
-</script>
 {% endblock %}

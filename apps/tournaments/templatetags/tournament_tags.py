@@ -20,6 +20,17 @@ def get_item(dictionary, key):
 
 
 @register.filter
+def in_set(value, collection):
+    """
+    Check if value exists in a set/list/queryset.
+
+    Usage: {% if tournament.id|in_set:user_registered_tournaments %}
+    """
+    if collection is None:
+        return False
+    return value in collection
+
+@register.filter
 def platform_icon(platform):
     """
     Get FontAwesome icon class for platform.
@@ -49,3 +60,16 @@ def mode_icon(mode):
         'hybrid': 'fa-globe',
     }
     return icons.get(mode, 'fa-globe')
+
+
+@register.filter
+def attr(obj, name):
+    """
+    Dynamically access an attribute by name.
+
+    Usage: {{ standing|attr:col }}
+    """
+    try:
+        return getattr(obj, name, '')
+    except Exception:
+        return ''

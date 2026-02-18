@@ -1,0 +1,306 @@
+{% load static %}
+
+{# Floating Registration CTA - Sticky Button for Tournament Actions #}
+{# Show appropriate action based on tournament status and user state #}
+<div id="floating-registration-cta" class="floating-reg-cta" style="display: none;">
+    <div class="floating-reg-container">
+        {% if is_registered %}
+            {# User is already registered - Show Lobby button #}
+            <a href="{% url 'tournaments:lobby' slug=tournament.slug %}" class="floating-reg-btn registered">
+                <div class="floating-reg-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="floating-reg-content">
+                    <div class="floating-reg-label">You're Registered</div>
+                    <div class="floating-reg-action">{{ registration_action_label|default:"Enter Lobby" }} <i class="fas fa-arrow-right ml-1"></i></div>
+                </div>
+            </a>
+        
+        {% elif tournament.status == 'completed' %}
+            {# Tournament is completed - Show results button #}
+            <a href="{% url 'tournaments:detail' slug=tournament.slug %}#results" class="floating-reg-btn completed">
+                <div class="floating-reg-icon">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="floating-reg-content">
+                    <div class="floating-reg-label">Tournament Completed</div>
+                    <div class="floating-reg-action">View Results <i class="fas fa-arrow-right ml-1"></i></div>
+                </div>
+            </a>
+        
+        {% elif tournament.status == 'live' %}
+            {# Tournament is live - Show watch/spectate button #}
+            <a href="{% url 'tournaments:detail' slug=tournament.slug %}#matches" class="floating-reg-btn live">
+                <div class="floating-reg-icon">
+                    <i class="fas fa-circle" style="color: #ef4444; animation: pulse 2s infinite;"></i>
+                </div>
+                <div class="floating-reg-content">
+                    <div class="floating-reg-label">Tournament Live</div>
+                    <div class="floating-reg-action">Watch Now <i class="fas fa-arrow-right ml-1"></i></div>
+                </div>
+            </a>
+        
+        {% elif tournament.status == 'registration_closed' %}
+            {# Registration closed - Tournament starting soon #}
+            <a href="{% url 'tournaments:detail' slug=tournament.slug %}#schedule" class="floating-reg-btn closed">
+                <div class="floating-reg-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="floating-reg-content">
+                    <div class="floating-reg-label">Registration Closed</div>
+                    <div class="floating-reg-action">View Schedule <i class="fas fa-arrow-right ml-1"></i></div>
+                </div>
+            </a>
+        
+        {% else %}
+            {# Registration open or available - Always show registration button #}
+            <a href="{{ registration_action_url }}" class="floating-reg-btn register">
+                <div class="floating-reg-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="floating-reg-content">
+                    <div class="floating-reg-label">Registration Available</div>
+                    <div class="floating-reg-action">{{ registration_action_label|default:"Register Now" }} <i class="fas fa-arrow-right ml-1"></i></div>
+                </div>
+                {% if tournament.has_entry_fee and tournament.entry_fee_amount > 0 %}
+                <div class="floating-reg-fee">
+                    <i class="fas fa-coins"></i> ৳{{ tournament.entry_fee_amount|floatformat:0 }}
+                </div>
+                {% else %}
+                <div class="floating-reg-fee free">
+                    <i class="fas fa-gift"></i> FREE
+                </div>
+                {% endif %}
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.floating-reg-cta {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    animation: slideInUp 0.4s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.floating-reg-container {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.floating-reg-btn {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(20px);
+    position: relative;
+    overflow: hidden;
+}
+
+.floating-reg-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+.floating-reg-btn:hover::before {
+    left: 100%;
+}
+
+/* Registration button - Primary green */
+.floating-reg-btn.register {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.floating-reg-btn.register:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 25px 70px rgba(16, 185, 129, 0.4);
+}
+
+/* Already registered - Cyan */
+.floating-reg-btn.registered {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+}
+
+.floating-reg-btn.registered:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 25px 70px rgba(6, 182, 212, 0.4);
+}
+
+/* Live tournament - Red with pulse */
+.floating-reg-btn.live {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.floating-reg-btn.live:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 25px 70px rgba(239, 68, 68, 0.4);
+}
+
+/* Completed tournament - Gold/Yellow */
+.floating-reg-btn.completed {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.floating-reg-btn.completed:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 25px 70px rgba(245, 158, 11, 0.4);
+}
+
+/* Registration closed - Gray */
+.floating-reg-btn.closed {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+}
+
+.floating-reg-btn.closed:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 25px 70px rgba(100, 116, 139, 0.4);
+}
+
+.floating-reg-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.floating-reg-content {
+    flex: 1;
+    color: white;
+}
+
+.floating-reg-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.9;
+    margin-bottom: 0.25rem;
+}
+
+.floating-reg-action {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.floating-reg-fee {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+}
+
+.floating-reg-fee.free {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+    .floating-reg-cta {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+    }
+    
+    .floating-reg-btn {
+        padding: 0.875rem 1rem;
+        gap: 0.75rem;
+    }
+    
+    .floating-reg-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+    }
+    
+    .floating-reg-label {
+        font-size: 0.7rem;
+    }
+    
+    .floating-reg-action {
+        font-size: 0.875rem;
+    }
+    
+    .floating-reg-fee {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.5rem;
+    }
+}
+
+/* Hide on very small screens if needed */
+@media (max-width: 380px) {
+    .floating-reg-fee {
+        display: none;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const floatingCTA = document.getElementById('floating-registration-cta');
+    const heroSection = document.querySelector('.td-hero-immersive');
+    
+    if (!floatingCTA || !heroSection) return;
+    
+    let isVisible = false;
+    
+    function checkScroll() {
+        const heroRect = heroSection.getBoundingClientRect();
+        const shouldShow = heroRect.bottom < 100; // Show when hero is scrolled past
+        
+        if (shouldShow && !isVisible) {
+            floatingCTA.style.display = 'block';
+            isVisible = true;
+        } else if (!shouldShow && isVisible) {
+            floatingCTA.style.display = 'none';
+            isVisible = false;
+        }
+    }
+    
+    // Check on scroll
+    window.addEventListener('scroll', checkScroll, { passive: true });
+    
+    // Check initially
+    setTimeout(checkScroll, 100);
+});
+</script>

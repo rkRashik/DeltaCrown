@@ -1,0 +1,48 @@
+<div class="form-group mb-6">
+    <label class="block text-sm font-medium text-gray-300 mb-3">
+        {{ field.label }}
+        {% if field.required %}<span class="text-red-500 ml-1">*</span>{% endif %}
+    </label>
+    
+    {% if field.description %}
+    <p class="text-xs text-gray-500 mb-3">{{ field.description }}</p>
+    {% endif %}
+    
+    <div class="space-y-3">
+        {% for option in field.options %}
+        <label class="flex items-center p-3 bg-gray-800 border border-gray-700 rounded-lg cursor-pointer hover:bg-gray-750 transition-all group">
+            <input 
+                type="checkbox"
+                name="{{ field.id }}"
+                {% if option.value %}
+                    value="{{ option.value }}"
+                    {% if option.value in value %}checked{% endif %}
+                {% else %}
+                    value="{{ option }}"
+                    {% if option in value %}checked{% endif %}
+                {% endif %}
+                class="w-4 h-4 text-blue-500 bg-gray-700 border-gray-600 rounded focus:ring-2 focus:ring-blue-500"
+            >
+            <span class="ml-3 text-sm text-gray-300 group-hover:text-white">
+                {% if option.label %}{{ option.label }}{% else %}{{ option }}{% endif %}
+            </span>
+        </label>
+        {% endfor %}
+    </div>
+    
+    {% if field.validation.min_selections or field.validation.max_selections %}
+    <p class="text-xs text-gray-500 mt-2">
+        {% if field.validation.min_selections and field.validation.max_selections %}
+        Select {{ field.validation.min_selections }} to {{ field.validation.max_selections }} options
+        {% elif field.validation.min_selections %}
+        Select at least {{ field.validation.min_selections }} option(s)
+        {% elif field.validation.max_selections %}
+        Select up to {{ field.validation.max_selections }} option(s)
+        {% endif %}
+    </p>
+    {% endif %}
+    
+    {% if errors %}
+    <p class="text-sm text-red-500 mt-2">{{ errors }}</p>
+    {% endif %}
+</div>

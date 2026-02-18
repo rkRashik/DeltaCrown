@@ -16,7 +16,6 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
-import requests
 from django.conf import settings
 
 from apps.tournaments.models import Match, Tournament

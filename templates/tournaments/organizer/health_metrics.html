@@ -1,580 +1,132 @@
-{% extends "tournaments/organizer/base.html" %}
-{% load static %}
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
 
-{% block title %}Health Metrics - {{ tournament.name }} | DeltaCrown{% endblock %}
+{# ─────────────────────────────────────────────────────────
+   Health Metrics — FE-T-026
+   Context: tournament, health_status, performance_metrics,
+            load_metrics, alerts, historical_data,
+            refresh_interval
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
 
-{% block extra_css %}
-<style>
-    .health-dashboard {
-        padding: 2rem 0;
-    }
+{% block title %}Health Metrics — {{ tournament.name }} | DeltaCrown{% endblock %}
 
-    /* Status Header */
-    .status-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 2rem;
-        border-radius: 12px;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
+{% block tournament_content %}
 
-    .status-header h1 {
-        font-size: 2rem;
-        margin: 0 0 0.5rem 0;
-    }
+<div class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
 
-    .status-badge {
-        display: inline-block;
-        padding: 0.5rem 1.5rem;
-        border-radius: 50px;
-        font-weight: 600;
-        font-size: 1.1rem;
-        margin-top: 1rem;
-    }
-
-    .status-badge.healthy { background: #10b981; }
-    .status-badge.warning { background: #f59e0b; }
-    .status-badge.critical { background: #ef4444; }
-
-    /* Metrics Grid */
-    .metrics-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .metric-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .metric-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-    }
-
-    .metric-header {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-    }
-
-    .metric-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.25rem;
-    }
-
-    .metric-icon.green { background: #d1fae5; color: #065f46; }
-    .metric-icon.blue { background: #dbeafe; color: #1e40af; }
-    .metric-icon.yellow { background: #fef3c7; color: #92400e; }
-    .metric-icon.red { background: #fee2e2; color: #991b1b; }
-
-    .metric-title {
-        font-size: 0.875rem;
-        color: #6b7280;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .metric-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #111827;
-        margin: 0.5rem 0;
-    }
-
-    .metric-subtitle {
-        font-size: 0.875rem;
-        color: #9ca3af;
-    }
-
-    .metric-progress {
-        height: 6px;
-        background: #e5e7eb;
-        border-radius: 3px;
-        overflow: hidden;
-        margin-top: 0.75rem;
-    }
-
-    .metric-progress-bar {
-        height: 100%;
-        transition: width 0.3s ease;
-    }
-
-    .metric-progress-bar.green { background: #10b981; }
-    .metric-progress-bar.yellow { background: #f59e0b; }
-    .metric-progress-bar.red { background: #ef4444; }
-
-    /* Alerts Section */
-    .alerts-section {
-        margin-bottom: 2rem;
-    }
-
-    .alerts-section h2 {
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-        color: #111827;
-    }
-
-    .alert-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        border-left: 4px solid;
-        display: flex;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-
-    .alert-card.high { border-left-color: #ef4444; }
-    .alert-card.medium { border-left-color: #f59e0b; }
-    .alert-card.low { border-left-color: #3b82f6; }
-
-    .alert-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        flex-shrink: 0;
-    }
-
-    .alert-card.high .alert-icon { background: #fee2e2; color: #991b1b; }
-    .alert-card.medium .alert-icon { background: #fef3c7; color: #92400e; }
-    .alert-card.low .alert-icon { background: #dbeafe; color: #1e40af; }
-
-    .alert-content {
-        flex: 1;
-    }
-
-    .alert-title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #111827;
-        margin: 0 0 0.5rem 0;
-    }
-
-    .alert-message {
-        color: #6b7280;
-        margin: 0 0 1rem 0;
-    }
-
-    .alert-action {
-        display: inline-block;
-        padding: 0.5rem 1rem;
-        background: #667eea;
-        color: white;
-        border-radius: 6px;
-        text-decoration: none;
-        font-weight: 500;
-        transition: background 0.2s;
-    }
-
-    .alert-action:hover {
-        background: #5568d3;
-        color: white;
-    }
-
-    .alert-timestamp {
-        font-size: 0.75rem;
-        color: #9ca3af;
-        margin-top: 0.5rem;
-    }
-
-    /* Charts Section */
-    .charts-section {
-        margin-bottom: 2rem;
-    }
-
-    .charts-section h2 {
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-        color: #111827;
-    }
-
-    .chart-container {
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        margin-bottom: 1.5rem;
-    }
-
-    .chart-title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #111827;
-        margin: 0 0 1.5rem 0;
-    }
-
-    /* Empty State */
-    .empty-state {
-        text-align: center;
-        padding: 3rem;
-        color: #9ca3af;
-    }
-
-    .empty-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        display: block;
-    }
-
-    /* Refresh Button */
-    .refresh-btn {
-        position: fixed;
-        bottom: 2rem;
-        right: 2rem;
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
-        background: #667eea;
-        color: white;
-        border: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        transition: all 0.2s;
-        z-index: 100;
-    }
-
-    .refresh-btn:hover {
-        background: #5568d3;
-        transform: scale(1.1);
-    }
-
-    .refresh-btn.spinning {
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-
-    /* Auto-refresh indicator */
-    .refresh-indicator {
-        position: fixed;
-        bottom: 6rem;
-        right: 2rem;
-        background: white;
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        font-size: 0.875rem;
-        color: #6b7280;
-        z-index: 100;
-    }
-
-    .refresh-indicator i {
-        color: #10b981;
-        margin-right: 0.5rem;
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="health-dashboard">
-    <!-- Status Header -->
-    <div class="status-header">
-        <h1>🏥 Tournament Health Dashboard</h1>
-        <p style="margin: 0; opacity: 0.9;">Real-time monitoring for {{ tournament.name }}</p>
-        <div class="status-badge {{ health_status.status }}">
-            {{ health_status.status_text }}
-        </div>
+  {# ── Header ── #}
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <a href="{% url 'tournaments:organizer_tournament_detail' tournament.slug %}" class="text-xs text-gray-500 hover:text-dc-cyan transition mb-2 inline-block">
+        <i data-lucide="arrow-left" class="w-3 h-3 inline mr-1"></i> Organizer Hub
+      </a>
+      <h1 class="text-2xl font-display font-bold text-white">
+        <i data-lucide="activity" class="w-6 h-6 inline mr-2 text-dc-cyan"></i> Health Metrics
+      </h1>
     </div>
-
-    <!-- Key Metrics Grid -->
-    <div class="metrics-grid">
-        <!-- Completion Rate -->
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon green">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="metric-title">Match Completion</div>
-            </div>
-            <div class="metric-value">{{ performance_metrics.completion_rate }}%</div>
-            <div class="metric-subtitle">{{ performance_metrics.completed_today }} of {{ performance_metrics.scheduled_today }} today</div>
-            <div class="metric-progress">
-                <div class="metric-progress-bar green" style="width: {{ performance_metrics.completion_rate }}%;"></div>
-            </div>
-        </div>
-
-        <!-- Active Participants -->
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon blue">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div class="metric-title">Active Participants</div>
-            </div>
-            <div class="metric-value">{{ load_metrics.active_participants }}</div>
-            <div class="metric-subtitle">Currently checked in</div>
-        </div>
-
-        <!-- Ongoing Matches -->
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon yellow">
-                    <i class="fas fa-gamepad"></i>
-                </div>
-                <div class="metric-title">Ongoing Matches</div>
-            </div>
-            <div class="metric-value">{{ load_metrics.ongoing_matches }}</div>
-            <div class="metric-subtitle">In progress</div>
-        </div>
-
-        <!-- Pending Actions -->
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon {% if load_metrics.pending_actions > 10 %}red{% else %}blue{% endif %}">
-                    <i class="fas fa-bell"></i>
-                </div>
-                <div class="metric-title">Pending Actions</div>
-            </div>
-            <div class="metric-value">{{ load_metrics.pending_actions }}</div>
-            <div class="metric-subtitle">Require attention</div>
-        </div>
-
-        <!-- Check-in Rate -->
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon green">
-                    <i class="fas fa-clipboard-check"></i>
-                </div>
-                <div class="metric-title">Check-in Rate</div>
-            </div>
-            <div class="metric-value">{{ performance_metrics.checkin_rate }}%</div>
-            <div class="metric-subtitle">Participants confirmed</div>
-            <div class="metric-progress">
-                <div class="metric-progress-bar {% if performance_metrics.checkin_rate >= 80 %}green{% elif performance_metrics.checkin_rate >= 60 %}yellow{% else %}red{% endif %}" style="width: {{ performance_metrics.checkin_rate }}%;"></div>
-            </div>
-        </div>
-
-        <!-- Avg Match Duration -->
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon blue">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="metric-title">Avg Match Duration</div>
-            </div>
-            <div class="metric-value">{{ performance_metrics.avg_match_duration }}m</div>
-            <div class="metric-subtitle">Average time to complete</div>
-        </div>
-
-        <!-- Avg Resolution Time -->
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon yellow">
-                    <i class="fas fa-gavel"></i>
-                </div>
-                <div class="metric-title">Dispute Resolution</div>
-            </div>
-            <div class="metric-value">{{ performance_metrics.avg_resolution_hours }}h</div>
-            <div class="metric-subtitle">Average resolution time</div>
-        </div>
-
-        <!-- System Health -->
-        <div class="metric-card">
-            <div class="metric-header">
-                <div class="metric-icon {% if health_status.status == 'healthy' %}green{% elif health_status.status == 'warning' %}yellow{% else %}red{% endif %}">
-                    <i class="fas fa-heartbeat"></i>
-                </div>
-                <div class="metric-title">System Health</div>
-            </div>
-            <div class="metric-value" style="font-size: 1.5rem;">{{ health_status.status_text }}</div>
-            <div class="metric-subtitle">
-                {{ health_status.overdue_matches }} overdue, 
-                {{ health_status.pending_disputes }} disputes, 
-                {{ health_status.pending_results }} pending
-            </div>
-        </div>
+    <div class="flex items-center gap-2">
+      <span class="text-[10px] text-gray-500">Auto-refresh {{ refresh_interval }}s</span>
+      <span class="w-2 h-2 rounded-full animate-pulse
+        {% if health_status.status == 'healthy' %}bg-green-400
+        {% elif health_status.status == 'warning' %}bg-yellow-400
+        {% else %}bg-red-400{% endif %}"></span>
     </div>
+  </div>
 
-    <!-- Alerts Section -->
-    {% if alerts %}
-    <div class="alerts-section">
-        <h2>🚨 Active Alerts</h2>
-        {% for alert in alerts %}
-        <div class="alert-card {{ alert.severity }}">
-            <div class="alert-icon">
-                <i class="fas fa-{% if alert.severity == 'high' %}exclamation-triangle{% elif alert.severity == 'medium' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-            </div>
-            <div class="alert-content">
-                <h3 class="alert-title">{{ alert.title }}</h3>
-                <p class="alert-message">{{ alert.message }}</p>
-                <a href="{{ alert.action_url }}" class="alert-action">{{ alert.action_text }} →</a>
-                <div class="alert-timestamp">{{ alert.timestamp|timesince }} ago</div>
-            </div>
-        </div>
-        {% endfor %}
+  {# ── Overall Health Indicator ── #}
+  <div class="glass rounded-xl p-6 mb-6
+    {% if health_status.status == 'healthy' %}neon-border-cyan
+    {% elif health_status.status == 'warning' %}neon-border-gold
+    {% else %}border border-red-700/30{% endif %}">
+    <div class="flex items-center gap-4">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center
+        {% if health_status.status == 'healthy' %}bg-green-900/30
+        {% elif health_status.status == 'warning' %}bg-yellow-900/30
+        {% else %}bg-red-900/30{% endif %}">
+        <i data-lucide="{% if health_status.status == 'healthy' %}heart-pulse{% elif health_status.status == 'warning' %}alert-triangle{% else %}alert-octagon{% endif %}"
+           class="w-7 h-7
+             {% if health_status.status == 'healthy' %}text-green-400
+             {% elif health_status.status == 'warning' %}text-yellow-400
+             {% else %}text-red-400{% endif %}"></i>
+      </div>
+      <div>
+        <h2 class="text-lg font-display font-bold
+          {% if health_status.status == 'healthy' %}text-green-400
+          {% elif health_status.status == 'warning' %}text-yellow-400
+          {% else %}text-red-400{% endif %}">{{ health_status.status_text }}</h2>
+        <p class="text-xs text-gray-400">
+          {{ health_status.pending_disputes|default:0 }} open disputes ·
+          {{ health_status.overdue_matches|default:0 }} overdue matches ·
+          {{ health_status.pending_results|default:0 }} pending results
+        </p>
+      </div>
     </div>
-    {% else %}
-    <div class="alerts-section">
-        <h2>🚨 Active Alerts</h2>
-        <div class="chart-container">
-            <div class="empty-state">
-                <i class="fas fa-check-circle" style="color: #10b981;"></i>
-                <p>No active alerts. System is running smoothly.</p>
-            </div>
-        </div>
-    </div>
+  </div>
+
+  {# ── Metrics Grid ── #}
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    {% if performance_metrics %}
+      <div class="glass rounded-xl p-4">
+        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Avg Match Time</p>
+        <p class="text-xl font-display font-bold text-white">{{ performance_metrics.avg_match_duration|default:"—" }}</p>
+      </div>
+      <div class="glass rounded-xl p-4">
+        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Completion Rate</p>
+        <p class="text-xl font-display font-bold text-dc-cyan">{{ performance_metrics.completion_rate|default:"—" }}%</p>
+      </div>
     {% endif %}
+    {% if load_metrics %}
+      <div class="glass rounded-xl p-4">
+        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Active Matches</p>
+        <p class="text-xl font-display font-bold text-white">{{ load_metrics.active_matches|default:0 }}</p>
+      </div>
+      <div class="glass rounded-xl p-4">
+        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Checked In</p>
+        <p class="text-xl font-display font-bold text-white">{{ load_metrics.checked_in|default:0 }}</p>
+      </div>
+    {% endif %}
+  </div>
 
-    <!-- Charts Section -->
-    <div class="charts-section">
-        <h2>📊 Activity Trends (Last 24 Hours)</h2>
-        
-        <div class="chart-container">
-            <h3 class="chart-title">Matches Completed</h3>
-            <canvas id="matchesChart" height="80"></canvas>
-        </div>
-
-        <div class="chart-container">
-            <h3 class="chart-title">Disputes Opened</h3>
-            <canvas id="disputesChart" height="80"></canvas>
-        </div>
-
-        <div class="chart-container">
-            <h3 class="chart-title">Participant Check-ins</h3>
-            <canvas id="checkinsChart" height="80"></canvas>
-        </div>
+  {# ── Alerts ── #}
+  {% if alerts %}
+    <div class="glass rounded-xl overflow-hidden mb-6">
+      <div class="px-6 py-4 border-b border-dc-border">
+        <h3 class="text-sm font-display font-semibold text-white">
+          <i data-lucide="bell" class="w-4 h-4 inline mr-1 text-dc-gold"></i> Active Alerts
+        </h3>
+      </div>
+      <div class="divide-y divide-dc-border">
+        {% for alert in alerts %}
+          <div class="flex items-center gap-3 px-6 py-3
+            {% if alert.severity == 'critical' %}bg-red-900/[0.05]
+            {% elif alert.severity == 'warning' %}bg-yellow-900/[0.05]{% endif %}">
+            <i data-lucide="{% if alert.severity == 'critical' %}alert-octagon{% elif alert.severity == 'warning' %}alert-triangle{% else %}info{% endif %}"
+               class="w-4 h-4 flex-shrink-0
+                 {% if alert.severity == 'critical' %}text-red-400
+                 {% elif alert.severity == 'warning' %}text-yellow-400
+                 {% else %}text-blue-400{% endif %}"></i>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm text-white">{{ alert.message }}</p>
+              {% if alert.detail %}
+                <p class="text-[10px] text-gray-500 mt-0.5">{{ alert.detail }}</p>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
     </div>
+  {% endif %}
 
-    <!-- Auto-refresh Indicator -->
-    <div class="refresh-indicator">
-        <i class="fas fa-circle"></i>
-        Auto-refreshing every {{ refresh_interval }}s
-    </div>
-
-    <!-- Manual Refresh Button -->
-    <button class="refresh-btn" onclick="refreshData()">
-        <i class="fas fa-sync-alt"></i>
-    </button>
 </div>
+
 {% endblock %}
 
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+{% block tournament_js %}
 <script>
-    // Historical data from backend
-    const historicalData = {{ historical_data|safe }};
-
-    // Chart configurations
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    stepSize: 1
-                }
-            }
-        }
-    };
-
-    // Matches Completed Chart
-    new Chart(document.getElementById('matchesChart'), {
-        type: 'line',
-        data: {
-            labels: historicalData.labels,
-            datasets: [{
-                label: 'Matches Completed',
-                data: historicalData.matches_completed,
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: chartOptions
-    });
-
-    // Disputes Opened Chart
-    new Chart(document.getElementById('disputesChart'), {
-        type: 'bar',
-        data: {
-            labels: historicalData.labels,
-            datasets: [{
-                label: 'Disputes Opened',
-                data: historicalData.disputes_opened,
-                backgroundColor: '#f59e0b',
-                borderColor: '#d97706',
-                borderWidth: 1
-            }]
-        },
-        options: chartOptions
-    });
-
-    // Check-ins Chart
-    new Chart(document.getElementById('checkinsChart'), {
-        type: 'line',
-        data: {
-            labels: historicalData.labels,
-            datasets: [{
-                label: 'Participants Checked In',
-                data: historicalData.participants_checked_in,
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: chartOptions
-    });
-
-    // Manual refresh
-    function refreshData() {
-        const btn = document.querySelector('.refresh-btn');
-        btn.classList.add('spinning');
-        location.reload();
-    }
-
-    // Auto-refresh every 30 seconds
-    const refreshInterval = {{ refresh_interval }} * 1000;
-    setTimeout(() => {
-        location.reload();
-    }, refreshInterval);
-
-    // Update refresh indicator countdown
-    let countdown = {{ refresh_interval }};
-    setInterval(() => {
-        countdown--;
-        if (countdown > 0) {
-            document.querySelector('.refresh-indicator').innerHTML = `
-                <i class="fas fa-circle"></i>
-                Refreshing in ${countdown}s
-            `;
-        }
-    }, 1000);
+  // Auto-refresh
+  {% if refresh_interval %}
+  setTimeout(() => location.reload(), {{ refresh_interval }} * 1000);
+  {% endif %}
 </script>
 {% endblock %}

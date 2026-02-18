@@ -1,0 +1,88 @@
+{% extends "tournaments/organizer/hub_overview.html" %}
+
+{% block hub_content %}
+<div class="space-y-6">
+    <!-- Create Announcement Form -->
+    {% if can_announce %}
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-xl font-bold mb-4">📢 Create New Announcement</h3>
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                <input type="text" id="title" name="title" required maxlength="200"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="e.g., Tournament Schedule Update">
+            </div>
+            <div>
+                <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message *</label>
+                <textarea id="message" name="message" required rows="4"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Announcement details..."></textarea>
+            </div>
+            <div class="flex items-center space-x-6">
+                <label class="flex items-center">
+                    <input type="checkbox" name="is_pinned" class="mr-2 h-4 w-4 text-blue-600 rounded">
+                    <span class="text-sm text-gray-700">📌 Pin to top</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" name="is_important" class="mr-2 h-4 w-4 text-red-600 rounded">
+                    <span class="text-sm text-gray-700">⚠️ Mark as important</span>
+                </label>
+            </div>
+            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                <i class="fas fa-paper-plane"></i> Publish Announcement
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Announcements List -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-xl font-bold mb-4">Announcements History</h3>
+        
+        {% if announcements %}
+        <div class="space-y-4">
+            {% for announcement in announcements %}
+            <div class="border-l-4 {% if announcement.is_important %}border-red-500 bg-red-50{% elif announcement.is_pinned %}border-yellow-500 bg-yellow-50{% else %}border-gray-300 bg-gray-50{% endif %} p-4 rounded-r">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <h4 class="font-bold text-lg">{{ announcement.title }}</h4>
+                            {% if announcement.is_pinned %}
+                            <span class="px-2 py-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded">📌 PINNED</span>
+                            {% endif %}
+                            {% if announcement.is_important %}
+                            <span class="px-2 py-1 bg-red-500 text-white text-xs font-bold rounded">⚠️ IMPORTANT</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-gray-700 mb-3 whitespace-pre-wrap">{{ announcement.message }}</p>
+                        <div class="flex items-center text-sm text-gray-500 space-x-4">
+                            <span><i class="fas fa-user"></i> {{ announcement.created_by.username }}</span>
+                            <span><i class="fas fa-clock"></i> {{ announcement.created_at|date:"M d, Y g:i A" }}</span>
+                        </div>
+                    </div>
+                    {% if can_announce %}
+                    <div class="ml-4">
+                        <a href="{% url 'admin:tournaments_tournamentannouncement_change' announcement.pk %}" 
+                           target="_blank"
+                           class="text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12 text-gray-500">
+            <div class="text-6xl mb-4">📭</div>
+            <p class="font-semibold">No announcements yet</p>
+            <p class="text-sm mt-2">Create your first announcement to notify participants</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

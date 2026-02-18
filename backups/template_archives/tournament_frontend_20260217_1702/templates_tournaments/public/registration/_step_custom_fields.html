@@ -1,0 +1,91 @@
+<!-- Step 3: Custom Fields -->
+<div class="custom-fields">
+  <p class="text-body-secondary mb-6">
+    Please provide the following information required for this tournament.
+  </p>
+
+  <div class="space-y-6">
+    {% for field in custom_fields %}
+      <div class="form-group">
+        <label for="field_{{ field.name }}" class="block text-sm font-semibold mb-2">
+          {{ field.label }}
+          {% if field.required %}
+            <span class="text-danger">*</span>
+          {% endif %}
+          
+          <!-- Auto-fill Badge -->
+          {% if field.auto_filled %}
+          <span class="ml-2 inline-flex items-center gap-1 bg-success/10 text-success text-xs font-semibold px-2 py-1 rounded-full">
+            <i class="fas fa-magic"></i>
+            Auto-filled from profile
+          </span>
+          {% endif %}
+        </label>
+        
+        {% if field.help_text %}
+          <p class="text-sm text-body-secondary mb-2">
+            <i class="fas fa-info-circle mr-1"></i>
+            {{ field.help_text }}
+          </p>
+        {% endif %}
+        
+        {% if field.type == 'text' %}
+          <input 
+            type="text" 
+            id="field_{{ field.name }}"
+            name="{{ field.name }}"
+            value="{{ field.current_value|default:'' }}"
+            {% if field.required %}required{% endif %}
+            class="w-full px-4 py-3 bg-surface border {% if field.auto_filled %}border-success{% else %}border-line{% endif %} rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all {% if field.auto_filled %}bg-success/5{% endif %}"
+            placeholder="Enter your {{ field.label|lower }}"
+          >
+          {% if field.auto_filled %}
+          <p class="text-xs text-success mt-1">
+            <i class="fas fa-check-circle mr-1"></i>
+            This value was automatically filled from your profile. You can edit it if needed.
+          </p>
+          {% endif %}
+        {% elif field.type == 'textarea' %}
+          <textarea 
+            id="field_{{ field.name }}"
+            name="{{ field.name }}"
+            rows="4"
+            {% if field.required %}required{% endif %}
+            class="w-full px-4 py-3 bg-surface border border-line rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+            placeholder="Enter your {{ field.label|lower }}"
+          >{{ field.current_value|default:'' }}</textarea>
+        {% elif field.type == 'select' %}
+          <select 
+            id="field_{{ field.name }}"
+            name="{{ field.name }}"
+            {% if field.required %}required{% endif %}
+            class="w-full px-4 py-3 bg-surface border border-line rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+          >
+            <option value="">Select {{ field.label|lower }}</option>
+            {% for option in field.options %}
+              <option 
+                value="{{ option.value }}"
+                {% if field.current_value == option.value %}selected{% endif %}
+              >
+                {{ option.label }}
+              </option>
+            {% endfor %}
+          </select>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Additional Info -->
+  <div class="mt-6 bg-surface-hover border border-line rounded-lg p-4">
+    <div class="flex items-start gap-3">
+      <i class="fas fa-shield-alt text-primary mt-1"></i>
+      <div class="text-sm">
+        <p class="font-semibold mb-1">Your Information is Secure</p>
+        <p class="text-body-secondary">
+          The information you provide will only be used for tournament administration and will not be shared with third parties.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

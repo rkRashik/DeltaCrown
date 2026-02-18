@@ -1,0 +1,18 @@
+{# Status Badge Partial — Usage: include with status="registration_open" #}
+{% if status == 'registration_open' %}
+  <span class="bg-green-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">Open</span>
+{% elif status == 'live' %}
+  <span class="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase animate-pulse">● Live</span>
+{% elif status == 'completed' %}
+  <span class="bg-gray-800 text-gray-300 text-[10px] font-bold px-2 py-1 rounded uppercase">Ended</span>
+{% elif status == 'published' %}
+  <span class="bg-dc-purple text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg uppercase">Upcoming</span>
+{% elif status == 'registration_closed' %}
+  <span class="bg-yellow-600 text-black text-[10px] font-bold px-2 py-1 rounded uppercase">Reg. Closed</span>
+{% elif status == 'cancelled' %}
+  <span class="bg-gray-700 text-gray-400 text-[10px] font-bold px-2 py-1 rounded uppercase">Cancelled</span>
+{% elif status == 'draft' %}
+  <span class="bg-gray-900 text-gray-500 text-[10px] font-bold px-2 py-1 rounded uppercase border border-white/10">Draft</span>
+{% else %}
+  <span class="bg-gray-800 text-gray-400 text-[10px] font-bold px-2 py-1 rounded uppercase">{{ status|title }}</span>
+{% endif %}

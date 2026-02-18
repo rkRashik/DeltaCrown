@@ -1,9 +1,10 @@
-{# Generic Breadcrumb component styled per request
-   Usage examples:
-   - With explicit labels:
-     {% include 'components/breadcrumbs.html' with root_label='Home' root_href='/' parent_label='Teams' parent_href='/teams/' current_label=team.name %}
-   - With items list from the view: items=[{'label': 'Teams', 'href':'/teams/'}, {'label': team.name}]
- #}
+{% comment %}
+Generic Breadcrumb component styled per request
+Usage examples:
+- With explicit labels:
+  include 'components/breadcrumbs.html' with root_label='Home' root_href='/' parent_label='Teams' parent_href='/teams/' current_label=team.name
+- With items list from the view: items=[{'label': 'Teams', 'href':'/teams/'}, {'label': team.name}]
+{% endcomment %}
 <div class="container py-4">
   <div class="border-b border-border py-3">
     <ul class="flex items-center">

@@ -55,6 +55,16 @@ from asgiref.sync import async_to_sync  # Module 6.1: Wrap async broadcast helpe
 logger = logging.getLogger(__name__)
 
 
+def _publish_bracket_event(event_name: str, **kwargs):
+    """Publish bracket lifecycle events via the core EventBus (fire-and-forget)."""
+    try:
+        from apps.core.events import event_bus
+        from apps.core.events.bus import Event
+        event_bus.publish(Event(event_type=event_name, data=kwargs, source="bracket_service"))
+    except Exception as exc:
+        logger.warning("Failed to publish %s event: %s", event_name, exc)
+
+
 class BracketService:
     """
     Service for bracket generation, seeding, and progression.
@@ -1388,6 +1398,17 @@ class BracketService:
                     'total_nodes': bracket.nodes.count(),
                 }
             )
+        
+        # Publish bracket.finalized event
+        _bracket_id = bracket.id
+        _tourney_id = bracket.tournament_id
+        def _emit_finalized():
+            _publish_bracket_event(
+                "bracket.finalized",
+                bracket_id=_bracket_id,
+                tournament_id=_tourney_id,
+            )
+        transaction.on_commit(_emit_finalized)
         
         return bracket
     

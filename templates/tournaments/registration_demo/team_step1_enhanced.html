@@ -1,0 +1,140 @@
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
+
+{# ─────────────────────────────────────────────────────────
+   Registration Wizard — Team Step 1: Team & Captain Info
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
+
+{% block title %}Team Registration — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_content %}
+
+<div class="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+
+  {# ── Progress Bar ── #}
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-xs text-gray-500">Step {{ current_step }} of {{ total_steps }}</span>
+      <span class="text-xs text-dc-purple font-mono">{{ step_title }}</span>
+    </div>
+    <div class="h-1 bg-dc-surface rounded-full overflow-hidden">
+      <div class="h-full bg-gradient-to-r from-dc-purple to-dc-cyan rounded-full transition-all duration-500"
+           style="width: {% widthratio current_step total_steps 100 %}%"></div>
+    </div>
+  </div>
+
+  {# ── Tournament Context ── #}
+  <div class="glass rounded-xl p-4 mb-6 flex items-center gap-3">
+    <div class="w-10 h-10 rounded-lg bg-dc-surface border border-dc-border overflow-hidden flex-shrink-0">
+      {% if tournament.thumbnail_image %}
+        <img src="{{ tournament.thumbnail_image.url }}" class="w-full h-full object-cover">
+      {% else %}
+        <div class="w-full h-full flex items-center justify-center"><i data-lucide="trophy" class="w-5 h-5 text-gray-700"></i></div>
+      {% endif %}
+    </div>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-semibold text-white truncate">{{ tournament.name }}</p>
+      <p class="text-[10px] text-gray-500">Team Registration · {{ tournament.game.display_name }}</p>
+    </div>
+    <span class="text-[10px] px-2 py-0.5 bg-dc-purple/20 text-dc-purple rounded-full font-mono">TEAM</span>
+  </div>
+
+  {# ── Auto-fill Status ── #}
+  {% if completion_percentage %}
+    <div class="glass rounded-xl p-4 mb-6 border {% if completion_percentage >= 80 %}border-green-600/30{% else %}border-yellow-600/30{% endif %}">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center
+          {% if completion_percentage >= 80 %}bg-green-600/10{% else %}bg-yellow-600/10{% endif %}">
+          <span class="text-sm font-bold font-mono
+            {% if completion_percentage >= 80 %}text-green-400{% else %}text-yellow-400{% endif %}">{{ completion_percentage }}%</span>
+        </div>
+        <div>
+          <p class="text-xs text-white">Auto-filled from team profile</p>
+          <p class="text-[10px] text-gray-500">
+            {% if missing_count > 0 %}{{ missing_count }} field{{ missing_count|pluralize }} need{{ missing_count|pluralize:"s," }} your input{% else %}All fields auto-filled{% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ── Step 1 Form ── #}
+  <form method="post" class="space-y-6">
+    {% csrf_token %}
+    <input type="hidden" name="step" value="1">
+    <input type="hidden" name="type" value="team">
+
+    {# Team Info Section #}
+    <div class="glass rounded-xl p-6">
+      <h3 class="text-sm font-display font-semibold text-white mb-4">
+        <i data-lucide="users" class="w-4 h-4 inline mr-1 text-dc-purple"></i> Team Info
+      </h3>
+      <div class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5">Team Name <span class="text-red-400">*</span></label>
+            <input type="text" name="team_name" value="{{ team_data.team_name|default:'' }}" required
+                   class="form-input" placeholder="Team name">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5">Team Tag</label>
+            <input type="text" name="team_tag" value="{{ team_data.team_tag|default:'' }}" maxlength="6"
+                   class="form-input" placeholder="e.g., DC">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Captain Info Section #}
+    <div class="glass rounded-xl p-6">
+      <h3 class="text-sm font-display font-semibold text-white mb-4">
+        <i data-lucide="crown" class="w-4 h-4 inline mr-1 text-dc-gold"></i> Captain Details
+      </h3>
+      <div class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5">Captain Name <span class="text-red-400">*</span></label>
+            <input type="text" name="captain_name" value="{{ team_data.captain_name|default:'' }}" required
+                   class="form-input" placeholder="Captain's display name">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5">Captain Game ID <span class="text-red-400">*</span></label>
+            <input type="text" name="captain_game_id" value="{{ team_data.captain_game_id|default:'' }}" required
+                   class="form-input" placeholder="Captain's in-game ID">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5">Email</label>
+            <input type="email" name="captain_email" value="{{ team_data.captain_email|default:'' }}"
+                   class="form-input" placeholder="captain@email.com">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5">Phone</label>
+            <input type="tel" name="captain_phone" value="{{ team_data.captain_phone|default:'' }}"
+                   class="form-input" placeholder="+880xxxxxxxxx">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1.5">Discord</label>
+          <input type="text" name="captain_discord" value="{{ team_data.captain_discord|default:'' }}"
+                 class="form-input" placeholder="username#0000">
+        </div>
+      </div>
+    </div>
+
+    {# Navigation #}
+    <div class="flex items-center justify-between pt-2">
+      <a href="{% url 'tournaments:detail' tournament.slug %}" class="text-sm text-gray-500 hover:text-white transition">
+        <i data-lucide="arrow-left" class="w-4 h-4 inline mr-1"></i> Cancel
+      </a>
+      <button type="submit" class="px-6 py-3 bg-dc-purple text-white font-bold text-sm rounded-xl hover:bg-dc-purple/90 transition-all">
+        Continue <i data-lucide="arrow-right" class="w-4 h-4 inline ml-1"></i>
+      </button>
+    </div>
+  </form>
+
+</div>
+
+{% endblock %}

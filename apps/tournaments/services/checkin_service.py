@@ -11,6 +11,7 @@ Author: DeltaCrown Development Team
 Date: November 8, 2025
 """
 
+import logging
 from typing import Dict, List, Optional
 from django.db import transaction
 from django.utils import timezone
@@ -22,6 +23,17 @@ from apps.tournaments.security.audit import audit_event, AuditAction
 from apps.user_profile.integrations.tournaments import on_checkin_toggled
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
+
+
+def _publish_checkin_event(event_name: str, **kwargs):
+    """Publish check-in lifecycle events via the core EventBus (fire-and-forget)."""
+    try:
+        from apps.core.events import event_bus
+        from apps.core.events.bus import Event
+        event_bus.publish(Event(event_type=event_name, data=kwargs, source="checkin_service"))
+    except Exception as exc:
+        logger.warning("Failed to publish %s event: %s", event_name, exc)
 
 
 class CheckinService:
@@ -85,6 +97,21 @@ class CheckinService:
                 'checked_in_by': actor.id,
             }
         )
+        
+        # Publish checkin.completed event
+        _reg_id = registration.id
+        _tourney_id = tournament.id
+        _team_id = registration.team_id
+        _user_id = registration.user_id
+        def _emit_checkin():
+            _publish_checkin_event(
+                "checkin.completed",
+                registration_id=_reg_id,
+                tournament_id=_tourney_id,
+                team_id=_team_id,
+                user_id=_user_id,
+            )
+        transaction.on_commit(_emit_checkin)
         
         return registration
     
@@ -159,6 +186,17 @@ class CheckinService:
                 'reason': reason or '',
             }
         )
+        
+        # Publish checkin.reverted event
+        _reg_id = registration.id
+        _tourney_id = tournament.id
+        def _emit_revert():
+            _publish_checkin_event(
+                "checkin.reverted",
+                registration_id=_reg_id,
+                tournament_id=_tourney_id,
+            )
+        transaction.on_commit(_emit_revert)
         
         return registration
     

@@ -1,8 +1,17 @@
 """
-Tournament Staff Management Models.
+Tournament Staff Management Models (LEGACY).
 
-Provides comprehensive staff assignment and permission system for tournaments,
-allowing organizers to delegate specific responsibilities to trusted staff members.
+DEPRECATED — Phase 2 Service Consolidation, Task 2.6.
+
+All new code should use the Phase 7 models in ``staffing.py``:
+- ``StaffRole`` (JSON-based capabilities, replaces TournamentStaffRole)
+- ``TournamentStaffAssignment`` (replaces TournamentStaff)
+- ``MatchRefereeAssignment`` (new, no legacy equivalent)
+
+These legacy models are kept for backward-compatibility with:
+- Existing database rows / migrations
+- StaffPermissionChecker fallback path
+- Admin site registrations
 
 Source: Documents/Reports/TOURNAMENT_SYSTEM_IMPROVEMENTS_PLAN.md Section 3.1
 """
@@ -178,13 +187,11 @@ class TournamentStaffRole(models.Model):
 
 class TournamentStaff(models.Model):
     """
+    DEPRECATED: Use ``TournamentStaffAssignment`` (staffing.py) instead.
+    
     Assigns staff members to tournaments with specific roles.
-    
-    Each assignment grants a user the permissions defined by their role
-    for a specific tournament. Users can have multiple roles across
-    different tournaments, or multiple roles in the same tournament.
-    
-    Tracks assignment history and allows activation/deactivation without deletion.
+    Kept for backward-compatibility with existing data and migrations.
+    New code should use TournamentStaffAssignment with StaffRole capabilities.
     """
     
     # Relations

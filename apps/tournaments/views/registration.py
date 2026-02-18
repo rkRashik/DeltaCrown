@@ -1,16 +1,23 @@
 """
-Tournament Registration Views
+Tournament Registration Views — DEPRECATED
 FE-T-004: Multi-Step Registration Wizard
 
-Implements tournament registration workflow:
-- Step 1: Eligibility check
-- Step 2: Team selection (for team tournaments)
-- Step 3: Custom fields
-- Step 4: Payment (if has_entry_fee)
-- Step 5: Review & confirm
+DEPRECATION NOTICE (Phase 3):
+    The main TournamentRegistrationView wizard is disabled (URL commented out).
+    Active registration paths are:
+    - registration_wizard.py  → /register/wizard/  (production solo+team)
+    - dynamic_registration.py → /register/          (form-builder based)
+    - tournament_team_registration.py → /register/team/  (team-specific)
 
-Sprint 1 Implementation - November 15, 2025
-Source: FRONTEND_TOURNAMENT_BACKLOG.md Section 1.4
+    PaymentProofUploadView and PaymentRetryView remain active and are used
+    by other registration flows.
+
+Original Implementation:
+    Step 1: Eligibility check
+    Step 2: Team selection (for team tournaments)
+    Step 3: Custom fields
+    Step 4: Payment (if has_entry_fee)
+    Step 5: Review & confirm
 """
 
 from django.shortcuts import render, redirect, get_object_or_404

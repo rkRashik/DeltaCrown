@@ -1,147 +1,197 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
 
-{% block title %}{{ tournament.name }} - Results{% endblock %}
+{# ─────────────────────────────────────────────────────────
+   Tournament Results — FE-T-018
+   Context: tournament, has_results, result, winner,
+            runner_up, third_place, determination_method,
+            completed_matches, leaderboard, stats
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
 
-{% block content %}
-<div class="container mx-auto px-4 py-8">
-    <!-- Breadcrumb Navigation -->
-    <nav class="mb-6 text-sm" aria-label="Breadcrumb">
-        <ol class="flex items-center space-x-2 text-gray-600">
-            <li><a href="{% url 'tournaments:list' %}" class="hover:text-blue-600">Tournaments</a></li>
-            <li><span class="mx-2">/</span></li>
-            <li><a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="hover:text-blue-600">{{ tournament.name }}</a></li>
-            <li><span class="mx-2">/</span></li>
-            <li class="text-gray-900 font-medium" aria-current="page">Results</li>
-        </ol>
-    </nav>
+{% block title %}Results — {{ tournament.name }} | DeltaCrown{% endblock %}
 
-    <!-- Tournament Header -->
-    <div class="mb-8">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ tournament.name }}</h1>
-                <div class="flex items-center space-x-4 text-gray-600">
-                    <span class="flex items-center">
-                        <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path>
-                        </svg>
-                        {{ tournament.organizer.username }}
-                    </span>
-                    <span class="flex items-center">
-                        <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
-                        </svg>
-                        {% if tournament.tournament_start and tournament.tournament_end %}
-                            {{ tournament.tournament_start|date:"M d" }} - {{ tournament.tournament_end|date:"M d, Y" }}
-                        {% else %}
-                            Date TBD
-                        {% endif %}
-                    </span>
-                </div>
-            </div>
-            <span class="px-4 py-2 rounded-full text-sm font-bold bg-green-100 text-green-800">
-                {{ tournament.get_status_display }}
-            </span>
+{% block tournament_content %}
+
+<div class="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+
+  {# ── Header ── #}
+  <div class="mb-8">
+    <a href="{% url 'tournaments:detail' tournament.slug %}" class="text-xs text-gray-500 hover:text-dc-cyan transition mb-2 inline-block">
+      <i data-lucide="arrow-left" class="w-3 h-3 inline mr-1"></i> {{ tournament.name }}
+    </a>
+    <h1 class="text-2xl sm:text-3xl font-display font-bold text-white">Tournament Results</h1>
+  </div>
+
+  {% if has_results %}
+
+    {# ── Podium ── #}
+    <div class="glass rounded-xl p-8 mb-8 neon-border-gold text-center">
+      <div class="flex items-end justify-center gap-6 sm:gap-10 mb-6">
+
+        {# 2nd Place #}
+        <div class="flex flex-col items-center">
+          <div class="w-16 h-16 rounded-full bg-gray-500/10 border-2 border-gray-500 flex items-center justify-center mb-2">
+            {% if runner_up %}
+              <span class="text-lg font-display font-bold text-white">{{ runner_up.user.username|truncatechars:2|upper }}</span>
+            {% else %}
+              <i data-lucide="user" class="w-6 h-6 text-gray-600"></i>
+            {% endif %}
+          </div>
+          <div class="w-20 h-20 bg-gradient-to-t from-gray-700/50 to-gray-600/30 rounded-t-xl flex items-center justify-center">
+            <span class="text-2xl font-display font-bold text-gray-400">2</span>
+          </div>
+          <p class="text-xs text-white mt-2 truncate max-w-[80px]">{{ runner_up.user.username|default:"—" }}</p>
+          <p class="text-[10px] text-gray-500">Runner-up</p>
         </div>
+
+        {# 1st Place #}
+        <div class="flex flex-col items-center">
+          <div class="mb-2">
+            <i data-lucide="crown" class="w-6 h-6 text-dc-gold mx-auto mb-1"></i>
+          </div>
+          <div class="w-20 h-20 rounded-full bg-dc-gold/10 border-2 border-dc-gold flex items-center justify-center mb-2 shadow-[0_0_30px_rgba(250,204,21,0.2)]">
+            {% if winner %}
+              <span class="text-2xl font-display font-bold text-dc-gold">{{ winner.user.username|truncatechars:2|upper }}</span>
+            {% else %}
+              <i data-lucide="trophy" class="w-8 h-8 text-dc-gold"></i>
+            {% endif %}
+          </div>
+          <div class="w-24 h-28 bg-gradient-to-t from-dc-gold/30 to-dc-gold/10 rounded-t-xl flex items-center justify-center">
+            <span class="text-3xl font-display font-bold text-dc-gold">1</span>
+          </div>
+          <p class="text-sm text-dc-gold font-bold mt-2 truncate max-w-[100px]">{{ winner.user.username|default:"—" }}</p>
+          <p class="text-[10px] text-dc-gold/60">Champion</p>
+        </div>
+
+        {# 3rd Place #}
+        <div class="flex flex-col items-center">
+          <div class="w-16 h-16 rounded-full bg-amber-800/10 border-2 border-amber-700 flex items-center justify-center mb-2">
+            {% if third_place %}
+              <span class="text-lg font-display font-bold text-white">{{ third_place.user.username|truncatechars:2|upper }}</span>
+            {% else %}
+              <i data-lucide="user" class="w-6 h-6 text-gray-600"></i>
+            {% endif %}
+          </div>
+          <div class="w-20 h-16 bg-gradient-to-t from-amber-900/40 to-amber-800/20 rounded-t-xl flex items-center justify-center">
+            <span class="text-2xl font-display font-bold text-amber-600">3</span>
+          </div>
+          <p class="text-xs text-white mt-2 truncate max-w-[80px]">{{ third_place.user.username|default:"—" }}</p>
+          <p class="text-[10px] text-gray-500">3rd Place</p>
+        </div>
+
+      </div>
+
+      {% if determination_method %}
+        <p class="text-[10px] text-gray-500 mt-4">Determined by: {{ determination_method }}</p>
+      {% endif %}
     </div>
 
-    {% if has_results %}
-        <!-- Winners Podium -->
-        {% include 'tournaments/public/live/_partials/_results_podium.html' with result=result winner=winner runner_up=runner_up third_place=third_place %}
-
-        <!-- Tournament Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div class="bg-white border border-gray-200 rounded-lg p-5 text-center">
-                <p class="text-3xl font-bold text-blue-600">{{ stats.total_participants }}</p>
-                <p class="text-sm text-gray-600 mt-1">Participants</p>
-            </div>
-            <div class="bg-white border border-gray-200 rounded-lg p-5 text-center">
-                <p class="text-3xl font-bold text-green-600">{{ stats.completed_matches }}</p>
-                <p class="text-sm text-gray-600 mt-1">Matches Played</p>
-            </div>
-            <div class="bg-white border border-gray-200 rounded-lg p-5 text-center">
-                <p class="text-3xl font-bold text-purple-600">{{ stats.total_matches }}</p>
-                <p class="text-sm text-gray-600 mt-1">Total Matches</p>
-            </div>
-            {% if stats.duration_days %}
-            <div class="bg-white border border-gray-200 rounded-lg p-5 text-center">
-                <p class="text-3xl font-bold text-orange-600">{{ stats.duration_days }}</p>
-                <p class="text-sm text-gray-600 mt-1">Days Duration</p>
-            </div>
-            {% endif %}
+    {# ── Stats Strip ── #}
+    {% if stats %}
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div class="glass rounded-xl p-4 text-center">
+          <p class="text-2xl font-display font-bold text-white">{{ stats.total_participants }}</p>
+          <p class="text-[10px] text-gray-500 uppercase tracking-wider">Participants</p>
         </div>
-
-        <!-- Final Leaderboard -->
-        {% include 'tournaments/public/live/_partials/_results_leaderboard.html' with leaderboard=leaderboard winner=winner runner_up=runner_up third_place=third_place %}
-
-        <!-- Match History -->
-        <div class="mt-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-4">Match History</h2>
-            {% if completed_matches %}
-            <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Round</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Match</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Participants</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Winner</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            {% for match in completed_matches %}
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Round {{ match.round_number }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{{ match.match_number }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                    P{{ match.participant1_id|default:"TBD" }} vs P{{ match.participant2_id|default:"TBD" }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                                    {{ match.participant1_score|default:"0" }} - {{ match.participant2_score|default:"0" }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                    <span class="text-green-700 font-semibold">P{{ match.winner_id }}</span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% else %}
-            <div class="text-center py-8 bg-gray-50 rounded-lg">
-                <p class="text-gray-500">No completed matches found.</p>
-            </div>
-            {% endif %}
+        <div class="glass rounded-xl p-4 text-center">
+          <p class="text-2xl font-display font-bold text-white">{{ stats.total_matches }}</p>
+          <p class="text-[10px] text-gray-500 uppercase tracking-wider">Matches</p>
         </div>
-
-    {% else %}
-        <!-- No Results Available -->
-        <div class="text-center py-16 bg-gray-50 rounded-lg">
-            <svg class="w-20 h-20 mx-auto text-gray-400 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            <h2 class="text-2xl font-bold text-gray-700 mb-3">Results Not Available</h2>
-            <p class="text-gray-600 mb-6 max-w-md mx-auto">Tournament results have not been finalized yet.</p>
-            <a href="{% url 'tournaments:bracket' slug=tournament.slug %}" 
-               class="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
-                View Bracket
-            </a>
+        <div class="glass rounded-xl p-4 text-center">
+          <p class="text-2xl font-display font-bold text-white">{{ stats.completed_matches }}</p>
+          <p class="text-[10px] text-gray-500 uppercase tracking-wider">Completed</p>
         </div>
+        {% if stats.duration_days is not None %}
+          <div class="glass rounded-xl p-4 text-center">
+            <p class="text-2xl font-display font-bold text-white">{{ stats.duration_days }}d</p>
+            <p class="text-[10px] text-gray-500 uppercase tracking-wider">Duration</p>
+          </div>
+        {% endif %}
+      </div>
     {% endif %}
 
-    <!-- Back to Tournament Link -->
-    <div class="mt-8 pt-6 border-t border-gray-200">
-        <a href="{% url 'tournaments:detail' slug=tournament.slug %}" 
-           class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-            </svg>
-            Back to Tournament
-        </a>
+  {% else %}
+
+    {# ── No Results Yet ── #}
+    <div class="glass rounded-xl p-12 text-center mb-8">
+      <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-dc-surface flex items-center justify-center">
+        <i data-lucide="trophy" class="w-10 h-10 text-gray-600"></i>
+      </div>
+      <h2 class="text-xl font-display font-bold text-white mb-2">Results Not Available</h2>
+      <p class="text-sm text-gray-400">Tournament results will appear here once the event concludes.</p>
     </div>
+
+  {% endif %}
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    {# ── Completed Matches ── #}
+    <div class="glass rounded-xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-dc-border">
+        <h3 class="text-sm font-display font-semibold text-white">
+          <i data-lucide="swords" class="w-4 h-4 inline mr-1 text-dc-cyan"></i> Match History
+        </h3>
+      </div>
+      {% if completed_matches %}
+        <div class="divide-y divide-dc-border max-h-[400px] overflow-y-auto">
+          {% for match in completed_matches %}
+            <a href="{% url 'tournaments:match_detail' tournament.slug match.id %}" class="flex items-center justify-between px-6 py-3 hover:bg-white/[0.02] transition">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="text-[10px] text-gray-600 font-mono w-8">R{{ match.round_number }}</span>
+                <span class="text-sm text-white truncate">
+                  {% if match.participant1 %}{{ match.participant1.username }}{% else %}TBD{% endif %}
+                  <span class="text-gray-500 mx-1">vs</span>
+                  {% if match.participant2 %}{{ match.participant2.username }}{% else %}TBD{% endif %}
+                </span>
+              </div>
+              <span class="text-sm font-mono text-gray-400 flex-shrink-0 ml-2">
+                {{ match.participant1_score|default:"—" }} - {{ match.participant2_score|default:"—" }}
+              </span>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="px-6 py-8 text-center">
+          <p class="text-xs text-gray-600">No completed matches</p>
+        </div>
+      {% endif %}
+    </div>
+
+    {# ── Leaderboard ── #}
+    <div class="glass rounded-xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-dc-border flex items-center justify-between">
+        <h3 class="text-sm font-display font-semibold text-white">
+          <i data-lucide="bar-chart-3" class="w-4 h-4 inline mr-1 text-dc-gold"></i> Final Standings
+        </h3>
+        <a href="{% url 'tournaments:leaderboard' tournament.slug %}" class="text-[10px] text-dc-cyan hover:underline">View Full</a>
+      </div>
+      {% if leaderboard %}
+        <div class="divide-y divide-dc-border max-h-[400px] overflow-y-auto">
+          {% for reg in leaderboard %}
+            <div class="flex items-center justify-between px-6 py-3">
+              <div class="flex items-center gap-3">
+                <span class="w-7 h-7 rounded-full bg-dc-surface flex items-center justify-center text-xs font-mono
+                  {% if forloop.counter == 1 %}text-dc-gold{% elif forloop.counter == 2 %}text-gray-400{% elif forloop.counter == 3 %}text-amber-600{% else %}text-gray-500{% endif %}">
+                  {{ forloop.counter }}
+                </span>
+                <span class="text-sm text-white">{{ reg.user.username|default:"Unknown" }}</span>
+              </div>
+              {% if reg.seed %}
+                <span class="text-[10px] text-gray-600">Seed {{ reg.seed }}</span>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="px-6 py-8 text-center">
+          <p class="text-xs text-gray-600">No standings data</p>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+
 </div>
+
 {% endblock %}

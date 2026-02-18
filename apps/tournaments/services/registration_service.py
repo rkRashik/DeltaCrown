@@ -57,6 +57,7 @@ Usage:
 """
 
 from typing import Dict, Optional, Any
+import logging
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import transaction, models
@@ -67,6 +68,28 @@ from apps.user_profile.integrations.tournaments import (
     on_registration_status_change,
     on_payment_status_change,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def _publish_registration_event(event_name: str, **kwargs):
+    """Publish registration lifecycle events via the core EventBus (fire-and-forget)."""
+    try:
+        from apps.tournament_ops.events.publishers import (
+            publish_registration_created,
+            publish_registration_confirmed,
+        )
+        if event_name == "registration.created":
+            publish_registration_created(**kwargs)
+        elif event_name == "registration.confirmed":
+            publish_registration_confirmed(**kwargs)
+        else:
+            # Generic fallback for events without a dedicated publisher
+            from apps.core.events import event_bus
+            from apps.core.events.bus import Event
+            event_bus.publish(Event(event_type=event_name, data=kwargs, source="registration_service"))
+    except Exception as exc:
+        logger.warning("Failed to publish %s event: %s", event_name, exc)
 
 
 class RegistrationService:
@@ -158,10 +181,17 @@ class RegistrationService:
         registration.full_clean()
         registration.save()
         
-        # TODO: Future integration points
-        # - Send notification to user (apps.notifications)
-        # - Create discussion thread if enabled (apps.siteui)
-        # - Log event to analytics (apps.tournaments.analytics)
+        # Publish registration.created event
+        def _emit_created():
+            _publish_registration_event(
+                "registration.created",
+                registration_id=registration.id,
+                tournament_id=tournament.id,
+                team_id=team_id,
+                user_id=user.id if user else None,
+                source="registration_service",
+            )
+        transaction.on_commit(_emit_created)
         
         return registration
     
@@ -802,13 +832,26 @@ class RegistrationService:
         try:
             TournamentNotificationService.notify_registration_confirmed(registration)
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
             logger.error(f"Failed to send registration confirmation: {e}")
         
-        # TODO: Future integration points
-        # - Award DeltaCoin if applicable (apps.economy)
-        # - Update tournament analytics
+        # Publish events: registration.confirmed + payment.verified
+        def _emit_confirmed():
+            _publish_registration_event(
+                "registration.confirmed",
+                registration_id=registration.id,
+                tournament_id=registration.tournament_id,
+                team_id=registration.team_id,
+                user_id=registration.user_id,
+                source="registration_service",
+            )
+            _publish_registration_event(
+                "payment.verified",
+                payment_id=payment.id,
+                registration_id=registration.id,
+                amount=float(payment.amount) if payment.amount else 0.0,
+                source="registration_service",
+            )
+        transaction.on_commit(_emit_confirmed)
         
         return payment
     
@@ -958,10 +1001,17 @@ class RegistrationService:
                 reason=reason or 'Registration cancelled'
             )
         
-        # TODO: Future integration points
-        # - Send cancellation confirmation notification (apps.notifications)
-        # - Update tournament capacity analytics
-        # - Release slot for waitlist if applicable
+        # Publish registration.cancelled event
+        def _emit_cancelled():
+            _publish_registration_event(
+                "registration.cancelled",
+                registration_id=registration.id,
+                tournament_id=registration.tournament_id,
+                team_id=registration.team_id,
+                user_id=registration.user_id,
+                source="registration_service",
+            )
+        transaction.on_commit(_emit_cancelled)
         
         return registration
     
@@ -1001,6 +1051,15 @@ class RegistrationService:
                 )
             except Exception:
                 pass  # Non-blocking
+            # Publish registration.confirmed event
+            _publish_registration_event(
+                "registration.confirmed",
+                registration_id=registration.id,
+                tournament_id=registration.tournament_id,
+                team_id=registration.team_id,
+                user_id=registration.user_id,
+                source="registration_service",
+            )
         transaction.on_commit(_notify_profile)
         
         return registration
@@ -1821,6 +1880,22 @@ class RegistrationService:
         
         # Promote from waitlist if space available
         RegistrationService._promote_from_waitlist(tournament)
+        
+        # Publish registration.withdrawn event
+        _reg_id = registration.id
+        _tourney_id = tournament.id
+        _team_id = registration.team_id
+        _user_id = registration.user_id
+        def _emit_withdrawn():
+            _publish_registration_event(
+                "registration.withdrawn",
+                registration_id=_reg_id,
+                tournament_id=_tourney_id,
+                team_id=_team_id,
+                user_id=_user_id,
+                source="registration_service",
+            )
+        transaction.on_commit(_emit_withdrawn)
         
         return {
             'success': True,

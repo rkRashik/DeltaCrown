@@ -3452,8 +3452,9 @@
                     zoomable: true,
                     zoomOnWheel: true,
                     wheelZoomRatio: 0.1,
-                    minContainerWidth: type === 'banner' ? 600 : 300,
-                    minContainerHeight: type === 'banner' ? 240 : 300
+                    // UP-FIX: Responsive container size for mobile
+                    minContainerWidth: type === 'banner' ? Math.min(600, window.innerWidth - 32) : Math.min(300, window.innerWidth - 32),
+                    minContainerHeight: type === 'banner' ? Math.min(240, (window.innerWidth - 32) / 4) : 300
                 });
             } else {
                 console.error('Cropper.js not loaded!');

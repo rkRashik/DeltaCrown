@@ -1,12 +1,20 @@
 """
-Analytics Engine Service for Epic 8.5 - Advanced Analytics, Ranking Tiers & Real-Time Leaderboards.
+Analytics Engine Service — User/Team performance analytics layer.
 
-Core service for computing analytics snapshots, tier assignments, percentile rankings,
-and multi-dimensional leaderboards.
+This service computes advanced analytics: ELO estimation, tier assignment,
+percentile ranking, rolling averages, and multi-dimensional leaderboards.
 
-NO ORM IMPORTS - Uses AnalyticsAdapter only.
+The canonical tournament-level analytics (organizer dashboards, CSV export,
+materialized view routing) lives in:
+    apps.tournaments.services.analytics_service.AnalyticsService
 
-Reference: Phase 8, Epic 8.5 - Advanced Analytics & Ranking Tiers
+This engine is accessible from that canonical service via bridge methods:
+    AnalyticsService.get_user_analytics(user_id)
+    AnalyticsService.get_team_analytics(team_id)
+
+NO ORM IMPORTS — Uses AnalyticsAdapter only.
+
+Reference: Phase 8, Epic 8.5 — Advanced Analytics & Ranking Tiers
 """
 
 from typing import List, Optional, Dict, Any, Tuple

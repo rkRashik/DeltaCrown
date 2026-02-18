@@ -82,6 +82,7 @@ urlpatterns = [
     path('teams/<str:slug>/discord/test-webhook/', team_manage.discord_test_webhook, name='team_discord_test_webhook'),
     
     # Community & Media (Phase B)
+    path('teams/<str:slug>/media/', team_manage.profile_upload_media, name='team_profile_upload_media'),
     path('teams/<str:slug>/community/', team_manage.community_data, name='team_community_data'),
     path('teams/<str:slug>/community/posts/', team_manage.community_create_post, name='team_community_create_post'),
     path('teams/<str:slug>/community/media/', team_manage.community_upload_media, name='team_community_upload_media'),

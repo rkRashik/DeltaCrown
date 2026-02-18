@@ -1,83 +1,208 @@
-{% extends "tournaments/organizer/hub_overview.html" %}
+{% extends "tournaments/organizer/_hub_base.html" %}
+{% load humanize %}
+
+{# ─────────────────────────────────────────────────────────
+   Organizer Hub — Settings Tab
+   Tournament settings, payment methods, staff management
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
 
 {% block hub_content %}
-<div class="space-y-6">
-    <!-- Payment Methods -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-2xl font-bold mb-6">Payment Methods</h2>
-        <div class="space-y-4">
-            {% for method in payment_methods %}
-            <div class="border rounded-lg p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="font-bold">{{ method.get_method_display }}</h3>
-                        <p class="text-sm text-gray-600">
-                            {% if method.is_enabled %}
-                                <span class="text-green-600">✓ Enabled</span>
-                            {% else %}
-                                <span class="text-gray-400">✗ Disabled</span>
-                            {% endif %}
-                        </p>
-                    </div>
-                    {% if can_edit %}
-                    <button class="px-4 py-2 border rounded hover:bg-gray-50">
-                        Edit
-                    </button>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  {# ── Tournament Info (Read-only summary) ── #}
+  <div class="glass rounded-xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-display font-semibold text-white">
+        <i data-lucide="info" class="w-4 h-4 inline mr-1 text-dc-cyan"></i>
+        Tournament Info
+      </h3>
+      {% if can_edit %}
+        <button class="text-[10px] px-2.5 py-1 bg-white/[0.05] text-gray-400 rounded-lg hover:text-white hover:bg-white/10 transition">
+          <i data-lucide="edit-2" class="w-3 h-3 inline mr-0.5"></i> Edit
+        </button>
+      {% endif %}
+    </div>
+    <dl class="space-y-3 text-sm">
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Name</dt>
+        <dd class="text-white text-right truncate max-w-[60%]">{{ tournament.name }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Game</dt>
+        <dd class="text-white">{{ tournament.game.display_name|default:"—" }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Format</dt>
+        <dd class="text-white capitalize">{{ tournament.get_format_display|default:tournament.format }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Mode</dt>
+        <dd class="text-white capitalize">{{ tournament.get_participation_type_display|default:tournament.participation_type }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Platform</dt>
+        <dd class="text-white capitalize">{{ tournament.get_platform_display|default:tournament.platform }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Max Participants</dt>
+        <dd class="text-white font-mono">{{ tournament.max_participants|default:"∞" }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Prize Pool</dt>
+        <dd class="text-dc-gold font-mono">
+          {% if tournament.prize_pool %}৳{{ tournament.prize_pool|intcomma }}{% else %}—{% endif %}
+        </dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Entry Fee</dt>
+        <dd class="text-white font-mono">
+          {% if tournament.has_entry_fee %}৳{{ tournament.entry_fee_amount|intcomma }}{% else %}Free{% endif %}
+        </dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Status</dt>
+        <dd>{% include "tournaments/components/_status_badge.html" with status=tournament.status %}</dd>
+      </div>
+    </dl>
+  </div>
+
+  {# ── Payment Methods ── #}
+  <div class="glass rounded-xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-display font-semibold text-white">
+        <i data-lucide="wallet" class="w-4 h-4 inline mr-1 text-dc-gold"></i>
+        Payment Methods
+      </h3>
+      {% if can_edit %}
+        <button class="text-[10px] px-2.5 py-1 bg-white/[0.05] text-gray-400 rounded-lg hover:text-white hover:bg-white/10 transition">
+          <i data-lucide="plus" class="w-3 h-3 inline mr-0.5"></i> Add
+        </button>
+      {% endif %}
     </div>
 
-    <!-- Staff Members -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold">Staff & Permissions</h2>
-            {% if can_manage_staff %}
-            <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                <i class="fas fa-user-plus"></i> Add Staff
-            </button>
+    {% if payment_methods %}
+      <div class="space-y-2">
+        {% for pm in payment_methods %}
+          <div class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.02] border border-dc-border">
+            <div class="w-8 h-8 rounded-lg bg-dc-surface flex items-center justify-center flex-shrink-0">
+              <i data-lucide="{% if 'bkash' in pm.method_type|lower %}smartphone{% elif 'bank' in pm.method_type|lower %}building{% else %}credit-card{% endif %}"
+                 class="w-4 h-4 text-gray-400"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm text-white">{{ pm.label|default:pm.method_type|title }}</p>
+              <p class="text-[10px] text-gray-600 font-mono truncate">{{ pm.account_number|default:"" }}</p>
+            </div>
+            {% if pm.is_active %}
+              <span class="text-[9px] px-1.5 py-0.5 bg-green-600/20 text-green-400 rounded font-mono">ACTIVE</span>
+            {% else %}
+              <span class="text-[9px] px-1.5 py-0.5 bg-gray-600/20 text-gray-500 rounded font-mono">INACTIVE</span>
             {% endif %}
-        </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-8 text-gray-600">
+        <i data-lucide="wallet" class="w-6 h-6 mx-auto mb-2"></i>
+        <p class="text-xs">No payment methods configured</p>
+      </div>
+    {% endif %}
+  </div>
 
-        <div class="space-y-4">
+  {# ── Staff Members ── #}
+  <div class="lg:col-span-2 glass rounded-xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-display font-semibold text-white">
+        <i data-lucide="shield" class="w-4 h-4 inline mr-1 text-dc-purple"></i>
+        Staff Members
+      </h3>
+      {% if can_manage_staff %}
+        <button class="text-[10px] px-2.5 py-1 bg-white/[0.05] text-gray-400 rounded-lg hover:text-white hover:bg-white/10 transition">
+          <i data-lucide="user-plus" class="w-3 h-3 inline mr-0.5"></i> Add Staff
+        </button>
+      {% endif %}
+    </div>
+
+    {% if staff_members %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-dc-border text-[11px] uppercase tracking-wider text-gray-500">
+              <th class="px-4 py-3 text-left">User</th>
+              <th class="px-4 py-3 text-left">Role</th>
+              <th class="px-4 py-3 text-left">Added</th>
+              {% if can_manage_staff %}<th class="px-4 py-3 text-right">Actions</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-dc-border">
             {% for staff in staff_members %}
-            <div class="border rounded-lg p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="font-bold">{{ staff.user.username }}</h3>
-                        <p class="text-sm text-gray-600">{{ staff.role.name }}</p>
-                        <p class="text-xs text-gray-500">
-                            {% for perm in staff.role.permissions %}
-                                <span class="inline-block bg-gray-100 rounded px-2 py-1 mr-1 mt-1">{{ perm }}</span>
-                            {% endfor %}
-                        </p>
+              <tr class="hover:bg-white/[0.02] transition">
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-full bg-dc-surface flex items-center justify-center text-[10px] font-bold text-dc-purple flex-shrink-0">
+                      {{ staff.user.username|first|upper }}
                     </div>
-                    {% if can_manage_staff %}
-                    <button class="px-4 py-2 border rounded hover:bg-gray-50">
-                        Manage
+                    <div>
+                      <p class="text-white">{{ staff.user.username }}</p>
+                      <p class="text-[10px] text-gray-600">{{ staff.user.email|default:"" }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-dc-purple/20 text-dc-purple font-mono">
+                    {{ staff.role.name|default:"Staff" }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-gray-500 text-xs">{{ staff.created_at|timesince }} ago</td>
+                {% if can_manage_staff %}
+                  <td class="px-4 py-3 text-right">
+                    <button title="Remove" class="p-1.5 rounded-lg hover:bg-red-600/20 text-gray-500 hover:text-red-400 transition">
+                      <i data-lucide="user-minus" class="w-3.5 h-3.5"></i>
                     </button>
-                    {% endif %}
-                </div>
-            </div>
-            {% empty %}
-            <p class="text-gray-500 text-center py-4">No staff members assigned</p>
+                  </td>
+                {% endif %}
+              </tr>
             {% endfor %}
-        </div>
-    </div>
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-8 text-gray-600">
+        <i data-lucide="users" class="w-6 h-6 mx-auto mb-2"></i>
+        <p class="text-xs">No staff members assigned</p>
+        <p class="text-[10px] text-gray-700 mt-1">The tournament organizer has full access by default.</p>
+      </div>
+    {% endif %}
+  </div>
 
-    <!-- Tournament Settings -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-2xl font-bold mb-6">Tournament Settings</h2>
-        {% if can_edit %}
-        <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" 
-           class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 inline-block">
-            Edit in Admin Panel
-        </a>
-        {% else %}
-        <p class="text-gray-600">You don't have permission to edit tournament settings.</p>
+  {# ── Danger Zone ── #}
+  {% if can_edit %}
+    <div class="lg:col-span-2 glass rounded-xl p-6 border border-red-900/30">
+      <h3 class="text-sm font-display font-semibold text-red-400 mb-4">
+        <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-1"></i>
+        Danger Zone
+      </h3>
+      <div class="flex flex-wrap items-center gap-3">
+        {% if tournament.status == 'draft' %}
+          <button class="text-xs px-4 py-2 border border-red-600/30 text-red-400 rounded-lg hover:bg-red-600/20 transition">
+            <i data-lucide="trash-2" class="w-3 h-3 inline mr-1"></i> Delete Tournament
+          </button>
         {% endif %}
+        {% if tournament.status != 'cancelled' and tournament.status != 'completed' %}
+          <button class="text-xs px-4 py-2 border border-yellow-600/30 text-yellow-400 rounded-lg hover:bg-yellow-600/20 transition">
+            <i data-lucide="ban" class="w-3 h-3 inline mr-1"></i> Cancel Tournament
+          </button>
+        {% endif %}
+        {% if tournament.status == 'completed' %}
+          <button class="text-xs px-4 py-2 border border-gray-600/30 text-gray-400 rounded-lg hover:bg-gray-600/20 transition">
+            <i data-lucide="archive" class="w-3 h-3 inline mr-1"></i> Archive Tournament
+          </button>
+        {% endif %}
+      </div>
     </div>
+  {% endif %}
+
 </div>
+
 {% endblock %}

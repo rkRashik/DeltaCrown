@@ -238,7 +238,7 @@ class LeaderboardService:
             return []
         
         queryset = LegacyTeam.objects.filter(
-            is_active=True,
+            status='ACTIVE',
             total_points__gt=0  # Only teams with points
         ).select_related('ranking_breakdown')
         

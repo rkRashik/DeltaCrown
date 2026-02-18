@@ -1,262 +1,239 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
 
-{% block title %}Create Tournament - DeltaCrown{% endblock %}
+{# ─────────────────────────────────────────────────────────
+   Create Tournament — Multi-section form
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'tournaments/organizer/css/organizer-glassmorphism.css' %}?v=1.0">
-<style>
-    body { background: #0f172a; }
-    .create-tournament-container {
-        min-height: 100vh;
-        padding: 3rem 0;
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-    }
-    .create-header {
-        text-align: center;
-        margin-bottom: 3rem;
-    }
-    .create-header h1 {
-        font-size: 3rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-primary) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 0.75rem;
-    }
-    .create-header p {
-        font-size: 1.125rem;
-        color: var(--text-muted);
-    }
-    .form-section {
-        margin-bottom: 3rem;
-    }
-    .section-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 1.5rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 2px solid var(--glass-border);
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-    .section-icon {
-        width: 2.5rem;
-        height: 2.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--accent-primary);
-        border-radius: var(--radius-md);
-        color: white;
-        font-size: 1.25rem;
-    }
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-    }
-    .form-row-thirds {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 1.5rem;
-    }
-    .help-text {
-        font-size: 0.8125rem;
-        color: var(--text-muted);
-        margin-top: 0.375rem;
-    }
-    .form-actions {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: 2rem;
-        border-top: 1px solid var(--glass-border);
-    }
-    @media (max-width: 768px) {
-        .form-row, .form-row-thirds {
-            grid-template-columns: 1fr;
-        }
-    }
-    .errorlist {
-        list-style: none;
-        padding: 0;
-        margin: 0.5rem 0 0 0;
-    }
-    .errorlist li {
-        color: var(--accent-danger);
-        font-size: 0.875rem;
-        margin-top: 0.25rem;
-    }
-</style>
+{% block title %}{{ page_title }} | DeltaCrown{% endblock %}
+
+{% block tournament_content %}
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  {# ── Breadcrumb ── #}
+  <div class="flex items-center gap-2 text-xs text-gray-500 mb-6">
+    <a href="{% url 'tournaments:organizer_dashboard' %}" class="hover:text-white transition">Dashboard</a>
+    <i data-lucide="chevron-right" class="w-3 h-3"></i>
+    <span class="text-white">{{ page_title }}</span>
+  </div>
+
+  {# ── Page Header ── #}
+  <div class="mb-8">
+    <h1 class="text-2xl font-display font-bold text-white">{{ page_title }}</h1>
+    <p class="text-sm text-gray-500 mt-1">Fill in the details below to set up your tournament. You can edit everything later.</p>
+  </div>
+
+  {# ── Form Errors ── #}
+  {% if form.errors %}
+    <div class="glass rounded-xl p-4 mb-6 border border-red-600/30">
+      <div class="flex items-center gap-2 mb-2">
+        <i data-lucide="alert-circle" class="w-4 h-4 text-red-400"></i>
+        <span class="text-sm font-semibold text-red-400">Please fix the errors below</span>
+      </div>
+      <ul class="text-xs text-red-400/80 list-disc pl-5 space-y-1">
+        {% for field, errors in form.errors.items %}
+          {% for error in errors %}
+            <li>{{ field|title }}: {{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {# ── Main Form ── #}
+  <form method="post" class="space-y-6">
+    {% csrf_token %}
+
+    {# ── Section: Basic Info ── #}
+    <div class="glass rounded-xl p-6">
+      <h2 class="text-sm font-display font-semibold text-white mb-4">
+        <i data-lucide="trophy" class="w-4 h-4 inline mr-1 text-dc-cyan"></i>
+        Basic Information
+      </h2>
+      <div class="space-y-4">
+        {# Name #}
+        <div>
+          <label for="id_name" class="block text-xs text-gray-400 mb-1.5">Tournament Name <span class="text-red-400">*</span></label>
+          {{ form.name }}
+          {% if form.name.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+        </div>
+
+        {# Slug #}
+        <div>
+          <label for="id_slug" class="block text-xs text-gray-400 mb-1.5">URL Slug <span class="text-red-400">*</span></label>
+          {{ form.slug }}
+          <p class="text-[10px] text-gray-600 mt-1">deltacrown.com/tournaments/<span class="text-dc-cyan">your-slug</span>/</p>
+          {% if form.slug.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.slug.errors.0 }}</p>{% endif %}
+        </div>
+
+        {# Game & Format row #}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="id_game" class="block text-xs text-gray-400 mb-1.5">Game <span class="text-red-400">*</span></label>
+            {{ form.game }}
+            {% if form.game.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.game.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="id_format" class="block text-xs text-gray-400 mb-1.5">Format <span class="text-red-400">*</span></label>
+            {{ form.format }}
+            {% if form.format.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.format.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        {# Description #}
+        <div>
+          <label for="id_description" class="block text-xs text-gray-400 mb-1.5">Description</label>
+          {{ form.description }}
+          {% if form.description.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.description.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ── Section: Schedule ── #}
+    <div class="glass rounded-xl p-6">
+      <h2 class="text-sm font-display font-semibold text-white mb-4">
+        <i data-lucide="calendar" class="w-4 h-4 inline mr-1 text-dc-purple"></i>
+        Schedule
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="id_registration_start" class="block text-xs text-gray-400 mb-1.5">Registration Opens <span class="text-red-400">*</span></label>
+          {{ form.registration_start }}
+          {% if form.registration_start.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.registration_start.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label for="id_registration_end" class="block text-xs text-gray-400 mb-1.5">Registration Closes <span class="text-red-400">*</span></label>
+          {{ form.registration_end }}
+          {% if form.registration_end.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.registration_end.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="sm:col-span-2">
+          <label for="id_tournament_start" class="block text-xs text-gray-400 mb-1.5">Tournament Start <span class="text-red-400">*</span></label>
+          {{ form.tournament_start }}
+          {% if form.tournament_start.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.tournament_start.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ── Section: Capacity & Fees ── #}
+    <div class="glass rounded-xl p-6">
+      <h2 class="text-sm font-display font-semibold text-white mb-4">
+        <i data-lucide="users" class="w-4 h-4 inline mr-1 text-dc-gold"></i>
+        Capacity &amp; Fees
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label for="id_max_participants" class="block text-xs text-gray-400 mb-1.5">Max Participants</label>
+          {{ form.max_participants }}
+          {% if form.max_participants.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.max_participants.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label for="id_entry_fee_amount" class="block text-xs text-gray-400 mb-1.5">Entry Fee (৳)</label>
+          {{ form.entry_fee_amount }}
+          <p class="text-[10px] text-gray-600 mt-1">Set 0 for free entry</p>
+          {% if form.entry_fee_amount.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.entry_fee_amount.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label for="id_prize_pool" class="block text-xs text-gray-400 mb-1.5">Prize Pool (৳)</label>
+          {{ form.prize_pool }}
+          {% if form.prize_pool.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.prize_pool.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ── Section: Rules ── #}
+    <div class="glass rounded-xl p-6">
+      <h2 class="text-sm font-display font-semibold text-white mb-4">
+        <i data-lucide="scroll-text" class="w-4 h-4 inline mr-1 text-gray-400"></i>
+        Rules
+      </h2>
+      <div>
+        <label for="id_rules_text" class="block text-xs text-gray-400 mb-1.5">Tournament Rules</label>
+        {{ form.rules_text }}
+        <p class="text-[10px] text-gray-600 mt-1">Markdown is supported</p>
+        {% if form.rules_text.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.rules_text.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+
+    {# ── Section: Registration Form Config ── #}
+    <div class="glass rounded-xl p-6">
+      <h2 class="text-sm font-display font-semibold text-white mb-4">
+        <i data-lucide="file-text" class="w-4 h-4 inline mr-1 text-dc-cyan"></i>
+        Registration Form
+      </h2>
+      <div class="space-y-4">
+        <label class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] border border-dc-border cursor-pointer hover:bg-white/[0.05] transition">
+          {{ form.use_default_form }}
+          <div>
+            <span class="text-sm text-white">Use Default Form</span>
+            <p class="text-[10px] text-gray-500">Standard solo or team registration fields</p>
+          </div>
+        </label>
+        <label class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] border border-dc-border cursor-pointer hover:bg-white/[0.05] transition">
+          {{ form.use_custom_form }}
+          <div>
+            <span class="text-sm text-white">Use Custom Form</span>
+            <p class="text-[10px] text-gray-500">Build a custom registration form with extra fields</p>
+          </div>
+        </label>
+        <div>
+          <label for="id_custom_form_template" class="block text-xs text-gray-400 mb-1.5">Custom Form Template</label>
+          {{ form.custom_form_template }}
+        </div>
+      </div>
+    </div>
+
+    {# ── Section: Options ── #}
+    <div class="glass rounded-xl p-6">
+      <h2 class="text-sm font-display font-semibold text-white mb-4">
+        <i data-lucide="settings" class="w-4 h-4 inline mr-1 text-gray-400"></i>
+        Options
+      </h2>
+      <label class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] border border-dc-border cursor-pointer hover:bg-white/[0.05] transition">
+        {{ form.is_official }}
+        <div>
+          <span class="text-sm text-white">Official Tournament</span>
+          <p class="text-[10px] text-gray-500">Mark this as an official DeltaCrown tournament</p>
+        </div>
+      </label>
+    </div>
+
+    {# ── Submit ── #}
+    <div class="flex items-center justify-between pt-4">
+      <a href="{% url 'tournaments:organizer_dashboard' %}" class="text-sm text-gray-500 hover:text-white transition">
+        <i data-lucide="arrow-left" class="w-4 h-4 inline mr-1"></i> Back to Dashboard
+      </a>
+      <button type="submit" class="px-6 py-3 bg-dc-cyan text-black font-bold text-sm rounded-xl hover:bg-dc-cyan/90 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+        <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i> Create Tournament
+      </button>
+    </div>
+
+  </form>
+
+</div>
+
 {% endblock %}
 
-{% block content %}
-<div class="create-tournament-container">
-    <div class="container mx-auto px-4" style="max-width: 1000px;">
-        <div class="create-header">
-            <h1><i class="fas fa-trophy"></i> Create Tournament</h1>
-            <p>Set up a new competitive tournament for your community</p>
-        </div>
-
-        {% if messages %}
-        <div class="mb-6">
-            {% for message in messages %}
-            <div class="content-card" style="background: {% if message.tags == 'error' %}rgba(239, 68, 68, 0.1){% elif message.tags == 'success' %}rgba(16, 185, 129, 0.1){% else %}rgba(59, 130, 246, 0.1){% endif %}; border-color: {% if message.tags == 'error' %}rgba(239, 68, 68, 0.3){% elif message.tags == 'success' %}rgba(16, 185, 129, 0.3){% else %}rgba(59, 130, 246, 0.3){% endif %};">
-                <div class="p-4 flex items-center gap-3">
-                    <i class="fas fa-{% if message.tags == 'error' %}exclamation-circle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %}"></i>
-                    <span>{{ message }}</span>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        <form method="post" class="content-card">
-            {% csrf_token %}
-            <div class="card-body">
-                <!-- Basic Information -->
-                <div class="form-section">
-                    <div class="section-title">
-                        <div class="section-icon"><i class="fas fa-info-circle"></i></div>
-                        <span>Basic Information</span>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="{{ form.name.id_for_label }}" class="form-label">Tournament Name *</label>
-                        {{ form.name }}
-                        {% if form.name.errors %}{{ form.name.errors }}{% endif %}
-                        <div class="help-text">The full name of your tournament</div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="{{ form.slug.id_for_label }}" class="form-label">URL Slug *</label>
-                            {{ form.slug }}
-                            {% if form.slug.errors %}{{ form.slug.errors }}{% endif %}
-                            <div class="help-text">Lowercase, hyphens only (e.g., winter-championship-2025)</div>
-                        </div>
-                        <div class="form-group">
-                            <label for="{{ form.game.id_for_label }}" class="form-label">Game *</label>
-                            {{ form.game }}
-                            {% if form.game.errors %}{{ form.game.errors }}{% endif %}
-                            <div class="help-text">Select the competitive game</div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="{{ form.format_type.id_for_label }}" class="form-label">Tournament Format *</label>
-                        {{ form.format_type }}
-                        {% if form.format_type.errors %}{{ form.format_type.errors }}{% endif %}
-                        <div class="help-text">Choose the bracket/competition format</div>
-                    </div>
-                </div>
-
-                <!-- Schedule -->
-                <div class="form-section">
-                    <div class="section-title">
-                        <div class="section-icon"><i class="fas fa-calendar-alt"></i></div>
-                        <span>Schedule</span>
-                    </div>
-                    
-                    <div class="form-row-thirds">
-                        <div class="form-group">
-                            <label for="{{ form.registration_start.id_for_label }}" class="form-label">Registration Opens *</label>
-                            {{ form.registration_start }}
-                            {% if form.registration_start.errors %}{{ form.registration_start.errors }}{% endif %}
-                        </div>
-                        <div class="form-group">
-                            <label for="{{ form.registration_end.id_for_label }}" class="form-label">Registration Closes *</label>
-                            {{ form.registration_end }}
-                            {% if form.registration_end.errors %}{{ form.registration_end.errors %}{% endif %}
-                        </div>
-                        <div class="form-group">
-                            <label for="{{ form.tournament_start.id_for_label }}" class="form-label">Tournament Starts *</label>
-                            {{ form.tournament_start }}
-                            {% if form.tournament_start.errors %}{{ form.tournament_start.errors }}{% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Participants & Prizes -->
-                <div class="form-section">
-                    <div class="section-title">
-                        <div class="section-icon"><i class="fas fa-users"></i></div>
-                        <span>Participants & Prizes</span>
-                    </div>
-                    
-                    <div class="form-row-thirds">
-                        <div class="form-group">
-                            <label for="{{ form.max_participants.id_for_label }}" class="form-label">Max Participants *</label>
-                            {{ form.max_participants }}
-                            {% if form.max_participants.errors %}{{ form.max_participants.errors }}{% endif %}
-                            <div class="help-text">Number of teams/players (4-128)</div>
-                        </div>
-                        <div class="form-group">
-                            <label for="{{ form.entry_fee.id_for_label }}" class="form-label">Entry Fee (BDT) *</label>
-                            {{ form.entry_fee }}
-                            {% if form.entry_fee.errors %}{{ form.entry_fee.errors }}{% endif %}
-                            <div class="help-text">Set to 0 for free tournaments</div>
-                        </div>
-                        <div class="form-group">
-                            <label for="{{ form.prize_pool.id_for_label }}" class="form-label">Prize Pool (BDT) *</label>
-                            {{ form.prize_pool }}
-                            {% if form.prize_pool.errors %}{{ form.prize_pool.errors }}{% endif %}
-                            <div class="help-text">Total prize money</div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            {{ form.is_official }}
-                            <span class="text-secondary font-medium">Mark as Official Tournament</span>
-                        </label>
-                        <div class="help-text">Official tournaments appear with a verified badge and get priority placement</div>
-                    </div>
-                </div>
-
-                <!-- Details -->
-                <div class="form-section">
-                    <div class="section-title">
-                        <div class="section-icon"><i class="fas fa-file-alt"></i></div>
-                        <span>Description & Rules</span>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
-                        {{ form.description }}
-                        {% if form.description.errors %}{{ form.description.errors }}{% endif %}
-                        <div class="help-text">Brief description of the tournament (optional)</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="{{ form.rules.id_for_label }}" class="form-label">Rules & Regulations</label>
-                        {{ form.rules }}
-                        {% if form.rules.errors %}{{ form.rules.errors }}{% endif %}
-                        <div class="help-text">Tournament rules and guidelines (optional)</div>
-                    </div>
-                </div>
-
-                {% if form.non_field_errors %}
-                <div class="mb-6 p-4 bg-glass-elevated border border-danger rounded-lg">
-                    {{ form.non_field_errors }}
-                </div>
-                {% endif %}
-
-                <!-- Form Actions -->
-                <div class="form-actions">
-                    <a href="{% url 'tournaments:organizer_dashboard' %}" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> Cancel
-                    </a>
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="fas fa-plus-circle"></i> Create Tournament
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
+{% block tournament_js %}
+<script>
+  // Auto-generate slug from name
+  const nameInput = document.getElementById('id_name');
+  const slugInput = document.getElementById('id_slug');
+  if (nameInput && slugInput) {
+    nameInput.addEventListener('input', () => {
+      if (!slugInput.dataset.manual) {
+        slugInput.value = nameInput.value
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .substring(0, 50);
+      }
+    });
+    slugInput.addEventListener('input', () => {
+      slugInput.dataset.manual = 'true';
+    });
+  }
+</script>
 {% endblock %}

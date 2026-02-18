@@ -1,0 +1,257 @@
+{% extends "tournaments/team_registration/base.html" %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Step Header -->
+    <div class="text-center">
+        <h2 class="text-3xl font-bold text-white mb-2">
+            <span class="text-4xl mr-2">💳</span>
+            Team Registration Payment
+        </h2>
+        <p class="text-gray-400">Complete payment for your team</p>
+    </div>
+
+    <!-- Tournament Price Card -->
+    <div class="gradient-border rounded-lg p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white flex items-center">
+                <span class="text-2xl mr-2">🏆</span>
+                {{ tournament.title }}
+            </h3>
+            <div class="text-right">
+                <div class="text-sm text-gray-400">Team Entry Fee</div>
+                <div class="text-3xl font-bold text-primary">৳{{ team_entry_fee|floatformat:0 }}</div>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 rounded-lg p-4 space-y-2 text-sm mb-4">
+            <div class="flex justify-between">
+                <span class="text-gray-400">Team: {{ step_data.team_name }}</span>
+                <span class="text-white font-medium">[{{ step_data.team_tag }}]</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Players (5 + 1 sub)</span>
+                <span class="text-white">6 players</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Team Registration Fee</span>
+                <span class="text-white">৳{{ team_entry_fee|floatformat:0 }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Processing Fee</span>
+                <span class="text-white">৳0</span>
+            </div>
+            <div class="border-t border-gray-700 pt-2 mt-2 flex justify-between font-bold">
+                <span class="text-white">Total Amount</span>
+                <span class="text-primary text-lg">৳{{ team_entry_fee|floatformat:0 }}</span>
+            </div>
+        </div>
+
+        <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-sm text-gray-300">
+            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+            <strong>Per Player Cost:</strong> ৳{{ team_entry_fee|floatformat:0 }} ÷ 6 players = ৳{{ team_entry_fee|floatformat:0|divisibleby:6|default:team_entry_fee|mul:0.167|floatformat:0 }} per player
+        </div>
+    </div>
+
+    <!-- Payment Method Selection -->
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        <input type="hidden" name="step" value="3">
+
+        <div class="gradient-border rounded-lg p-6">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                <span class="text-2xl mr-2">💰</span>
+                Select Payment Method
+            </h3>
+
+            <div class="space-y-3">
+                <!-- bKash -->
+                <label class="flex items-center p-4 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors border-2 border-transparent has-[:checked]:border-primary">
+                    <input type="radio" name="payment_method" value="bKash" required 
+                        class="w-5 h-5 text-primary bg-gray-700 border-gray-600">
+                    <div class="ml-4 flex items-center">
+                        <span class="text-2xl mr-3">📱</span>
+                        <div>
+                            <div class="text-white font-medium">bKash</div>
+                            <div class="text-xs text-gray-400">Send Money / Payment</div>
+                        </div>
+                    </div>
+                </label>
+
+                <!-- Nagad -->
+                <label class="flex items-center p-4 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors border-2 border-transparent has-[:checked]:border-primary">
+                    <input type="radio" name="payment_method" value="Nagad" 
+                        class="w-5 h-5 text-primary bg-gray-700 border-gray-600">
+                    <div class="ml-4 flex items-center">
+                        <span class="text-2xl mr-3">📲</span>
+                        <div>
+                            <div class="text-white font-medium">Nagad</div>
+                            <div class="text-xs text-gray-400">Send Money</div>
+                        </div>
+                    </div>
+                </label>
+
+                <!-- Rocket -->
+                <label class="flex items-center p-4 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors border-2 border-transparent has-[:checked]:border-primary">
+                    <input type="radio" name="payment_method" value="Rocket" 
+                        class="w-5 h-5 text-primary bg-gray-700 border-gray-600">
+                    <div class="ml-4 flex items-center">
+                        <span class="text-2xl mr-3">🚀</span>
+                        <div>
+                            <div class="text-white font-medium">Rocket</div>
+                            <div class="text-xs text-gray-400">Cash Out</div>
+                        </div>
+                    </div>
+                </label>
+
+                <!-- Bank Transfer -->
+                <label class="flex items-center p-4 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors border-2 border-transparent has-[:checked]:border-primary">
+                    <input type="radio" name="payment_method" value="Bank Transfer" 
+                        class="w-5 h-5 text-primary bg-gray-700 border-gray-600">
+                    <div class="ml-4 flex items-center">
+                        <span class="text-2xl mr-3">🏦</span>
+                        <div>
+                            <div class="text-white font-medium">Bank Transfer</div>
+                            <div class="text-xs text-gray-400">Direct Bank Deposit</div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Payment Instructions -->
+        <div class="gradient-border rounded-lg p-6">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                <span class="text-2xl mr-2">📋</span>
+                Payment Instructions
+            </h3>
+
+            <div class="bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20 rounded-lg p-4 mb-4">
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-primary text-xl mr-3 mt-1"></i>
+                    <div class="text-sm text-gray-300">
+                        <p class="font-bold text-white mb-2">How to pay:</p>
+                        <ol class="list-decimal list-inside space-y-1">
+                            <li>Select your preferred payment method above</li>
+                            <li>Send <strong class="text-primary">৳{{ team_entry_fee|floatformat:0 }}</strong> to our account</li>
+                            <li>Copy the Transaction ID from your payment app</li>
+                            <li>Upload a screenshot of the payment confirmation</li>
+                            <li>Paste the Transaction ID below</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Account Details -->
+            <div class="bg-gray-800 rounded-lg p-4 mb-4">
+                <div class="text-sm space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-400">Account Type:</span>
+                        <span class="text-white font-medium">Personal</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-400">Account Number:</span>
+                        <div class="flex items-center">
+                            <span class="text-white font-mono font-bold mr-2">01700000000</span>
+                            <button type="button" onclick="navigator.clipboard.writeText('01700000000')" 
+                                class="text-primary hover:text-secondary text-xs">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-400">Account Name:</span>
+                        <span class="text-white font-medium">DeltaCrown Gaming</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-400">Amount to Send:</span>
+                        <span class="text-primary font-bold text-lg">৳{{ team_entry_fee|floatformat:0 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Transaction ID -->
+                <div>
+                    <label for="transaction_id" class="block text-sm font-medium text-gray-300 mb-2">
+                        Transaction ID <span class="text-red-500">*</span>
+                    </label>
+                    <div class="text-xs text-gray-400 mb-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Copy this from your payment app (e.g., BKC4H8K2LM)
+                    </div>
+                    <input type="text" id="transaction_id" name="transaction_id" required
+                        placeholder="Enter your Transaction ID"
+                        class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 font-mono">
+                </div>
+
+                <!-- Payment Screenshot -->
+                <div>
+                    <label for="payment_proof" class="block text-sm font-medium text-gray-300 mb-2">
+                        Payment Screenshot <span class="text-red-500">*</span>
+                    </label>
+                    <div class="text-xs text-gray-400 mb-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Upload a clear screenshot showing Transaction ID and amount
+                    </div>
+                    <div class="relative">
+                        <input type="file" id="payment_proof" name="payment_proof" required accept="image/*"
+                            class="block w-full text-sm text-gray-400
+                                file:mr-4 file:py-3 file:px-4
+                                file:rounded-lg file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-primary file:text-white
+                                file:cursor-pointer file:hover:bg-secondary
+                                hover:file:bg-secondary">
+                    </div>
+                    <div class="text-xs text-gray-500 mt-2">
+                        Supported formats: JPG, PNG, JPEG (Max 5MB)
+                    </div>
+                </div>
+
+                <!-- Additional Notes -->
+                <div>
+                    <label for="payment_notes" class="block text-sm font-medium text-gray-300 mb-2">
+                        Additional Notes (Optional)
+                    </label>
+                    <textarea id="payment_notes" name="payment_notes" rows="3"
+                        placeholder="Team name or any additional information..."
+                        class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Important Notice -->
+        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+            <div class="flex items-start">
+                <i class="fas fa-exclamation-triangle text-yellow-500 text-xl mr-3 mt-1"></i>
+                <div class="text-sm text-gray-300">
+                    <p class="font-bold text-yellow-500 mb-2">Important for Teams:</p>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>Your team registration will be pending until payment is verified</li>
+                        <li>Payment verification usually takes 1-2 hours</li>
+                        <li>All team members will be notified once approved</li>
+                        <li>Captain will receive confirmation email with next steps</li>
+                        <li>Keep your payment screenshot for team records</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex items-center justify-between pt-6">
+            <a href="{% url 'tournaments:team_registration_step' tournament.slug 2 %}" 
+                class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back
+            </a>
+            
+            <button type="submit" 
+                class="px-8 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-bold rounded-lg glow-button">
+                <i class="fas fa-check-circle mr-2"></i>
+                Complete Team Registration
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

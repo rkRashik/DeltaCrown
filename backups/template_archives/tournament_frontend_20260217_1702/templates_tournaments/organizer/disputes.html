@@ -1,0 +1,570 @@
+{% extends "tournaments/organizer_base.html" %}
+{% load static %}
+
+{% block title %}Dispute Management - {{ tournament.name }}{% endblock %}
+
+{% block page_title %}Dispute Resolution{% endblock %}
+
+{% block extra_css %}
+<style>
+.disputes-container {
+    max-width: 1600px;
+    margin: 0 auto;
+}
+.dispute-filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+.filter-btn {
+    padding: 10px 20px;
+    border: 2px solid #dee2e6;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+.filter-btn:hover {
+    border-color: #007bff;
+}
+.filter-btn.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+.dispute-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #ffc107;
+    transition: all 0.2s;
+}
+.dispute-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    transform: translateX(4px);
+}
+.dispute-card.resolved {
+    border-left-color: #28a745;
+    opacity: 0.8;
+}
+.dispute-card.under-review {
+    border-left-color: #007bff;
+}
+.dispute-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 20px;
+}
+.dispute-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+.dispute-meta {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+.match-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+.match-participants {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.participant {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+.score {
+    background: #007bff;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: 700;
+}
+.disputed-score {
+    background: #dc3545;
+}
+.evidence-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+}
+.evidence-title {
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+.evidence-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.resolution-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+.resolution-btn {
+    flex: 1;
+    min-width: 150px;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.resolution-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.btn-accept-a {
+    background: #28a745;
+    color: white;
+}
+.btn-accept-b {
+    background: #17a2b8;
+    color: white;
+}
+.btn-override {
+    background: #ffc107;
+    color: #000;
+}
+.btn-reject {
+    background: #6c757d;
+    color: white;
+}
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+.modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #dee2e6;
+}
+.modal-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+.close-modal {
+    font-size: 2rem;
+    font-weight: 300;
+    cursor: pointer;
+    color: #6c757d;
+    border: none;
+    background: none;
+}
+.form-group {
+    margin-bottom: 20px;
+}
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+.form-control {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+.form-control:focus {
+    outline: none;
+    border-color: #007bff;
+}
+.score-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #adb5bd;
+}
+</style>
+{% endblock %}
+
+{% block organizer_content %}
+<div class="disputes-container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-1">Dispute Management</h4>
+            <p class="text-muted mb-0">Review and resolve match disputes</p>
+        </div>
+        <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='disputes' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Tournament
+        </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Total Disputes</div>
+                <div class="stat-value">{{ all_disputes_count }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Open</div>
+                <div class="stat-value text-warning">{{ open_count }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Under Review</div>
+                <div class="stat-value text-info">{{ under_review_count }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Resolved</div>
+                <div class="stat-value text-success">{{ resolved_count }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="dispute-filters">
+        <button class="filter-btn active" data-filter="all">All Disputes</button>
+        <button class="filter-btn" data-filter="open">Open</button>
+        <button class="filter-btn" data-filter="under_review">Under Review</button>
+        <button class="filter-btn" data-filter="resolved">Resolved</button>
+    </div>
+
+    <!-- Disputes List -->
+    <div id="disputes-list">
+        {% if disputes %}
+            {% for dispute in disputes %}
+            <div class="dispute-card {{ dispute.status }}" data-status="{{ dispute.status }}">
+                <div class="dispute-header">
+                    <div>
+                        <div class="dispute-title">
+                            Dispute #{{ dispute.id }}
+                            <span class="badge bg-{{ dispute.status|default:'secondary' }}">
+                                {{ dispute.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="dispute-meta">
+                            <span><i class="fas fa-user me-1"></i>Reported by {{ dispute.initiated_by.username }}</span>
+                            <span><i class="fas fa-clock me-1"></i>{{ dispute.created_at|date:"M d, Y H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Match Info -->
+                <div class="match-info">
+                    <strong>Match #{{ dispute.match.id }}</strong>
+                    <div class="match-participants mt-2">
+                        <div class="participant">
+                            {% if dispute.match.participant1.user %}
+                                {{ dispute.match.participant1.user.username }}
+                            {% else %}
+                                {{ dispute.match.participant1.team.name }}
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span class="score">{{ dispute.match.participant1_score|default:"0" }}</span>
+                            <span class="mx-2">vs</span>
+                            <span class="score">{{ dispute.match.participant2_score|default:"0" }}</span>
+                        </div>
+                        <div class="participant">
+                            {% if dispute.match.participant2.user %}
+                                {{ dispute.match.participant2.user.username }}
+                            {% else %}
+                                {{ dispute.match.participant2.team.name }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dispute Description -->
+                <div class="evidence-section">
+                    <div class="evidence-title"><i class="fas fa-exclamation-circle me-2"></i>Dispute Reason</div>
+                    <div class="evidence-content">
+                        {{ dispute.description|linebreaks }}
+                    </div>
+                </div>
+
+                <!-- Evidence (if any) -->
+                {% if dispute.evidence_urls %}
+                <div class="evidence-section">
+                    <div class="evidence-title"><i class="fas fa-paperclip me-2"></i>Evidence Submitted</div>
+                    <div class="evidence-content">
+                        <a href="{{ dispute.evidence_urls }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-external-link-alt me-1"></i>View Evidence
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Resolution (if resolved) -->
+                {% if dispute.status == 'resolved' %}
+                <div class="evidence-section">
+                    <div class="evidence-title"><i class="fas fa-check-circle me-2"></i>Resolution</div>
+                    <div class="evidence-content">
+                        <p><strong>Resolved by:</strong> {{ dispute.resolved_by.username }}</p>
+                        <p><strong>Resolved at:</strong> {{ dispute.resolved_at|date:"M d, Y H:i" }}</p>
+                        <p><strong>Notes:</strong> {{ dispute.resolution_notes }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <!-- Resolution Actions -->
+                <div class="resolution-actions">
+                    <button class="resolution-btn btn-accept-a" onclick="openResolveModal({{ dispute.id }}, 'ACCEPT_A', '{{ dispute.match.participant1.user.username|default:dispute.match.participant1.team.name }}')">
+                        <i class="fas fa-check me-2"></i>Accept {{ dispute.match.participant1.user.username|default:dispute.match.participant1.team.name|truncatewords:2 }}
+                    </button>
+                    <button class="resolution-btn btn-accept-b" onclick="openResolveModal({{ dispute.id }}, 'ACCEPT_B', '{{ dispute.match.participant2.user.username|default:dispute.match.participant2.team.name }}')">
+                        <i class="fas fa-check me-2"></i>Accept {{ dispute.match.participant2.user.username|default:dispute.match.participant2.team.name|truncatewords:2 }}
+                    </button>
+                    <button class="resolution-btn btn-override" onclick="openOverrideModal({{ dispute.id }})">
+                        <i class="fas fa-edit me-2"></i>Override Score
+                    </button>
+                    <button class="resolution-btn btn-reject" onclick="openResolveModal({{ dispute.id }}, 'REJECT', 'original result')">
+                        <i class="fas fa-times me-2"></i>Reject Dispute
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-clipboard-check fs-1 mb-3"></i>
+                <h4>No Disputes</h4>
+                <p>No disputes have been reported for this tournament.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Resolution Modal -->
+<div id="resolveModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Resolve Dispute</h3>
+            <button class="close-modal" onclick="closeModal('resolveModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="modalMessage"></p>
+            <div class="form-group">
+                <label for="resolutionNotes">Resolution Notes *</label>
+                <textarea id="resolutionNotes" class="form-control" rows="4" placeholder="Explain your decision..." required></textarea>
+            </div>
+            <div class="d-flex gap-3 justify-content-end">
+                <button class="btn btn-secondary" onclick="closeModal('resolveModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitResolution()">Confirm Resolution</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Override Modal -->
+<div id="overrideModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Override Match Score</h3>
+            <button class="close-modal" onclick="closeModal('overrideModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Manually set the final score for this match:</p>
+            <div class="score-inputs">
+                <div class="form-group">
+                    <label for="scoreA">Participant A Score</label>
+                    <input type="number" id="scoreA" class="form-control" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="scoreB">Participant B Score</label>
+                    <input type="number" id="scoreB" class="form-control" min="0" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="overrideNotes">Resolution Notes *</label>
+                <textarea id="overrideNotes" class="form-control" rows="4" placeholder="Explain why you're overriding the score..." required></textarea>
+            </div>
+            <div class="d-flex gap-3 justify-content-end">
+                <button class="btn btn-secondary" onclick="closeModal('overrideModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitOverride()">Confirm Override</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentDisputeId = null;
+let currentDecision = null;
+
+// Filter functionality
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        const filter = this.dataset.filter;
+        const cards = document.querySelectorAll('.dispute-card');
+        
+        cards.forEach(card => {
+            if (filter === 'all' || card.dataset.status === filter) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+});
+
+function openResolveModal(disputeId, decision, participantName) {
+    currentDisputeId = disputeId;
+    currentDecision = decision;
+    
+    let message = '';
+    if (decision === 'ACCEPT_A' || decision === 'ACCEPT_B') {
+        message = `You are about to accept ${participantName}'s claim and set them as the winner.`;
+    } else if (decision === 'REJECT') {
+        message = 'You are about to reject this dispute and keep the original match result.';
+    }
+    
+    document.getElementById('modalMessage').textContent = message;
+    document.getElementById('resolutionNotes').value = '';
+    document.getElementById('resolveModal').classList.add('active');
+}
+
+function openOverrideModal(disputeId) {
+    currentDisputeId = disputeId;
+    currentDecision = 'OVERRIDE';
+    
+    document.getElementById('scoreA').value = '';
+    document.getElementById('scoreB').value = '';
+    document.getElementById('overrideNotes').value = '';
+    document.getElementById('overrideModal').classList.add('active');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+    currentDisputeId = null;
+    currentDecision = null;
+}
+
+async function submitResolution() {
+    const notes = document.getElementById('resolutionNotes').value.trim();
+    
+    if (!notes) {
+        alert('Please provide resolution notes');
+        return;
+    }
+    
+    const data = {
+        decision: currentDecision,
+        resolution_notes: notes
+    };
+    
+    await resolveDispute(data);
+}
+
+async function submitOverride() {
+    const scoreA = parseInt(document.getElementById('scoreA').value);
+    const scoreB = parseInt(document.getElementById('scoreB').value);
+    const notes = document.getElementById('overrideNotes').value.trim();
+    
+    if (isNaN(scoreA) || isNaN(scoreB)) {
+        alert('Please enter valid scores');
+        return;
+    }
+    
+    if (scoreA === scoreB) {
+        alert('Scores cannot be tied');
+        return;
+    }
+    
+    if (!notes) {
+        alert('Please provide resolution notes');
+        return;
+    }
+    
+    const data = {
+        decision: 'OVERRIDE',
+        final_score_a: scoreA,
+        final_score_b: scoreB,
+        resolution_notes: notes
+    };
+    
+    await resolveDispute(data);
+}
+
+async function resolveDispute(data) {
+    try {
+        const response = await fetch(`{% url 'tournaments:resolve_dispute' slug=tournament.slug dispute_id=0 %}`.replace('/0/', `/${currentDisputeId}/`), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.status === 'success') {
+            alert('Dispute resolved successfully!');
+            window.location.reload();
+        } else {
+            alert('Error: ' + (result.message || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Resolution error:', error);
+        alert('Failed to resolve dispute. Please try again.');
+    }
+    
+    closeModal('resolveModal');
+    closeModal('overrideModal');
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.classList.remove('active');
+    }
+});
+</script>
+{% endblock %}

@@ -777,6 +777,75 @@ class AnalyticsService:
                 return f"Team {registration.team_id}"
         return registration.user.username if registration.user else "Unknown"
 
+    # ========================================================================
+    # BRIDGE: User/Team Analytics via AnalyticsEngineService
+    # ========================================================================
+
+    @staticmethod
+    def get_user_analytics(user_id: int, game_id: int = 0) -> Optional[Dict[str, Any]]:
+        """
+        Get advanced user analytics (ELO, tier, percentile) via AnalyticsEngineService.
+
+        Delegates to ``tournament_ops.services.analytics_engine_service`` which
+        uses adapters for cross-domain data access.
+
+        Args:
+            user_id: User ID to compute analytics for.
+            game_id: Optional game filter (0 = all games).
+
+        Returns:
+            Dict of analytics data or None if engine unavailable.
+        """
+        try:
+            from apps.tournament_ops.services.analytics_engine_service import AnalyticsEngineService
+            from apps.tournament_ops.adapters import (
+                AnalyticsAdapter, UserStatsAdapter, TeamStatsAdapter,
+                TeamRankingAdapter, MatchHistoryAdapter,
+            )
+            engine = AnalyticsEngineService(
+                analytics_adapter=AnalyticsAdapter(),
+                user_stats_adapter=UserStatsAdapter(),
+                team_stats_adapter=TeamStatsAdapter(),
+                team_ranking_adapter=TeamRankingAdapter(),
+                match_history_adapter=MatchHistoryAdapter(),
+            )
+            result = engine.compute_user_analytics(user_id=user_id, game_id=game_id)
+            return result.__dict__ if result else None
+        except Exception as exc:
+            logger.warning("AnalyticsEngineService unavailable for user %s: %s", user_id, exc)
+            return None
+
+    @staticmethod
+    def get_team_analytics(team_id: int, game_id: int = 0) -> Optional[Dict[str, Any]]:
+        """
+        Get advanced team analytics (ELO, synergy, volatility) via AnalyticsEngineService.
+
+        Args:
+            team_id: Team ID to compute analytics for.
+            game_id: Optional game filter (0 = all games).
+
+        Returns:
+            Dict of analytics data or None if engine unavailable.
+        """
+        try:
+            from apps.tournament_ops.services.analytics_engine_service import AnalyticsEngineService
+            from apps.tournament_ops.adapters import (
+                AnalyticsAdapter, UserStatsAdapter, TeamStatsAdapter,
+                TeamRankingAdapter, MatchHistoryAdapter,
+            )
+            engine = AnalyticsEngineService(
+                analytics_adapter=AnalyticsAdapter(),
+                user_stats_adapter=UserStatsAdapter(),
+                team_stats_adapter=TeamStatsAdapter(),
+                team_ranking_adapter=TeamRankingAdapter(),
+                match_history_adapter=MatchHistoryAdapter(),
+            )
+            result = engine.compute_team_analytics(team_id=team_id, game_id=game_id)
+            return result.__dict__ if result else None
+        except Exception as exc:
+            logger.warning("AnalyticsEngineService unavailable for team %s: %s", team_id, exc)
+            return None
+
 
 # Export singleton instance
 analytics_service = AnalyticsService()

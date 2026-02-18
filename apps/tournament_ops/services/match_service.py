@@ -1,7 +1,13 @@
 """
-Match orchestration service.
+Match orchestration service (DTO facade layer).
 
-This service manages match scheduling, result submission, and result validation.
+This service provides the adapter-based entry point for match lifecycle management.
+
+The canonical ORM-level implementation lives in:
+    apps.tournaments.services.match_service.MatchService
+
+This service adds DTO validation, adapter-based cross-domain checks, and
+event bus publishing on top of the ORM service.
 
 Reference: ROADMAP_AND_EPICS_PART_4.md - Phase 4, Epic 4.3
 """

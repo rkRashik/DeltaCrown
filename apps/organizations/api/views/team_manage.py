@@ -2361,6 +2361,50 @@ def community_create_post(request, slug):
 
 @login_required
 @require_http_methods(["POST"])
+def profile_upload_media(request, slug):
+    """POST /api/vnext/teams/<slug>/media/ — upload team logo or banner.
+
+    Called from ManageHQ Profile tab, expects:
+      - type: "logo" | "banner"
+      - file: the uploaded image
+    """
+    team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
+    has_perm, reason = _check_manage_permissions(team, request.user)
+    if not has_perm:
+        return JsonResponse({'error': reason}, status=403)
+
+    media_type = (request.POST.get('type') or '').strip().lower()
+    if media_type not in ('logo', 'banner'):
+        return JsonResponse({'error': f'Invalid media type: {media_type}. Expected "logo" or "banner".'}, status=400)
+
+    file = request.FILES.get('file')
+    if not file:
+        return JsonResponse({'error': 'No file uploaded'}, status=400)
+
+    # Validate image type
+    if not file.content_type.startswith('image'):
+        return JsonResponse({'error': 'Only image files are allowed.'}, status=400)
+
+    # Limit to 5MB
+    if file.size > 5 * 1024 * 1024:
+        return JsonResponse({'error': 'File too large (max 5MB)'}, status=400)
+
+    if media_type == 'logo':
+        team.logo = file
+    else:
+        team.banner = file
+    team.save(update_fields=[media_type])
+
+    url = getattr(team, media_type).url if getattr(team, media_type) else ''
+    return JsonResponse({
+        'success': True,
+        'message': f'Team {media_type} updated!',
+        'url': url,
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
 def community_upload_media(request, slug):
     """POST /api/vnext/teams/<slug>/community/media/ — upload gallery media."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)

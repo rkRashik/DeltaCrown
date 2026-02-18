@@ -1,0 +1,129 @@
+<!-- Step 5: Review & Confirm -->
+<div class="review-confirm">
+  <p class="text-body-secondary mb-6">
+    Please review your registration details before submitting. Make sure all information is correct.
+  </p>
+
+  <!-- Summary Card -->
+  <div class="bg-surface border border-line rounded-lg overflow-hidden mb-6">
+    <!-- Tournament Info -->
+    <div class="p-6 border-b border-line">
+      <h3 class="font-semibold text-lg mb-4">Tournament Information</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-sm text-body-secondary mb-1">Tournament</p>
+          <p class="font-semibold">{{ summary.tournament_name }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-body-secondary mb-1">Game</p>
+          <p class="font-semibold">{{ summary.game }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-body-secondary mb-1">Format</p>
+          <p class="font-semibold">{{ summary.format }}</p>
+        </div>
+        <div>
+          <p class="text-sm text-body-secondary mb-1">Entry Fee</p>
+          <p class="font-semibold">
+            {% if summary.entry_fee > 0 %}
+              ৳{{ summary.entry_fee|floatformat:0 }}
+            {% else %}
+              Free
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Info (if applicable) -->
+    {% if summary.team %}
+      <div class="p-6 border-b border-line">
+        <h3 class="font-semibold text-lg mb-4">Team</h3>
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
+            <i class="fas fa-users text-primary text-xl"></i>
+          </div>
+          <div>
+            <p class="font-semibold">{{ summary.team }}</p>
+            <p class="text-sm text-body-secondary">Registered Team</p>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Custom Fields -->
+    {% if summary.custom_fields %}
+      <div class="p-6 border-b border-line">
+        <h3 class="font-semibold text-lg mb-4">Additional Information</h3>
+        <div class="space-y-3">
+          {% for key, value in summary.custom_fields.items %}
+            <div>
+              <p class="text-sm text-body-secondary mb-1">{{ key|title|replace:"_":" " }}</p>
+              <p class="font-semibold">{{ value }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Payment Method (if paid) -->
+    {% if summary.payment_method %}
+      <div class="p-6">
+        <h3 class="font-semibold text-lg mb-4">Payment Method</h3>
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-surface rounded-lg flex items-center justify-center">
+            <i class="fas fa-credit-card text-primary text-xl"></i>
+          </div>
+          <div>
+            <p class="font-semibold">{{ summary.payment_method|title }}</p>
+            <p class="text-sm text-body-secondary">Secure payment gateway</p>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Terms & Conditions -->
+  <div class="bg-surface-hover border border-line rounded-lg p-6 mb-6">
+    <div class="flex items-start gap-4">
+      <input 
+        type="checkbox" 
+        id="agree_terms" 
+        name="agree_terms" 
+        value="1"
+        required
+        class="mt-1 w-5 h-5 text-primary border-line rounded focus:ring-primary"
+      >
+      <label for="agree_terms" class="text-sm">
+        <span class="font-semibold">I agree to the tournament rules and terms</span>
+        <p class="text-body-secondary mt-2">
+          By registering, I acknowledge that:
+        </p>
+        <ul class="list-disc list-inside text-body-secondary mt-2 space-y-1">
+          <li>I have read and agree to follow all tournament rules</li>
+          <li>I understand that cheating or unsportsmanlike conduct may result in disqualification</li>
+          <li>Entry fees are non-refundable unless the tournament is cancelled by the organizer</li>
+          <li>I will check in on time before matches begin</li>
+          <li>The organizer's decisions regarding the tournament are final</li>
+        </ul>
+      </label>
+    </div>
+  </div>
+
+  <!-- Final Notice -->
+  <div class="bg-primary/10 border border-primary rounded-lg p-4">
+    <div class="flex items-start gap-3">
+      <i class="fas fa-exclamation-circle text-primary mt-1"></i>
+      <div class="text-sm">
+        <p class="font-semibold text-primary mb-1">Important</p>
+        <p class="text-body">
+          {% if summary.entry_fee > 0 %}
+            After clicking "Complete Registration", you'll be redirected to the payment gateway to complete your ৳{{ summary.entry_fee|floatformat:0 }} entry fee payment.
+          {% else %}
+            After clicking "Complete Registration", your registration will be confirmed immediately. You'll receive a confirmation email with tournament details.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

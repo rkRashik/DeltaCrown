@@ -1,0 +1,25 @@
+<div class="form-group mb-6">
+    <label class="flex items-start p-4 bg-gray-800 border border-gray-700 rounded-lg cursor-pointer hover:bg-gray-750 transition-all group">
+        <input 
+            type="checkbox"
+            name="{{ field.id }}"
+            value="agreed"
+            {% if value == 'agreed' or value == True %}checked{% endif %}
+            {% if field.required %}required{% endif %}
+            class="w-4 h-4 mt-1 text-blue-500 bg-gray-700 border-gray-600 rounded focus:ring-2 focus:ring-blue-500"
+        >
+        <div class="ml-3 flex-1">
+            <span class="text-sm text-gray-300 group-hover:text-white">
+                {{ field.label }}
+                {% if field.required %}<span class="text-red-500 ml-1">*</span>{% endif %}
+            </span>
+            {% if field.description %}
+            <p class="text-xs text-gray-500 mt-1">{{ field.description }}</p>
+            {% endif %}
+        </div>
+    </label>
+    
+    {% if errors %}
+    <p class="text-sm text-red-500 mt-2">{{ errors }}</p>
+    {% endif %}
+</div>

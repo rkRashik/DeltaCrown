@@ -1,0 +1,779 @@
+{% extends "tournaments/team_registration/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .payment-container {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .instructions-panel {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        position: sticky;
+        top: 2rem;
+        height: fit-content;
+    }
+    
+    .amount-display {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        padding: 1.5rem;
+        border-radius: 1rem;
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .amount-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+    
+    .amount-label {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.875rem;
+    }
+    
+    .payment-methods-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .payment-method-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        text-align: center;
+        color: #e2e8f0;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    
+    .payment-method-card.deltacoin {
+        background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(249, 115, 22, 0.2));
+        border-color: #eab308;
+    }
+    
+    .payment-details {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .payment-detail-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .payment-detail-item:last-child {
+        border-bottom: none;
+    }
+    
+    .copy-btn {
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .copy-btn:hover {
+        background: rgba(59, 130, 246, 0.3);
+    }
+    
+    .countdown-timer {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(249, 115, 22, 0.2));
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    .timer-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #f87171;
+        margin: 0.5rem 0;
+        font-family: monospace;
+    }
+    
+    .payment-form-panel {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 1rem;
+        padding: 2rem;
+    }
+    
+    .method-selector {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .method-option {
+        position: relative;
+    }
+    
+    .method-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+    }
+    
+    .method-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.75rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        height: 100%;
+    }
+    
+    .method-option input[type="radio"]:checked + .method-label {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2));
+        border-color: #3b82f6;
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+    
+    .method-label i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .method-label.deltacoin {
+        background: linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(249, 115, 22, 0.1));
+    }
+    
+    .method-option input[type="radio"]:checked + .method-label.deltacoin {
+        background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(249, 115, 22, 0.2));
+        border-color: #eab308;
+        box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
+    }
+    
+    .balance-display {
+        font-size: 0.75rem;
+        color: #22c55e;
+        margin-top: 0.25rem;
+    }
+    
+    .insufficient-balance {
+        color: #ef4444;
+    }
+    
+    .form-field {
+        margin-bottom: 1.5rem;
+    }
+    
+    .field-label {
+        display: block;
+        font-weight: 600;
+        color: #e2e8f0;
+        margin-bottom: 0.5rem;
+    }
+    
+    .field-label .required {
+        color: #ef4444;
+    }
+    
+    .field-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 0.5rem;
+        color: #e2e8f0;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .field-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .field-help {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        margin-top: 0.5rem;
+    }
+    
+    .field-error {
+        font-size: 0.875rem;
+        color: #ef4444;
+        margin-top: 0.5rem;
+        display: none;
+    }
+    
+    .field-error.show {
+        display: block;
+    }
+    
+    .upload-area {
+        border: 2px dashed rgba(255, 255, 255, 0.2);
+        border-radius: 0.75rem;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .upload-area:hover {
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.05);
+    }
+    
+    .upload-area.dragover {
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.1);
+    }
+    
+    .upload-icon {
+        font-size: 3rem;
+        color: #3b82f6;
+        margin-bottom: 1rem;
+    }
+    
+    .image-preview {
+        margin-top: 1rem;
+        max-width: 100%;
+        border-radius: 0.5rem;
+        display: none;
+    }
+    
+    .image-preview.show {
+        display: block;
+    }
+    
+    .hidden {
+        display: none;
+    }
+    
+    @media (max-width: 1024px) {
+        .payment-container {
+            grid-template-columns: 1fr;
+        }
+        
+        .instructions-panel {
+            position: static;
+        }
+        
+        .method-selector {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    
+    @media (max-width: 640px) {
+        .method-selector {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .payment-methods-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="payment-container">
+    <!-- Payment Instructions Panel (Left) -->
+    <div class="instructions-panel">
+        <div class="amount-display">
+            <div class="amount-value">
+                {% if tournament.entry_fee_currency == 'DC' %}
+                    <i class="fas fa-coins"></i> {{ tournament.entry_fee }} DC
+                {% else %}
+                    ৳{{ tournament.entry_fee }}
+                {% endif %}
+            </div>
+            <div class="amount-label">Entry Fee Amount</div>
+        </div>
+        
+        <h3 class="text-lg font-bold text-blue-400 mb-3">
+            <i class="fas fa-credit-card mr-2"></i>Accepted Payment Methods
+        </h3>
+        
+        <div class="payment-methods-grid">
+            <div class="payment-method-card deltacoin">
+                <i class="fas fa-coins text-yellow-400 text-2xl mb-2"></i>
+                <div>DeltaCoin</div>
+            </div>
+            <div class="payment-method-card">
+                <div class="text-pink-400 text-2xl mb-2">bK</div>
+                <div>bKash</div>
+            </div>
+            <div class="payment-method-card">
+                <div class="text-orange-400 text-2xl mb-2">N</div>
+                <div>Nagad</div>
+            </div>
+            <div class="payment-method-card">
+                <div class="text-purple-400 text-2xl mb-2">R</div>
+                <div>Rocket</div>
+            </div>
+            <div class="payment-method-card">
+                <i class="fas fa-university text-blue-400 text-2xl mb-2"></i>
+                <div>Bank</div>
+            </div>
+        </div>
+        
+        <div id="cashPaymentDetails" class="hidden">
+            <h3 class="text-lg font-bold text-blue-400 mb-3">
+                <i class="fas fa-info-circle mr-2"></i>Payment Details
+            </h3>
+            
+            <div class="payment-details">
+                <div class="payment-detail-item">
+                    <div>
+                        <div class="text-sm text-gray-400">bKash Personal</div>
+                        <div class="font-semibold">01712345678</div>
+                    </div>
+                    <button class="copy-btn" onclick="copyToClipboard('01712345678')">
+                        <i class="fas fa-copy mr-1"></i>Copy
+                    </button>
+                </div>
+                
+                <div class="payment-detail-item">
+                    <div>
+                        <div class="text-sm text-gray-400">Nagad</div>
+                        <div class="font-semibold">01812345678</div>
+                    </div>
+                    <button class="copy-btn" onclick="copyToClipboard('01812345678')">
+                        <i class="fas fa-copy mr-1"></i>Copy
+                    </button>
+                </div>
+                
+                <div class="payment-detail-item">
+                    <div>
+                        <div class="text-sm text-gray-400">Rocket</div>
+                        <div class="font-semibold">01912345678</div>
+                    </div>
+                    <button class="copy-btn" onclick="copyToClipboard('01912345678')">
+                        <i class="fas fa-copy mr-1"></i>Copy
+                    </button>
+                </div>
+                
+                <div class="payment-detail-item">
+                    <div>
+                        <div class="text-sm text-gray-400">Bank Transfer</div>
+                        <div class="font-semibold text-xs">Dutch-Bangla Bank</div>
+                        <div class="font-semibold">1234567890123</div>
+                    </div>
+                    <button class="copy-btn" onclick="copyToClipboard('1234567890123')">
+                        <i class="fas fa-copy mr-1"></i>Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="countdown-timer">
+            <div class="text-sm text-gray-300">
+                <i class="fas fa-clock mr-2"></i>Submit payment within:
+            </div>
+            <div class="timer-value" id="countdownTimer">47:59:32</div>
+            <div class="text-xs text-gray-400">
+                After 48 hours: Registration may be cancelled
+            </div>
+        </div>
+        
+        <details class="mt-4">
+            <summary class="cursor-pointer text-blue-400 hover:text-blue-300 font-semibold mb-2">
+                <i class="fas fa-question-circle mr-2"></i>Need Help?
+            </summary>
+            <div class="text-sm text-gray-300 space-y-2 mt-2">
+                <p><strong>How long for verification?</strong><br>Usually within 24 hours</p>
+                <p><strong>What if rejected?</strong><br>You can resubmit with correct details</p>
+                <button class="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm w-full">
+                    <i class="fas fa-envelope mr-2"></i>Contact Organizer
+                </button>
+            </div>
+        </details>
+    </div>
+    
+    <!-- Payment Form Panel (Right) -->
+    <div class="payment-form-panel">
+        <h2 class="text-2xl font-bold text-white mb-6">
+            <i class="fas fa-wallet mr-2"></i>Submit Payment
+        </h2>
+        
+        <form id="paymentForm" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="step" value="3">
+            
+            <!-- Payment Method Selection -->
+            <div class="form-field">
+                <label class="field-label">
+                    Select Payment Method <span class="required">*</span>
+                </label>
+                
+                <div class="method-selector">
+                    <div class="method-option">
+                        <input type="radio" name="payment_method" id="deltacoin" value="DC" checked>
+                        <label for="deltacoin" class="method-label deltacoin">
+                            <i class="fas fa-coins text-yellow-400"></i>
+                            <span>DeltaCoin</span>
+                            <span class="balance-display">Balance: 1,250 DC</span>
+                        </label>
+                    </div>
+                    
+                    <div class="method-option">
+                        <input type="radio" name="payment_method" id="bkash" value="bKash">
+                        <label for="bkash" class="method-label">
+                            <span class="text-pink-400 text-2xl">bK</span>
+                            <span>bKash</span>
+                        </label>
+                    </div>
+                    
+                    <div class="method-option">
+                        <input type="radio" name="payment_method" id="nagad" value="Nagad">
+                        <label for="nagad" class="method-label">
+                            <span class="text-orange-400 text-2xl">N</span>
+                            <span>Nagad</span>
+                        </label>
+                    </div>
+                    
+                    <div class="method-option">
+                        <input type="radio" name="payment_method" id="rocket" value="Rocket">
+                        <label for="rocket" class="method-label">
+                            <span class="text-purple-400 text-2xl">R</span>
+                            <span>Rocket</span>
+                        </label>
+                    </div>
+                    
+                    <div class="method-option">
+                        <input type="radio" name="payment_method" id="bank" value="Bank Transfer">
+                        <label for="bank" class="method-label">
+                            <i class="fas fa-university text-blue-400"></i>
+                            <span>Bank</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Transaction ID (hidden for DeltaCoin) -->
+            <div class="form-field cash-only hidden">
+                <label for="transaction_id" class="field-label">
+                    Transaction ID / Reference Number <span class="required">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="transaction_id" 
+                    name="transaction_id" 
+                    class="field-input"
+                    placeholder="Enter transaction/reference ID from receipt"
+                    minlength="6"
+                >
+                <div class="field-help">
+                    Found on your mobile banking app receipt
+                </div>
+                <div class="field-error" id="transactionError">
+                    Transaction ID must be at least 6 characters
+                </div>
+            </div>
+            
+            <!-- Mobile Number (conditional based on form_config) -->
+            {% if form_config.enable_payment_mobile_number_field %}
+            <div class="form-field cash-only hidden">
+                <label for="mobile_number" class="field-label">
+                    Mobile Number Used for Payment <span class="required">*</span>
+                </label>
+                <input 
+                    type="tel" 
+                    id="mobile_number" 
+                    name="mobile_number" 
+                    class="field-input"
+                    placeholder="01XXXXXXXXX"
+                    pattern="01[0-9]{9}"
+                >
+                <div class="field-help">
+                    Enter the phone number you used to make the payment
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Payment Screenshot (hidden for DeltaCoin) -->
+            {% if form_config.enable_payment_screenshot_field %}
+            <div class="form-field cash-only hidden">
+                <label for="screenshot" class="field-label">
+                    Payment Screenshot <span class="required">*</span>
+                </label>
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <div class="text-gray-300 mb-2">
+                        <strong>Click to upload</strong> or drag and drop
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        JPG, PNG, or PDF (max 5MB)
+                    </div>
+                    <div class="text-xs text-gray-500 mt-2">
+                        Must show: Transaction ID, Amount, Date/Time
+                    </div>
+                </div>
+                <input 
+                    type="file" 
+                    id="screenshot" 
+                    name="screenshot" 
+                    accept="image/jpeg,image/png,application/pdf"
+                    class="hidden"
+                >
+                <img id="imagePreview" class="image-preview" alt="Preview">
+                <div class="field-error" id="fileError">
+                    Invalid file. Please upload JPG, PNG, or PDF under 5MB.
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Additional Notes (conditional) -->
+            {% if form_config.enable_payment_notes_field %}
+            <div class="form-field">
+                <label for="notes" class="field-label">
+                    Additional Notes (Optional)
+                </label>
+                <textarea 
+                    id="notes" 
+                    name="notes" 
+                    rows="3" 
+                    class="field-input"
+                    placeholder="Any additional information..."
+                    maxlength="500"
+                ></textarea>
+                <div class="field-help">
+                    <span id="noteCount">0</span>/500 characters
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Submit Button -->
+            <div class="flex justify-between items-center mt-8">
+                <a href="?step=2" class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-all duration-300">
+                    <i class="fas fa-arrow-left mr-2"></i>Back
+                </a>
+                
+                <button type="submit" id="submitBtn" class="px-8 py-3 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span id="submitText">Confirm Payment (500 DC)</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Payment method switching
+    const paymentMethods = document.querySelectorAll('input[name="payment_method"]');
+    const cashOnlyFields = document.querySelectorAll('.cash-only');
+    const cashPaymentDetails = document.getElementById('cashPaymentDetails');
+    const submitText = document.getElementById('submitText');
+    
+    paymentMethods.forEach(method => {
+        method.addEventListener('change', function() {
+            const isDeltaCoin = this.value === 'DC';
+            
+            cashOnlyFields.forEach(field => {
+                if (isDeltaCoin) {
+                    field.classList.add('hidden');
+                    field.querySelectorAll('input, textarea').forEach(input => {
+                        input.removeAttribute('required');
+                    });
+                } else {
+                    field.classList.remove('hidden');
+                    field.querySelectorAll('input, textarea').forEach(input => {
+                        if (input.id !== 'notes') {
+                            input.setAttribute('required', 'required');
+                        }
+                    });
+                }
+            });
+            
+            if (isDeltaCoin) {
+                cashPaymentDetails.classList.add('hidden');
+                submitText.textContent = 'Confirm Payment (500 DC)';
+            } else {
+                cashPaymentDetails.classList.remove('hidden');
+                submitText.textContent = 'Submit Payment Proof';
+            }
+        });
+    });
+    
+    // File upload handling
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('screenshot');
+    const imagePreview = document.getElementById('imagePreview');
+    const fileError = document.getElementById('fileError');
+    
+    if (uploadArea && fileInput) {
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+    }
+    
+    function handleFileSelect(file) {
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+        
+        if (!validTypes.includes(file.type)) {
+            fileError.textContent = `File type .${file.name.split('.').pop()} not supported. Please upload JPG, PNG, or PDF.`;
+            fileError.classList.add('show');
+            imagePreview.classList.remove('show');
+            return;
+        }
+        
+        if (file.size > maxSize) {
+            const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+            fileError.textContent = `File size is ${sizeMB}MB. Maximum is 5MB. Try compressing the image.`;
+            fileError.classList.add('show');
+            imagePreview.classList.remove('show');
+            return;
+        }
+        
+        fileError.classList.remove('show');
+        
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                imagePreview.classList.add('show');
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+    
+    // Transaction ID validation
+    const transactionInput = document.getElementById('transaction_id');
+    const transactionError = document.getElementById('transactionError');
+    
+    if (transactionInput) {
+        transactionInput.addEventListener('blur', function() {
+            if (this.value.length > 0 && this.value.length < 6) {
+                transactionError.classList.add('show');
+            } else {
+                transactionError.classList.remove('show');
+            }
+        });
+    }
+    
+    // Character count for notes
+    const notesField = document.getElementById('notes');
+    const noteCount = document.getElementById('noteCount');
+    
+    if (notesField && noteCount) {
+        notesField.addEventListener('input', function() {
+            noteCount.textContent = this.value.length;
+        });
+    }
+    
+    // Copy to clipboard
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            // Show toast notification
+            const toast = document.createElement('div');
+            toast.textContent = 'Copied to clipboard!';
+            toast.style.cssText = 'position:fixed;top:20px;right:20px;background:#22c55e;color:white;padding:1rem 1.5rem;border-radius:0.5rem;z-index:9999;';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        });
+    }
+    
+    // Countdown timer
+    function startCountdown() {
+        const timerElement = document.getElementById('countdownTimer');
+        let totalSeconds = 48 * 60 * 60; // 48 hours
+        
+        setInterval(() => {
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            timerElement.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            
+            if (totalSeconds > 0) {
+                totalSeconds--;
+            }
+        }, 1000);
+    }
+    
+    startCountdown();
+    
+    // Form submission
+    document.getElementById('paymentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+        
+        if (paymentMethod === 'DC') {
+            // DeltaCoin payment - submit directly
+            this.submit();
+        } else {
+            // Cash payment - validate all required fields
+            const transactionId = document.getElementById('transaction_id');
+            const screenshot = document.getElementById('screenshot');
+            
+            let isValid = true;
+            
+            if (transactionId && transactionId.value.length < 6) {
+                transactionError.classList.add('show');
+                isValid = false;
+            }
+            
+            if (screenshot && screenshot.files.length === 0) {
+                fileError.textContent = 'Please upload a payment screenshot.';
+                fileError.classList.add('show');
+                isValid = false;
+            }
+            
+            if (isValid) {
+                this.submit();
+            }
+        }
+    });
+</script>
+{% endblock %}

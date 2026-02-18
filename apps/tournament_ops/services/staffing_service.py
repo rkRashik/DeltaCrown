@@ -1,18 +1,24 @@
 """
-Staffing Service - Phase 7, Epic 7.3
+Staffing Service — Phase 7, Epic 7.3 + Phase 2, Task 2.6 consolidation.
 
-Business logic for staff and referee management.
+Canonical service for staff and referee management.  Uses Phase 7 models
+(``StaffRole``, ``TournamentStaffAssignment``, ``MatchRefereeAssignment``)
+via the ``StaffingAdapter``.
+
+The ``StaffPermissionChecker`` in ``tournaments/services/`` queries staff
+assignments from this layer.
 
 Architecture:
 - Pure orchestration (no ORM imports)
 - Uses StaffingAdapter for data access
-- Publishes domain events
+- Publishes domain events (own EventBus + core EventBus)
 - Capability-based permission checks
 - Load balancing for referee assignments
 
-Reference: Phase 7, Epic 7.3 - Staff & Referee Role System
+Reference: Phase 7, Epic 7.3 — Staff & Referee Role System
 """
 
+import logging
 from typing import List, Optional
 from datetime import datetime
 
@@ -30,6 +36,18 @@ from apps.tournament_ops.events.staffing_events import (
     RefereeUnassignedFromMatchEvent,
 )
 from apps.tournament_ops.events.event_bus import EventBus
+
+logger = logging.getLogger(__name__)
+
+
+def _publish_staff_event_to_core(event_name: str, **kwargs):
+    """Also publish to the core EventBus for cross-app handlers."""
+    try:
+        from apps.core.events import event_bus
+        from apps.core.events.bus import Event
+        event_bus.publish(Event(event_type=event_name, data=kwargs, source="staffing_service"))
+    except Exception as exc:
+        logger.warning("Failed to publish %s to core event bus: %s", event_name, exc)
 
 
 class StaffingService:
@@ -161,6 +179,13 @@ class StaffingService:
             assigned_at=assignment.assigned_at
         )
         self.event_bus.publish(event)
+        _publish_staff_event_to_core(
+            "staff.assigned_to_tournament",
+            assignment_id=assignment.assignment_id,
+            tournament_id=assignment.tournament_id,
+            user_id=assignment.user_id,
+            role_code=assignment.role.code,
+        )
         
         return assignment
     
@@ -228,6 +253,13 @@ class StaffingService:
             removed_at=datetime.now()
         )
         self.event_bus.publish(event)
+        _publish_staff_event_to_core(
+            "staff.removed_from_tournament",
+            assignment_id=updated.assignment_id,
+            tournament_id=updated.tournament_id,
+            user_id=updated.user_id,
+            role_code=updated.role.code,
+        )
         
         return updated
     
@@ -349,6 +381,13 @@ class StaffingService:
             assigned_at=assignment.assigned_at
         )
         self.event_bus.publish(event)
+        _publish_staff_event_to_core(
+            "referee.assigned_to_match",
+            match_id=assignment.match_id,
+            tournament_id=assignment.tournament_id,
+            user_id=assignment.staff_assignment.user_id,
+            is_primary=assignment.is_primary,
+        )
         
         return assignment, warning
     
@@ -397,6 +436,13 @@ class StaffingService:
             unassigned_at=datetime.now()
         )
         self.event_bus.publish(event)
+        _publish_staff_event_to_core(
+            "referee.unassigned_from_match",
+            match_id=assignment.match_id,
+            tournament_id=assignment.tournament_id,
+            user_id=assignment.staff_assignment.user_id,
+            was_primary=assignment.is_primary,
+        )
     
     def get_match_referees(
         self,

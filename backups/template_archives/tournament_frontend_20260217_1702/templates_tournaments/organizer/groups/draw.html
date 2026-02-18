@@ -1,0 +1,356 @@
+{% extends "tournaments/organizer_base.html" %}
+{% load static %}
+
+{% block title %}Group Draw - {{ tournament.name }} - Organizer Console{% endblock %}
+
+{% block page_title %}Group Stage Draw{% endblock %}
+
+{% block extra_css %}
+<style>
+.draw-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+.draw-controls {
+    background: white;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+.draw-method-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+.draw-method-card {
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+.draw-method-card:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+}
+.draw-method-card.active {
+    border-color: #007bff;
+    background: #e7f3ff;
+}
+.draw-method-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #007bff;
+}
+.draw-method-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+.draw-method-desc {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+.groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
+}
+.group-card {
+    background: white;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #007bff;
+}
+.group-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #007bff;
+}
+.group-capacity {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+.participant-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.participant-item {
+    padding: 10px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.participant-item.seeded {
+    background: #fff3cd;
+    border-left: 3px solid #ffc107;
+}
+.participant-name {
+    font-weight: 500;
+}
+.seed-badge {
+    background: #ffc107;
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.empty-group {
+    text-align: center;
+    padding: 30px;
+    color: #adb5bd;
+}
+.draw-actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+.draw-status {
+    flex: 1;
+    padding: 15px 20px;
+    background: #e7f3ff;
+    border-radius: 6px;
+    border-left: 4px solid #007bff;
+}
+.draw-status.pending { background: #fff3cd; border-color: #ffc107; }
+.draw-status.complete { background: #d4edda; border-color: #28a745; }
+.provability-hash {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+.spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+.spinner-overlay.active {
+    display: flex;
+}
+.spinner-content {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    text-align: center;
+}
+</style>
+{% endblock %}
+
+{% block organizer_content %}
+<div class="draw-container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center">
+            <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='groups' %}" class="btn btn-outline-secondary btn-sm me-3">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+            <div>
+                <h4 class="mb-1">Group Stage Draw</h4>
+                <p class="text-muted mb-0">{{ tournament.name }}</p>
+            </div>
+        </div>
+        {% if draw_completed %}
+        <span class="badge bg-success fs-6">
+            <i class="fas fa-check-circle me-1"></i>Draw Complete
+        </span>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Draw Controls -->
+    {% if not draw_completed %}
+    <div class="draw-controls">
+        <h5 class="mb-3"><i class="fas fa-wand-magic-sparkles me-2"></i>Select Draw Method</h5>
+        
+        <div class="draw-method-selector">
+            <div class="draw-method-card" data-method="random">
+                <div class="draw-method-icon"><i class="fas fa-shuffle"></i></div>
+                <div class="draw-method-title">Random Draw</div>
+                <div class="draw-method-desc">Completely random allocation</div>
+            </div>
+            <div class="draw-method-card" data-method="seeded">
+                <div class="draw-method-icon"><i class="fas fa-ranking-star"></i></div>
+                <div class="draw-method-title">Seeded Draw</div>
+                <div class="draw-method-desc">Balanced by player ranking</div>
+            </div>
+            <div class="draw-method-card" data-method="manual">
+                <div class="draw-method-icon"><i class="fas fa-hand-pointer"></i></div>
+                <div class="draw-method-title">Manual Assignment</div>
+                <div class="draw-method-desc">Drag and drop participants</div>
+            </div>
+        </div>
+
+        <div class="draw-actions">
+            <div class="draw-status" id="drawStatus">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Ready to draw:</strong> {{ participant_count }} participants into {{ group_count }} groups
+            </div>
+            <button type="button" class="btn btn-primary btn-lg" id="executeDraw" disabled>
+                <i class="fas fa-play me-2"></i>Execute Draw
+            </button>
+        </div>
+
+        <div class="provability-hash" id="proofContainer" style="display: none;">
+            <div class="mb-2"><strong>Provability Hash (SHA-256):</strong></div>
+            <div id="proofHash" class="text-muted">-</div>
+            <small class="text-muted d-block mt-2">
+                <i class="fas fa-shield-halved me-1"></i>
+                This cryptographic hash proves the draw was conducted fairly and cannot be altered retroactively.
+            </small>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Groups Display -->
+    <div class="groups-grid" id="groupsContainer">
+        {% if groups %}
+            {% for group in groups %}
+            <div class="group-card" data-group-id="{{ group.id }}">
+                <div class="group-header">
+                    <div class="group-name">{{ group.name }}</div>
+                    <div class="group-capacity">
+                        {{ group.current_participant_count }}/{{ group.participants_per_group }}
+                    </div>
+                </div>
+                
+                <ul class="participant-list">
+                    {% for standing in group.standings.all %}
+                    <li class="participant-item {% if standing.seed %}seeded{% endif %}">
+                        <span class="participant-name">
+                            {% if standing.user %}
+                                {{ standing.user.username }}
+                            {% else %}
+                                {{ standing.team.name }}
+                            {% endif %}
+                        </span>
+                        {% if standing.seed %}
+                        <span class="seed-badge">Seed #{{ standing.seed }}</span>
+                        {% endif %}
+                    </li>
+                    {% empty %}
+                    <li class="empty-group">
+                        <i class="fas fa-users-slash fs-3 mb-2"></i>
+                        <div>No participants assigned</div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Groups have not been configured yet. Please configure the group stage first.
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="spinner-overlay" id="loadingOverlay">
+    <div class="spinner-content">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+        <h5>Executing Draw...</h5>
+        <p class="text-muted mb-0">This may take a moment</p>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let selectedMethod = null;
+    const methodCards = document.querySelectorAll('.draw-method-card');
+    const executeButton = document.getElementById('executeDraw');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    
+    methodCards.forEach(card => {
+        card.addEventListener('click', function() {
+            methodCards.forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            selectedMethod = this.dataset.method;
+            executeButton.disabled = false;
+        });
+    });
+
+    executeButton?.addEventListener('click', async function() {
+        if (!selectedMethod) return;
+        
+        if (!confirm(`Execute ${selectedMethod} draw for {{ group_count }} groups?`)) {
+            return;
+        }
+
+        loadingOverlay.classList.add('active');
+        executeButton.disabled = true;
+
+        try {
+            const response = await fetch('{% url "tournaments:group_draw" slug=tournament.slug %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ method: selectedMethod })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                // Show provability hash
+                if (data.proof) {
+                    document.getElementById('proofHash').textContent = data.proof;
+                    document.getElementById('proofContainer').style.display = 'block';
+                }
+                
+                // Reload page to show results
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                alert('Draw failed: ' + (data.error || 'Unknown error'));
+                loadingOverlay.classList.remove('active');
+                executeButton.disabled = false;
+            }
+        } catch (error) {
+            console.error('Draw error:', error);
+            alert('Failed to execute draw. Please try again.');
+            loadingOverlay.classList.remove('active');
+            executeButton.disabled = false;
+        }
+    });
+});
+</script>
+{% endblock %}

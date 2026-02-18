@@ -1,0 +1,78 @@
+{% load static %}
+{# Empty state partial for player dashboard pages #}
+<div class="glass p-12 rounded-2xl text-center">
+  {% if type == "tournaments" %}
+    <!-- No Tournaments Empty State -->
+    <div class="max-w-md mx-auto">
+      <i class="fas fa-trophy text-6xl text-muted/30 mb-4"></i>
+      
+      {% if filter_status == 'all' %}
+        <h3 class="text-xl font-semibold mb-2">No Tournament Registrations</h3>
+        <p class="text-muted mb-6">You haven't registered for any tournaments yet. Browse available tournaments and join the competition!</p>
+        <a href="{% url 'tournaments:list' %}" class="btn-primary inline-flex items-center">
+          <i class="fas fa-search mr-2"></i>
+          Browse Tournaments
+        </a>
+      {% elif filter_status == 'active' %}
+        <h3 class="text-xl font-semibold mb-2">No Active Tournaments</h3>
+        <p class="text-muted mb-6">You don't have any tournaments currently in progress. Check your upcoming tournaments or browse new ones.</p>
+        <div class="flex gap-3 justify-center">
+          <a href="?status=upcoming" class="btn-secondary">View Upcoming</a>
+          <a href="{% url 'tournaments:list' %}" class="btn-primary">Browse Tournaments</a>
+        </div>
+      {% elif filter_status == 'upcoming' %}
+        <h3 class="text-xl font-semibold mb-2">No Upcoming Tournaments</h3>
+        <p class="text-muted mb-6">You don't have any upcoming tournaments scheduled. Register for new tournaments to get started.</p>
+        <a href="{% url 'tournaments:list' %}" class="btn-primary inline-flex items-center">
+          <i class="fas fa-search mr-2"></i>
+          Browse Tournaments
+        </a>
+      {% elif filter_status == 'completed' %}
+        <h3 class="text-xl font-semibold mb-2">No Completed Tournaments</h3>
+        <p class="text-muted mb-6">You haven't completed any tournaments yet. Keep competing to build your tournament history!</p>
+        <a href="?status=all" class="btn-secondary">View All Tournaments</a>
+      {% endif %}
+    </div>
+    
+  {% elif type == "matches" %}
+    <!-- No Matches Empty State -->
+    <div class="max-w-md mx-auto">
+      <i class="fas fa-calendar-times text-6xl text-muted/30 mb-4"></i>
+      
+      {% if filter_status == 'all' %}
+        <h3 class="text-xl font-semibold mb-2">No Matches Found</h3>
+        <p class="text-muted mb-6">You don't have any matches scheduled yet. Register for tournaments to start competing!</p>
+        <a href="{% url 'tournaments:list' %}" class="btn-primary inline-flex items-center">
+          <i class="fas fa-trophy mr-2"></i>
+          Browse Tournaments
+        </a>
+      {% elif filter_status == 'upcoming' %}
+        <h3 class="text-xl font-semibold mb-2">No Upcoming Matches</h3>
+        <p class="text-muted mb-6">You don't have any matches scheduled right now. Check back later or view your completed matches.</p>
+        <div class="flex gap-3 justify-center">
+          <a href="?status=completed" class="btn-secondary">View Completed</a>
+          <a href="{% url 'tournaments:my_tournaments' %}" class="btn-primary">My Tournaments</a>
+        </div>
+      {% elif filter_status == 'live' %}
+        <h3 class="text-xl font-semibold mb-2">No Live Matches</h3>
+        <p class="text-muted mb-6">You don't have any matches currently in progress. Check your upcoming matches or completed matches.</p>
+        <div class="flex gap-3 justify-center">
+          <a href="?status=upcoming" class="btn-secondary">View Upcoming</a>
+          <a href="?status=all" class="btn-primary">View All Matches</a>
+        </div>
+      {% elif filter_status == 'completed' %}
+        <h3 class="text-xl font-semibold mb-2">No Completed Matches</h3>
+        <p class="text-muted mb-6">You haven't completed any matches yet. Keep competing to build your match history!</p>
+        <a href="?status=all" class="btn-secondary">View All Matches</a>
+      {% endif %}
+    </div>
+    
+  {% else %}
+    <!-- Generic Empty State -->
+    <div class="max-w-md mx-auto">
+      <i class="fas fa-inbox text-6xl text-muted/30 mb-4"></i>
+      <h3 class="text-xl font-semibold mb-2">Nothing Here Yet</h3>
+      <p class="text-muted mb-6">No items to display at this time.</p>
+    </div>
+  {% endif %}
+</div>

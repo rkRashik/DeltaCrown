@@ -1,0 +1,62 @@
+<!-- Winners Podium Component -->
+<div class="mb-8">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Tournament Champions</h2>
+    
+    <div class="flex items-end justify-center space-x-4 mb-8">
+        
+        <!-- 2nd Place -->
+        {% if runner_up %}
+        <div class="flex flex-col items-center w-48">
+            <div class="bg-gradient-to-br from-gray-300 to-gray-400 w-32 h-32 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <span class="text-5xl font-bold text-white">2</span>
+            </div>
+            <div class="bg-white border-2 border-gray-300 rounded-lg p-4 w-full text-center shadow-md">
+                <p class="font-bold text-gray-900 text-lg">{{ runner_up.user.username }}</p>
+                <p class="text-sm text-gray-600 mt-1">Runner-Up</p>
+            </div>
+            <div class="h-24 bg-gradient-to-b from-gray-300 to-gray-400 w-full mt-2 rounded-t-lg"></div>
+        </div>
+        {% endif %}
+
+        <!-- 1st Place (Champion) -->
+        {% if winner %}
+        <div class="flex flex-col items-center w-48">
+            <svg class="w-12 h-12 text-yellow-500 mb-2 animate-bounce" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+            </svg>
+            <div class="bg-gradient-to-br from-yellow-400 to-yellow-500 w-40 h-40 rounded-full flex items-center justify-center mb-4 shadow-2xl border-4 border-yellow-300">
+                <span class="text-6xl font-bold text-white">1</span>
+            </div>
+            <div class="bg-white border-4 border-yellow-400 rounded-lg p-4 w-full text-center shadow-lg">
+                <p class="font-bold text-gray-900 text-xl">{{ winner.user.username }}</p>
+                <p class="text-sm text-yellow-600 font-semibold mt-1">🏆 CHAMPION</p>
+            </div>
+            <div class="h-32 bg-gradient-to-b from-yellow-400 to-yellow-500 w-full mt-2 rounded-t-lg"></div>
+        </div>
+        {% endif %}
+
+        <!-- 3rd Place -->
+        {% if third_place %}
+        <div class="flex flex-col items-center w-48">
+            <div class="bg-gradient-to-br from-orange-400 to-orange-500 w-28 h-28 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <span class="text-4xl font-bold text-white">3</span>
+            </div>
+            <div class="bg-white border-2 border-orange-300 rounded-lg p-4 w-full text-center shadow-md">
+                <p class="font-bold text-gray-900">{{ third_place.user.username }}</p>
+                <p class="text-sm text-gray-600 mt-1">Third Place</p>
+            </div>
+            <div class="h-16 bg-gradient-to-b from-orange-400 to-orange-500 w-full mt-2 rounded-t-lg"></div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Determination Method (if not normal) -->
+    {% if determination_method and determination_method != 'Normal' %}
+    <div class="text-center">
+        <p class="text-sm text-gray-500">
+            Results determined by: <span class="font-semibold">{{ determination_method }}</span>
+        </p>
+    </div>
+    {% endif %}
+</div>

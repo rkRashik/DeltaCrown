@@ -1,0 +1,101 @@
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
+
+{# ─────────────────────────────────────────────────────────
+   Registration Wizard — Solo Success
+   Confirmation page after successful registration
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
+
+{% block title %}Registered! — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_content %}
+
+<div class="max-w-lg mx-auto px-4 sm:px-6 py-12 text-center">
+
+  {# ── Success Animation ── #}
+  <div class="mb-8">
+    <div class="w-20 h-20 rounded-full bg-green-600/20 flex items-center justify-center mx-auto mb-4 animate-bounce">
+      <i data-lucide="check-circle" class="w-10 h-10 text-green-400"></i>
+    </div>
+    <h1 class="text-2xl font-display font-bold text-white mb-2">You're Registered!</h1>
+    <p class="text-sm text-gray-400">
+      Your registration for <span class="text-dc-cyan">{{ tournament.name }}</span> has been submitted.
+    </p>
+  </div>
+
+  {# ── Registration Summary ── #}
+  <div class="glass rounded-xl p-6 mb-6 text-left">
+    <h3 class="text-sm font-display font-semibold text-white mb-4 text-center">Registration Summary</h3>
+    <dl class="space-y-2 text-sm">
+      <div class="flex justify-between py-1.5 border-b border-dc-border">
+        <dt class="text-gray-500">Registration ID</dt>
+        <dd class="text-dc-cyan font-mono text-xs">{{ registration.id|default:registration_id }}</dd>
+      </div>
+      <div class="flex justify-between py-1.5 border-b border-dc-border">
+        <dt class="text-gray-500">Tournament</dt>
+        <dd class="text-white">{{ tournament.name|truncatewords:4 }}</dd>
+      </div>
+      <div class="flex justify-between py-1.5 border-b border-dc-border">
+        <dt class="text-gray-500">Type</dt>
+        <dd class="text-white capitalize">{{ registration_type }}</dd>
+      </div>
+      <div class="flex justify-between py-1.5 border-b border-dc-border">
+        <dt class="text-gray-500">Status</dt>
+        <dd>
+          {% if registration.status == 'confirmed' %}
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-green-600/20 text-green-400 font-mono">Confirmed</span>
+          {% elif registration.status == 'pending' %}
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-yellow-600/20 text-yellow-400 font-mono">Pending Approval</span>
+          {% else %}
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-gray-600/20 text-gray-400 font-mono">{{ registration.status|title }}</span>
+          {% endif %}
+        </dd>
+      </div>
+      <div class="flex justify-between py-1.5">
+        <dt class="text-gray-500">Starts</dt>
+        <dd class="text-white">{{ tournament.tournament_start|date:"M d, Y H:i" }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  {# ── What's Next ── #}
+  <div class="glass rounded-xl p-6 mb-6 text-left">
+    <h3 class="text-sm font-display font-semibold text-white mb-3">What's Next?</h3>
+    <ul class="space-y-2 text-sm text-gray-400">
+      {% if registration.status == 'pending' %}
+        <li class="flex items-start gap-2">
+          <i data-lucide="clock" class="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0"></i>
+          Your registration is awaiting organizer approval
+        </li>
+      {% endif %}
+      <li class="flex items-start gap-2">
+        <i data-lucide="bell" class="w-4 h-4 text-dc-cyan mt-0.5 flex-shrink-0"></i>
+        You'll receive notifications about tournament updates
+      </li>
+      <li class="flex items-start gap-2">
+        <i data-lucide="log-in" class="w-4 h-4 text-dc-purple mt-0.5 flex-shrink-0"></i>
+        Check in before the tournament starts to secure your slot
+      </li>
+      <li class="flex items-start gap-2">
+        <i data-lucide="swords" class="w-4 h-4 text-dc-gold mt-0.5 flex-shrink-0"></i>
+        Your bracket and match schedule will appear once registration closes
+      </li>
+    </ul>
+  </div>
+
+  {# ── Actions ── #}
+  <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+    <a href="{% url 'tournaments:detail' tournament.slug %}"
+       class="px-6 py-3 bg-dc-cyan text-black font-bold text-sm rounded-xl hover:bg-dc-cyan/90 transition w-full sm:w-auto text-center">
+      <i data-lucide="eye" class="w-4 h-4 inline mr-1"></i> View Tournament
+    </a>
+    <a href="{% url 'tournaments:my_tournaments' %}"
+       class="px-6 py-3 bg-white/[0.05] text-white font-bold text-sm rounded-xl hover:bg-white/10 transition w-full sm:w-auto text-center">
+      <i data-lucide="list" class="w-4 h-4 inline mr-1"></i> My Tournaments
+    </a>
+  </div>
+
+</div>
+
+{% endblock %}

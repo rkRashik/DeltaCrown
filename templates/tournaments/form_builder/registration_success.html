@@ -1,113 +1,82 @@
+{% extends "tournaments/base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registration Successful - {{ tournament.name }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-900 text-white min-h-screen">
-    <div class="container mx-auto px-4 py-12 max-w-2xl">
-        <!-- Success Icon -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full mb-4">
-                <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-            </div>
-            <h1 class="text-3xl font-bold text-white mb-2">Registration Successful!</h1>
-            <p class="text-gray-400">Your registration has been submitted for {{ tournament.name }}</p>
-        </div>
 
-        <!-- Registration Details -->
-        <div class="bg-gray-800 rounded-lg shadow-xl p-8 mb-6">
-            <h2 class="text-xl font-bold text-white mb-4">Registration Details</h2>
-            
-            <div class="space-y-3">
-                <div class="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span class="text-gray-400">Registration ID</span>
-                    <span class="text-white font-mono">#{{ form_response.id }}</span>
-                </div>
-                
-                <div class="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span class="text-gray-400">Tournament</span>
-                    <span class="text-white">{{ tournament.name }}</span>
-                </div>
-                
-                <div class="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span class="text-gray-400">Submitted On</span>
-                    <span class="text-white">{{ form_response.submitted_at|date:"M d, Y - h:i A" }}</span>
-                </div>
-                
-                <div class="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span class="text-gray-400">Status</span>
-                    <span class="px-3 py-1 bg-blue-500 text-white text-sm rounded-full">
-                        {{ form_response.get_status_display }}
-                    </span>
-                </div>
-            </div>
-        </div>
+{# ─────────────────────────────────────────────────────────
+   Dynamic Registration Success
+   Context: tournament, form_response, requires_payment,
+            requires_approval
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
 
-        <!-- Next Steps -->
-        <div class="bg-gray-800 rounded-lg shadow-xl p-8 mb-6">
-            <h2 class="text-xl font-bold text-white mb-4">What's Next?</h2>
-            
+{% block title %}Registration Submitted — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_content %}
+
+<div class="max-w-lg mx-auto px-4 sm:px-6 py-16 text-center">
+
+  {# ── Success Icon ── #}
+  <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-500/10 mb-6 ring-2 ring-green-500/30">
+    <i data-lucide="check-circle" class="w-10 h-10 text-green-400"></i>
+  </div>
+
+  <h1 class="text-2xl font-display font-black text-white mb-2">Registration Submitted</h1>
+  <p class="text-gray-400 mb-8">
+    {% if requires_payment and requires_approval %}
+      Your registration for <span class="text-white">{{ tournament.name }}</span> is pending payment &amp; approval.
+    {% elif requires_payment %}
+      Your registration is submitted. Complete your payment to secure your spot.
+    {% elif requires_approval %}
+      Your registration is submitted and awaiting organizer approval.
+    {% else %}
+      You're registered for <span class="text-dc-cyan">{{ tournament.name }}</span>!
+    {% endif %}
+  </p>
+
+  {# ── Status Card ── #}
+  <div class="glass rounded-xl p-6 mb-8 text-left">
+    <dl class="space-y-3 text-sm">
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Tournament</dt>
+        <dd class="text-white">{{ tournament.name }}</dd>
+      </div>
+      {% if form_response %}
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Ref&nbsp;#</dt>
+          <dd class="text-dc-cyan font-mono text-xs">{{ form_response.id }}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Status</dt>
+          <dd>
             {% if requires_payment %}
-            <div class="mb-6 p-4 bg-yellow-900 border border-yellow-600 rounded-lg">
-                <h3 class="font-bold text-yellow-400 mb-2">⚠️ Payment Required</h3>
-                <p class="text-yellow-200 text-sm mb-3">
-                    Entry Fee: <strong>৳{{ tournament.entry_fee_amount }}</strong>
-                </p>
-                <a href="{% url 'tournaments:payment' tournament.slug form_response.id %}" 
-                   class="inline-block px-6 py-3 bg-yellow-500 text-gray-900 rounded-lg hover:bg-yellow-400 transition-all font-medium">
-                    💳 Proceed to Payment
-                </a>
-            </div>
+              <span class="px-2 py-0.5 text-xs rounded-full bg-amber-500/20 text-amber-400">Payment Pending</span>
+            {% elif requires_approval %}
+              <span class="px-2 py-0.5 text-xs rounded-full bg-purple-500/20 text-purple-400">Awaiting Approval</span>
+            {% else %}
+              <span class="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-400">Confirmed</span>
             {% endif %}
-            
-            {% if requires_approval %}
-            <div class="mb-4 p-4 bg-blue-900 border border-blue-600 rounded-lg">
-                <h3 class="font-bold text-blue-400 mb-2">⏳ Pending Approval</h3>
-                <p class="text-blue-200 text-sm">
-                    Your registration is under review. You'll receive an email notification once it's approved.
-                </p>
-            </div>
-            {% endif %}
-            
-            <ul class="space-y-3 text-gray-300 mb-6">
-                <li class="flex items-start">
-                    <svg class="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span>Check your email for registration confirmation</span>
-                </li>
-                <li class="flex items-start">
-                    <svg class="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span>Join the tournament Discord/Telegram for updates</span>
-                </li>
-                <li class="flex items-start">
-                    <svg class="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span>Prepare your team and check tournament rules</span>
-                </li>
-            </ul>
+          </dd>
         </div>
+      {% endif %}
+    </dl>
+  </div>
 
-        <!-- Actions -->
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="{% url 'tournaments:detail' tournament.slug %}" 
-               class="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all text-center font-medium">
-                View Tournament Details
-            </a>
-            <a href="{% url 'tournaments:registration_dashboard' %}" 
-               class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-center font-medium">
-                My Registrations
-            </a>
-        </div>
-    </div>
-</body>
-</html>
+  {# ── Actions ── #}
+  <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+    {% if requires_payment %}
+      <a href="{% url 'tournaments:registration_status' tournament.slug %}"
+         class="w-full sm:w-auto px-6 py-3 bg-dc-cyan text-dc-dark font-bold text-sm rounded-xl hover:bg-dc-cyan/90 transition shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+        <i data-lucide="credit-card" class="w-4 h-4 inline mr-1"></i> Complete Payment
+      </a>
+    {% endif %}
+    <a href="{% url 'tournaments:my_tournaments' %}"
+       class="w-full sm:w-auto px-6 py-3 border border-dc-border text-white text-sm rounded-xl hover:bg-white/5 transition">
+      My Tournaments
+    </a>
+    <a href="{% url 'tournaments:detail' tournament.slug %}"
+       class="w-full sm:w-auto px-5 py-3 text-sm text-gray-400 hover:text-white transition">
+      Back to Tournament
+    </a>
+  </div>
+
+</div>
+{% endblock %}

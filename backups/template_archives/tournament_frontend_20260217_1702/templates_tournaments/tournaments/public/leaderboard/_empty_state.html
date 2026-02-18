@@ -1,0 +1,27 @@
+{% load static %}
+
+<!-- Empty State: No Standings Yet -->
+<div class="empty-state">
+  <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity: 0.3; margin: 0 auto 1.5rem;">
+    <!-- Trophy Icon -->
+    <path d="M100 30 L85 50 L65 55 L82.5 72.5 L78 92 L100 82 L122 92 L117.5 72.5 L135 55 L115 50 Z" 
+          fill="#CBD5E1" stroke="#94A3B8" stroke-width="2"/>
+    <rect x="90" y="90" width="20" height="40" fill="#CBD5E1" stroke="#94A3B8" stroke-width="2"/>
+    <rect x="75" y="130" width="50" height="10" rx="2" fill="#CBD5E1" stroke="#94A3B8" stroke-width="2"/>
+    <!-- Podium -->
+    <rect x="50" y="150" width="30" height="40" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="2"/>
+    <rect x="85" y="140" width="30" height="50" fill="#D1D5DB" stroke="#9CA3AF" stroke-width="2"/>
+    <rect x="120" y="155" width="30" height="35" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="2"/>
+    <!-- Numbers -->
+    <text x="65" y="175" font-size="16" font-weight="bold" fill="#6B7280" text-anchor="middle">2</text>
+    <text x="100" y="170" font-size="16" font-weight="bold" fill="#6B7280" text-anchor="middle">1</text>
+    <text x="135" y="178" font-size="16" font-weight="bold" fill="#6B7280" text-anchor="middle">3</text>
+  </svg>
+  
+  <h3>No Standings Yet</h3>
+  <p>The leaderboard will be available once matches begin.</p>
+  
+  <a href="{% url 'tournaments:detail' tournament.slug %}" class="btn btn-primary">
+    View Tournament Details
+  </a>
+</div>

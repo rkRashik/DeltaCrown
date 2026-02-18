@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Team Already Registered - {{ tournament.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .team-registered-page {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        padding: 2rem 0;
+    }
+    
+    .status-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+    
+    .status-card {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        border-radius: 1.5rem;
+        padding: 3rem 2rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        border: 2px solid rgba(249, 115, 22, 0.3);
+    }
+    
+    .status-icon {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 2rem;
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        color: white;
+        box-shadow: 0 10px 30px rgba(249, 115, 22, 0.4);
+    }
+    
+    .status-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        text-align: center;
+        color: #f1f5f9;
+        margin-bottom: 1rem;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    .status-subtitle {
+        font-size: 1.25rem;
+        text-align: center;
+        color: #94a3b8;
+        margin-bottom: 2rem;
+    }
+    
+    .team-info-box {
+        background: rgba(249, 115, 22, 0.1);
+        border: 2px solid rgba(249, 115, 22, 0.3);
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .team-header {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    
+    .team-logo {
+        width: 80px;
+        height: 80px;
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: #f97316;
+        border: 2px solid rgba(249, 115, 22, 0.3);
+    }
+    
+    .team-details h2 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #f1f5f9;
+        margin-bottom: 0.25rem;
+    }
+    
+    .team-details p {
+        color: #94a3b8;
+        font-size: 1rem;
+    }
+    
+    .registration-details {
+        background: rgba(15, 23, 42, 0.5);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-top: 1rem;
+    }
+    
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+    
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+    
+    .detail-label {
+        font-weight: 600;
+        color: #cbd5e1;
+        font-size: 0.95rem;
+    }
+    
+    .detail-value {
+        font-weight: 700;
+        color: #f1f5f9;
+        font-size: 1.05rem;
+    }
+    
+    .info-notice {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+        border: 2px solid rgba(59, 130, 246, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .info-notice .icon {
+        font-size: 2rem;
+        color: #3b82f6;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-notice h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #60a5fa;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-notice p {
+        color: #93c5fd;
+        line-height: 1.6;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .btn {
+        flex: 1;
+        padding: 1rem 2rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+        text-align: center;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 40px rgba(59, 130, 246, 0.4);
+    }
+    
+    .btn-secondary {
+        background: rgba(51, 65, 85, 0.5);
+        color: #cbd5e1;
+        border: 2px solid rgba(148, 163, 184, 0.2);
+    }
+    
+    .btn-secondary:hover {
+        background: rgba(51, 65, 85, 0.8);
+        border-color: rgba(148, 163, 184, 0.4);
+    }
+    
+    .tournament-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .tournament-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #3b82f6;
+        margin-bottom: 0.5rem;
+    }
+    
+    .tournament-game {
+        font-size: 1rem;
+        color: #94a3b8;
+    }
+    
+    @media (max-width: 640px) {
+        .status-card {
+            padding: 2rem 1.5rem;
+        }
+        
+        .status-title {
+            font-size: 1.75rem;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .detail-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .team-header {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="team-registered-page">
+    <div class="status-container">
+        <!-- Tournament Header -->
+        <div class="tournament-header">
+            <div class="tournament-name">{{ tournament.name }}</div>
+            <div class="tournament-game">
+                <i class="fas fa-gamepad"></i> {{ tournament.game.name }}
+            </div>
+        </div>
+        
+        <!-- Status Card -->
+        <div class="status-card">
+            <!-- Status Icon -->
+            <div class="status-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            
+            <!-- Status Title -->
+            <h1 class="status-title">Team Already Registered</h1>
+            
+            <p class="status-subtitle">
+                Your team has already been registered for this tournament
+            </p>
+            
+            <!-- Info Notice -->
+            <div class="info-notice">
+                <div class="icon"><i class="fas fa-info-circle"></i></div>
+                <h3>What This Means</h3>
+                <p>
+                    <strong>{{ team.name }}</strong> has already been registered for this tournament by <strong>{{ registered_by.username }}</strong>. 
+                    Only one registration per team is allowed to prevent duplicate entries and ensure fair play.
+                </p>
+                <p style="margin-top: 0.5rem;">
+                    All team members can access the tournament lobby and track the team's progress. If you believe this is an error, 
+                    please contact your team captain or tournament organizers.
+                </p>
+            </div>
+            
+            <!-- Team Info Box -->
+            <div class="team-info-box">
+                <div class="team-header">
+                    <div class="team-logo">
+                        {% if team.logo %}
+                            <img src="{{ team.logo.url }}" alt="{{ team.name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">
+                        {% else %}
+                            <i class="fas fa-shield-alt"></i>
+                        {% endif %}
+                    </div>
+                    <div class="team-details">
+                        <h2>{{ team.name }}</h2>
+                        <p><i class="fas fa-tag"></i> {{ team.tag }}</p>
+                    </div>
+                </div>
+                
+                <div class="registration-details">
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-user"></i> Registered By
+                        </span>
+                        <span class="detail-value">{{ registered_by.username }}</span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-calendar-check"></i> Registration Date
+                        </span>
+                        <span class="detail-value">{{ registration.registered_at|date:"M d, Y - H:i" }}</span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-flag"></i> Status
+                        </span>
+                        <span class="detail-value">
+                            {% if registration.status == 'confirmed' %}
+                                <span style="color: #10b981;"><i class="fas fa-check-circle"></i> Confirmed</span>
+                            {% elif registration.status == 'payment_submitted' %}
+                                <span style="color: #8b5cf6;"><i class="fas fa-receipt"></i> Payment Submitted</span>
+                            {% elif registration.status == 'pending' %}
+                                <span style="color: #f59e0b;"><i class="fas fa-clock"></i> Pending Approval</span>
+                            {% else %}
+                                {{ registration.get_status_display }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    {% if tournament.has_entry_fee %}
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="fas fa-money-bill-wave"></i> Entry Fee
+                        </span>
+                        <span class="detail-value">
+                            {{ tournament.entry_fee_currency }} {{ tournament.entry_fee_amount|floatformat:0 }}
+                            {% if registration.status == 'payment_submitted' or registration.status == 'confirmed' %}
+                                <i class="fas fa-check-circle text-green-400 ml-2"></i>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <a href="{% url 'tournaments:lobby' slug=tournament.slug %}" class="btn btn-primary">
+                    <i class="fas fa-door-open"></i>
+                    Enter Tournament Lobby
+                </a>
+                <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Tournament
+                </a>
+            </div>
+            
+            <!-- Withdrawal Option (Only for the person who registered) -->
+            {% if request.user == registration.user %}
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <a href="{% url 'tournaments:withdraw_registration' tournament.slug %}" 
+                   style="color: #ef4444; text-decoration: none; font-weight: 600; font-size: 0.95rem;">
+                    <i class="fas fa-times-circle"></i>
+                    Withdraw Team from Tournament
+                </a>
+            </div>
+            {% endif %}
+            
+            <!-- Additional Info -->
+            <div style="text-align: center; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(148, 163, 184, 0.1);">
+                <p style="color: #94a3b8; font-size: 0.9rem;">
+                    <i class="fas fa-question-circle"></i>
+                    Questions? 
+                    <a href="{% url 'contact' %}" style="color: #3b82f6; text-decoration: none; font-weight: 600;">Contact Support</a>
+                    or reach out to your team captain
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

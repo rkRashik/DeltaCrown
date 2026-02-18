@@ -1,0 +1,203 @@
+{# Tournament Detail Sidebar #}
+{# Purpose: User status, lobby access, organizer info, sponsors, social sharing #}
+{# Context: tournament, user_registration, is_organizer, user #}
+
+<aside class="td-sidebar">
+    
+    {# 1. My Status Card #}
+    <div class="td-sidebar-card td-my-status-card">
+        {% if user.is_authenticated %}
+            {% if is_organizer %}
+                {# Organizer View #}
+                <div class="td-card-header">
+                    <span class="td-status-icon">⚙️</span>
+                    <h3 class="td-card-title">Organizer</h3>
+                </div>
+                <p class="td-card-description">You're managing this tournament</p>
+                <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='overview' %}" class="td-sidebar-btn td-btn-primary">
+                    Organizer Dashboard
+                </a>
+            {% elif user_registration %}
+                {# Registered User View #}
+                <div class="td-card-header">
+                    {% if user_registration.status == 'confirmed' %}
+                        <span class="td-status-icon">✓</span>
+                        <h3 class="td-card-title">Registered</h3>
+                    {% elif user_registration.status == 'checked_in' %}
+                        <span class="td-status-icon">🎮</span>
+                        <h3 class="td-card-title">Checked In</h3>
+                    {% elif user_registration.status == 'pending' %}
+                        <span class="td-status-icon">⏳</span>
+                        <h3 class="td-card-title">Pending</h3>
+                    {% else %}
+                        <span class="td-status-icon">📝</span>
+                        <h3 class="td-card-title">Registered</h3>
+                    {% endif %}
+                </div>
+                
+                <div class="td-status-details">
+                    {% if user_registration.team %}
+                        <p class="td-status-label">Team:</p>
+                        <p class="td-status-value">{{ user_registration.team.name }}</p>
+                    {% else %}
+                        <p class="td-status-label">Playing as:</p>
+                        <p class="td-status-value">{{ user.username }}</p>
+                    {% endif %}
+                    
+                    {% if tournament.entry_fee > 0 %}
+                        <p class="td-status-label">Entry Fee:</p>
+                        <p class="td-status-value">
+                            {% if user_registration.fee_waived %}
+                                <span class="td-fee-waived">🪙 {{ tournament.entry_fee }} (Waived)</span>
+                            {% elif user_registration.has_paid %}
+                                <span class="td-fee-paid">✓ Paid</span>
+                            {% else %}
+                                <span class="td-fee-unpaid">🪙 {{ tournament.entry_fee }} DeltaCoin</span>
+                            {% endif %}
+                        </p>
+                    {% endif %}
+                </div>
+                
+                {% if user_registration.status == 'confirmed' and tournament.status == 'live' %}
+                    <a href="{% url 'tournaments:lobby' slug=tournament.slug %}" class="td-sidebar-btn td-btn-primary">
+                        Enter Tournament Lobby
+                    </a>
+                {% elif user_registration.status == 'checked_in' %}
+                    <a href="{% url 'tournaments:lobby' slug=tournament.slug %}" class="td-sidebar-btn td-btn-glow">
+                        🎮 Enter Tournament Lobby
+                    </a>
+                {% elif user_registration.status == 'pending' %}
+                    <button class="td-sidebar-btn td-btn-disabled" disabled>
+                        Awaiting Approval
+                    </button>
+                {% endif %}
+            {% else %}
+                {# Authenticated but Not Registered #}
+                <div class="td-card-header">
+                    <span class="td-status-icon">👀</span>
+                    <h3 class="td-card-title">Not Registered</h3>
+                </div>
+                <p class="td-card-description">Join this tournament to compete</p>
+                
+                {% if tournament.entry_fee > 0 %}
+                    <p class="td-entry-fee">Entry Fee: 🪙 {{ tournament.entry_fee }} DeltaCoin</p>
+                {% endif %}
+                
+                {% if tournament.status == 'open' or tournament.status == 'registration_open' %}
+                    <a href="{% if tournament.participation_type == 'team' %}{% url 'tournaments:team_registration' slug=tournament.slug %}{% else %}{% url 'tournaments:register' tournament_slug=tournament.slug %}{% endif %}" class="td-sidebar-btn td-btn-primary">
+                        Register Now
+                    </a>
+                {% else %}
+                    <button class="td-sidebar-btn td-btn-disabled" disabled>
+                        Registration Closed
+                    </button>
+                {% endif %}
+            {% endif %}
+        {% else %}
+            {# Guest View #}
+            <div class="td-card-header">
+                <span class="td-status-icon">👋</span>
+                <h3 class="td-card-title">Welcome, Guest</h3>
+            </div>
+            <p class="td-card-description">Log in to register and compete</p>
+            
+            {% if tournament.entry_fee > 0 %}
+                <p class="td-entry-fee">Entry Fee: 🪙 {{ tournament.entry_fee }} DeltaCoin</p>
+            {% endif %}
+            
+            <a href="{% url 'account:login' %}?next={{ request.path }}" class="td-sidebar-btn td-btn-primary">
+                Login to Register
+            </a>
+        {% endif %}
+    </div>
+    
+    {# 2. Lobby Room Card (Only for Participants/Organizers) #}
+    {% if user.is_authenticated %}
+        {% if user_registration or is_organizer %}
+            <div class="td-sidebar-card td-lobby-card">
+                <div class="td-card-header">
+                    <span class="td-status-icon">🚪</span>
+                    <h3 class="td-card-title">Tournament Lobby</h3>
+                </div>
+                <p class="td-card-description">
+                    Manage matches, view announcements, and chat with participants
+                </p>
+                <a href="{% url 'tournaments:lobby' slug=tournament.slug %}" class="td-sidebar-btn td-btn-secondary">
+                    Go to Lobby →
+                </a>
+            </div>
+        {% endif %}
+    {% endif %}
+    
+    {# 3. Organizer Info Card #}
+    <div class="td-sidebar-card td-organizer-card">
+        <div class="td-card-header">
+            <span class="td-status-icon">👤</span>
+            <h3 class="td-card-title">Organized By</h3>
+        </div>
+        
+        <div class="td-organizer-info">
+            {% if tournament.organizer.organization_name %}
+                <p class="td-organizer-name">{{ tournament.organizer.organization_name }}</p>
+            {% else %}
+                <p class="td-organizer-name">{{ tournament.organizer.username }}</p>
+            {% endif %}
+            
+            <a href="{% url 'user_profile:public_profile' username=tournament.organizer.username %}" class="td-organizer-link">
+                View Profile →
+            </a>
+        </div>
+    </div>
+    
+    {# 4. Sponsors Card (If sponsors exist) #}
+    {% if tournament.sponsors %}
+        <div class="td-sidebar-card td-sponsors-card">
+            <div class="td-card-header">
+                <span class="td-status-icon">🏆</span>
+                <h3 class="td-card-title">Sponsored By</h3>
+            </div>
+            
+            <div class="td-sponsors-list">
+                {% for sponsor in tournament.sponsors %}
+                    {% if sponsor.logo %}
+                        <a href="{{ sponsor.website }}" target="_blank" rel="noopener" class="td-sponsor-logo">
+                            <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}">
+                        </a>
+                    {% else %}
+                        <a href="{{ sponsor.website }}" target="_blank" rel="noopener" class="td-sponsor-name">
+                            {{ sponsor.name }}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+    
+    {# 5. Share / Social Card #}
+    <div class="td-sidebar-card td-share-card">
+        <div class="td-card-header">
+            <span class="td-status-icon">📢</span>
+            <h3 class="td-card-title">Share Tournament</h3>
+        </div>
+        
+        <div class="td-share-buttons">
+            <button class="td-share-btn td-share-copy" data-url="{{ request.build_absolute_uri }}" title="Copy Link">
+                <span class="td-share-icon">🔗</span>
+                <span class="td-share-label">Copy Link</span>
+            </button>
+            
+            <a href="https://twitter.com/intent/tweet?text={{ tournament.name|urlencode }}&url={{ request.build_absolute_uri|urlencode }}" 
+               target="_blank" rel="noopener" class="td-share-btn td-share-twitter">
+                <span class="td-share-icon">𝕏</span>
+                <span class="td-share-label">Twitter</span>
+            </a>
+            
+            <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri|urlencode }}" 
+               target="_blank" rel="noopener" class="td-share-btn td-share-facebook">
+                <span class="td-share-icon">f</span>
+                <span class="td-share-label">Facebook</span>
+            </a>
+        </div>
+    </div>
+    
+</aside>

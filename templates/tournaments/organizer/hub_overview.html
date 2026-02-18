@@ -1,277 +1,162 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends "tournaments/organizer/_hub_base.html" %}
+{% load humanize %}
 
-{% block title %}{{ tournament.name }} - Organizer Hub{% endblock %}
+{# ─────────────────────────────────────────────────────────
+   Organizer Hub — Overview Tab
+   Stats summary, quick actions, recent activity
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
 
-{% block extra_css %}
-<style>
-.organizer-hub {
-    min-height: 100vh;
-    background: #f5f7fa;
-}
+{% block hub_content %}
 
-.hub-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 2rem 0;
-}
+{# ── Stat Cards Row ── #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 
-.hub-tabs {
-    background: white;
-    border-bottom: 2px solid #e1e8ed;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.hub-tabs-list {
-    display: flex;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    overflow-x: auto;
-}
-
-.hub-tab {
-    padding: 1rem 1.5rem;
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    transition: all 0.3s;
-    white-space: nowrap;
-}
-
-.hub-tab.active {
-    border-bottom-color: #667eea;
-    color: #667eea;
-    font-weight: 600;
-}
-
-.hub-tab:hover {
-    background: #f5f7fa;
-}
-
-.stat-card {
-    background: white;
-    border-radius: 10px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.stat-value {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #667eea;
-}
-
-.stat-label {
-    color: #6c757d;
-    font-size: 0.9rem;
-}
-
-.recent-activity-item {
-    padding: 1rem;
-    border-bottom: 1px solid #e1e8ed;
-}
-
-.recent-activity-item:last-child {
-    border-bottom: none;
-}
-
-.quick-action-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: #667eea;
-    color: white;
-    border-radius: 8px;
-    text-decoration: none;
-    transition: all 0.3s;
-}
-
-.quick-action-btn:hover {
-    background: #5568d3;
-    transform: translateY(-2px);
-}
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="organizer-hub">
-    <!-- Header -->
-    <div class="hub-header">
-        <div class="container mx-auto px-4">
-            <h1 class="text-3xl font-bold mb-2">{{ tournament.name }}</h1>
-            <p class="text-white/80">Organizer Hub - {{ tournament.get_status_display }}</p>
-        </div>
+  {# Registrations #}
+  <div class="glass rounded-xl p-5">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-[11px] uppercase tracking-wider text-gray-500">Registrations</span>
+      <div class="w-8 h-8 rounded-lg bg-dc-cyan/10 flex items-center justify-center">
+        <i data-lucide="users" class="w-4 h-4 text-dc-cyan"></i>
+      </div>
     </div>
-
-    <!-- Tabs -->
-    <div class="hub-tabs">
-        <div class="container mx-auto px-4">
-            <ul class="hub-tabs-list">
-                <li class="hub-tab {% if active_tab == 'overview' %}active{% endif %}">
-                    <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='overview' %}">
-                        📊 Overview
-                    </a>
-                </li>
-                <li class="hub-tab {% if active_tab == 'participants' %}active{% endif %}">
-                    <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='participants' %}">
-                        👥 Participants
-                    </a>
-                </li>
-                <li class="hub-tab {% if active_tab == 'registrations' %}active{% endif %}">
-                    <a href="{% url 'tournaments:registration_manage' tournament_slug=tournament.slug %}">
-                        📝 Registration Form
-                    </a>
-                </li>
-                <li class="hub-tab {% if active_tab == 'payments' %}active{% endif %}">
-                    <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='payments' %}">
-                        💰 Payments
-                    </a>
-                </li>
-                <li class="hub-tab {% if active_tab == 'brackets' %}active{% endif %}">
-                    <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='brackets' %}">
-                        🏆 Brackets & Matches
-                    </a>
-                </li>
-                <li class="hub-tab {% if active_tab == 'disputes' %}active{% endif %}">
-                    <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='disputes' %}" class="flex items-center gap-2">
-                        <span>⚖️ Disputes</span>
-                        {% if open_disputes_count > 0 %}
-                        <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-                            {{ open_disputes_count }}
-                        </span>
-                        {% endif %}
-                    </a>
-                </li>
-                <li class="hub-tab {% if active_tab == 'announcements' %}active{% endif %}">
-                    <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='announcements' %}">
-                        📢 Announcements
-                    </a>
-                </li>
-                <li class="hub-tab {% if active_tab == 'settings' %}active{% endif %}">
-                    <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='settings' %}">
-                        ⚙️ Settings
-                    </a>
-                </li>
-            </ul>
-        </div>
+    <p class="text-2xl font-display font-bold text-white">{{ reg_stats.total|default:"0" }}</p>
+    <div class="flex items-center gap-3 mt-2 text-[11px] text-gray-500">
+      <span><span class="text-yellow-400 font-mono">{{ reg_stats.pending|default:"0" }}</span> pending</span>
+      <span><span class="text-green-400 font-mono">{{ reg_stats.confirmed|default:"0" }}</span> confirmed</span>
     </div>
+  </div>
 
-    <!-- Content -->
-    <div class="container mx-auto px-4 py-8">
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="stat-card">
-                <div class="stat-value">{{ reg_stats.total }}</div>
-                <div class="stat-label">Total Registrations</div>
-                <div class="text-sm text-gray-600 mt-2">
-                    {{ reg_stats.confirmed }} confirmed | {{ reg_stats.pending }} pending
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-value">৳{{ payment_stats.total_amount|floatformat:0 }}</div>
-                <div class="stat-label">Total Collected</div>
-                <div class="text-sm text-gray-600 mt-2">
-                    {{ payment_stats.verified }} verified payments
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-value">{{ match_stats.total }}</div>
-                <div class="stat-label">Total Matches</div>
-                <div class="text-sm text-gray-600 mt-2">
-                    {{ match_stats.completed }} completed | {{ match_stats.live }} live
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-value">{{ dispute_stats.total }}</div>
-                <div class="stat-label">Disputes</div>
-                <div class="text-sm text-gray-600 mt-2">
-                    {{ dispute_stats.open }} open | {{ dispute_stats.under_review }} reviewing
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-xl font-bold mb-4">Quick Actions</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {% if checker.can_manage_registrations %}
-                <a href="{% url 'tournaments:registration_manage' tournament_slug=tournament.slug %}" class="quick-action-btn">
-                    <i class="fas fa-clipboard-list"></i>
-                    <span>Registration Dashboard</span>
-                </a>
-                <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='participants' %}" class="quick-action-btn">
-                    <i class="fas fa-user-check"></i>
-                    <span>Approve Registrations</span>
-                </a>
-                {% endif %}
-
-                {% if checker.can_approve_payments %}
-                <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='payments' %}" class="quick-action-btn">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Verify Payments</span>
-                </a>
-                {% endif %}
-
-                {% if checker.can_manage_brackets %}
-                <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='brackets' %}" class="quick-action-btn">
-                    <i class="fas fa-sitemap"></i>
-                    <span>Manage Brackets</span>
-                </a>
-                {% endif %}
-            </div>
-            
-            <!-- Form Builder Quick Links -->
-            {% if tournament.registration_form %}
-            <div class="mt-4 pt-4 border-t">
-                <h3 class="font-semibold text-gray-700 mb-3">Registration Form Tools</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <a href="{% url 'tournaments:form_analytics' tournament_slug=tournament.slug %}" 
-                       class="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Analytics</span>
-                    </a>
-                    <a href="{% url 'tournaments:export_responses' tournament_slug=tournament.slug %}" 
-                       class="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition">
-                        <i class="fas fa-file-export"></i>
-                        <span>Export Data</span>
-                    </a>
-                    <a href="{% url 'tournaments:webhooks' tournament_slug=tournament.slug %}" 
-                       class="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition">
-                        <i class="fas fa-webhook"></i>
-                        <span>Webhooks</span>
-                    </a>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-bold mb-4">Recent Activity</h2>
-            {% if recent_registrations %}
-                {% for registration in recent_registrations %}
-                <div class="recent-activity-item">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <strong>{{ registration.user.username }}</strong> registered
-                            <span class="text-gray-600">{{ registration.created_at|timesince }} ago</span>
-                        </div>
-                        <span class="px-3 py-1 rounded-full text-sm {% if registration.status == 'confirmed' %}bg-green-100 text-green-800{% elif registration.status == 'pending' %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-                            {{ registration.get_status_display }}
-                        </span>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <p class="text-gray-600">No recent activity</p>
-            {% endif %}
-        </div>
+  {# Matches #}
+  <div class="glass rounded-xl p-5">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-[11px] uppercase tracking-wider text-gray-500">Matches</span>
+      <div class="w-8 h-8 rounded-lg bg-dc-purple/10 flex items-center justify-center">
+        <i data-lucide="swords" class="w-4 h-4 text-dc-purple"></i>
+      </div>
     </div>
+    <p class="text-2xl font-display font-bold text-white">{{ match_stats.total|default:"0" }}</p>
+    <div class="flex items-center gap-3 mt-2 text-[11px] text-gray-500">
+      <span><span class="text-green-400 font-mono">{{ match_stats.completed|default:"0" }}</span> done</span>
+      {% if match_stats.live %}
+        <span class="text-red-400 font-mono animate-pulse">{{ match_stats.live }} live</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Payments #}
+  <div class="glass rounded-xl p-5">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-[11px] uppercase tracking-wider text-gray-500">Payments</span>
+      <div class="w-8 h-8 rounded-lg bg-dc-gold/10 flex items-center justify-center">
+        <i data-lucide="credit-card" class="w-4 h-4 text-dc-gold"></i>
+      </div>
+    </div>
+    <p class="text-2xl font-display font-bold text-white">{{ payment_stats.total|default:"0" }}</p>
+    <div class="flex items-center gap-3 mt-2 text-[11px] text-gray-500">
+      <span><span class="text-yellow-400 font-mono">{{ payment_stats.pending|default:"0" }}</span> pending</span>
+      <span class="text-green-400 font-mono">৳{{ payment_stats.total_amount|default:"0"|intcomma }}</span>
+    </div>
+  </div>
+
+  {# Disputes #}
+  <div class="glass rounded-xl p-5">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-[11px] uppercase tracking-wider text-gray-500">Disputes</span>
+      <div class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400"></i>
+      </div>
+    </div>
+    <p class="text-2xl font-display font-bold text-white">{{ dispute_stats.total|default:"0" }}</p>
+    <div class="flex items-center gap-3 mt-2 text-[11px] text-gray-500">
+      <span><span class="text-red-400 font-mono">{{ dispute_stats.open|default:"0" }}</span> open</span>
+      <span><span class="text-yellow-400 font-mono">{{ dispute_stats.under_review|default:"0" }}</span> reviewing</span>
+    </div>
+  </div>
+
 </div>
+
+{# ── Two-Column Layout: Quick Actions + Recent Activity ── #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  {# Quick Actions #}
+  <div class="glass rounded-xl p-6">
+    <h3 class="text-sm font-display font-semibold text-white mb-4">Quick Actions</h3>
+    <div class="space-y-2">
+      <a href="{% url 'tournaments:organizer_hub' tournament.slug 'participants' %}"
+         class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition text-sm text-gray-300 hover:text-white">
+        <i data-lucide="user-plus" class="w-4 h-4 text-dc-cyan"></i>
+        Manage Registrations
+        {% if reg_stats.pending %}
+          <span class="ml-auto text-[10px] bg-yellow-600/20 text-yellow-400 px-1.5 py-0.5 rounded font-mono">{{ reg_stats.pending }}</span>
+        {% endif %}
+      </a>
+      <a href="{% url 'tournaments:organizer_hub' tournament.slug 'payments' %}"
+         class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition text-sm text-gray-300 hover:text-white">
+        <i data-lucide="wallet" class="w-4 h-4 text-dc-gold"></i>
+        Verify Payments
+        {% if payment_stats.pending %}
+          <span class="ml-auto text-[10px] bg-yellow-600/20 text-yellow-400 px-1.5 py-0.5 rounded font-mono">{{ payment_stats.pending }}</span>
+        {% endif %}
+      </a>
+      <a href="{% url 'tournaments:organizer_hub' tournament.slug 'brackets' %}"
+         class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition text-sm text-gray-300 hover:text-white">
+        <i data-lucide="git-merge" class="w-4 h-4 text-dc-purple"></i>
+        Bracket &amp; Matches
+      </a>
+      <a href="{% url 'tournaments:organizer_hub' tournament.slug 'announcements' %}"
+         class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition text-sm text-gray-300 hover:text-white">
+        <i data-lucide="megaphone" class="w-4 h-4 text-gray-400"></i>
+        Post Announcement
+      </a>
+      <a href="{% url 'tournaments:detail' tournament.slug %}" target="_blank"
+         class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition text-sm text-gray-300 hover:text-white">
+        <i data-lucide="external-link" class="w-4 h-4 text-gray-400"></i>
+        View Public Page
+      </a>
+    </div>
+  </div>
+
+  {# Recent Registrations #}
+  <div class="lg:col-span-2 glass rounded-xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-display font-semibold text-white">Recent Registrations</h3>
+      <a href="{% url 'tournaments:organizer_hub' tournament.slug 'participants' %}" class="text-[11px] text-dc-cyan hover:underline">View all →</a>
+    </div>
+
+    {% if recent_registrations %}
+      <div class="space-y-2">
+        {% for reg in recent_registrations %}
+          <div class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.02] border border-dc-border">
+            {# Avatar #}
+            <div class="w-8 h-8 rounded-full bg-dc-surface flex items-center justify-center text-[11px] font-bold text-dc-cyan flex-shrink-0">
+              {{ reg.user.username|first|upper }}
+            </div>
+            {# Info #}
+            <div class="flex-1 min-w-0">
+              <p class="text-sm text-white truncate">{{ reg.user.username }}</p>
+              <p class="text-[10px] text-gray-500">{{ reg.created_at|timesince }} ago</p>
+            </div>
+            {# Status #}
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-mono
+              {% if reg.status == 'confirmed' %}bg-green-600/20 text-green-400
+              {% elif reg.status == 'pending' %}bg-yellow-600/20 text-yellow-400
+              {% elif reg.status == 'rejected' %}bg-red-600/20 text-red-400
+              {% elif reg.status == 'cancelled' %}bg-gray-600/20 text-gray-400
+              {% else %}bg-gray-600/20 text-gray-400{% endif %}">
+              {{ reg.status|title }}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-8 text-gray-600">
+        <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2"></i>
+        <p class="text-sm">No registrations yet</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
 {% endblock %}

@@ -1,22 +1,22 @@
 """
 Swiss System Bracket Generator.
 
-Phase 3, Epic 3.1: Universal Bracket Engine
-Reference: DEV_PROGRESS_TRACKER.md - Epic 3.1.5
+Phase 3, Epic 3.1 + Phase 2, Task 2.3: Complete Swiss implementation.
 
 Generates Swiss-system tournament brackets with pairing based on current standings.
 
 Features:
 - Fixed number of rounds (typically log2(N) or log2(N)+1)
 - First round: Seeded pairing (top half vs bottom half)
-- Subsequent rounds: Pair teams with similar records
-- No elimination - all teams play all rounds
+- Subsequent rounds: Record-based grouping, repeat avoidance, tiebreakers
+- No elimination — all teams play all rounds
+- Bye handling for odd participant counts
 
 Architecture:
 - DTO-only: No ORM imports, works purely with DTOs
 - Pure function: Deterministic output for given inputs
-- First-round implementation complete
-- Subsequent rounds: Stub with TODO for Epic 3.5 scoring integration
+- First-round: Seeded pairing (1v(N/2+1))
+- Rounds 2+: Score bracket grouping with sliding pair algorithm
 """
 
 from typing import List, Dict, Any
@@ -36,23 +36,19 @@ class SwissSystemGenerator:
     Tournament Structure:
     - Fixed number of rounds (not elimination-based)
     - Round 1: Seeded pairing (1v(N/2+1), 2v(N/2+2), etc.)
-    - Rounds 2+: Pair teams with same/similar records
+    - Rounds 2+: Pair teams with same/similar records, avoid repeats
     - All teams play all rounds
     - Final standings by total wins/points
     
     Pairing Algorithm:
     - First round: Top half vs bottom half by seed
-    - Subsequent rounds: Same-record pairing (1st vs 2nd, 3rd vs 4th, etc.)
-    - Avoid repeat pairings when possible
-    - Handle odd counts with byes
+    - Subsequent rounds: Score-bracket grouping + sliding pair with repeat avoidance
+    - Handle odd counts with byes (lowest-ranked unpaired gets bye)
     
     Example (8 teams, 3 rounds):
         Round 1: 1v5, 2v6, 3v7, 4v8
         Round 2: Pair 2-0 teams, 1-1 teams, 0-2 teams
         Round 3: Final pairings based on standings
-    
-    TODO (Epic 3.5): Integrate with scoring system for rounds 2+ pairings
-    TODO (Epic 3.3): Wire standings calculation via StageTransitionService
     """
     
     def generate_bracket(
@@ -197,13 +193,12 @@ class SwissSystemGenerator:
         """
         Generate pairings for rounds 2+ based on current standings.
         
-        STUB IMPLEMENTATION for Epic 3.1.
-        
-        Algorithm:
-        1. Sort teams by current record (wins, then tiebreakers)
-        2. Group teams by record (2-0, 1-1, 0-2, etc.)
-        3. Within each group, pair sequentially (1v2, 3v4, etc.)
-        4. Avoid repeat pairings from previous rounds
+        Algorithm (standard Swiss):
+        1. Sort teams by record (wins desc, then points desc as tiebreaker)
+        2. Group teams by win count (score bracket)
+        3. Within each score bracket, pair top vs next available
+        4. Avoid repeat pairings from previous rounds (slide down if needed)
+        5. Handle odd counts with a bye (lowest-ranked unpaired player)
         
         Args:
             round_number: Current round number (2+)
@@ -211,48 +206,114 @@ class SwissSystemGenerator:
                 - team_id: Team identifier
                 - wins: Number of wins
                 - losses: Number of losses
-                - points: Total points scored
+                - points: Total points scored (tiebreaker)
+                - buchholz: (optional) sum of opponents' wins (SOS tiebreaker)
             previous_pairings: List of (team1_id, team2_id) tuples from prior rounds
         
         Returns:
-            List of (team1_id, team2_id) tuples for this round
-        
-        TODO (Epic 3.5): Implement full pairing algorithm with:
-            - Record-based grouping
-            - Tiebreaker handling (opponent strength, points, etc.)
-            - Repeat pairing avoidance
-            - Integration with GameRulesEngine scoring
+            List of (team1_id, team2_id) tuples for this round.
+            A tuple (team_id, None) indicates a bye.
         
         Reference: https://en.wikipedia.org/wiki/Swiss-system_tournament#Pairing_algorithm
         """
-        # STUB: Return empty list
-        # Full implementation requires scoring integration (Epic 3.5)
+        if not standings:
+            return []
         
-        # Sort standings by record
+        # Build set of previous pairings for O(1) lookup (unordered)
+        paired_before: set[frozenset[int]] = set()
+        for t1, t2 in previous_pairings:
+            paired_before.add(frozenset((t1, t2)))
+        
+        def _already_paired(a: int, b: int) -> bool:
+            return frozenset((a, b)) in paired_before
+        
+        # Sort standings: primary = wins (desc), secondary = points (desc),
+        # tertiary = buchholz (desc) for tie-breaking
         sorted_standings = sorted(
             standings,
-            key=lambda s: (s.get("wins", 0), s.get("points", 0)),
-            reverse=True
+            key=lambda s: (
+                s.get("wins", 0),
+                s.get("points", 0),
+                s.get("buchholz", 0),
+            ),
+            reverse=True,
         )
         
-        # Simple pairing: sequential pairs (no record grouping yet)
-        pairings = []
-        used_teams = set()
+        # Group teams by win count (score bracket)
+        from itertools import groupby
         
-        for i in range(0, len(sorted_standings) - 1, 2):
-            team1 = sorted_standings[i]
-            team2 = sorted_standings[i + 1]
+        score_brackets: List[List[Dict[str, Any]]] = []
+        for _key, group in groupby(sorted_standings, key=lambda s: s.get("wins", 0)):
+            score_brackets.append(list(group))
+        
+        # Flatten into ordered list of team_ids for pairing
+        ordered_ids = [s["team_id"] for s in sorted_standings]
+        
+        # Pair using sliding algorithm within score brackets
+        pairings: List[tuple[int, int]] = []
+        used: set[int] = set()
+        
+        # Process each score bracket
+        for bracket_teams in score_brackets:
+            bracket_ids = [t["team_id"] for t in bracket_teams if t["team_id"] not in used]
             
-            team1_id = team1["team_id"]
-            team2_id = team2["team_id"]
-            
-            # TODO: Check for repeat pairings and adjust
-            # TODO: Implement proper record-based grouping
-            
-            if team1_id not in used_teams and team2_id not in used_teams:
-                pairings.append((team1_id, team2_id))
-                used_teams.add(team1_id)
-                used_teams.add(team2_id)
+            i = 0
+            while i < len(bracket_ids):
+                team_a = bracket_ids[i]
+                if team_a in used:
+                    i += 1
+                    continue
+                
+                # Find best opponent: first unpaired, non-repeat in this bracket
+                paired = False
+                for j in range(i + 1, len(bracket_ids)):
+                    team_b = bracket_ids[j]
+                    if team_b in used:
+                        continue
+                    if not _already_paired(team_a, team_b):
+                        pairings.append((team_a, team_b))
+                        used.add(team_a)
+                        used.add(team_b)
+                        paired = True
+                        break
+                
+                if not paired:
+                    # No valid opponent in this bracket — defer to cross-bracket pairing below
+                    pass
+                
+                i += 1
+        
+        # Cross-bracket pairing for any remaining unpaired teams
+        remaining = [tid for tid in ordered_ids if tid not in used]
+        i = 0
+        while i < len(remaining) - 1:
+            team_a = remaining[i]
+            paired = False
+            for j in range(i + 1, len(remaining)):
+                team_b = remaining[j]
+                if not _already_paired(team_a, team_b):
+                    pairings.append((team_a, team_b))
+                    used.add(team_a)
+                    used.add(team_b)
+                    remaining = [tid for tid in remaining if tid not in used]
+                    paired = True
+                    break
+            if not paired:
+                # Last resort: pair even if it's a repeat (Swiss allows rare repeats)
+                if i + 1 < len(remaining):
+                    pairings.append((remaining[i], remaining[i + 1]))
+                    used.add(remaining[i])
+                    used.add(remaining[i + 1])
+                    remaining = [tid for tid in remaining if tid not in used]
+                else:
+                    break
+            i = 0  # restart from beginning of remaining
+        
+        # Handle bye for odd participant count
+        final_remaining = [tid for tid in ordered_ids if tid not in used]
+        if final_remaining:
+            # Lowest-ranked unpaired team gets bye
+            pairings.append((final_remaining[-1], None))
         
         return pairings
     

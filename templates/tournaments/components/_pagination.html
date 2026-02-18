@@ -1,0 +1,42 @@
+{% comment %}
+─── Pagination Partial ───
+Usage: include "tournaments/components/_pagination.html" with page_obj=page_obj
+
+Context:
+  page_obj — Django Page object from ListView
+{% endcomment %}
+{% if page_obj.has_other_pages %}
+<nav class="flex items-center justify-center gap-2 mt-10" aria-label="Pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% for key, val in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ val }}{% endif %}{% endfor %}"
+       class="px-4 py-2 rounded-lg bg-dc-card border border-dc-border text-sm text-gray-300 hover:border-dc-cyan/40 hover:text-white transition">
+      <i data-lucide="chevron-left" class="w-4 h-4 inline"></i> Prev
+    </a>
+  {% endif %}
+
+  {% for num in page_obj.paginator.page_range %}
+    {% if page_obj.number == num %}
+      <span class="px-4 py-2 rounded-lg bg-dc-cyan text-black text-sm font-bold">{{ num }}</span>
+    {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+      <a href="?page={{ num }}{% for key, val in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ val }}{% endif %}{% endfor %}"
+         class="px-4 py-2 rounded-lg bg-dc-card border border-dc-border text-sm text-gray-400 hover:border-dc-cyan/40 hover:text-white transition">
+        {{ num }}
+      </a>
+    {% elif num == 1 or num == page_obj.paginator.num_pages %}
+      <a href="?page={{ num }}{% for key, val in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ val }}{% endif %}{% endfor %}"
+         class="px-4 py-2 rounded-lg bg-dc-card border border-dc-border text-sm text-gray-400 hover:border-dc-cyan/40 hover:text-white transition">
+        {{ num }}
+      </a>
+    {% elif num == 2 or num == page_obj.paginator.num_pages|add:"-1" %}
+      <span class="text-gray-600 px-1">…</span>
+    {% endif %}
+  {% endfor %}
+
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% for key, val in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ val }}{% endif %}{% endfor %}"
+       class="px-4 py-2 rounded-lg bg-dc-card border border-dc-border text-sm text-gray-300 hover:border-dc-cyan/40 hover:text-white transition">
+      Next <i data-lucide="chevron-right" class="w-4 h-4 inline"></i>
+    </a>
+  {% endif %}
+</nav>
+{% endif %}

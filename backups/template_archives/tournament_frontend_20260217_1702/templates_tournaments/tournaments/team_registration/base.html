@@ -1,0 +1,147 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Registration - {{ tournament.name }}{% endblock %} | DeltaCrown</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FF4655',
+                        secondary: '#00D9FF',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    {% block extra_css %}{% endblock %}
+    
+    <!-- Custom styles -->
+    <style>
+        .gradient-border {
+            border: 2px solid transparent;
+            background: linear-gradient(#1f2937, #1f2937) padding-box,
+                        linear-gradient(135deg, #FF4655, #00D9FF) border-box;
+        }
+        
+        .glow-button {
+            box-shadow: 0 0 20px rgba(255, 70, 85, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .glow-button:hover {
+            box-shadow: 0 0 30px rgba(255, 70, 85, 0.6);
+            transform: translateY(-2px);
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #FF4655;
+            box-shadow: 0 0 0 3px rgba(255, 70, 85, 0.1);
+        }
+        
+        .step-indicator.active {
+            background: linear-gradient(135deg, #FF4655, #00D9FF);
+        }
+        
+        .step-indicator.completed {
+            background: #10B981;
+        }
+    </style>
+</head>
+<body class="h-full text-gray-100">
+    <div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        
+        <!-- Header -->
+        <header class="bg-gray-900 border-b border-gray-700">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <a href="{% url 'tournaments:detail' tournament.slug %}" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-arrow-left"></i>
+                        </a>
+                        <div>
+                            <h1 class="text-xl font-bold text-white">{{ tournament.name }}</h1>
+                            <p class="text-sm text-gray-400">Tournament Registration</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 text-sm text-gray-400">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Secure Registration</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Progress Bar -->
+        <div class="bg-gray-800 border-b border-gray-700">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div class="flex items-center justify-between">
+                    {% for step_num in "123" %}
+                    <div class="flex items-center {% if not forloop.last %}flex-1{% endif %}">
+                        <div class="flex flex-col items-center">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold step-indicator
+                                {% if step_num|add:'0' < current_step %}completed
+                                {% elif step_num|add:'0' == current_step %}active text-white
+                                {% else %}bg-gray-700 text-gray-400{% endif %}">
+                                {% if step_num|add:'0' < current_step %}
+                                    <i class="fas fa-check"></i>
+                                {% else %}
+                                    {{ step_num }}
+                                {% endif %}
+                            </div>
+                            <span class="text-xs mt-2 {% if step_num|add:'0' == current_step %}text-primary font-semibold{% else %}text-gray-400{% endif %}">
+                                {% if step_num == "1" %}
+                                    {% if 'team' in request.path %}Team Info{% else %}Player Info{% endif %}
+                                {% elif step_num == "2" %}Review
+                                {% elif step_num == "3" %}Payment{% endif %}
+                            </span>
+                        </div>
+                        {% if not forloop.last %}
+                        <div class="flex-1 h-0.5 mx-4 {% if step_num|add:'0' < current_step %}bg-green-500{% else %}bg-gray-700{% endif %}"></div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-900 border-t border-gray-700 mt-12">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div class="flex items-center justify-between text-sm text-gray-400">
+                    <div>
+                        <i class="fas fa-lock mr-2"></i>
+                        Your data is secure and encrypted
+                    </div>
+                    <div>
+                        Need help? <a href="#" class="text-primary hover:underline">Contact Support</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Canvas Confetti (for success page) -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

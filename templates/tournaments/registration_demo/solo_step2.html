@@ -1,0 +1,172 @@
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
+
+{# ─────────────────────────────────────────────────────────
+   Registration Wizard — Solo Step 2: Review & Accept Terms
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
+
+{% block title %}Review — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_content %}
+
+<div class="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+
+  {# ── Progress Bar ── #}
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-xs text-gray-500">Step {{ current_step }} of {{ total_steps }}</span>
+      <span class="text-xs text-dc-cyan font-mono">{{ step_title }}</span>
+    </div>
+    <div class="h-1 bg-dc-surface rounded-full overflow-hidden">
+      <div class="h-full bg-gradient-to-r from-dc-cyan to-dc-purple rounded-full transition-all duration-500"
+           style="width: {% widthratio current_step total_steps 100 %}%"></div>
+    </div>
+  </div>
+
+  {# ── Review Data ── #}
+  <div class="glass rounded-xl p-6 mb-6">
+    <h3 class="text-sm font-display font-semibold text-white mb-4">
+      <i data-lucide="clipboard-check" class="w-4 h-4 inline mr-1 text-dc-cyan"></i> Your Registration Details
+    </h3>
+    <dl class="space-y-3 text-sm">
+      {% if step_data.full_name %}
+        <div class="flex justify-between py-2 border-b border-dc-border">
+          <dt class="text-gray-500">Full Name</dt>
+          <dd class="text-white">{{ step_data.full_name }}</dd>
+        </div>
+      {% endif %}
+      {% if step_data.display_name %}
+        <div class="flex justify-between py-2 border-b border-dc-border">
+          <dt class="text-gray-500">Display Name</dt>
+          <dd class="text-white">{{ step_data.display_name }}</dd>
+        </div>
+      {% endif %}
+      {% if step_data.game_id %}
+        <div class="flex justify-between py-2 border-b border-dc-border">
+          <dt class="text-gray-500">Game ID</dt>
+          <dd class="text-white font-mono">{{ step_data.game_id }}</dd>
+        </div>
+      {% endif %}
+      {% if step_data.platform_server %}
+        <div class="flex justify-between py-2 border-b border-dc-border">
+          <dt class="text-gray-500">Platform / Server</dt>
+          <dd class="text-white">{{ step_data.platform_server }}</dd>
+        </div>
+      {% endif %}
+      {% if step_data.rank %}
+        <div class="flex justify-between py-2 border-b border-dc-border">
+          <dt class="text-gray-500">Rank</dt>
+          <dd class="text-white">{{ step_data.rank }}</dd>
+        </div>
+      {% endif %}
+      {% if step_data.email %}
+        <div class="flex justify-between py-2 border-b border-dc-border">
+          <dt class="text-gray-500">Email</dt>
+          <dd class="text-white">{{ step_data.email }}</dd>
+        </div>
+      {% endif %}
+      {% if step_data.discord %}
+        <div class="flex justify-between py-2 border-b border-dc-border">
+          <dt class="text-gray-500">Discord</dt>
+          <dd class="text-white font-mono">{{ step_data.discord }}</dd>
+        </div>
+      {% endif %}
+      {% if step_data.phone %}
+        <div class="flex justify-between py-2">
+          <dt class="text-gray-500">Phone</dt>
+          <dd class="text-white font-mono">{{ step_data.phone }}</dd>
+        </div>
+      {% endif %}
+    </dl>
+
+    <a href="{{ request.path }}?type=solo&step=1" class="inline-block mt-4 text-xs text-dc-cyan hover:underline">
+      <i data-lucide="edit-2" class="w-3 h-3 inline mr-0.5"></i> Edit details
+    </a>
+  </div>
+
+  {# ── Tournament Summary ── #}
+  <div class="glass rounded-xl p-6 mb-6">
+    <h3 class="text-sm font-display font-semibold text-white mb-4">
+      <i data-lucide="trophy" class="w-4 h-4 inline mr-1 text-dc-gold"></i> Tournament
+    </h3>
+    <dl class="space-y-2 text-sm">
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Name</dt>
+        <dd class="text-white">{{ tournament.name|truncatewords:6 }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Game</dt>
+        <dd class="text-white">{{ tournament.game.display_name }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Format</dt>
+        <dd class="text-white capitalize">{{ tournament.get_format_display|default:tournament.format }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Start</dt>
+        <dd class="text-white">{{ tournament.tournament_start|date:"M d, Y H:i" }}</dd>
+      </div>
+      {% if tournament.has_entry_fee %}
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Entry Fee</dt>
+          <dd class="text-dc-gold font-mono">৳{{ tournament.entry_fee_amount|intcomma }}</dd>
+        </div>
+      {% else %}
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Entry Fee</dt>
+          <dd class="text-green-400">Free</dd>
+        </div>
+      {% endif %}
+    </dl>
+  </div>
+
+  {# ── Terms & Conditions ── #}
+  <form method="post" class="space-y-6">
+    {% csrf_token %}
+    <input type="hidden" name="step" value="2">
+    <input type="hidden" name="type" value="solo">
+
+    <div class="glass rounded-xl p-6">
+      <h3 class="text-sm font-display font-semibold text-white mb-4">
+        <i data-lucide="file-text" class="w-4 h-4 inline mr-1 text-gray-400"></i> Terms & Conditions
+      </h3>
+
+      {% if tournament.rules_text %}
+        <div class="max-h-48 overflow-y-auto text-xs text-gray-400 leading-relaxed mb-4 pr-2">
+          {{ tournament.rules_text|linebreaksbr }}
+        </div>
+      {% else %}
+        <p class="text-xs text-gray-500 mb-4">Standard DeltaCrown tournament rules apply.</p>
+      {% endif %}
+
+      <div class="space-y-3">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="accept_rules" required class="form-checkbox mt-0.5">
+          <span class="text-sm text-gray-300">I have read and agree to the tournament rules</span>
+        </label>
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="accept_terms" required class="form-checkbox mt-0.5">
+          <span class="text-sm text-gray-300">I agree to DeltaCrown's <a href="#" class="text-dc-cyan hover:underline">Terms of Service</a> and <a href="#" class="text-dc-cyan hover:underline">Fair Play Policy</a></span>
+        </label>
+      </div>
+    </div>
+
+    {# Navigation #}
+    <div class="flex items-center justify-between pt-2">
+      <a href="{{ request.path }}?type=solo&step=1" class="text-sm text-gray-500 hover:text-white transition">
+        <i data-lucide="arrow-left" class="w-4 h-4 inline mr-1"></i> Back
+      </a>
+      <button type="submit" class="px-6 py-3 bg-dc-cyan text-black font-bold text-sm rounded-xl hover:bg-dc-cyan/90 transition-all">
+        {% if tournament.has_entry_fee %}
+          Continue to Payment <i data-lucide="arrow-right" class="w-4 h-4 inline ml-1"></i>
+        {% else %}
+          Complete Registration <i data-lucide="check" class="w-4 h-4 inline ml-1"></i>
+        {% endif %}
+      </button>
+    </div>
+  </form>
+
+</div>
+
+{% endblock %}

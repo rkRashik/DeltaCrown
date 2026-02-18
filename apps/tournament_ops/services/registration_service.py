@@ -1,8 +1,14 @@
 """
-Registration orchestration service.
+Registration orchestration service (DTO facade layer).
 
-This service coordinates tournament registration workflows across domains,
-handling team eligibility checks, payment processing, and registration state management.
+This service provides the adapter-based entry point for tournament registration
+workflows, coordinating cross-domain eligibility checks and event publishing.
+
+The canonical ORM-level implementation lives in:
+    apps.tournaments.services.registration_service.RegistrationService
+
+This service adds DTO validation, adapter-based cross-domain checks, and
+event bus publishing on top of the ORM service.
 
 Reference: ROADMAP_AND_EPICS_PART_4.md - Phase 1, Epic 1.4 & Phase 5
 """

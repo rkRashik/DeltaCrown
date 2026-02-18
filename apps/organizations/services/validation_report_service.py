@@ -255,11 +255,11 @@ def _check_consistency(
             game_slug_map = {1: 'valorant', 2: 'csgo', 3: 'dota2', 4: 'pubg'}
             game_slug = game_slug_map.get(game_id)
             if game_slug:
-                legacy_ids = set(LegacyTeam.objects.filter(game=game_slug, is_active=True).values_list('id', flat=True))
+                legacy_ids = set(LegacyTeam.objects.filter(game_id=game_id, status='ACTIVE').values_list('id', flat=True))
             vnext_ids = set(VNextTeam.objects.filter(game_id=game_id, status='ACTIVE').values_list('id', flat=True))
         
         if region:
-            legacy_region_ids = set(LegacyTeam.objects.filter(region=region, is_active=True).values_list('id', flat=True))
+            legacy_region_ids = set(LegacyTeam.objects.filter(region=region, status='ACTIVE').values_list('id', flat=True))
             vnext_region_ids = set(VNextTeam.objects.filter(region=region, status='ACTIVE').values_list('id', flat=True))
             
             legacy_ids = legacy_region_ids if legacy_ids is None else legacy_ids & legacy_region_ids

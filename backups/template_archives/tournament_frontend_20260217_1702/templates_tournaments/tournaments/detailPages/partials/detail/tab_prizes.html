@@ -1,0 +1,126 @@
+{# Prizes Tab - Prize Pool + DeltaCoin + Distribution #}
+{# Purpose: Display prize distribution with visual presentation #}
+{# Content: Total prize banner, distribution info, fee waiver #}
+
+<section class="detail-tab-panel td-tab-panel" data-tab="prizes">
+    <div class="td-prizes-main">
+        
+        {% if tournament.prize_pool or tournament.prize_deltacoin %}
+            
+            {# Total Prize Pool Banner #}
+            <div class="td-prize-summary">
+                <div class="td-prize-summary-icon">🏆</div>
+                <div class="td-prize-summary-content">
+                    <h2 class="td-prize-summary-title">Total Prize Pool</h2>
+                    <div class="td-prize-summary-amount">
+                        {% if tournament.prize_pool and tournament.prize_pool > 0 %}
+                        <span class="td-prize-cash" data-amount="{{ tournament.prize_pool }}">
+                            {{ tournament.prize_pool|floatformat:0 }} {{ tournament.prize_currency|default:"BDT" }}
+                        </span>
+                        {% endif %}
+                        
+                        {% if tournament.prize_deltacoin and tournament.prize_deltacoin > 0 %}
+                        {% if tournament.prize_pool and tournament.prize_pool > 0 %}
+                        <span class="td-prize-plus">+</span>
+                        {% endif %}
+                        <span class="td-prize-deltacoin" data-amount="{{ tournament.prize_deltacoin }}">
+                            {{ tournament.prize_deltacoin }} <span class="td-deltacoin-symbol">Δ</span>
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            {# Fee Waiver Banner (if enabled) #}
+            {% if tournament.enable_fee_waiver and tournament.fee_waiver_top_n_teams %}
+            <div class="td-fee-waiver-banner">
+                <svg class="td-waiver-icon" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                </svg>
+                <div class="td-waiver-text">
+                    <strong>Fee Waiver Available:</strong> 
+                    Top {{ tournament.fee_waiver_top_n_teams }} ranked teams can enter this tournament for free.
+                </div>
+            </div>
+            {% endif %}
+            
+            {# Prize Distribution Info #}
+            {% if tournament.prize_distribution %}
+            <div class="td-prize-distribution-section">
+                <h3 class="td-subsection-title">📊 Prize Distribution</h3>
+                
+                {# Modern Prize Breakdown Grid #}
+                <div class="td-prize-breakdown-grid">
+                    {% for placement, percentage in tournament.prize_distribution.items %}
+                    <div class="td-prize-placement-card {% if forloop.first %}td-prize-champion{% elif forloop.counter == 2 %}td-prize-runner-up{% elif forloop.counter == 3 %}td-prize-third{% endif %}">
+                        <div class="td-prize-rank-icon">
+                            {% if forloop.counter == 1 %}
+                                <svg class="td-trophy-icon gold" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M2.5.5A.5.5 0 0 1 3 0h10a.5.5 0 0 1 .5.5c0 .538-.012 1.05-.034 1.536a3 3 0 1 1-1.133 5.89c-.79 1.865-1.878 2.777-2.833 3.011v2.173l1.425.356c.194.048.377.135.537.255L13.3 15.1a.5.5 0 0 1-.3.9H3a.5.5 0 0 1-.3-.9l1.838-1.379c.16-.12.343-.207.537-.255L6.5 13.11v-2.173c-.955-.234-2.043-1.146-2.833-3.012a3 3 0 1 1-1.132-5.89A33.076 33.076 0 0 1 2.5.5zm.099 2.54a2 2 0 0 0 .72 3.935c-.333-1.05-.588-2.346-.72-3.935zm10.083 3.935a2 2 0 0 0 .72-3.935c-.133 1.59-.388 2.885-.72 3.935z"/>
+                                </svg>
+                            {% elif forloop.counter == 2 %}
+                                <svg class="td-trophy-icon silver" width="28" height="28" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M2.5.5A.5.5 0 0 1 3 0h10a.5.5 0 0 1 .5.5c0 .538-.012 1.05-.034 1.536a3 3 0 1 1-1.133 5.89c-.79 1.865-1.878 2.777-2.833 3.011v2.173l1.425.356c.194.048.377.135.537.255L13.3 15.1a.5.5 0 0 1-.3.9H3a.5.5 0 0 1-.3-.9l1.838-1.379c.16-.12.343-.207.537-.255L6.5 13.11v-2.173c-.955-.234-2.043-1.146-2.833-3.012a3 3 0 1 1-1.132-5.89A33.076 33.076 0 0 1 2.5.5zm.099 2.54a2 2 0 0 0 .72 3.935c-.333-1.05-.588-2.346-.72-3.935zm10.083 3.935a2 2 0 0 0 .72-3.935c-.133 1.59-.388 2.885-.72 3.935z"/>
+                                </svg>
+                            {% elif forloop.counter == 3 %}
+                                <svg class="td-trophy-icon bronze" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M2.5.5A.5.5 0 0 1 3 0h10a.5.5 0 0 1 .5.5c0 .538-.012 1.05-.034 1.536a3 3 0 1 1-1.133 5.89c-.79 1.865-1.878 2.777-2.833 3.011v2.173l1.425.356c.194.048.377.135.537.255L13.3 15.1a.5.5 0 0 1-.3.9H3a.5.5 0 0 1-.3-.9l1.838-1.379c.16-.12.343-.207.537-.255L6.5 13.11v-2.173c-.955-.234-2.043-1.146-2.833-3.012a3 3 0 1 1-1.132-5.89A33.076 33.076 0 0 1 2.5.5zm.099 2.54a2 2 0 0 0 .72 3.935c-.333-1.05-.588-2.346-.72-3.935zm10.083 3.935a2 2 0 0 0 .72-3.935c-.133 1.59-.388 2.885-.72 3.935z"/>
+                                </svg>
+                            {% else %}
+                                <span class="td-rank-number">{{ placement }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="td-prize-details">
+                            <div class="td-prize-placement">
+                                {% if placement == "1" %}1st Place
+                                {% elif placement == "2" %}2nd Place
+                                {% elif placement == "3" %}3rd Place
+                                {% elif placement == "4" %}4th Place
+                                {% else %}{{ placement }}th Place{% endif %}
+                            </div>
+                            <div class="td-prize-percentage">{{ percentage }}</div>
+                            {% if tournament.prize_pool %}
+                            <div class="td-prize-amount">
+                                {% widthratio tournament.prize_pool 100 percentage|cut:"%" as prize_value %}
+                                ${{ prize_value|floatformat:0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="td-prize-bar">
+                            <div class="td-prize-bar-fill" style="width: {{ percentage }}"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            {# Prize pool exists but no distribution #}
+            <div class="td-prize-distribution-pending">
+                <div class="td-pending-icon">⏳</div>
+                <h3 class="td-pending-title">Distribution Details Coming Soon</h3>
+                <p class="td-pending-message">The detailed prize breakdown will be announced before the tournament begins.</p>
+            </div>
+            {% endif %}
+            
+            {# DeltaCoin Info Note #}
+            {% if tournament.prize_deltacoin %}
+            <div class="td-deltacoin-info">
+                <div class="td-info-icon">💎</div>
+                <div class="td-info-content">
+                    <strong>About DeltaCoins (Δ):</strong> DeltaCoins are the official currency of DeltaCrown platform. 
+                    They can be used for tournament entries, shop items, and exclusive features.
+                </div>
+            </div>
+            {% endif %}
+            
+        {% else %}
+            {# No prize pool configured #}
+            <div class="td-prizes-empty">
+                <div class="td-empty-icon">🏆</div>
+                <h3 class="td-empty-title">Prize Pool Not Yet Announced</h3>
+                <p class="td-empty-message">Prize information will be published soon. Check back later or follow tournament updates for announcements.</p>
+            </div>
+        {% endif %}
+        
+    </div>
+</section>

@@ -1,0 +1,47 @@
+{% comment %}
+─── Tab Navigation Partial (Detail Page) ───
+Usage: include "tournaments/components/_tabs.html" with tabs=tab_list active_tab="overview"
+
+Default tabs for tournament detail — rendered as a sticky nav bar.
+{% endcomment %}
+<div class="sticky top-[64px] z-40 bg-dc-bg/95 backdrop-blur-xl border-b border-dc-border">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center gap-1 overflow-x-auto no-scrollbar" role="tablist">
+      <button class="tab-btn{% if active_tab == 'overview' or not active_tab %} active{% endif %}"
+              data-tab="overview" role="tab" aria-selected="{% if active_tab == 'overview' or not active_tab %}true{% else %}false{% endif %}">
+        <i data-lucide="layout-dashboard" class="w-4 h-4 mr-1.5 inline"></i>
+        Overview
+      </button>
+
+      <button class="tab-btn{% if active_tab == 'participants' %} active{% endif %}"
+              data-tab="participants" role="tab" aria-selected="{% if active_tab == 'participants' %}true{% else %}false{% endif %}">
+        <i data-lucide="users" class="w-4 h-4 mr-1.5 inline"></i>
+        Participants
+      </button>
+
+      <button class="tab-btn{% if active_tab == 'bracket' %} active{% endif %}"
+              data-tab="bracket" role="tab" aria-selected="{% if active_tab == 'bracket' %}true{% else %}false{% endif %}">
+        <i data-lucide="git-merge" class="w-4 h-4 mr-1.5 inline"></i>
+        Bracket
+      </button>
+
+      <button class="tab-btn{% if active_tab == 'matches' %} active{% endif %}"
+              data-tab="matches" role="tab" aria-selected="{% if active_tab == 'matches' %}true{% else %}false{% endif %}">
+        <i data-lucide="swords" class="w-4 h-4 mr-1.5 inline"></i>
+        Matches
+      </button>
+
+      <button class="tab-btn{% if active_tab == 'standings' %} active{% endif %}"
+              data-tab="standings" role="tab" aria-selected="{% if active_tab == 'standings' %}true{% else %}false{% endif %}">
+        <i data-lucide="medal" class="w-4 h-4 mr-1.5 inline"></i>
+        Standings
+      </button>
+
+      <button class="tab-btn{% if active_tab == 'streams' %} active{% endif %}"
+              data-tab="streams" role="tab" aria-selected="{% if active_tab == 'streams' %}true{% else %}false{% endif %}">
+        <i data-lucide="tv" class="w-4 h-4 mr-1.5 inline"></i>
+        Streams
+      </button>
+    </div>
+  </div>
+</div>

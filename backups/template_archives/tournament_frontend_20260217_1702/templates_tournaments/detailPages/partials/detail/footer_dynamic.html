@@ -1,0 +1,244 @@
+{% load static %}
+
+<footer class="relative bg-gradient-to-b from-slate-900/50 to-slate-950/90 border-t-2 border-slate-800/60 mt-16 overflow-hidden">
+    
+    {# Animated background effects #}
+    <div class="absolute inset-0 bg-gradient-to-br from-cyan-950/10 via-transparent to-blue-950/10 opacity-50"></div>
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/3 rounded-full filter blur-3xl"></div>
+    <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/3 rounded-full filter blur-3xl"></div>
+    
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+        
+        {# ========== TOURNAMENT QUICK INFO & USER GUIDE ========== #}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            
+            {# Registration Status Card #}
+            <div class="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl p-6 hover:border-slate-600/70 transition-all duration-300">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center border border-cyan-500/30">
+                        <svg class="w-6 h-6 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-white font-bold text-lg mb-2">Registration Status</h3>
+                        {% if user.is_authenticated %}
+                            {% if current_user_registration %}
+                                <p class="text-emerald-400 font-semibold mb-2">✓ You're Registered</p>
+                                <p class="text-slate-400 text-sm">Check your schedule in the Matches tab and join the Tournament Lobby to connect with participants.</p>
+                            {% else %}
+                                {% if can_register %}
+                                    <p class="text-slate-300 font-semibold mb-2">Registration Available</p>
+                                    <p class="text-slate-400 text-sm">Slots are filling up! Register now to secure your spot in this tournament.</p>
+                                {% else %}
+                                    <p class="text-slate-400 font-semibold mb-2">{{ cta_label|default:"Not Available" }}</p>
+                                    <p class="text-slate-500 text-sm">{{ cta_reason|default:"Registration is currently closed." }}</p>
+                                {% endif %}
+                            {% endif %}
+                        {% else %}
+                            <p class="text-slate-300 font-semibold mb-2">Login Required</p>
+                            <p class="text-slate-400 text-sm">Sign in to register for this tournament and track your progress.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            {# Tournament Progress Card #}
+            <div class="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl p-6 hover:border-slate-600/70 transition-all duration-300">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center border border-purple-500/30">
+                        <svg class="w-6 h-6 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-white font-bold text-lg mb-2">Tournament Phase</h3>
+                        {% if tournament.status == 'live' %}
+                            <p class="text-red-400 font-semibold mb-2">🔴 Live Now</p>
+                            <p class="text-slate-400 text-sm">The tournament is currently in progress. Check the Bracket and Matches tabs for live updates.</p>
+                        {% elif tournament.status == 'completed' %}
+                            <p class="text-slate-400 font-semibold mb-2">Tournament Complete</p>
+                            <p class="text-slate-400 text-sm">View final standings and match results in the respective tabs.</p>
+                        {% elif tournament.status == 'registration_open' %}
+                            <p class="text-emerald-400 font-semibold mb-2">Registration Phase</p>
+                            <p class="text-slate-400 text-sm">Tournament hasn't started yet. Register now to participate!</p>
+                        {% else %}
+                            <p class="text-slate-400 font-semibold mb-2">Preparing</p>
+                            <p class="text-slate-400 text-sm">Tournament is being set up. Check back soon for updates.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            {# Slots & Capacity Card #}
+            <div class="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl p-6 hover:border-slate-600/70 transition-all duration-300">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center border border-amber-500/30">
+                        <svg class="w-6 h-6 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-white font-bold text-lg mb-2">Participant Slots</h3>
+                        <p class="text-slate-300 font-semibold mb-2">{{ slots_filled }} / {{ tournament.max_participants }}</p>
+                        <div class="w-full bg-slate-700/50 rounded-full h-2.5 mb-2 overflow-hidden">
+                            <div class="bg-gradient-to-r from-cyan-500 to-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: {{ slots_percentage|floatformat:0 }}%"></div>
+                        </div>
+                        <p class="text-slate-400 text-sm">{{ slots_percentage|floatformat:0 }}% filled</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {# ========== QUICK LINKS & FAQ ========== #}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12 border-t border-slate-800/60 pt-12">
+            
+            {# Navigation Links #}
+            <div>
+                <h4 class="text-white font-bold text-sm uppercase tracking-wider mb-4">Quick Links</h4>
+                <ul class="space-y-3">
+                    <li>
+                        <a href="#" data-tab-target="overview" class="text-slate-400 hover:text-cyan-400 text-sm transition-colors duration-200 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            Tournament Overview
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-tab-target="bracket" class="text-slate-400 hover:text-cyan-400 text-sm transition-colors duration-200 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            View Bracket
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-tab-target="matches" class="text-slate-400 hover:text-cyan-400 text-sm transition-colors duration-200 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            Match Schedule
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-tab-target="standings" class="text-slate-400 hover:text-cyan-400 text-sm transition-colors duration-200 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            Standings
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-tab-target="participants" class="text-slate-400 hover:text-cyan-400 text-sm transition-colors duration-200 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            Participants
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            {# Tournament FAQ #}
+            <div>
+                <h4 class="text-white font-bold text-sm uppercase tracking-wider mb-4">FAQ</h4>
+                <ul class="space-y-3">
+                    <li>
+                        <button type="button" data-tab-target="rules" class="text-slate-400 hover:text-cyan-400 text-sm transition-colors duration-200 text-left flex items-start gap-2 group">
+                            <svg class="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>How do I register?</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" data-tab-target="overview" class="text-slate-400 hover:text-cyan-400 text-sm transition-colors duration-200 text-left flex items-start gap-2 group">
+                            <svg class="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>What's the match format?</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" data-tab-target="overview" class="text-slate-400 hover:text-cyan-400 text-sm transition-colors duration-200 text-left flex items-start gap-2 group">
+                            <svg class="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>When is check-in?</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" data-tab-target="prizes" class="text-slate-400 hover:text-cyan-400 text-sm transition-colors duration-200 text-left flex items-start gap-2 group">
+                            <svg class="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>How are prizes distributed?</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            
+            {# Contact Organizer #}
+            <div>
+                <h4 class="text-white font-bold text-sm uppercase tracking-wider mb-4">Contact</h4>
+                <div class="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                            {{ tournament.organizer.username|slice:":1"|upper }}
+                        </div>
+                        <div>
+                            <div class="text-white font-semibold text-sm">{{ tournament.organizer.username }}</div>
+                            <div class="text-slate-400 text-xs">Tournament Organizer</div>
+                        </div>
+                    </div>
+                    <a href="{% url 'user_profile:public_profile' username=tournament.organizer.username %}" 
+                       class="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 text-sm font-medium transition-colors duration-200">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                        </svg>
+                        View Profile
+                    </a>
+                </div>
+            </div>
+            
+            {# Share Tournament #}
+            <div>
+                <h4 class="text-white font-bold text-sm uppercase tracking-wider mb-4">Share</h4>
+                <div class="space-y-3">
+                    <button type="button" onclick="navigator.clipboard.writeText(window.location.href); alert('Link copied to clipboard!');" 
+                            class="w-full flex items-center gap-3 px-4 py-3 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 rounded-lg text-slate-300 hover:text-white text-sm font-medium transition-all duration-200">
+                        <svg class="w-5 h-5 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                            <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
+                        </svg>
+                        Copy Link
+                    </button>
+                    <a href="https://twitter.com/intent/tweet?text={{ tournament.name|urlencode }}&url={{ request.build_absolute_uri }}" 
+                       target="_blank"
+                       class="w-full flex items-center gap-3 px-4 py-3 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 rounded-lg text-slate-300 hover:text-white text-sm font-medium transition-all duration-200">
+                        <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                        </svg>
+                        Share on Twitter
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        {# ========== BOTTOM BAR: Copyright & Links ========== #}
+        <div class="border-t border-slate-800/60 pt-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="text-slate-500 text-sm text-center md:text-left">
+                    © {{ tournament.created_at.year }} {{ tournament.name }}. Powered by <a href="/" class="text-cyan-400 hover:text-cyan-300 transition-colors">DeltaCrown</a>
+                </div>
+                <div class="flex items-center gap-6">
+                    <a href="{% url 'tournaments:list' %}" class="text-slate-400 hover:text-cyan-400 text-sm transition-colors duration-200">All Tournaments</a>
+                    <a href="/about" class="text-slate-400 hover:text-cyan-400 text-sm transition-colors duration-200">About</a>
+                    <a href="/support" class="text-slate-400 hover:text-cyan-400 text-sm transition-colors duration-200">Support</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>

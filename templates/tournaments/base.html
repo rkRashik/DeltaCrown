@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+{% comment %}Tournament Base Layout — Phase 4 Frontend Rebuild{% endcomment %}
+
+{% block extra_head %}
+<!-- Tournament Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block extra_css %}
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<!-- Tournament Design System -->
+<link rel="stylesheet" href="{% static 'tournaments/css/tournaments.css' %}">
+{% block tournament_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="grain-overlay"></div>
+{% block tournament_content %}{% endblock %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+  });
+</script>
+{% block tournament_js %}{% endblock %}
+{% endblock %}

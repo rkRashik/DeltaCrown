@@ -1,0 +1,126 @@
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
+
+{# ─────────────────────────────────────────────────────────
+   Registration Wizard — Team Step 3: Team Payment
+   Same as solo_step3 but with team context
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
+
+{% block title %}Team Payment — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_content %}
+
+<div class="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+
+  {# ── Progress Bar ── #}
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-xs text-gray-500">Step {{ current_step }} of {{ total_steps }}</span>
+      <span class="text-xs text-dc-purple font-mono">{{ step_title }}</span>
+    </div>
+    <div class="h-1 bg-dc-surface rounded-full overflow-hidden">
+      <div class="h-full bg-gradient-to-r from-dc-purple to-dc-cyan rounded-full transition-all duration-500"
+           style="width: {% widthratio current_step total_steps 100 %}%"></div>
+    </div>
+  </div>
+
+  {# ── Fee Summary ── #}
+  <div class="glass rounded-xl p-6 mb-6 neon-border-gold">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wider">Team Entry Fee</p>
+        <p class="text-3xl font-display font-bold text-dc-gold mt-1">৳{{ team_entry_fee|intcomma }}</p>
+        <p class="text-[10px] text-gray-600 mt-1">{{ currency }} · Per team</p>
+      </div>
+      <div class="w-14 h-14 rounded-2xl bg-dc-gold/10 flex items-center justify-center">
+        <i data-lucide="banknote" class="w-7 h-7 text-dc-gold"></i>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="space-y-6">
+    {% csrf_token %}
+    <input type="hidden" name="step" value="3">
+    <input type="hidden" name="type" value="team">
+
+    {# ── Payment Method Selection ── #}
+    <div class="glass rounded-xl p-6">
+      <h3 class="text-sm font-display font-semibold text-white mb-4">
+        <i data-lucide="wallet" class="w-4 h-4 inline mr-1 text-dc-cyan"></i> Payment Method
+      </h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {% for method in payment_methods %}
+          <label class="relative cursor-pointer">
+            <input type="radio" name="payment_method" value="{{ method }}" required
+                   class="peer sr-only" {% if forloop.first %}checked{% endif %}>
+            <div class="p-4 rounded-xl border border-dc-border bg-white/[0.02] text-center
+                        peer-checked:border-dc-purple peer-checked:bg-dc-purple/5 transition">
+              <i data-lucide="{% if method == 'deltacoin' %}coins{% else %}smartphone{% endif %}"
+                 class="w-6 h-6 mx-auto mb-2 text-gray-400"></i>
+              <p class="text-xs text-white capitalize">{{ method }}</p>
+            </div>
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ── DeltaCoin Balance ── #}
+    {% if deltacoin_balance is not None %}
+      <div class="glass rounded-xl p-4 border {% if deltacoin_can_afford %}border-green-600/30{% else %}border-yellow-600/30{% endif %}">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-dc-gold/10 flex items-center justify-center">
+            <i data-lucide="coins" class="w-5 h-5 text-dc-gold"></i>
+          </div>
+          <div class="flex-1">
+            <p class="text-sm text-white">DeltaCoin: <span class="font-mono text-dc-gold">{{ deltacoin_balance|intcomma }}</span></p>
+            {% if deltacoin_can_afford %}
+              <p class="text-[10px] text-green-400">Sufficient for team entry</p>
+            {% else %}
+              <p class="text-[10px] text-yellow-400">Short by {{ deltacoin_shortfall|intcomma }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {# ── Payment Details ── #}
+    <div class="glass rounded-xl p-6">
+      <h3 class="text-sm font-display font-semibold text-white mb-4">
+        <i data-lucide="receipt" class="w-4 h-4 inline mr-1 text-dc-purple"></i> Payment Details
+      </h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1.5">Transaction ID <span class="text-red-400">*</span></label>
+          <input type="text" name="transaction_id" class="form-input font-mono" placeholder="e.g., TXN123456789">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1.5">Sender Number</label>
+          <input type="tel" name="sender_number" class="form-input" placeholder="+880xxxxxxxxx">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1.5">Screenshot (optional)</label>
+          <div class="border-2 border-dashed border-dc-border rounded-xl p-6 text-center hover:border-dc-purple/30 transition cursor-pointer">
+            <input type="file" name="payment_proof" accept="image/*" class="hidden" id="team-payment-proof">
+            <label for="team-payment-proof" class="cursor-pointer">
+              <i data-lucide="upload-cloud" class="w-8 h-8 text-gray-600 mx-auto mb-2"></i>
+              <p class="text-xs text-gray-400">Click to upload</p>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between pt-2">
+      <a href="{{ request.path }}?type=team&step=2" class="text-sm text-gray-500 hover:text-white transition">
+        <i data-lucide="arrow-left" class="w-4 h-4 inline mr-1"></i> Back
+      </a>
+      <button type="submit" class="px-6 py-3 bg-dc-purple text-white font-bold text-sm rounded-xl hover:bg-dc-purple/90 transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+        <i data-lucide="check" class="w-4 h-4 inline mr-1"></i> Submit Team Registration
+      </button>
+    </div>
+  </form>
+
+</div>
+
+{% endblock %}

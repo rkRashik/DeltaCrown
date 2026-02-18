@@ -1,323 +1,127 @@
-{% extends "tournaments/organizer/hub_overview.html" %}
+{% extends "tournaments/organizer/_hub_base.html" %}
+{% load humanize %}
+
+{# ─────────────────────────────────────────────────────────
+   Organizer Hub — Payments Tab
+   Payment tracking, verification, stats
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
 
 {% block hub_content %}
-<div class="bg-white rounded-lg shadow-md p-6">
-    <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold">Payment Management</h2>
-        
-        <div class="flex gap-2">
-            <!-- FE-T-023: Export Payments -->
-            <a href="{% url 'tournaments:export_payments_csv' slug=tournament.slug %}" 
-               class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                <i class="fas fa-download"></i> Export CSV
-            </a>
-            
-            {% if can_approve %}
-            <!-- FE-T-023: Bulk Verify -->
-            <button onclick="bulkVerifyPayments()" 
-                    id="bulk-verify-btn"
-                    class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 hidden">
-                <i class="fas fa-check"></i> Verify Selected
-            </button>
-            {% endif %}
-        </div>
-    </div>
 
-    <!-- Stats Summary -->
-    <div class="flex gap-4 mb-6">
-        <div class="bg-green-50 px-6 py-4 rounded">
-            <div class="text-2xl font-bold text-green-600">৳{{ payment_stats.total_amount|floatformat:0 }}</div>
-            <div class="text-sm text-gray-600">Total Collected</div>
-        </div>
-        <div class="bg-yellow-50 px-6 py-4 rounded">
-            <div class="text-2xl font-bold text-yellow-600">{{ payment_stats.pending_verification }}</div>
-            <div class="text-sm text-gray-600">Pending Verification</div>
-        </div>
-        <div class="bg-blue-50 px-6 py-4 rounded">
-            <div class="text-2xl font-bold text-blue-600">{{ payment_stats.total_submitted }}</div>
-            <div class="text-sm text-gray-600">Total Submitted</div>
-        </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="flex gap-4 mb-6">
-        <select onchange="window.location.search='?status='+this.value" class="px-4 py-2 border rounded">
-            <option value="">All Statuses</option>
-            <option value="submitted" {% if request.GET.status == 'submitted' %}selected{% endif %}>Submitted</option>
-            <option value="verified" {% if request.GET.status == 'verified' %}selected{% endif %}>Verified</option>
-            <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
-            <option value="refunded" {% if request.GET.status == 'refunded' %}selected{% endif %}>Refunded</option>
-        </select>
-    </div>
-
-    <!-- Payments Table -->
-    <div class="overflow-x-auto">
-        <table class="w-full">
-            <thead>
-                <tr class="bg-gray-50 border-b">
-                    {% if can_approve %}
-                    <th class="px-4 py-3">
-                        <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
-                    </th>
-                    {% endif %}
-                    <th class="px-4 py-3 text-left">Participant</th>
-                    <th class="px-4 py-3 text-left">Method</th>
-                    <th class="px-4 py-3 text-left">Amount</th>
-                    <th class="px-4 py-3 text-left">Transaction ID</th>
-                    <th class="px-4 py-3 text-left">Status</th>
-                    <th class="px-4 py-3 text-left">Submitted</th>
-                    {% if can_approve %}
-                    <th class="px-4 py-3 text-left">Actions</th>
-                    {% endif %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for payment in payments %}
-                <tr class="border-b hover:bg-gray-50">
-                    {% if can_approve %}
-                    <td class="px-4 py-3">
-                        {% if payment.status == 'submitted' %}
-                        <input type="checkbox" class="payment-checkbox" value="{{ payment.id }}">
-                        {% endif %}
-                    </td>
-                    {% endif %}
-                    <td class="px-4 py-3">
-                        <strong>{{ payment.registration.user.username }}</strong>
-                    </td>
-                    <td class="px-4 py-3">
-                        {{ payment.payment_method|upper }}
-                    </td>
-                    <td class="px-4 py-3">
-                        <strong>৳{{ payment.amount|floatformat:0 }}</strong>
-                    </td>
-                    <td class="px-4 py-3 font-mono text-sm">
-                        {{ payment.transaction_id }}
-                    </td>
-                    <td class="px-4 py-3">
-                        <span class="px-3 py-1 rounded-full text-sm {% if payment.status == 'verified' %}bg-green-100 text-green-800{% elif payment.status == 'submitted' %}bg-yellow-100 text-yellow-800{% elif payment.status == 'rejected' %}bg-red-100 text-red-800{% elif payment.status == 'refunded' %}bg-purple-100 text-purple-800{% endif %}">
-                            {{ payment.get_status_display }}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-600">
-                        {{ payment.submitted_at|date:"M d, Y H:i" }}
-                    </td>
-                    {% if can_approve %}
-                    <td class="px-4 py-3">
-                        <div class="flex gap-2">
-                            {% if payment.status == 'submitted' %}
-                            <button onclick="verifyPayment({{ payment.id }})" 
-                                    class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">
-                                Verify
-                            </button>
-                            <button onclick="rejectPayment({{ payment.id }})" 
-                                    class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">
-                                Reject
-                            </button>
-                            {% endif %}
-                            
-                            {% if payment.status == 'verified' %}
-                            <!-- FE-T-023: Refund Action -->
-                            <button onclick="processRefund({{ payment.id }}, {{ payment.amount }})" 
-                                    class="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600"
-                                    title="Process refund">
-                                <i class="fas fa-undo"></i> Refund
-                            </button>
-                            {% endif %}
-                            
-                            <!-- FE-T-023: Payment History -->
-                            <button onclick="viewPaymentHistory({{ payment.registration.id }})" 
-                                    class="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
-                                    title="View payment history">
-                                <i class="fas fa-history"></i>
-                            </button>
-                            
-                            {% if payment.proof_image %}
-                            <a href="{{ payment.proof_image.url }}" target="_blank" 
-                               class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
-                                View Proof
-                            </a>
-                            {% endif %}
-                        </div>
-                    </td>
-                    {% endif %}
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="{% if can_approve %}8{% else %}7{% endif %}" class="px-4 py-8 text-center text-gray-500">
-                        No payments found
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+{# ── Payment Stats Strip ── #}
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div class="glass rounded-xl p-4 text-center">
+    <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Submitted</p>
+    <p class="text-xl font-display font-bold text-white">{{ payment_stats.total_submitted|default:"0" }}</p>
+  </div>
+  <div class="glass rounded-xl p-4 text-center">
+    <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Pending Verification</p>
+    <p class="text-xl font-display font-bold text-yellow-400">{{ payment_stats.pending_verification|default:"0" }}</p>
+  </div>
+  <div class="glass rounded-xl p-4 text-center">
+    <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Verified Total</p>
+    <p class="text-xl font-display font-bold text-green-400">৳{{ payment_stats.total_amount|default:"0"|intcomma }}</p>
+  </div>
 </div>
 
-<script>
-// FE-T-023: Checkbox management for bulk actions
-function toggleSelectAll() {
-    const selectAll = document.getElementById('select-all');
-    const checkboxes = document.querySelectorAll('.payment-checkbox');
-    checkboxes.forEach(cb => cb.checked = selectAll.checked);
-    updateBulkVerifyButton();
-}
+{# ── Filters ── #}
+<form method="get" class="flex flex-wrap items-center gap-3 mb-6">
+  <select name="status"
+          class="bg-dc-surface border border-dc-border rounded-xl text-sm text-white px-3 py-2.5 focus:border-dc-cyan/40 focus:outline-none">
+    <option value="">All Statuses</option>
+    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+    <option value="submitted" {% if request.GET.status == 'submitted' %}selected{% endif %}>Submitted</option>
+    <option value="verified" {% if request.GET.status == 'verified' %}selected{% endif %}>Verified</option>
+    <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+  </select>
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Add listeners to all checkboxes
-    document.querySelectorAll('.payment-checkbox').forEach(cb => {
-        cb.addEventListener('change', updateBulkVerifyButton);
-    });
-});
+  <select name="method"
+          class="bg-dc-surface border border-dc-border rounded-xl text-sm text-white px-3 py-2.5 focus:border-dc-cyan/40 focus:outline-none">
+    <option value="">All Methods</option>
+    <option value="bkash" {% if request.GET.method == 'bkash' %}selected{% endif %}>bKash</option>
+    <option value="nagad" {% if request.GET.method == 'nagad' %}selected{% endif %}>Nagad</option>
+    <option value="bank" {% if request.GET.method == 'bank' %}selected{% endif %}>Bank Transfer</option>
+  </select>
 
-function updateBulkVerifyButton() {
-    const checked = document.querySelectorAll('.payment-checkbox:checked').length;
-    const verifyBtn = document.getElementById('bulk-verify-btn');
-    
-    if (checked > 0) {
-        verifyBtn.classList.remove('hidden');
-    } else {
-        verifyBtn.classList.add('hidden');
-    }
-}
+  <button type="submit" class="px-4 py-2.5 bg-dc-cyan/10 text-dc-cyan text-sm rounded-xl hover:bg-dc-cyan/20 transition">
+    Filter
+  </button>
+</form>
 
-function getSelectedPaymentIds() {
-    const checkboxes = document.querySelectorAll('.payment-checkbox:checked');
-    return Array.from(checkboxes).map(cb => parseInt(cb.value));
-}
+{# ── Payment List ── #}
+{% if payments %}
+  <div class="glass rounded-xl overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-dc-border text-[11px] uppercase tracking-wider text-gray-500">
+            <th class="px-4 py-3 text-left">Player</th>
+            <th class="px-4 py-3 text-left">Amount</th>
+            <th class="px-4 py-3 text-left">Method</th>
+            <th class="px-4 py-3 text-left">Transaction ID</th>
+            <th class="px-4 py-3 text-left">Status</th>
+            <th class="px-4 py-3 text-left">Submitted</th>
+            {% if can_approve %}<th class="px-4 py-3 text-right">Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-dc-border">
+          {% for payment in payments %}
+            <tr class="hover:bg-white/[0.02] transition">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-full bg-dc-surface flex items-center justify-center text-[10px] font-bold text-dc-cyan flex-shrink-0">
+                    {{ payment.registration.user.username|first|upper }}
+                  </div>
+                  <span class="text-white">{{ payment.registration.user.username }}</span>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-white font-mono">৳{{ payment.amount|default:"0"|intcomma }}</td>
+              <td class="px-4 py-3 text-gray-400 capitalize">{{ payment.payment_method|default:"—" }}</td>
+              <td class="px-4 py-3">
+                <span class="text-[11px] font-mono text-gray-500 bg-dc-surface px-2 py-0.5 rounded">
+                  {{ payment.transaction_id|default:"—"|truncatechars:16 }}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-mono
+                  {% if payment.status == 'verified' %}bg-green-600/20 text-green-400
+                  {% elif payment.status == 'submitted' %}bg-blue-600/20 text-blue-400
+                  {% elif payment.status == 'pending' %}bg-yellow-600/20 text-yellow-400
+                  {% elif payment.status == 'rejected' %}bg-red-600/20 text-red-400
+                  {% else %}bg-gray-600/20 text-gray-400{% endif %}">
+                  {{ payment.status|title }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-gray-500 text-xs">{{ payment.submitted_at|timesince }} ago</td>
+              {% if can_approve %}
+                <td class="px-4 py-3 text-right">
+                  {% if payment.status == 'submitted' %}
+                    <div class="flex items-center justify-end gap-1">
+                      <button title="Verify" class="p-1.5 rounded-lg hover:bg-green-600/20 text-gray-500 hover:text-green-400 transition">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                      </button>
+                      <button title="Reject" class="p-1.5 rounded-lg hover:bg-red-600/20 text-gray-500 hover:text-red-400 transition">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </div>
+                  {% elif payment.status == 'verified' %}
+                    <span class="text-[10px] text-green-500"><i data-lucide="check-circle" class="w-3.5 h-3.5 inline"></i></span>
+                  {% endif %}
+                </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <div class="text-center py-16 glass rounded-xl">
+    <i data-lucide="credit-card" class="w-10 h-10 text-gray-700 mx-auto mb-3"></i>
+    <p class="text-gray-400 mb-1">No payments found</p>
+    <p class="text-xs text-gray-600">Payment records will appear here when players submit them.</p>
+  </div>
+{% endif %}
 
-// FE-T-023: Bulk verify payments
-function bulkVerifyPayments() {
-    const ids = getSelectedPaymentIds();
-    if (ids.length === 0) {
-        alert('Please select payments to verify');
-        return;
-    }
-    
-    if (!confirm(`Verify ${ids.length} payment(s)?`)) return;
-    
-    fetch(`/tournaments/organizer/{{ tournament.slug }}/bulk-verify-payments/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ payment_ids: ids })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    });
-}
-
-// FE-T-023: Process refund
-function processRefund(paymentId, amount) {
-    const refundAmount = prompt(`Refund amount (max ৳${amount}):`, amount);
-    if (!refundAmount) return;
-    
-    const reason = prompt('Refund reason (required):');
-    if (!reason || reason.trim() === '') {
-        alert('Refund reason is required');
-        return;
-    }
-    
-    const method = prompt('Refund method (manual/bkash/nagad):', 'manual');
-    if (!method) return;
-    
-    if (!confirm(`Process refund of ৳${refundAmount}?`)) return;
-    
-    fetch(`/tournaments/organizer/{{ tournament.slug }}/refund-payment/${paymentId}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-            amount: refundAmount, 
-            reason: reason,
-            refund_method: method 
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    });
-}
-
-// FE-T-023: View payment history
-function viewPaymentHistory(registrationId) {
-    fetch(`/tournaments/organizer/{{ tournament.slug }}/registrations/${registrationId}/payment-history/`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const payments = data.payments;
-            let html = `<h3>Payment History for ${data.participant}</h3><table border="1" style="width:100%; margin-top: 10px;"><tr><th>ID</th><th>Amount</th><th>Method</th><th>Status</th><th>Submitted</th></tr>`;
-            
-            payments.forEach(p => {
-                html += `<tr><td>${p.id}</td><td>৳${p.amount}</td><td>${p.method}</td><td>${p.status}</td><td>${p.submitted_at || 'N/A'}</td></tr>`;
-            });
-            
-            html += '</table>';
-            
-            // Show in modal or alert
-            const win = window.open('', 'Payment History', 'width=800,height=600');
-            win.document.write(`<html><head><title>Payment History</title></head><body>${html}</body></html>`);
-        } else {
-            alert('Error: ' + data.error);
-        }
-    });
-}
-
-function verifyPayment(id) {
-    if (!confirm('Verify this payment?')) return;
-    
-    fetch(`/tournaments/organizer/{{ tournament.slug }}/verify-payment/${id}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    });
-}
-
-function rejectPayment(id) {
-    if (!confirm('Reject this payment?')) return;
-    
-    fetch(`/tournaments/organizer/{{ tournament.slug }}/reject-payment/${id}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    });
-}
-</script>
 {% endblock %}

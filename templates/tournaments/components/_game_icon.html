@@ -1,0 +1,32 @@
+{% comment %}
+─── Game Icon Partial ───
+Usage: include "tournaments/components/_game_icon.html" with game=game_dict
+
+Context:
+  game — dict with 'slug', 'name', 'icon' (optional url)
+  active — bool (optional)
+{% endcomment %}
+{% if game.icon %}
+  <img src="{{ game.icon }}" alt="{{ game.name }}" class="w-6 h-6 rounded object-cover">
+{% else %}
+  {# Fallback: colored abbreviation badge #}
+  {% with slug=game.slug %}
+  <div class="game-icon
+    {% if slug == 'valorant' %}bg-red-600 text-white
+    {% elif slug == 'pubg-mobile' or slug == 'pubg' %}bg-yellow-500 text-black
+    {% elif slug == 'free-fire' %}bg-green-600 text-white
+    {% elif slug == 'cs2' or slug == 'counter-strike-2' %}bg-orange-500 text-black
+    {% elif slug == 'mobile-legends' or slug == 'mlbb' %}bg-blue-600 text-white
+    {% elif slug == 'ea-fc' or slug == 'ea-sports-fc' %}bg-black border border-white/20 text-white
+    {% elif slug == 'efootball' %}bg-blue-900 text-white
+    {% elif slug == 'dota-2' %}bg-red-800 text-white
+    {% elif slug == 'league-of-legends' or slug == 'lol' %}bg-blue-500 text-white
+    {% elif slug == 'rainbow-six' or slug == 'r6' %}bg-indigo-500 text-white
+    {% elif slug == 'rocket-league' %}bg-sky-500 text-white
+    {% elif slug == 'call-of-duty' or slug == 'cod-mobile' %}bg-zinc-700 text-white
+    {% else %}bg-dc-surface text-white border border-white/10
+    {% endif %}">
+    {{ game.name|truncatechars:3|upper }}
+  </div>
+  {% endwith %}
+{% endif %}

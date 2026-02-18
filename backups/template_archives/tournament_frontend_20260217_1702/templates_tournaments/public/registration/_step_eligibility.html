@@ -1,0 +1,86 @@
+<!-- Step 1: Eligibility Check -->
+<div class="eligibility-check">
+  {% if eligible %}
+    <div class="bg-success/10 border border-success rounded-lg p-6">
+      <div class="flex items-start gap-4">
+        <div class="w-12 h-12 bg-success rounded-full flex items-center justify-center flex-shrink-0">
+          <i class="fas fa-check text-white text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-success mb-2">You're Eligible!</h3>
+          <p class="text-body-secondary">
+            {{ eligibility_message }}
+          </p>
+          <div class="mt-4 space-y-2">
+            <div class="flex items-center gap-2 text-sm">
+              <i class="fas fa-check-circle text-success"></i>
+              <span>Account verified</span>
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <i class="fas fa-check-circle text-success"></i>
+              <span>Meets tournament requirements</span>
+            </div>
+            {% if tournament.participation_type == 'team' %}
+              <div class="flex items-center gap-2 text-sm">
+                <i class="fas fa-check-circle text-success"></i>
+                <span>Has eligible teams</span>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tournament Requirements Info -->
+    <div class="mt-6 bg-surface border border-line rounded-lg p-4">
+      <h4 class="font-semibold mb-3">Tournament Requirements</h4>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div>
+          <span class="text-body-secondary">Format:</span>
+          <span class="ml-2 font-semibold">{{ tournament.get_format_display }}</span>
+        </div>
+        <div>
+          <span class="text-body-secondary">Type:</span>
+          <span class="ml-2 font-semibold">{{ tournament.get_participation_type_display }}</span>
+        </div>
+        <div>
+          <span class="text-body-secondary">Entry Fee:</span>
+          <span class="ml-2 font-semibold">
+            {% if tournament.has_entry_fee %}
+              ৳{{ tournament.entry_fee_amount }}
+            {% else %}
+              Free
+            {% endif %}
+          </span>
+        </div>
+        <div>
+          <span class="text-body-secondary">Slots:</span>
+          <span class="ml-2 font-semibold">{{ tournament.max_participants }} participants</span>
+        </div>
+      </div>
+    </div>
+
+  {% else %}
+    <!-- Not Eligible -->
+    <div class="bg-danger/10 border border-danger rounded-lg p-6">
+      <div class="flex items-start gap-4">
+        <div class="w-12 h-12 bg-danger rounded-full flex items-center justify-center flex-shrink-0">
+          <i class="fas fa-times text-white text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-danger mb-2">Not Eligible</h3>
+          <p class="text-body">
+            {{ eligibility_message }}
+          </p>
+          
+          <div class="mt-4">
+            <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="text-primary hover:underline">
+              <i class="fas fa-arrow-left mr-2"></i>
+              Return to Tournament Page
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>

@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ tournament.name }} - Leaderboard | DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Tournament Leaderboard Styles */
+.tournament-leaderboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.tournament-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.tournament-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.header-badges {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.game-badge, .status-pill {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.game-badge {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.status-pill {
+  background-color: #10b981;
+  color: white;
+}
+
+/* Leaderboard Table */
+.leaderboard-container {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.table-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.leaderboard-table thead {
+  background-color: #f3f4f6;
+}
+
+.leaderboard-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  color: #6b7280;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.leaderboard-table th.text-center {
+  text-align: center;
+}
+
+.leaderboard-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Row Highlighting */
+.leaderboard-row {
+  transition: background-color 0.2s;
+}
+
+.leaderboard-row:hover {
+  background-color: #f9fafb;
+}
+
+.leaderboard-row.highlight-current-user {
+  background-color: #fef3c7;
+  border-left: 4px solid #f59e0b;
+}
+
+.leaderboard-row.highlight-current-user:hover {
+  background-color: #fde68a;
+}
+
+/* Rank Column */
+.rank {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  width: 80px;
+}
+
+.rank-number {
+  color: #6b7280;
+}
+
+/* Participant Column */
+.participant-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.participant-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.participant-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Stats Columns */
+.stat-cell {
+  text-align: center;
+  font-weight: 500;
+  color: #374151;
+}
+
+.points-cell {
+  font-weight: 700;
+  color: #059669;
+  font-size: 1.125rem;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.empty-state img {
+  max-width: 200px;
+  margin-bottom: 1.5rem;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  font-size: 1.5rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  color: #9ca3af;
+  margin-bottom: 1.5rem;
+}
+
+.empty-state .btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.empty-state .btn:hover {
+  background-color: #2563eb;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .tournament-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .rank {
+    font-size: 1.25rem;
+    width: 60px;
+  }
+  
+  .participant-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .participant-name {
+    font-size: 0.875rem;
+  }
+}
+
+/* Accessibility */
+.leaderboard-table th[scope="col"] {
+  cursor: default;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tournament-leaderboard">
+  <!-- Tournament Header -->
+  <div class="tournament-header">
+    <h1>{{ tournament.name }}</h1>
+    <div class="header-badges">
+      <span class="game-badge">{{ tournament.game.name }}</span>
+      <span class="status-pill">{{ tournament.get_status_display }}</span>
+    </div>
+  </div>
+  
+  <!-- Leaderboard Table or Empty State -->
+  {% if standings %}
+    {% include "tournaments/public/leaderboard/_leaderboard_table.html" %}
+  {% else %}
+    {% include "tournaments/public/leaderboard/_empty_state.html" %}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// HTMX is loaded globally, polling configured in _leaderboard_table.html
+// Optional: Flash animation on update
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+  if (evt.detail.target.classList.contains('leaderboard-table-container')) {
+    // Flash effect on update
+    const container = evt.detail.target;
+    container.style.opacity = '0.7';
+    setTimeout(() => {
+      container.style.opacity = '1';
+    }, 200);
+  }
+});
+</script>
+{% endblock %}

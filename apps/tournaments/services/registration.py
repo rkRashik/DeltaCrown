@@ -1,4 +1,12 @@
 # apps/tournaments/services/registration.py
+"""
+DEPRECATED — Lightweight registration helpers for game-specific flows.
+
+The canonical registration service is ``registration_service.py`` (RegistrationService).
+These helpers remain only for backward-compatibility with Valorant team and
+eFootball solo registration API views.  New code should use RegistrationService
+directly.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -247,12 +247,11 @@ def _get_leaderboard(game_id=None, limit=50):
         return cached_leaderboard
     
     try:
-        # Legacy Team: no 'status', 'organization', or 'owner' FKs
-        # Use team__is_active for filtering
+        # vNext Team uses status CharField, not is_active BooleanField
         leaderboard_qs = TeamRanking.objects.select_related(
             'team'
         ).filter(
-            team__is_active=True
+            team__status='ACTIVE'
         ).order_by('-current_cp')
         
         # Apply game filter (legacy Team uses 'game' CharField slug, not game_id FK)

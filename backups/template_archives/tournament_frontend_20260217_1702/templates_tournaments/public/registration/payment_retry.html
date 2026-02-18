@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Payment Failed - Retry | DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+  <!-- Header -->
+  <div class="mb-8">
+    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="text-body-secondary hover:text-primary mb-4 inline-block">
+      <i class="fas fa-arrow-left mr-2"></i> Back to Tournament
+    </a>
+    <h1 class="text-3xl font-bold mb-2 flex items-center gap-3">
+      <i class="fas fa-exclamation-triangle text-warning"></i>
+      Payment Failed
+    </h1>
+    <p class="text-body-secondary">{{ tournament.name }}</p>
+  </div>
+
+  <!-- Error Message -->
+  <div class="bg-danger/10 border border-danger rounded-lg p-6 mb-8">
+    <div class="flex items-start gap-4">
+      <i class="fas fa-times-circle text-danger text-2xl mt-1"></i>
+      <div>
+        <h3 class="font-bold text-lg mb-2">Payment Could Not Be Completed</h3>
+        <p class="text-body-secondary">
+          Your registration has been saved, but the payment was not successful. 
+          Please try again using one of the options below.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Entry Fee Display -->
+  <div class="bg-primary/10 border border-primary rounded-lg p-6 mb-8">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-sm text-body-secondary mb-1">Entry Fee</p>
+        <p class="text-3xl font-bold text-primary">৳{{ entry_fee|floatformat:0 }}</p>
+      </div>
+      <i class="fas fa-coins text-primary text-4xl opacity-20"></i>
+    </div>
+  </div>
+
+  <h2 class="text-2xl font-bold mb-6">Retry Payment</h2>
+
+  <form method="POST" class="space-y-6">
+    {% csrf_token %}
+    
+    <!-- DeltaCoin Option -->
+    <div class="bg-surface border-2 {% if deltacoin_can_afford %}border-line hover:border-primary{% else %}border-danger/30{% endif %} rounded-xl overflow-hidden transition-all">
+      <div class="p-6">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg">
+            <span class="text-3xl">🪙</span>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center gap-3 mb-2">
+              <h3 class="text-xl font-bold">DeltaCoin</h3>
+              {% if deltacoin_can_afford %}
+              <span class="bg-success/20 text-success text-xs font-bold px-2 py-1 rounded-full">
+                <i class="fas fa-check-circle mr-1"></i>Available
+              </span>
+              {% else %}
+              <span class="bg-danger/20 text-danger text-xs font-bold px-2 py-1 rounded-full">
+                <i class="fas fa-exclamation-circle mr-1"></i>Insufficient
+              </span>
+              {% endif %}
+            </div>
+            <p class="text-sm text-body-secondary">
+              Instant verification - payment deducted from your DeltaCoin balance
+            </p>
+          </div>
+        </div>
+
+        <!-- Balance Display -->
+        <div class="bg-surface-hover rounded-lg p-4 mb-4">
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <p class="text-xs text-body-secondary mb-2">Your Balance</p>
+              <p class="font-mono font-bold {% if deltacoin_can_afford %}text-success{% else %}text-danger{% endif %} text-2xl">
+                {{ deltacoin_balance }} DC
+              </p>
+            </div>
+            <div>
+              <p class="text-xs text-body-secondary mb-2">Entry Fee</p>
+              <p class="font-mono font-bold text-primary text-2xl">
+                {{ entry_fee|floatformat:0 }} DC
+              </p>
+            </div>
+          </div>
+          
+          {% if not deltacoin_can_afford %}
+          <div class="mt-4 pt-4 border-t border-line">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm text-body-secondary">Shortfall</span>
+              <span class="font-bold text-danger text-lg">{{ deltacoin_shortfall }} DC</span>
+            </div>
+            <a href="{% url 'economy:wallet' %}" class="inline-flex items-center gap-2 text-sm text-primary hover:text-primary-hover font-semibold">
+              <i class="fas fa-plus-circle"></i>
+              Get More DeltaCoin
+            </a>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if deltacoin_can_afford %}
+        <button 
+          type="submit" 
+          name="payment_method" 
+          value="deltacoin"
+          class="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg font-bold hover:from-yellow-600 hover:to-orange-600 transition-all shadow-lg flex items-center justify-center gap-2"
+        >
+          <i class="fas fa-bolt"></i>
+          Pay with DeltaCoin (Instant)
+        </button>
+        {% else %}
+        <div class="bg-warning/10 border border-warning rounded-lg p-4">
+          <p class="text-sm text-body-secondary">
+            <i class="fas fa-info-circle text-warning mr-2"></i>
+            You need {{ deltacoin_shortfall }} more DeltaCoin to use this payment method.
+          </p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Manual Payment Option -->
+    <div class="bg-surface border-2 border-line hover:border-primary rounded-xl overflow-hidden transition-all">
+      <div class="p-6">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="w-16 h-16 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-mobile-alt text-white text-2xl"></i>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-xl font-bold mb-2">Manual Payment</h3>
+            <p class="text-sm text-body-secondary mb-3">
+              Pay via bKash, Nagad, Rocket, or Bank Transfer
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <span class="bg-surface-hover px-3 py-1 rounded-full text-xs font-semibold">📱 bKash</span>
+              <span class="bg-surface-hover px-3 py-1 rounded-full text-xs font-semibold">📲 Nagad</span>
+              <span class="bg-surface-hover px-3 py-1 rounded-full text-xs font-semibold">🚀 Rocket</span>
+              <span class="bg-surface-hover px-3 py-1 rounded-full text-xs font-semibold">🏦 Bank</span>
+            </div>
+          </div>
+        </div>
+
+        <button 
+          type="submit" 
+          name="payment_method" 
+          value="manual"
+          class="w-full py-4 bg-primary text-white rounded-lg font-bold hover:bg-primary-hover transition-colors flex items-center justify-center gap-2"
+        >
+          <i class="fas fa-arrow-right"></i>
+          Continue with Manual Payment
+        </button>
+        
+        <p class="text-xs text-body-secondary text-center mt-3">
+          <i class="fas fa-clock mr-1"></i>
+          Verification within 1-6 hours after proof upload
+        </p>
+      </div>
+    </div>
+  </form>
+
+  <!-- Help Section -->
+  <div class="mt-8 bg-primary/5 border border-primary/20 rounded-lg p-6">
+    <div class="flex items-start gap-3">
+      <i class="fas fa-question-circle text-primary text-xl mt-0.5"></i>
+      <div class="text-sm">
+        <p class="font-semibold mb-2">Need Help?</p>
+        <p class="text-body-secondary mb-3">
+          If you're experiencing issues with payment, please contact our support team:
+        </p>
+        <a href="{% url 'contact' %}" class="inline-flex items-center gap-2 text-primary hover:text-primary-hover font-semibold">
+          <i class="fas fa-headset"></i>
+          Contact Support
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

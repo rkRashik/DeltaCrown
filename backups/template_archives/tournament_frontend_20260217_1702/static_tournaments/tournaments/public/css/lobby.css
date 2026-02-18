@@ -1,0 +1,127 @@
+/**
+ * Tournament Lobby Styles
+ * 
+ * Sprint 5: Custom styles for lobby page
+ * Extends Tailwind classes for check-in widget, roster, and schedule
+ */
+
+/* Check-In Widget Animations */
+.checkin-widget {
+    transition: all 0.3s ease;
+}
+
+.checkin-widget button {
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.checkin-widget button:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.checkin-widget button:not(:disabled):active {
+    transform: translateY(0);
+}
+
+/* Countdown Timer Urgency Animation */
+@keyframes pulse-urgent {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.countdown-urgent {
+    animation: pulse-urgent 1.5s ease-in-out infinite;
+}
+
+/* Roster Item Hover Effect */
+.roster-item {
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.roster-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Check-In Status Icons */
+.status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.status-icon.checked-in {
+    color: #10b981; /* green-500 */
+}
+
+.status-icon.pending {
+    color: #6b7280; /* gray-500 */
+}
+
+.status-icon.no-show {
+    color: #ef4444; /* red-500 */
+}
+
+/* Mobile Optimizations */
+@media (max-width: 640px) {
+    .tournament-lobby {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .lobby-header {
+        padding: 1rem;
+    }
+    
+    .checkin-widget {
+        margin-bottom: 1rem;
+    }
+    
+    .roster-item {
+        padding: 0.75rem;
+    }
+}
+
+/* Loading Spinner for HTMX Requests */
+.htmx-request .htmx-indicator {
+    display: inline-block;
+    margin-left: 0.5rem;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Screen Reader Only (for accessibility announcements) */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Focus Indicators (WCAG 2.1 AA) */
+.checkin-widget button:focus,
+.roster-item:focus,
+input:focus {
+    outline: 2px solid #3b82f6; /* blue-500 */
+    outline-offset: 2px;
+}

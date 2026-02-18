@@ -1,0 +1,71 @@
+{% comment %}
+─── Info Bar Partial (Detail Page) ───
+Usage: include "tournaments/components/_info_bar.html" with tournament=tournament
+
+Displays: Format, Platform, Mode, Date, Slots — horizontal strip below hero
+{% endcomment %}
+{% load humanize %}
+
+<div class="glass-strong">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-3">
+
+      {# Format #}
+      <div class="stat-card flex-shrink-0 px-4 border-r border-white/10">
+        <div class="stat-label">Format</div>
+        <div class="stat-value text-white text-sm">{{ tournament.get_format_display }}</div>
+      </div>
+
+      {# Platform #}
+      <div class="stat-card flex-shrink-0 px-4 border-r border-white/10">
+        <div class="stat-label">Platform</div>
+        <div class="stat-value text-white text-sm">{{ tournament.get_platform_display }}</div>
+      </div>
+
+      {# Mode #}
+      <div class="stat-card flex-shrink-0 px-4 border-r border-white/10">
+        <div class="stat-label">Mode</div>
+        <div class="stat-value text-white text-sm">{{ tournament.get_mode_display }}</div>
+      </div>
+
+      {# Start Date #}
+      <div class="stat-card flex-shrink-0 px-4 border-r border-white/10">
+        <div class="stat-label">Start Date</div>
+        <div class="stat-value text-white text-sm">{{ tournament.tournament_start|date:"M j, Y • g:i A" }}</div>
+      </div>
+
+      {# Prize Pool #}
+      <div class="stat-card flex-shrink-0 px-4 border-r border-white/10">
+        <div class="stat-label">Prize Pool</div>
+        <div class="stat-value text-dc-gold text-sm">
+          {% if tournament.prize_pool > 0 %}
+            {{ tournament.prize_currency }} {{ tournament.prize_pool|floatformat:0|intcomma }}
+          {% elif tournament.prize_deltacoin > 0 %}
+            {{ tournament.prize_deltacoin|intcomma }} DC
+          {% else %}
+            —
+          {% endif %}
+        </div>
+      </div>
+
+      {# Entry Fee #}
+      <div class="stat-card flex-shrink-0 px-4 border-r border-white/10">
+        <div class="stat-label">Entry Fee</div>
+        <div class="stat-value text-white text-sm">
+          {% if tournament.has_entry_fee %}
+            {{ tournament.entry_fee_currency }} {{ tournament.entry_fee_amount|floatformat:0 }}
+          {% else %}
+            Free
+          {% endif %}
+        </div>
+      </div>
+
+      {# Slots #}
+      <div class="stat-card flex-shrink-0 px-4">
+        <div class="stat-label">Slots</div>
+        <div class="stat-value text-white text-sm">{{ slots_filled }}/{{ slots_total }}</div>
+      </div>
+
+    </div>
+  </div>
+</div>

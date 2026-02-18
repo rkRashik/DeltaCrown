@@ -1,298 +1,87 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
 
-{% block title %}Resubmit Payment - {{ tournament.title }}{% endblock %}
+{# ─────────────────────────────────────────────────────────
+   Resubmit Payment
+   Context: tournament, registration, rejection_reason,
+            payment_methods
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
 
-{% block content %}
-<div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-12">
-    <div class="max-w-4xl mx-auto px-4">
-        <!-- Header -->
-        <div class="mb-8">
-            <a href="{% url 'tournaments:registration_status' tournament.slug registration.id %}" 
-                class="inline-flex items-center text-gray-400 hover:text-white mb-4">
-                <i class="fas fa-arrow-left mr-2"></i>
-                Back to Status
-            </a>
-            <h1 class="text-3xl font-bold text-white mb-2">Resubmit Payment</h1>
-            <p class="text-gray-400">{{ tournament.title }}</p>
+{% block title %}Resubmit Payment — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_content %}
+
+<div class="max-w-xl mx-auto px-4 sm:px-6 py-8">
+
+  <div class="mb-6">
+    <a href="{% url 'tournaments:registration_status' tournament.slug registration.id %}" class="text-xs text-gray-500 hover:text-dc-cyan transition">
+      <i data-lucide="arrow-left" class="w-3 h-3 inline mr-1"></i> Back to Status
+    </a>
+  </div>
+
+  {# ── Rejection Notice ── #}
+  {% if rejection_reason %}
+    <div class="glass rounded-xl p-4 mb-6 border border-red-700/30">
+      <div class="flex items-start gap-3">
+        <i data-lucide="alert-circle" class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5"></i>
+        <div>
+          <p class="text-sm font-medium text-red-400">Previous payment was rejected</p>
+          <p class="text-xs text-gray-400 mt-1">{{ rejection_reason }}</p>
         </div>
-
-        <!-- Rejection Notice -->
-        <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-6 mb-6">
-            <div class="flex items-start">
-                <i class="fas fa-exclamation-triangle text-red-500 text-3xl mr-4"></i>
-                <div class="flex-1">
-                    <h2 class="text-xl font-bold text-red-400 mb-2">Payment Rejected</h2>
-                    <p class="text-gray-300 mb-3">Your previous payment submission was rejected. Please review the reason below and submit a new payment proof.</p>
-                    
-                    {% if rejected_payment.admin_notes %}
-                        <div class="bg-gray-800 rounded-lg p-4">
-                            <strong class="text-white block mb-2">Organizer's Feedback:</strong>
-                            <p class="text-gray-300">{{ rejected_payment.admin_notes }}</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Common Rejection Reasons -->
-        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6">
-            <div class="flex items-start">
-                <i class="fas fa-lightbulb text-yellow-500 text-xl mr-3 mt-1"></i>
-                <div class="text-sm text-gray-300">
-                    <p class="font-bold text-yellow-400 mb-2">Common Issues to Avoid:</p>
-                    <ul class="list-disc list-inside space-y-1">
-                        <li>Blurry or unreadable screenshot</li>
-                        <li>Incorrect transaction ID</li>
-                        <li>Wrong amount sent</li>
-                        <li>Screenshot doesn't show transaction details</li>
-                        <li>Payment sent to wrong account</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Resubmission Form (Same as Step 3) -->
-        <form method="POST" enctype="multipart/form-data" id="paymentForm" class="space-y-6">
-            {% csrf_token %}
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- LEFT: Payment Details -->
-                <div class="space-y-6">
-                    <!-- Tournament Price Card -->
-                    <div class="gradient-border rounded-lg p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-xl font-bold text-white">Entry Fee</h3>
-                            <div class="text-3xl font-bold text-primary">৳{{ entry_fee|floatformat:0 }}</div>
-                        </div>
-                        <p class="text-sm text-gray-400">Please send exactly this amount</p>
-                    </div>
-
-                    <!-- Payment Method Selection -->
-                    <div class="gradient-border rounded-lg p-6">
-                        <h3 class="text-xl font-bold text-white mb-4">Select Payment Method</h3>
-                        <div class="space-y-3" id="paymentMethods">
-                            <!-- bKash -->
-                            <label class="payment-method-option flex items-center p-4 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors border-2 border-transparent">
-                                <input type="radio" name="payment_method" value="bkash" required 
-                                    data-account="01700000000" data-name="DeltaCrown Gaming"
-                                    class="w-5 h-5 text-primary bg-gray-700 border-gray-600">
-                                <div class="ml-4">
-                                    <div class="text-white font-medium">bKash</div>
-                                    <div class="text-xs text-gray-400">Send Money / Payment</div>
-                                </div>
-                            </label>
-
-                            <!-- Nagad -->
-                            <label class="payment-method-option flex items-center p-4 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors border-2 border-transparent">
-                                <input type="radio" name="payment_method" value="nagad"
-                                    data-account="01700000001" data-name="DeltaCrown Gaming"
-                                    class="w-5 h-5 text-primary bg-gray-700 border-gray-600">
-                                <div class="ml-4">
-                                    <div class="text-white font-medium">Nagad</div>
-                                    <div class="text-xs text-gray-400">Send Money</div>
-                                </div>
-                            </label>
-
-                            <!-- Rocket -->
-                            <label class="payment-method-option flex items-center p-4 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors border-2 border-transparent">
-                                <input type="radio" name="payment_method" value="rocket"
-                                    data-account="017000000025" data-name="DeltaCrown Gaming"
-                                    class="w-5 h-5 text-primary bg-gray-700 border-gray-600">
-                                <div class="ml-4">
-                                    <div class="text-white font-medium">Rocket</div>
-                                    <div class="text-xs text-gray-400">Cash Out</div>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Account Details -->
-                    <div id="accountDetails" class="gradient-border rounded-lg p-6 hidden">
-                        <h3 class="text-lg font-bold text-white mb-4">Send Payment To:</h3>
-                        <div class="bg-gray-800 rounded-lg p-4 space-y-3 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Method:</span>
-                                <span id="selectedMethod" class="text-white font-medium">-</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-400">Account:</span>
-                                <div class="flex items-center">
-                                    <span id="accountNumber" class="text-white font-mono font-bold mr-2">-</span>
-                                    <button type="button" onclick="copyAccount()" 
-                                        class="text-primary hover:text-secondary text-xs">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Name:</span>
-                                <span id="accountName" class="text-white">-</span>
-                            </div>
-                            <div class="flex justify-between border-t border-gray-700 pt-3">
-                                <span class="text-gray-400">Amount:</span>
-                                <span class="text-primary font-bold text-lg">৳{{ entry_fee|floatformat:0 }}</span>
-                            </div>
-                        </div>
-
-                        <!-- Transaction ID -->
-                        <div class="mt-4">
-                            <label for="transaction_id" class="block text-sm font-medium text-gray-300 mb-2">
-                                Transaction ID <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" id="transaction_id" name="transaction_id" required
-                                placeholder="Enter Transaction ID"
-                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white font-mono focus:border-primary">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- RIGHT: Upload New Proof -->
-                <div class="space-y-6">
-                    <div class="gradient-border rounded-lg p-6">
-                        <h3 class="text-xl font-bold text-white mb-4">Upload New Payment Proof</h3>
-
-                        <!-- Upload Zone -->
-                        <div id="dropZone" class="relative border-2 border-dashed border-gray-600 rounded-lg p-8 text-center bg-gray-800/50 hover:border-primary transition-all cursor-pointer">
-                            <input type="file" id="payment_proof" name="payment_proof" required accept="image/jpeg,image/jpg,image/png,application/pdf" class="hidden" onchange="handleFileSelect(event)">
-                            
-                            <div id="uploadPrompt" class="space-y-4">
-                                <div class="text-6xl">📸</div>
-                                <p class="text-white font-medium">Click or drag to upload</p>
-                                <p class="text-sm text-gray-400">JPG, PNG, PDF (Max 5MB)</p>
-                            </div>
-
-                            <div id="previewArea" class="hidden">
-                                <div class="relative">
-                                    <img id="imagePreview" src="" alt="Preview" class="max-w-full max-h-96 mx-auto rounded-lg border-2 border-primary">
-                                    <button type="button" onclick="removeFile()" 
-                                        class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                                <div id="fileInfo" class="mt-4 text-sm text-gray-400">
-                                    <span id="fileName">-</span> • <span id="fileSize">-</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Checklist -->
-                        <div class="mt-4 bg-green-500/10 border border-green-500/30 rounded-lg p-3">
-                            <p class="font-bold text-green-400 text-sm mb-2">✓ Checklist:</p>
-                            <ul class="text-xs text-gray-300 space-y-1">
-                                <li>✓ Transaction ID clearly visible</li>
-                                <li>✓ Amount matches entry fee</li>
-                                <li>✓ Screenshot is clear and readable</li>
-                                <li>✓ Sent to correct account number</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- Notes -->
-                    <div class="gradient-border rounded-lg p-6">
-                        <label for="payment_notes" class="block text-sm font-medium text-gray-300 mb-2">
-                            Additional Notes (Optional)
-                        </label>
-                        <textarea id="payment_notes" name="payment_notes" rows="3"
-                            placeholder="Explain what you corrected..."
-                            class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-primary"></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Submit Button -->
-            <div class="flex items-center justify-between pt-6">
-                <a href="{% url 'tournaments:registration_status' tournament.slug registration.id %}" 
-                    class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg">
-                    Cancel
-                </a>
-                <button type="submit" id="submitBtn" disabled
-                    class="px-8 py-3 bg-gradient-to-r from-orange-600 to-orange-500 hover:opacity-90 text-white font-bold rounded-lg disabled:opacity-50">
-                    <i class="fas fa-redo mr-2"></i>
-                    Resubmit Payment
-                </button>
-            </div>
-        </form>
+      </div>
     </div>
+  {% endif %}
+
+  <div class="glass rounded-xl overflow-hidden">
+    <div class="px-6 py-4 border-b border-dc-border bg-dc-cyan/[0.03]">
+      <h1 class="text-lg font-display font-bold text-white">
+        <i data-lucide="refresh-cw" class="w-5 h-5 inline mr-2 text-dc-cyan"></i> Resubmit Payment
+      </h1>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="p-6 space-y-5">
+      {% csrf_token %}
+
+      <div>
+        <label class="block text-xs text-gray-400 mb-1.5">Payment Method</label>
+        <select name="payment_method" class="form-select" required>
+          {% for method in payment_methods %}
+            <option value="{{ method }}">{{ method|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs text-gray-400 mb-1.5">Transaction ID <span class="text-red-400">*</span></label>
+        <input type="text" name="transaction_id" class="form-input font-mono" required placeholder="e.g., TXN123456789">
+      </div>
+
+      <div>
+        <label class="block text-xs text-gray-400 mb-1.5">Sender Number</label>
+        <input type="tel" name="sender_number" class="form-input" placeholder="+880xxxxxxxxx">
+      </div>
+
+      <div>
+        <label class="block text-xs text-gray-400 mb-1.5">Payment Screenshot</label>
+        <div class="border-2 border-dashed border-dc-border rounded-xl p-6 text-center hover:border-dc-cyan/30 transition cursor-pointer">
+          <input type="file" name="payment_proof" accept="image/*" class="hidden" id="resubmit-proof">
+          <label for="resubmit-proof" class="cursor-pointer">
+            <i data-lucide="upload-cloud" class="w-8 h-8 text-gray-600 mx-auto mb-2"></i>
+            <p class="text-xs text-gray-400">Click to upload proof</p>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-2">
+        <a href="{% url 'tournaments:registration_status' tournament.slug registration.id %}" class="text-sm text-gray-500 hover:text-white transition">Cancel</a>
+        <button type="submit" class="px-6 py-3 bg-dc-cyan text-dc-dark font-bold text-sm rounded-xl hover:bg-dc-cyan/90 transition shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+          <i data-lucide="send" class="w-4 h-4 inline mr-1"></i> Submit Payment
+        </button>
+      </div>
+    </form>
+  </div>
+
 </div>
 
-<script>
-// Copy payment method selection script from solo_step3.html
-document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        document.querySelectorAll('.payment-method-option').forEach(opt => {
-            opt.classList.remove('border-primary');
-        });
-        this.closest('.payment-method-option').classList.add('border-primary');
-        
-        document.getElementById('accountDetails').classList.remove('hidden');
-        document.getElementById('selectedMethod').textContent = this.nextElementSibling.querySelector('.font-medium').textContent;
-        document.getElementById('accountNumber').textContent = this.dataset.account;
-        document.getElementById('accountName').textContent = this.dataset.name;
-        checkForm();
-    });
-});
-
-function copyAccount() {
-    navigator.clipboard.writeText(document.getElementById('accountNumber').textContent);
-    event.target.closest('button').querySelector('i').classList.replace('fa-copy', 'fa-check');
-    setTimeout(() => event.target.closest('button').querySelector('i').classList.replace('fa-check', 'fa-copy'), 2000);
-}
-
-// File upload (same as solo_step3.html)
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('payment_proof');
-
-dropZone.addEventListener('click', () => fileInput.click());
-dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-primary'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-primary'));
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('border-primary');
-    if (e.dataTransfer.files.length) {
-        fileInput.files = e.dataTransfer.files;
-        handleFileSelect({ target: fileInput });
-    }
-});
-
-function handleFileSelect(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { alert('File must be < 5MB'); fileInput.value = ''; return; }
-    if (!['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'].includes(file.type)) {
-        alert('Only JPG, PNG, PDF allowed'); fileInput.value = ''; return;
-    }
-    if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById('imagePreview').src = e.target.result;
-            document.getElementById('uploadPrompt').classList.add('hidden');
-            document.getElementById('previewArea').classList.remove('hidden');
-        };
-        reader.readAsDataURL(file);
-    } else {
-        document.getElementById('uploadPrompt').classList.add('hidden');
-        document.getElementById('previewArea').classList.remove('hidden');
-        document.getElementById('imagePreview').classList.add('hidden');
-    }
-    document.getElementById('fileName').textContent = file.name;
-    document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
-    checkForm();
-}
-
-function removeFile() {
-    fileInput.value = '';
-    document.getElementById('uploadPrompt').classList.remove('hidden');
-    document.getElementById('previewArea').classList.add('hidden');
-    checkForm();
-}
-
-function checkForm() {
-    const method = document.querySelector('input[name="payment_method"]:checked');
-    const file = fileInput.files.length > 0;
-    document.getElementById('submitBtn').disabled = !(method && file);
-}
-
-document.getElementById('transaction_id').addEventListener('input', checkForm);
-</script>
 {% endblock %}

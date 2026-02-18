@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registration Update - {{ tournament.name }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+        .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Registration Update</h1>
+        </div>
+        <div class="content">
+            <p>Hello {{ response.user.username }},</p>
+            
+            <p>We're writing to inform you about your registration for <strong>{{ tournament.name }}</strong>.</p>
+            
+            <div class="warning">
+                <p style="margin: 0;"><strong>⚠️ Registration Status:</strong> Unfortunately, your registration was not approved at this time.</p>
+            </div>
+            
+            {% if reason %}
+            <p><strong>Reason:</strong></p>
+            <p>{{ reason }}</p>
+            {% endif %}
+            
+            <p>If you believe this was an error or have questions, please contact the tournament organizer directly.</p>
+            
+            <a href="{{ tournament.get_absolute_url }}" class="button">View Tournament Details</a>
+            
+            <p>Thank you for your understanding.</p>
+            
+            <p>Best regards,<br>
+            The DeltaCrown Team</p>
+        </div>
+        <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

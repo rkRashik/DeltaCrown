@@ -1,0 +1,87 @@
+{% load static %}
+{# Meta Strip - Tournament Stats Overview #}
+{# Purpose: Tournament information cards - scrolls with content #}
+
+<div class="bg-gradient-to-r from-slate-900/95 via-slate-850/95 to-slate-900/95 backdrop-blur-lg border-b border-slate-700/50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 min-h-[73px] flex items-center">
+        <div class="grid grid-cols-2 md:flex md:items-center md:justify-between gap-3">
+            
+            {# Format & Participation #}
+            <div class="group bg-slate-900/40 backdrop-blur-sm border border-slate-700/50 rounded-lg px-3 py-2 hover:border-cyan-500/50 hover:bg-slate-900/60 transition-all duration-300">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-slate-800/50 flex items-center justify-center flex-shrink-0 group-hover:bg-cyan-500/20 transition-colors duration-300">
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-cyan-400 transition-colors duration-300" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 2V5h1v1H5zM3 13a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zm2 2v-1h1v1H5zM13 3a1 1 0 00-1 1v3a1 1 0 001 1h3a1 1 0 001-1V4a1 1 0 00-1-1h-3zm1 2v1h1V5h-1z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs text-slate-400 font-medium">Format</div>
+                        <div class="text-sm text-white font-bold truncate">{{ tournament.get_format_display }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            {# Prize Pool #}
+            <div class="group bg-slate-900/40 backdrop-blur-sm border border-slate-700/50 rounded-lg px-3 py-2 hover:border-yellow-500/50 hover:bg-slate-900/60 transition-all duration-300">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-slate-800/50 flex items-center justify-center flex-shrink-0 group-hover:bg-yellow-500/20 transition-colors duration-300">
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-yellow-400 transition-colors duration-300" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs text-slate-400 font-medium">Prize</div>
+                        <div class="text-sm text-white font-bold truncate">
+                            {% if tournament.prize_pool %}
+                                {{ tournament.prize_pool|floatformat:0 }} {{ tournament.prize_currency|default:"BDT" }}
+                            {% elif tournament.prize_deltacoin %}
+                                <span class="text-cyan-400">{{ tournament.prize_deltacoin }} ΔC</span>
+                            {% else %}
+                                <span class="text-slate-400">TBA</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {# Schedule / Dates #}
+            <div class="group bg-slate-900/40 backdrop-blur-sm border border-slate-700/50 rounded-lg px-3 py-2 hover:border-emerald-500/50 hover:bg-slate-900/60 transition-all duration-300">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-slate-800/50 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500/20 transition-colors duration-300">
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-emerald-400 transition-colors duration-300" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs text-slate-400 font-medium">Schedule</div>
+                        <div class="text-sm text-white font-bold truncate">
+                            {{ tournament.tournament_start|date:"M d" }}
+                            {% if tournament.tournament_end and tournament.tournament_end != tournament.tournament_start %}
+                                - {{ tournament.tournament_end|date:"M d" }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {# Slots Progress #}
+            <div class="group bg-slate-900/40 backdrop-blur-sm border border-slate-700/50 rounded-lg px-3 py-2 hover:border-blue-500/50 hover:bg-slate-900/60 transition-all duration-300">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-slate-800/50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/20 transition-colors duration-300">
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-blue-400 transition-colors duration-300" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs text-slate-400 font-medium">Slots</div>
+                        <div class="text-sm text-white font-bold">
+                            {{ slots_filled|default:0 }}/{{ tournament.max_participants }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+

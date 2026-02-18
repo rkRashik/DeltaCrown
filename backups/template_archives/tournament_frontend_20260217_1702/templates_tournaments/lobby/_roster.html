@@ -1,0 +1,36 @@
+<!-- Roster partial template for AJAX updates -->
+{% if participants %}
+    {% for participant in participants %}
+    <div class="roster-item {{ participant.status|lower }}">
+        <div class="roster-participant">
+            <div class="roster-avatar">
+                {% if participant.name %}
+                    {{ participant.name|first|upper }}
+                {% else %}
+                    ?
+                {% endif %}
+            </div>
+            <div>
+                <div class="roster-name">{{ participant.name }}</div>
+                {% if participant.check_in_time %}
+                <small class="text-muted">Checked in at {{ participant.check_in_time|date:"H:i" }}</small>
+                {% endif %}
+            </div>
+        </div>
+        <span class="roster-status {{ participant.status|lower }}">
+            {% if participant.status == 'checked-in' %}
+                <i class="fas fa-check-circle me-1"></i>Checked In
+            {% elif participant.status == 'forfeited' %}
+                <i class="fas fa-times-circle me-1"></i>Forfeited
+            {% else %}
+                <i class="fas fa-clock me-1"></i>Pending
+            {% endif %}
+        </span>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <i class="fas fa-users-slash fs-1 mb-3"></i>
+        <div>No participants yet</div>
+    </div>
+{% endif %}

@@ -1,310 +1,125 @@
 {% extends "tournaments/base.html" %}
-{% load static %}
+{% load static humanize %}
 
-{% block title %}Group Standings - {{ tournament.name }}{% endblock %}
+{# ─────────────────────────────────────────────────────────
+   Group Standings — FE-T-013
+   Context: tournament, groups_with_standings,
+            stat_columns, stat_labels, game_name, game_slug
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
 
-{% block extra_css %}
-<style>
-.standings-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 30px 15px;
-}
-.standings-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 40px 30px;
-    border-radius: 12px;
-    margin-bottom: 30px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-.group-tabs {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 30px;
-    border-bottom: 2px solid #dee2e6;
-    padding-bottom: 10px;
-}
-.group-tab {
-    padding: 12px 24px;
-    background: white;
-    border: 2px solid #dee2e6;
-    border-radius: 8px 8px 0 0;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-weight: 600;
-    color: #495057;
-}
-.group-tab:hover {
-    background: #f8f9fa;
-    border-color: #007bff;
-}
-.group-tab.active {
-    background: #007bff;
-    border-color: #007bff;
-    color: white;
-}
-.standings-table {
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-}
-.standings-table table {
-    width: 100%;
-    margin: 0;
-}
-.standings-table thead {
-    background: #f8f9fa;
-}
-.standings-table th {
-    padding: 15px 12px;
-    font-weight: 600;
-    text-align: center;
-    border-bottom: 2px solid #dee2e6;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    color: #495057;
-}
-.standings-table td {
-    padding: 15px 12px;
-    text-align: center;
-    border-bottom: 1px solid #f1f3f5;
-}
-.standings-table tbody tr:hover {
-    background: #f8f9fa;
-}
-.position-col {
-    font-weight: 700;
-    font-size: 1.1rem;
-    width: 60px;
-}
-.position-badge {
-    display: inline-block;
-    width: 32px;
-    height: 32px;
-    line-height: 32px;
-    border-radius: 50%;
-    background: #e9ecef;
-    color: #495057;
-}
-.position-badge.advancing {
-    background: linear-gradient(135deg, #28a745, #20c997);
-    color: white;
-}
-.participant-col {
-    text-align: left;
-    font-weight: 500;
-}
-.participant-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    margin-right: 10px;
-    vertical-align: middle;
-}
-.stats-col {
-    font-weight: 600;
-}
-.points-col {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #007bff;
-}
-.group-content {
-    display: none;
-}
-.group-content.active {
-    display: block;
-    animation: fadeIn 0.3s;
-}
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.advancement-indicator {
-    display: inline-block;
-    margin-left: 8px;
-    padding: 2px 8px;
-    background: #28a745;
-    color: white;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-.eliminated-indicator {
-    display: inline-block;
-    margin-left: 8px;
-    padding: 2px 8px;
-    background: #dc3545;
-    color: white;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-.empty-standings {
-    text-align: center;
-    padding: 60px 20px;
-    color: #adb5bd;
-}
-.game-specific-header {
-    background: #e7f3ff;
-    color: #004085;
-    font-weight: 600;
-}
-</style>
-{% endblock %}
+{% block title %}Group Standings — {{ tournament.name }} | DeltaCrown{% endblock %}
 
-{% block content %}
-<div class="standings-container">
-    <div class="standings-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="mb-2">{{ tournament.name }}</h2>
-                <h4 class="mb-0">Group Stage Standings</h4>
-            </div>
-            <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="btn btn-light btn-lg">
-                <i class="fas fa-arrow-left me-2"></i>Back to Tournament
-            </a>
-        </div>
+{% block tournament_content %}
+
+<div class="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+
+  {# ── Header ── #}
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div>
+      <a href="{% url 'tournaments:detail' tournament.slug %}" class="text-xs text-gray-500 hover:text-dc-cyan transition mb-2 inline-block">
+        <i data-lucide="arrow-left" class="w-3 h-3 inline mr-1"></i> {{ tournament.name }}
+      </a>
+      <h1 class="text-2xl font-display font-bold text-white">
+        <i data-lucide="layout-grid" class="w-6 h-6 inline mr-2 text-dc-purple"></i> Group Standings
+      </h1>
+      <p class="text-sm text-gray-400 mt-1">{{ game_name|default:"" }}</p>
     </div>
+    <div class="flex items-center gap-3">
+      <a href="{% url 'tournaments:bracket' tournament.slug %}" class="px-3 py-1.5 text-xs text-gray-400 bg-white/5 rounded-lg border border-dc-border hover:bg-white/10 transition">
+        <i data-lucide="git-branch" class="w-3 h-3 inline mr-1"></i> Bracket
+      </a>
+      <a href="{% url 'tournaments:leaderboard' tournament.slug %}" class="px-3 py-1.5 text-xs text-gray-400 bg-white/5 rounded-lg border border-dc-border hover:bg-white/10 transition">
+        <i data-lucide="bar-chart-3" class="w-3 h-3 inline mr-1"></i> Leaderboard
+      </a>
+    </div>
+  </div>
 
-    {% if messages %}
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        {% endfor %}
-    {% endif %}
+  {# ── Group Tables ── #}
+  {% for group_data in groups_with_standings %}
+    <div class="glass rounded-xl overflow-hidden mb-6">
+      <div class="px-6 py-4 border-b border-dc-border bg-white/[0.02]">
+        <h3 class="text-sm font-display font-semibold text-white">
+          <i data-lucide="users" class="w-4 h-4 inline mr-1 text-dc-purple"></i>
+          {{ group_data.group.name|default:"Group" }}
+        </h3>
+      </div>
 
-    {% if groups %}
-        <!-- Group Tabs -->
-        <div class="group-tabs">
-            {% for group in groups %}
-            <div class="group-tab {% if forloop.first %}active{% endif %}" data-group-id="{{ group.id }}">
-                {{ group.name }}
-                <span class="badge bg-secondary ms-2">{{ group.current_participant_count }}</span>
-            </div>
-            {% endfor %}
-        </div>
-
-        <!-- Group Standings Tables -->
-        {% for group in groups %}
-        <div class="group-content {% if forloop.first %}active{% endif %}" data-group-id="{{ group.id }}">
-            <div class="standings-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th class="position-col">#</th>
-                            <th class="participant-col">Participant</th>
-                            <th>P</th>
-                            <th>W</th>
-                            <th>D</th>
-                            <th>L</th>
-                            {% if game_columns %}
-                                {% for col in game_columns %}
-                                <th class="game-specific-header">{{ col.label }}</th>
-                                {% endfor %}
-                            {% endif %}
-                            <th class="points-col">PTS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for standing in group.standings.all %}
-                        <tr>
-                            <td class="position-col">
-                                <span class="position-badge {% if standing.rank <= group.config.advancement_count %}advancing{% endif %}">
-                                    {{ standing.rank }}
-                                </span>
-                            </td>
-                            <td class="participant-col">
-                                <span class="participant-name">
-                                    {% if standing.user %}
-                                        {{ standing.user.username }}
-                                    {% else %}
-                                        {{ standing.team.name }}
-                                    {% endif %}
-                                </span>
-                                {% if standing.rank <= group.config.advancement_count %}
-                                    <span class="advancement-indicator">ADVANCES</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ standing.matches_played }}</td>
-                            <td>{{ standing.wins }}</td>
-                            <td>{{ standing.draws }}</td>
-                            <td>{{ standing.losses }}</td>
-                            {% if game_columns %}
-                                {% for col in game_columns %}
-                                <td class="stats-col">{{ standing|get_field:col.field }}</td>
-                                {% endfor %}
-                            {% endif %}
-                            <td class="points-col">{{ standing.points }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="20" class="empty-standings">
-                                <i class="fas fa-users-slash fs-1 mb-3"></i>
-                                <div>No standings data available yet</div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Group Footer Info -->
-            <div class="mt-3 p-3 bg-light rounded">
-                <div class="row">
-                    <div class="col-md-6">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle me-1"></i>
-                            <strong>Top {{ group.config.advancement_count }}</strong> advance to knockout stage
-                        </small>
+      {% if group_data.standings %}
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-dc-border">
+                <th class="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider text-gray-500 w-10">#</th>
+                <th class="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider text-gray-500">Team / Player</th>
+                <th class="px-4 py-2.5 text-center text-[10px] uppercase tracking-wider text-gray-500">P</th>
+                {% for label in stat_labels %}
+                  <th class="px-4 py-2.5 text-center text-[10px] uppercase tracking-wider text-gray-500">{{ label }}</th>
+                {% endfor %}
+                <th class="px-4 py-2.5 text-right text-[10px] uppercase tracking-wider text-gray-500">Pts</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-dc-border">
+              {% for standing in group_data.standings %}
+                <tr class="hover:bg-white/[0.02] transition
+                  {% if standing.rank <= 2 %}bg-green-900/[0.03]{% endif %}">
+                  <td class="px-4 py-3">
+                    <span class="text-sm font-mono {% if standing.rank <= 2 %}text-green-400{% else %}text-gray-500{% endif %}">
+                      {{ standing.rank }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      {% if standing.rank <= 2 %}
+                        <i data-lucide="chevron-up" class="w-3 h-3 text-green-400 flex-shrink-0"></i>
+                      {% endif %}
+                      <span class="text-sm text-white truncate">
+                        {% if standing.team %}{{ standing.team.name }}{% elif standing.user %}{{ standing.user.username }}{% else %}—{% endif %}
+                      </span>
                     </div>
-                    <div class="col-md-6 text-end">
-                        <small class="text-muted">
-                            <i class="fas fa-calendar me-1"></i>
-                            Last updated: {{ group.updated_at|date:"M d, Y H:i" }}
-                        </small>
-                    </div>
-                </div>
-            </div>
+                  </td>
+                  <td class="px-4 py-3 text-center text-sm text-gray-400">
+                    {{ standing.matches_played|default:0 }}
+                  </td>
+                  {% for col in stat_columns %}
+                    <td class="px-4 py-3 text-center text-sm text-gray-300">
+                      {% with val=standing|attr:col %}{{ val|default:0 }}{% endwith %}
+                    </td>
+                  {% endfor %}
+                  <td class="px-4 py-3 text-right text-sm font-mono font-bold text-dc-gold">
+                    {{ standing.points|default:0 }}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-        {% endfor %}
+      {% else %}
+        <div class="px-6 py-8 text-center">
+          <p class="text-xs text-gray-600">No standings data for this group yet</p>
+        </div>
+      {% endif %}
+    </div>
+  {% empty %}
+    <div class="glass rounded-xl p-12 text-center">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-dc-surface flex items-center justify-center">
+        <i data-lucide="layout-grid" class="w-8 h-8 text-gray-600"></i>
+      </div>
+      <h2 class="text-lg font-display font-bold text-white mb-2">No Groups Configured</h2>
+      <p class="text-sm text-gray-400">Group standings will appear once groups are set up.</p>
+    </div>
+  {% endfor %}
 
-    {% else %}
-        <div class="alert alert-info">
-            <i class="fas fa-info-circle me-2"></i>
-            Group stage has not been configured yet. Check back soon!
-        </div>
-    {% endif %}
+  {# Legend #}
+  {% if groups_with_standings %}
+    <div class="flex items-center gap-4 mt-4">
+      <div class="flex items-center gap-1.5">
+        <div class="w-3 h-3 rounded-sm bg-green-900/30 border border-green-700/20"></div>
+        <span class="text-[10px] text-gray-500">Qualifies for next round</span>
+      </div>
+    </div>
+  {% endif %}
+
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const tabs = document.querySelectorAll('.group-tab');
-    const contents = document.querySelectorAll('.group-content');
-
-    tabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-            const groupId = this.dataset.groupId;
-            
-            // Update tabs
-            tabs.forEach(t => t.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Update content
-            contents.forEach(c => {
-                if (c.dataset.groupId === groupId) {
-                    c.classList.add('active');
-                } else {
-                    c.classList.remove('active');
-                }
-            });
-        });
-    });
-});
-</script>
 {% endblock %}

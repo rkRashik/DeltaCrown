@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ tournament.name }} - Organizer Console - DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tournaments/organizer/css/organizer-glassmorphism.css' %}?v=1.0">
+<style>
+    /* Page-specific overrides */
+    body {
+        background: #0f172a;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="organizer-hub-container">
+    <!-- Header -->
+    <div class="organizer-header">
+        <div class="container mx-auto px-4">
+            <nav class="text-sm mb-4">
+                <a href="{% url 'tournaments:organizer_dashboard' %}" class="text-orange-400 hover:text-orange-300 inline-flex items-center gap-2">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </nav>
+            <div class="flex justify-between items-start flex-wrap gap-4">
+                <div class="flex-1">
+                    <h1 class="tournament-title">{{ tournament.name }}</h1>
+                    <div class="tournament-meta">
+                        <span class="tournament-game-badge">
+                            <i class="fas fa-gamepad"></i>
+                            {{ tournament.game.name }}
+                        </span>
+                        {% if tournament.status == 'draft' %}
+                        <span class="tournament-status-badge status-draft">Draft</span>
+                        {% elif tournament.status == 'registration_open' %}
+                        <span class="tournament-status-badge status-registration">Registration Open</span>
+                        {% elif tournament.status == 'live' %}
+                        <span class="tournament-status-badge status-live">
+                            <i class="fas fa-circle" style="font-size: 0.5rem; animation: pulse 1.5s ease-in-out infinite;"></i>
+                            Live
+                        </span>
+                        {% elif tournament.status == 'completed' %}
+                        <span class="tournament-status-badge status-completed">Completed</span>
+                        {% else %}
+                        <span class="tournament-status-badge status-draft">{{ tournament.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" 
+                       class="btn btn-secondary">
+                        <i class="fas fa-cog"></i>
+                        Edit in Admin
+                    </a>
+                    <a href="{% url 'tournaments:detail' tournament.slug %}" 
+                       class="btn btn-primary">
+                        <i class="fas fa-eye"></i>
+                        View Public Page
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Quick Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Registrations</div>
+                <div class="stat-value">
+                    {{ registration_stats.total }}
+                    <span style="font-size: 1.25rem; color: var(--text-muted);">/ {{ tournament.max_participants }}</span>
+                </div>
+                <div class="stat-meta">
+                    <span class="stat-meta-item text-success">
+                        <i class="fas fa-check-circle"></i> {{ registration_stats.confirmed }} confirmed
+                    </span>
+                    <span class="stat-meta-separator">•</span>
+                    <span class="stat-meta-item text-warning">
+                        <i class="fas fa-clock"></i> {{ registration_stats.pending }} pending
+                    </span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Matches</div>
+                <div class="stat-value">{{ match_stats.total }}</div>
+                <div class="stat-meta">
+                    <span class="stat-meta-item text-info">
+                        <i class="fas fa-check-double"></i> {{ match_stats.completed }} completed
+                    </span>
+                    <span class="stat-meta-separator">•</span>
+                    <span class="stat-meta-item text-danger">
+                        <i class="fas fa-circle"></i> {{ match_stats.live }} live
+                    </span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Disputes</div>
+                <div class="stat-value">{{ dispute_stats.total }}</div>
+                <div class="stat-meta">
+                    <span class="stat-meta-item text-warning">
+                        <i class="fas fa-exclamation-triangle"></i> {{ dispute_stats.open }} open
+                    </span>
+                    <span class="stat-meta-separator">•</span>
+                    <span class="stat-meta-item text-success">
+                        <i class="fas fa-check"></i> {{ dispute_stats.resolved }} resolved
+                    </span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Days Until Start</div>
+                <div class="stat-value">
+                    {% if time_status.days_until_start > 0 %}
+                    {{ time_status.days_until_start }}
+                    {% else %}
+                    <span style="color: var(--accent-primary); font-size: 1.5rem;">Started</span>
+                    {% endif %}
+                </div>
+                <div class="stat-meta">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>{{ tournament.tournament_start|date:"M d, Y H:i" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tab-navigation">
+            <div class="tab-bar">
+                <button class="tab-button active" data-tab="overview">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Overview</span>
+                    </button>
+                <button class="tab-button" data-tab="participants">
+                    <i class="fas fa-users"></i>
+                    <span>Participants</span>
+                    <span class="badge">{{ registration_stats.total }}</span>
+                </button>
+                <button class="tab-button" data-tab="payments">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Payments</span>
+                    <span class="badge">{{ payment_stats.total }}</span>
+                </button>
+                <button class="tab-button" data-tab="brackets">
+                    <i class="fas fa-sitemap"></i>
+                    <span>Brackets</span>
+                    <span class="badge">{{ match_stats.total }}</span>
+                </button>
+                <button class="tab-button" data-tab="disputes">
+                    <i class="fas fa-gavel"></i>
+                    <span>Disputes</span>
+                    <span class="badge">{{ dispute_stats.total }}</span>
+                </button>
+                <button class="tab-button" data-tab="announcements">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>Announcements</span>
+                </button>
+                <button class="tab-button" data-tab="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Overview Tab -->
+            <div id="overview-tab" class="tab-pane active">
+                {% include 'tournaments/organizer/hub_overview.html' %}
+            </div>
+
+            <!-- Participants Tab -->
+            <div id="participants-tab" class="tab-pane">
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-title-icon"><i class="fas fa-users"></i></div>
+                            <span>Tournament Participants</span>
+                        </div>
+                        <div class="card-actions">
+                            <a href="/admin/tournaments/registration/?tournament__id__exact={{ tournament.id }}" target="_blank" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-external-link-alt"></i> Open in Admin
+                            </a>
+                        </div>
+                    </div>
+                    
+                    {% if registrations %}
+                    <div class="data-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Player/Team</th>
+                                    <th>Status</th>
+                                    <th>Payment</th>
+                                    <th>Check-in</th>
+                                    <th>Registered</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reg in registrations %}
+                                <tr>
+                                    <td>
+                                        <div class="table-cell-primary">{{ reg.user.username }}</div>
+                                        <div class="table-cell-meta">{{ reg.user.email }}</div>
+                                    </td>
+                                </td>
+                                <td>
+                                    {% if reg.status == 'confirmed' %}
+                                    <span class="status-badge status-success">Confirmed</span>
+                                    {% elif reg.status == 'pending' %}
+                                    <span class="status-badge status-warning">Pending</span>
+                                    {% else %}
+                                    <span class="status-badge status-danger">{{ reg.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if tournament.has_entry_fee %}
+                                      {% if reg.payment_status == 'verified' %}
+                                        <span class="status-indicator status-success">✓ Paid</span>
+                                      {% elif reg.payment_status == 'submitted' %}
+                                        <span class="status-indicator status-warning">⏳ Pending</span>
+                                      {% else %}
+                                        <span class="status-indicator status-muted">— Unpaid</span>
+                                      {% endif %}
+                                    {% else %}
+                                      <span class="status-indicator status-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if reg.checked_in %}
+                                    <span class="status-indicator status-success">✓ Checked In</span>
+                                    {% else %}
+                                    <span class="status-indicator status-muted">— Not Yet</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="table-cell-meta">{{ reg.created_at|date:"M d, H:i" }}</span>
+                                </td>
+                                <td>
+                                    <a href="/admin/tournaments/registration/{{ reg.id }}/change/" target="_blank"
+                                       class="action-link">View →</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">No registrations yet</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Payments Tab -->
+        <div id="payments-tab" class="tab-pane hidden">
+            <div class="content-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-title-icon"><i class="fas fa-money-bill-wave"></i></div>
+                        <span>Payment Submissions</span>
+                    </div>
+                    <div class="card-actions">
+                        <a href="/admin/tournaments/payment/?registration__tournament__id__exact={{ tournament.id }}" target="_blank" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-external-link-alt"></i> Open in Admin
+                        </a>
+                    </div>
+                </div>
+                
+                {% if payments %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in payments %}
+                            <tr>
+                                <td>
+                                    <div class="table-cell-primary">{{ payment.registration.user.username }}</div>
+                                </td>
+                                <td>
+                                    <span class="table-cell-emphasized">{{ payment.amount }} {{ payment.currency }}</span>
+                                </td>
+                                <td>
+                                    <span class="table-cell-meta">{{ payment.get_payment_method_display }}</span>
+                                </td>
+                                <td>
+                                    {% if payment.status == 'verified' %}
+                                    <span class="status-badge status-success">Verified</span>
+                                    {% elif payment.status == 'submitted' %}
+                                    <span class="status-badge status-warning">Pending Review</span>
+                                    {% else %}
+                                    <span class="status-badge status-danger">{{ payment.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="table-cell-meta">{{ payment.created_at|date:"M d, H:i" }}</span>
+                                </td>
+                                <td>
+                                    <a href="/admin/tournaments/payment/{{ payment.id }}/change/" target="_blank" class="action-link">Review →</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">No payment submissions yet</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Matches Tab -->
+        <div id="matches-tab" class="tab-pane hidden">
+            <div class="content-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-title-icon"><i class="fas fa-trophy"></i></div>
+                        <span>Tournament Matches</span>
+                    </div>
+                    <div class="card-actions">
+                        <a href="/admin/tournaments/match/?tournament__id__exact={{ tournament.id }}" target="_blank" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-external-link-alt"></i> Open in Admin
+                        </a>
+                    </div>
+                </div>
+                
+                {% if matches %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Match</th>
+                                <th>Participants</th>
+                                <th>State</th>
+                                <th>Scheduled</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in matches %}
+                            <tr>
+                                <td>
+                                    <div class="table-cell-primary">Match #{{ match.id }}</div>
+                                </td>
+                                <td>
+                                    <div class="table-cell-match">
+                                        <div>{{ match.participant1_name|default:"TBD" }}</div>
+                                        <div class="match-vs">vs</div>
+                                        <div>{{ match.participant2_name|default:"TBD" }}</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if match.state == 'completed' %}
+                                    <span class="status-badge status-info">Completed</span>
+                                    {% elif match.state == 'live' %}
+                                    <span class="status-badge status-danger">Live</span>
+                                    {% else %}
+                                    <span class="status-badge status-secondary">{{ match.get_state_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="table-cell-meta">
+                                    {% if match.scheduled_time %}
+                                      {{ match.scheduled_time|date:"M d, H:i" }}
+                                    {% else %}
+                                      TBD
+                                    {% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="/admin/tournaments/match/{{ match.id }}/change/" target="_blank" class="action-link">Manage →</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">No matches yet</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Disputes Tab -->
+        <div id="disputes-tab" class="tab-pane hidden">
+            <div class="content-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-title-icon"><i class="fas fa-gavel"></i></div>
+                        <span>Active Disputes</span>
+                    </div>
+                    <div class="card-actions">
+                        <a href="/admin/tournaments/dispute/?match__tournament__id__exact={{ tournament.id }}" target="_blank" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-external-link-alt"></i> Open in Admin
+                        </a>
+                    </div>
+                </div>
+                
+                {% if disputes %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Match</th>
+                                <th>Raised By</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dispute in disputes %}
+                            <tr>
+                                <td>
+                                    <div class="table-cell-primary">Match #{{ dispute.match.id }}</div>
+                                </td>
+                                <td>
+                                    <span class="table-cell-meta">User #{{ dispute.initiated_by_id }}</span>
+                                </td>
+                                <td>
+                                    <span class="table-cell-meta">{{ dispute.description|truncatewords:10 }}</span>
+                                </td>
+                                <td>
+                                    {% if dispute.status == 'open' %}
+                                    <span class="status-badge status-warning">Open</span>
+                                    {% elif dispute.status == 'under_review' %}
+                                    <span class="status-badge status-info">Under Review</span>
+                                    {% else %}
+                                    <span class="status-badge status-success">{{ dispute.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="table-cell-meta">{{ dispute.created_at|date:"M d, H:i" }}</span>
+                                </td>
+                                <td>
+                                    <a href="/admin/tournaments/dispute/{{ dispute.id }}/change/" target="_blank" class="action-link">Resolve →</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">No disputes</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Announcements Tab -->
+        <div id="announcements-tab" class="tab-pane hidden">
+            <div class="content-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-title-icon"><i class="fas fa-bullhorn"></i></div>
+                        <span>Tournament Announcements</span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-primary">
+                            <i class="fas fa-plus"></i> New Announcement
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="announcements-list">
+                    <div class="empty-state">
+                        <i class="fas fa-bullhorn" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                        <p>No announcements yet</p>
+                        <p class="table-cell-meta" style="margin-top: 0.5rem;">Create announcements to notify participants about important updates</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-pane hidden">
+            <div class="content-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-title-icon"><i class="fas fa-cog"></i></div>
+                        <span>Tournament Settings</span>
+                    </div>
+                </div>
+                
+                <div class="settings-grid">
+                    <div class="setting-section">
+                        <h4 class="setting-section-title">Basic Information</h4>
+                        <div class="setting-item">
+                            <div class="setting-label">Tournament Name</div>
+                            <div class="setting-value">{{ tournament.name }}</div>
+                            <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" target="_blank" class="action-link">Edit</a>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">Game</div>
+                            <div class="setting-value">{{ tournament.game }}</div>
+                            <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" target="_blank" class="action-link">Edit</a>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">Format</div>
+                            <div class="setting-value">{{ tournament.get_format_type_display }}</div>
+                            <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" target="_blank" class="action-link">Edit</a>
+                        </div>
+                    </div>
+
+                    <div class="setting-section">
+                        <h4 class="setting-section-title">Registration</h4>
+                        <div class="setting-item">
+                            <div class="setting-label">Registration Opens</div>
+                            <div class="setting-value">{{ tournament.registration_start|date:"F d, Y H:i" }}</div>
+                            <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" target="_blank" class="action-link">Edit</a>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">Registration Closes</div>
+                            <div class="setting-value">{{ tournament.registration_end|date:"F d, Y H:i" }}</div>
+                            <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" target="_blank" class="action-link">Edit</a>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">Max Participants</div>
+                            <div class="setting-value">{{ tournament.max_participants }}</div>
+                            <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" target="_blank" class="action-link">Edit</a>
+                        </div>
+                    </div>
+
+                    <div class="setting-section">
+                        <h4 class="setting-section-title">Entry Fee & Prizes</h4>
+                        <div class="setting-item">
+                            <div class="setting-label">Entry Fee Required</div>
+                            <div class="setting-value">{{ tournament.has_entry_fee|yesno:"Yes,No" }}</div>
+                            <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" target="_blank" class="action-link">Edit</a>
+                        </div>
+                        {% if tournament.has_entry_fee %}
+                        <div class="setting-item">
+                            <div class="setting-label">Entry Fee Amount</div>
+                            <div class="setting-value">{{ tournament.entry_fee }} {{ tournament.currency }}</div>
+                            <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" target="_blank" class="action-link">Edit</a>
+                        </div>
+                        {% endif %}
+                        <div class="setting-item">
+                            <div class="setting-label">Prize Pool</div>
+                            <div class="setting-value">{{ tournament.total_prize_pool|default:"Not set" }}</div>
+                            <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" target="_blank" class="action-link">Edit</a>
+                        </div>
+                    </div>
+
+                    <div class="setting-section">
+                        <h4 class="setting-section-title">Advanced Settings</h4>
+                        <div class="setting-item">
+                            <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" target="_blank" class="btn btn-secondary" style="width: 100%;">
+                                <i class="fas fa-external-link-alt"></i> Open in Django Admin
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'tournaments/organizer/js/organizer-tabs.js' %}?v=1.0"></script>
+{% endblock %}

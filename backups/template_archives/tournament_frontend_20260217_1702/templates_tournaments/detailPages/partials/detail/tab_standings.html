@@ -1,0 +1,150 @@
+{# Standings Tab - Unified Tournament Rankings #}
+
+<section class="td-tab-panel td-tab-panel-standings" data-tab="standings">
+  <div class="td-standings-header">
+    <div class="td-standings-header-main">
+      <h2 class="td-standings-title">Standings</h2>
+      <p class="td-standings-subtitle">
+        Rankings and performance across the tournament.
+      </p>
+    </div>
+
+    <div class="td-standings-meta">
+      {% if standings_source == "group_stage" %}
+        <span class="td-standings-badge">Based on group stage results</span>
+      {% elif standings_source == "mixed" %}
+        <span class="td-standings-badge">Group stage + knockout performance</span>
+      {% else %}
+        <span class="td-standings-badge">Overall performance</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if standings_primary %}
+    <div class="td-standings-layout">
+      <section class="td-standings-main">
+        <header class="td-standings-leaderboard-header">
+          <div class="td-ldb-col td-ldb-col-rank">Rank</div>
+          <div class="td-ldb-col td-ldb-col-participant">Team / Player</div>
+          <div class="td-ldb-col td-ldb-col-p">P</div>
+          <div class="td-ldb-col td-ldb-col-w">W</div>
+          <div class="td-ldb-col td-ldb-col-d">D</div>
+          <div class="td-ldb-col td-ldb-col-l">L</div>
+          <div class="td-ldb-col td-ldb-col-diff">±</div>
+          <div class="td-ldb-col td-ldb-col-pts">Pts</div>
+        </header>
+
+        <div class="td-standings-leaderboard">
+          {% for row in standings_primary %}
+            <article class="td-ldb-row {% if row.is_advancing %}is-advancing{% endif %} {% if row.rank <= 3 %}is-podium is-rank-{{ row.rank }}{% endif %}">
+              {# Rank pill with special styling for top 3 #}
+              <div class="td-ldb-cell td-ldb-col-rank">
+                <div class="td-rank-pill td-rank-{{ row.rank }}">
+                  {% if row.rank == 1 %}
+                    <span class="td-rank-icon">🥇</span>
+                  {% elif row.rank == 2 %}
+                    <span class="td-rank-icon">🥈</span>
+                  {% elif row.rank == 3 %}
+                    <span class="td-rank-icon">🥉</span>
+                  {% else %}
+                    <span class="td-rank-number">{{ row.rank }}</span>
+                  {% endif %}
+                </div>
+              </div>
+
+              {# Participant info with chips #}
+              <div class="td-ldb-cell td-ldb-col-participant">
+                <div class="td-ldb-participant">
+                  <div class="td-ldb-participant-main">
+                    <span class="td-ldb-name">{{ row.name }}</span>
+                    <div class="td-ldb-chips">
+                      {% if row.game_name %}
+                        <span class="td-ldb-chip td-chip-game">{{ row.game_name }}</span>
+                      {% endif %}
+                      {% if row.region %}
+                        <span class="td-ldb-chip td-chip-region">{{ row.region }}</span>
+                      {% endif %}
+                      {% if row.group_name %}
+                        <span class="td-ldb-chip td-chip-group">Group {{ row.group_name }}</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% if row.game_specific_label %}
+                    <div class="td-ldb-participant-sub">
+                      {{ row.game_specific_label }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              {# Stats columns #}
+              <div class="td-ldb-cell td-ldb-col-p">{{ row.matches_played }}</div>
+              <div class="td-ldb-cell td-ldb-col-w">{{ row.wins }}</div>
+              <div class="td-ldb-cell td-ldb-col-d">{{ row.draws }}</div>
+              <div class="td-ldb-cell td-ldb-col-l">{{ row.losses }}</div>
+              <div class="td-ldb-cell td-ldb-col-diff">
+                {% if row.goal_difference is not None %}
+                  <span class="td-stat-diff {% if row.goal_difference > 0 %}td-stat-positive{% elif row.goal_difference < 0 %}td-stat-negative{% endif %}">
+                    {{ row.goal_difference|stringformat:"+d" }}
+                  </span>
+                {% elif row.round_difference is not None %}
+                  <span class="td-stat-diff {% if row.round_difference > 0 %}td-stat-positive{% elif row.round_difference < 0 %}td-stat-negative{% endif %}">
+                    {{ row.round_difference|stringformat:"+d" }}
+                  </span>
+                {% elif row.kill_difference is not None %}
+                  <span class="td-stat-diff {% if row.kill_difference > 0 %}td-stat-positive{% elif row.kill_difference < 0 %}td-stat-negative{% endif %}">
+                    {{ row.kill_difference|stringformat:"+d" }}
+                  </span>
+                {% else %}
+                  <span class="td-stat-diff">-</span>
+                {% endif %}
+              </div>
+              <div class="td-ldb-cell td-ldb-col-pts">
+                <span class="td-ldb-points">{{ row.points }}</span>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      {% if is_multi_stage and group_standings_summary %}
+        <aside class="td-standings-sidebar">
+          <h3 class="td-standings-sidebar-title">Group Overview</h3>
+          <div class="td-standings-groups-cards">
+            {% for group_summary in group_standings_summary %}
+              <section class="td-group-overview-card">
+                <header class="td-group-overview-header">
+                  <div class="td-group-overview-title">
+                    <span class="td-group-label">Group</span>
+                    <span class="td-group-name">{{ group_summary.name }}</span>
+                  </div>
+                  <div class="td-group-overview-meta">
+                    <span class="td-group-teams-count">{{ group_summary.teams_count }} teams</span>
+                    <span class="td-group-qualify">Top {{ group_summary.advancement_count }} qualify</span>
+                  </div>
+                </header>
+                <div class="td-group-overview-body">
+                  {% for s in group_summary.advancers %}
+                    <div class="td-group-overview-team is-advancing">
+                      <span class="td-team-rank">{{ forloop.counter }}</span>
+                      <span class="td-team-name">{{ s.name }}</span>
+                      <span class="td-team-points">{{ s.points }} pts</span>
+                    </div>
+                  {% endfor %}
+                </div>
+              </section>
+            {% endfor %}
+          </div>
+        </aside>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="td-standings-empty">
+      <div class="td-empty-icon">📊</div>
+      <p class="td-empty-title">Standings are not available yet.</p>
+      <p class="td-empty-subtitle">
+        Once enough matches have been completed, standings will appear here.
+      </p>
+    </div>
+  {% endif %}
+</section>

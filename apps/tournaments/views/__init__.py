@@ -2,18 +2,19 @@
 Tournament Views Package
 
 Organizes tournament-related views:
-- main.py: Main list and detail views (FE-T-001, FE-T-002, FE-T-003)
-- registration.py: Registration wizard views (FE-T-004)
+- discovery.py:               Tournament list/discovery (FE-T-001)
+- detail.py:                   Tournament detail + check-in (FE-T-002, FE-T-003)
+- registration.py:             Registration wizard views (FE-T-004)
+- organizer.py:                Organizer hub + dashboard (core classes)
+- organizer_participants.py:   Participant management FBVs (FE-T-022)
+- organizer_payments.py:       Payment management FBVs (FE-T-023)
+- organizer_matches.py:        Match management FBVs (FE-T-024)
 
-Sprint 1 Implementation (November 15, 2025):
-All Sprint 1 views are exported from this package for consistent imports.
+Phase 3 Restructure: Views split from monolithic main.py + organizer.py.
 """
 
-from apps.tournaments.views.main import (
-    TournamentListView,
-    TournamentDetailView,
-    participant_checkin,
-)
+from apps.tournaments.views.discovery import TournamentListView  # noqa: F401
+from apps.tournaments.views.detail import TournamentDetailView, participant_checkin  # noqa: F401
 
 from apps.tournaments.views.registration import (
     TournamentRegistrationView,

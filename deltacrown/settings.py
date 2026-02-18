@@ -214,13 +214,19 @@ if DEBUG and not WS_ALLOWED_ORIGINS:
 # -----------------------------------------------------------------------------
 # Applications
 # -----------------------------------------------------------------------------
+# Detect if django-unfold is available (not installed in system Python)
+try:
+    import unfold  # noqa: F401
+    _HAS_UNFOLD = True
+except ImportError:
+    _HAS_UNFOLD = False
+
 INSTALLED_APPS = [
     # Monitoring (must be FIRST for middleware timing)
     "django_prometheus",  # Prometheus metrics (Phase 3 Prep)
     
     # Admin theme (must be BEFORE django.contrib.admin)
-    "unfold",
-    "unfold.contrib.forms",
+    *([  "unfold", "unfold.contrib.forms"] if _HAS_UNFOLD else []),
 
     # Django core
     "django.contrib.admin",
@@ -1211,7 +1217,8 @@ SETTINGS_CONTROL_DECK_ENABLED = os.getenv('SETTINGS_CONTROL_DECK_ENABLED', 'True
 from django.urls import reverse_lazy
 from django.templatetags.static import static as static_url
 
-UNFOLD = {
+if _HAS_UNFOLD:
+    UNFOLD = {
     "SITE_TITLE": "DeltaCrown Admin",
     "SITE_HEADER": "DeltaCrown",
     "SITE_SUBHEADER": "Tournament Platform Console",

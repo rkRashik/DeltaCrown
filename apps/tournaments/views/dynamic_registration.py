@@ -235,7 +235,7 @@ class DynamicRegistrationView(LoginRequiredMixin, View):
                     del request.session['registration_viewed']
                 
                 messages.success(request, "Registration submitted successfully!")
-                return redirect('tournaments:registration_success', 
+                return redirect('tournaments:dynamic_registration_success', 
                               tournament_slug=tournament_slug, 
                               response_id=form_response.id)
         

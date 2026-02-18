@@ -25,11 +25,12 @@
                 <div class="font-semibold">{% if m.score2 %}{{ m.score2 }}{% else %}-{% endif %}</div>
               </div>
             </div>
-            {# Tournament system moved to legacy - match actions disabled #}
-            {# <div class="mt-3 flex items-center justify-end gap-2">
+            {% comment %}Tournament system moved to legacy - match actions disabled
+            <div class="mt-3 flex items-center justify-end gap-2">
               {% if m.id %}<a class="btn-secondary" href="/tournaments/match/{{ m.id }}/report/">Report</a>{% endif %}
               {% if m.id %}<a class="btn-secondary" href="/tournaments/match/{{ m.id }}/dispute/">Dispute</a>{% endif %}
-            </div> #}
+            </div>
+            {% endcomment %}
           </li>
         {% endfor %}
       </ul>

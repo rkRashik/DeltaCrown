@@ -1,17 +1,53 @@
 """
-StaffPermissionChecker - Centralized permission checking for tournament staff
+StaffPermissionChecker - Centralized permission checking for tournament staff.
 
-Checks permissions based on TournamentStaff roles and their assigned permissions.
-Used throughout organizer hub to gate actions.
+Phase 2 consolidation: Uses Phase 7 ``TournamentStaffAssignment`` + ``StaffRole``
+(capability-based JSON permissions) as the primary source.  Falls back to the
+legacy ``TournamentStaff`` model when the Phase 7 assignment doesn't exist.
 """
 
+import logging
 from django.contrib.auth.models import User
-from apps.tournaments.models import Tournament, TournamentStaff
+from apps.tournaments.models import Tournament
+
+logger = logging.getLogger(__name__)
+
+
+def _get_phase7_assignment(tournament_id: int, user_id: int):
+    """Return the active Phase 7 TournamentStaffAssignment or None."""
+    try:
+        from apps.tournaments.models.staffing import TournamentStaffAssignment
+        return (
+            TournamentStaffAssignment.objects
+            .select_related('role')
+            .filter(tournament_id=tournament_id, user_id=user_id, is_active=True)
+            .first()
+        )
+    except Exception:
+        return None
+
+
+def _get_legacy_staff(tournament_id: int, user_id: int):
+    """Return the active legacy TournamentStaff record or None."""
+    try:
+        from apps.tournaments.models import TournamentStaff
+        return (
+            TournamentStaff.objects
+            .select_related('role')
+            .filter(tournament_id=tournament_id, user_id=user_id, is_active=True)
+            .first()
+        )
+    except Exception:
+        return None
 
 
 class StaffPermissionChecker:
     """
     Permission checker for tournament staff actions.
+    
+    Checks Phase 7 ``TournamentStaffAssignment`` first (capability-based JSON
+    permissions via ``StaffRole.capabilities``).  Falls back to legacy
+    ``TournamentStaff`` if no Phase 7 record exists.
     
     Usage:
         checker = StaffPermissionChecker(tournament, user)
@@ -26,39 +62,54 @@ class StaffPermissionChecker:
     def __init__(self, tournament: Tournament, user: User):
         self.tournament = tournament
         self.user = user
-        self._staff = None
+        self._staff = None          # legacy TournamentStaff
+        self._assignment = None     # Phase 7 TournamentStaffAssignment
         self._permissions = None
-        
+        self._loaded = False
+    
+    def _load(self):
+        """Lazy-load staff records (Phase 7 first, legacy fallback)."""
+        if self._loaded:
+            return
+        self._loaded = True
+        self._assignment = _get_phase7_assignment(self.tournament.id, self.user.id)
+        if self._assignment is None:
+            self._staff = _get_legacy_staff(self.tournament.id, self.user.id)
+    
     @property
     def staff(self):
-        """Lazy load staff record"""
-        if self._staff is None:
-            try:
-                self._staff = TournamentStaff.objects.select_related('role').get(
-                    tournament=self.tournament,
-                    user=self.user,
-                    is_active=True
-                )
-            except TournamentStaff.DoesNotExist:
-                self._staff = False
-        return self._staff if self._staff is not False else None
+        """Lazy load staff record (legacy)"""
+        self._load()
+        return self._staff
+    
+    @property
+    def assignment(self):
+        """Lazy load Phase 7 staff assignment"""
+        self._load()
+        return self._assignment
     
     @property
     def permissions(self):
-        """Get all permissions for this staff member"""
-        if self._permissions is None:
-            if self.is_organizer():
-                # Organizers have ALL permissions
-                self._permissions = [
-                    'manage_registrations', 'approve_payments', 'manage_brackets',
-                    'resolve_disputes', 'make_announcements', 'edit_settings',
-                    'manage_staff', 'view_all'
-                ]
-            elif self.staff and self.staff.role:
-                # Get permissions from role
-                self._permissions = self.staff.role.permissions or []
-            else:
-                self._permissions = []
+        """Get all permissions for this staff member."""
+        if self._permissions is not None:
+            return self._permissions
+        
+        if self.is_organizer():
+            # Organizers have ALL permissions
+            self._permissions = [
+                'manage_registrations', 'approve_payments', 'manage_brackets',
+                'resolve_disputes', 'make_announcements', 'edit_settings',
+                'manage_staff', 'view_all',
+            ]
+        elif self.assignment and self.assignment.role:
+            # Phase 7: capabilities JSON → permission list
+            caps = self.assignment.role.capabilities or {}
+            self._permissions = [k for k, v in caps.items() if v]
+        elif self.staff and self.staff.role:
+            # Legacy fallback
+            self._permissions = getattr(self.staff.role, 'permissions', None) or []
+        else:
+            self._permissions = []
         return self._permissions
     
     def is_organizer(self) -> bool:
@@ -70,8 +121,8 @@ class StaffPermissionChecker:
         return self.user.is_superuser or self.user.is_staff
     
     def is_staff_member(self) -> bool:
-        """Check if user is an active staff member"""
-        return self.staff is not None
+        """Check if user is an active staff member (Phase 7 or legacy)"""
+        return self.assignment is not None or self.staff is not None
     
     def can_access_organizer_hub(self) -> bool:
         """Check if user can access organizer hub at all"""

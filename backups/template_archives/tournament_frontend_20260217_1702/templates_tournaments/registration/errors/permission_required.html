@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Permission Required - DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+    <div class="max-w-3xl w-full">
+        <div class="relative">
+            <!-- Main Error Card -->
+            <div class="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-2 border-red-500/30 rounded-2xl shadow-2xl overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-r from-red-500/20 via-orange-500/20 to-red-500/20 blur-xl"></div>
+                
+                <div class="relative z-10 p-8 md:p-12 text-center">
+                    <!-- Icon -->
+                    <div class="mb-6 relative inline-block">
+                        <div class="text-8xl md:text-9xl">
+                            🚫
+                        </div>
+                        <div class="absolute -bottom-2 -right-2 bg-red-500 rounded-full px-3 py-1 text-white text-sm font-bold animate-pulse">
+                            No Access
+                        </div>
+                    </div>
+                    
+                    <!-- Title -->
+                    <h1 class="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">
+                        <span class="bg-gradient-to-r from-red-400 via-orange-500 to-red-400 bg-clip-text text-transparent">
+                            PERMISSION REQUIRED
+                        </span>
+                    </h1>
+                    
+                    <!-- Subtitle -->
+                    <p class="text-xl text-gray-300 mb-6">
+                        You don't have permission to register this team for tournaments
+                    </p>
+                    
+                    <!-- Team & Tournament Info -->
+                    <div class="grid md:grid-cols-2 gap-4 mb-8">
+                        <!-- Team Info -->
+                        <div class="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <span class="text-3xl">👥</span>
+                                <div class="text-left flex-1">
+                                    <div class="text-xs text-gray-400 mb-1">Your Team:</div>
+                                    <div class="text-lg font-bold text-white">{{ team.name }}</div>
+                                    <div class="text-sm text-gray-400 mt-1">
+                                        Your Role: <span class="text-yellow-400 font-medium">{{ user_role|title }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tournament Info -->
+                        <div class="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <span class="text-3xl">🏆</span>
+                                <div class="text-left flex-1">
+                                    <div class="text-xs text-gray-400 mb-1">Tournament:</div>
+                                    <div class="text-lg font-bold text-white">{{ tournament.name }}</div>
+                                    <div class="text-xs text-gray-400 mt-1">
+                                        Requires registration approval
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Permission Explanation -->
+                    <div class="bg-gradient-to-br from-red-900/20 to-orange-900/20 border border-red-500/30 rounded-lg p-6 mb-8 text-left">
+                        <h3 class="text-lg font-bold text-white mb-3 flex items-center">
+                            <span class="text-2xl mr-2">🔐</span>
+                            Why can't I register?
+                        </h3>
+                        <p class="text-gray-300 mb-4">
+                            Only team members with <strong class="text-yellow-400">tournament registration permission</strong> 
+                            can sign up the team for tournaments. This prevents unauthorized registrations.
+                        </p>
+                        
+                        <div class="bg-gray-800/50 rounded-lg p-4 mb-4">
+                            <h4 class="text-white font-bold text-sm mb-2">Who can register teams?</h4>
+                            <ul class="space-y-2 text-sm">
+                                <li class="flex items-center gap-2">
+                                    <span class="bg-yellow-500 text-gray-900 px-2 py-0.5 rounded text-xs font-bold">OWNER</span>
+                                    <span class="text-gray-300">Full permissions (auto-granted)</span>
+                                </li>
+                                <li class="flex items-center gap-2">
+                                    <span class="bg-purple-500 text-white px-2 py-0.5 rounded text-xs font-bold">MANAGER</span>
+                                    <span class="text-gray-300">Can register tournaments (auto-granted)</span>
+                                </li>
+                                <li class="flex items-center gap-2">
+                                    <span class="bg-blue-500 text-white px-2 py-0.5 rounded text-xs font-bold">MEMBER</span>
+                                    <span class="text-gray-300">Only if specifically granted by owner/manager</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                            <div class="flex items-start gap-2">
+                                <i class="fas fa-lightbulb text-yellow-400 mt-0.5"></i>
+                                <p class="text-sm text-gray-300">
+                                    <strong class="text-yellow-400">Your current role:</strong> {{ user_role|title }} - 
+                                    {% if can_register %}You have permission!{% else %}No tournament registration permission{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Section -->
+                    <div class="bg-gray-800/50 border border-gray-700 rounded-lg p-6 mb-6">
+                        <h3 class="text-white font-bold mb-4 flex items-center justify-center gap-2">
+                            <span class="text-2xl">📢</span>
+                            <span>Request Permission</span>
+                        </h3>
+                        
+                        <p class="text-gray-300 mb-4 text-sm">
+                            We'll notify your team owner and managers about your request to register for this tournament.
+                        </p>
+                        
+                        {% if permission_request_sent %}
+                        <!-- Already Requested -->
+                        <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                            <div class="flex items-center gap-2 text-green-400">
+                                <i class="fas fa-check-circle text-xl"></i>
+                                <div class="text-left">
+                                    <div class="font-bold">Request Sent!</div>
+                                    <div class="text-sm text-gray-300">Your team leaders have been notified.</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Request Form -->
+                        <form method="POST" action="{% url 'tournaments:request_registration_permission' tournament.slug %}" class="space-y-3">
+                            {% csrf_token %}
+                            <input type="hidden" name="team_id" value="{{ team.id }}">
+                            
+                            <textarea name="message" rows="3" placeholder="Optional message to team leaders..." 
+                                class="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 text-sm resize-none focus:border-primary focus:ring-1 focus:ring-primary"></textarea>
+                            
+                            <button type="submit" 
+                                class="w-full inline-flex items-center justify-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg font-bold text-white hover:from-blue-500 hover:to-blue-600 transition-all shadow-lg hover:shadow-xl transform hover:scale-105">
+                                <span class="text-xl">📨</span>
+                                <span>Send Permission Request</span>
+                            </button>
+                        </form>
+                        
+                        <p class="text-xs text-gray-400 mt-3">
+                            Your request will be sent to:
+                            {% for leader in team_leaders %}
+                            <span class="text-primary">{{ leader.user.username }}</span>{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Alternative Actions -->
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <a href="{% url 'teams:detail' team.slug %}" 
+                           class="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 border-2 border-gray-700 rounded-lg font-medium text-white hover:border-primary hover:bg-gray-750 transition-all">
+                            <span>👥</span>
+                            <span>View Team Page</span>
+                        </a>
+                        
+                        <a href="{% url 'tournaments:detail' tournament.slug %}" 
+                           class="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 border-2 border-gray-700 rounded-lg font-medium text-white hover:border-primary hover:bg-gray-750 transition-all">
+                            <span>🏆</span>
+                            <span>View Tournament</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Back Link -->
+            <div class="text-center mt-6">
+                <a href="{% url 'tournaments:detail' tournament.slug %}" 
+                   class="text-gray-400 hover:text-primary transition-colors inline-flex items-center gap-2">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to Tournament</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,77 +1,155 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends "tournaments/base.html" %}
+{% load static humanize tournament_tags %}
 
-{% block title %}My Matches — DeltaCrown{% endblock %}
+{# ─────────────────────────────────────────────────────────
+   My Matches — Player match tracker
+   Shows upcoming, live, and completed matches across tournaments
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
 
-{% block content %}
-<section class="container py-8">
-  <!-- Page Header -->
-  <div class="flex items-center justify-between mb-6">
+{% block title %}My Matches | DeltaCrown{% endblock %}
+
+{% block tournament_content %}
+
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  {# ── Header ── #}
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
     <div>
-      <h1 class="sec-h">My Matches</h1>
-      <p class="text-muted mt-1">Your scheduled and completed matches across all tournaments</p>
+      <h1 class="text-2xl font-display font-bold text-white">My Matches</h1>
+      <p class="text-sm text-gray-500 mt-1">Your upcoming and completed matches across tournaments</p>
     </div>
-    <a href="{% url 'tournaments:my_tournaments' %}" class="btn-secondary">
-      <i class="fas fa-trophy mr-2"></i>My Tournaments
+    <a href="{% url 'tournaments:my_tournaments' %}" class="text-xs px-4 py-2.5 bg-white/[0.05] text-gray-400 rounded-xl hover:text-white hover:bg-white/10 transition">
+      <i data-lucide="list" class="w-3 h-3 inline mr-1"></i> My Tournaments
     </a>
   </div>
 
-  <!-- Filter Tabs -->
-  <div class="glass rounded-xl p-1 mb-6 inline-flex">
-    <a href="?status=all" class="px-4 py-2 rounded-lg {% if filter_status == 'all' %}bg-primary text-white{% else %}text-muted hover:text-white transition{% endif %}">
-      All Matches
+  {# ── Status Filter Tabs ── #}
+  <div class="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar pb-1">
+    <a href="?status=all"
+       class="nav-pill text-xs {% if filter_status == 'all' %}active{% endif %}">
+      All
     </a>
-    <a href="?status=upcoming" class="px-4 py-2 rounded-lg {% if filter_status == 'upcoming' %}bg-primary text-white{% else %}text-muted hover:text-white transition{% endif %}">
-      Upcoming
-      {% if upcoming_count > 0 %}<span class="ml-1 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-xs">{{ upcoming_count }}</span>{% endif %}
+    <a href="?status=upcoming"
+       class="nav-pill text-xs {% if filter_status == 'upcoming' %}active{% endif %}">
+      Upcoming <span class="ml-1 font-mono opacity-60">{{ upcoming_count }}</span>
     </a>
-    <a href="?status=live" class="px-4 py-2 rounded-lg {% if filter_status == 'live' %}bg-primary text-white{% else %}text-muted hover:text-white transition{% endif %}">
-      Live
-      {% if live_count > 0 %}<span class="ml-1 px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs animate-pulse">{{ live_count }}</span>{% endif %}
+    <a href="?status=live"
+       class="nav-pill text-xs {% if filter_status == 'live' %}active{% endif %}">
+      <span class="{% if live_count %}animate-pulse{% endif %}">Live</span>
+      <span class="ml-1 font-mono opacity-60">{{ live_count }}</span>
     </a>
-    <a href="?status=completed" class="px-4 py-2 rounded-lg {% if filter_status == 'completed' %}bg-primary text-white{% else %}text-muted hover:text-white transition{% endif %}">
-      Completed
-      {% if completed_count > 0 %}<span class="ml-1 px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 text-xs">{{ completed_count }}</span>{% endif %}
+    <a href="?status=completed"
+       class="nav-pill text-xs {% if filter_status == 'completed' %}active{% endif %}">
+      Completed <span class="ml-1 font-mono opacity-60">{{ completed_count }}</span>
     </a>
   </div>
 
-  <!-- Matches List -->
+  {# ── Match List ── #}
   {% if my_matches %}
-    <div class="grid gap-4 mb-8">
+    <div class="space-y-3">
       {% for match in my_matches %}
-        {% include "tournaments/public/player/_match_card.html" with match=match user=request.user %}
+        <div class="glass rounded-xl p-5 hover:border-dc-border/40 transition">
+          <div class="flex items-center gap-4">
+            {# State indicator #}
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+              {% if match.state == 'live' %}bg-red-600/10
+              {% elif match.state == 'scheduled' %}bg-blue-600/10
+              {% elif match.state == 'completed' %}bg-green-600/10
+              {% else %}bg-gray-600/10{% endif %}">
+              <i data-lucide="{% if match.state == 'live' %}radio{% elif match.state == 'scheduled' %}clock{% elif match.state == 'completed' %}check-circle{% else %}circle{% endif %}"
+                 class="w-5 h-5
+                  {% if match.state == 'live' %}text-red-400 animate-pulse
+                  {% elif match.state == 'scheduled' %}text-blue-400
+                  {% elif match.state == 'completed' %}text-green-400
+                  {% else %}text-gray-500{% endif %}"></i>
+            </div>
+
+            {# Match Info #}
+            <div class="flex-1 min-w-0">
+              {# Participants #}
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-sm text-white font-semibold truncate">
+                  {{ match.participant1|default:"TBD" }}
+                </span>
+                <span class="text-[10px] text-gray-600 font-gaming">VS</span>
+                <span class="text-sm text-white font-semibold truncate">
+                  {{ match.participant2|default:"TBD" }}
+                </span>
+              </div>
+              {# Tournament + Meta #}
+              <div class="flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
+                <span class="truncate">
+                  <i data-lucide="trophy" class="w-3 h-3 inline"></i>
+                  {{ match.tournament.name|truncatewords:5 }}
+                </span>
+                <span>
+                  <i data-lucide="layers" class="w-3 h-3 inline"></i>
+                  Round {{ match.round_number|default:"?" }}
+                </span>
+                {% if match.scheduled_time %}
+                  <span>
+                    <i data-lucide="calendar" class="w-3 h-3 inline"></i>
+                    {{ match.scheduled_time|date:"M d, H:i" }}
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+
+            {# Score (if completed) #}
+            {% if match.score_participant1 is not None and match.score_participant2 is not None %}
+              <div class="text-center font-mono text-lg flex-shrink-0 px-3">
+                <span class="{% if match.score_participant1 > match.score_participant2 %}text-green-400{% else %}text-gray-400{% endif %}">{{ match.score_participant1 }}</span>
+                <span class="text-gray-600 mx-1">-</span>
+                <span class="{% if match.score_participant2 > match.score_participant1 %}text-green-400{% else %}text-gray-400{% endif %}">{{ match.score_participant2 }}</span>
+              </div>
+            {% endif %}
+
+            {# Status Badge #}
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-mono flex-shrink-0
+              {% if match.state == 'live' %}bg-red-600/20 text-red-400
+              {% elif match.state == 'scheduled' %}bg-blue-600/20 text-blue-400
+              {% elif match.state == 'completed' %}bg-green-600/20 text-green-400
+              {% elif match.state == 'pending_result' %}bg-yellow-600/20 text-yellow-400
+              {% else %}bg-gray-600/20 text-gray-400{% endif %}">
+              {{ match.state|default:"Unknown"|title }}
+            </span>
+
+            {# Action #}
+            {% if match.state == 'pending_result' %}
+              <a href="{% url 'tournaments:submit_result' match.tournament.slug match.id %}"
+                 class="text-xs px-3 py-1.5 bg-dc-cyan/10 text-dc-cyan rounded-lg hover:bg-dc-cyan/20 transition flex-shrink-0">
+                Submit Result
+              </a>
+            {% elif match.state == 'live' or match.state == 'scheduled' %}
+              <a href="{% url 'tournaments:match_detail' match.tournament.slug match.id %}"
+                 class="p-2 rounded-lg hover:bg-white/10 text-gray-500 hover:text-white transition flex-shrink-0">
+                <i data-lucide="external-link" class="w-4 h-4"></i>
+              </a>
+            {% endif %}
+          </div>
+        </div>
       {% endfor %}
     </div>
 
-    <!-- Pagination -->
+    {# Pagination #}
     {% if is_paginated %}
-      <nav class="flex items-center justify-center gap-2">
-        {% if page_obj.has_previous %}
-          <a href="?page=1&status={{ filter_status }}" class="px-3 py-2 glass rounded-lg hover:bg-primary/20 transition">
-            <i class="fas fa-angle-double-left"></i>
-          </a>
-          <a href="?page={{ page_obj.previous_page_number }}&status={{ filter_status }}" class="px-3 py-2 glass rounded-lg hover:bg-primary/20 transition">
-            <i class="fas fa-angle-left"></i>
-          </a>
-        {% endif %}
-
-        <span class="px-4 py-2 glass rounded-lg">
-          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-        </span>
-
-        {% if page_obj.has_next %}
-          <a href="?page={{ page_obj.next_page_number }}&status={{ filter_status }}" class="px-3 py-2 glass rounded-lg hover:bg-primary/20 transition">
-            <i class="fas fa-angle-right"></i>
-          </a>
-          <a href="?page={{ page_obj.paginator.num_pages }}&status={{ filter_status }}" class="px-3 py-2 glass rounded-lg hover:bg-primary/20 transition">
-            <i class="fas fa-angle-double-right"></i>
-          </a>
-        {% endif %}
-      </nav>
+      <div class="mt-8">
+        {% include "tournaments/components/_pagination.html" %}
+      </div>
     {% endif %}
+
   {% else %}
-    <!-- Empty State -->
-    {% include "tournaments/public/player/_empty_state.html" with type="matches" filter_status=filter_status %}
+    <div class="text-center py-20 glass rounded-xl">
+      <i data-lucide="swords" class="w-12 h-12 text-gray-700 mx-auto mb-4"></i>
+      <h3 class="text-lg font-display font-bold text-white mb-2">No matches yet</h3>
+      <p class="text-sm text-gray-500 mb-6">Matches will appear here once your tournaments begin.</p>
+      <a href="{% url 'tournaments:my_tournaments' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-white/[0.05] text-white font-bold text-sm rounded-xl hover:bg-white/10 transition">
+        <i data-lucide="list" class="w-4 h-4"></i> View My Tournaments
+      </a>
+    </div>
   {% endif %}
-</section>
+
+</div>
+
 {% endblock %}

@@ -1,417 +1,254 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
 
-{% block title %}Tournament Lobby - {{ tournament.name }}{% endblock %}
+{# ─────────────────────────────────────────────────────────
+   Lobby Hub — FE-T-007
+   Context: tournament, lobby, registration, check_in,
+            roster_data, announcements, is_check_in_open,
+            check_in_status, check_in_countdown
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
 
-{% block extra_css %}
-<style>
-.lobby-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 30px 15px;
-}
-.lobby-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 40px 30px;
-    border-radius: 12px;
-    margin-bottom: 30px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-.lobby-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 30px;
-}
-@media (max-width: 992px) {
-    .lobby-grid {
-        grid-template-columns: 1fr;
-    }
-}
-.lobby-card {
-    background: white;
-    border-radius: 12px;
-    padding: 25px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-.lobby-card-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #007bff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.check-in-widget {
-    background: linear-gradient(135deg, #28a745, #20c997);
-    color: white;
-    padding: 30px;
-    border-radius: 12px;
-    text-align: center;
-    margin-bottom: 25px;
-}
-.check-in-countdown {
-    font-size: 3rem;
-    font-weight: 700;
-    margin: 20px 0;
-    font-family: 'Courier New', monospace;
-}
-.check-in-status {
-    font-size: 1.1rem;
-    margin-bottom: 20px;
-}
-.check-in-button {
-    background: white;
-    color: #28a745;
-    font-size: 1.2rem;
-    font-weight: 700;
-    padding: 15px 40px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.check-in-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-.check-in-button:disabled {
-    background: #6c757d;
-    color: white;
-    cursor: not-allowed;
-    transform: none;
-}
-.roster-list {
-    max-height: 500px;
-    overflow-y: auto;
-}
-.roster-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 15px;
-    margin-bottom: 8px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 3px solid transparent;
-}
-.roster-item.checked-in {
-    border-left-color: #28a745;
-    background: #d4edda;
-}
-.roster-item.not-checked-in {
-    border-left-color: #ffc107;
-    background: #fff3cd;
-}
-.roster-item.forfeited {
-    border-left-color: #dc3545;
-    background: #f8d7da;
-    opacity: 0.7;
-}
-.roster-participant {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-.roster-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #007bff;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-}
-.roster-name {
-    font-weight: 600;
-}
-.roster-status {
-    font-size: 0.85rem;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-weight: 600;
-}
-.roster-status.checked-in {
-    background: #28a745;
-    color: white;
-}
-.roster-status.pending {
-    background: #ffc107;
-    color: #000;
-}
-.roster-status.forfeited {
-    background: #dc3545;
-    color: white;
-}
-.announcements-feed {
-    max-height: 400px;
-    overflow-y: auto;
-}
-.announcement-item {
-    padding: 15px;
-    margin-bottom: 12px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 3px solid #007bff;
-}
-.announcement-item.pinned {
-    background: #fff3cd;
-    border-left-color: #ffc107;
-}
-.announcement-header {
-    display: flex;
-    justify-content: between;
-    align-items: flex-start;
-    margin-bottom: 8px;
-}
-.announcement-meta {
-    font-size: 0.85rem;
-    color: #6c757d;
-}
-.announcement-content {
-    color: #212529;
-    line-height: 1.6;
-}
-.pin-badge {
-    background: #ffc107;
-    color: #000;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    margin-left: 8px;
-}
-.lobby-info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-bottom: 25px;
-}
-.lobby-info-card {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 8px;
-    text-align: center;
-}
-.lobby-info-label {
-    font-size: 0.85rem;
-    color: #6c757d;
-    margin-bottom: 5px;
-}
-.lobby-info-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #212529;
-}
-.empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: #adb5bd;
-}
-</style>
-{% endblock %}
+{% block title %}Lobby — {{ tournament.name }} | DeltaCrown{% endblock %}
 
-{% block content %}
-<div class="lobby-container">
-    <div class="lobby-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="mb-2">{{ tournament.name }}</h2>
-                <h4 class="mb-0"><i class="fas fa-users me-2"></i>Tournament Lobby</h4>
-            </div>
-            <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="btn btn-light btn-lg">
-                <i class="fas fa-arrow-left me-2"></i>Back
-            </a>
-        </div>
+{% block tournament_content %}
+
+{# ── Tournament & Lobby Header ── #}
+<div class="relative overflow-hidden">
+  <div class="absolute inset-0 bg-gradient-to-b from-dc-cyan/5 to-transparent"></div>
+  <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-10">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <a href="{% url 'tournaments:detail' tournament.slug %}" class="text-xs text-gray-500 hover:text-dc-cyan transition mb-2 inline-block">
+          <i data-lucide="arrow-left" class="w-3 h-3 inline mr-1"></i> Back to Tournament
+        </a>
+        <h1 class="text-2xl sm:text-3xl font-display font-bold text-white">{{ tournament.name }}</h1>
+        <p class="text-sm text-gray-400 mt-1">Participant Lobby</p>
+      </div>
+      <div class="flex items-center gap-3">
+        {% if registration %}
+          <span class="px-3 py-1.5 text-xs rounded-full
+            {% if registration.status == 'confirmed' %}bg-green-900/40 text-green-400 border border-green-700/30
+            {% elif registration.status == 'pending' %}bg-yellow-900/40 text-yellow-400 border border-yellow-700/30
+            {% else %}bg-gray-800/40 text-gray-400 border border-gray-700/30{% endif %}
+          ">{{ registration.get_status_display|default:registration.status|title }}</span>
+        {% endif %}
+      </div>
     </div>
-
-    {% if messages %}
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        {% endfor %}
-    {% endif %}
-
-    <!-- Lobby Info Stats -->
-    <div class="lobby-info-grid">
-        <div class="lobby-info-card">
-            <div class="lobby-info-label">Total Participants</div>
-            <div class="lobby-info-value">{{ total_participants }}</div>
-        </div>
-        <div class="lobby-info-card">
-            <div class="lobby-info-label">Checked In</div>
-            <div class="lobby-info-value text-success">{{ checked_in_count }}</div>
-        </div>
-        <div class="lobby-info-card">
-            <div class="lobby-info-label">Pending</div>
-            <div class="lobby-info-value text-warning">{{ pending_count }}</div>
-        </div>
-        <div class="lobby-info-card">
-            <div class="lobby-info-label">Tournament Start</div>
-            <div class="lobby-info-value" style="font-size: 1.2rem;">
-                {{ tournament.start_date|date:"M d, H:i" }}
-            </div>
-        </div>
-    </div>
-
-    <div class="lobby-grid">
-        <!-- Main Content -->
-        <div>
-            <!-- Check-In Widget -->
-            {% if lobby and can_check_in %}
-            <div class="check-in-widget" id="checkInWidget">
-                <h3><i class="fas fa-clipboard-check me-2"></i>Check-In</h3>
-                <div class="check-in-status" id="checkInStatus">
-                    {% if user_checked_in %}
-                        You are checked in!
-                    {% else %}
-                        Check in before the deadline
-                    {% endif %}
-                </div>
-                <div class="check-in-countdown" id="checkInCountdown">--:--:--</div>
-                <button type="button" class="check-in-button" id="checkInButton" {% if user_checked_in %}disabled{% endif %}>
-                    {% if user_checked_in %}
-                        <i class="fas fa-check me-2"></i>Checked In
-                    {% else %}
-                        <i class="fas fa-hand-point-up me-2"></i>Check In Now
-                    {% endif %}
-                </button>
-            </div>
-            {% endif %}
-
-            <!-- Participant Roster -->
-            <div class="lobby-card">
-                <div class="lobby-card-title">
-                    <span><i class="fas fa-list-ul me-2"></i>Participant Roster</span>
-                    <span class="badge bg-primary">{{ total_participants }}</span>
-                </div>
-                <div class="roster-list" id="rosterList">
-                    {% include "tournaments/lobby/_roster.html" %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Sidebar -->
-        <div>
-            <!-- Announcements -->
-            <div class="lobby-card">
-                <div class="lobby-card-title">
-                    <span><i class="fas fa-bullhorn me-2"></i>Announcements</span>
-                </div>
-                <div class="announcements-feed" id="announcementsFeed">
-                    {% include "tournaments/lobby/_announcements.html" %}
-                </div>
-            </div>
-        </div>
-    </div>
+  </div>
 </div>
 
+<div class="max-w-6xl mx-auto px-4 sm:px-6 pb-12">
+
+  {# ── Check-In Card ── #}
+  <div class="glass rounded-xl p-6 mb-6 neon-border-cyan">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center
+          {% if check_in %}bg-green-900/30{% elif is_check_in_open %}bg-dc-cyan/10{% else %}bg-dc-surface{% endif %}">
+          {% if check_in %}
+            <i data-lucide="check-circle-2" class="w-7 h-7 text-green-400"></i>
+          {% elif is_check_in_open %}
+            <i data-lucide="radio" class="w-7 h-7 text-dc-cyan animate-pulse"></i>
+          {% else %}
+            <i data-lucide="clock" class="w-7 h-7 text-gray-500"></i>
+          {% endif %}
+        </div>
+        <div>
+          {% if check_in %}
+            <h3 class="text-lg font-display font-bold text-green-400">Checked In</h3>
+            <p class="text-xs text-gray-400">You're ready to compete</p>
+          {% elif is_check_in_open %}
+            <h3 class="text-lg font-display font-bold text-dc-cyan">Check-In Open</h3>
+            <p class="text-xs text-gray-400">
+              {% if check_in_countdown > 0 %}
+                Closes in <span class="text-white font-mono" id="countdown">{{ check_in_countdown|floatformat:0 }}s</span>
+              {% else %}
+                Check in now to confirm your spot
+              {% endif %}
+            </p>
+          {% else %}
+            <h3 class="text-lg font-display font-bold text-gray-400">Check-In Not Open</h3>
+            <p class="text-xs text-gray-500">{{ check_in_status|default:"Check-in will open soon" }}</p>
+          {% endif %}
+        </div>
+      </div>
+      {% if not check_in and is_check_in_open %}
+        <form method="post" action="{% url 'tournaments:check_in' tournament.slug %}">
+          {% csrf_token %}
+          <button type="submit"
+                  class="px-6 py-3 bg-dc-cyan text-dc-dark font-bold text-sm rounded-xl hover:bg-dc-cyan/90 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+            <i data-lucide="check" class="w-4 h-4 inline mr-1"></i> Check In Now
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    {# ── Left Column: Roster ── #}
+    <div class="lg:col-span-2 space-y-6">
+
+      {# Roster Section #}
+      <div class="glass rounded-xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-dc-border flex items-center justify-between">
+          <h3 class="text-sm font-display font-semibold text-white">
+            <i data-lucide="users" class="w-4 h-4 inline mr-1 text-dc-cyan"></i> Participant Roster
+          </h3>
+          {% if roster_data.stats %}
+            <span class="text-xs text-gray-500">
+              {{ roster_data.stats.checked_in|default:0 }}/{{ roster_data.stats.total|default:0 }} checked in
+            </span>
+          {% endif %}
+        </div>
+
+        {# Check-in progress bar #}
+        {% if roster_data.stats.total %}
+          <div class="px-6 py-2 bg-white/[0.01]">
+            <div class="h-1.5 bg-dc-surface rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-dc-cyan to-green-400 rounded-full transition-all duration-700"
+                   style="width: {% widthratio roster_data.stats.checked_in roster_data.stats.total 100 %}%"></div>
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="divide-y divide-dc-border" id="roster-list"
+             hx-get="{% url 'tournaments:lobby_roster' tournament.slug %}"
+             hx-trigger="every 15s"
+             hx-swap="innerHTML">
+          {% if roster_data.participants %}
+            {% for p in roster_data.participants %}
+              <div class="flex items-center justify-between px-6 py-3 hover:bg-white/[0.02] transition">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-dc-surface flex items-center justify-center text-xs font-mono text-gray-400">
+                    {{ forloop.counter }}
+                  </div>
+                  <div>
+                    <p class="text-sm text-white">{{ p.display_name|default:p.username }}</p>
+                    {% if p.team_name %}
+                      <p class="text-[10px] text-gray-500">{{ p.team_name }}</p>
+                    {% endif %}
+                  </div>
+                </div>
+                <div>
+                  {% if p.checked_in %}
+                    <span class="px-2 py-0.5 text-[10px] rounded-full bg-green-900/40 text-green-400 border border-green-700/30">
+                      <i data-lucide="check" class="w-3 h-3 inline"></i> Ready
+                    </span>
+                  {% else %}
+                    <span class="px-2 py-0.5 text-[10px] rounded-full bg-gray-800/40 text-gray-500 border border-gray-700/30">Waiting</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="px-6 py-12 text-center">
+              <i data-lucide="users" class="w-8 h-8 text-gray-700 mx-auto mb-2"></i>
+              <p class="text-sm text-gray-500">No participants yet</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    {# ── Right Column: Announcements & Info ── #}
+    <div class="space-y-6">
+
+      {# Announcements #}
+      <div class="glass rounded-xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-dc-border">
+          <h3 class="text-sm font-display font-semibold text-white">
+            <i data-lucide="megaphone" class="w-4 h-4 inline mr-1 text-dc-gold"></i> Announcements
+          </h3>
+        </div>
+        <div class="divide-y divide-dc-border" id="announcements-list"
+             hx-get="{% url 'tournaments:lobby_announcements' tournament.slug %}"
+             hx-trigger="every 30s"
+             hx-swap="innerHTML">
+          {% if announcements %}
+            {% for ann in announcements %}
+              <div class="px-6 py-4 {% if ann.is_pinned %}bg-dc-gold/[0.03]{% endif %}">
+                {% if ann.is_pinned %}
+                  <span class="text-[10px] text-dc-gold uppercase tracking-wider">
+                    <i data-lucide="pin" class="w-3 h-3 inline"></i> Pinned
+                  </span>
+                {% endif %}
+                <p class="text-sm text-white mt-1">{{ ann.message }}</p>
+                <p class="text-[10px] text-gray-600 mt-1">
+                  {{ ann.created_at|timesince }} ago
+                  {% if ann.posted_by %} · {{ ann.posted_by }}{% endif %}
+                </p>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="px-6 py-8 text-center">
+              <i data-lucide="bell-off" class="w-6 h-6 text-gray-700 mx-auto mb-1"></i>
+              <p class="text-xs text-gray-600">No announcements yet</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Tournament Quick Info #}
+      <div class="glass rounded-xl p-6">
+        <h3 class="text-sm font-display font-semibold text-white mb-4">
+          <i data-lucide="info" class="w-4 h-4 inline mr-1 text-dc-cyan"></i> Quick Info
+        </h3>
+        <dl class="space-y-3 text-sm">
+          {% if tournament.game %}
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Game</dt>
+              <dd class="text-white">{{ tournament.game.name }}</dd>
+            </div>
+          {% endif %}
+          <div class="flex justify-between">
+            <dt class="text-gray-500">Format</dt>
+            <dd class="text-white">{{ tournament.get_format_display|default:tournament.format|title }}</dd>
+          </div>
+          {% if tournament.tournament_start %}
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Starts</dt>
+              <dd class="text-white">{{ tournament.tournament_start|date:"M d, g:i A" }}</dd>
+            </div>
+          {% endif %}
+          {% if tournament.prize_pool %}
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Prize Pool</dt>
+              <dd class="text-dc-gold font-mono">৳{{ tournament.prize_pool|intcomma }}</dd>
+            </div>
+          {% endif %}
+        </dl>
+        <div class="mt-4 pt-4 border-t border-dc-border">
+          <a href="{% url 'tournaments:detail' tournament.slug %}" class="text-xs text-dc-cyan hover:underline">
+            View Full Details <i data-lucide="external-link" class="w-3 h-3 inline"></i>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block tournament_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const checkInButton = document.getElementById('checkInButton');
-    const checkInCountdown = document.getElementById('checkInCountdown');
-    const rosterList = document.getElementById('rosterList');
-    const announcementsFeed = document.getElementById('announcementsFeed');
-    
-    // Check-in countdown
-    {% if lobby and lobby.check_in_deadline %}
-    const deadline = new Date('{{ lobby.check_in_deadline|date:"c" }}').getTime();
-    
-    const countdownInterval = setInterval(function() {
-        const now = new Date().getTime();
-        const distance = deadline - now;
-        
-        if (distance < 0) {
-            clearInterval(countdownInterval);
-            checkInCountdown.textContent = 'CLOSED';
-            if (checkInButton) checkInButton.disabled = true;
-            return;
-        }
-        
-        const hours = Math.floor(distance / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-        
-        checkInCountdown.textContent = 
-            String(hours).padStart(2, '0') + ':' +
-            String(minutes).padStart(2, '0') + ':' +
-            String(seconds).padStart(2, '0');
+  // Countdown timer
+  {% if is_check_in_open and check_in_countdown > 0 and not check_in %}
+  (function() {
+    let remaining = {{ check_in_countdown }};
+    const el = document.getElementById('countdown');
+    if (!el) return;
+    const tick = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) { clearInterval(tick); location.reload(); return; }
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      el.textContent = m > 0 ? `${m}m ${s}s` : `${s}s`;
     }, 1000);
-    {% endif %}
-    
-    // Check-in action
-    checkInButton?.addEventListener('click', async function() {
-        if (this.disabled) return;
-        
-        this.disabled = true;
-        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking in...';
-        
-        try {
-            const response = await fetch('{% url "tournaments:lobby_check_in" slug=tournament.slug %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                this.innerHTML = '<i class="fas fa-check me-2"></i>Checked In';
-                document.getElementById('checkInStatus').textContent = 'You are checked in!';
-                
-                // Reload roster
-                loadRoster();
-            } else {
-                alert(data.error || 'Check-in failed');
-                this.disabled = false;
-                this.innerHTML = '<i class="fas fa-hand-point-up me-2"></i>Check In Now';
-            }
-        } catch (error) {
-            console.error('Check-in error:', error);
-            alert('Check-in failed. Please try again.');
-            this.disabled = false;
-            this.innerHTML = '<i class="fas fa-hand-point-up me-2"></i>Check In Now';
-        }
-    });
-    
-    // Auto-refresh roster every 10 seconds
-    async function loadRoster() {
-        try {
-            const response = await fetch('{% url "tournaments:lobby_roster_api" slug=tournament.slug %}');
-            const data = await response.json();
-            
-            if (data.html) {
-                rosterList.innerHTML = data.html;
-            }
-        } catch (error) {
-            console.error('Roster refresh error:', error);
-        }
-    }
-    
-    // Auto-refresh announcements every 15 seconds
-    async function loadAnnouncements() {
-        try {
-            const response = await fetch('{% url "tournaments:lobby_announcements_api" slug=tournament.slug %}');
-            const data = await response.json();
-            
-            if (data.html) {
-                announcementsFeed.innerHTML = data.html;
-            }
-        } catch (error) {
-            console.error('Announcements refresh error:', error);
-        }
-    }
-    
-    setInterval(loadRoster, 10000);
-    setInterval(loadAnnouncements, 15000);
-});
+  })();
+  {% endif %}
 </script>
 {% endblock %}

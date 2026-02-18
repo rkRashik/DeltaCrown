@@ -1,0 +1,763 @@
+{% extends "base.html" %}
+{% load static humanize tournament_filters tournament_tags %}
+
+{% block title %}Tournaments - Bangladesh's Premier Esports Platform | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'tournaments/css/tournaments-hub-v2.css' %}?v=5.0">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
+{% block body_class %}tournament-hub-v2{% endblock %}
+
+{% block content %}
+<!-- Cinematic Hero Section with Real-time Updates -->
+<section class="hero-cinematic">
+    <div class="hero-particles" id="particles"></div>
+    <div class="hero-glow-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+    
+    <div class="hub-container">
+        <div class="hero-content-wrapper">
+            <!-- Live Updates Ticker -->
+            <div class="live-ticker">
+                <div class="ticker-icon">
+                    <span class="pulse-ring"></span>
+                    <i class="fas fa-broadcast-tower"></i>
+                </div>
+                <div class="ticker-content">
+                    <span class="ticker-label">LIVE</span>
+                    <div class="ticker-text" id="live-ticker">
+                        <span>{{ paginator.count }} Active Tournament{{ paginator.count|pluralize }} • Join Now!</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Hero Content -->
+            <div class="hero-main">
+                <div class="hero-badge-group">
+                    <div class="hero-badge">
+                        <span class="pulse-dot"></span>
+                        <span>{{ paginator.count }} TOURNAMENT{{ paginator.count|pluralize }} LIVE</span>
+                    </div>
+                    {% if user.is_authenticated %}
+                    <div class="hero-badge hero-badge-alt">
+                        <i class="fas fa-user-circle"></i>
+                        <span>{{ user.username|upper }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <h1 class="hero-title">
+                    <span class="title-gradient">COMPETE.</span>
+                    <span class="title-gradient">CONQUER.</span>
+                    <span class="title-gradient">CROWN.</span>
+                </h1>
+
+                <p class="hero-subtitle">Bangladesh's Most Advanced Esports Tournament Platform</p>
+
+                <!-- CTA Buttons -->
+                <div class="hero-cta-group">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'tournaments:my_tournaments' %}" class="cta-btn cta-primary">
+                            <span class="btn-glow"></span>
+                            <i class="fas fa-trophy"></i>
+                            <span>My Tournaments</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
+                        <a href="{% url 'tournaments:create_tournament' %}" class="cta-btn cta-secondary">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Create Tournament</span>
+                        </a>
+                    {% else %}
+                        <a href="{% url 'account:login' %}?next={% url 'tournaments:list' %}" class="cta-btn cta-primary">
+                            <span class="btn-glow"></span>
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Login to Compete</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
+                        <a href="{% url 'account:signup' %}" class="cta-btn cta-secondary">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Create Account</span>
+                        </a>
+                    {% endif %}
+                    <a href="#browse-games" class="cta-btn cta-outline">
+                        <i class="fas fa-gamepad"></i>
+                        <span>Browse Games</span>
+                    </a>
+                </div>
+
+                <!-- Stats Grid with Animations -->
+                <div class="hero-stats-grid">
+                    <div class="stat-card" data-stat="games">
+                        <div class="stat-icon">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" data-count="{{ games|length }}">0</div>
+                            <div class="stat-label">Games</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" data-stat="tournaments">
+                        <div class="stat-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" data-count="{{ paginator.count }}">0</div>
+                            <div class="stat-label">Active Tournaments</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" data-stat="prize">
+                        <div class="stat-icon">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value">৳50L+</div>
+                            <div class="stat-label">Total Prize Pool</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" data-stat="players">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value">10K+</div>
+                            <div class="stat-label">Active Players</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll Indicator -->
+    <div class="scroll-indicator">
+        <div class="mouse">
+            <div class="wheel"></div>
+        </div>
+        <div class="scroll-text">Scroll to Explore</div>
+    </div>
+</section>
+
+<!-- Advanced Search Section -->
+<section class="search-section-v2">
+    <div class="hub-container">
+        <form method="get" action="{% url 'tournaments:list' %}" class="search-form-advanced">
+            <div class="search-wrapper">
+                <div class="search-icon-wrapper">
+                    <i class="fas fa-search"></i>
+                </div>
+                <input 
+                    type="text" 
+                    name="search" 
+                    class="search-input-v2"
+                    placeholder="Search by tournament name, game, or organizer..."
+                    value="{{ current_search }}"
+                    autocomplete="off"
+                >
+                <button type="submit" class="search-submit-btn">
+                    <span>Search</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+            {% if current_game %}<input type="hidden" name="game" value="{{ current_game }}">{% endif %}
+            {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
+            {% if current_format %}<input type="hidden" name="format" value="{{ current_format }}">{% endif %}
+        </form>
+
+        <!-- Quick Filters -->
+        <div class="quick-filters">
+            <a href="?status=live" class="quick-filter {% if current_status == 'live' %}active{% endif %}">
+                <span class="pulse-dot"></span>
+                <span>Live Now</span>
+            </a>
+            <a href="?status=registration_open" class="quick-filter {% if current_status == 'registration_open' %}active{% endif %}">
+                <i class="fas fa-user-plus"></i>
+                <span>Open Registration</span>
+            </a>
+            <a href="?fee=free" class="quick-filter {% if request.GET.fee == 'free' %}active{% endif %}">
+                <i class="fas fa-gift"></i>
+                <span>Free Entry</span>
+            </a>
+            <a href="?sort=prize_high" class="quick-filter {% if request.GET.sort == 'prize_high' %}active{% endif %}">
+                <i class="fas fa-trophy"></i>
+                <span>Highest Prize</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Browse by Game Section (Keep Existing) -->
+<section class="dc-games-section" id="browse-games">
+    <div class="hub-container">
+        <div class="section-header-v2">
+            <h2 class="section-title-v2">
+                <span class="title-accent"></span>
+                <span>Browse by Game</span>
+            </h2>
+            <p class="section-subtitle-v2">Select your game to view specialized tournaments</p>
+        </div>
+        
+        <div class="dc-games-grid">
+            <!-- All Games -->
+            <a href="{% url 'tournaments:list' %}" class="dc-game-card {% if not current_game %}active{% endif %}">
+                <div class="dc-game-overlay"></div>
+                <div class="dc-game-content">
+                    <i class="fas fa-th dc-game-icon" style="font-size: 48px; color: var(--dc-primary);"></i>
+                    <div class="dc-game-name">All Games</div>
+                    <div class="dc-game-count">{{ paginator.count }} Tournament{{ paginator.count|pluralize }}</div>
+                </div>
+            </a>
+            
+            <!-- Dynamic Games -->
+            {% for game in games %}
+            <a href="?game={{ game.slug }}" class="dc-game-card {% if current_game == game.slug %}active{% endif %}">
+                {% if game.card %}
+                <div class="dc-game-bg">
+                    <img src="{{ game.card }}" alt="{{ game.name }}">
+                </div>
+                {% endif %}
+                <div class="dc-game-overlay"></div>
+                <div class="dc-game-content">
+                    {% if game.icon %}
+                        <img src="{{ game.icon }}" alt="{{ game.name }}" class="dc-game-icon">
+                    {% else %}
+                        <i class="fas fa-gamepad dc-game-icon" style="font-size: 48px;"></i>
+                    {% endif %}
+                    <div class="dc-game-name">{{ game.name }}</div>
+                    <div class="dc-game-count">View Tournaments</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Tournament Listing Section -->
+<section class="listing-section-v2">
+    <div class="hub-container">
+        <div class="listing-layout-v2">
+            <!-- Modern Filters Sidebar -->
+            <aside class="filters-sidebar-v2" id="filters-panel">
+                <div class="filters-header-v2">
+                    <h3 class="filters-title-v2">
+                        <i class="fas fa-filter"></i>
+                        <span>Filters</span>
+                    </h3>
+                    <button type="button" class="close-filters-v2" id="close-filters">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form method="get" action="{% url 'tournaments:list' %}" id="filters-form-v2">
+                    {% if current_search %}<input type="hidden" name="search" value="{{ current_search }}">{% endif %}
+                    {% if current_game %}<input type="hidden" name="game" value="{{ current_game }}">{% endif %}
+                    
+                    <!-- Status Filter -->
+                    <div class="filter-group-v2">
+                        <div class="filter-header">
+                            <label class="filter-label-v2">
+                                <i class="fas fa-signal"></i>
+                                <span>Tournament Status</span>
+                            </label>
+                        </div>
+                        <div class="filter-options">
+                            {% for option in status_options %}
+                            <label class="filter-option-v2">
+                                <input type="radio" name="status" value="{{ option.value }}" {% if option.value == current_status %}checked{% endif %}>
+                                <span class="option-content">
+                                    <span class="option-text">{{ option.label }}</span>
+                                    {% if option.value == '' %}
+                                    <span class="option-count">{{ paginator.count }}</span>
+                                    {% endif %}
+                                </span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Entry Fee Filter -->
+                    <div class="filter-group-v2">
+                        <div class="filter-header">
+                            <label class="filter-label-v2">
+                                <i class="fas fa-coins"></i>
+                                <span>Entry Fee</span>
+                            </label>
+                        </div>
+                        <div class="filter-options">
+                            <label class="filter-option-v2">
+                                <input type="radio" name="fee" value="" {% if not request.GET.fee %}checked{% endif %}>
+                                <span class="option-content">
+                                    <span class="option-text">All Tournaments</span>
+                                </span>
+                            </label>
+                            <label class="filter-option-v2">
+                                <input type="radio" name="fee" value="free" {% if request.GET.fee == 'free' %}checked{% endif %}>
+                                <span class="option-content">
+                                    <span class="option-text">Free Entry</span>
+                                    <span class="option-badge free">FREE</span>
+                                </span>
+                            </label>
+                            <label class="filter-option-v2">
+                                <input type="radio" name="fee" value="paid" {% if request.GET.fee == 'paid' %}checked{% endif %}>
+                                <span class="option-content">
+                                    <span class="option-text">Paid Entry</span>
+                                    <span class="option-badge paid">PAID</span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Format Filter -->
+                    <div class="filter-group-v2">
+                        <div class="filter-header">
+                            <label class="filter-label-v2">
+                                <i class="fas fa-sitemap"></i>
+                                <span>Tournament Format</span>
+                            </label>
+                        </div>
+                        <div class="filter-options">
+                            {% for option in format_options %}
+                            <label class="filter-option-v2">
+                                <input type="radio" name="format" value="{{ option.value }}" {% if option.value == current_format %}checked{% endif %}>
+                                <span class="option-content">
+                                    <span class="option-text">{{ option.label }}</span>
+                                </span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Prize Pool Range -->
+                    <div class="filter-group-v2">
+                        <div class="filter-header">
+                            <label class="filter-label-v2">
+                                <i class="fas fa-trophy"></i>
+                                <span>Prize Pool</span>
+                            </label>
+                        </div>
+                        <div class="filter-options">
+                            <label class="filter-option-v2">
+                                <input type="radio" name="prize" value="" {% if not request.GET.prize %}checked{% endif %}>
+                                <span class="option-content">
+                                    <span class="option-text">Any Amount</span>
+                                </span>
+                            </label>
+                            <label class="filter-option-v2">
+                                <input type="radio" name="prize" value="under_10k" {% if request.GET.prize == 'under_10k' %}checked{% endif %}>
+                                <span class="option-content">
+                                    <span class="option-text">Under ৳10,000</span>
+                                </span>
+                            </label>
+                            <label class="filter-option-v2">
+                                <input type="radio" name="prize" value="10k_50k" {% if request.GET.prize == '10k_50k' %}checked{% endif %}>
+                                <span class="option-content">
+                                    <span class="option-text">৳10K - ৳50K</span>
+                                </span>
+                            </label>
+                            <label class="filter-option-v2">
+                                <input type="radio" name="prize" value="over_50k" {% if request.GET.prize == 'over_50k' %}checked{% endif %}>
+                                <span class="option-content">
+                                    <span class="option-text">Over ৳50,000</span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="button" class="reset-filters-btn" id="reset-filters">
+                        <i class="fas fa-redo"></i>
+                        <span>Reset All Filters</span>
+                    </button>
+                </form>
+
+                <!-- Quick Stats -->
+                <div class="sidebar-stats">
+                    <div class="sidebar-stat-item">
+                        <i class="fas fa-clock"></i>
+                        <div>
+                            <div class="stat-num">5</div>
+                            <div class="stat-text">Ending Soon</div>
+                        </div>
+                    </div>
+                    <div class="sidebar-stat-item">
+                        <i class="fas fa-fire"></i>
+                        <div>
+                            <div class="stat-num">12</div>
+                            <div class="stat-text">Trending</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+            
+            <!-- Main Content Area -->
+            <div class="listing-main-v2">
+                <!-- Listing Header -->
+                <div class="listing-header-v2">
+                    <div class="header-left">
+                        <h2 class="listing-count-v2">
+                            <span class="count-num">{{ paginator.count }}</span>
+                            <span class="count-text">Tournament{{ paginator.count|pluralize }} Found</span>
+                        </h2>
+                        <button type="button" class="mobile-filter-trigger" id="open-filters">
+                            <i class="fas fa-sliders-h"></i>
+                            <span>Filters</span>
+                        </button>
+                    </div>
+                    
+                    <div class="header-right">
+                        <div class="view-switcher">
+                            <button class="view-btn active" data-view="grid">
+                                <i class="fas fa-th-large"></i>
+                            </button>
+                            <button class="view-btn" data-view="list">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                        <div class="sort-dropdown-v2">
+                            <label>
+                                <i class="fas fa-sort"></i>
+                                <span>Sort:</span>
+                            </label>
+                            <select id="sort-select-v2" name="sort">
+                                <option value="newest" {% if request.GET.sort == 'newest' %}selected{% endif %}>Newest First</option>
+                                <option value="starting_soon" {% if request.GET.sort == 'starting_soon' %}selected{% endif %}>Starting Soon</option>
+                                <option value="prize_high" {% if request.GET.sort == 'prize_high' %}selected{% endif %}>Highest Prize</option>
+                                <option value="prize_low" {% if request.GET.sort == 'prize_low' %}selected{% endif %}>Lowest Prize</option>
+                                <option value="popular" {% if request.GET.sort == 'popular' %}selected{% endif %}>Most Popular</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Filters Display -->
+                {% if current_search or current_game or current_status or current_format or request.GET.fee %}
+                <div class="active-filters">
+                    <span class="active-filters-label">Active Filters:</span>
+                    <div class="filter-tags">
+                        {% if current_search %}
+                        <span class="filter-tag">
+                            <span>Search: {{ current_search }}</span>
+                            <a href="?{% if current_game %}game={{ current_game }}&{% endif %}{% if current_status %}status={{ current_status }}&{% endif %}{% if current_format %}format={{ current_format }}{% endif %}">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </span>
+                        {% endif %}
+                        {% if current_game %}
+                        <span class="filter-tag">
+                            <span>Game: {{ current_game|title }}</span>
+                            <a href="?{% if current_search %}search={{ current_search }}&{% endif %}{% if current_status %}status={{ current_status }}&{% endif %}{% if current_format %}format={{ current_format }}{% endif %}">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </span>
+                        {% endif %}
+                        <a href="{% url 'tournaments:list' %}" class="clear-all-filters">
+                            <i class="fas fa-trash-alt"></i>
+                            <span>Clear All</span>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Tournament Cards Grid (Keep existing cards) -->
+                {% if tournament_list %}
+                <div class="dc-tournaments-grid" id="tournaments-grid">
+                    {% for tournament in tournament_list %}
+                    <article class="dc-tournament-card">
+                        <div class="dc-card-image">
+                            <a href="{% url 'tournaments:detail' slug=tournament.slug %}">
+                                {% if tournament.banner_image %}
+                                <img src="{{ tournament.banner_image.url }}" alt="{{ tournament.name }}">
+                                {% elif tournament.thumbnail_image %}
+                                <img src="{{ tournament.thumbnail_image.url }}" alt="{{ tournament.name }}">
+                                {% else %}
+                                <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 900; color: rgba(255,255,255,0.3);">
+                                    {{ tournament.name|slice:":1"|upper }}
+                                </div>
+                                {% endif %}
+                            </a>
+                            
+                            {% if tournament.game %}
+                            <div class="dc-game-logo-badge">
+                                {% if tournament.game.icon %}
+                                <img src="{{ tournament.game.icon.url }}" alt="{{ tournament.game.name }}" class="dc-game-logo">
+                                {% else %}
+                                <i class="fas fa-gamepad" style="color: var(--dc-primary);"></i>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
+                            <div class="dc-card-badges">
+                                {% if tournament.status == 'live' %}
+                                <span class="dc-badge dc-badge-live">
+                                    <span class="dc-pulse-dot"></span>
+                                    LIVE
+                                </span>
+                                {% elif tournament.status == 'registration_open' %}
+                                <span class="dc-badge" style="background: rgba(0, 212, 255, 0.2); border: 1px solid var(--dc-primary); color: var(--dc-primary);">
+                                    <i class="fas fa-user-plus"></i>
+                                    OPEN
+                                </span>
+                                {% elif tournament.status == 'completed' %}
+                                <span class="dc-badge dc-badge-completed">
+                                    <i class="fas fa-check-circle"></i>
+                                    COMPLETED
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="dc-card-body">
+                            <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-card-title">
+                                {{ tournament.name }}
+                            </a>
+                            
+                            <div class="dc-card-meta">
+                                <div class="dc-card-meta-item">
+                                    <div class="dc-meta-label">
+                                        <i class="far fa-calendar"></i>
+                                        <span>Starts</span>
+                                    </div>
+                                    <div class="dc-meta-value">{{ tournament.tournament_start|date:"M d, Y" }}</div>
+                                </div>
+                                <div class="dc-card-meta-item">
+                                    <div class="dc-meta-label">
+                                        <i class="fas fa-trophy"></i>
+                                        <span>Prize Pool</span>
+                                    </div>
+                                    <div class="dc-meta-value dc-meta-prize">
+                                        {% if tournament.prize_pool and tournament.prize_pool > 0 %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}TBA{% endif %}
+                                    </div>
+                                </div>
+                                <div class="dc-card-meta-item">
+                                    <div class="dc-meta-label">
+                                        <i class="fas fa-users"></i>
+                                        <span>Participants</span>
+                                    </div>
+                                    <div class="dc-meta-value">
+                                        {% if tournament.max_participants %}
+                                            <span class="dc-current-count">{{ tournament.registration_count }}</span>
+                                            <span class="dc-progress-separator">/</span>
+                                            <span class="dc-total-count">{{ tournament.max_participants }}</span>
+                                        {% else %}
+                                            <span class="dc-registration-count">{{ tournament.registration_count }}</span>
+                                            <span class="dc-unlimited-text">registered</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="dc-card-meta-item">
+                                    <div class="dc-meta-label">
+                                        <i class="fas fa-coins"></i>
+                                        <span>Entry Fee</span>
+                                    </div>
+                                    <div class="dc-meta-value dc-meta-fee">
+                                        {% if tournament.has_entry_fee and tournament.entry_fee_amount %}৳{{ tournament.entry_fee_amount|floatformat:0 }}{% else %}<span class="dc-free-badge">FREE</span>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if tournament.max_participants %}
+                            <div class="dc-card-progress">
+                                <div class="dc-progress-header">
+                                    <div class="dc-progress-label">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>Registration Progress</span>
+                                    </div>
+                                    <div class="dc-progress-stats">
+                                        <span class="dc-current-count">{{ tournament.registration_count }}</span>
+                                        <span class="dc-progress-separator">/</span>
+                                        <span class="dc-total-count">{{ tournament.max_participants }}</span>
+                                        <span class="dc-progress-percent">({% widthratio tournament.registration_count tournament.max_participants 100 %}%)</span>
+                                    </div>
+                                </div>
+                                <div class="dc-progress-bar-wrap">
+                                    <div class="dc-progress-bar" style="width: {% widthratio tournament.registration_count tournament.max_participants 100 %}%"></div>
+                                </div>
+                                {% if tournament.registration_count >= tournament.max_participants %}
+                                <div class="dc-full-notice">
+                                    <i class="fas fa-users"></i>
+                                    <span>All slots filled!</span>
+                                </div>
+                                {% else %}
+                                    {% remaining_slots tournament.max_participants tournament.registration_count as remaining %}
+                                    {% if remaining <= 5 and remaining > 0 %}
+                                    <div class="dc-slots-available dc-slots-urgent">
+                                        <div class="dc-slots-message">
+                                            <div class="dc-slots-highlight">
+                                                <i class="fas fa-bolt"></i>
+                                                <span>Only {{ remaining }} spot{{ remaining|pluralize }} left!</span>
+                                            </div>
+                                            <div class="dc-slots-subtext">Hurry! Filling fast</div>
+                                        </div>
+                                        {% if tournament.registration_deadline %}
+                                        <div class="dc-slots-countdown">
+                                            <div class="dc-countdown-timer" data-deadline="{{ tournament.registration_deadline|date:'c' }}">--:--:--</div>
+                                            <div class="dc-countdown-label">Time Left</div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% elif remaining > 5 %}
+                                    <div class="dc-slots-available">
+                                        <div class="dc-slots-message">
+                                            <div class="dc-slots-highlight">
+                                                <i class="fas fa-rocket"></i>
+                                                <span>{{ remaining }} slots available</span>
+                                            </div>
+                                            <div class="dc-slots-subtext">Register now to secure your spot</div>
+                                        </div>
+                                        {% if tournament.registration_deadline %}
+                                        <div class="dc-slots-countdown">
+                                            <div class="dc-countdown-timer" data-deadline="{{ tournament.registration_deadline|date:'c' }}">--:--:--</div>
+                                            <div class="dc-countdown-label">Closes In</div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
+                            <div class="dc-card-actions">
+                                {% if tournament.id in user_registered_tournaments %}
+                                    {# User Already Registered - Show Lobby Button #}
+                                    <a href="{% url 'tournaments:lobby' slug=tournament.slug %}" class="dc-btn dc-btn-success neon">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Registered - Enter Lobby</span>
+                                    </a>
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
+                                        <i class="fas fa-circle-info"></i>
+                                        <span>Details</span>
+                                    </a>
+                                
+                                {% elif tournament.status == 'completed' %}
+                                    {# Tournament Completed - Show Results #}
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline" style="border-color: rgb(251, 191, 36); color: rgb(251, 191, 36);">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: 8px;">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <span>View Results</span>
+                                    </a>
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-secondary">
+                                        <i class="fas fa-medal"></i>
+                                        <span>Standings</span>
+                                    </a>
+                                
+                                {% elif tournament.status == 'live' %}
+                                    {# Tournament is Live - Show Watch Button #}
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-primary" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-color: #ef4444; position: relative; overflow: hidden;">
+                                        <span style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%); animation: pulse 2s ease-in-out infinite;"></span>
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: 8px; position: relative; z-index: 1;">
+                                            <path d="M8 5v14l11-7z"/>
+                                        </svg>
+                                        <span style="position: relative; z-index: 1;">Watch Live</span>
+                                    </a>
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
+                                        <i class="fas fa-sitemap"></i>
+                                        <span>Bracket</span>
+                                    </a>
+                                
+                                {% elif tournament.status == 'registration_closed' %}
+                                    {# Registration Closed but Not Live Yet - Show Schedule #}
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline" style="border-color: rgb(148, 163, 184); color: rgb(148, 163, 184);">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: 8px;">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <span>View Schedule</span>
+                                    </a>
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-secondary">
+                                        <i class="fas fa-circle-info"></i>
+                                        <span>Details</span>
+                                    </a>
+                                
+                                {% else %}
+                                    {# Default: Always Show Registration Button (for draft, published, registration_open, etc.) #}
+                                    <a href="{% if tournament.participation_type == 'team' %}{% url 'tournaments:team_registration' slug=tournament.slug %}{% else %}{% url 'tournaments:register' tournament_slug=tournament.slug %}{% endif %}" class="dc-btn dc-btn-primary neon">
+                                        <i class="fas fa-user-plus"></i>
+                                        <span>Register Now</span>
+                                    </a>
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
+                                        <i class="fas fa-circle-info"></i>
+                                        <span>Details</span>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+                
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <div class="pagination-v2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_format %}&format={{ current_format }}{% endif %}" class="page-btn">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_format %}&format={{ current_format }}{% endif %}" class="page-btn">
+                            <i class="fas fa-angle-left"></i>
+                            <span>Previous</span>
+                        </a>
+                    {% endif %}
+
+                    <span class="page-info">
+                        Page <span class="current-page">{{ page_obj.number }}</span> of <span class="total-pages">{{ page_obj.paginator.num_pages }}</span>
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_format %}&format={{ current_format }}{% endif %}" class="page-btn">
+                            <span>Next</span>
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_format %}&format={{ current_format }}{% endif %}" class="page-btn">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <!-- Enhanced Empty State -->
+                <div class="empty-state-v2">
+                    <div class="empty-animation">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h3 class="empty-title">No Tournaments Found</h3>
+                    <p class="empty-text">
+                        {% if current_search or current_game or current_status or current_format %}
+                            Try adjusting your filters or search query to discover tournaments.
+                        {% else %}
+                            Check back soon for upcoming esports tournaments!
+                        {% endif %}
+                    </p>
+                    {% if current_search or current_game or current_status or current_format %}
+                    <a href="{% url 'tournaments:list' %}" class="dc-btn dc-btn-primary">
+                        <i class="fas fa-redo"></i>
+                        <span>Clear All Filters</span>
+                    </a>
+                    {% endif %}
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'tournaments:create_tournament' %}" class="dc-btn dc-btn-outline" style="margin-top: 1rem;">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Create Your Own Tournament</span>
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Back to Top Button -->
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">
+    <i class="fas fa-chevron-up"></i>
+</button>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'tournaments/js/tournaments-hub-v2.js' %}?v=3.0"></script>
+{% endblock %}

@@ -1,0 +1,32 @@
+<!-- Announcements partial template for AJAX updates -->
+{% if announcements %}
+    {% for announcement in announcements %}
+    <div class="announcement-item {% if announcement.pinned %}pinned{% endif %}">
+        <div class="announcement-header">
+            <div class="flex-grow-1">
+                <div class="announcement-meta">
+                    <i class="fas fa-user-shield me-1"></i>
+                    <strong>{{ announcement.author }}</strong>
+                    {% if announcement.pinned %}
+                        <span class="pin-badge">
+                            <i class="fas fa-thumbtack me-1"></i>PINNED
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="announcement-meta">
+                    <i class="fas fa-clock me-1"></i>
+                    {{ announcement.created_at|timesince }} ago
+                </div>
+            </div>
+        </div>
+        <div class="announcement-content">
+            {{ announcement.message|linebreaks }}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <i class="fas fa-bullhorn fs-1 mb-3"></i>
+        <div>No announcements yet</div>
+    </div>
+{% endif %}

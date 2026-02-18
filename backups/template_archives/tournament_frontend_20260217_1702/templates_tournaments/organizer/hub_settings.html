@@ -1,0 +1,83 @@
+{% extends "tournaments/organizer/hub_overview.html" %}
+
+{% block hub_content %}
+<div class="space-y-6">
+    <!-- Payment Methods -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-bold mb-6">Payment Methods</h2>
+        <div class="space-y-4">
+            {% for method in payment_methods %}
+            <div class="border rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold">{{ method.get_method_display }}</h3>
+                        <p class="text-sm text-gray-600">
+                            {% if method.is_enabled %}
+                                <span class="text-green-600">✓ Enabled</span>
+                            {% else %}
+                                <span class="text-gray-400">✗ Disabled</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if can_edit %}
+                    <button class="px-4 py-2 border rounded hover:bg-gray-50">
+                        Edit
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Staff Members -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold">Staff & Permissions</h2>
+            {% if can_manage_staff %}
+            <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                <i class="fas fa-user-plus"></i> Add Staff
+            </button>
+            {% endif %}
+        </div>
+
+        <div class="space-y-4">
+            {% for staff in staff_members %}
+            <div class="border rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold">{{ staff.user.username }}</h3>
+                        <p class="text-sm text-gray-600">{{ staff.role.name }}</p>
+                        <p class="text-xs text-gray-500">
+                            {% for perm in staff.role.permissions %}
+                                <span class="inline-block bg-gray-100 rounded px-2 py-1 mr-1 mt-1">{{ perm }}</span>
+                            {% endfor %}
+                        </p>
+                    </div>
+                    {% if can_manage_staff %}
+                    <button class="px-4 py-2 border rounded hover:bg-gray-50">
+                        Manage
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 text-center py-4">No staff members assigned</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Tournament Settings -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-bold mb-6">Tournament Settings</h2>
+        {% if can_edit %}
+        <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" 
+           class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 inline-block">
+            Edit in Admin Panel
+        </a>
+        {% else %}
+        <p class="text-gray-600">You don't have permission to edit tournament settings.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

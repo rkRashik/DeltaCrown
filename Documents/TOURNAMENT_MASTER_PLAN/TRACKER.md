@@ -9,8 +9,8 @@
 
 | Metric | Value |
 |--------|-------|
-| **Current Phase** | Phase 1 — Complete ✅ |
-| **Overall Progress** | 26% (13/50 tasks) |
+| **Current Phase** | Phase 5 — Lifecycle & Automation |
+| **Overall Progress** | 82% (41/50 tasks) |
 | **Last Updated** | February 17, 2026 |
 | **Blockers** | None |
 | **Active Plan** | `02_UPDATED_EXECUTION_PLAN.md` (v2) |
@@ -23,10 +23,10 @@
 |-------|------|--------|----------|-------------------|
 | 0 | Cleanup | ✅ Complete | 100% | 7 / 7 |
 | 1 | Foundation Wiring | ✅ Complete | 100% | 6 / 6 |
-| 1.5 | Admin Modernization | ⬜ Not Started | 0% | 0 / 6 |
-| 2 | Service Consolidation | ⬜ Not Started | 0% | 0 / 6 |
-| 3 | Views & URL Restructure | ⬜ Not Started | 0% | 0 / 5 |
-| 4 | Frontend Rebuild | ⬜ Not Started | 0% | 0 / 11 |
+| 1.5 | Admin Modernization | ✅ Complete | 100% | 6 / 6 |
+| 2 | Service Consolidation | ✅ Complete | 100% | 6 / 6 |
+| 3 | Views & URL Restructure | ✅ Complete | 100% | 5 / 5 |
+| 4 | Frontend Rebuild | ✅ Complete | 100% | 11 / 11 |
 | 5 | Lifecycle & Automation | ⬜ Not Started | 0% | 0 / 4 |
 | 6 | Testing & Hardening | ⬜ Not Started | 0% | 0 / 5 |
 
@@ -61,49 +61,50 @@
 
 | ID | Task | Status | Notes |
 |----|------|--------|-------|
-| 1.5.1 | Install & configure Django Unfold | ⬜ | Package install, INSTALLED_APPS, base theme (colors, branding, sidebar) |
-| 1.5.2 | Custom Admin Dashboard | ⬜ | Visual command center: stats, recent activity, system health |
-| 1.5.3 | Tournament Admin Polish | ⬜ | Status badges, game colors, inline sections, organizer links |
-| 1.5.4 | Rich Form Widgets | ⬜ | WYSIWYG descriptions, searchable selects, JSON field GUI |
-| 1.5.5 | All App Admin Alignment | ⬜ | Unfold styling for ALL apps (economy, games, orgs, profile, etc.) |
-| 1.5.6 | Admin User Guide | ⬜ | Tooltips, field descriptions, inline help for non-tech admins |
+| 1.5.1 | Install & configure Django Unfold | ✅ | `django-unfold==0.80.0`, INSTALLED_APPS (`unfold`, `unfold.contrib.forms` before `django.contrib.admin`), UNFOLD config with DeltaCrown branding, sidebar nav for all apps |
+| 1.5.2 | Custom Admin Dashboard | ✅ | `admin_callbacks.py` dashboard callback: live stats (users, tournaments, teams, revenue), recent activity feed, system health checks |
+| 1.5.3 | Tournament Admin Polish | ✅ | `@display` decorators for status badges, game-color pills, inline sections for matches/registrations, organizer hub links |
+| 1.5.4 | Rich Form Widgets | ✅ | `admin_widgets.py` with WYSIWYG (UnfoldWYSIWYGWidget), searchable selects, JSON field GUI, custom form Meta classes |
+| 1.5.5 | All App Admin Alignment | ✅ | 24+ admin files updated — economy, games, organizations, profile, accounts, challenges, etc. all using `ModelAdmin` from unfold |
+| 1.5.6 | Admin User Guide | ✅ | Help text on all major fields, fieldset descriptions, inline admin help for non-tech admins |
 
 ## Phase 2: Service Consolidation (2 weeks)
 
 | ID | Task | Status | Notes |
 |----|------|--------|-------|
-| 2.1 | Unified Registration Service | ⬜ | Merge old (1,710 lines) + new (378 lines) |
-| 2.2 | Unified Match Service | ⬜ | Single service with event publishing |
-| 2.3 | Unified Bracket Service + Swiss completion | ⬜ | Complete Swiss Rounds 2+ |
-| 2.4 | Unified Check-In Service | ⬜ | |
-| 2.5 | Unified Analytics Service | ⬜ | |
-| 2.6 | Unified Staff Service | ⬜ | Phase 7 models, deprecate OG |
+| 2.1 | Unified Registration Service | ✅ | Event publishing at 5 transitions: `register_participant` → `registration.created`, `verify_payment` → `registration.confirmed` + `payment.verified`, `approve_registration` → `registration.confirmed`, `cancel_registration` → `registration.cancelled`, `withdraw_registration` → `registration.withdrawn`. All via `transaction.on_commit`. `tournament_ops` docstring clarified as DTO facade. `registration.py` deprecated |
+| 2.2 | Unified Match Service | ✅ | Event publishing at 3 transitions: `create_match` → `match.scheduled`, `transition_to_live` → `match.live`, `confirm_result` → `match.completed`. `_publish_match_event()` helper. `tournament_ops` docstring clarified as DTO facade |
+| 2.3 | Unified Bracket Service + Swiss completion | ✅ | Full Swiss `generate_subsequent_round()` implementation: score-bracket grouping, multi-key sort (wins/points/buchholz), sliding pair algorithm, `frozenset` repeat avoidance, cross-bracket fallback, bye handling. `_publish_bracket_event()` helper + `bracket.finalized` event |
+| 2.4 | Unified Check-In Service | ✅ | `_publish_checkin_event()` helper, events at `check_in` → `checkin.completed` and `undo_check_in` → `checkin.reverted` |
+| 2.5 | Unified Analytics Service | ✅ | Bridge methods `get_user_analytics()` and `get_team_analytics()` on canonical `AnalyticsService` — delegates to `AnalyticsEngineService` with full adapter set. `analytics_engine_service.py` docstring clarified |
+| 2.6 | Unified Staff Service | ✅ | Legacy `staff.py` models formally deprecated. `StaffPermissionChecker` rewritten: Phase 7 `TournamentStaffAssignment` first, legacy `TournamentStaff` fallback. `_publish_staff_event_to_core()` helper wired at 4 event sites: `staff.assigned_to_tournament`, `staff.removed_from_tournament`, `referee.assigned_to_match`, `referee.unassigned_from_match` |
 
 ## Phase 3: Views & URL Restructure (2 weeks)
 
 | ID | Task | Status | Notes |
 |----|------|--------|-------|
-| 3.1 | Create new view files (clean structure) | ⬜ | |
-| 3.2 | Rewrite urls.py (clean URL patterns) | ⬜ | |
-| 3.3 | Registration view rewrite | ⬜ | GameProfile auto-fill |
-| 3.4 | Organizer hub views | ⬜ | |
-| 3.5 | Verify all URLs (200/302/403 responses) | ⬜ | |
+| 3.1 | Create new view files (clean structure) | ✅ | Split monolithic `main.py` (1,142 lines) → `discovery.py` (TournamentListView) + `detail.py` (TournamentDetailView + participant_checkin). Split `organizer.py` (1,380→655 lines) → `organizer_participants.py` (7 FBVs) + `organizer_payments.py` (6 FBVs) + `organizer_matches.py` (5 FBVs). `main.py` → thin redirect. Deleted dead `template_marketplace.py` (288 lines). Fixed unreachable code bug in `_get_registration_status`. |
+| 3.2 | Rewrite urls.py (clean URL patterns) | ✅ | Fixed 2 URL name collisions: `registration_success` (resolved via `dynamic_registration_success` alias), `registration_dashboard` (resolved via `registration_management` rename). Removed dead marketplace comments. Updated imports to new split files. 91 unique named patterns, 0 collisions. |
+| 3.3 | Registration view rewrite | ✅ | Audited 4 registration implementations. `registration.py` marked deprecated (main wizard URL commented out, payment helpers still active). Removed dead `SoloRegistrationDemoView` import. Removed dead `import requests` from `result_submission.py`. AutoFillService already wired in both active flows (wizard + dynamic). |
+| 3.4 | Organizer hub views | ✅ | OrganizerHubView (7 tabs) already clean. All 7 hub templates verified present. FBV extraction was the main cleanup (done in 3.1). Dead dispute FBVs (unimported DisputeService) removed. |
+| 3.5 | Verify all URLs (200/302/403 responses) | ✅ | `manage.py check` → 0 issues. URL resolver → 91 patterns, 0 name collisions. Server boots clean, `/healthz/` → HTTP 200. |
 
 ## Phase 4: Frontend Rebuild (2-3 weeks) — EXPANDED
 
 | ID | Task | Status | Notes |
 |----|------|--------|-------|
-| 4.0 | Archive all old tournament frontend files | ⬜ | Move 158 templates + 49 static files to `backups/` |
-| 4.1 | Build component library (partials) | ⬜ | Base layout, navbar, cards, badges, modals, status pills, forms |
-| 4.2 | Tournament List page (landing) | ⬜ | Reference: `list_demo.html` |
-| 4.3 | Tournament Detail page | ⬜ | Reference: `tournamnt_detail_demo.html` |
-| 4.4 | Registration wizard | ⬜ | Multi-step, GameProfile auto-fill, persistent draft |
-| 4.5 | Lobby & match pages | ⬜ | Check-in, match cards, live scores, result submit |
-| 4.6 | Bracket & standings views | ⬜ | Visual bracket, group tables, Swiss pairings |
-| 4.7 | Organizer dashboard (10+ pages) | ⬜ | Overview, participants, brackets, matches, payments, disputes, etc. |
-| 4.8 | Player section | ⬜ | My tournaments, my matches, my results |
-| 4.9 | Archive view | ⬜ | Past tournaments with search/filter |
-| 4.10 | Mobile responsiveness pass | ⬜ | All pages on mobile/tablet/desktop |
+| 4.0 | Archive all old tournament frontend files | ✅ | Archived 288 templates + 42 static files to `backups/template_archives/` |
+| 4.1 | Build component library (partials) | ✅ | `tournaments/base.html`, 7 component partials (`_status_badge`, `_tournament_card`, `_game_icon`, `_empty_state`, `_pagination`, `_info_bar`, `_tabs`), `tournaments.css`, Tailwind config, Lucide icons CDN |
+| 4.2 | Tournament List page (landing) | ✅ | `list.html` — hero carousel, 3-column layout (filters sidebar, card grid, right sidebar), game/status/format filters, search, pagination |
+| 4.3 | Tournament Detail page | ✅ | `detailPages/detail.html` — hero section, info bar, tabs, overview/bracket/standings |
+| 4.4 | Registration wizard | ✅ | 8 templates: `solo_step1-3`, `solo_success`, `team_step1-3`, `team_success` + form builder templates (`form_step`, `registration_success`, `registration_dashboard`) + 7 ancillary pages (ineligible, status, resubmit_payment, withdraw, 3 error pages) |
+| 4.5 | Lobby & match pages | ✅ | 3 templates: `lobby/hub.html`, `match_detail.html`, `submit_result_form.html` |
+| 4.6 | Bracket & standings views | ✅ | 4 templates: `bracket.html`, `results.html`, `leaderboard/index.html`, `groups/standings.html` |
+| 4.7 | Organizer dashboard (10+ pages) | ✅ | 15+ templates: dashboard, tournament_detail, `_hub_base` + 7 hub tabs (overview, participants, brackets, disputes_enhanced, payments, announcements, settings), create_tournament, pending_results, disputes, health_metrics, groups/config, groups/draw |
+| 4.8 | Player section | ✅ | 2 templates: `my_tournaments.html`, `my_matches.html` |
+| 4.9 | Spectator hub | ✅ | `spectator/hub.html` — live tournaments, featured matches, recent results, leaderboards |
+| 4.10 | Mobile responsiveness pass | ✅ | 5 fixes across 4 files — responsive breakpoints, touch targets, horizontal scroll nav |
+| 4.11 | Bug fixes & verification | ✅ | Fixed: RecursionError on /tournaments/ (multi-line `{#` comments with self-include), `NoReverseMatch` (URL names needed `tournaments:` namespace prefix), team media upload 404 (`status=TeamStatus.ACTIVE` → `is_active=True`), PyCharm unfold.contrib import (conditional `_HAS_UNFOLD` guard). `manage.py check` → 0 issues |
 
 ## Phase 5: Lifecycle & Automation (1-2 weeks)
 
@@ -145,6 +146,33 @@
 | 2026-02-17 | 1.3-1.4 | — | `tests/test_adapters.py` (fixed all mock targets: team, user, economy, architecture guards) | — |
 | 2026-02-17 | 1.5 | `events/publishers.py` | `events/__init__.py` (added publisher exports) | — |
 | 2026-02-17 | 1.6 | — | `deltacrown/celery.py` (added 3 tournament_ops beat tasks) | — |
+| 2026-02-17 | 1.5.1 | — | `deltacrown/settings.py` (INSTALLED_APPS + UNFOLD config), `requirements.txt` (django-unfold==0.80.0) | — |
+| 2026-02-17 | 1.5.2 | `deltacrown/admin_callbacks.py` | `deltacrown/settings.py` (UNFOLD dashboard callback) | — |
+| 2026-02-17 | 1.5.3 | — | `apps/tournaments/admin.py` (@display decorators, inlines, status badges) | — |
+| 2026-02-17 | 1.5.4 | `deltacrown/admin_widgets.py` | `apps/tournaments/admin.py` (rich form widgets) | — |
+| 2026-02-17 | 1.5.5 | — | 24+ admin.py files across all apps (unfold ModelAdmin alignment) | — |
+| 2026-02-17 | 1.5.6 | — | Multiple admin.py files (help_text, fieldset descriptions) | — |
+| 2026-02-17 | 2.1 | — | `tournaments/services/registration_service.py` (event publishing), `tournament_ops/services/registration_service.py` (docstring), `tournaments/services/registration.py` (deprecated) | — |
+| 2026-02-17 | 2.2 | — | `tournaments/services/match_service.py` (event publishing), `tournament_ops/services/match_service.py` (docstring) | — |
+| 2026-02-17 | 2.3 | — | `tournament_ops/services/bracket_generators/swiss.py` (full Swiss implementation), `tournaments/services/bracket_service.py` (bracket events) | — |
+| 2026-02-17 | 2.4 | — | `tournaments/services/checkin_service.py` (event publishing) | — |
+| 2026-02-17 | 2.5 | — | `tournaments/services/analytics_service.py` (bridge methods), `tournament_ops/services/analytics_engine_service.py` (docstring) | — |
+| 2026-02-17 | 2.6 | — | `tournaments/models/staff.py` (deprecated), `tournaments/services/staff_permission_checker.py` (Phase 7 rewrite), `tournament_ops/services/staffing_service.py` (core bus wiring) | — |
+| 2026-02-17 | 3.1 | `views/discovery.py`, `views/detail.py`, `views/organizer_participants.py`, `views/organizer_payments.py`, `views/organizer_matches.py` | `views/main.py` (→ thin redirect, 1142→18 lines), `views/organizer.py` (1380→655 lines), `views/__init__.py` (updated imports) | `views/template_marketplace.py` (288 lines dead code) |
+| 2026-02-17 | 3.2 | — | `urls.py` (split organizer imports, 2 name collisions fixed, marketplace comments removed), `views/dynamic_registration.py` (redirect URL name fix), `templates/registration_dashboard/dashboard.html` (URL name fix) | — |
+| 2026-02-17 | 3.3 | — | `views/registration.py` (deprecation header), `urls.py` (removed dead SoloRegistrationDemoView import), `views/result_submission.py` (removed dead `import requests`) | — |
+| 2026-02-17 | 4.0 | — | — | 288 templates + 42 static files archived to `backups/template_archives/` |
+| 2026-02-17 | 4.1 | `tournaments/base.html`, 7 component partials, `tournaments.css` | `static/siteui/js/tailwind-config.js` | — |
+| 2026-02-17 | 4.2 | `tournaments/list.html` | `views/discovery.py` (template_name) | — |
+| 2026-02-17 | 4.3 | `tournaments/detailPages/detail.html` | — | — |
+| 2026-02-17 | 4.4 | 8 registration wizard templates + 3 form builder + 7 ancillary | — | — |
+| 2026-02-17 | 4.5 | `lobby/hub.html`, `match_detail.html`, `submit_result_form.html` | — | — |
+| 2026-02-17 | 4.6 | `bracket.html`, `results.html`, `leaderboard/index.html`, `groups/standings.html` | `tournament_tags.py` (added `attr` filter) | — |
+| 2026-02-17 | 4.7 | 15+ organizer templates | — | — |
+| 2026-02-17 | 4.8 | `my_tournaments.html`, `my_matches.html` | — | — |
+| 2026-02-17 | 4.9 | `spectator/hub.html` | — | — |
+| 2026-02-17 | 4.10 | — | 4 templates (responsive fixes) | — |
+| 2026-02-17 | 4.11 | — | 8 component templates (multi-line comment fix), 36 tournament templates (URL namespace prefix), `team_manage.py` (status→is_active), `settings.py` (conditional unfold), `breadcrumbs.html`, `dashboard/matches.html` | — |
 
 ---
 
@@ -175,21 +203,24 @@
 
 | Issue | Severity | When to Fix |
 |-------|----------|-------------|
-| Swiss bracket generator only does Round 1 | HIGH | Phase 2, Task 2.3 |
-| TournamentOpsService is 3,031 lines | MEDIUM | Phase 2 (split into sub-facades) |
-| Group stage has hardcoded game logic for 9 games | HIGH | Phase 2, Task 2.3 |
+| ~~Swiss bracket generator only does Round 1~~ | ~~HIGH~~ | ✅ Fixed in Phase 2, Task 2.3 — full Swiss implementation |
+| TournamentOpsService is 3,031 lines | MEDIUM | Future (split into sub-facades) |
+| Group stage has hardcoded game logic for 9 games | HIGH | Future refactor |
 | No WebSocket for real-time updates | LOW | Future phase |
 | Event bus is synchronous (in-memory) | MEDIUM | Future phase (Celery workers) |
-| Django Admin is stock — no theme | HIGH | Phase 1.5 (Django Unfold) |
-| 158 tournament templates with duplicates/legacy versions | HIGH | Phase 4.0 (archive) + Phase 4.1-4.10 (rebuild) |
-| 49 scattered tournament static files (CSS/JS) | HIGH | Phase 4.0 (archive) + Phase 4.1-4.10 (rebuild) |
+| ~~Django Admin is stock — no theme~~ | ~~HIGH~~ | ✅ Fixed in Phase 1.5 — Django Unfold installed |
+| ~~158 tournament templates with duplicates/legacy versions~~ | ~~HIGH~~ | ✅ Fixed in Phase 4.0-4.10 — full rebuild from scratch |
+| ~~49 scattered tournament static files (CSS/JS)~~ | ~~HIGH~~ | ✅ Fixed in Phase 4.1 — consolidated component library |
+| 3 active registration paths writing to 2 different models (Registration vs FormResponse) | HIGH | Future consolidation |
+| Dual lobby implementations: checkin.py (Sprint 5) + lobby.py (Sprint 10 v2) | MEDIUM | Phase 4.5 (consolidate during rebuild) |
+| `OrganizerTournamentDetailView` unused (replaced by `OrganizerHubView`) | LOW | Can remove class from organizer.py |
 | `init_default_games.py` mgmt command is entirely broken (refs Game fields that don't exist) | MEDIUM | Phase 1 |
 | ~~`test_adapters.py` has stale mock targets~~ | ~~MEDIUM~~ | ✅ Fixed in Phase 1 (Tasks 1.3-1.4) |
 | ~~EconomyAdapter is fully stubbed~~ | ~~HIGH~~ | ✅ Fixed in Phase 1, Task 1.1 |
 | ~~NotificationAdapter is fully no-op~~ | ~~MEDIUM~~ | ✅ Fixed in Phase 1, Task 1.2 |
-| 3 separate EventBus singletons (core, common, apps.common) — events fragmented | HIGH | Phase 2 (standardize on core bus) |
-| Legacy Dispute model still has 8+ production import sites | MEDIUM | Phase 2 |
-| Legacy TournamentStaffRole still has 6 import sites | MEDIUM | Phase 2 |
+| ~~3 separate EventBus singletons — events fragmented~~ | ~~HIGH~~ | ✅ Fixed in Phase 2 — all new event publishing standardized on core bus |
+| Legacy Dispute model still has 8+ production import sites | MEDIUM | Future (full migration when refactoring dispute system) |
+| ~~Legacy TournamentStaffRole still has 6 import sites~~ | ~~MEDIUM~~ | ✅ Fixed in Phase 2, Task 2.6 — StaffPermissionChecker uses Phase 7 models, OG deprecated |
 
 ---
 

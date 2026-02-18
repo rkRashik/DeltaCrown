@@ -1,0 +1,170 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ tournament.name }} - Registration{% if step %} (Step {{ step }}){% endif %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .dark { background-color: #0f172a; }
+        .bg-gray-750 { background-color: #1e293b; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'tournaments:detail' tournament.slug %}" class="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to Tournament
+            </a>
+            <h1 class="text-3xl font-bold text-white mb-2">{{ tournament.name }}</h1>
+            <p class="text-gray-400">Tournament Registration Form</p>
+        </div>
+
+        <!-- Progress Bar (Multi-Step) -->
+        {% if total_steps > 1 %}
+        <div class="mb-8">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-400">Step {{ step }} of {{ total_steps }}</span>
+                <span class="text-sm text-gray-400">{{ progress_percentage }}% Complete</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2">
+                <div class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: {{ progress_percentage }}%"></div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Form -->
+        <div class="bg-gray-800 rounded-lg shadow-xl p-8">
+            {% if form_title %}
+            <h2 class="text-2xl font-bold text-white mb-6">{{ form_title }}</h2>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data" id="registrationForm">
+                {% csrf_token %}
+                
+                <!-- Form Fields (rendered by FormRenderService) -->
+                {{ form_html|safe }}
+
+                <!-- Form Actions -->
+                <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-700">
+                    {% if step > 1 %}
+                    <button 
+                        type="button"
+                        onclick="window.location.href='?step={{ step|add:'-1' }}'"
+                        class="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all font-medium"
+                    >
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        Previous
+                    </button>
+                    {% else %}
+                    <div></div>
+                    {% endif %}
+
+                    {% if step < total_steps %}
+                    <button 
+                        type="submit"
+                        class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all font-medium"
+                    >
+                        Next Step
+                        <svg class="w-5 h-5 inline ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                    {% else %}
+                    <button 
+                        type="submit"
+                        class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all font-medium"
+                    >
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Submit Registration
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Draft Save (if enabled) -->
+                {% if enable_autosave %}
+                <div class="mt-4 text-center">
+                    <button 
+                        type="button"
+                        onclick="saveDraft()"
+                        class="text-sm text-gray-400 hover:text-gray-300"
+                    >
+                        💾 Save Draft
+                    </button>
+                    <p class="text-xs text-gray-500 mt-1">Your progress is auto-saved</p>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Help Text -->
+        <div class="mt-6 text-center text-sm text-gray-500">
+            <p>Need help? Contact tournament organizer or <a href="#" class="text-blue-400 hover:underline">view FAQ</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-save draft (if enabled)
+        {% if enable_autosave %}
+        let autoSaveTimeout;
+        const formInputs = document.querySelectorAll('#registrationForm input, #registrationForm select, #registrationForm textarea');
+        
+        formInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                clearTimeout(autoSaveTimeout);
+                autoSaveTimeout = setTimeout(saveDraft, 2000);
+            });
+        });
+
+        function saveDraft() {
+            const formData = new FormData(document.getElementById('registrationForm'));
+            formData.append('save_draft', 'true');
+            
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    dcLog('Draft saved successfully');
+                }
+            })
+            .catch(error => console.error('Draft save error:', error));
+        }
+        {% endif %}
+
+        // Form validation
+        document.getElementById('registrationForm').addEventListener('submit', function(e) {
+            const requiredFields = this.querySelectorAll('[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value) {
+                    isValid = false;
+                    field.classList.add('border-red-500');
+                } else {
+                    field.classList.remove('border-red-500');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please fill in all required fields');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You've Been Promoted from Waitlist!</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1e293b; background: #f1f5f9; }
+        .email-wrapper { max-width: 600px; margin: 0 auto; background: #ffffff; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 40px 30px; text-align: center; }
+        .header h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+        .header .emoji { font-size: 48px; margin-bottom: 16px; }
+        .content { padding: 40px 30px; }
+        .success-badge { display: inline-block; background: #10b981; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-bottom: 20px; }
+        .urgent-alert { background: #fef2f2; border: 2px solid #fca5a5; border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center; }
+        .urgent-alert h3 { color: #dc2626; font-size: 20px; margin-bottom: 12px; }
+        .urgent-alert p { color: #991b1b; font-size: 16px; margin: 8px 0; }
+        .countdown { background: #fee2e2; padding: 16px; border-radius: 8px; margin: 16px 0; }
+        .countdown strong { color: #dc2626; font-size: 24px; }
+        .tournament-card { background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 12px; padding: 24px; margin: 24px 0; }
+        .tournament-card h2 { font-size: 22px; color: #166534; margin-bottom: 16px; }
+        .info-item { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+        .info-icon { font-size: 20px; }
+        .info-text { color: #166534; }
+        .payment-box { background: #fffbeb; border: 2px solid #fde68a; border-radius: 12px; padding: 24px; margin: 24px 0; }
+        .payment-box h3 { font-size: 18px; color: #92400e; margin-bottom: 16px; }
+        .payment-amount { text-align: center; padding: 20px; background: #fef3c7; border-radius: 8px; margin: 16px 0; }
+        .payment-amount .amount { font-size: 36px; font-weight: 800; color: #92400e; }
+        .payment-amount .label { font-size: 14px; color: #78350f; text-transform: uppercase; letter-spacing: 1px; }
+        .payment-methods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
+        .payment-method { background: white; border: 2px solid #fde68a; border-radius: 8px; padding: 12px; text-align: center; font-weight: 600; color: #78350f; }
+        .button { display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 18px; margin: 24px 0; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3); }
+        .steps { margin: 24px 0; }
+        .step { display: flex; gap: 16px; margin-bottom: 20px; align-items: start; }
+        .step-number { width: 32px; height: 32px; border-radius: 50%; background: #10b981; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+        .step-content h4 { font-size: 16px; margin-bottom: 4px; color: #0f172a; }
+        .step-content p { font-size: 14px; color: #64748b; margin: 0; }
+        .footer { background: #f8fafc; padding: 30px; text-align: center; color: #64748b; font-size: 14px; border-top: 1px solid #e2e8f0; }
+        
+        @media only screen and (max-width: 600px) {
+            .header { padding: 30px 20px; }
+            .content { padding: 30px 20px; }
+            .payment-methods { grid-template-columns: 1fr; }
+            .payment-amount .amount { font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-wrapper">
+        <!-- Header -->
+        <div class="header">
+            <div class="emoji">🎉</div>
+            <h1>Congratulations!</h1>
+            <p>You've been promoted from the waitlist</p>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="content">
+            <span class="success-badge">✓ SPOT AVAILABLE</span>
+            
+            <p style="font-size: 16px; margin-bottom: 16px;">Hello <strong>{{ user.username }}</strong>,</p>
+            
+            <p style="font-size: 18px; margin-bottom: 24px; line-height: 1.8;">
+                Great news! A spot has opened up in <strong>{{ tournament.name }}</strong> and you've been promoted from the waitlist!
+            </p>
+            
+            <!-- Urgent Alert -->
+            <div class="urgent-alert">
+                <h3>⏰ Time-Sensitive Action Required</h3>
+                <p>You have <strong>{{ deadline_hours|default:"24" }} hours</strong> to complete your payment and secure your spot.</p>
+                <div class="countdown">
+                    <strong>⏳ Deadline: {{ payment_deadline|date:"F d, Y g:i A" }}</strong>
+                </div>
+                <p style="margin-top: 12px; font-size: 14px;">
+                    If payment is not received by the deadline, your spot will be given to the next person on the waitlist.
+                </p>
+            </div>
+            
+            <!-- Tournament Details -->
+            <div class="tournament-card">
+                <h2>{{ tournament.name }}</h2>
+                <div class="info-item">
+                    <span class="info-icon">🎮</span>
+                    <span class="info-text"><strong>Game:</strong> {{ tournament.game.name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-icon">📅</span>
+                    <span class="info-text"><strong>Starts:</strong> {{ tournament.start_date|date:"F d, Y at g:i A" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-icon">🏆</span>
+                    <span class="info-text"><strong>Prize Pool:</strong> {{ tournament.prize_pool|default:"TBA" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-icon">👥</span>
+                    <span class="info-text"><strong>Format:</strong> {{ tournament.get_format_display }}</span>
+                </div>
+            </div>
+            
+            <!-- Payment Information -->
+            <div class="payment-box">
+                <h3>💳 Payment Required</h3>
+                
+                <div class="payment-amount">
+                    <div class="label">Entry Fee</div>
+                    <div class="amount">৳{{ tournament.entry_fee_amount|floatformat:0 }}</div>
+                </div>
+                
+                <p style="color: #78350f; font-size: 14px; margin: 16px 0; text-align: center;">
+                    We accept the following payment methods:
+                </p>
+                
+                <div class="payment-methods">
+                    {% if 'bkash' in tournament.payment_methods %}
+                    <div class="payment-method">📱 bKash</div>
+                    {% endif %}
+                    {% if 'nagad' in tournament.payment_methods %}
+                    <div class="payment-method">📱 Nagad</div>
+                    {% endif %}
+                    {% if 'rocket' in tournament.payment_methods %}
+                    <div class="payment-method">🚀 Rocket</div>
+                    {% endif %}
+                    {% if 'bank' in tournament.payment_methods %}
+                    <div class="payment-method">🏦 Bank Transfer</div>
+                    {% endif %}
+                    {% if 'deltacoin' in tournament.payment_methods %}
+                    <div class="payment-method">🪙 DeltaCoin</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Action Steps -->
+            <div class="steps">
+                <h3 style="font-size: 20px; margin-bottom: 20px; color: #0f172a;">Complete Your Registration in 3 Easy Steps:</h3>
+                
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Click the Button Below</h4>
+                        <p>Go to your registration page to complete payment</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Submit Payment</h4>
+                        <p>Pay the entry fee using your preferred payment method and upload proof</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Get Confirmed</h4>
+                        <p>Once verified, you'll receive a confirmation email with tournament details</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 40px 0;">
+                <a href="{{ payment_url }}" class="button">
+                    Complete Payment Now →
+                </a>
+            </div>
+            
+            <p style="margin-top: 24px; padding: 16px; background: #fef2f2; border-radius: 8px; color: #991b1b; font-size: 14px;">
+                <strong>⚠️ Important:</strong> Don't miss this opportunity! Complete your payment within {{ deadline_hours|default:"24" }} hours to secure your spot. 
+                After the deadline, your registration will be cancelled and the spot will be offered to the next waitlisted participant.
+            </p>
+            
+            <p style="margin-top: 32px; color: #64748b; font-size: 14px;">
+                Questions? Contact the tournament organizer or our support team for assistance.
+            </p>
+            
+            <p style="margin-top: 24px; font-size: 16px;">
+                We're excited to see you compete!<br>
+                <strong>The DeltaCrown Team</strong>
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>DeltaCrown Esports Platform</strong></p>
+            <p>Your spot is waiting - act now!</p>
+            <p style="margin-top: 16px; font-size: 12px;">
+                This is an automated email. Please do not reply to this message.<br>
+                For support, email <a href="mailto:support@deltacrown.com" style="color: #10b981;">support@deltacrown.com</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
