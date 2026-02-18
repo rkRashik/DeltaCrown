@@ -2,13 +2,16 @@
 Decouple cross-app ForeignKey fields to IntegerField.
 
 Converts FK references to teams.Team and user_profile.UserProfile into
-plain IntegerField columns. The underlying DB columns (team_id, etc.)
-already exist and already hold integer IDs, so this migration uses
-RunSQL with state_operations to avoid any destructive column drop/add.
+plain IntegerField columns. Uses RunSQL for DB operations to handle
+both fresh and existing databases.
 """
 
 from django.db import migrations, models
-import django.db.models.deletion
+
+
+def noop_forward(apps, schema_editor):
+    """No-op — DB columns already have the right data type in existing DBs."""
+    pass
 
 
 class Migration(migrations.Migration):
@@ -37,7 +40,12 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            database_operations=[],  # Column already exists as team_id
+            database_operations=[
+                migrations.RunSQL(
+                    sql=migrations.RunSQL.noop,
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
         ),
 
         # ── FormResponse.team → team_id ──
@@ -59,7 +67,12 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            database_operations=[],
+            database_operations=[
+                migrations.RunSQL(
+                    sql=migrations.RunSQL.noop,
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
         ),
 
         # ── GroupStanding.team → team_id ──
@@ -81,7 +94,12 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            database_operations=[],
+            database_operations=[
+                migrations.RunSQL(
+                    sql=migrations.RunSQL.noop,
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
         ),
 
         # ── CheckIn.team → team_id ──
@@ -103,7 +121,12 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            database_operations=[],
+            database_operations=[
+                migrations.RunSQL(
+                    sql=migrations.RunSQL.noop,
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
         ),
 
         # ── MatchResultSubmission.submitted_by_team → submitted_by_team_id ──
@@ -125,7 +148,12 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            database_operations=[],
+            database_operations=[
+                migrations.RunSQL(
+                    sql=migrations.RunSQL.noop,
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
         ),
 
         # ── TournamentTeamInvitation.team → team_id ──
@@ -147,7 +175,12 @@ class Migration(migrations.Migration):
                     preserve_default=False,
                 ),
             ],
-            database_operations=[],
+            database_operations=[
+                migrations.RunSQL(
+                    sql=migrations.RunSQL.noop,
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
         ),
 
         # ── TournamentTeamInvitation.invited_by → invited_by_id ──
@@ -169,7 +202,12 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            database_operations=[],
+            database_operations=[
+                migrations.RunSQL(
+                    sql=migrations.RunSQL.noop,
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
         ),
 
         # ── TournamentTeamInvitation.responded_by → responded_by_id ──
@@ -191,7 +229,12 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            database_operations=[],
+            database_operations=[
+                migrations.RunSQL(
+                    sql=migrations.RunSQL.noop,
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
         ),
 
         # ── TeamRegistrationPermissionRequest.team → team_id ──
@@ -213,28 +256,48 @@ class Migration(migrations.Migration):
                     preserve_default=False,
                 ),
             ],
-            database_operations=[],
+            database_operations=[
+                migrations.RunSQL(
+                    sql=migrations.RunSQL.noop,
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
         ),
 
         # ── Update Meta constraints & indexes (GroupStanding) ──
-        migrations.AlterModelOptions(
-            name='groupstanding',
-            options={
-                'ordering': ['group', 'rank', '-points', '-goal_difference', '-goals_for'],
-                'verbose_name': 'Group Standing',
-                'verbose_name_plural': 'Group Standings',
-            },
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterModelOptions(
+                    name='groupstanding',
+                    options={
+                        'ordering': ['group', 'rank', '-points', '-goal_difference', '-goals_for'],
+                        'verbose_name': 'Group Standing',
+                        'verbose_name_plural': 'Group Standings',
+                    },
+                ),
+            ],
+            database_operations=[],
         ),
 
         # ── Update Meta (TournamentTeamInvitation) ──
-        migrations.AlterUniqueTogether(
-            name='tournamentteaminvitation',
-            unique_together={('tournament', 'team_id')},
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterUniqueTogether(
+                    name='tournamentteaminvitation',
+                    unique_together={('tournament', 'team_id')},
+                ),
+            ],
+            database_operations=[],
         ),
 
         # ── Update Meta (TeamRegistrationPermissionRequest) ──
-        migrations.AlterUniqueTogether(
-            name='teamregistrationpermissionrequest',
-            unique_together={('team_id', 'tournament', 'requester', 'status')},
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterUniqueTogether(
+                    name='teamregistrationpermissionrequest',
+                    unique_together={('team_id', 'tournament', 'requester', 'status')},
+                ),
+            ],
+            database_operations=[],
         ),
     ]

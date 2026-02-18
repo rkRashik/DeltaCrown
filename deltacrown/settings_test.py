@@ -34,11 +34,12 @@ if DATABASE_URL and DATABASE_URL_TEST == DATABASE_URL:
 import dj_database_url
 
 DATABASES = {
-    'default': dj_database_url.parse(DATABASE_URL_TEST, conn_max_age=0)
+    'default': dj_database_url.parse(DATABASE_URL_TEST)
 }
+DATABASES['default']['CONN_MAX_AGE'] = 0
 
 # Ensure we're using PostgreSQL (SQLite not supported)
-if DATABASES['default']['ENGINE'] != 'django.db.backends.postgresql':
+if 'postgresql' not in DATABASES['default']['ENGINE']:
     raise RuntimeError(
         f"Invalid database engine: {DATABASES['default']['ENGINE']}\n"
         "Tests require PostgreSQL only. SQLite is not supported due to Postgres-specific features.\n"

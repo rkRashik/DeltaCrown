@@ -7,6 +7,9 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("tournaments", "0006_alter_game_table"),
+        # Ensure Bounty.game FK is switched from tournaments.Game → games.Game
+        # BEFORE we delete the tournaments.Game model from state.
+        ("user_profile", "0024_switch_bounty_game_fk_to_games_app"),
     ]
 
     operations = [

@@ -48,6 +48,24 @@ app.conf.beat_schedule = {
         'task': 'apps.tournaments.tasks.check_tournament_wrapup',
         'schedule': crontab(minute=15),  # Every hour at :15
     },
+
+    # Auto-advance tournament statuses every 5 minutes
+    'auto-advance-tournaments': {
+        'task': 'apps.tournaments.tasks.auto_advance_tournaments',
+        'schedule': crontab(minute='*/5'),  # Every 5 minutes
+        'options': {
+            'expires': 300,  # 5 minutes
+        },
+    },
+
+    # Auto-archive completed/cancelled tournaments daily at 4 AM
+    'auto-archive-tournaments': {
+        'task': 'apps.tournaments.tasks.auto_archive_tournaments',
+        'schedule': crontab(hour=4, minute=0),
+        'options': {
+            'expires': 3600,
+        },
+    },
     
     # ========================================================================
     # vNext Team & Organization Ranking Tasks (Phase 4 - P4-T2)

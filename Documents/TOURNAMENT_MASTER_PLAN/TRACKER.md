@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Current Phase** | Phase 5 — Lifecycle & Automation |
-| **Overall Progress** | 82% (41/50 tasks) |
-| **Last Updated** | February 17, 2026 |
+| **Current Phase** | Phase 6 — Testing & Hardening |
+| **Overall Progress** | 100% (50/50 tasks) |
+| **Last Updated** | February 18, 2026 |
 | **Blockers** | None |
 | **Active Plan** | `02_UPDATED_EXECUTION_PLAN.md` (v2) |
 
@@ -27,8 +27,8 @@
 | 2 | Service Consolidation | ✅ Complete | 100% | 6 / 6 |
 | 3 | Views & URL Restructure | ✅ Complete | 100% | 5 / 5 |
 | 4 | Frontend Rebuild | ✅ Complete | 100% | 11 / 11 |
-| 5 | Lifecycle & Automation | ⬜ Not Started | 0% | 0 / 4 |
-| 6 | Testing & Hardening | ⬜ Not Started | 0% | 0 / 5 |
+| 5 | Lifecycle & Automation | ✅ Complete | 100% | 4 / 4 |
+| 6 | Testing & Hardening | ✅ Complete | 100% | 5 / 5 |
 
 **Total Tasks: 50**
 
@@ -110,20 +110,20 @@
 
 | ID | Task | Status | Notes |
 |----|------|--------|-------|
-| 5.1 | Tournament state machine service | ⬜ | |
-| 5.2 | Scheduled transitions (Celery) | ⬜ | |
-| 5.3 | Tournament completion pipeline | ⬜ | |
-| 5.4 | Archive generation | ⬜ | |
+| 5.1 | Tournament state machine service | ✅ | `lifecycle_service.py` — formal transition graph (16 transitions), guard functions, on-enter callbacks, `transition()` with audit trail, `auto_advance()` / `auto_advance_all()`, `can_transition()` / `allowed_transitions()` |
+| 5.2 | Scheduled transitions (Celery) | ✅ | `tasks/lifecycle.py` — 3 Celery tasks: `auto_advance_tournaments` (every 5 min), `check_tournament_wrapup` (hourly), `auto_archive_tournaments` (daily 4 AM). All registered in `celery.py` beat schedule |
+| 5.3 | Tournament completion pipeline | ✅ | `completion_pipeline.py` — 5-step orchestrator: standings → winners → certificates → analytics → notifications. `CompletionReport` dataclass, isolated error handling, metadata persisted in `config['completion_pipeline']` |
+| 5.4 | Archive generation | ✅ | `archive_service.py` — comprehensive JSON snapshot: tournament, participants, matches, brackets, standings, prizes, groups, statistics. Versioned format, stored in `config['archive']` |
 
 ## Phase 6: Testing & Hardening (1-2 weeks)
 
 | ID | Task | Status | Notes |
 |----|------|--------|-------|
-| 6.1 | Adapter unit tests | ⬜ | |
-| 6.2 | Service integration tests | ⬜ | |
-| 6.3 | View tests | ⬜ | |
-| 6.4 | Template rendering tests | ⬜ | All new templates render without errors |
-| 6.5 | Lifecycle integration test (end-to-end) | ⬜ | |
+| 6.1 | Adapter unit tests | ✅ | Pure unit tests — 5 test classes (Economy, Notification, Team, User, Tournament), 13 tests, no DB. `unittest.mock.patch` + `SimpleNamespace` fakes |
+| 6.2 | Service integration tests | ✅ | DB integration tests for lifecycle_service, completion_pipeline, archive_service. 4 test classes, 15 tests covering transitions, guards, force override, auto-advance, audit trail, pipeline metadata, archive snapshots |
+| 6.3 | View tests | ✅ | Public view smoke tests (list, detail) + auth views. 3 test classes, 14 tests — 200/404 status, template selection, context variables, draft visibility, anon access, auth redirects |
+| 6.4 | Template rendering tests | ✅ | Parametrized rendering across 8 statuses + edge cases (group_playoff, solo, zero prize, markdown description). 2 test classes, 8 tests |
+| 6.5 | Lifecycle integration test (end-to-end) | ✅ | Full happy path: DRAFT→PUBLISHED→REG_OPEN→REG_CLOSED→LIVE→COMPLETED(+pipeline)→ARCHIVED(+archive). 6 tests covering full lifecycle, cancellation, backward prevention, auto-advance chain, pipeline/archive rejections |
 
 ---
 
@@ -173,6 +173,16 @@
 | 2026-02-17 | 4.9 | `spectator/hub.html` | — | — |
 | 2026-02-17 | 4.10 | — | 4 templates (responsive fixes) | — |
 | 2026-02-17 | 4.11 | — | 8 component templates (multi-line comment fix), 36 tournament templates (URL namespace prefix), `team_manage.py` (status→is_active), `settings.py` (conditional unfold), `breadcrumbs.html`, `dashboard/matches.html` | — |
+| 2026-02-18 | 4.3+ | — | `detailPages/detail.html` (styling overhaul: glass classes, bg-dc-card, border-white/[0.06], section-card/sidebar-card CSS), `tailwind-config.js` (dc-card→#111111, dc-surface→#0d0d0d, +dc-card-hover) | — |
+| 2026-02-18 | 5.1 | `services/lifecycle_service.py` | — | — |
+| 2026-02-18 | 5.2 | `tasks/__init__.py`, `tasks/lifecycle.py` | `deltacrown/celery.py` (2 new beat tasks) | — |
+| 2026-02-18 | 5.3 | `services/completion_pipeline.py` | — | — |
+| 2026-02-18 | 5.4 | `services/archive_service.py` | — | — |
+| 2026-02-18 | 6.1 | `tests/test_adapters_unit.py` | — | — |
+| 2026-02-18 | 6.2 | `tests/test_service_integration.py` | — | — |
+| 2026-02-18 | 6.3 | `tests/test_views_phase6.py` | — | — |
+| 2026-02-18 | 6.4 | `tests/test_template_rendering.py` | — | — |
+| 2026-02-18 | 6.5 | `tests/test_lifecycle_e2e.py` | — | — |
 
 ---
 

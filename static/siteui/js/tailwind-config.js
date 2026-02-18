@@ -26,8 +26,9 @@ tailwind.config = {
         'dc-gold': '#facc15',       // Accents / prizes
         'dc-dark': '#050505',       // Page background
         'dc-bg': '#030303',         // Detail page background
-        'dc-surface': '#0A0A0A',    // Elevated surface
-        'dc-card': '#0a0a0a',       // Card background (same as surface for list; #111 for detail)
+        'dc-surface': '#0d0d0d',    // Elevated surface
+        'dc-card': '#111111',       // Card background — visible contrast against dc-bg
+        'dc-card-hover': '#181818', // Card hover state
         'dc-border': 'rgba(255, 255, 255, 0.08)', // Subtle border
         'val-red': '#ff4655',       // Game-specific accent (Valorant)
       },

@@ -59,8 +59,27 @@
         background: var(--game-color); box-shadow: 0 -4px 15px color-mix(in srgb, var(--game-color) 60%, transparent);
     }
 
-    /* ===== GLASS PANELS ===== */
-    .glass-panel { background: rgba(25, 25, 25, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 4px 30px rgba(0,0,0,0.1); }
+    /* ===== GLASSMORPHISM SYSTEM ===== */
+    .glass {
+        background: rgba(17, 17, 17, 0.65);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .glass-strong {
+        background: rgba(10, 10, 10, 0.88);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .glass-panel {
+        background: rgba(17, 17, 17, 0.75);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .glass:hover, .glass-panel:hover { border-color: rgba(255, 255, 255, 0.1); }
 
     /* ===== GLOW EFFECTS ===== */
     .text-glow-game { text-shadow: 0 0 20px color-mix(in srgb, var(--game-color) 50%, transparent); }
@@ -83,12 +102,12 @@
     .desc-container.collapsed { max-height: 180px; overflow: hidden; }
     .desc-container.collapsed::after {
         content: ''; position: absolute; bottom: 0; left: 0; width: 100%;
-        height: 80px; background: linear-gradient(to top, rgba(18,18,18,0.95), transparent); pointer-events: none;
+        height: 80px; background: linear-gradient(to top, rgba(17,17,17,0.95), transparent); pointer-events: none;
     }
 
     /* ===== MATCH CARD ===== */
-    .match-card { transition: all 0.3s ease; }
-    .match-card:hover { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.1); }
+    .match-card { transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.06); }
+    .match-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); transform: translateY(-1px); }
     .match-card.is-live { border-left: 3px solid #ef4444; animation: livePulse 2s infinite; }
     @keyframes livePulse { 0%, 100% { border-left-color: #ef4444; } 50% { border-left-color: #fca5a5; } }
 
@@ -97,6 +116,25 @@
     .timeline-node.active { transform: scale(1.15); }
     .timeline-node.completed { opacity: 1; }
     .timeline-node.pending { opacity: 0.4; }
+
+    /* ===== CARD DEPTH ===== */
+    .section-card {
+        background: #111111;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 1rem;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+        transition: border-color 0.3s ease;
+    }
+    .section-card:hover { border-color: rgba(255,255,255,0.1); }
+
+    /* ===== SIDEBAR CARDS ===== */
+    .sidebar-card {
+        background: #111111;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 1rem;
+        transition: all 0.3s ease;
+    }
+    .sidebar-card:hover { border-color: rgba(255,255,255,0.1); background: #151515; }
 
     /* ===== SELECTION ===== */
     ::selection { background: color-mix(in srgb, var(--game-color) 50%, transparent); color: white; }
@@ -433,18 +471,18 @@
 
                 <!-- Match Configuration -->
                 <div class="glass-panel p-1 rounded-2xl overflow-hidden">
-                    <div class="bg-dc-surface/50 p-4 border-b border-white/5 flex justify-between items-center">
+                    <div class="bg-dc-surface p-4 border-b border-white/[0.06] flex justify-between items-center">
                         <h3 class="font-gaming font-bold text-lg text-white flex items-center gap-2">
                             <i data-lucide="sliders-horizontal" class="w-4 h-4 game-accent"></i>
                             Match Configuration
                         </h3>
-                        <span class="px-2 py-1 rounded bg-white/5 text-[10px] text-gray-400 font-mono border border-white/5 uppercase">
+                        <span class="px-2 py-1 rounded bg-white/[0.06] text-[10px] text-gray-400 font-mono border border-white/[0.08] uppercase">
                             {{ game_spec.short_code|default:game_spec.slug|upper|truncatechars:8 }}
                         </span>
                     </div>
 
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/5">
-                        <div class="bg-dc-card p-4 sm:p-5 group hover:bg-white/5 transition-colors">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/[0.04]">
+                        <div class="bg-dc-card p-4 sm:p-5 group hover:bg-dc-card-hover transition-colors">
                             <div class="flex items-center gap-2 mb-2">
                                 <i data-lucide="swords" class="w-4 h-4 text-gray-500 group-hover:text-white transition-colors"></i>
                                 <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Format</span>
@@ -453,7 +491,7 @@
                             <div class="text-[10px] text-gray-500 mt-1">{{ tournament.get_participation_type_display }}</div>
                         </div>
 
-                        <div class="bg-dc-card p-4 sm:p-5 group hover:bg-white/5 transition-colors">
+                        <div class="bg-dc-card p-4 sm:p-5 group hover:bg-dc-card-hover transition-colors">
                             <div class="flex items-center gap-2 mb-2">
                                 <i data-lucide="target" class="w-4 h-4 text-gray-500 group-hover:text-white transition-colors"></i>
                                 <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Match Type</span>
@@ -466,7 +504,7 @@
                             {% endif %}
                         </div>
 
-                        <div class="bg-dc-card p-4 sm:p-5 group hover:bg-white/5 transition-colors">
+                        <div class="bg-dc-card p-4 sm:p-5 group hover:bg-dc-card-hover transition-colors">
                             <div class="flex items-center gap-2 mb-2">
                                 <i data-lucide="gamepad-2" class="w-4 h-4 text-gray-500 group-hover:text-white transition-colors"></i>
                                 <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Game</span>
@@ -475,7 +513,7 @@
                             <div class="text-[10px] text-gray-500 mt-1">{{ tournament.get_platform_display }} · {{ game_spec.get_category_display }}</div>
                         </div>
 
-                        <div class="bg-dc-card p-4 sm:p-5 group hover:bg-white/5 transition-colors">
+                        <div class="bg-dc-card p-4 sm:p-5 group hover:bg-dc-card-hover transition-colors">
                             <div class="flex items-center gap-2 mb-2">
                                 <i data-lucide="users" class="w-4 h-4 text-gray-500 group-hover:text-white transition-colors"></i>
                                 <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Capacity</span>
@@ -492,7 +530,7 @@
                     </div>
 
                     {% if game_spec.tournament_config %}
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/5 border-t border-white/5">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/[0.04] border-t border-white/[0.06]">
                         <div class="bg-dc-card p-3 sm:p-4">
                             <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Scoring</span>
                             <span class="text-xs font-bold text-white">{{ game_spec.tournament_config.get_default_scoring_type_display }}</span>
@@ -562,7 +600,7 @@
 
                     <!-- Podium -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 relative z-10 items-end">
-                        <div class="order-2 md:order-1 bg-gradient-to-b from-gray-800/50 to-dc-surface border border-white/5 rounded-2xl p-6 text-center transform md:translate-y-4 hover:-translate-y-1 transition-transform duration-300">
+                        <div class="order-2 md:order-1 bg-gradient-to-b from-gray-800/50 to-dc-card border border-white/[0.08] rounded-2xl p-6 text-center transform md:translate-y-4 hover:-translate-y-1 transition-transform duration-300">
                             <div class="w-16 h-16 mx-auto bg-gray-700/30 rounded-full flex items-center justify-center border border-gray-600 mb-3">
                                 <span class="font-display font-bold text-2xl text-gray-300">2</span>
                             </div>
@@ -625,7 +663,7 @@
                                     </div>
 
                                     {% if tournament.has_entry_fee and tournament.payment_methods %}
-                                    <div class="pt-4 border-t border-white/5 mb-4">
+                                    <div class="pt-4 border-t border-white/[0.06] mb-4">
                                         <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3">Accepted Payment Methods</p>
                                         <div class="flex flex-wrap gap-2">
                                             {% for method in tournament.payment_methods %}
@@ -649,7 +687,7 @@
                                     </div>
                                     {% endif %}
 
-                                    <div class="space-y-4 pt-4 border-t border-white/5">
+                                    <div class="space-y-4 pt-4 border-t border-white/[0.06]">
                                         <div class="flex items-center gap-4">
                                             <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400">
                                                 <i data-lucide="users-2" class="w-5 h-5"></i>
@@ -694,7 +732,7 @@
 
                         <!-- Register CTA + Security Badge -->
                         <div class="md:col-span-5 flex flex-col gap-4">
-                            <div class="bg-dc-card border border-white/5 rounded-3xl p-6 flex-1 flex flex-col justify-between">
+                            <div class="bg-dc-card border border-white/[0.06] rounded-3xl p-6 flex-1 flex flex-col justify-between">
                                 <div>
                                     <h4 class="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                         <i data-lucide="{% if can_register %}lock-open{% else %}lock{% endif %}" class="w-3.5 h-3.5"></i>
@@ -731,7 +769,7 @@
                                     </div>
                                 </div>
 
-                                <div class="mt-6 pt-6 border-t border-white/5 space-y-3">
+                                <div class="mt-6 pt-6 border-t border-white/[0.06] space-y-3">
                                     {% if can_register %}
                                     <a href="{{ registration_action_url }}"
                                        class="block w-full py-4 bg-white text-black font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-gray-200 hover:scale-[1.02] active:scale-[0.98] transition-all text-center">
@@ -743,14 +781,14 @@
                                         {{ registration_action_label }}
                                     </a>
                                     {% else %}
-                                    <div class="w-full py-4 bg-white/5 border border-white/10 text-gray-400 font-bold text-xs uppercase tracking-[0.2em] rounded-2xl text-center">
+                                    <div class="w-full py-4 bg-dc-card border border-white/10 text-gray-400 font-bold text-xs uppercase tracking-[0.2em] rounded-2xl text-center">
                                         {{ registration_status_reason|default:"Registration closed" }}
                                     </div>
                                     {% endif %}
                                 </div>
                             </div>
 
-                            <div class="glass-panel px-6 py-4 rounded-2xl flex items-center justify-between border border-white/5">
+                            <div class="glass-panel px-6 py-4 rounded-2xl flex items-center justify-between border border-white/[0.06]">
                                 <div class="flex items-center gap-3">
                                     <i data-lucide="shield-check" class="w-5 h-5 game-accent"></i>
                                     <div>
@@ -814,7 +852,7 @@
                     <p class="text-sm text-gray-400 mb-6">This tournament uses a Group Stage followed by a Knockout Playoff.</p>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-white/5 rounded-xl p-4 border border-white/5 {% if current_stage == 'group' %}ring-2{% endif %}" {% if current_stage == 'group' %}style="--tw-ring-color: var(--game-color);"{% endif %}>
+                        <div class="bg-dc-card rounded-xl p-4 border border-white/[0.06] {% if current_stage == 'group' %}ring-2{% endif %}" {% if current_stage == 'group' %}style="--tw-ring-color: var(--game-color);"{% endif %}>
                             <div class="flex items-center gap-2 mb-2">
                                 <i data-lucide="grid-3x3" class="w-4 h-4 game-accent"></i>
                                 <span class="text-sm font-bold text-white">Group Stage</span>
@@ -822,7 +860,7 @@
                             </div>
                             <p class="text-xs text-gray-400">{{ groups|length }} group{{ groups|length|pluralize }} — Round Robin within groups</p>
                         </div>
-                        <div class="bg-white/5 rounded-xl p-4 border border-white/5 {% if current_stage == 'knockout' %}ring-2{% endif %}" {% if current_stage == 'knockout' %}style="--tw-ring-color: var(--game-color);"{% endif %}>
+                        <div class="bg-dc-card rounded-xl p-4 border border-white/[0.06] {% if current_stage == 'knockout' %}ring-2{% endif %}" {% if current_stage == 'knockout' %}style="--tw-ring-color: var(--game-color);"{% endif %}>
                             <div class="flex items-center gap-2 mb-2">
                                 <i data-lucide="git-merge" class="w-4 h-4 game-accent"></i>
                                 <span class="text-sm font-bold text-white">Knockout Playoff</span>
@@ -835,14 +873,14 @@
                     {% if group_standings_summary %}
                     <div class="mt-6 space-y-3">
                         {% for grp in group_standings_summary %}
-                        <div class="bg-black/30 rounded-lg p-3 border border-white/5">
+                        <div class="bg-black/30 rounded-lg p-3 border border-white/[0.06]">
                             <p class="text-xs font-bold text-white mb-2">Group {{ grp.name }}</p>
                             <div class="flex flex-wrap gap-2">
                                 {% for adv in grp.advancers %}
                                 <span class="text-[10px] px-2 py-1 rounded bg-green-900/40 border border-green-700/30 text-green-400 font-bold">#{{ adv.rank }} {{ adv.name }}</span>
                                 {% endfor %}
                                 {% for oth in grp.others %}
-                                <span class="text-[10px] px-2 py-1 rounded bg-white/5 border border-white/5 text-gray-500 font-medium">#{{ oth.rank }} {{ oth.name }}</span>
+                                <span class="text-[10px] px-2 py-1 rounded bg-white/[0.06] border border-white/[0.08] text-gray-500 font-medium">#{{ oth.rank }} {{ oth.name }}</span>
                                 {% endfor %}
                             </div>
                         </div>
@@ -861,7 +899,7 @@
                     </h3>
                     <div class="space-y-3">
                         {% for ann in announcements %}
-                        <div class="p-4 rounded-xl bg-white/5 border border-white/5 {% if ann.is_pinned %}border-dc-gold/30{% endif %}">
+                        <div class="p-4 rounded-xl bg-dc-card border border-white/[0.06] {% if ann.is_pinned %}border-dc-gold/30{% endif %}">
                             {% if ann.is_pinned %}
                             <span class="text-[10px] text-dc-gold font-bold uppercase tracking-wider flex items-center gap-1 mb-2">
                                 <i data-lucide="pin" class="w-3 h-3"></i> Pinned
@@ -880,10 +918,10 @@
 
             <!-- PARTICIPANTS TAB -->
             <div id="tab-participants" class="tab-content hidden space-y-6">
-                <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-dc-surface/50 p-4 rounded-xl border border-white/5 backdrop-blur-md">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-dc-surface p-4 rounded-xl border border-white/[0.06] backdrop-blur-md">
                     <div class="flex items-center gap-3">
                         <h3 class="font-gaming font-bold text-xl text-white">Registered {{ tournament.get_participation_type_display }}s</h3>
-                        <span class="bg-white/10 text-white text-xs font-bold px-2.5 py-1 rounded-md border border-white/5">{{ slots_filled }} / {{ slots_total }}</span>
+                        <span class="bg-white/10 text-white text-xs font-bold px-2.5 py-1 rounded-md border border-white/[0.08]">{{ slots_filled }} / {{ slots_total }}</span>
                     </div>
                     <div class="flex items-center gap-2 text-xs text-gray-500">
                         <i data-lucide="sort-asc" class="w-3.5 h-3.5"></i> Registration Order
@@ -895,7 +933,7 @@
                     {% for p in participants %}
                     <div class="glass p-4 rounded-xl flex items-center justify-between border-l-2
                         {% if p.is_current_user %}border-l-dc-purple{% elif p.status == 'confirmed' or p.checked_in %}border-l-green-500{% else %}border-l-yellow-500{% endif %}
-                        hover:bg-white/5 transition-colors group cursor-pointer">
+                        hover:bg-white/[0.04] transition-colors group cursor-pointer">
                         <div class="flex items-center gap-3 sm:gap-4 min-w-0">
                             {% if p.type == 'team' %}
                             <div class="w-10 sm:w-12 h-10 sm:h-12 rounded-lg bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center text-white font-black text-sm shadow-lg group-hover:scale-105 transition-transform overflow-hidden flex-shrink-0">
@@ -1034,7 +1072,7 @@
 
                     {% for m in matches %}
                     {% if not m.is_live %}
-                    <div class="match-card glass p-3 sm:p-4 rounded-xl border border-white/5 {% if m.is_completed %}opacity-70{% endif %}">
+                    <div class="match-card glass p-3 sm:p-4 rounded-xl border border-white/[0.06] {% if m.is_completed %}opacity-70{% endif %}">
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ m.stage_label|default:m.match_label }}</span>
@@ -1143,7 +1181,7 @@
                             </thead>
                             <tbody>
                                 {% for row in standings_primary %}
-                                <tr class="border-b border-white/5 hover:bg-white/5 transition-colors {% if row.is_advancing %}bg-green-900/10{% endif %}">
+                                <tr class="border-b border-white/[0.06] hover:bg-white/[0.04] transition-colors {% if row.is_advancing %}bg-green-900/10{% endif %}">
                                     <td class="py-3 px-2 font-display font-bold {% if row.rank <= 3 %}text-dc-gold{% else %}text-gray-400{% endif %}">{{ row.rank }}</td>
                                     <td class="py-3 px-2 font-bold text-white flex items-center gap-2">
                                         {{ row.name }}
@@ -1206,7 +1244,7 @@
                 {% if additional_streams %}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {% for stream in additional_streams %}
-                    <a href="{{ stream.url }}" target="_blank" class="glass p-4 rounded-xl flex items-center gap-3 hover:bg-white/5 transition-colors group">
+                    <a href="{{ stream.url }}" target="_blank" class="glass p-4 rounded-xl flex items-center gap-3 hover:bg-white/[0.04] transition-colors group">
                         <div class="w-10 h-10 rounded-lg flex items-center justify-center
                             {% if stream.platform == 'twitch' %}bg-purple-900/30 text-purple-400{% else %}bg-red-900/30 text-red-400{% endif %}">
                             <i data-lucide="tv" class="w-5 h-5"></i>
@@ -1225,7 +1263,7 @@
 
             <!-- RULES & DOCS TAB -->
             <div id="tab-rules" class="tab-content hidden space-y-6">
-                <div class="glass p-6 sm:p-8 rounded-2xl border border-white/5">
+                <div class="glass p-6 sm:p-8 rounded-2xl border border-white/[0.06]">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/10 pb-6 mb-6 gap-4">
                         <h3 class="font-gaming font-bold text-xl sm:text-2xl text-white flex items-center gap-2">
                             <i data-lucide="scroll-text" class="w-5 sm:w-6 h-5 sm:h-6 game-accent"></i>
@@ -1261,7 +1299,7 @@
                 </div>
 
                 {% if tournament.terms_and_conditions %}
-                <div class="glass p-6 sm:p-8 rounded-2xl border border-white/5">
+                <div class="glass p-6 sm:p-8 rounded-2xl border border-white/[0.06]">
                     <h3 class="font-gaming font-bold text-xl text-white flex items-center gap-2 mb-6">
                         <i data-lucide="file-check" class="w-5 h-5 text-gray-400"></i>
                         Terms & Conditions
@@ -1330,8 +1368,8 @@
                         </div>
 
                         <!-- Quick Details -->
-                        <div class="bg-black/40 rounded-xl p-4 mb-6 border border-white/5 space-y-3">
-                            <div class="flex items-center justify-between mb-2 pb-2 border-b border-white/5">
+                        <div class="bg-black/40 rounded-xl p-4 mb-6 border border-white/[0.06] space-y-3">
+                            <div class="flex items-center justify-between mb-2 pb-2 border-b border-white/[0.06]">
                                 <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Details</h4>
                             </div>
                             <div class="flex items-center justify-between">
@@ -1375,7 +1413,7 @@
                             {{ registration_action_label }}
                         </a>
                         {% else %}
-                        <div class="w-full py-4 bg-white/5 border border-white/10 text-gray-400 font-black uppercase tracking-[0.15em] rounded-xl text-center text-sm">
+                        <div class="w-full py-4 bg-dc-card border border-white/10 text-gray-400 font-black uppercase tracking-[0.15em] rounded-xl text-center text-sm">
                             {{ registration_status_reason|default:"Registration closed" }}
                         </div>
                         {% endif %}
@@ -1387,7 +1425,7 @@
                 </div>
 
                 <!-- Game Info Card -->
-                <div class="glass p-5 rounded-2xl flex items-center gap-4 group cursor-pointer hover:bg-white/5 transition-colors">
+                <div class="glass p-5 rounded-2xl flex items-center gap-4 group cursor-pointer hover:bg-white/[0.04] transition-colors">
                     <div class="w-12 sm:w-14 h-12 sm:h-14 rounded-xl flex items-center justify-center shadow-lg relative overflow-hidden flex-shrink-0" style="background: color-mix(in srgb, var(--game-color) 20%, black);">
                         {% if game_spec.icon %}
                         <img src="{{ game_spec.icon.url }}" class="w-full h-full object-cover" alt="{{ game_spec.display_name }}">
@@ -1403,7 +1441,7 @@
                 </div>
 
                 <!-- Organizer Card -->
-                <div class="glass p-5 rounded-2xl flex items-center gap-4 group cursor-pointer hover:bg-white/5 transition-colors">
+                <div class="glass p-5 rounded-2xl flex items-center gap-4 group cursor-pointer hover:bg-white/[0.04] transition-colors">
                     <div class="w-12 sm:w-14 h-12 sm:h-14 bg-white/10 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg relative flex-shrink-0">
                         {{ tournament.organizer.username|truncatechars:2|upper }}
                     </div>
@@ -1461,10 +1499,10 @@
                         Open Management Hub
                     </a>
                     <div class="grid grid-cols-2 gap-2">
-                        <a href="/tournaments/{{ tournament.slug }}/organizer/participants/" class="py-2 px-2 bg-white/5 border border-white/5 rounded-lg text-[10px] font-bold text-gray-400 hover:text-white hover:bg-white/10 transition text-center">
+                        <a href="/tournaments/{{ tournament.slug }}/organizer/participants/" class="py-2 px-2 bg-dc-card border border-white/[0.06] rounded-lg text-[10px] font-bold text-gray-400 hover:text-white hover:bg-dc-card-hover transition text-center">
                             Participants
                         </a>
-                        <a href="/tournaments/{{ tournament.slug }}/organizer/brackets/" class="py-2 px-2 bg-white/5 border border-white/5 rounded-lg text-[10px] font-bold text-gray-400 hover:text-white hover:bg-white/10 transition text-center">
+                        <a href="/tournaments/{{ tournament.slug }}/organizer/brackets/" class="py-2 px-2 bg-dc-card border border-white/[0.06] rounded-lg text-[10px] font-bold text-gray-400 hover:text-white hover:bg-dc-card-hover transition text-center">
                             Brackets
                         </a>
                     </div>

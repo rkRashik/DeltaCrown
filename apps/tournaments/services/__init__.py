@@ -8,6 +8,9 @@ from .tournament_service import TournamentService
 from .registration_service import RegistrationService
 from .winner_service import WinnerDeterminationService
 from .analytics_service import AnalyticsService, analytics_service
+from .lifecycle_service import TournamentLifecycleService
+from .completion_pipeline import CompletionPipeline, CompletionReport
+from .archive_service import ArchiveService
 
 # Certificate service requires Cairo / ReportLab native libraries.
 # Lazy-import so the app boots on platforms without them (e.g. Windows dev).
@@ -30,4 +33,8 @@ __all__ = [
     'certificate_service',
     'AnalyticsService',
     'analytics_service',
+    'TournamentLifecycleService',
+    'CompletionPipeline',
+    'CompletionReport',
+    'ArchiveService',
 ]
