@@ -17,12 +17,7 @@ from apps.tournaments.views.discovery import TournamentListView  # noqa: F401
 from apps.tournaments.views.detail import TournamentDetailView, participant_checkin  # noqa: F401
 
 from apps.tournaments.views.registration import (
-    TournamentRegistrationView,
     TournamentRegistrationSuccessView,
-)
-
-from apps.tournaments.views.tournament_team_registration import (
-    RegistrationSuccessView,
 )
 
 __all__ = [
@@ -31,11 +26,7 @@ __all__ = [
     'TournamentDetailView',
     'participant_checkin',
     
-    # Registration wizard views (FE-T-004)
-    'TournamentRegistrationView',
+    # Registration views (FE-T-004)
     'TournamentRegistrationSuccessView',
-    
-    # Demo registration views
-    'RegistrationSuccessView',
 ]
 

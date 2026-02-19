@@ -44,17 +44,14 @@ from django.urls import path
 from django.views.generic import RedirectView
 from apps.tournaments import views
 from apps.tournaments.views import (
-    TournamentRegistrationView,
     TournamentRegistrationSuccessView,
 )
 from apps.tournaments.views.registration import (
     PaymentProofUploadView,
     PaymentRetryView,
 )
-# Form Builder - Dynamic Registration (Sprint 1)
+# Form Builder - Registration Dashboard (player's "My Registrations")
 from apps.tournaments.views.dynamic_registration import (
-    DynamicRegistrationView,
-    RegistrationSuccessView as DynamicRegistrationSuccessView,
     RegistrationDashboardView,
 )
 # Permission Requests (Team Registration Permission Workflow)
@@ -143,13 +140,10 @@ from apps.tournaments.views.organizer_results import (
     reject_match_result,
     override_match_result,
 )
-from apps.tournaments.views.tournament_team_registration import (
-    TeamRegistrationView,
-    RegistrationSuccessView,
-)
-from apps.tournaments.views.registration_wizard import (
-    RegistrationWizardView,
-    RegistrationSuccessView as WizardSuccessView,
+
+from apps.tournaments.views.smart_registration import (
+    SmartRegistrationView,
+    SmartRegistrationSuccessView,
 )
 from apps.tournaments.views.withdrawal import (
     withdraw_registration_view,
@@ -271,9 +265,11 @@ urlpatterns = [
     # Participant check-in
     path('<slug:slug>/checkin/', views.participant_checkin, name='participant_checkin'),
     
-    # Classic Registration Wizard (Production - Uses Beautiful Demo Templates)
-    path('<slug:slug>/register/wizard/', RegistrationWizardView.as_view(), name='registration_wizard'),
-    path('<slug:slug>/register/wizard/success/', WizardSuccessView.as_view(), name='registration_wizard_success'),
+
+    
+    # Smart Registration (Production — One-Click Auto-Fill)
+    path('<slug:slug>/register/smart/', SmartRegistrationView.as_view(), name='smart_registration'),
+    path('<slug:slug>/register/smart/success/<int:registration_id>/', SmartRegistrationSuccessView.as_view(), name='smart_registration_success'),
     
     # Registration Permission Request (Team Members)
     path('<slug:slug>/request-permission/', request_permission, name='request_permission'),
@@ -286,22 +282,19 @@ urlpatterns = [
     # Registration Withdrawal
     path('<slug:slug>/withdraw/', withdraw_registration_view, name='withdraw_registration'),
     
-    # Tournament Team Registration (Professional)
-    path('<slug:slug>/register/team/', TeamRegistrationView.as_view(), name='team_registration'),
-    path('<slug:slug>/register/team/<int:step>/', TeamRegistrationView.as_view(), name='team_registration_step'),
-    path('<slug:slug>/register/success/', RegistrationSuccessView.as_view(), name='registration_success'),
+
     
-    # FE-T-004: Dynamic Registration System (Form Builder - Marketplace System)
-    path('<slug:tournament_slug>/register/', DynamicRegistrationView.as_view(), name='register'),
-    path('<slug:tournament_slug>/register/success/<int:response_id>/', DynamicRegistrationSuccessView.as_view(), name='dynamic_registration_success'),
+    # FE-T-004: SMART Registration (Primary — replaces dynamic and wizard flows)
+    path('<slug:tournament_slug>/register/', SmartRegistrationView.as_view(), name='register'),
+    path('<slug:tournament_slug>/register/success/<int:registration_id>/', SmartRegistrationSuccessView.as_view(), name='dynamic_registration_success'),
+
+
     
     # Payment handling for tournament registration
     path('registration/<int:registration_id>/payment/upload/', PaymentProofUploadView.as_view(), name='payment_upload'),
     path('registration/<int:registration_id>/payment/retry/', PaymentRetryView.as_view(), name='payment_retry'),
     
-    # Legacy Registration (Deprecated - kept for backward compatibility)
-    # path('<slug:slug>/register/', TournamentRegistrationView.as_view(), name='register_legacy'),
-    # path('<slug:slug>/register/success/', TournamentRegistrationSuccessView.as_view(), name='register_success_legacy'),
+    # Legacy Registration success (backward compatibility)
     path('<slug:slug>/register/success/', TournamentRegistrationSuccessView.as_view(), name='register_success'),
     
     # Sprint 3: Public Live Tournament Experience

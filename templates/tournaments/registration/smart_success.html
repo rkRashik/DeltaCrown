@@ -1,0 +1,239 @@
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
+
+{% block title %}Registration Confirmed — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_css %}
+<style>
+    :root {
+        --game-color: {{ game_color|default:"#06b6d4" }};
+        --game-color-rgb: {{ game_color_rgb|default:"6, 182, 212" }};
+        --bg-deep: #060608;
+    }
+    body { background: var(--bg-deep); }
+
+    .success-ambient {
+        position: fixed; inset: 0; pointer-events: none; z-index: 0;
+        background:
+            radial-gradient(ellipse 100% 60% at 50% 0%, rgba(16, 185, 129, 0.06) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 40% at 20% 80%, rgba(var(--game-color-rgb), 0.03) 0%, transparent 50%);
+    }
+
+    @keyframes dropIn {
+        0% { transform: translateY(-30px) scale(0.8); opacity: 0; }
+        60% { transform: translateY(5px) scale(1.02); }
+        100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    @keyframes ringPulse {
+        0% { transform: scale(0.5); opacity: 0.8; }
+        100% { transform: scale(2); opacity: 0; }
+    }
+    @keyframes shake {
+        0%, 100% { transform: rotate(0); }
+        25% { transform: rotate(-5deg); }
+        75% { transform: rotate(5deg); }
+    }
+    .drop-in { animation: dropIn 0.7s ease-out forwards; }
+
+    .success-ring {
+        width: 7rem; height: 7rem;
+        border-radius: 50%;
+        position: relative;
+        background: rgba(16, 185, 129, 0.08);
+        border: 3px solid rgba(16, 185, 129, 0.4);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .success-ring::before {
+        content: '';
+        position: absolute; inset: -6px;
+        border-radius: 50%;
+        border: 2px solid rgba(16, 185, 129, 0.15);
+        animation: ringPulse 2s ease-out infinite;
+    }
+
+    .detail-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0.625rem 0;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .detail-row:last-child { border-bottom: none; }
+
+    .glass-card {
+        background: rgba(12, 12, 18, 0.75);
+        backdrop-filter: blur(20px) saturate(1.4);
+        border: 1px solid rgba(255,255,255,0.05);
+        box-shadow: 0 4px 30px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .btn-outline {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.75rem;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.03);
+        color: #e0e0ed;
+        font-weight: 600;
+        font-size: 0.8125rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-outline:hover {
+        border-color: rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.06);
+    }
+    .btn-accent {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.75rem;
+        background: linear-gradient(135deg, var(--game-color), rgba(var(--game-color-rgb), 0.8));
+        color: #000; font-weight: 800; font-size: 0.8125rem;
+        text-transform: uppercase; letter-spacing: 0.05em;
+        cursor: pointer; transition: all 0.2s;
+        box-shadow: 0 4px 20px rgba(var(--game-color-rgb), 0.25);
+    }
+    .btn-accent:hover { transform: translateY(-1px); box-shadow: 0 6px 30px rgba(var(--game-color-rgb), 0.35); }
+
+    @keyframes confetti-fall {
+        0% { transform: translateY(-10vh) rotate(0deg) scale(1); opacity: 1; }
+        100% { transform: translateY(110vh) rotate(720deg) scale(0.5); opacity: 0; }
+    }
+    .confetti { position: fixed; top: -10px; z-index: 50; pointer-events: none; }
+</style>
+{% endblock %}
+
+{% block tournament_content %}
+<div class="success-ambient"></div>
+<div id="confetti-container"></div>
+
+<div class="max-w-lg mx-auto px-4 sm:px-6 py-12 relative z-10">
+
+    {# ── Hero ────────────────────────────── #}
+    <div class="text-center mb-8 drop-in">
+        <div class="success-ring mx-auto mb-6">
+            <i data-lucide="check" class="w-10 h-10 text-emerald-400"></i>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight mb-2">You're In!</h1>
+        <p class="text-sm text-gray-400">Registration confirmed for <span class="text-white font-semibold">{{ tournament.name }}</span></p>
+    </div>
+
+    {# ── Registration Card ───────────────── #}
+    <div class="glass-card rounded-2xl p-6 mb-5 drop-in" style="animation-delay: 0.15s; opacity: 0;">
+
+        {% if registration.id %}
+        <div class="text-center p-4 rounded-xl bg-white/[0.02] border border-white/5 mb-5">
+            <p class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1">Registration ID</p>
+            <p class="text-xl font-black font-mono tracking-wider" style="color: var(--game-color);">#{{ registration.id }}</p>
+        </div>
+        {% endif %}
+
+        <div class="detail-row">
+            <span class="text-xs text-gray-500 flex items-center gap-1.5"><i data-lucide="user" class="w-3 h-3"></i> Registered As</span>
+            <span class="text-sm text-white font-semibold">{{ request.user.get_full_name|default:request.user.username }}</span>
+        </div>
+        {% if team %}
+        <div class="detail-row">
+            <span class="text-xs text-gray-500 flex items-center gap-1.5"><i data-lucide="shield" class="w-3 h-3"></i> Team</span>
+            <span class="text-sm text-white font-semibold">{{ team.name }} [{{ team.tag|upper }}]</span>
+        </div>
+        {% endif %}
+        <div class="detail-row">
+            <span class="text-xs text-gray-500 flex items-center gap-1.5"><i data-lucide="trophy" class="w-3 h-3"></i> Tournament</span>
+            <span class="text-sm text-white">{{ tournament.name }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="text-xs text-gray-500 flex items-center gap-1.5"><i data-lucide="calendar" class="w-3 h-3"></i> Date</span>
+            <span class="text-sm text-white">{{ tournament.tournament_start|date:"M d, Y — h:i A" }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="text-xs text-gray-500 flex items-center gap-1.5"><i data-lucide="tag" class="w-3 h-3"></i> Status</span>
+            <span class="text-xs font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider
+                {% if registration.status == 'CONFIRMED' %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/15
+                {% elif registration.status == 'PENDING_PAYMENT' %}bg-amber-500/10 text-amber-400 border border-amber-500/15
+                {% else %}bg-sky-500/10 text-sky-400 border border-sky-500/15{% endif %}">
+                {{ registration.get_status_display }}
+            </span>
+        </div>
+        {% if registration.status == 'PENDING_PAYMENT' %}
+        <div class="detail-row">
+            <span class="text-xs text-gray-500 flex items-center gap-1.5"><i data-lucide="wallet" class="w-3 h-3"></i> Payment</span>
+            <span class="text-xs text-amber-400 font-semibold">Awaiting verification</span>
+        </div>
+        {% endif %}
+    </div>
+
+    {# ── What's Next Card ────────────────── #}
+    <div class="glass-card rounded-2xl p-6 mb-6 drop-in" style="animation-delay: 0.3s; opacity: 0;">
+        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">What's Next</h3>
+        <div class="space-y-3">
+            {% if tournament.enable_check_in %}
+            <div class="flex items-start gap-3">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-sky-500/10 mt-0.5">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-sky-400"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-white">Check-in Required</p>
+                    <p class="text-[10px] text-gray-500 mt-0.5">Opens {{ tournament.check_in_minutes_before }} minutes before start. Don't forget!</p>
+                </div>
+            </div>
+            {% endif %}
+            <div class="flex items-start gap-3">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-indigo-500/10 mt-0.5">
+                    <i data-lucide="bell" class="w-3.5 h-3.5 text-indigo-400"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-white">Stay Updated</p>
+                    <p class="text-[10px] text-gray-500 mt-0.5">We'll send bracket updates and important notifications.</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(var(--game-color-rgb), 0.1);">
+                    <i data-lucide="swords" class="w-3.5 h-3.5" style="color: var(--game-color);"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-white">Prepare to Compete</p>
+                    <p class="text-[10px] text-gray-500 mt-0.5">Review the tournament rules and make sure your game profile is up to date.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Actions ─────────────────────────── #}
+    <div class="flex gap-3 drop-in" style="animation-delay: 0.45s; opacity: 0;">
+        <a href="{% url 'tournaments:detail' tournament.slug %}" class="btn-accent flex-1 justify-center">
+            <i data-lucide="arrow-right" class="w-4 h-4"></i> Go to Tournament
+        </a>
+        <a href="{% url 'dashboard:index' %}" class="btn-outline flex-1 justify-center">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+        </a>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block tournament_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // ── Confetti burst ──
+    const container = document.getElementById('confetti-container');
+    const colors = ['#10b981', '#06b6d4', '#8b5cf6', '#f59e0b', '#ec4899', '#6366f1'];
+    for (let i = 0; i < 60; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti';
+        piece.style.cssText = `
+            left: ${Math.random() * 100}vw;
+            width: ${4 + Math.random() * 6}px;
+            height: ${4 + Math.random() * 6}px;
+            background: ${colors[Math.floor(Math.random() * colors.length)]};
+            border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+            animation: confetti-fall ${2 + Math.random() * 3}s ease-in ${Math.random() * 0.8}s forwards;
+        `;
+        container.appendChild(piece);
+    }
+
+    // Clean up confetti after animation
+    setTimeout(() => container.innerHTML = '', 6000);
+});
+</script>
+{% endblock %}

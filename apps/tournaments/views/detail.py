@@ -88,9 +88,9 @@ class TournamentDetailView(DetailView):
         context['user_registration'] = eligibility['registration']
         context['eligibility_status'] = eligibility['status']
 
-        # Registration action URL
+        # Registration action URL — Smart Registration handles both solo and team
         if tournament.participation_type == Tournament.TEAM:
-            context['registration_action_url'] = f'/tournaments/{tournament.slug}/register/team/'
+            context['registration_action_url'] = f'/tournaments/{tournament.slug}/register/'
             context['registration_action_label'] = 'Register Team'
         else:
             context['registration_action_url'] = f'/tournaments/{tournament.slug}/register/'

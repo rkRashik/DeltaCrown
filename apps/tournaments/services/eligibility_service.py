@@ -173,11 +173,7 @@ class RegistrationEligibilityService:
             'can_register': True,
             'reason': '',
             'status': 'eligible',
-            'action_url': (
-                f'/tournaments/{tournament.slug}/register/team/'
-                if tournament.participation_type == Tournament.TEAM
-                else f'/tournaments/{tournament.slug}/register/'
-            ),
+            'action_url': f'/tournaments/{tournament.slug}/register/',
             'action_label': 'Register Now',
         })
         

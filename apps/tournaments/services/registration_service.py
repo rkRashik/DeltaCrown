@@ -362,8 +362,8 @@ class RegistrationService:
         from apps.games.services import game_service
         canonical_slug = game_service.normalize_slug(tournament.game.slug)
         game_spec = game_service.get_game(canonical_slug)
-        game_id_field = game_spec.profile_id_field if game_spec and hasattr(game_spec, 'profile_id_field') else tournament.game.profile_id_field
-        game_id = getattr(profile, game_id_field, None)
+        game_id_field = game_spec.profile_id_field if game_spec and hasattr(game_spec, 'profile_id_field') else 'game_id'
+        game_id = getattr(profile, game_id_field, None) if game_id_field else None
         
         data = {
             'full_name': user.get_full_name() or user.username,
