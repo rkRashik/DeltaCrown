@@ -82,6 +82,25 @@
           </div>
         </div>
 
+        {# Participation, Platform, Mode row #}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label for="id_participation_type" class="block text-xs text-gray-400 mb-1.5">Participation <span class="text-red-400">*</span></label>
+            {{ form.participation_type }}
+            {% if form.participation_type.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.participation_type.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="id_platform" class="block text-xs text-gray-400 mb-1.5">Platform <span class="text-red-400">*</span></label>
+            {{ form.platform }}
+            {% if form.platform.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.platform.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="id_mode" class="block text-xs text-gray-400 mb-1.5">Mode <span class="text-red-400">*</span></label>
+            {{ form.mode }}
+            {% if form.mode.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.mode.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
         {# Description #}
         <div>
           <label for="id_description" class="block text-xs text-gray-400 mb-1.5">Description</label>
@@ -122,12 +141,20 @@
         <i data-lucide="users" class="w-4 h-4 inline mr-1 text-dc-gold"></i>
         Capacity &amp; Fees
       </h2>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label for="id_max_participants" class="block text-xs text-gray-400 mb-1.5">Max Participants</label>
+          <label for="id_max_participants" class="block text-xs text-gray-400 mb-1.5">Max Participants <span class="text-red-400">*</span></label>
           {{ form.max_participants }}
           {% if form.max_participants.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.max_participants.errors.0 }}</p>{% endif %}
         </div>
+        <div>
+          <label for="id_min_participants" class="block text-xs text-gray-400 mb-1.5">Min Participants</label>
+          {{ form.min_participants }}
+          <p class="text-[10px] text-gray-600 mt-1">Minimum needed to start (default: 2)</p>
+          {% if form.min_participants.errors %}<p class="text-[10px] text-red-400 mt-1">{{ form.min_participants.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
         <div>
           <label for="id_entry_fee_amount" class="block text-xs text-gray-400 mb-1.5">Entry Fee (৳)</label>
           {{ form.entry_fee_amount }}
@@ -188,15 +215,45 @@
     <div class="glass rounded-xl p-6">
       <h2 class="text-sm font-display font-semibold text-white mb-4">
         <i data-lucide="settings" class="w-4 h-4 inline mr-1 text-gray-400"></i>
-        Options
+        Options & Features
       </h2>
-      <label class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] border border-dc-border cursor-pointer hover:bg-white/[0.05] transition">
-        {{ form.is_official }}
-        <div>
-          <span class="text-sm text-white">Official Tournament</span>
-          <p class="text-[10px] text-gray-500">Mark this as an official DeltaCrown tournament</p>
-        </div>
-      </label>
+      <div class="space-y-3">
+        <label class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] border border-dc-border cursor-pointer hover:bg-white/[0.05] transition">
+          {{ form.is_official }}
+          <div>
+            <span class="text-sm text-white">Official Tournament</span>
+            <p class="text-[10px] text-gray-500">Mark as an official DeltaCrown tournament</p>
+          </div>
+        </label>
+        <label class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] border border-dc-border cursor-pointer hover:bg-white/[0.05] transition">
+          {{ form.is_featured }}
+          <div>
+            <span class="text-sm text-white">Featured</span>
+            <p class="text-[10px] text-gray-500">Show on the homepage featured section</p>
+          </div>
+        </label>
+        <label class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] border border-dc-border cursor-pointer hover:bg-white/[0.05] transition">
+          {{ form.enable_check_in }}
+          <div>
+            <span class="text-sm text-white">Enable Check-In</span>
+            <p class="text-[10px] text-gray-500">Require participants to check in before matches</p>
+          </div>
+        </label>
+        <label class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] border border-dc-border cursor-pointer hover:bg-white/[0.05] transition">
+          {{ form.enable_certificates }}
+          <div>
+            <span class="text-sm text-white">Generate Certificates</span>
+            <p class="text-[10px] text-gray-500">Auto-generate certificates for winners</p>
+          </div>
+        </label>
+        <label class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] border border-dc-border cursor-pointer hover:bg-white/[0.05] transition">
+          {{ form.enable_live_updates }}
+          <div>
+            <span class="text-sm text-white">Live Updates</span>
+            <p class="text-[10px] text-gray-500">Real-time bracket and score updates for spectators</p>
+          </div>
+        </label>
+      </div>
     </div>
 
     {# ── Submit ── #}

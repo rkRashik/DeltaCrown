@@ -186,7 +186,18 @@ class Game(models.Model):
     
     def __str__(self):
         return self.display_name
-    
+
+    @property
+    def primary_color_rgb(self):
+        """Convert hex primary_color to 'R, G, B' string for CSS rgba() usage."""
+        hex_color = self.primary_color or '#7c3aed'
+        hex_color = hex_color.lstrip('#')
+        try:
+            r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+            return f"{r}, {g}, {b}"
+        except (ValueError, IndexError):
+            return "6, 182, 212"
+
     def save(self, *args, **kwargs):
         """Auto-generate slug if not provided."""
         if not self.slug:

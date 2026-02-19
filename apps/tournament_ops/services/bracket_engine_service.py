@@ -80,6 +80,9 @@ class BracketEngineService:
             "double_elim": DoubleEliminationGenerator(),
             "round_robin": RoundRobinGenerator(),
             "swiss": SwissSystemGenerator(),
+            # Aliases so both short and long format keys work
+            "single_elimination": SingleEliminationGenerator(),
+            "double_elimination": DoubleEliminationGenerator(),
         }
     
     def generate_bracket_for_stage(
@@ -184,17 +187,18 @@ class BracketEngineService:
             if format_key in self._generators:
                 return format_key
         
-        # Fall back to tournament.format
-        if tournament.format:
-            format_key = tournament.format.lower().replace(" ", "_").replace("-", "_")
+        # Fall back to tournament.ruleset or game_slug (TournamentDTO has no .format)
+        fallback_format = getattr(tournament, "format", None)
+        if fallback_format:
+            format_key = fallback_format.lower().replace(" ", "_").replace("-", "_")
             if format_key in self._generators:
                 return format_key
         
-        # If still not found, raise error
-        available_formats = ", ".join(self._generators.keys())
+        # If still not found, raise error with helpful message
+        available_formats = ", ".join(sorted(set(self._generators.keys())))
+        stage_type_repr = stage.type if stage.type else "(empty)"
         raise ValueError(
-            f"Unknown format. Stage type: '{stage.type}', "
-            f"Tournament format: '{tournament.format}'. "
+            f"Unknown bracket format. Stage type: '{stage_type_repr}'. "
             f"Available formats: {available_formats}"
         )
     

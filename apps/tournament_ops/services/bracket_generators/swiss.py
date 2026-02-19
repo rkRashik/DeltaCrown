@@ -143,12 +143,12 @@ class SwissSystemGenerator:
                 stage_id=stage_id,
                 round_number=1,
                 match_number=i + 1,
-                stage_type="main",  # Swiss has single pool
-                team1_id=team1.id,
-                team2_id=team2.id if team2 else None,
+                stage_type="main",
+                team_a_id=team1.id,
+                team_b_id=team2.id if team2 else None,
                 team1_name=team1.name,
                 team2_name=team2.name if team2 else "BYE",
-                status="pending",
+                state="pending",
                 metadata={
                     "bracket_type": "swiss",
                     "total_rounds": rounds_count,

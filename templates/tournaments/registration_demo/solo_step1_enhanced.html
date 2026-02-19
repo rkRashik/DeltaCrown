@@ -1,166 +1,141 @@
-{% extends "tournaments/base.html" %}
+{% extends "tournaments/registration_demo/_reg_base.html" %}
 {% load static humanize %}
 
-{# ─────────────────────────────────────────────────────────
-   Registration Wizard — Solo Step 1: Player Information
-   Auto-filled from profile with editable fields
-   Phase 4 Frontend Rebuild
-   ───────────────────────────────────────────────────────── #}
+{% comment %}
+Registration Wizard — Solo Step 1: Player Information
+Cinematic Dark Theme v2 — Auto-filled from profile
+{% endcomment %}
 
 {% block title %}Register — {{ tournament.name }} | DeltaCrown{% endblock %}
 
-{% block tournament_content %}
-
-<div class="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-
-  {# ── Progress Bar ── #}
-  <div class="mb-8">
-    <div class="flex items-center justify-between mb-2">
-      <span class="text-xs text-gray-500">Step {{ current_step }} of {{ total_steps }}</span>
-      <span class="text-xs text-dc-cyan font-mono">{{ step_title }}</span>
-    </div>
-    <div class="h-1 bg-dc-surface rounded-full overflow-hidden">
-      <div class="h-full bg-gradient-to-r from-dc-cyan to-dc-purple rounded-full transition-all duration-500"
-           style="width: {% widthratio current_step total_steps 100 %}%"></div>
-    </div>
-  </div>
-
-  {# ── Tournament Context ── #}
-  <div class="glass rounded-xl p-4 mb-6 flex items-center gap-3">
-    <div class="w-10 h-10 rounded-lg bg-dc-surface border border-dc-border overflow-hidden flex-shrink-0">
-      {% if tournament.thumbnail_image %}
-        <img src="{{ tournament.thumbnail_image.url }}" class="w-full h-full object-cover">
-      {% else %}
-        <div class="w-full h-full flex items-center justify-center"><i data-lucide="trophy" class="w-5 h-5 text-gray-700"></i></div>
-      {% endif %}
-    </div>
-    <div class="flex-1 min-w-0">
-      <p class="text-sm font-semibold text-white truncate">{{ tournament.name }}</p>
-      <p class="text-[10px] text-gray-500">{{ tournament.game.display_name }} · {{ tournament.get_format_display|default:tournament.format }}</p>
-    </div>
-  </div>
+{% block reg_content %}
 
   {# ── Auto-fill Status ── #}
   {% if completion_percentage %}
-    <div class="glass rounded-xl p-4 mb-6 border {% if completion_percentage >= 80 %}border-green-600/30{% else %}border-yellow-600/30{% endif %}">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full flex items-center justify-center
-          {% if completion_percentage >= 80 %}bg-green-600/10{% else %}bg-yellow-600/10{% endif %}">
-          <span class="text-sm font-bold font-mono
-            {% if completion_percentage >= 80 %}text-green-400{% else %}text-yellow-400{% endif %}">{{ completion_percentage }}%</span>
-        </div>
-        <div>
-          <p class="text-xs text-white">Profile auto-fill</p>
-          <p class="text-[10px] text-gray-500">
-            {% if missing_count > 0 %}{{ missing_count }} field{{ missing_count|pluralize }} need{{ missing_count|pluralize:"s," }} your input{% else %}All fields auto-filled from your profile{% endif %}
-          </p>
-        </div>
+  <div class="reg-glass rounded-2xl p-4 mb-6 fade-in fade-in-delay-2" style="border-color: {% if completion_percentage >= 80 %}rgba(16,185,129,0.2){% else %}rgba(234,179,8,0.2){% endif %};">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-full flex items-center justify-center" style="background: {% if completion_percentage >= 80 %}rgba(16,185,129,0.1){% else %}rgba(234,179,8,0.1){% endif %};">
+        <span class="text-sm font-bold font-mono {% if completion_percentage >= 80 %}text-emerald-400{% else %}text-amber-400{% endif %}">{{ completion_percentage }}%</span>
+      </div>
+      <div>
+        <p class="text-xs text-white font-semibold">Profile auto-fill</p>
+        <p class="text-[10px] text-gray-500">
+          {% if missing_count > 0 %}{{ missing_count }} field{{ missing_count|pluralize }} need{{ missing_count|pluralize:"s," }} your input{% else %}All fields auto-filled from your profile{% endif %}
+        </p>
       </div>
     </div>
+  </div>
   {% endif %}
 
   {# ── Step 1 Form ── #}
-  <form method="post" class="space-y-6">
+  <form method="post" class="space-y-6 fade-in fade-in-delay-2">
     {% csrf_token %}
     <input type="hidden" name="step" value="1">
     <input type="hidden" name="type" value="solo">
 
-    {# Identity Section #}
-    <div class="glass rounded-xl p-6">
-      <h3 class="text-sm font-display font-semibold text-white mb-4">
-        <i data-lucide="user" class="w-4 h-4 inline mr-1 text-dc-cyan"></i> Identity
+    {# ── Identity Section ── #}
+    <div class="reg-glass-strong rounded-2xl p-6">
+      <h3 class="text-sm font-bold text-white mb-5 flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(var(--game-color-rgb), 0.1);">
+          <i data-lucide="user" class="w-3.5 h-3.5" style="color: var(--game-color);"></i>
+        </div>
+        Identity
       </h3>
       <div class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs text-gray-400 mb-1.5">Full Name <span class="text-red-400">*</span></label>
+            <label class="reg-label block mb-1.5">Full Name <span class="text-red-400">*</span></label>
             <input type="text" name="full_name" value="{{ player_data.full_name|default:'' }}" required
-                   class="form-input" placeholder="Your full name">
+                   class="reg-input" placeholder="Your full name">
           </div>
           <div>
-            <label class="block text-xs text-gray-400 mb-1.5">Display Name <span class="text-red-400">*</span></label>
+            <label class="reg-label block mb-1.5">Display Name <span class="text-red-400">*</span></label>
             <input type="text" name="display_name" value="{{ player_data.display_name|default:'' }}" required
-                   class="form-input" placeholder="In-game display name">
+                   class="reg-input" placeholder="In-game display name">
           </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs text-gray-400 mb-1.5">Age</label>
+            <label class="reg-label block mb-1.5">Age</label>
             <input type="number" name="age" value="{{ player_data.age|default:'' }}" min="13" max="99"
-                   class="form-input" placeholder="Age">
+                   class="reg-input" placeholder="Age">
           </div>
           <div>
-            <label class="block text-xs text-gray-400 mb-1.5">Country</label>
+            <label class="reg-label block mb-1.5">Country</label>
             <input type="text" name="country" value="{{ player_data.country|default:'' }}"
-                   class="form-input" placeholder="Country">
+                   class="reg-input" placeholder="Country">
           </div>
         </div>
       </div>
     </div>
 
-    {# Game Profile Section #}
-    <div class="glass rounded-xl p-6">
-      <h3 class="text-sm font-display font-semibold text-white mb-4">
-        <i data-lucide="gamepad-2" class="w-4 h-4 inline mr-1 text-dc-purple"></i> Game Profile
+    {# ── Game Profile Section ── #}
+    <div class="reg-glass-strong rounded-2xl p-6">
+      <h3 class="text-sm font-bold text-white mb-5 flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center bg-indigo-500/10">
+          <i data-lucide="gamepad-2" class="w-3.5 h-3.5 text-indigo-400"></i>
+        </div>
+        Game Profile
       </h3>
       <div class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs text-gray-400 mb-1.5">Game ID <span class="text-red-400">*</span></label>
+            <label class="reg-label block mb-1.5">Game ID <span class="text-red-400">*</span></label>
             <input type="text" name="game_id" value="{{ player_data.game_id|default:'' }}" required
-                   class="form-input" placeholder="Your {{ tournament.game.display_name }} ID">
+                   class="reg-input" placeholder="Your {{ tournament.game.display_name }} ID">
           </div>
           <div>
-            <label class="block text-xs text-gray-400 mb-1.5">Platform / Server</label>
+            <label class="reg-label block mb-1.5">Platform / Server</label>
             <input type="text" name="platform_server" value="{{ player_data.platform_server|default:'' }}"
-                   class="form-input" placeholder="e.g., Asia, SEA">
+                   class="reg-input" placeholder="e.g., Asia, SEA">
           </div>
         </div>
         <div>
-          <label class="block text-xs text-gray-400 mb-1.5">Rank</label>
+          <label class="reg-label block mb-1.5">Rank</label>
           <input type="text" name="rank" value="{{ player_data.rank|default:'' }}"
-                 class="form-input" placeholder="e.g., Diamond, Global Elite">
+                 class="reg-input" placeholder="e.g., Diamond, Global Elite">
         </div>
       </div>
     </div>
 
-    {# Contact Section #}
-    <div class="glass rounded-xl p-6">
-      <h3 class="text-sm font-display font-semibold text-white mb-4">
-        <i data-lucide="mail" class="w-4 h-4 inline mr-1 text-dc-gold"></i> Contact
+    {# ── Contact Section ── #}
+    <div class="reg-glass-strong rounded-2xl p-6">
+      <h3 class="text-sm font-bold text-white mb-5 flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center bg-amber-500/10">
+          <i data-lucide="mail" class="w-3.5 h-3.5 text-amber-400"></i>
+        </div>
+        Contact
       </h3>
       <div class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs text-gray-400 mb-1.5">Email</label>
+            <label class="reg-label block mb-1.5">Email</label>
             <input type="email" name="email" value="{{ player_data.email|default:'' }}"
-                   class="form-input" placeholder="your@email.com">
+                   class="reg-input" placeholder="your@email.com">
           </div>
           <div>
-            <label class="block text-xs text-gray-400 mb-1.5">Phone</label>
+            <label class="reg-label block mb-1.5">Phone</label>
             <input type="tel" name="phone" value="{{ player_data.phone|default:'' }}"
-                   class="form-input" placeholder="+880xxxxxxxxx">
+                   class="reg-input" placeholder="+880xxxxxxxxx">
           </div>
         </div>
         <div>
-          <label class="block text-xs text-gray-400 mb-1.5">Discord</label>
+          <label class="reg-label block mb-1.5">Discord</label>
           <input type="text" name="discord" value="{{ player_data.discord|default:'' }}"
-                 class="form-input" placeholder="username#0000">
+                 class="reg-input" placeholder="username#0000">
         </div>
       </div>
     </div>
 
-    {# Navigation #}
+    {# ── Navigation ── #}
     <div class="flex items-center justify-between pt-2">
-      <a href="{% url 'tournaments:detail' tournament.slug %}" class="text-sm text-gray-500 hover:text-white transition">
-        <i data-lucide="arrow-left" class="w-4 h-4 inline mr-1"></i> Cancel
+      <a href="{% url 'tournaments:detail' tournament.slug %}" class="btn-back">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Cancel
       </a>
-      <button type="submit" class="px-6 py-3 bg-dc-cyan text-black font-bold text-sm rounded-xl hover:bg-dc-cyan/90 transition-all">
-        Continue <i data-lucide="arrow-right" class="w-4 h-4 inline ml-1"></i>
+      <button type="submit" class="btn-primary">
+        Continue <i data-lucide="arrow-right" class="w-4 h-4"></i>
       </button>
     </div>
   </form>
-
-</div>
 
 {% endblock %}

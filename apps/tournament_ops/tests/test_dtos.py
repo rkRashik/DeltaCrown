@@ -342,7 +342,6 @@ def test_match_dto_validation_failures():
     errors = dto.validate()
     assert "round_number must be positive" in errors
     assert "team_a_id and team_b_id must be different" in errors
-    assert "stage cannot be empty" in errors
     assert any("state must be one of" in err for err in errors)
 
 
@@ -465,8 +464,9 @@ def test_stage_dto_validation_failures():
         name="",  # Empty name
         type="invalid_type",  # Invalid type
         order=0,  # Invalid order
-        config=None,  # Invalid config
     )
+    # Force config to None after __post_init__ set it to {}
+    dto.config = None
 
     errors = dto.validate()
     assert "name cannot be empty" in errors

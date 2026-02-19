@@ -1,0 +1,334 @@
+{% extends "tournaments/detailPages/_base_detail.html" %}
+{% load static humanize %}
+
+{% comment %}
+Tournament Detail — Completed Phase
+Statuses: completed, archived
+
+Features:
+- Champion showcase with celebration effect
+- Podium display (1st, 2nd, 3rd with prizes)
+- Final bracket view
+- Full results / standings table
+- Tournament stats summary
+- Share results
+{% endcomment %}
+
+{% block phase_css %}
+/* Completed Phase Specifics */
+@keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+.gold-shimmer {
+    background: linear-gradient(90deg, #facc15, #fef08a, #facc15, #eab308, #facc15);
+    background-size: 200% auto;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s linear infinite;
+}
+
+@keyframes confetti1 { 0% { transform: translateY(-100vh) rotate(0); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+@keyframes confetti2 { 0% { transform: translateY(-100vh) rotate(45deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(-540deg); opacity: 0; } }
+@keyframes confetti3 { 0% { transform: translateY(-100vh) rotate(90deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+.confetti-container { position: relative; overflow: hidden; }
+.confetti-piece {
+    position: absolute; width: 8px; height: 8px; top: -10px;
+    opacity: 0.6;
+}
+.confetti-piece:nth-child(1) { left: 10%; background: #facc15; animation: confetti1 4s ease-in infinite; animation-delay: 0s; }
+.confetti-piece:nth-child(2) { left: 25%; background: var(--game-color); animation: confetti2 3.5s ease-in infinite; animation-delay: 0.5s; }
+.confetti-piece:nth-child(3) { left: 40%; background: #ef4444; animation: confetti3 4.5s ease-in infinite; animation-delay: 1s; }
+.confetti-piece:nth-child(4) { left: 55%; background: #8b5cf6; animation: confetti1 3.8s ease-in infinite; animation-delay: 0.3s; }
+.confetti-piece:nth-child(5) { left: 70%; background: #10b981; animation: confetti2 4.2s ease-in infinite; animation-delay: 0.8s; }
+.confetti-piece:nth-child(6) { left: 85%; background: #f97316; animation: confetti3 3.6s ease-in infinite; animation-delay: 1.2s; }
+
+.trophy-glow {
+    filter: drop-shadow(0 0 20px rgba(250,204,21,0.4));
+}
+{% endblock %}
+
+{% block hero_extra %}
+<div class="flex items-center gap-3">
+    <div class="px-3 py-1.5 rounded bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+        <i data-lucide="check-circle-2" class="w-3 h-3"></i> Tournament Complete
+    </div>
+    {% if total_matches_played %}
+    <span class="text-xs text-gray-500">{{ total_matches_played }} matches played</span>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block phase_nav %}
+<!-- Completed Tournament Sub-Nav -->
+<div class="sticky top-[64px] z-40 backdrop-blur-xl border-b border-emerald-500/10" style="background: rgba(6,6,8,0.95);">
+    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between py-3">
+            <div class="flex items-center gap-6 overflow-x-auto no-scrollbar">
+                <button class="phase-tab active text-white text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-emerald-500 transition-all" onclick="scrollToSection('champion')">Champion</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('results')">Results</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('bracket')">Bracket</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('standings')">Standings</button>
+            </div>
+            <button onclick="navigator.clipboard.writeText(window.location.href).then(() => alert('Link copied!'))" class="text-xs text-gray-500 hover:text-white transition flex items-center gap-1.5">
+                <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Share
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block phase_content %}
+
+<!-- CHAMPION SHOWCASE -->
+<div id="section-champion" class="section-card p-6 sm:p-8 rounded-2xl relative overflow-hidden confetti-container fade-up">
+    <!-- Confetti pieces -->
+    <div class="confetti-piece rounded-full"></div>
+    <div class="confetti-piece rounded"></div>
+    <div class="confetti-piece rounded-full"></div>
+    <div class="confetti-piece rounded"></div>
+    <div class="confetti-piece rounded-full"></div>
+    <div class="confetti-piece rounded"></div>
+
+    <div class="relative z-10 text-center">
+        <div class="trophy-glow inline-block mb-4">
+            <span class="text-6xl">🏆</span>
+        </div>
+        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">Champion</p>
+
+        {% if podium %}
+            {% with podium.0 as winner %}
+            <h2 class="text-3xl sm:text-4xl font-display font-black gold-shimmer mb-3">
+                {% if winner.team %}{{ winner.team.name }}{% elif winner.player %}{{ winner.player.username }}{% else %}Champion{% endif %}
+            </h2>
+            {% if winner.prize_amount %}
+            <p class="text-xl font-display font-bold text-dc-gold text-glow-gold">
+                ৳{{ winner.prize_amount|floatformat:0|intcomma }}
+            </p>
+            {% endif %}
+            {% endwith %}
+        {% else %}
+            <!-- No formal results — show winner from matches -->
+            <h2 class="text-2xl sm:text-3xl font-display font-black text-white mb-2">Results Pending</h2>
+            <p class="text-sm text-gray-400">Final results will be published soon.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- PODIUM -->
+{% if podium|length > 1 %}
+<div class="grid grid-cols-3 gap-3 fade-up fade-up-1">
+    {% for result in podium %}
+    <div class="section-card p-5 rounded-xl text-center {% if forloop.counter == 1 %}border-yellow-500/20{% elif forloop.counter == 2 %}border-gray-400/15{% elif forloop.counter == 3 %}border-orange-500/15{% endif %}">
+        <div class="text-3xl mb-2">
+            {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% endif %}
+        </div>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">
+            {{ forloop.counter }}{% if forloop.counter == 1 %}st{% elif forloop.counter == 2 %}nd{% elif forloop.counter == 3 %}rd{% endif %} Place
+        </p>
+        <p class="text-base font-bold text-white truncate">
+            {% if result.team %}{{ result.team.name }}{% elif result.player %}{{ result.player.username }}{% else %}—{% endif %}
+        </p>
+        {% if result.prize_amount %}
+        <p class="text-sm font-bold {% if forloop.counter == 1 %}text-yellow-400{% elif forloop.counter == 2 %}text-gray-300{% else %}text-orange-400{% endif %} mt-1">
+            ৳{{ result.prize_amount|floatformat:0|intcomma }}
+        </p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- TOURNAMENT STATS -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 fade-up fade-up-2">
+    <div class="glass p-4 rounded-xl text-center">
+        <i data-lucide="swords" class="w-5 h-5 text-gray-500 mx-auto mb-2"></i>
+        <p class="text-2xl font-display font-bold text-white">{{ total_matches_played|default:"0" }}</p>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Matches</p>
+    </div>
+    <div class="glass p-4 rounded-xl text-center">
+        <i data-lucide="users" class="w-5 h-5 text-gray-500 mx-auto mb-2"></i>
+        <p class="text-2xl font-display font-bold text-white">{{ participants_total|default:slots_filled }}</p>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Participants</p>
+    </div>
+    <div class="glass p-4 rounded-xl text-center">
+        <i data-lucide="trophy" class="w-5 h-5 text-dc-gold mx-auto mb-2"></i>
+        <p class="text-2xl font-display font-bold text-dc-gold text-glow-gold">
+            {% if tournament.prize_pool %}৳{{ tournament.prize_pool|floatformat:0|intcomma }}{% else %}—{% endif %}
+        </p>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Prize Pool</p>
+    </div>
+    <div class="glass p-4 rounded-xl text-center">
+        <i data-lucide="calendar-check" class="w-5 h-5 text-gray-500 mx-auto mb-2"></i>
+        <p class="text-sm font-display font-bold text-white">{{ tournament.tournament_end|date:"M j" }}</p>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Ended</p>
+    </div>
+</div>
+
+<!-- ALL MATCH RESULTS -->
+<div id="section-results" class="section-card p-6 sm:p-8 rounded-2xl fade-up fade-up-3">
+    <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="list" class="w-5 h-5 game-accent"></i>
+        <h3 class="text-lg font-display font-bold text-white">Match Results</h3>
+    </div>
+
+    {% if matches %}
+    <div class="space-y-2">
+        {% for m in matches %}
+        <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <div class="flex items-center gap-2 min-w-0 flex-1">
+                        {% if m.team1_logo_url %}
+                        <img src="{{ m.team1_logo_url }}" alt="" class="w-7 h-7 rounded object-cover border border-white/10">
+                        {% endif %}
+                        <span class="text-xs font-bold {% if m.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate">{{ m.team1_name }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <span class="text-lg font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %}">{{ m.score1|default:"0" }}</span>
+                        <span class="text-xs text-gray-700">-</span>
+                        <span class="text-lg font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %}">{{ m.score2|default:"0" }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 min-w-0 flex-1 justify-end">
+                        <span class="text-xs font-bold {% if m.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate text-right">{{ m.team2_name }}</span>
+                        {% if m.team2_logo_url %}
+                        <img src="{{ m.team2_logo_url }}" alt="" class="w-7 h-7 rounded object-cover border border-white/10">
+                        {% endif %}
+                    </div>
+                </div>
+                <span class="text-[10px] text-gray-600 ml-4 flex-shrink-0">{{ m.stage_label }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-500 text-center py-4">No match results available.</p>
+    {% endif %}
+</div>
+
+<!-- FINAL BRACKET -->
+<div id="section-bracket" class="section-card p-6 sm:p-8 rounded-2xl fade-up fade-up-4">
+    <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="git-branch" class="w-5 h-5 game-accent"></i>
+        <h3 class="text-lg font-display font-bold text-white">Final Bracket</h3>
+        <a href="/tournaments/{{ tournament.slug }}/bracket/" class="ml-auto text-[10px] font-bold game-accent uppercase tracking-wider hover:text-white transition">
+            Full View →
+        </a>
+    </div>
+
+    {% if matches %}
+    <div class="overflow-x-auto no-scrollbar">
+        <div class="min-w-[600px] flex gap-8">
+            {% regroup matches|dictsort:"round_number" by round_number as rounds %}
+            {% for round in rounds %}
+            <div class="flex-1 space-y-3">
+                <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 text-center">
+                    {% with round.grouper as rn %}
+                    {% if rn == 1 %}Final{% elif rn == 2 %}Semi-Finals{% elif rn == 3 %}Quarter-Finals{% else %}Round {{ rn }}{% endif %}
+                    {% endwith %}
+                </h4>
+                {% for m in round.list %}
+                <div class="p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-bold {% if m.team1_is_winner %}text-emerald-400{% else %}text-gray-500{% endif %} truncate flex-1">{{ m.team1_name|truncatechars:12 }}</span>
+                        <span class="font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-right">{{ m.score1|default:"0" }}</span>
+                    </div>
+                    <div class="w-full h-px bg-white/5"></div>
+                    <div class="flex items-center justify-between text-xs mt-1.5">
+                        <span class="font-bold {% if m.team2_is_winner %}text-emerald-400{% else %}text-gray-500{% endif %} truncate flex-1">{{ m.team2_name|truncatechars:12 }}</span>
+                        <span class="font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-right">{{ m.score2|default:"0" }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-500 text-center py-4">Bracket data not available.</p>
+    {% endif %}
+</div>
+
+<!-- STANDINGS TABLE -->
+{% if standings_primary %}
+<div id="section-standings" class="section-card p-6 sm:p-8 rounded-2xl fade-up">
+    <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="bar-chart-3" class="w-5 h-5 game-accent"></i>
+        <h3 class="text-lg font-display font-bold text-white">Final Standings</h3>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+            <thead>
+                <tr class="border-b border-white/10 text-gray-500 uppercase tracking-widest">
+                    <th class="py-2 px-2 text-left">#</th>
+                    <th class="py-2 px-2 text-left">Name</th>
+                    <th class="py-2 px-2 text-center">MP</th>
+                    <th class="py-2 px-2 text-center">W</th>
+                    <th class="py-2 px-2 text-center">L</th>
+                    <th class="py-2 px-2 text-center">Pts</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in standings_primary %}
+                <tr class="border-b border-white/[0.04] hover:bg-white/[0.02] transition {% if row.rank <= 3 %}{% if row.rank == 1 %}text-yellow-400{% elif row.rank == 2 %}text-gray-300{% else %}text-orange-400{% endif %}{% else %}text-white{% endif %}">
+                    <td class="py-2.5 px-2 font-bold">{{ row.rank }}</td>
+                    <td class="py-2.5 px-2 font-bold">{{ row.name }}</td>
+                    <td class="py-2.5 px-2 text-center text-gray-400">{{ row.matches_played }}</td>
+                    <td class="py-2.5 px-2 text-center text-emerald-400">{{ row.wins }}</td>
+                    <td class="py-2.5 px-2 text-center text-red-400">{{ row.losses }}</td>
+                    <td class="py-2.5 px-2 text-center font-bold">{{ row.points }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block sidebar_cta %}
+<!-- Completed Phase CTA -->
+<div class="w-full py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold uppercase tracking-[0.1em] rounded-xl text-center text-xs flex items-center justify-center gap-2">
+    <i data-lucide="check-circle-2" class="w-4 h-4"></i> Completed
+</div>
+{% endblock %}
+
+{% block sidebar_extra %}
+<!-- Tournament Summary -->
+<div class="glass p-4 rounded-2xl">
+    <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1">
+        <i data-lucide="clipboard-list" class="w-3 h-3"></i> Summary
+    </h4>
+    <div class="space-y-2 text-xs">
+        <div class="flex justify-between"><span class="text-gray-500">Total Matches</span><span class="text-white font-bold">{{ total_matches_played|default:"0" }}</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Participants</span><span class="text-white font-bold">{{ participants_total|default:slots_filled }}</span></div>
+        {% if tournament.tournament_start %}
+        <div class="flex justify-between"><span class="text-gray-500">Started</span><span class="text-white font-semibold">{{ tournament.tournament_start|date:"M j" }}</span></div>
+        {% endif %}
+        {% if tournament.tournament_end %}
+        <div class="flex justify-between"><span class="text-gray-500">Ended</span><span class="text-white font-semibold">{{ tournament.tournament_end|date:"M j" }}</span></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block phase_js %}
+<script>
+    function scrollToSection(id) {
+        const el = document.getElementById('section-' + id);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            document.querySelectorAll('.phase-tab').forEach(t => {
+                t.classList.remove('active', 'text-white');
+                t.classList.add('text-gray-500');
+                t.style.borderColor = 'transparent';
+            });
+            event.target.classList.add('active', 'text-white');
+            event.target.classList.remove('text-gray-500');
+            event.target.style.borderColor = '#10b981';
+        }
+    }
+</script>
+{% endblock %}

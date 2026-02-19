@@ -54,6 +54,139 @@ DESIGN PHILOSOPHY:
     </div>
     {% endif %}
 
+    {# ── Team Authority & Permissions Panel ── #}
+    <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
+        <div class="flex items-center gap-2 mb-4">
+            <div class="h-8 w-8 rounded-xl bg-amber-500/15 grid place-items-center shrink-0">
+                <i data-lucide="crown" class="w-4 h-4 text-amber-400"></i>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-white">Team Authority</h3>
+                <p class="text-xs text-white/45">Ownership, roles & who can register for tournaments</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+            {# Team Owner #}
+            <div class="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-amber-400 text-lg">👑</span>
+                    <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Team Owner</span>
+                </div>
+                {% for m in members %}
+                    {% if m.role == 'OWNER' %}
+                    <div class="flex items-center gap-2">
+                        <div class="h-6 w-6 rounded-full bg-white/10 grid place-items-center text-xs font-bold text-white/60 overflow-hidden shrink-0">
+                            {% if m.user.profile.avatar %}
+                                <img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="">
+                            {% else %}
+                                {{ m.user.username|slice:":1"|upper }}
+                            {% endif %}
+                        </div>
+                        <span class="text-sm font-medium text-white/80 truncate">{{ m.display_name|default:m.user.username }}</span>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+                {% if not members %}
+                    <span class="text-xs text-white/30">{{ team.created_by.username }}</span>
+                {% endif %}
+            </div>
+
+            {# Org CEO (if org team) #}
+            {% if org_context %}
+            <div class="rounded-xl border border-purple-500/20 bg-purple-500/5 p-3">
+                <div class="flex items-center gap-2 mb-2">
+                    <i data-lucide="building-2" class="w-4 h-4 text-purple-400"></i>
+                    <span class="text-xs font-bold text-purple-400 uppercase tracking-wider">Org CEO</span>
+                </div>
+                {% for m in members %}
+                    {% if m.user.id == org_context.ceo_id %}
+                    <div class="flex items-center gap-2">
+                        <div class="h-6 w-6 rounded-full bg-white/10 grid place-items-center text-xs font-bold text-white/60 overflow-hidden shrink-0">
+                            {% if m.user.profile.avatar %}
+                                <img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="">
+                            {% else %}
+                                {{ m.user.username|slice:":1"|upper }}
+                            {% endif %}
+                        </div>
+                        <span class="text-sm font-medium text-white/80 truncate">{{ m.display_name|default:m.user.username }}</span>
+                    </div>
+                    {% endif %}
+                {% empty %}
+                    <span class="text-xs text-white/30">Org: {{ org_context.name }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {# Tournament Registration Auth #}
+            <div class="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3">
+                <div class="flex items-center gap-2 mb-2">
+                    <i data-lucide="trophy" class="w-4 h-4 text-cyan-400"></i>
+                    <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider">Can Register</span>
+                </div>
+                <div class="space-y-1">
+                    {% for m in members %}
+                        {% if m.role == 'OWNER' or m.role == 'MANAGER' %}
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0"></span>
+                            <span class="text-xs text-white/70 truncate">{{ m.display_name|default:m.user.username }}</span>
+                            <span class="text-[9px] text-white/30">({{ m.get_role_display }})</span>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                    {% if is_org_ceo %}
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0"></span>
+                        <span class="text-xs text-white/70">Org CEO</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# ── Role Allocation Overview ── #}
+        <div class="border-t border-white/[0.06] pt-4">
+            <p class="text-xs font-bold text-white/45 uppercase tracking-wider mb-3">Role Allocation <span class="text-[9px] font-normal text-white/25 ml-1">(unique roles: 1 per team)</span></p>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {% with manager_count=0 coach_count=0 analyst_count=0 scout_count=0 %}
+
+                <div class="rounded-lg border border-white/8 bg-white/[0.03] p-2.5 text-center">
+                    <p class="text-xs text-white/50 mb-1">Manager</p>
+                    {% for m in members %}{% if m.role == 'MANAGER' %}
+                    <p class="text-sm font-medium text-indigo-400 truncate">{{ m.display_name|default:m.user.username }}</p>
+                    {% endif %}{% endfor %}
+                    <p class="text-xs text-white/20 empty-slot" style="display:none;">Vacant</p>
+                </div>
+
+                <div class="rounded-lg border border-white/8 bg-white/[0.03] p-2.5 text-center">
+                    <p class="text-xs text-white/50 mb-1">Coach</p>
+                    {% for m in members %}{% if m.role == 'COACH' %}
+                    <p class="text-sm font-medium text-purple-400 truncate">{{ m.display_name|default:m.user.username }}</p>
+                    {% endif %}{% endfor %}
+                    <p class="text-xs text-white/20 empty-slot" style="display:none;">Vacant</p>
+                </div>
+
+                <div class="rounded-lg border border-white/8 bg-white/[0.03] p-2.5 text-center">
+                    <p class="text-xs text-white/50 mb-1">Analyst</p>
+                    {% for m in members %}{% if m.role == 'ANALYST' %}
+                    <p class="text-sm font-medium text-teal-400 truncate">{{ m.display_name|default:m.user.username }}</p>
+                    {% endif %}{% endfor %}
+                    <p class="text-xs text-white/20 empty-slot" style="display:none;">Vacant</p>
+                </div>
+
+                <div class="rounded-lg border border-white/8 bg-white/[0.03] p-2.5 text-center">
+                    <p class="text-xs text-white/50 mb-1">Scout</p>
+                    {% for m in members %}{% if m.role == 'SCOUT' %}
+                    <p class="text-sm font-medium text-orange-400 truncate">{{ m.display_name|default:m.user.username }}</p>
+                    {% endif %}{% endfor %}
+                    <p class="text-xs text-white/20 empty-slot" style="display:none;">Vacant</p>
+                </div>
+
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+
     {# ── Roster Summary Header ── #}
     <div class="rounded-3xl border border-line bg-card shadow-soft p-5 lg:p-6">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
@@ -551,6 +684,10 @@ DESIGN PHILOSOPHY:
                                 {% endif %}
                                 {% endfor %}
                             </select>
+                            <div id="role-constraint-warning" class="hidden mt-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 flex items-start gap-2">
+                                <svg class="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                                <span id="role-constraint-text"></span>
+                            </div>
                         </div>
                         <div>
                             <label for="role-roster-slot" class="block text-[11px] text-white/50 mb-1.5 font-medium">Roster Slot</label>
@@ -658,7 +795,7 @@ DESIGN PHILOSOPHY:
                 </div>
 
                 {# ── Section 4: Advanced Permissions ──── #}
-                <div id="role-permissions-section" class="hidden">
+                <div id="role-permissions-section">
                     <div class="border-t border-white/[0.06] mb-5"></div>
                     <button type="button"
                             onclick="const g=document.getElementById('role-perm-grid');g.classList.toggle('hidden');this.querySelector('.perm-chevron')?.classList.toggle('rotate-90')"
@@ -672,7 +809,7 @@ DESIGN PHILOSOPHY:
                     </button>
 
                     <div id="role-perm-grid" class="hidden rounded-xl bg-white/[0.02] border border-white/[0.06] p-4 space-y-2">
-                        <p class="text-[10px] text-white/35 mb-3">Grant specific permissions beyond role defaults.</p>
+                        <p class="text-xs text-white/45 mb-3">Grant specific permissions beyond role defaults. Checked items are granted beyond this role's defaults.</p>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                             <label class="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/[0.04] transition cursor-pointer group">
                                 <input type="checkbox" data-perm="register_tournaments" class="perm-cb w-4 h-4 rounded border-white/20 accent-teal-400 cursor-pointer">
@@ -727,7 +864,7 @@ DESIGN PHILOSOPHY:
                                 <span class="text-[11px] text-white/60 group-hover:text-white/80 transition">Manage Discord</span>
                             </label>
                         </div>
-                        <p class="text-[9px] text-white/25 mt-3 pt-2 border-t border-white/[0.04]">Checked items are granted beyond role defaults. Unchecked uses defaults.</p>
+                        <p class="text-xs text-white/35 mt-3 pt-2 border-t border-white/[0.04]">Unchecked permissions fall back to the role's default access level.</p>
                     </div>
                 </div>
 
@@ -1180,6 +1317,51 @@ DESIGN PHILOSOPHY:
         el = document.getElementById('subs-empty'); if (el) el.style.display = subs === 0 ? '' : 'none';
         el = document.getElementById('staff-empty'); if (el) el.style.display = staff === 0 ? '' : 'none';
     }
-    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', updateCounts) : updateCounts();
+
+    /* Show "Vacant" for empty role allocation slots */
+    function updateRoleSlots() {
+        document.querySelectorAll('.empty-slot').forEach(function(el) {
+            var box = el.closest('.rounded-lg');
+            if (box) {
+                var filled = box.querySelector('.font-medium');
+                el.style.display = filled ? 'none' : '';
+            }
+        });
+    }
+
+    /* Build map of unique role holders for constraint validation */
+    var uniqueRoles = {};
+    {% for m in members %}
+    {% if m.role == 'MANAGER' or m.role == 'COACH' or m.role == 'ANALYST' or m.role == 'SCOUT' %}
+    uniqueRoles['{{ m.role }}'] = { id: {{ m.id }}, name: '{{ m.display_name|default:m.user.username|escapejs }}' };
+    {% endif %}
+    {% endfor %}
+
+    /* Role constraint checker — one MANAGER, one COACH, one ANALYST per team */
+    var roleSelect = document.getElementById('role-select');
+    var constraintWarn = document.getElementById('role-constraint-warning');
+    var constraintText = document.getElementById('role-constraint-text');
+    if (roleSelect && constraintWarn) {
+        roleSelect.addEventListener('change', function() {
+            var val = this.value;
+            var membershipId = document.getElementById('role-membership-id')?.value;
+            if (['MANAGER', 'COACH', 'ANALYST', 'SCOUT'].indexOf(val) !== -1 && uniqueRoles[val]) {
+                /* Check if someone ELSE already has this role */
+                if (String(uniqueRoles[val].id) !== String(membershipId)) {
+                    constraintText.textContent = uniqueRoles[val].name + ' already holds this role. Only one ' + val.toLowerCase() + ' is allowed per team. Saving will replace them.';
+                    constraintWarn.classList.remove('hidden');
+                    return;
+                }
+            }
+            constraintWarn.classList.add('hidden');
+        });
+    }
+
+    function init() {
+        updateCounts();
+        updateRoleSlots();
+    }
+
+    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init) : init();
 })();
 </script>

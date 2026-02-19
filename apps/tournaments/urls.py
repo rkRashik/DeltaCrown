@@ -115,6 +115,10 @@ from apps.tournaments.views.leaderboard import (
     TournamentLeaderboardView,
 )
 from apps.tournaments.views import checkin
+from apps.tournaments.views.match_room import (
+    MatchRoomView,
+    MatchCheckInView,
+)
 from apps.tournaments.views.result_submission import (
     SubmitResultView,
     report_dispute,
@@ -305,6 +309,9 @@ urlpatterns = [
     path('<slug:slug>/bracket/', TournamentBracketView.as_view(), name='bracket'),
     # FE-T-009: Match Watch / Match Detail Page
     path('<slug:slug>/matches/<int:match_id>/', MatchDetailView.as_view(), name='match_detail'),
+    # Match Room / Battlefield (Participant-only interactive room)
+    path('<slug:slug>/matches/<int:match_id>/room/', MatchRoomView.as_view(), name='match_room'),
+    path('<slug:slug>/matches/<int:match_id>/room/check-in/', MatchCheckInView.as_view(), name='match_room_checkin'),
     # FE-T-018: Tournament Results Page
     path('<slug:slug>/results/', TournamentResultsView.as_view(), name='results'),
     

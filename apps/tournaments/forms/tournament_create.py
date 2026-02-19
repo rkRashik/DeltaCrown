@@ -53,15 +53,23 @@ class TournamentCreateForm(forms.ModelForm):
             'slug',
             'game',
             'format',
+            'participation_type',
+            'platform',
+            'mode',
             'tournament_start',
             'registration_start',
             'registration_end',
             'max_participants',
+            'min_participants',
             'entry_fee_amount',
             'prize_pool',
             'is_official',
+            'is_featured',
             'description',
             'rules_text',
+            'enable_check_in',
+            'enable_certificates',
+            'enable_live_updates',
         ]
         widgets = {
             'tournament_start': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-input'}),
@@ -71,7 +79,8 @@ class TournamentCreateForm(forms.ModelForm):
             'rules_text': forms.Textarea(attrs={'rows': 6, 'class': 'form-textarea'}),
             'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'DeltaCrown Valorant Championship 2025'}),
             'slug': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'valorant-championship-2025'}),
-            'max_participants': forms.NumberInput(attrs={'class': 'form-input', 'min': 4, 'max': 128}),
+            'max_participants': forms.NumberInput(attrs={'class': 'form-input', 'min': 2, 'max': 256}),
+            'min_participants': forms.NumberInput(attrs={'class': 'form-input', 'min': 2, 'max': 256}),
             'entry_fee_amount': forms.NumberInput(attrs={'class': 'form-input', 'min': 0, 'step': '0.01'}),
             'prize_pool': forms.NumberInput(attrs={'class': 'form-input', 'min': 0, 'step': '0.01'}),
         }
@@ -103,9 +112,45 @@ class TournamentCreateForm(forms.ModelForm):
             attrs={'class': 'form-select'}
         )
         
-        # Set all fields as required except description and rules_text
+        # Participation type
+        self.fields['participation_type'].widget = forms.Select(
+            choices=[
+                ('team', 'Team'),
+                ('solo', 'Solo / Individual'),
+            ],
+            attrs={'class': 'form-select'}
+        )
+        
+        # Platform
+        self.fields['platform'].widget = forms.Select(
+            choices=[
+                ('pc', 'PC'),
+                ('mobile', 'Mobile'),
+                ('ps5', 'PlayStation 5'),
+                ('xbox', 'Xbox Series X/S'),
+                ('switch', 'Nintendo Switch'),
+            ],
+            attrs={'class': 'form-select'}
+        )
+        
+        # Mode
+        self.fields['mode'].widget = forms.Select(
+            choices=[
+                ('online', 'Online'),
+                ('lan', 'LAN'),
+                ('hybrid', 'Hybrid (Online + LAN Finals)'),
+            ],
+            attrs={'class': 'form-select'}
+        )
+        
+        # Set all fields as required except optional ones
+        optional_fields = [
+            'description', 'rules_text', 'min_participants',
+            'enable_check_in', 'enable_certificates', 'enable_live_updates',
+            'is_featured', 'use_default_form', 'use_custom_form', 'custom_form_template',
+        ]
         for field_name in self.fields:
-            if field_name not in ['description', 'rules_text']:
+            if field_name not in optional_fields:
                 self.fields[field_name].required = True
     
     def clean_slug(self):

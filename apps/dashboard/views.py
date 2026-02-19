@@ -255,9 +255,11 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
     # ── 6. TOURNAMENTS ───────────────────────────────────────────────────
     active_tournaments = []
     tournament_count = 0
+    next_match_info = None  # User's upcoming match with room link
     try:
         Registration = _safe_model("tournaments.Registration")
         Tournament = _safe_model("tournaments.Tournament")
+        Match = _safe_model("tournaments.Match")
         if Registration and Tournament:
             regs = (
                 Registration.objects.filter(
@@ -276,13 +278,39 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
                         "status": getattr(t, "status", ""),
                         "game_name": game_map.get(getattr(t, "game_id", None), ""),
                         "scheduled_at": getattr(t, "scheduled_at", None),
+                        "tournament_start": getattr(t, "tournament_start", None),
                         "prize_pool": getattr(t, "prize_pool", None),
                         "format": getattr(t, "format", ""),
                         "reg_status": getattr(reg, "status", ""),
+                        "is_live": getattr(t, "status", "") == "live",
                     })
             tournament_count = Registration.objects.filter(
                 Q(team__in=[t["id"] for t in my_teams]) | Q(user=user)
             ).values("tournament").distinct().count()
+
+        # Find user's next upcoming match across all tournaments
+        if Match:
+            upcoming_states = ["scheduled", "check_in", "ready", "live"]
+            user_team_ids = [t["id"] for t in my_teams]
+            q_participant = Q(participant1_id=user.id) | Q(participant2_id=user.id)
+            if user_team_ids:
+                q_participant |= Q(participant1_id__in=user_team_ids) | Q(participant2_id__in=user_team_ids)
+            nm = (
+                Match.objects.filter(q_participant, state__in=upcoming_states, is_deleted=False)
+                .select_related("tournament")
+                .order_by("scheduled_time", "round_number", "match_number")
+                .first()
+            )
+            if nm:
+                next_match_info = {
+                    "match_id": nm.id,
+                    "tournament_name": nm.tournament.name if nm.tournament else "",
+                    "tournament_slug": nm.tournament.slug if nm.tournament else "",
+                    "opponent_name": nm.participant2_name if nm.participant1_id == user.id or nm.participant1_id in user_team_ids else nm.participant1_name,
+                    "scheduled_time": nm.scheduled_time,
+                    "state": nm.state,
+                    "is_live": nm.state == "live",
+                }
     except Exception:
         logger.debug("Dashboard: tournaments query failed", exc_info=True)
 
@@ -448,6 +476,7 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
         # Tournaments
         "active_tournaments": active_tournaments,
         "tournament_count": tournament_count,
+        "next_match_info": next_match_info,
         # Leaderboard
         "leaderboard_data": leaderboard_data,
         # Economy

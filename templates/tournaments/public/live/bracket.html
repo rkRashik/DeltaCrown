@@ -12,16 +12,50 @@
 
 {% block tournament_css %}
 <style>
-  .bracket-connector { position: relative; }
-  .bracket-connector::after {
+  /* Bracket connector lines */
+  .bracket-round { position: relative; }
+  .bracket-match {
+    position: relative;
+    transition: all 0.3s ease;
+  }
+  .bracket-match:hover { transform: translateX(4px); }
+
+  /* Horizontal connector to next round */
+  .bracket-match::after {
     content: '';
     position: absolute;
     top: 50%;
-    right: -1rem;
-    width: 1rem;
+    right: -2rem;
+    width: 2rem;
     height: 2px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  }
+  /* Last round has no connector */
+  .bracket-round:last-child .bracket-match::after { display: none; }
+
+  /* Vertical connector between pairs */
+  .bracket-pair {
+    position: relative;
+  }
+  .bracket-pair::after {
+    content: '';
+    position: absolute;
+    top: 25%;
+    right: -2rem;
+    width: 2px;
+    height: 50%;
     background: rgba(255,255,255,0.06);
   }
+  .bracket-round:last-child .bracket-pair::after { display: none; }
+
+  /* Live match pulse border */
+  .bracket-live {
+    border-color: rgba(239,68,68,0.3) !important;
+    box-shadow: 0 0 12px rgba(239,68,68,0.1);
+  }
+
+  /* Winner highlight */
+  .bracket-winner { background: rgba(250,204,21,0.04); }
 </style>
 {% endblock %}
 
@@ -69,8 +103,8 @@
             <div class="space-y-4">
               {% for match in round.matches %}
                 <a href="{% url 'tournaments:match_detail' tournament.slug match.id %}"
-                   class="block glass rounded-xl overflow-hidden hover:bg-white/[0.04] transition group bracket-connector
-                   {% if match.state == 'live' %}neon-border-cyan{% elif match.state == 'completed' %}border border-dc-border{% else %}border border-dc-border/50{% endif %}">
+                   class="block glass rounded-xl overflow-hidden hover:bg-white/[0.04] transition group bracket-match
+                   {% if match.state == 'live' %}bracket-live{% elif match.state == 'completed' %}border border-dc-border{% else %}border border-dc-border/50{% endif %}">
 
                   {# Match header #}
                   <div class="px-3 py-1.5 bg-white/[0.02] border-b border-dc-border flex items-center justify-between">
@@ -84,38 +118,34 @@
 
                   {# Participant 1 #}
                   <div class="px-4 py-2.5 flex items-center justify-between border-b border-dc-border/50
-                    {% if match.winner_id and match.participant1_id == match.winner_id %}bg-dc-gold/[0.04]{% endif %}">
+                    {% if match.winner_id and match.participant1_id == match.winner_id %}bracket-winner{% endif %}">
                     <div class="flex items-center gap-2 min-w-0">
                       {% if match.participant1_id == match.winner_id %}
                         <i data-lucide="trophy" class="w-3 h-3 text-dc-gold flex-shrink-0"></i>
                       {% endif %}
                       <span class="text-sm text-white truncate">
-                        {% if match.participant1 %}{{ match.participant1.username }}{% else %}<span class="text-gray-600">TBD</span>{% endif %}
+                        {{ match.participant1_name|default:"TBD" }}
                       </span>
                     </div>
-                    {% if match.participant1_score is not None %}
-                      <span class="text-sm font-mono {% if match.participant1_id == match.winner_id %}text-dc-gold{% else %}text-gray-400{% endif %}">
-                        {{ match.participant1_score }}
-                      </span>
-                    {% endif %}
+                    <span class="text-sm font-mono {% if match.participant1_id == match.winner_id %}text-dc-gold font-bold{% else %}text-gray-400{% endif %}">
+                      {{ match.participant1_score|default:"0" }}
+                    </span>
                   </div>
 
                   {# Participant 2 #}
                   <div class="px-4 py-2.5 flex items-center justify-between
-                    {% if match.winner_id and match.participant2_id == match.winner_id %}bg-dc-gold/[0.04]{% endif %}">
+                    {% if match.winner_id and match.participant2_id == match.winner_id %}bracket-winner{% endif %}">
                     <div class="flex items-center gap-2 min-w-0">
                       {% if match.participant2_id == match.winner_id %}
                         <i data-lucide="trophy" class="w-3 h-3 text-dc-gold flex-shrink-0"></i>
                       {% endif %}
                       <span class="text-sm text-white truncate">
-                        {% if match.participant2 %}{{ match.participant2.username }}{% else %}<span class="text-gray-600">TBD</span>{% endif %}
+                        {{ match.participant2_name|default:"TBD" }}
                       </span>
                     </div>
-                    {% if match.participant2_score is not None %}
-                      <span class="text-sm font-mono {% if match.participant2_id == match.winner_id %}text-dc-gold{% else %}text-gray-400{% endif %}">
-                        {{ match.participant2_score }}
-                      </span>
-                    {% endif %}
+                    <span class="text-sm font-mono {% if match.participant2_id == match.winner_id %}text-dc-gold font-bold{% else %}text-gray-400{% endif %}">
+                      {{ match.participant2_score|default:"0" }}
+                    </span>
                   </div>
                 </a>
               {% endfor %}

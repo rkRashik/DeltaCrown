@@ -1,0 +1,577 @@
+{% load static humanize tournament_tags %}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>{{ tournament.name }} — Manage | DeltaCrown</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Space Grotesk"', "sans-serif"],
+            ui: ['"Plus Jakarta Sans"', "sans-serif"],
+            mono: ['"JetBrains Mono"', "monospace"],
+          },
+          colors: {
+            delta: {
+              base: "#000000",
+              surface: "#0A0A0F",
+              panel: "#08080C",
+              gold: "#FFD700",
+              violet: "#6C00FF",
+              electric: "#00E5FF",
+              danger: "#FF3131",
+              success: "#00FF41",
+            },
+            dc: {
+              bg: "#000000",
+              surface: "#0A0A0F",
+              border: "rgba(255,255,255,0.08)",
+              cyan: "#06b6d4",
+              purple: "#8b5cf6",
+              gold: "#facc15",
+            },
+          },
+          boxShadow: {
+            "glass": "0 20px 40px rgba(0,0,0,0.6)",
+            "glass-strong": "0 40px 90px rgba(0,0,0,0.7)",
+            "neon-cyan": "0 0 30px rgba(6,182,212,0.15)",
+            "neon-purple": "0 0 30px rgba(139,92,246,0.15)",
+          },
+          animation: {
+            shimmer: "shimmer 2.2s linear infinite",
+            float: "float 6s ease-in-out infinite",
+          },
+          keyframes: {
+            shimmer: {
+              "0%": { transform: "translateX(-120%) skewX(-12deg)" },
+              "100%": { transform: "translateX(240%) skewX(-12deg)" },
+            },
+            float: {
+              "0%, 100%": { transform: "translateY(0)" },
+              "50%": { transform: "translateY(-6px)" },
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    :root {
+      --glass-bg: rgba(10, 10, 15, 0.6);
+      --glass-bg-strong: rgba(10, 10, 15, 0.85);
+      --glass-brd: rgba(255, 255, 255, 0.12);
+      --ring-soft: rgba(255, 255, 255, 0.10);
+      --accent: #06b6d4;
+      --accent-dim: rgba(6, 182, 212, 0.14);
+      --accent-glow: rgba(6, 182, 212, 0.26);
+    }
+
+    html, body { height: 100%; }
+    body {
+      background: #000;
+      color: #E8ECF1;
+      overflow-x: hidden;
+      font-family: "Plus Jakarta Sans", sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Liquid Glass System ── */
+    .liquid-glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      border: 1px solid var(--glass-brd);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+    .liquid-glass-strong {
+      background: var(--glass-bg-strong);
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
+      border: 1px solid var(--glass-brd);
+      box-shadow: 0 40px 90px rgba(0, 0, 0, 0.7);
+    }
+    .liquid-trace {
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .liquid-trace:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 30px var(--accent-glow);
+      transform: translateY(-2px);
+    }
+
+    /* ── Grain Overlay ── */
+    .grain-overlay::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* ── Tab Navigation ── */
+    .manage-tab {
+      padding: 0.75rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.45);
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+    }
+    .manage-tab:hover { color: rgba(255, 255, 255, 0.85); }
+    .manage-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .manage-tab .tab-badge {
+      font-size: 0.6875rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    /* ── Status Dots ── */
+    .status-dot { width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; }
+    .status-dot.live { background: #ef4444; animation: pulse 2s infinite; }
+    .status-dot.open { background: #22c55e; }
+    .status-dot.draft { background: #6b7280; }
+    .status-dot.closed { background: #f59e0b; }
+    .status-dot.completed { background: #3b82f6; }
+    .status-dot.cancelled { background: #ef4444; }
+
+    /* ── Form Controls ── */
+    .form-input,
+    .form-textarea,
+    .form-select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: #0A0A0F;
+      border: 1px solid var(--ring-soft);
+      border-radius: 0.75rem;
+      font-size: 0.9375rem;
+      color: #fff;
+      transition: border-color 0.2s ease;
+    }
+    .form-input::placeholder,
+    .form-textarea::placeholder { color: rgba(255,255,255,0.3); }
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+      outline: none;
+      border-color: rgba(6, 182, 212, 0.4);
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.08);
+    }
+    .form-select { appearance: none; }
+
+    /* ── Data Table ── */
+    .data-table { width: 100%; }
+    .data-table thead th {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.45);
+      padding: 0.875rem 1.25rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .data-table tbody td {
+      padding: 0.875rem 1.25rem;
+      font-size: 0.9375rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.8);
+    }
+    .data-table tbody tr { transition: background 0.15s ease; }
+    .data-table tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+
+    /* ── Custom Scrollbar ── */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* ── Metric Card ── */
+    .metric-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px) saturate(130%);
+      -webkit-backdrop-filter: blur(16px) saturate(130%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .metric-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      padding: 0.625rem 1.5rem;
+      background: var(--accent);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.875rem;
+      border-radius: 0.75rem;
+      transition: opacity 0.2s ease;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary {
+      padding: 0.625rem 1.5rem;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.7);
+      font-weight: 600;
+      font-size: 0.875rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255,255,255,0.10);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.10); color: #fff; }
+    .btn-danger {
+      padding: 0.625rem 1.5rem;
+      background: rgba(239,68,68,0.12);
+      color: #f87171;
+      font-weight: 700;
+      font-size: 0.875rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(239,68,68,0.25);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+    .btn-danger:hover { background: rgba(239,68,68,0.22); }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.1875rem 0.625rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+    }
+    .badge-green { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .badge-yellow { background: rgba(250,204,21,0.15); color: #facc15; }
+    .badge-red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .badge-blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .badge-purple { background: rgba(139,92,246,0.15); color: #a78bfa; }
+    .badge-gray { background: rgba(107,114,128,0.15); color: #9ca3af; }
+    .badge-cyan { background: rgba(6,182,212,0.15); color: #22d3ee; }
+
+    /* ── Empty State ── */
+    .empty-state {
+      text-align: center;
+      padding: 3.5rem 1.5rem;
+    }
+    .empty-state i { color: rgba(255,255,255,0.12); margin-bottom: 1rem; }
+    .empty-state p { color: rgba(255,255,255,0.45); font-size: 1rem; }
+    .empty-state .sub { color: rgba(255,255,255,0.3); font-size: 0.875rem; margin-top: 0.375rem; }
+
+    /* ── Section Header ── */
+    .section-title {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    /* ── SPA Loading State ── */
+    .tab-loading {
+      position: relative;
+      min-height: 200px;
+    }
+    .tab-loading::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 28px;
+      height: 28px;
+      margin: -14px 0 0 -14px;
+      border: 3px solid rgba(6,182,212,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Toast Notifications ── */
+    .toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .toast {
+      padding: 0.875rem 1.25rem;
+      border-radius: 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
+      animation: slideIn 0.3s ease;
+    }
+    .toast-success { background: rgba(34,197,94,0.15); color: #4ade80; border-color: rgba(34,197,94,0.25); }
+    .toast-error { background: rgba(239,68,68,0.15); color: #f87171; border-color: rgba(239,68,68,0.25); }
+    .toast-info { background: rgba(6,182,212,0.15); color: #22d3ee; border-color: rgba(6,182,212,0.25); }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* ── Timeline ── */
+    .timeline-line {
+      position: absolute;
+      left: 1.125rem;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, var(--accent) 0%, rgba(255,255,255,0.05) 100%);
+    }
+    .timeline-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 9999px;
+      border: 2px solid var(--accent);
+      background: #000;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+    .timeline-dot.completed {
+      background: var(--accent);
+    }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body class="antialiased">
+  <div class="grain-overlay"></div>
+  <div class="toast-container" id="toast-container"></div>
+
+  <header class="sticky top-0 z-40 liquid-glass-strong border-b border-white/[0.06]">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center h-16 gap-4">
+        <a href="{% url 'tournaments:organizer_dashboard' %}"
+           class="flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition"
+           title="Back to Dashboard">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Dashboard</span>
+        </a>
+
+        <div class="w-px h-5 bg-white/[0.08]"></div>
+
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+          <div class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 border border-white/[0.10]">
+            {% if tournament.thumbnail_image %}
+              <img src="{{ tournament.thumbnail_image.url }}" class="w-full h-full object-cover" alt="" />
+            {% else %}
+              <div class="w-full h-full bg-delta-surface flex items-center justify-center">
+                <i data-lucide="trophy" class="w-4 h-4 text-white/25"></i>
+              </div>
+            {% endif %}
+          </div>
+          <div class="min-w-0">
+            <h1 class="text-base font-display font-bold text-white truncate">{{ tournament.name }}</h1>
+            <div class="flex items-center gap-2 mt-0.5">
+              <div class="status-dot {% if tournament.status == 'live' %}live{% elif tournament.status == 'registration_open' %}open{% elif tournament.status == 'draft' %}draft{% elif tournament.status == 'completed' %}completed{% elif tournament.status == 'cancelled' %}cancelled{% else %}closed{% endif %}"></div>
+              <span class="text-xs text-white/50 capitalize">{{ tournament.get_status_display }}</span>
+              <span class="text-xs text-white/25">·</span>
+              <span class="text-xs text-white/50">{{ tournament.game.display_name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <a href="{% url 'tournaments:detail' tournament.slug %}" target="_blank"
+             class="btn-secondary !py-2 !px-4 text-sm flex items-center gap-1.5">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">View Page</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="border-b border-white/[0.06] bg-black/40 backdrop-blur-sm sticky top-16 z-30" id="tab-nav">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center overflow-x-auto no-scrollbar -mb-px">
+        {% with slug=tournament.slug %}
+        <a href="{% url 'tournaments:organizer_tournament_detail' slug %}"
+           class="manage-tab{% if active_tab == 'overview' %} active{% endif %}" data-tab="overview">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          Overview
+        </a>
+        <a href="{% url 'tournaments:organizer_hub' slug 'participants' %}"
+           class="manage-tab{% if active_tab == 'participants' %} active{% endif %}" data-tab="participants">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          Participants
+          {% if reg_stats.pending %}<span class="tab-badge bg-yellow-500/20 text-yellow-400">{{ reg_stats.pending }}</span>{% endif %}
+        </a>
+        <a href="{% url 'tournaments:organizer_hub' slug 'brackets' %}"
+           class="manage-tab{% if active_tab == 'brackets' %} active{% endif %}" data-tab="brackets">
+          <i data-lucide="git-merge" class="w-4 h-4"></i>
+          Brackets
+        </a>
+        <a href="{% url 'tournaments:organizer_hub' slug 'payments' %}"
+           class="manage-tab{% if active_tab == 'payments' %} active{% endif %}" data-tab="payments">
+          <i data-lucide="wallet" class="w-4 h-4"></i>
+          Payments
+          {% if payment_stats.pending %}<span class="tab-badge bg-yellow-500/20 text-yellow-400">{{ payment_stats.pending }}</span>{% endif %}
+        </a>
+        <a href="{% url 'tournaments:organizer_hub' slug 'disputes' %}"
+           class="manage-tab{% if active_tab == 'disputes' %} active{% endif %}" data-tab="disputes">
+          <i data-lucide="shield-alert" class="w-4 h-4"></i>
+          Disputes
+          {% if open_disputes_count %}<span class="tab-badge bg-red-500/20 text-red-400">{{ open_disputes_count }}</span>{% endif %}
+        </a>
+        <a href="{% url 'tournaments:organizer_hub' slug 'announcements' %}"
+           class="manage-tab{% if active_tab == 'announcements' %} active{% endif %}" data-tab="announcements">
+          <i data-lucide="megaphone" class="w-4 h-4"></i>
+          Announcements
+        </a>
+        <a href="{% url 'tournaments:organizer_hub' slug 'settings' %}"
+           class="manage-tab{% if active_tab == 'settings' %} active{% endif %}" data-tab="settings">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+          Settings
+        </a>
+        {% endwith %}
+      </div>
+    </div>
+  </nav>
+
+  <main id="tab-content" class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
+    {% block manage_content %}{% endblock %}
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+
+      /* ── SPA Tab Switching ── */
+      const tabNav = document.getElementById('tab-nav');
+      const tabContent = document.getElementById('tab-content');
+      if (!tabNav || !tabContent) return;
+
+      const tabLinks = tabNav.querySelectorAll('.manage-tab[data-tab]');
+
+      tabLinks.forEach(function(link) {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          const url = this.href;
+          const tab = this.dataset.tab;
+
+          tabLinks.forEach(function(t) { t.classList.remove('active'); });
+          link.classList.add('active');
+
+          tabContent.classList.add('tab-loading');
+          tabContent.style.opacity = '0.4';
+          tabContent.style.pointerEvents = 'none';
+
+          fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-Tab-Only': '1' }
+          })
+          .then(function(res) { return res.text(); })
+          .then(function(html) {
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(html, 'text/html');
+            var newContent = doc.getElementById('tab-content');
+
+            if (newContent) {
+              tabContent.innerHTML = newContent.innerHTML;
+            } else {
+              tabContent.innerHTML = html;
+            }
+
+            if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+
+            tabContent.querySelectorAll('script').forEach(function(oldScript) {
+              var newScript = document.createElement('script');
+              if (oldScript.src) {
+                newScript.src = oldScript.src;
+              } else {
+                newScript.textContent = oldScript.textContent;
+              }
+              oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+
+            history.pushState({ tab: tab }, '', url);
+
+            tabContent.classList.remove('tab-loading');
+            tabContent.style.opacity = '1';
+            tabContent.style.pointerEvents = '';
+
+            tabContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          })
+          .catch(function(err) {
+            console.error('Tab load failed:', err);
+            window.location.href = url;
+          });
+        });
+      });
+
+      window.addEventListener('popstate', function(e) {
+        if (e.state && e.state.tab) {
+          var link = tabNav.querySelector('[data-tab="' + e.state.tab + '"]');
+          if (link) { link.click(); }
+        } else {
+          window.location.reload();
+        }
+      });
+
+      var activeTab = tabNav.querySelector('.manage-tab.active');
+      if (activeTab) {
+        history.replaceState({ tab: activeTab.dataset.tab }, '', window.location.href);
+      }
+    });
+
+    function showToast(message, type) {
+      type = type || 'info';
+      var container = document.getElementById('toast-container');
+      var toast = document.createElement('div');
+      toast.className = 'toast toast-' + type;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(function() { toast.remove(); }, 4000);
+    }
+  </script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

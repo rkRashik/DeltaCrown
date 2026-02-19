@@ -418,6 +418,42 @@
         {% endif %}
       </div>
 
+      {# ── NEXT MATCH CTA (appears if user has an upcoming/live match) ── #}
+      {% if next_match_info %}
+      <div class="span-12 bt p-4 {% if next_match_info.is_live %}glow-rose{% else %}glow-cyan{% endif %}"
+           style="{% if next_match_info.is_live %}border-color: rgba(239,68,68,0.25); background: linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(239,68,68,0.02) 100%);{% else %}border-color: rgba(6,182,212,0.15);{% endif %}">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl {% if next_match_info.is_live %}bg-red-500/15{% else %}bg-cyan-500/10{% endif %} grid place-items-center flex-shrink-0">
+              {% if next_match_info.is_live %}
+              <i class="fa-solid fa-bolt text-red-400 text-sm animate-pulse"></i>
+              {% else %}
+              <i class="fa-solid fa-swords text-cyan-400 text-sm"></i>
+              {% endif %}
+            </div>
+            <div>
+              <div class="text-xs font-bold text-white">
+                {% if next_match_info.is_live %}🔴 Your match is LIVE!{% else %}⚔️ Next Match{% endif %}
+              </div>
+              <div class="text-[10px] text-white/40">
+                vs <span class="text-white/70 font-semibold">{{ next_match_info.opponent_name|default:"TBD" }}</span>
+                <span class="text-white/15 mx-1">·</span>
+                {{ next_match_info.tournament_name }}
+                {% if next_match_info.scheduled_time and not next_match_info.is_live %}
+                <span class="text-white/15 mx-1">·</span>
+                {{ next_match_info.scheduled_time|date:"M d, g:i A" }}
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <a href="/tournaments/{{ next_match_info.tournament_slug }}/matches/{{ next_match_info.match_id }}/room/"
+             class="px-4 py-2 rounded-lg {% if next_match_info.is_live %}bg-red-500 hover:bg-red-600{% else %}bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/20{% endif %} text-white text-xs font-bold transition flex items-center gap-1.5 no-underline flex-shrink-0">
+            {% if next_match_info.is_live %}<i class="fa-solid fa-arrow-right"></i> Enter Match Room{% else %}<i class="fa-solid fa-door-open"></i> Match Room{% endif %}
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
       {# ── ROW 4: TOURNAMENTS (wide) + ORGANIZATIONS (medium) ── #}
       <div class="span-7 bt p-5 bf bf7 glow-purple">
         <div class="tile-label">
@@ -428,19 +464,23 @@
         {% if active_tournaments %}
         <div class="grid sm:grid-cols-2 gap-2.5 max-h-[210px] overflow-y-auto dash-scroll pr-1">
           {% for t in active_tournaments %}
-          <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+          <a href="/tournaments/{{ t.slug }}/" class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-purple-500/15 transition block no-underline group">
             <div class="flex items-center justify-between mb-1.5">
-              <div class="text-xs font-bold text-white truncate flex-1 mr-2">{{ t.name }}</div>
+              <div class="text-xs font-bold text-white group-hover:text-purple-300 transition truncate flex-1 mr-2">{{ t.name }}</div>
               <span class="px-1.5 py-0.5 rounded text-[9px] font-bold flex-shrink-0
-                {% if t.status == 'LIVE' %}bg-emerald-500/15 text-emerald-400
-                {% elif t.status == 'UPCOMING' or t.status == 'REGISTRATION' %}bg-cyan-500/15 text-cyan-400
-                {% else %}bg-white/5 text-white/30{% endif %}">{{ t.status }}</span>
+                {% if t.is_live %}bg-red-500/15 text-red-400 animate-pulse
+                {% elif t.status == 'registration_open' %}bg-cyan-500/15 text-cyan-400
+                {% elif t.status == 'completed' %}bg-emerald-500/15 text-emerald-400
+                {% else %}bg-white/5 text-white/30{% endif %}">
+                {% if t.is_live %}LIVE{% else %}{{ t.status|upper|truncatechars:12 }}{% endif %}
+              </span>
             </div>
               <div class="flex items-center gap-2 text-[9px] text-white/30">
               {% if t.game_name %}<span>{{ t.game_name }}</span>{% endif %}
               {% if t.prize_pool %}<span class="text-amber-400/60"><i class="fa-solid fa-coins"></i> {{ t.prize_pool }}</span>{% endif %}
+              {% if t.tournament_start %}<span>{{ t.tournament_start|date:"M d" }}</span>{% endif %}
             </div>
-          </div>
+          </a>
           {% endfor %}
         </div>
         {% else %}

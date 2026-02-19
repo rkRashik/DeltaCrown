@@ -1,0 +1,211 @@
+{% extends "tournaments/manage/_base.html" %}
+{% load humanize %}
+
+{% block manage_content %}
+
+<div class="flex items-center justify-between mb-6">
+  <h2 class="text-lg font-display font-bold text-white">Settings</h2>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  <div class="liquid-glass rounded-2xl p-6">
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-2">
+        <i data-lucide="info" class="w-4 h-4 text-cyan-400"></i>
+        <h3 class="text-sm font-display font-semibold text-white">Tournament Info</h3>
+      </div>
+      {% if can_edit %}
+        <button class="btn-secondary text-xs !py-1.5 !px-3">
+          <i data-lucide="edit-2" class="w-3 h-3"></i> Edit
+        </button>
+      {% endif %}
+    </div>
+    <dl class="space-y-3">
+      <div class="flex justify-between items-baseline">
+        <dt class="text-xs text-white/45">Name</dt>
+        <dd class="text-sm text-white/70 text-right truncate max-w-[60%]">{{ tournament.name }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Game</dt>
+        <dd class="text-sm text-white/70">{{ tournament.game.display_name|default:"—" }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Format</dt>
+        <dd class="text-sm text-white/70 capitalize">{{ tournament.get_format_display|default:tournament.format }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Mode</dt>
+        <dd class="text-sm text-white/70 capitalize">{{ tournament.get_participation_type_display|default:tournament.participation_type }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Platform</dt>
+        <dd class="text-sm text-white/70 capitalize">{{ tournament.get_platform_display|default:tournament.platform }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Max Participants</dt>
+        <dd class="text-sm text-white/70 font-mono">{{ tournament.max_participants|default:"∞" }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Prize Pool</dt>
+        <dd class="text-sm text-yellow-400/80 font-mono">
+          {% if tournament.prize_pool %}৳{{ tournament.prize_pool|intcomma }}{% else %}—{% endif %}
+        </dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Entry Fee</dt>
+        <dd class="text-sm text-white/70 font-mono">
+          {% if tournament.has_entry_fee %}৳{{ tournament.entry_fee_amount|intcomma }}{% else %}Free{% endif %}
+        </dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Status</dt>
+        <dd>
+          <span class="badge
+            {% if tournament.status == 'live' %}badge-red
+            {% elif tournament.status == 'registration_open' %}badge-green
+            {% elif tournament.status == 'draft' %}badge-gray
+            {% elif tournament.status == 'completed' %}badge-blue
+            {% elif tournament.status == 'cancelled' %}badge-red
+            {% else %}badge-yellow{% endif %}">
+            {{ tournament.get_status_display }}
+          </span>
+        </dd>
+      </div>
+    </dl>
+  </div>
+
+  <div class="liquid-glass rounded-2xl p-6">
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-2">
+        <i data-lucide="wallet" class="w-4 h-4 text-yellow-400"></i>
+        <h3 class="text-sm font-display font-semibold text-white">Payment Methods</h3>
+      </div>
+      {% if can_edit %}
+        <button class="btn-secondary text-xs !py-1.5 !px-3">
+          <i data-lucide="plus" class="w-3 h-3"></i> Add
+        </button>
+      {% endif %}
+    </div>
+
+    {% if payment_methods %}
+      <div class="space-y-2">
+        {% for pm in payment_methods %}
+          <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition">
+            <div class="w-8 h-8 rounded-lg bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+              <i data-lucide="{% if 'bkash' in pm.method_type|lower %}smartphone{% elif 'bank' in pm.method_type|lower %}building{% else %}credit-card{% endif %}"
+                 class="w-4 h-4 text-white/35"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm text-white/70">{{ pm.label|default:pm.method_type|title }}</p>
+              <p class="text-xs text-white/35 font-mono truncate">{{ pm.account_number|default:"" }}</p>
+            </div>
+            {% if pm.is_active %}
+              <span class="badge badge-green">ACTIVE</span>
+            {% else %}
+              <span class="badge badge-gray">INACTIVE</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state py-8">
+        <i data-lucide="wallet" class="w-8 h-8 mx-auto"></i>
+        <p class="text-sm">No payment methods configured</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="lg:col-span-2 liquid-glass rounded-2xl p-6">
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-2">
+        <i data-lucide="shield" class="w-4 h-4 text-purple-400"></i>
+        <h3 class="text-sm font-display font-semibold text-white">Staff Members</h3>
+      </div>
+      {% if can_manage_staff %}
+        <button class="btn-secondary text-xs !py-1.5 !px-3">
+          <i data-lucide="user-plus" class="w-3 h-3"></i> Add Staff
+        </button>
+      {% endif %}
+    </div>
+
+    {% if staff_members %}
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Role</th>
+              <th>Added</th>
+              {% if can_manage_staff %}<th class="text-right">Actions</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for staff in staff_members %}
+              <tr class="group">
+                <td>
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500/20 to-indigo-500/20 flex items-center justify-center text-xs font-bold text-white/60 flex-shrink-0">
+                      {{ staff.user.username|first|upper }}
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-sm text-white/70">{{ staff.user.username }}</p>
+                      <p class="text-xs text-white/35 truncate">{{ staff.user.email|default:"" }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge badge-purple">{{ staff.role.name|default:"Staff" }}</span></td>
+                <td class="text-white/40 text-xs font-mono">{{ staff.created_at|timesince }} ago</td>
+                {% if can_manage_staff %}
+                  <td class="text-right">
+                    <button title="Remove" class="p-1.5 rounded-lg hover:bg-red-500/15 text-white/20 hover:text-red-400 transition opacity-0 group-hover:opacity-100">
+                      <i data-lucide="user-minus" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state py-10">
+        <i data-lucide="users" class="w-8 h-8 mx-auto"></i>
+        <p class="text-sm">No staff members assigned</p>
+        <p class="sub">The tournament organizer has full access by default.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if can_edit %}
+    <div class="lg:col-span-2 liquid-glass rounded-2xl p-6" style="border-color: rgba(239,68,68,0.15);">
+      <div class="flex items-center gap-2 mb-5">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400"></i>
+        <h3 class="text-sm font-display font-semibold text-red-400">Danger Zone</h3>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        {% if tournament.status == 'draft' %}
+          <button class="btn-danger text-xs">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            Delete Tournament
+          </button>
+        {% endif %}
+        {% if tournament.status != 'cancelled' and tournament.status != 'completed' %}
+          <button class="btn-danger text-xs" style="background: rgba(250,204,21,0.1); color: #facc15; border-color: rgba(250,204,21,0.2);">
+            <i data-lucide="ban" class="w-3.5 h-3.5"></i>
+            Cancel Tournament
+          </button>
+        {% endif %}
+        {% if tournament.status == 'completed' %}
+          <button class="btn-secondary text-xs">
+            <i data-lucide="archive" class="w-3.5 h-3.5"></i>
+            Archive Tournament
+          </button>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

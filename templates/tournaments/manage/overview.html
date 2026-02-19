@@ -1,0 +1,282 @@
+{% extends "tournaments/manage/_base.html" %}
+{% load humanize %}
+
+{% block manage_content %}
+
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="metric-card group">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-xs font-semibold uppercase tracking-widest text-white/45">Registrations</span>
+      <div class="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+        <i data-lucide="users" class="w-3.5 h-3.5 text-cyan-400"></i>
+      </div>
+    </div>
+    <p class="text-2xl font-display font-bold text-white">{{ reg_stats.total|default:"0" }}</p>
+    <div class="flex items-center gap-3 mt-2">
+      <span class="text-xs text-white/40"><span class="text-yellow-400 font-mono">{{ reg_stats.pending|default:"0" }}</span> pending</span>
+      <span class="text-xs text-white/40"><span class="text-emerald-400 font-mono">{{ reg_stats.confirmed|default:"0" }}</span> confirmed</span>
+    </div>
+    {% if tournament.max_participants %}
+    <div class="mt-3">
+      <div class="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+        <div class="h-full rounded-full bg-gradient-to-r from-cyan-500 to-cyan-400"
+             style="width: {% widthratio reg_stats.total tournament.max_participants 100 %}%"></div>
+      </div>
+      <p class="text-[11px] text-white/35 mt-1 font-mono">{{ reg_stats.total }}/{{ tournament.max_participants }} slots</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="metric-card group">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-xs font-semibold uppercase tracking-widest text-white/45">Matches</span>
+      <div class="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center">
+        <i data-lucide="swords" class="w-3.5 h-3.5 text-purple-400"></i>
+      </div>
+    </div>
+    <p class="text-2xl font-display font-bold text-white">{{ match_stats.total|default:"0" }}</p>
+    <div class="flex items-center gap-3 mt-2">
+      <span class="text-xs text-white/40"><span class="text-emerald-400 font-mono">{{ match_stats.completed|default:"0" }}</span> done</span>
+      {% if match_stats.live %}
+        <span class="text-xs text-red-400 font-mono animate-pulse">{{ match_stats.live }} live</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="metric-card group">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-xs font-semibold uppercase tracking-widest text-white/45">Revenue</span>
+      <div class="w-7 h-7 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+        <i data-lucide="banknote" class="w-3.5 h-3.5 text-yellow-400"></i>
+      </div>
+    </div>
+    <p class="text-2xl font-display font-bold text-white">
+      {% if payment_stats.total_amount %}৳{{ payment_stats.total_amount|intcomma }}{% else %}৳0{% endif %}
+    </p>
+    <div class="flex items-center gap-3 mt-2">
+      <span class="text-xs text-white/40"><span class="text-yellow-400 font-mono">{{ payment_stats.pending|default:"0" }}</span> pending</span>
+      <span class="text-xs text-white/40"><span class="text-emerald-400 font-mono">{{ payment_stats.verified|default:"0" }}</span> verified</span>
+    </div>
+  </div>
+
+  <div class="metric-card group">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-xs font-semibold uppercase tracking-widest text-white/45">Disputes</span>
+      <div class="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center">
+        <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-red-400"></i>
+      </div>
+    </div>
+    <p class="text-2xl font-display font-bold text-white">{{ dispute_stats.total|default:"0" }}</p>
+    <div class="flex items-center gap-3 mt-2">
+      <span class="text-xs text-white/40"><span class="text-red-400 font-mono">{{ dispute_stats.open|default:"0" }}</span> open</span>
+      <span class="text-xs text-white/40"><span class="text-yellow-400 font-mono">{{ dispute_stats.under_review|default:"0" }}</span> reviewing</span>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+  <div class="lg:col-span-2 liquid-glass rounded-2xl p-6">
+    <div class="flex items-center gap-2 mb-5">
+      <i data-lucide="calendar-clock" class="w-4 h-4 text-cyan-400"></i>
+      <h3 class="text-sm font-display font-semibold text-white">Tournament Timeline</h3>
+    </div>
+
+    <div class="space-y-4">
+      <div class="flex items-start gap-4">
+        <div class="flex flex-col items-center gap-1">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center
+            {% if tournament.status == 'registration_open' %}bg-emerald-500/20 ring-2 ring-emerald-500/40
+            {% elif tournament.status == 'draft' %}bg-white/[0.04]
+            {% else %}bg-emerald-500/10{% endif %}">
+            <i data-lucide="user-plus" class="w-3.5 h-3.5
+              {% if tournament.status == 'registration_open' %}text-emerald-400
+              {% elif tournament.status == 'draft' %}text-white/30
+              {% else %}text-emerald-400/60{% endif %}"></i>
+          </div>
+          <div class="w-px h-8 bg-white/[0.06]"></div>
+        </div>
+        <div class="flex-1 min-w-0 pt-1">
+          <p class="text-sm font-semibold text-white/70">Registration Period</p>
+          <p class="text-xs text-white/40 font-mono mt-0.5">
+            {{ tournament.registration_start|date:"M d, Y H:i" }} — {{ tournament.registration_end|date:"M d, Y H:i" }}
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-4">
+        <div class="flex flex-col items-center gap-1">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center
+            {% if tournament.status == 'live' %}bg-red-500/20 ring-2 ring-red-500/40 animate-pulse
+            {% elif tournament.status == 'completed' %}bg-blue-500/10
+            {% else %}bg-white/[0.04]{% endif %}">
+            <i data-lucide="play" class="w-3.5 h-3.5
+              {% if tournament.status == 'live' %}text-red-400
+              {% elif tournament.status == 'completed' %}text-blue-400/60
+              {% else %}text-white/30{% endif %}"></i>
+          </div>
+          <div class="w-px h-8 bg-white/[0.06]"></div>
+        </div>
+        <div class="flex-1 min-w-0 pt-1">
+          <p class="text-sm font-semibold text-white/70">Tournament Start</p>
+          <p class="text-xs text-white/40 font-mono mt-0.5">{{ tournament.tournament_start|date:"M d, Y H:i" }}</p>
+          {% if time_status.days_until_start > 0 %}
+            <p class="text-xs text-cyan-400/70 mt-0.5">{{ time_status.days_until_start }} days away</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="flex items-start gap-4">
+        <div class="flex flex-col items-center gap-1">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center
+            {% if tournament.status == 'completed' %}bg-blue-500/20 ring-2 ring-blue-500/40
+            {% else %}bg-white/[0.04]{% endif %}">
+            <i data-lucide="flag" class="w-3.5 h-3.5
+              {% if tournament.status == 'completed' %}text-blue-400
+              {% else %}text-white/30{% endif %}"></i>
+          </div>
+        </div>
+        <div class="flex-1 min-w-0 pt-1">
+          <p class="text-sm font-semibold text-white/70">Tournament End</p>
+          <p class="text-xs text-white/40 font-mono mt-0.5">
+            {% if tournament.tournament_end %}{{ tournament.tournament_end|date:"M d, Y H:i" }}{% else %}TBD{% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="liquid-glass rounded-2xl p-6">
+    <div class="flex items-center gap-2 mb-5">
+      <i data-lucide="zap" class="w-4 h-4 text-yellow-400"></i>
+      <h3 class="text-sm font-display font-semibold text-white">Quick Actions</h3>
+    </div>
+    <div class="space-y-2">
+      <a href="{% url 'tournaments:organizer_hub' tournament.slug 'participants' %}"
+         class="flex items-center gap-3 px-4 py-3 rounded-xl liquid-trace text-sm text-white/60 hover:text-white group">
+        <i data-lucide="user-plus" class="w-4 h-4 text-cyan-400/60 group-hover:text-cyan-400"></i>
+        <span class="flex-1">Manage Registrations</span>
+        {% if reg_stats.pending %}
+          <span class="badge badge-yellow">{{ reg_stats.pending }}</span>
+        {% endif %}
+      </a>
+      <a href="{% url 'tournaments:organizer_hub' tournament.slug 'payments' %}"
+         class="flex items-center gap-3 px-4 py-3 rounded-xl liquid-trace text-sm text-white/60 hover:text-white group">
+        <i data-lucide="wallet" class="w-4 h-4 text-yellow-400/60 group-hover:text-yellow-400"></i>
+        <span class="flex-1">Verify Payments</span>
+        {% if payment_stats.pending %}
+          <span class="badge badge-yellow">{{ payment_stats.pending }}</span>
+        {% endif %}
+      </a>
+      <a href="{% url 'tournaments:organizer_hub' tournament.slug 'brackets' %}"
+         class="flex items-center gap-3 px-4 py-3 rounded-xl liquid-trace text-sm text-white/60 hover:text-white group">
+        <i data-lucide="git-merge" class="w-4 h-4 text-purple-400/60 group-hover:text-purple-400"></i>
+        <span class="flex-1">Brackets &amp; Matches</span>
+      </a>
+      <a href="{% url 'tournaments:organizer_hub' tournament.slug 'announcements' %}"
+         class="flex items-center gap-3 px-4 py-3 rounded-xl liquid-trace text-sm text-white/60 hover:text-white group">
+        <i data-lucide="megaphone" class="w-4 h-4 text-white/40 group-hover:text-white/60"></i>
+        <span class="flex-1">Post Announcement</span>
+      </a>
+      <a href="{% url 'tournaments:detail' tournament.slug %}" target="_blank"
+         class="flex items-center gap-3 px-4 py-3 rounded-xl liquid-trace text-sm text-white/60 hover:text-white group">
+        <i data-lucide="external-link" class="w-4 h-4 text-white/40 group-hover:text-white/60"></i>
+        <span class="flex-1">View Public Page</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="liquid-glass rounded-2xl p-6">
+    <div class="flex items-center gap-2 mb-5">
+      <i data-lucide="info" class="w-4 h-4 text-cyan-400"></i>
+      <h3 class="text-sm font-display font-semibold text-white">Details</h3>
+    </div>
+    <dl class="space-y-3">
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Game</dt>
+        <dd class="text-sm text-white/70 font-medium">{{ tournament.game.display_name }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Format</dt>
+        <dd class="text-sm text-white/70 font-medium capitalize">{{ tournament.get_format_display|default:tournament.format }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Mode</dt>
+        <dd class="text-sm text-white/70 font-medium capitalize">{{ tournament.get_participation_type_display }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Platform</dt>
+        <dd class="text-sm text-white/70 font-medium capitalize">{{ tournament.get_platform_display }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Max Slots</dt>
+        <dd class="text-sm text-white/70 font-mono">{{ tournament.max_participants|default:"∞" }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Prize Pool</dt>
+        <dd class="text-sm text-yellow-400/80 font-mono">
+          {% if tournament.prize_pool %}৳{{ tournament.prize_pool|intcomma }}{% else %}—{% endif %}
+        </dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Entry Fee</dt>
+        <dd class="text-sm text-white/70 font-mono">
+          {% if tournament.has_entry_fee %}৳{{ tournament.entry_fee_amount|intcomma }}{% else %}Free{% endif %}
+        </dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-xs text-white/45">Organizer</dt>
+        <dd class="text-sm text-white/70">{{ tournament.organizer.username }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  <div class="lg:col-span-2 liquid-glass rounded-2xl p-6">
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-2">
+        <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
+        <h3 class="text-sm font-display font-semibold text-white">Recent Activity</h3>
+      </div>
+      <a href="{% url 'tournaments:organizer_hub' tournament.slug 'participants' %}"
+         class="text-xs text-cyan-400/60 hover:text-cyan-400 transition">
+        View all →
+      </a>
+    </div>
+
+    {% if recent_registrations %}
+      <div class="space-y-2">
+        {% for reg in recent_registrations %}
+          <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center text-xs font-bold text-white/60 flex-shrink-0">
+              {{ reg.user.username|first|upper }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm text-white/80 truncate">{{ reg.user.username }}</p>
+              <p class="text-xs text-white/35 font-mono">{{ reg.created_at|timesince }} ago</p>
+            </div>
+            {% if reg.team %}
+              <span class="text-xs text-white/35 truncate max-w-[100px]">{{ reg.team.name }}</span>
+            {% endif %}
+            <span class="badge
+              {% if reg.status == 'confirmed' %}badge-green
+              {% elif reg.status == 'pending' %}badge-yellow
+              {% elif reg.status == 'rejected' %}badge-red
+              {% elif reg.status == 'cancelled' %}badge-gray
+              {% else %}badge-gray{% endif %}">
+              {{ reg.status|title }}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <i data-lucide="inbox" class="w-10 h-10 mx-auto"></i>
+        <p>No registrations yet</p>
+        <p class="sub">Participants will appear here when they register.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

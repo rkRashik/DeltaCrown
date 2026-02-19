@@ -5,7 +5,7 @@ Data Transfer Objects for tournament stage/bracket data.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from .base import DTOBase
 
@@ -21,16 +21,22 @@ class StageDTO(DTOBase):
     Attributes:
         id: Stage primary key.
         name: Stage display name (e.g., "Group Stage", "Playoffs").
-        type: Stage type (bracket, group, swiss, round_robin).
+        type: Stage type (single_elim, double_elim, swiss, round_robin, etc.).
         order: Execution order of this stage in the tournament.
         config: Stage-specific configuration (JSON).
+        metadata: Additional generator-specific metadata (rounds_count, grand_finals_reset, etc.).
     """
 
-    id: int
-    name: str
-    type: str  # bracket, group, swiss, round_robin
-    order: int
-    config: Dict[str, Any]
+    id: int = 0
+    name: str = ""
+    type: str = "bracket"
+    order: int = 1
+    config: Dict[str, Any] = None  # type: ignore[assignment]
+    metadata: Optional[Dict[str, Any]] = None
+
+    def __post_init__(self):
+        if self.config is None:
+            self.config = {}
 
     @classmethod
     def from_model(cls, model: any) -> "StageDTO":
@@ -43,23 +49,21 @@ class StageDTO(DTOBase):
         Returns:
             StageDTO instance.
         """
+        def _get(attr, default=None):
+            return getattr(model, attr, model.get(attr, default) if hasattr(model, "get") else default)
+
         return cls(
-            id=getattr(model, "id", model.get("id") if hasattr(model, "get") else 0),
-            name=getattr(model, "name", model.get("name") if hasattr(model, "get") else ""),
-            type=getattr(model, "type", model.get("type") if hasattr(model, "get") else "bracket"),
-            order=getattr(model, "order", model.get("order") if hasattr(model, "get") else 1),
-            config=getattr(model, "config", model.get("config") if hasattr(model, "get") else {}),
+            id=_get("id", 0),
+            name=_get("name", ""),
+            type=_get("type", "bracket"),
+            order=_get("order", 1),
+            config=_get("config", {}),
+            metadata=_get("metadata"),
         )
 
     def validate(self) -> List[str]:
         """
         Validate stage data.
-
-        Ensures:
-        - name is not empty
-        - type is valid
-        - order is positive
-        - config is not None
 
         Returns:
             List of validation error messages (empty if valid).
@@ -69,7 +73,12 @@ class StageDTO(DTOBase):
         if not self.name:
             errors.append("name cannot be empty")
 
-        valid_types = {"bracket", "group", "swiss", "round_robin"}
+        valid_types = {
+            "bracket", "group", "swiss", "round_robin",
+            "single_elim", "double_elim",
+            "single-elimination", "double-elimination",
+            "round-robin",
+        }
         if self.type not in valid_types:
             errors.append(f"type must be one of {valid_types}")
 

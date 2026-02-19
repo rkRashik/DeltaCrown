@@ -1,0 +1,118 @@
+{% extends "tournaments/manage/_base.html" %}
+{% load humanize %}
+
+{% block manage_content %}
+
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div class="metric-card text-center">
+    <p class="text-xs font-semibold uppercase tracking-widest text-white/45 mb-2">Submitted</p>
+    <p class="text-2xl font-display font-bold text-white">{{ payment_stats.total_submitted|default:"0" }}</p>
+  </div>
+  <div class="metric-card text-center border-yellow-500/10">
+    <p class="text-xs font-semibold uppercase tracking-widest text-white/45 mb-2">Pending Verify</p>
+    <p class="text-2xl font-display font-bold text-yellow-400">{{ payment_stats.pending_verification|default:"0" }}</p>
+  </div>
+  <div class="metric-card text-center border-emerald-500/10">
+    <p class="text-xs font-semibold uppercase tracking-widest text-white/45 mb-2">Verified Total</p>
+    <p class="text-2xl font-display font-bold text-emerald-400">৳{{ payment_stats.total_amount|default:"0"|intcomma }}</p>
+  </div>
+</div>
+
+<form method="get" class="flex flex-wrap items-center gap-3 mb-5">
+  <select name="status" class="form-select !w-auto !py-2.5 text-sm">
+    <option value="">All Statuses</option>
+    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+    <option value="submitted" {% if request.GET.status == 'submitted' %}selected{% endif %}>Submitted</option>
+    <option value="verified" {% if request.GET.status == 'verified' %}selected{% endif %}>Verified</option>
+    <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+  </select>
+  <select name="method" class="form-select !w-auto !py-2.5 text-sm">
+    <option value="">All Methods</option>
+    <option value="bkash" {% if request.GET.method == 'bkash' %}selected{% endif %}>bKash</option>
+    <option value="nagad" {% if request.GET.method == 'nagad' %}selected{% endif %}>Nagad</option>
+    <option value="bank" {% if request.GET.method == 'bank' %}selected{% endif %}>Bank Transfer</option>
+  </select>
+  <button type="submit" class="btn-secondary text-xs !py-2.5">Filter</button>
+</form>
+
+{% if payments %}
+<div class="liquid-glass rounded-2xl overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>Amount</th>
+          <th>Method</th>
+          <th>Transaction ID</th>
+          <th>Status</th>
+          <th>Submitted</th>
+          {% if can_approve %}<th class="text-right">Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment in payments %}
+          <tr class="group">
+            <td>
+              <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center text-xs font-bold text-white/60 flex-shrink-0">
+                  {{ payment.registration.user.username|first|upper }}
+                </div>
+                <span class="text-sm text-white/70">{{ payment.registration.user.username }}</span>
+              </div>
+            </td>
+            <td class="text-white/80 font-mono text-sm">৳{{ payment.amount|default:"0"|intcomma }}</td>
+            <td class="text-white/45 capitalize text-sm">{{ payment.payment_method|default:"—" }}</td>
+            <td>
+              <span class="text-xs font-mono text-white/40 bg-white/[0.03] px-2 py-0.5 rounded">
+                {{ payment.transaction_id|default:"—"|truncatechars:16 }}
+              </span>
+            </td>
+            <td>
+              <span class="badge
+                {% if payment.status == 'verified' %}badge-green
+                {% elif payment.status == 'submitted' %}badge-blue
+                {% elif payment.status == 'pending' %}badge-yellow
+                {% elif payment.status == 'rejected' %}badge-red
+                {% else %}badge-gray{% endif %}">
+                {{ payment.status|title }}
+              </span>
+            </td>
+            <td class="text-white/40 text-xs font-mono">{{ payment.submitted_at|timesince }} ago</td>
+            {% if can_approve %}
+              <td class="text-right">
+                {% if payment.status == 'submitted' %}
+                  <div class="flex items-center justify-end gap-1">
+                    <a href="{% url 'tournaments:verify_payment' tournament.slug payment.id %}"
+                       title="Verify"
+                       class="p-1.5 rounded-lg hover:bg-emerald-500/15 text-white/30 hover:text-emerald-400 transition">
+                      <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                    </a>
+                    <a href="{% url 'tournaments:reject_payment' tournament.slug payment.id %}"
+                       title="Reject"
+                       class="p-1.5 rounded-lg hover:bg-red-500/15 text-white/30 hover:text-red-400 transition">
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </a>
+                  </div>
+                {% elif payment.status == 'verified' %}
+                  <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400/50 inline"></i>
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="liquid-glass rounded-2xl">
+  <div class="empty-state py-16">
+    <i data-lucide="wallet" class="w-12 h-12 mx-auto"></i>
+    <p>No payments found</p>
+    <p class="sub">Payment records will appear here when players submit them.</p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

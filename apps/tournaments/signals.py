@@ -432,7 +432,11 @@ def sync_match_to_profile_history(sender, instance, created, **kwargs):
     if not instance.winner_id:
         return
     
-    from apps.user_profile.models import Match as ProfileMatch
+    try:
+        from apps.user_profile.models import Match as ProfileMatch
+    except ImportError:
+        # ProfileMatch model not yet implemented
+        return
     from django.contrib.auth import get_user_model
     User = get_user_model()
     

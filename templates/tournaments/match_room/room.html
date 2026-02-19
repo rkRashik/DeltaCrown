@@ -1,0 +1,507 @@
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
+
+{% comment %}
+Match Room / Battlefield — Participant Interactive Room
+
+States:
+- pre_match: Check-in, countdown, opponent info, lobby details
+- live: Active match, scores, lobby info prominent, submit result
+- post_match: Results, winner/loser, next match link
+- ended: Forfeit/cancelled/disputed notice
+{% endcomment %}
+
+{% block title %}Match Room — {{ match.participant1_name }} vs {{ match.participant2_name }} | {{ tournament.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root { --game-color: {{ game_color }}; }
+    .game-accent { color: var(--game-color); }
+    .game-bg { background-color: var(--game-color); }
+    .game-border { border-color: var(--game-color); }
+    .game-glow { box-shadow: 0 0 30px color-mix(in srgb, var(--game-color) 30%, transparent); }
+
+    .glass { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(12px); }
+    .noise-overlay { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.015; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+    @keyframes pulseRing { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.15); opacity: 0; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes countdown-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+
+    .pulse-ring { animation: pulseRing 2s ease-in-out infinite; }
+    .slide-up { animation: slideUp 0.5s ease-out both; }
+    .slide-up-1 { animation-delay: 0.1s; }
+    .slide-up-2 { animation-delay: 0.2s; }
+    .slide-up-3 { animation-delay: 0.3s; }
+
+    .checkin-btn {
+        background: linear-gradient(135deg, var(--game-color), color-mix(in srgb, var(--game-color) 70%, white));
+        transition: all 0.3s;
+    }
+    .checkin-btn:hover { filter: brightness(1.15); transform: translateY(-2px); box-shadow: 0 8px 25px color-mix(in srgb, var(--game-color) 40%, transparent); }
+    .checkin-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; filter: none; box-shadow: none; }
+
+    .lobby-code-box {
+        background: rgba(250,204,21,0.05);
+        border: 1px dashed rgba(250,204,21,0.3);
+    }
+
+    .winner-glow { box-shadow: 0 0 40px rgba(250,204,21,0.3); border-color: rgba(250,204,21,0.5) !important; }
+    .loser-fade { opacity: 0.5; }
+</style>
+{% endblock %}
+
+{% block tournament_content %}
+<div class="noise-overlay"></div>
+
+<div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-6">
+
+    <!-- BREADCRUMB -->
+    <div class="mb-4 slide-up flex items-center gap-2 text-xs text-gray-500">
+        <a href="{% url 'tournaments:detail' tournament.slug %}" class="hover:text-white transition">{{ tournament.name|truncatechars:30 }}</a>
+        <span class="text-gray-700">›</span>
+        <a href="{% url 'tournaments:bracket' tournament.slug %}" class="hover:text-white transition">Bracket</a>
+        <span class="text-gray-700">›</span>
+        <span class="text-gray-400">Match Room #{{ match.match_number }}</span>
+    </div>
+
+    <!-- MATCH HEADER BAR -->
+    <div class="glass rounded-2xl p-4 mb-6 flex items-center justify-between slide-up">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg game-bg flex items-center justify-center">
+                <i data-lucide="swords" class="w-4 h-4 text-white"></i>
+            </div>
+            <div>
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
+                    {% if match.round_number == 1 %}Final{% elif match.round_number == 2 %}Semi-Final{% elif match.round_number == 3 %}Quarter-Final{% else %}Round {{ match.round_number }}{% endif %}
+                    · Match {{ match.match_number }}
+                </p>
+                <p class="text-xs text-gray-400">{{ tournament.name }}</p>
+            </div>
+        </div>
+        <div>
+            {% if match_phase == 'pre_match' %}
+            <span class="px-3 py-1 text-[10px] rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20 font-bold uppercase tracking-widest">
+                <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> Pre-Match
+            </span>
+            {% elif match_phase == 'live' %}
+            <span class="px-3 py-1 text-[10px] rounded-full bg-red-500/15 text-red-400 border border-red-500/20 font-bold uppercase tracking-widest animate-pulse">
+                <i data-lucide="radio" class="w-3 h-3 inline mr-1"></i> LIVE
+            </span>
+            {% elif match_phase == 'post_match' %}
+            <span class="px-3 py-1 text-[10px] rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-bold uppercase tracking-widest">
+                <i data-lucide="check-circle-2" class="w-3 h-3 inline mr-1"></i> Completed
+            </span>
+            {% else %}
+            <span class="px-3 py-1 text-[10px] rounded-full bg-gray-500/15 text-gray-400 border border-gray-500/20 font-bold uppercase tracking-widest">
+                {{ match.get_state_display }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!--            VS DISPLAY                   -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="glass rounded-2xl p-6 sm:p-8 mb-6 slide-up slide-up-1 {% if match_phase == 'live' %}game-glow{% endif %} {% if is_winner == True %}winner-glow{% endif %}">
+        <div class="grid grid-cols-3 items-center gap-4">
+            <!-- Participant 1 -->
+            <div class="text-center {% if match.state == 'completed' and match.winner_id != match.participant1_id %}loser-fade{% endif %}">
+                <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 rounded-full bg-white/[0.05] border-2 {% if user_side == 1 %}game-border{% elif match.winner_id == match.participant1_id %}border-yellow-500/50{% else %}border-white/10{% endif %} flex items-center justify-center relative">
+                    <span class="text-xl sm:text-2xl font-display font-black text-white">{{ match.participant1_name|truncatechars:2|upper }}</span>
+                    {% if user_side == 1 %}
+                    <span class="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full text-[8px] font-bold game-bg text-white">YOU</span>
+                    {% endif %}
+                    {% if match.participant1_checked_in %}
+                    <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#030303] flex items-center justify-center">
+                        <i data-lucide="check" class="w-2.5 h-2.5 text-white"></i>
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-sm font-display font-bold text-white truncate">{{ match.participant1_name|default:"TBD" }}</p>
+                {% if match.winner_id == match.participant1_id %}
+                <span class="text-[10px] text-yellow-400 font-bold"><i data-lucide="trophy" class="w-3 h-3 inline"></i> Winner</span>
+                {% endif %}
+            </div>
+
+            <!-- Score / VS -->
+            <div class="text-center">
+                {% if match.state == 'completed' or match.state == 'live' or match.state == 'pending_result' %}
+                <div class="flex items-center justify-center gap-3">
+                    <span class="text-4xl sm:text-5xl font-display font-black {% if match.winner_id == match.participant1_id %}text-yellow-400{% else %}text-white{% endif %}">{{ match.participant1_score }}</span>
+                    <span class="text-lg text-gray-700 font-bold">-</span>
+                    <span class="text-4xl sm:text-5xl font-display font-black {% if match.winner_id == match.participant2_id %}text-yellow-400{% else %}text-white{% endif %}">{{ match.participant2_score }}</span>
+                </div>
+                {% if match.state == 'completed' %}
+                <p class="text-[10px] text-emerald-400 font-bold uppercase mt-1">Final</p>
+                {% elif match.state == 'live' %}
+                <p class="text-[10px] text-red-400 font-bold uppercase mt-1 animate-pulse">Live</p>
+                {% endif %}
+                {% else %}
+                <span class="text-3xl font-display font-black text-gray-600">VS</span>
+                {% if match.scheduled_time %}
+                <p class="text-[10px] text-gray-500 mt-2">{{ match.scheduled_time|date:"M d, g:i A" }}</p>
+                {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- Participant 2 -->
+            <div class="text-center {% if match.state == 'completed' and match.winner_id != match.participant2_id %}loser-fade{% endif %}">
+                <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 rounded-full bg-white/[0.05] border-2 {% if user_side == 2 %}game-border{% elif match.winner_id == match.participant2_id %}border-yellow-500/50{% else %}border-white/10{% endif %} flex items-center justify-center relative">
+                    <span class="text-xl sm:text-2xl font-display font-black text-white">{{ match.participant2_name|truncatechars:2|upper }}</span>
+                    {% if user_side == 2 %}
+                    <span class="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full text-[8px] font-bold game-bg text-white">YOU</span>
+                    {% endif %}
+                    {% if match.participant2_checked_in %}
+                    <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#030303] flex items-center justify-center">
+                        <i data-lucide="check" class="w-2.5 h-2.5 text-white"></i>
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-sm font-display font-bold text-white truncate">{{ match.participant2_name|default:"TBD" }}</p>
+                {% if match.winner_id == match.participant2_id %}
+                <span class="text-[10px] text-yellow-400 font-bold"><i data-lucide="trophy" class="w-3 h-3 inline"></i> Winner</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!--       PHASE-SPECIFIC CONTENT            -->
+    <!-- ═══════════════════════════════════════ -->
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- MAIN CONTENT (2/3) -->
+        <div class="lg:col-span-2 space-y-6">
+
+            {% if match_phase == 'pre_match' %}
+            <!-- ████ PRE-MATCH PHASE ████ -->
+
+            <!-- Countdown -->
+            {% if countdown_target %}
+            <div class="glass rounded-2xl p-6 text-center slide-up slide-up-2">
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-3">Match Starts In</p>
+                <div id="match-countdown" class="text-4xl font-display font-black text-white" style="animation: countdown-pulse 2s ease-in-out infinite;">
+                    --:--:--
+                </div>
+                {% if match.scheduled_time %}
+                <p class="text-xs text-gray-500 mt-2">{{ match.scheduled_time|date:"l, M d · g:i A" }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Check-In Card -->
+            {% if match.state == 'check_in' or match.state == 'scheduled' %}
+            <div class="glass rounded-2xl p-6 slide-up slide-up-2">
+                <div class="flex items-center gap-2 mb-4">
+                    <i data-lucide="user-check" class="w-5 h-5 game-accent"></i>
+                    <h3 class="text-sm font-display font-bold text-white uppercase tracking-widest">Match Check-In</h3>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-5">
+                    <div class="p-3 rounded-xl bg-white/[0.02] text-center">
+                        <div class="w-8 h-8 mx-auto mb-2 rounded-full {% if match.participant1_checked_in %}bg-emerald-500/20 border-emerald-500/30{% else %}bg-white/5 border-white/10{% endif %} border flex items-center justify-center">
+                            {% if match.participant1_checked_in %}
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+                            {% else %}
+                            <i data-lucide="clock" class="w-4 h-4 text-gray-600"></i>
+                            {% endif %}
+                        </div>
+                        <p class="text-xs font-bold {% if match.participant1_checked_in %}text-emerald-400{% else %}text-gray-500{% endif %}">{{ match.participant1_name|default:"P1" }}</p>
+                        <p class="text-[10px] {% if match.participant1_checked_in %}text-emerald-400/60{% else %}text-gray-600{% endif %}">
+                            {% if match.participant1_checked_in %}Ready{% else %}Waiting{% endif %}
+                        </p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-white/[0.02] text-center">
+                        <div class="w-8 h-8 mx-auto mb-2 rounded-full {% if match.participant2_checked_in %}bg-emerald-500/20 border-emerald-500/30{% else %}bg-white/5 border-white/10{% endif %} border flex items-center justify-center">
+                            {% if match.participant2_checked_in %}
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+                            {% else %}
+                            <i data-lucide="clock" class="w-4 h-4 text-gray-600"></i>
+                            {% endif %}
+                        </div>
+                        <p class="text-xs font-bold {% if match.participant2_checked_in %}text-emerald-400{% else %}text-gray-500{% endif %}">{{ match.participant2_name|default:"P2" }}</p>
+                        <p class="text-[10px] {% if match.participant2_checked_in %}text-emerald-400/60{% else %}text-gray-600{% endif %}">
+                            {% if match.participant2_checked_in %}Ready{% else %}Waiting{% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                {% if user_side and not user_checked_in %}
+                <form method="post" action="{% url 'tournaments:match_room_checkin' tournament.slug match.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="checkin-btn w-full py-3 rounded-xl text-white font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i> Check In Now
+                    </button>
+                </form>
+                {% elif user_checked_in %}
+                <div class="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-bold text-center flex items-center justify-center gap-2">
+                    <i data-lucide="check-circle-2" class="w-4 h-4"></i> You're Checked In
+                </div>
+                {% endif %}
+
+                {% if checkin_deadline %}
+                <p class="text-[10px] text-gray-600 text-center mt-3">
+                    Check-in deadline: {{ match.check_in_deadline|date:"g:i A" }}
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% elif match_phase == 'live' %}
+            <!-- ████ LIVE MATCH PHASE ████ -->
+
+            <!-- Submit Result CTA -->
+            {% if can_submit_result %}
+            <div class="glass rounded-2xl p-6 game-glow slide-up slide-up-2">
+                <div class="flex items-center gap-2 mb-3">
+                    <i data-lucide="send" class="w-5 h-5 game-accent"></i>
+                    <h3 class="text-sm font-display font-bold text-white uppercase tracking-widest">Submit Result</h3>
+                </div>
+                <p class="text-xs text-gray-400 mb-4">Match finished? Submit your score to proceed.</p>
+                <a href="{% url 'tournaments:submit_result' tournament.slug match.id %}"
+                   class="checkin-btn w-full py-3 rounded-xl text-white font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 no-underline">
+                    <i data-lucide="send" class="w-4 h-4"></i> Submit Match Result
+                </a>
+                <div class="mt-3 text-center">
+                    <a href="{% url 'tournaments:report_dispute' tournament.slug match.id %}"
+                       class="text-[10px] text-gray-500 hover:text-red-400 transition inline-flex items-center gap-1">
+                        <i data-lucide="alert-triangle" class="w-3 h-3"></i> Report Issue / Dispute
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% elif match_phase == 'post_match' %}
+            <!-- ████ POST-MATCH PHASE ████ -->
+
+            <!-- Result Banner -->
+            <div class="glass rounded-2xl p-8 text-center slide-up slide-up-2 {% if is_winner %}winner-glow{% endif %}">
+                {% if is_winner == True %}
+                <span class="text-5xl mb-3 block">🏆</span>
+                <h2 class="text-2xl font-display font-black text-yellow-400 mb-1">Victory!</h2>
+                <p class="text-sm text-gray-400">You won the match. Well played!</p>
+                {% elif is_winner == False %}
+                <span class="text-5xl mb-3 block">💪</span>
+                <h2 class="text-2xl font-display font-black text-white mb-1">Match Over</h2>
+                <p class="text-sm text-gray-400">Better luck next time. Keep grinding!</p>
+                {% else %}
+                <h2 class="text-2xl font-display font-black text-white mb-1">Match Completed</h2>
+                <p class="text-sm text-gray-400">Final score: {{ match.participant1_score }} - {{ match.participant2_score }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Next Match Link -->
+            {% if next_match %}
+            <div class="glass rounded-2xl p-5 slide-up slide-up-3">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Next Match</p>
+                        <p class="text-sm text-white font-bold">
+                            {{ next_match.participant1_name|default:"TBD" }} vs {{ next_match.participant2_name|default:"TBD" }}
+                        </p>
+                        {% if next_match.scheduled_time %}
+                        <p class="text-[10px] text-gray-500 mt-0.5">{{ next_match.scheduled_time|date:"M d, g:i A" }}</p>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'tournaments:match_room' tournament.slug next_match.id %}"
+                       class="checkin-btn px-5 py-2.5 rounded-xl text-white text-xs font-bold uppercase tracking-widest no-underline flex items-center gap-1.5">
+                        Enter Room <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <!-- ████ ENDED / FORFEIT / CANCELLED / DISPUTED ████ -->
+            <div class="glass rounded-2xl p-8 text-center slide-up slide-up-2">
+                <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                    {% if match.state == 'forfeit' %}
+                    <i data-lucide="flag" class="w-6 h-6 text-red-400"></i>
+                    {% elif match.state == 'disputed' %}
+                    <i data-lucide="alert-triangle" class="w-6 h-6 text-yellow-400"></i>
+                    {% else %}
+                    <i data-lucide="x-circle" class="w-6 h-6 text-red-400"></i>
+                    {% endif %}
+                </div>
+                <h2 class="text-xl font-display font-black text-white mb-1">{{ match.get_state_display }}</h2>
+                <p class="text-sm text-gray-400">
+                    {% if match.state == 'forfeit' %}A participant forfeited the match.
+                    {% elif match.state == 'disputed' %}This match is under dispute review.
+                    {% elif match.state == 'cancelled' %}This match has been cancelled.
+                    {% else %}This match has ended.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- SIDEBAR (1/3) -->
+        <div class="space-y-4">
+
+            <!-- Lobby Info (participants only) -->
+            {% if lobby_code or lobby_password or lobby_map or lobby_server or lobby_game_mode %}
+            <div class="glass rounded-2xl p-5 slide-up slide-up-2">
+                <div class="flex items-center gap-2 mb-3">
+                    <i data-lucide="key-round" class="w-4 h-4 text-yellow-400"></i>
+                    <h4 class="text-[10px] font-bold text-yellow-400 uppercase tracking-widest">Lobby Info</h4>
+                    <span class="text-[8px] text-gray-600 ml-auto">Participants only</span>
+                </div>
+                <div class="space-y-2.5">
+                    {% if lobby_code %}
+                    <div class="lobby-code-box p-3 rounded-lg">
+                        <p class="text-[10px] text-yellow-400/60 uppercase tracking-widest mb-0.5">Lobby Code</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-sm font-mono font-bold text-yellow-300" id="lobby-code-text">{{ lobby_code }}</p>
+                            <button onclick="navigator.clipboard.writeText('{{ lobby_code }}').then(() => this.innerHTML = '<i data-lucide=\'check\' class=\'w-3.5 h-3.5\'></i>')" class="text-yellow-400/50 hover:text-yellow-400 transition">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if lobby_password %}
+                    <div class="lobby-code-box p-3 rounded-lg">
+                        <p class="text-[10px] text-yellow-400/60 uppercase tracking-widest mb-0.5">Password</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-sm font-mono font-bold text-yellow-300" id="lobby-pass-text">{{ lobby_password }}</p>
+                            <button onclick="navigator.clipboard.writeText('{{ lobby_password }}').then(() => this.innerHTML = '<i data-lucide=\'check\' class=\'w-3.5 h-3.5\'></i>')" class="text-yellow-400/50 hover:text-yellow-400 transition">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if lobby_map %}
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-500">Map</span>
+                        <span class="text-white font-bold">{{ lobby_map }}</span>
+                    </div>
+                    {% endif %}
+                    {% if lobby_server %}
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-500">Server</span>
+                        <span class="text-white font-bold">{{ lobby_server }}</span>
+                    </div>
+                    {% endif %}
+                    {% if lobby_game_mode %}
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-500">Mode</span>
+                        <span class="text-white font-bold">{{ lobby_game_mode }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Match Details -->
+            <div class="glass rounded-2xl p-5 slide-up slide-up-3">
+                <div class="flex items-center gap-2 mb-3">
+                    <i data-lucide="info" class="w-4 h-4 text-gray-500"></i>
+                    <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Match Details</h4>
+                </div>
+                <div class="space-y-2.5 text-xs">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">State</span>
+                        <span class="text-white font-bold">{{ match.get_state_display }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Round</span>
+                        <span class="text-white font-bold">{{ match.round_number }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Match #</span>
+                        <span class="text-white font-mono font-bold">{{ match.match_number }}</span>
+                    </div>
+                    {% if match.scheduled_time %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Scheduled</span>
+                        <span class="text-white font-semibold">{{ match.scheduled_time|date:"M d, g:i A" }}</span>
+                    </div>
+                    {% endif %}
+                    {% if match.stream_url %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Stream</span>
+                        <a href="{{ match.stream_url }}" target="_blank" class="game-accent font-bold hover:text-white transition text-right truncate ml-2">Watch →</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Game Info -->
+            {% if game %}
+            <div class="glass rounded-2xl p-5 slide-up slide-up-3">
+                <div class="flex items-center gap-2 mb-3">
+                    <i data-lucide="gamepad-2" class="w-4 h-4 game-accent"></i>
+                    <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Game</h4>
+                </div>
+                <div class="flex items-center gap-3">
+                    {% if game.icon %}
+                    <img src="{{ game.icon.url }}" alt="{{ game.name }}" class="w-10 h-10 rounded-lg object-cover border border-white/10">
+                    {% endif %}
+                    <div>
+                        <p class="text-sm font-bold text-white">{{ game.name }}</p>
+                        {% if tournament.platform %}
+                        <p class="text-[10px] text-gray-500">{{ tournament.get_platform_display|default:tournament.platform }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Quick Links -->
+            <div class="glass rounded-2xl p-5 slide-up slide-up-3">
+                <div class="flex items-center gap-2 mb-3">
+                    <i data-lucide="link" class="w-4 h-4 text-gray-500"></i>
+                    <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Quick Links</h4>
+                </div>
+                <div class="space-y-1.5">
+                    <a href="{% url 'tournaments:detail' tournament.slug %}" class="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition py-1.5">
+                        <i data-lucide="trophy" class="w-3.5 h-3.5"></i> Tournament Page
+                    </a>
+                    <a href="{% url 'tournaments:bracket' tournament.slug %}" class="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition py-1.5">
+                        <i data-lucide="git-branch" class="w-3.5 h-3.5"></i> Full Bracket
+                    </a>
+                    <a href="{% url 'tournaments:match_detail' tournament.slug match.id %}" class="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition py-1.5">
+                        <i data-lucide="eye" class="w-3.5 h-3.5"></i> Public Match Page
+                    </a>
+                    {% if can_submit_result %}
+                    <a href="{% url 'tournaments:submit_result' tournament.slug match.id %}" class="flex items-center gap-2 text-xs game-accent hover:text-white transition py-1.5 font-bold">
+                        <i data-lucide="send" class="w-3.5 h-3.5"></i> Submit Result
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+{% if countdown_target %}
+(function() {
+    const target = new Date("{{ countdown_target }}");
+    const el = document.getElementById('match-countdown');
+    if (!el) return;
+    function tick() {
+        const now = new Date();
+        const diff = target - now;
+        if (diff <= 0) { el.textContent = 'STARTING NOW'; return; }
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        el.textContent = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+        requestAnimationFrame(tick);
+    }
+    tick();
+})();
+{% endif %}
+
+{% if match_phase == 'pre_match' or match_phase == 'live' %}
+// Auto-refresh every 30s for real-time state updates
+setTimeout(() => location.reload(), 30000);
+{% endif %}
+</script>
+{% endblock %}

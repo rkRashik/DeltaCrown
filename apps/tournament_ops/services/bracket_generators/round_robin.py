@@ -98,12 +98,12 @@ class RoundRobinGenerator:
                 stage_id=stage.id if stage.id else 0,
                 round_number=current_round,
                 match_number=round_match_count + 1,
-                stage_type="main",  # Round-robin has single pool
-                team1_id=team1.id,
-                team2_id=team2.id,
+                stage_type="main",
+                team_a_id=team1.id,
+                team_b_id=team2.id,
                 team1_name=team1.name,
                 team2_name=team2.name,
-                status="pending",
+                state="pending",
                 metadata={
                     "bracket_type": "round_robin",
                     "total_rounds": participant_count - 1 if participant_count % 2 == 0 else participant_count,

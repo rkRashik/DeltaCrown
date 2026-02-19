@@ -1,0 +1,59 @@
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
+
+{% block title %}Registration Complete — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_content %}
+<div class="min-h-[80vh] flex items-center justify-center px-4 py-12">
+    <div class="max-w-md w-full text-center space-y-6">
+        <!-- Success animation -->
+        <div class="relative inline-block">
+            <div class="w-24 h-24 rounded-full border-2 border-emerald-500/30 flex items-center justify-center mx-auto" style="background: rgba(16, 185, 129, 0.1); animation: successPulse 2s ease-in-out infinite;">
+                <i data-lucide="check" class="w-12 h-12 text-emerald-400"></i>
+            </div>
+        </div>
+
+        <div>
+            <h1 class="text-3xl font-display font-black text-white mb-2">You're In!</h1>
+            <p class="text-sm text-gray-400">You've been successfully registered for <span class="text-white font-semibold">{{ tournament.name }}</span>.</p>
+        </div>
+
+        <!-- Next Steps -->
+        <div class="rounded-xl border border-white/8 p-5 text-left space-y-3" style="background: rgba(12, 12, 18, 0.8);">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">What's Next</h3>
+            <div class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span class="text-[10px] text-emerald-400 font-bold">1</span>
+                </div>
+                <p class="text-sm text-gray-300">Join the tournament lobby for important updates.</p>
+            </div>
+            <div class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span class="text-[10px] text-emerald-400 font-bold">2</span>
+                </div>
+                <p class="text-sm text-gray-300">Complete check-in when the tournament is about to start (if required).</p>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col gap-3">
+            <a href="/tournaments/{{ tournament.slug }}/lobby/"
+               class="block w-full py-3.5 rounded-xl text-sm font-bold uppercase tracking-wider text-center text-black"
+               style="background: linear-gradient(135deg, #10b981, #059669);">
+                Enter Lobby
+            </a>
+            <a href="/tournaments/{{ tournament.slug }}/"
+               class="block w-full py-3 rounded-xl border border-white/10 text-sm font-semibold text-gray-400 text-center hover:bg-white/5 transition">
+                View Tournament
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes successPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.2); }
+    50% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+}
+</style>
+{% endblock %}

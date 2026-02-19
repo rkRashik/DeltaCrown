@@ -1,5 +1,7 @@
 # apps/siteui/templatetags/dc_avatar.py
+import os
 from django import template
+from django.conf import settings
 from urllib.parse import quote
 
 register = template.Library()
@@ -91,13 +93,19 @@ def user_avatar_url(user, default=None):
             if v:
                 candidates.append(getattr(v, "url", v))
 
-    # Return the first non-empty string
+    # Return the first non-empty string whose file actually exists
     for c in candidates:
         if not c:
             continue
         url = getattr(c, "url", None)
         s = url if url else str(c)
         if s.strip():
+            # Verify the media file exists on disk to prevent 404s
+            if s.startswith(settings.MEDIA_URL):
+                rel_path = s[len(settings.MEDIA_URL):]
+                full_path = os.path.join(settings.MEDIA_ROOT, rel_path)
+                if not os.path.isfile(full_path):
+                    continue  # skip missing files
             return s
 
     # No avatar found - generate modern initials avatar

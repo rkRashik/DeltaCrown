@@ -46,7 +46,7 @@ class SoloRegistrationDemoView(LoginRequiredMixin, View):
             # Player Information Step
             context['step_title'] = 'Player Information'
             context['step_description'] = 'Tell us about yourself'
-            template = 'tournaments/registration_demo/solo_step1_new.html'
+            template = 'tournaments/registration_demo/solo_step1_enhanced.html'
             
         elif step == '2':
             # Review & Accept Terms Step
@@ -55,7 +55,7 @@ class SoloRegistrationDemoView(LoginRequiredMixin, View):
             # Get data from session
             player_data = request.session.get(f'registration_demo_{tournament.id}_player', {})
             context['registration_data'] = player_data  # Use registration_data for new templates
-            template = 'tournaments/registration_demo/solo_step2_new.html'
+            template = 'tournaments/registration_demo/solo_step2.html'
             
         elif step == '3':
             # Payment Step
@@ -63,7 +63,7 @@ class SoloRegistrationDemoView(LoginRequiredMixin, View):
             context['step_description'] = 'Complete your registration'
             context['entry_fee'] = tournament.entry_fee_amount if tournament.has_entry_fee else 500
             context['currency'] = tournament.entry_fee_currency if tournament.has_entry_fee else 'BDT'
-            template = 'tournaments/registration_demo/solo_step3_simple.html'
+            template = 'tournaments/registration_demo/solo_step3.html'
         
         return render(request, template, context)
     
@@ -135,20 +135,17 @@ class TeamRegistrationView(LoginRequiredMixin, View):
         # Also check if user's teams are registered
         if not existing_registration:
             try:
-                from apps.user_profile.models import UserProfile
-                user_profile = UserProfile.objects.filter(user=request.user).first()
-                if user_profile:
-                    from apps.organizations.models import TeamMembership
-                    user_team_ids = TeamMembership.objects.filter(
-                        profile=user_profile,
-                        status=TeamMembership.Status.ACTIVE
-                    ).values_list('team_id', flat=True)
-                    
-                    existing_registration = Registration.objects.filter(
-                        tournament=tournament,
-                        team_id__in=user_team_ids,
-                        is_deleted=False
-                    ).exclude(status__in=[Registration.CANCELLED, Registration.REJECTED]).first()
+                from apps.organizations.models import TeamMembership
+                user_team_ids = TeamMembership.objects.filter(
+                    user=request.user,
+                    status=TeamMembership.Status.ACTIVE
+                ).values_list('team_id', flat=True)
+
+                existing_registration = Registration.objects.filter(
+                    tournament=tournament,
+                    team_id__in=user_team_ids,
+                    is_deleted=False
+                ).exclude(status__in=[Registration.CANCELLED, Registration.REJECTED]).first()
             except Exception as e:
                 import traceback
                 print(f"Error checking team registrations: {e}")
@@ -190,7 +187,17 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                     status='ACTIVE'
                 ).distinct()
                 
-                if not user_teams.exists():
+                # Also include org teams where user is CEO (even without membership)
+                from apps.organizations.models import Organization
+                ceo_org_ids = list(Organization.objects.filter(ceo=request.user).values_list('id', flat=True))
+                ceo_teams = Team.objects.filter(
+                    game_id=tournament.game_id,
+                    organization_id__in=ceo_org_ids,
+                    status='ACTIVE'
+                ).exclude(id__in=user_teams.values_list('id', flat=True))
+                all_teams = list(user_teams) + list(ceo_teams)
+                
+                if not all_teams:
                     eligibility_error = f"You are not a member of any active {tournament.game.name} team. Please join or create a team to participate in this tournament."
                     error_type = 'no_team'
                     error_context = {
@@ -202,18 +209,26 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                     user_membership = None
                     captain_name = None
                     
-                    for team in user_teams:
+                    for team in all_teams:
                         membership = TeamMembership.objects.filter(
                             team=team, 
                             user=user_profile.user,
                             status=TeamMembership.Status.ACTIVE
                         ).first()
                         
+                        # CEO of the team's org gets automatic permission
+                        is_ceo = team.organization_id and team.organization_id in ceo_org_ids
+                        
+                        if is_ceo:
+                            user_team = team
+                            user_membership = membership
+                            break
+                        
                         if membership and (membership.role in [
                             TeamMembership.Role.OWNER,
                             TeamMembership.Role.MANAGER, 
                             TeamMembership.Role.CAPTAIN
-                        ]):
+                        ] or membership.has_permission('register_tournaments')):
                             user_team = team
                             user_membership = membership
                             break
@@ -309,14 +324,14 @@ class TeamRegistrationView(LoginRequiredMixin, View):
             context['step_description'] = 'Confirm your team roster'
             context['user_team'] = user_team
             context['team_members'] = team_members
-            template = 'tournaments/team_registration/team_step1_new.html'
+            template = 'tournaments/registration_demo/team_step1_enhanced.html'
             
         elif step == '2':
             context['step_title'] = 'Review & Agreements'
             context['step_description'] = 'Confirm team roster'
             team_data = request.session.get(f'team_registration_{tournament.id}', {})
             context['registration_data'] = team_data  # Use registration_data for new templates
-            template = 'tournaments/team_registration/team_step2_new.html'
+            template = 'tournaments/registration_demo/team_step2.html'
             
         elif step == '3':
             # Payment Step
@@ -325,7 +340,7 @@ class TeamRegistrationView(LoginRequiredMixin, View):
             # For team tournaments, use entry_fee_amount (could be team-specific)
             context['team_entry_fee'] = tournament.entry_fee_amount if tournament.has_entry_fee else 0
             context['currency'] = tournament.entry_fee_currency if tournament.has_entry_fee else 'BDT'
-            template = 'tournaments/team_registration/team_step3_new.html'
+            template = 'tournaments/registration_demo/team_step3.html'
         
         return render(request, template, context)
     
@@ -353,8 +368,24 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                     status='ACTIVE'
                 ).distinct()
                 
+                # Also include org teams where user is CEO
+                from apps.organizations.models import Organization
+                ceo_org_ids = list(Organization.objects.filter(ceo=request.user).values_list('id', flat=True))
+                ceo_teams = Team.objects.filter(
+                    game_id=tournament.game_id,
+                    organization_id__in=ceo_org_ids,
+                    status='ACTIVE'
+                ).exclude(id__in=user_teams.values_list('id', flat=True))
+                all_teams = list(user_teams) + list(ceo_teams)
+                
                 # Find first team where user has registration permission
-                for team in user_teams:
+                for team in all_teams:
+                    # CEO of the team's org gets automatic permission
+                    is_ceo = team.organization_id and team.organization_id in ceo_org_ids
+                    if is_ceo:
+                        user_team = team
+                        break
+                    
                     membership = TeamMembership.objects.filter(
                         team=team, 
                         user=user_profile.user,
@@ -365,7 +396,7 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                         TeamMembership.Role.OWNER,
                         TeamMembership.Role.MANAGER, 
                         TeamMembership.Role.CAPTAIN
-                    ]):
+                    ] or membership.has_permission('register_tournaments')):
                         user_team = team
                         break
             

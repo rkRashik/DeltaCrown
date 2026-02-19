@@ -93,8 +93,8 @@
       {% nav_active '/community/' '/community' as community_active %}
       <div class="dc-nav-item{% if community_active %} active{% endif %}"><a href="/community/" class="dc-nav-link" {% if community_active %}aria-current="page"{% endif %}>Community</a></div>
 
-      {% nav_active '/watch/' '/arena' as arena_active %}
-      <div class="dc-nav-item{% if arena_active %} active{% endif %}"><a href="/watch/" class="dc-nav-link flex items-center gap-2" {% if arena_active %}aria-current="page"{% endif %}>Arena <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" aria-hidden="true"></span></a></div>
+      {% nav_active '/arena/' '/watch/' as arena_active %}
+      <div class="dc-nav-item{% if arena_active %} active{% endif %}"><a href="/arena/" class="dc-nav-link flex items-center gap-2" {% if arena_active %}aria-current="page"{% endif %}>Arena <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" aria-hidden="true"></span></a></div>
 
       {% nav_active '/crownstore/' '/crownstore' as store_active %}
       <div class="dc-nav-item{% if store_active %} active{% endif %}"><a href="/crownstore/" class="dc-nav-link text-yellow-400/90 hover:text-white" {% if store_active %}aria-current="page"{% endif %}>Store</a></div>
@@ -194,8 +194,8 @@
   <a href="/dashboard/" class="dc-btm-item {% if dashboard_active %}active{% endif %}" {% if dashboard_active %}aria-current="page"{% endif %}>
     <i class="fa-solid fa-chart-pie"></i><span>Dash</span>
   </a>{% endif %}
-  {% nav_active '/watch/' '/arena' as arena_active %}
-  <a href="/watch/" class="dc-btm-item {% if arena_active %}active{% endif %}" {% if arena_active %}aria-current="page"{% endif %}>
+  {% nav_active '/arena/' '/watch/' as arena_active %}
+  <a href="/arena/" class="dc-btm-item {% if arena_active %}active{% endif %}" {% if arena_active %}aria-current="page"{% endif %}>
     <i class="fa-solid fa-gamepad"></i><span>Arena</span>
   </a>
   {% nav_active '/crownstore/' '/crownstore' as store_active %}

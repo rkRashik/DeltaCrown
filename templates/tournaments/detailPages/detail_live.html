@@ -1,0 +1,432 @@
+{% extends "tournaments/detailPages/_base_detail.html" %}
+{% load static humanize %}
+
+{% comment %}
+Tournament Detail — Live Phase
+Status: live
+
+Inspired by FotMob live matches + VCT brackets:
+- Active match cards with live scores
+- Match progress bar (Round X of Y)
+- Live bracket mini-view
+- Scoreboard with all matches
+- Stream embed
+- Participant's "Your Next Match" CTA
+{% endcomment %}
+
+{% block phase_css %}
+/* Live Phase Specifics */
+@keyframes liveGlow {
+    0%, 100% { box-shadow: 0 0 15px rgba(239,68,68,0.2); }
+    50% { box-shadow: 0 0 30px rgba(239,68,68,0.4); }
+}
+.live-glow { animation: liveGlow 2s ease-in-out infinite; }
+
+@keyframes scorePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+.score-pulse { animation: scorePulse 0.5s ease-in-out; }
+
+.live-badge {
+    background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);
+    color: #f87171; font-size: 10px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.1em; padding: 3px 10px; border-radius: 4px;
+    display: inline-flex; align-items: center; gap: 6px;
+}
+
+/* Bracket connector lines */
+.bracket-connector {
+    position: relative;
+}
+.bracket-connector::after {
+    content: ''; position: absolute; right: -12px; top: 50%;
+    width: 12px; height: 2px; background: rgba(255,255,255,0.1);
+}
+
+/* Match card states */
+.match-live { border-left: 3px solid #ef4444; }
+.match-completed { border-left: 3px solid #10b981; }
+.match-upcoming { border-left: 3px solid rgba(255,255,255,0.1); }
+
+@keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+.slide-in { animation: slideIn 0.4s ease-out both; }
+.slide-in-1 { animation-delay: 0.05s; }
+.slide-in-2 { animation-delay: 0.1s; }
+.slide-in-3 { animation-delay: 0.15s; }
+.slide-in-4 { animation-delay: 0.2s; }
+{% endblock %}
+
+{% block phase_nav %}
+<!-- Live Tournament Sub-Nav -->
+<div class="sticky top-[64px] z-40 backdrop-blur-xl border-b border-red-500/10" style="background: rgba(6,6,8,0.95);">
+    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between py-3">
+            <div class="flex items-center gap-6 overflow-x-auto no-scrollbar">
+                <div class="live-badge">
+                    <span class="relative flex h-2 w-2"><span class="animate-ping absolute h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative rounded-full h-2 w-2 bg-red-500"></span></span>
+                    Live
+                </div>
+                <button class="phase-tab active text-white text-xs font-bold uppercase tracking-widest pb-1 border-b-2 transition-all" style="border-color: #ef4444;" onclick="scrollToSection('matches')">Matches</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('bracket')">Bracket</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('scoreboard')">Scoreboard</button>
+                {% if has_streams %}
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('stream')">
+                    Stream <span class="w-2 h-2 rounded-full bg-red-500 inline-block animate-pulse ml-1"></span>
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="hidden lg:flex items-center gap-4">
+                <span class="text-xs text-gray-500">
+                    <span class="text-white font-bold">{{ completed_match_count }}</span>/{{ total_match_count }} matches complete
+                </span>
+                <div class="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <div class="h-full bg-red-500 rounded-full" style="width: {{ match_progress_pct }}%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block phase_content %}
+
+<!-- YOUR NEXT MATCH (Participants Only) -->
+{% if user_next_match %}
+<div class="glass-panel p-5 rounded-2xl border-l-4 slide-in" style="border-left-color: var(--game-color);">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(var(--game-color-rgb), 0.15);">
+                <i data-lucide="swords" class="w-5 h-5 game-accent"></i>
+            </div>
+            <div>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Your Next Match</p>
+                <p class="text-sm font-bold text-white">
+                    {% if user_next_match.state == 'live' %}
+                    <span class="text-red-400">IN PROGRESS</span>
+                    {% else %}
+                    Round {{ user_next_match.round_number }} · Match #{{ user_next_match.match_number }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <a href="/tournaments/{{ tournament.slug }}/matches/{{ user_next_match.id }}/"
+           class="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all hover:scale-105"
+           style="background: var(--game-color); color: black;">
+            {% if user_next_match.state == 'live' %}Enter Match{% else %}View Match{% endif %}
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- TOURNAMENT PROGRESS -->
+<div class="glass-panel p-5 rounded-2xl slide-in slide-in-1">
+    <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+            <i data-lucide="activity" class="w-5 h-5 text-red-400"></i>
+            <h3 class="text-base font-display font-bold text-white">Tournament Progress</h3>
+        </div>
+        <span class="text-xs text-gray-400">
+            {% if current_round and total_rounds %}
+            Round {{ current_round }} of {{ total_rounds }}
+            {% endif %}
+        </span>
+    </div>
+    <div class="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+        <div class="h-full rounded-full transition-all duration-700 relative" style="width: {{ match_progress_pct }}%; background: linear-gradient(90deg, #ef4444, #f97316);">
+            <div class="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+        </div>
+    </div>
+    <div class="flex justify-between mt-2 text-[10px] text-gray-500">
+        <span>{{ completed_match_count }} completed</span>
+        <span>{{ live_match_count }} live now</span>
+        <span>{{ total_match_count }} total</span>
+    </div>
+</div>
+
+<!-- ACTIVE MATCHES (FotMob-style live cards) -->
+<div id="section-matches" class="space-y-3 slide-in slide-in-2">
+    <div class="flex items-center gap-2 mb-2">
+        <i data-lucide="zap" class="w-5 h-5 text-red-400"></i>
+        <h3 class="text-base font-display font-bold text-white">Live Matches</h3>
+        {% if live_match_count > 0 %}
+        <span class="live-badge ml-2">{{ live_match_count }} Live</span>
+        {% endif %}
+    </div>
+
+    {% for m in matches %}
+    {% if m.is_live %}
+    <!-- Live Match Card -->
+    <div class="section-card match-live p-4 rounded-xl live-glow" id="match-{{ m.id }}">
+        <div class="flex items-center justify-between mb-3">
+            <span class="live-badge">
+                <span class="relative flex h-1.5 w-1.5"><span class="animate-ping absolute h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative rounded-full h-1.5 w-1.5 bg-red-500"></span></span>
+                Live
+            </span>
+            <span class="text-[10px] text-gray-500 font-mono">{{ m.stage_label }}</span>
+        </div>
+
+        <div class="flex items-center justify-between gap-4">
+            <!-- Team 1 -->
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+                {% if m.team1_logo_url %}
+                <img src="{{ m.team1_logo_url }}" alt="" class="w-10 h-10 rounded-lg object-cover border border-white/10">
+                {% else %}
+                <div class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-xs font-black" style="color: var(--game-color);">{{ m.team1_name|truncatechars:2|upper }}</div>
+                {% endif %}
+                <span class="text-sm font-bold text-white truncate {% if m.team1_is_winner %}game-accent{% endif %}">{{ m.team1_name }}</span>
+            </div>
+
+            <!-- Score -->
+            <div class="flex items-center gap-3 flex-shrink-0">
+                <span class="text-3xl font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-400{% endif %}">{{ m.score1|default:"0" }}</span>
+                <span class="text-lg text-gray-600 font-bold">-</span>
+                <span class="text-3xl font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-400{% endif %}">{{ m.score2|default:"0" }}</span>
+            </div>
+
+            <!-- Team 2 -->
+            <div class="flex items-center gap-3 flex-1 min-w-0 justify-end">
+                <span class="text-sm font-bold text-white truncate text-right {% if m.team2_is_winner %}game-accent{% endif %}">{{ m.team2_name }}</span>
+                {% if m.team2_logo_url %}
+                <img src="{{ m.team2_logo_url }}" alt="" class="w-10 h-10 rounded-lg object-cover border border-white/10">
+                {% else %}
+                <div class="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-xs font-black" style="color: var(--game-color);">{{ m.team2_name|truncatechars:2|upper }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+            <span class="text-[10px] text-gray-500">{{ m.best_of_label }}</span>
+            {% if m.stream_url %}
+            <a href="{{ m.stream_url }}" target="_blank" class="text-[10px] text-red-400 hover:text-red-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                <i data-lucide="tv" class="w-3 h-3"></i> Watch
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    {% if live_match_count == 0 %}
+    <div class="section-card p-6 rounded-xl text-center">
+        <i data-lucide="pause" class="w-6 h-6 text-gray-600 mx-auto mb-2"></i>
+        <p class="text-sm text-gray-500">No matches are live right now. Check back soon!</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- UPCOMING MATCHES -->
+<div class="space-y-2 slide-in slide-in-3">
+    <div class="flex items-center gap-2 mb-2">
+        <i data-lucide="clock" class="w-4 h-4 text-gray-500"></i>
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">Upcoming</h3>
+    </div>
+
+    {% for m in matches %}
+    {% if m.status == 'upcoming' %}
+    <div class="section-card match-upcoming p-3 rounded-xl">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4 flex-1 min-w-0">
+                <div class="flex items-center gap-2 min-w-0 flex-1">
+                    {% if m.team1_logo_url %}
+                    <img src="{{ m.team1_logo_url }}" alt="" class="w-7 h-7 rounded object-cover border border-white/10">
+                    {% endif %}
+                    <span class="text-xs font-bold text-white truncate">{{ m.team1_name }}</span>
+                </div>
+                <span class="text-[10px] text-gray-600 font-bold flex-shrink-0">vs</span>
+                <div class="flex items-center gap-2 min-w-0 flex-1 justify-end">
+                    <span class="text-xs font-bold text-white truncate text-right">{{ m.team2_name }}</span>
+                    {% if m.team2_logo_url %}
+                    <img src="{{ m.team2_logo_url }}" alt="" class="w-7 h-7 rounded object-cover border border-white/10">
+                    {% endif %}
+                </div>
+            </div>
+            <div class="flex-shrink-0 ml-4 text-right">
+                <p class="text-[10px] text-gray-500 font-mono">{{ m.stage_label }}</p>
+                {% if m.starts_at_relative %}
+                <p class="text-[10px] text-gray-400">{{ m.starts_at_relative }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+
+<!-- COMPLETED MATCHES (Scoreboard) -->
+<div id="section-scoreboard" class="space-y-2 slide-in slide-in-4">
+    <div class="flex items-center gap-2 mb-2">
+        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">Results</h3>
+    </div>
+
+    {% for m in matches %}
+    {% if m.is_completed %}
+    <div class="section-card match-completed p-3 rounded-xl">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+                <div class="flex items-center gap-2 min-w-0 flex-1">
+                    {% if m.team1_logo_url %}
+                    <img src="{{ m.team1_logo_url }}" alt="" class="w-7 h-7 rounded object-cover border border-white/10">
+                    {% endif %}
+                    <span class="text-xs font-bold {% if m.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate">{{ m.team1_name }}</span>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <span class="text-base font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %}">{{ m.score1|default:"0" }}</span>
+                    <span class="text-xs text-gray-700">-</span>
+                    <span class="text-base font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %}">{{ m.score2|default:"0" }}</span>
+                </div>
+                <div class="flex items-center gap-2 min-w-0 flex-1 justify-end">
+                    <span class="text-xs font-bold {% if m.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate text-right">{{ m.team2_name }}</span>
+                    {% if m.team2_logo_url %}
+                    <img src="{{ m.team2_logo_url }}" alt="" class="w-7 h-7 rounded object-cover border border-white/10">
+                    {% endif %}
+                </div>
+            </div>
+            <span class="text-[10px] text-gray-600 ml-4 flex-shrink-0">{{ m.stage_label }}</span>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+
+<!-- BRACKET SECTION -->
+<div id="section-bracket" class="section-card p-6 sm:p-8 rounded-2xl slide-in">
+    <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="git-branch" class="w-5 h-5 game-accent"></i>
+        <h3 class="text-lg font-display font-bold text-white">Bracket</h3>
+        <a href="/tournaments/{{ tournament.slug }}/bracket/" class="ml-auto text-[10px] font-bold game-accent uppercase tracking-wider hover:text-white transition">
+            Full View →
+        </a>
+    </div>
+
+    {% if bracket %}
+    <div class="overflow-x-auto no-scrollbar">
+        <div class="min-w-[600px] flex gap-8">
+            {% regroup matches|dictsort:"round_number" by round_number as rounds %}
+            {% for round in rounds %}
+            <div class="flex-1 space-y-3">
+                <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 text-center">
+                    {% with round.grouper as rn %}
+                    {% if rn == 1 %}Final{% elif rn == 2 %}Semi-Finals{% elif rn == 3 %}Quarter-Finals{% else %}Round {{ rn }}{% endif %}
+                    {% endwith %}
+                </h4>
+                {% for m in round.list %}
+                <div class="p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center space-y-1.5 {% if m.is_live %}border-red-500/20{% endif %}">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold {% if m.team1_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate flex-1 text-left">{{ m.team1_name|truncatechars:12 }}</span>
+                        <span class="font-display font-black {% if m.team1_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-right">{% if m.show_scores %}{{ m.score1|default:"0" }}{% endif %}</span>
+                    </div>
+                    <div class="w-full h-px bg-white/5"></div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold {% if m.team2_is_winner %}text-white{% else %}text-gray-500{% endif %} truncate flex-1 text-left">{{ m.team2_name|truncatechars:12 }}</span>
+                        <span class="font-display font-black {% if m.team2_is_winner %}text-white{% else %}text-gray-600{% endif %} w-6 text-right">{% if m.show_scores %}{{ m.score2|default:"0" }}{% endif %}</span>
+                    </div>
+                    {% if m.is_live %}
+                    <span class="text-[8px] text-red-400 uppercase font-bold tracking-widest">● Live</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-8">
+        <i data-lucide="git-branch" class="w-8 h-8 text-gray-600 mx-auto mb-3"></i>
+        <p class="text-sm text-gray-500">Bracket visualization will appear here.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- STREAM EMBED -->
+{% if has_streams and featured_stream %}
+<div id="section-stream" class="section-card rounded-2xl overflow-hidden slide-in">
+    <div class="aspect-video">
+        <iframe src="{{ featured_stream.embed_url }}" class="w-full h-full" frameborder="0" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+    </div>
+    <div class="p-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <i data-lucide="tv" class="w-4 h-4 text-red-400"></i>
+            <span class="text-xs font-bold text-white">{{ featured_stream.title }}</span>
+        </div>
+        <a href="{{ featured_stream.url }}" target="_blank" class="text-[10px] font-bold text-gray-400 hover:text-white transition uppercase tracking-wider">
+            Open in {{ featured_stream.platform|title }} →
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block sidebar_cta %}
+<!-- Live Phase Sidebar CTA -->
+{% if is_registered %}
+<div class="space-y-2">
+    <a href="/tournaments/{{ tournament.slug }}/lobby/"
+       class="block w-full py-3 text-center text-sm font-black uppercase tracking-[0.1em] rounded-xl transition-all hover:scale-[1.02]"
+       style="background: var(--game-color); color: black;">
+        Enter Lobby
+    </a>
+    {% if user_next_match %}
+    <a href="/tournaments/{{ tournament.slug }}/matches/{{ user_next_match.id }}/"
+       class="block w-full py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-center text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-red-500/20 transition">
+        Go to Your Match →
+    </a>
+    {% endif %}
+</div>
+{% else %}
+<div class="w-full py-3 bg-white/5 border border-white/10 text-gray-400 font-bold uppercase tracking-[0.1em] rounded-xl text-center text-xs flex items-center justify-center gap-2">
+    <i data-lucide="eye" class="w-4 h-4"></i> Spectating
+</div>
+{% endif %}
+{% endblock %}
+
+{% block sidebar_extra %}
+<!-- Live Stats -->
+<div class="glass p-4 rounded-2xl">
+    <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1">
+        <i data-lucide="bar-chart-2" class="w-3 h-3"></i> Live Stats
+    </h4>
+    <div class="space-y-2 text-xs">
+        <div class="flex justify-between"><span class="text-gray-500">Total Matches</span><span class="text-white font-bold">{{ total_match_count }}</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Completed</span><span class="text-emerald-400 font-bold">{{ completed_match_count }}</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Live Now</span><span class="text-red-400 font-bold">{{ live_match_count }}</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Progress</span><span class="text-white font-bold">{{ match_progress_pct }}%</span></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block phase_js %}
+<script>
+    /* Auto-refresh live match scores every 15 seconds */
+    function refreshLiveScores() {
+        // TODO: Implement AJAX polling for live scores
+        // For now, just reload the page every 60s if there are live matches
+        {% if live_match_count > 0 %}
+        setTimeout(function() { location.reload(); }, 60000);
+        {% endif %}
+    }
+
+    /* Smooth scroll to section */
+    function scrollToSection(id) {
+        const el = document.getElementById('section-' + id);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            document.querySelectorAll('.phase-tab').forEach(t => {
+                t.classList.remove('active', 'text-white');
+                t.classList.add('text-gray-500');
+                t.style.borderColor = 'transparent';
+            });
+            event.target.classList.add('active', 'text-white');
+            event.target.classList.remove('text-gray-500');
+            event.target.style.borderColor = '#ef4444';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        refreshLiveScores();
+    });
+</script>
+{% endblock %}

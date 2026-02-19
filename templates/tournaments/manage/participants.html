@@ -1,0 +1,172 @@
+{% extends "tournaments/manage/_base.html" %}
+{% load humanize %}
+
+{% block manage_content %}
+
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+  <div>
+    <h2 class="text-lg font-display font-bold text-white">Participants</h2>
+    <p class="text-sm text-white/45 mt-0.5">
+      {{ registrations|length|default:"0" }} total
+      {% if reg_stats.pending %} · <span class="text-yellow-400">{{ reg_stats.pending }} pending</span>{% endif %}
+    </p>
+  </div>
+  <div class="flex items-center gap-2">
+    {% if can_approve %}
+      <button id="bulk-approve-btn" disabled
+              class="btn-primary text-xs !py-2 opacity-50 cursor-not-allowed">
+        <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+        Approve Selected
+      </button>
+    {% endif %}
+  </div>
+</div>
+
+<form method="get" class="flex flex-wrap items-center gap-3 mb-5">
+  <div class="relative flex-1 min-w-[200px] max-w-xs">
+    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/25"></i>
+    <input type="text" name="q" value="{{ request.GET.q }}"
+           placeholder="Search players…"
+           class="form-input !pl-10 !py-2.5 text-sm">
+  </div>
+  <select name="status" class="form-select !w-auto !py-2.5 text-sm">
+    <option value="">All Statuses</option>
+    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+    <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+    <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+    <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+    <option value="checked_in" {% if request.GET.status == 'checked_in' %}selected{% endif %}>Checked In</option>
+  </select>
+  <button type="submit" class="btn-secondary text-xs !py-2.5">Filter</button>
+</form>
+
+{% if registrations %}
+<div class="liquid-glass rounded-2xl overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="data-table">
+      <thead>
+        <tr>
+          {% if can_approve %}
+            <th class="w-10">
+              <input type="checkbox" id="select-all" class="rounded accent-cyan-500 cursor-pointer">
+            </th>
+          {% endif %}
+          <th>Player</th>
+          <th>Team</th>
+          <th>Status</th>
+          <th>Registered</th>
+          {% if can_approve %}<th class="text-right">Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for reg in registrations %}
+          <tr class="group">
+            {% if can_approve %}
+              <td>
+                <input type="checkbox" name="reg_ids" value="{{ reg.id }}"
+                       class="reg-checkbox rounded accent-cyan-500 cursor-pointer">
+              </td>
+            {% endif %}
+            <td>
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center text-xs font-bold text-white/60 flex-shrink-0">
+                  {{ reg.user.username|first|upper }}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm text-white/80 font-medium truncate">{{ reg.user.username }}</p>
+                  <p class="text-xs text-white/35">{{ reg.user.email|default:"" }}</p>
+                </div>
+              </div>
+            </td>
+            <td>
+              {% if reg.team %}
+                <span class="text-sm text-white/60">{{ reg.team.name }}</span>
+              {% else %}
+                <span class="text-sm text-white/25 italic">Solo</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge
+                {% if reg.status == 'confirmed' %}badge-green
+                {% elif reg.status == 'pending' %}badge-yellow
+                {% elif reg.status == 'rejected' %}badge-red
+                {% elif reg.status == 'checked_in' %}badge-cyan
+                {% elif reg.status == 'cancelled' %}badge-gray
+                {% else %}badge-gray{% endif %}">
+                {{ reg.status|title }}
+              </span>
+            </td>
+            <td class="text-white/40 text-xs font-mono">{{ reg.created_at|timesince }} ago</td>
+            {% if can_approve %}
+              <td class="text-right">
+                <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
+                  {% if reg.status == 'pending' %}
+                    <a href="{% url 'tournaments:approve_registration' tournament.slug reg.id %}"
+                       title="Approve"
+                       class="p-1.5 rounded-lg hover:bg-emerald-500/15 text-white/30 hover:text-emerald-400 transition">
+                      <i data-lucide="check" class="w-4 h-4"></i>
+                    </a>
+                    <a href="{% url 'tournaments:reject_registration' tournament.slug reg.id %}"
+                       title="Reject"
+                       class="p-1.5 rounded-lg hover:bg-red-500/15 text-white/30 hover:text-red-400 transition">
+                      <i data-lucide="x" class="w-4 h-4"></i>
+                    </a>
+                  {% elif reg.status == 'confirmed' %}
+                    <button title="Check In"
+                            class="p-1.5 rounded-lg hover:bg-cyan-500/15 text-white/30 hover:text-cyan-400 transition">
+                      <i data-lucide="log-in" class="w-4 h-4"></i>
+                    </button>
+                  {% endif %}
+                </div>
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="liquid-glass rounded-2xl">
+  <div class="empty-state py-16">
+    <i data-lucide="users" class="w-12 h-12 mx-auto"></i>
+    <p>No participants found</p>
+    <p class="sub">Registrations will appear here when players sign up.</p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  var selectAll = document.getElementById('select-all');
+  var bulkBtn = document.getElementById('bulk-approve-btn');
+  var checkboxes = document.querySelectorAll('.reg-checkbox');
+
+  function updateBulkBtn() {
+    if (!bulkBtn) return;
+    var checked = document.querySelectorAll('.reg-checkbox:checked').length;
+    if (checked > 0) {
+      bulkBtn.disabled = false;
+      bulkBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    } else {
+      bulkBtn.disabled = true;
+      bulkBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+  }
+
+  if (selectAll) {
+    selectAll.addEventListener('change', function() {
+      checkboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
+      updateBulkBtn();
+    });
+  }
+
+  checkboxes.forEach(function(cb) {
+    cb.addEventListener('change', updateBulkBtn);
+  });
+})();
+</script>
+{% endblock %}

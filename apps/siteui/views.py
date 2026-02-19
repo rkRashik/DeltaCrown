@@ -773,6 +773,39 @@ def watch(request):
         page_obj = paginator.page(1)
         vods = page_obj.object_list
 
+    # ── Arena Scoreboard: live matches across all tournaments ──
+    arena_live_matches = []
+    arena_live_tournaments = []
+    try:
+        from apps.tournaments.models import Tournament, Match
+        live_t = Tournament.objects.filter(
+            status='live', is_deleted=False
+        ).select_related('game').order_by('-tournament_start')[:8]
+        for t in live_t:
+            arena_live_tournaments.append({
+                'id': t.id, 'name': t.name, 'slug': t.slug,
+                'game_name': t.game.name if t.game else '',
+            })
+        live_m = Match.objects.filter(
+            tournament__status='live', state__in=['live', 'check_in', 'ready'],
+            is_deleted=False,
+        ).select_related('tournament', 'tournament__game').order_by(
+            '-state', 'scheduled_time', 'round_number',
+        )[:12]
+        for m in live_m:
+            arena_live_matches.append({
+                'id': m.id, 'tournament_slug': m.tournament.slug,
+                'tournament_name': m.tournament.name,
+                'game_name': m.tournament.game.name if m.tournament.game else '',
+                'p1_name': m.participant1_name, 'p2_name': m.participant2_name,
+                'p1_score': m.participant1_score, 'p2_score': m.participant2_score,
+                'state': m.state, 'is_live': m.state == 'live',
+                'round_number': m.round_number, 'match_number': m.match_number,
+                'stream_url': m.stream_url,
+            })
+    except Exception:
+        pass
+
     context = {
         "live_streams": live_streams[:8],
         "featured_stream": featured_stream,
@@ -780,6 +813,8 @@ def watch(request):
         "vods": vods,
         "page_obj": page_obj if paginator.num_pages > 1 else None,
         "games": games,
+        "arena_live_matches": arena_live_matches,
+        "arena_live_tournaments": arena_live_tournaments,
     }
 
     # Optional: small sample content in DEBUG so the page doesn't look empty

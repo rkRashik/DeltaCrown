@@ -288,6 +288,67 @@ body::before {
         </div>
     </section>
 
+    <!-- ===== LIVE SCOREBOARD ===== -->
+    {% if arena_live_matches %}
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        <div class="section-label mb-4">
+            <i data-lucide="trophy" class="w-4 h-4 text-dc-gold"></i>
+            Live Scoreboard
+        </div>
+
+        <!-- Live Tournament Tabs -->
+        {% if arena_live_tournaments %}
+        <div class="flex flex-wrap gap-2 mb-4">
+            {% for t in arena_live_tournaments %}
+            <a href="/tournaments/{{ t.slug }}/"
+               class="filter-chip hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/10" style="text-decoration:none;">
+                <span class="live-dot" style="width:6px;height:6px;"></span>
+                {{ t.name|truncatechars:24 }}
+                {% if t.game_name %}<span class="text-slate-600 ml-1 text-[10px]">{{ t.game_name }}</span>{% endif %}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Match Score Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for m in arena_live_matches %}
+            <a href="/tournaments/{{ m.tournament_slug }}/matches/{{ m.id }}/"
+               class="glass-panel p-4 block no-underline group {% if m.is_live %}border-red-500/20{% endif %}"
+               style="text-decoration:none;">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] text-slate-500 truncate flex-1 mr-2">{{ m.tournament_name|truncatechars:24 }}</span>
+                    {% if m.is_live %}
+                    <span class="badge-live" style="font-size:9px;padding:2px 6px;">
+                        <span class="live-dot" style="width:5px;height:5px;"></span> LIVE
+                    </span>
+                    {% else %}
+                    <span class="text-[9px] text-slate-600 uppercase font-bold">{{ m.state }}</span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-white truncate {% if m.p1_score > m.p2_score %}text-emerald-300{% endif %}">{{ m.p1_name|default:"TBD" }}</p>
+                    </div>
+                    <div class="flex items-center gap-2 mx-3 flex-shrink-0">
+                        <span class="text-xl font-extrabold {% if m.p1_score > m.p2_score %}text-white{% else %}text-slate-600{% endif %}">{{ m.p1_score }}</span>
+                        <span class="text-xs text-slate-700">-</span>
+                        <span class="text-xl font-extrabold {% if m.p2_score > m.p1_score %}text-white{% else %}text-slate-600{% endif %}">{{ m.p2_score }}</span>
+                    </div>
+                    <div class="flex-1 min-w-0 text-right">
+                        <p class="text-sm font-bold text-white truncate {% if m.p2_score > m.p1_score %}text-emerald-300{% endif %}">{{ m.p2_name|default:"TBD" }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between mt-2 text-[10px] text-slate-600">
+                    <span>R{{ m.round_number }} · M{{ m.match_number }}</span>
+                    {% if m.game_name %}<span>{{ m.game_name }}</span>{% endif %}
+                    {% if m.stream_url %}<span class="text-dc-cyan">📺 Stream</span>{% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 
     <!-- ===== FEATURED + LIVE SIDEBAR ===== -->
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">

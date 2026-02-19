@@ -1,0 +1,531 @@
+{% extends "tournaments/detailPages/_base_detail.html" %}
+{% load static humanize %}
+
+{% comment %}
+Tournament Detail — Registration Phase
+Statuses: draft, pending_approval, published, registration_open, registration_closed
+
+Inspired by Battlefy/FACEIT tournament listings with:
+- Live countdown timer to registration close / tournament start
+- Animated participant counter with progress ring
+- Quick-info grid (format, platform, mode, entry fee)
+- Prize pool podium showcase
+- Rules & description sections
+- Tournament schedule timeline
+{% endcomment %}
+
+{% block phase_css %}
+/* Registration Phase Specifics */
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 20px rgba(var(--game-color-rgb), 0.15); }
+    50% { box-shadow: 0 0 40px rgba(var(--game-color-rgb), 0.25); }
+}
+.reg-cta-glow { animation: pulseGlow 3s ease-in-out infinite; }
+
+/* Podium */
+.podium-1st { background: linear-gradient(135deg, rgba(250,204,21,0.1), rgba(250,204,21,0.02)); border-color: rgba(250,204,21,0.2); }
+.podium-2nd { background: linear-gradient(135deg, rgba(192,192,192,0.08), rgba(192,192,192,0.02)); border-color: rgba(192,192,192,0.15); }
+.podium-3rd { background: linear-gradient(135deg, rgba(205,127,50,0.08), rgba(205,127,50,0.02)); border-color: rgba(205,127,50,0.15); }
+
+/* Timeline */
+.timeline-step { position: relative; padding-left: 2.5rem; }
+.timeline-step::before {
+    content: ''; position: absolute; left: 0.65rem; top: 2rem; bottom: -1rem;
+    width: 2px; background: rgba(255,255,255,0.06);
+}
+.timeline-step:last-child::before { display: none; }
+.timeline-dot {
+    position: absolute; left: 0; top: 0.25rem; width: 1.5rem; height: 1.5rem;
+    border-radius: 50%; border: 2px solid rgba(255,255,255,0.1);
+    background: var(--bg-card); display: flex; align-items: center; justify-content: center;
+}
+.timeline-dot.active { border-color: var(--game-color); background: rgba(var(--game-color-rgb), 0.2); }
+.timeline-dot.completed { border-color: #10b981; background: rgba(16,185,129,0.2); }
+{% endblock %}
+
+{% block hero_extra %}
+{% if tournament.description %}
+<p class="text-sm sm:text-base text-gray-300 max-w-2xl font-light leading-relaxed border-l-2 pl-5 py-1" style="border-color: var(--game-color);">
+    {{ tournament.description|striptags|truncatewords:25 }}
+</p>
+{% endif %}
+{% endblock %}
+
+{% block phase_nav %}
+<!-- Sticky Sub-Nav for Registration Phase -->
+<div class="sticky top-[64px] z-40 backdrop-blur-xl border-b border-white/[0.06]" style="background: rgba(6,6,8,0.95);">
+    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between py-3">
+            <div class="flex items-center gap-6 overflow-x-auto no-scrollbar">
+                <button class="phase-tab active text-white text-xs font-bold uppercase tracking-widest pb-1 border-b-2 transition-all" style="border-color: var(--game-color);" onclick="scrollToSection('info')">Info</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('prizes')">Prizes</button>
+                {% if show_participants %}<button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('participants')">Participants <span class="ml-1 text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-400">{{ slots_filled }}</span></button>{% endif %}
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('rules')">Rules</button>
+                <button class="phase-tab text-gray-500 text-xs font-bold uppercase tracking-widest pb-1 border-b-2 border-transparent hover:text-white transition-all" onclick="scrollToSection('schedule')">Schedule</button>
+            </div>
+
+            <div class="hidden lg:flex items-center gap-3">
+                {% if show_registration_cta and countdown_target %}
+                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Closes in:</span>
+                <span class="font-mono text-sm font-bold game-accent px-2 py-1 rounded border" style="background: rgba(var(--game-color-rgb), 0.1); border-color: rgba(var(--game-color-rgb), 0.2);">
+                    {{ tournament.registration_end|timeuntil }}
+                </span>
+                {% endif %}
+                {% if is_pre_registration %}
+                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-3 py-1.5 rounded border border-white/10 bg-white/5">Coming Soon</span>
+                {% elif show_checkin_info %}
+                <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest px-3 py-1.5 rounded border border-amber-500/20 bg-amber-500/10">Check-In Phase</span>
+                {% endif %}
+                {% if can_register %}
+                <a href="{{ registration_action_url }}" class="bg-white text-black text-xs font-black uppercase px-4 py-2 rounded hover:bg-gray-200 transition-colors">
+                    {{ registration_action_label }}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block phase_content %}
+
+<!-- COUNTDOWN SECTION -->
+{% if countdown_target %}
+<div id="section-info" class="glass-panel p-6 sm:p-8 rounded-2xl relative overflow-hidden fade-up">
+    <div class="absolute top-0 right-0 w-48 h-48 rounded-full blur-3xl pointer-events-none" style="background: rgba(var(--game-color-rgb), 0.06);"></div>
+
+    <div class="relative z-10">
+        <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="clock" class="w-5 h-5 game-accent"></i>
+            <h3 class="text-lg font-display font-bold text-white">{{ countdown_label }}</h3>
+        </div>
+        <div id="countdown-main" class="mt-4"></div>
+    </div>
+</div>
+{% else %}
+<div id="section-info"></div>
+{% endif %}
+
+<!-- TOURNAMENT INFO GRID -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 fade-up delay-1">
+    <div class="glass p-4 rounded-xl text-center">
+        <i data-lucide="swords" class="w-5 h-5 game-accent mx-auto mb-2"></i>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Format</p>
+        <p class="text-sm font-bold text-white">{{ tournament.get_format_display }}</p>
+    </div>
+    <div class="glass p-4 rounded-xl text-center">
+        <i data-lucide="{% if tournament.platform == 'mobile' %}smartphone{% elif tournament.platform == 'ps5' %}gamepad{% else %}monitor{% endif %}" class="w-5 h-5 game-accent mx-auto mb-2"></i>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Platform</p>
+        <p class="text-sm font-bold text-white">{{ tournament.get_platform_display }}</p>
+    </div>
+    <div class="glass p-4 rounded-xl text-center">
+        <i data-lucide="{% if tournament.mode == 'lan' %}map-pin{% elif tournament.mode == 'hybrid' %}globe{% else %}wifi{% endif %}" class="w-5 h-5 game-accent mx-auto mb-2"></i>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Mode</p>
+        <p class="text-sm font-bold text-white">{{ tournament.get_mode_display }}</p>
+    </div>
+    <div class="glass p-4 rounded-xl text-center">
+        {% if tournament.has_entry_fee and tournament.entry_fee_amount %}
+        <i data-lucide="banknote" class="w-5 h-5 text-amber-400 mx-auto mb-2"></i>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Entry Fee</p>
+        <p class="text-sm font-bold text-amber-400">৳{{ tournament.entry_fee_amount|floatformat:0|intcomma }}</p>
+        {% else %}
+        <i data-lucide="ticket" class="w-5 h-5 text-green-400 mx-auto mb-2"></i>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Entry Fee</p>
+        <p class="text-sm font-bold text-green-400">Free Entry</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ABOUT / DESCRIPTION -->
+{% if tournament.description %}
+<div class="section-card p-6 sm:p-8 fade-up delay-2">
+    <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="file-text" class="w-5 h-5 game-accent"></i>
+        <h3 class="text-lg font-display font-bold text-white">About This Tournament</h3>
+    </div>
+    <div class="prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed">
+        {{ tournament.description|linebreaksbr }}
+    </div>
+</div>
+{% endif %}
+
+<!-- PRIZE POOL SECTION -->
+{% if tournament.prize_pool %}
+<div id="section-prizes" class="section-card p-6 sm:p-8 fade-up delay-3">
+    <div class="flex items-center gap-2 mb-6">
+        <i data-lucide="trophy" class="w-5 h-5 text-dc-gold"></i>
+        <h3 class="text-lg font-display font-bold text-white">Prize Pool</h3>
+        <span class="ml-auto text-2xl font-display font-bold text-dc-gold text-glow-gold">৳{{ tournament.prize_pool|floatformat:0|intcomma }}</span>
+    </div>
+
+    <!-- Podium -->
+    <div class="grid grid-cols-3 gap-3">
+        <!-- 1st Place -->
+        <div class="podium-1st rounded-xl p-4 text-center border">
+            <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <span class="text-xl">🥇</span>
+            </div>
+            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">1st Place</p>
+            <p class="text-xl font-display font-bold text-yellow-400">
+                {% if tournament.prize_distribution %}
+                    ৳{{ tournament.prize_distribution.first|default:"—" }}
+                {% else %}
+                    ৳{{ tournament.prize_pool|floatformat:0|intcomma }}
+                {% endif %}
+            </p>
+        </div>
+        <!-- 2nd Place -->
+        <div class="podium-2nd rounded-xl p-4 text-center border">
+            <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-gray-400/10 flex items-center justify-center">
+                <span class="text-xl">🥈</span>
+            </div>
+            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">2nd Place</p>
+            <p class="text-xl font-display font-bold text-gray-300">
+                {% if tournament.prize_distribution %}
+                    ৳{{ tournament.prize_distribution.second|default:"—" }}
+                {% else %}
+                    —
+                {% endif %}
+            </p>
+        </div>
+        <!-- 3rd Place -->
+        <div class="podium-3rd rounded-xl p-4 text-center border">
+            <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-orange-500/10 flex items-center justify-center">
+                <span class="text-xl">🥉</span>
+            </div>
+            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">3rd Place</p>
+            <p class="text-xl font-display font-bold text-orange-400">
+                {% if tournament.prize_distribution %}
+                    ৳{{ tournament.prize_distribution.third|default:"—" }}
+                {% else %}
+                    —
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    {% if tournament.prize_deltacoin %}
+    <div class="mt-4 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 flex items-center gap-3">
+        <i data-lucide="coins" class="w-5 h-5 text-amber-400 flex-shrink-0"></i>
+        <div>
+            <span class="text-xs text-gray-400">Plus</span>
+            <span class="text-sm font-bold text-amber-400 ml-1">{{ tournament.prize_deltacoin|intcomma }} DeltaCoins</span>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- PARTICIPANTS SECTION -->
+{% if show_participants %}
+<div id="section-participants" class="section-card p-6 sm:p-8 fade-up delay-4">
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-2">
+            <i data-lucide="users" class="w-5 h-5 game-accent"></i>
+            <h3 class="text-lg font-display font-bold text-white">Registered Participants</h3>
+            <span class="ml-2 text-xs bg-white/10 px-2 py-0.5 rounded text-gray-400 font-mono">{{ slots_filled }}/{{ slots_total }}</span>
+        </div>
+        {% if slots_percentage >= 80 %}
+        <span class="text-[10px] font-bold text-red-400 uppercase tracking-widest flex items-center gap-1">
+            <i data-lucide="alert-triangle" class="w-3 h-3"></i> Almost Full
+        </span>
+        {% endif %}
+    </div>
+
+    <!-- Participant Progress Bar -->
+    <div class="mb-6">
+        <div class="w-full h-3 bg-white/5 rounded-full overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-1000 relative" style="width: {{ slots_percentage }}%; background: linear-gradient(90deg, var(--game-color), rgba(var(--game-color-rgb), 0.7));">
+                <div class="absolute inset-0 bg-white/20 animate-pulse rounded-full"></div>
+            </div>
+        </div>
+        <div class="flex justify-between mt-2 text-[10px] text-gray-500">
+            <span>{{ slots_filled }} registered</span>
+            <span>{{ slots_total }} max</span>
+        </div>
+    </div>
+
+    <!-- Participant Grid -->
+    {% if participants %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {% for p in participants|slice:":12" %}
+        <div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] transition-all {% if p.is_current_user %}border-indigo-500/30 bg-indigo-500/5{% endif %}">
+            {% if p.type == 'team' %}
+                {% if p.logo %}
+                <img src="{{ p.logo }}" alt="" class="w-9 h-9 rounded-lg object-cover border border-white/10 flex-shrink-0">
+                {% else %}
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-black bg-white/5 border border-white/10 flex-shrink-0" style="color: var(--game-color);">
+                    {{ p.name|truncatechars:2|upper }}
+                </div>
+                {% endif %}
+            {% else %}
+                {% if p.avatar %}
+                <img src="{{ p.avatar }}" alt="" class="w-9 h-9 rounded-full object-cover border border-white/10 flex-shrink-0">
+                {% else %}
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black bg-white/5 border border-white/10 flex-shrink-0" style="color: var(--game-color);">
+                    {{ p.display_name|truncatechars:2|upper }}
+                </div>
+                {% endif %}
+            {% endif %}
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-white truncate">{{ p.display_name }}</p>
+                <p class="text-[10px] text-gray-500">{{ p.sub_label }}</p>
+            </div>
+            {% if p.is_current_user %}
+            <span class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">You</span>
+            {% endif %}
+            {% if p.checked_in %}
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-green-400 flex-shrink-0"></i>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if participants|length > 12 %}
+    <p class="text-center text-xs text-gray-500 mt-4">
+        + {{ participants|length|add:"-12" }} more participants
+    </p>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-8">
+        <i data-lucide="user-plus" class="w-8 h-8 text-gray-600 mx-auto mb-3"></i>
+        <p class="text-sm text-gray-500">No participants yet. Be the first to register!</p>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<!-- Pre-registration: Participants hidden -->
+<div id="section-participants" class="section-card p-6 sm:p-8 fade-up delay-4">
+    <div class="text-center py-8">
+        <i data-lucide="lock" class="w-8 h-8 text-gray-600 mx-auto mb-3"></i>
+        <p class="text-sm text-gray-500">Participants will appear once registration opens.</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- RULES SECTION -->
+<div id="section-rules" class="section-card p-6 sm:p-8 fade-up">
+    <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="scroll-text" class="w-5 h-5 game-accent"></i>
+        <h3 class="text-lg font-display font-bold text-white">Rules & Regulations</h3>
+    </div>
+
+    {% if tournament.rules_text %}
+    <div class="prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed">
+        {{ tournament.rules_text|linebreaksbr }}
+    </div>
+    {% elif tournament.rules_pdf %}
+    <div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+        <i data-lucide="file-down" class="w-6 h-6 game-accent flex-shrink-0"></i>
+        <div class="flex-1">
+            <p class="text-sm font-bold text-white">Tournament Rules PDF</p>
+            <p class="text-[10px] text-gray-500">Download the full rulebook</p>
+        </div>
+        <a href="{{ tournament.rules_pdf.url }}" download class="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition" style="color: var(--game-color);">
+            Download
+        </a>
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-500">Rules will be published by the organizer.</p>
+    {% endif %}
+
+    {% if tournament.terms_and_conditions %}
+    <div class="mt-4 p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+        <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="shield" class="w-4 h-4 text-gray-500"></i>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Terms & Conditions</p>
+        </div>
+        <div class="text-xs text-gray-500 leading-relaxed max-h-32 overflow-y-auto">
+            {{ tournament.terms_and_conditions|linebreaksbr }}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- SCHEDULE TIMELINE -->
+<div id="section-schedule" class="section-card p-6 sm:p-8 fade-up delay-1">
+    <div class="flex items-center gap-2 mb-6">
+        <i data-lucide="calendar" class="w-5 h-5 game-accent"></i>
+        <h3 class="text-lg font-display font-bold text-white">Schedule</h3>
+    </div>
+
+    <div class="space-y-6">
+        <!-- Registration Opens -->
+        {% if tournament.registration_start %}
+        <div class="timeline-step">
+            <div class="timeline-dot {% if tournament.status != 'draft' and tournament.status != 'pending_approval' %}completed{% endif %}">
+                <i data-lucide="user-plus" class="w-3 h-3 {% if tournament.status != 'draft' %}text-emerald-400{% else %}text-gray-600{% endif %}"></i>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Registration Opens</p>
+                <p class="text-sm font-bold text-white mt-0.5">{{ tournament.registration_start|date:"M j, Y · g:i A" }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Registration Closes -->
+        {% if tournament.registration_end %}
+        <div class="timeline-step">
+            <div class="timeline-dot {% if tournament.status == 'registration_open' %}active{% elif tournament.status == 'registration_closed' or tournament.status == 'live' or tournament.status == 'completed' %}completed{% endif %}">
+                <i data-lucide="lock" class="w-3 h-3 {% if tournament.status == 'registration_open' %}game-accent{% elif tournament.status == 'registration_closed' or tournament.status == 'live' %}text-emerald-400{% else %}text-gray-600{% endif %}"></i>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Registration Closes</p>
+                <p class="text-sm font-bold text-white mt-0.5">{{ tournament.registration_end|date:"M j, Y · g:i A" }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tournament Start -->
+        {% if tournament.tournament_start %}
+        <div class="timeline-step">
+            <div class="timeline-dot {% if tournament.status == 'registration_closed' %}active{% elif tournament.status == 'live' or tournament.status == 'completed' %}completed{% endif %}">
+                <i data-lucide="play" class="w-3 h-3 {% if tournament.status == 'live' %}text-red-400{% elif tournament.status == 'registration_closed' %}game-accent{% elif tournament.status == 'completed' %}text-emerald-400{% else %}text-gray-600{% endif %}"></i>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tournament Begins</p>
+                <p class="text-sm font-bold text-white mt-0.5">{{ tournament.tournament_start|date:"M j, Y · g:i A" }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tournament End -->
+        {% if tournament.tournament_end %}
+        <div class="timeline-step">
+            <div class="timeline-dot {% if tournament.status == 'completed' %}completed{% endif %}">
+                <i data-lucide="flag" class="w-3 h-3 {% if tournament.status == 'completed' %}text-emerald-400{% else %}text-gray-600{% endif %}"></i>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tournament Ends</p>
+                <p class="text-sm font-bold text-white mt-0.5">{{ tournament.tournament_end|date:"M j, Y · g:i A" }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ANNOUNCEMENTS -->
+{% if show_announcements and announcements %}
+<div class="section-card p-6 sm:p-8 fade-up delay-2">
+    <div class="flex items-center gap-2 mb-4">
+        <i data-lucide="megaphone" class="w-5 h-5 game-accent"></i>
+        <h3 class="text-lg font-display font-bold text-white">Announcements</h3>
+    </div>
+    <div class="space-y-3">
+        {% for ann in announcements %}
+        <div class="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04] {% if ann.is_pinned %}border-amber-500/20{% endif %}">
+            <div class="flex items-center gap-2 mb-2">
+                {% if ann.is_pinned %}<i data-lucide="pin" class="w-3 h-3 text-amber-400"></i>{% endif %}
+                <span class="text-sm font-bold text-white">{{ ann.title }}</span>
+                <span class="ml-auto text-[10px] text-gray-500">{{ ann.created_at|timesince }} ago</span>
+            </div>
+            <p class="text-xs text-gray-400 leading-relaxed">{{ ann.message|truncatewords:50 }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block sidebar_cta %}
+<!-- Enhanced Registration CTA -->
+{% if registration_is_open %}
+    {% if can_register %}
+    <a href="{{ registration_action_url }}"
+       class="block w-full py-4 text-black font-black uppercase tracking-[0.15em] rounded-xl transition-all shadow-lg text-center text-sm hover:scale-[1.02] active:scale-[0.98] reg-cta-glow"
+       style="background: linear-gradient(135deg, var(--game-color), rgba(var(--game-color-rgb), 0.8)); box-shadow: 0 4px 20px rgba(var(--game-color-rgb), 0.3);">
+        {{ registration_action_label }}
+    </a>
+    <p class="text-[10px] text-gray-500 text-center mt-2">
+        Secure your spot now · {{ slots_total|add:"-"|add:slots_filled }} slots remaining
+    </p>
+    {% elif is_registered %}
+    <div class="space-y-2">
+        <div class="w-full py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold uppercase tracking-[0.1em] rounded-xl text-center text-xs flex items-center justify-center gap-2">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i> Registered
+        </div>
+        <a href="{{ registration_action_url }}"
+           class="block w-full py-3 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold uppercase tracking-[0.1em] rounded-xl text-center text-xs hover:bg-indigo-500/20 transition">
+            {{ registration_action_label }}
+        </a>
+    </div>
+    {% else %}
+    <div class="w-full py-4 border border-white/8 text-[--text-muted] font-black uppercase tracking-[0.15em] rounded-xl text-center text-sm" style="background: var(--bg-card);">
+        {{ registration_status_reason|default:"Registration closed" }}
+    </div>
+    {% endif %}
+{% elif is_checkin_phase %}
+    {% if is_registered %}
+    <div class="space-y-2">
+        <div class="w-full py-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold uppercase tracking-[0.1em] rounded-xl text-center text-xs flex items-center justify-center gap-2">
+            <i data-lucide="clock" class="w-4 h-4"></i> Check-In Required
+        </div>
+        <a href="/tournaments/{{ tournament.slug }}/lobby/"
+           class="block w-full py-3 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold uppercase tracking-[0.1em] rounded-xl text-center text-xs hover:bg-indigo-500/20 transition">
+            Enter Lobby
+        </a>
+    </div>
+    {% else %}
+    <div class="w-full py-4 border border-white/8 text-[--text-muted] font-black uppercase tracking-[0.15em] rounded-xl text-center text-sm" style="background: var(--bg-card);">
+        Registration Closed
+    </div>
+    {% endif %}
+{% else %}
+    <div class="w-full py-4 border border-white/8 text-[--text-muted] font-black uppercase tracking-[0.15em] rounded-xl text-center text-sm" style="background: var(--bg-card);">
+        Coming Soon
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block sidebar_extra %}
+<!-- Payment Info (if entry fee) -->
+{% if tournament.has_entry_fee and tournament.entry_fee_amount %}
+<div class="glass p-4 rounded-2xl">
+    <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1">
+        <i data-lucide="credit-card" class="w-3 h-3"></i> Payment Info
+    </h4>
+    <div class="space-y-2 text-xs">
+        <div class="flex justify-between">
+            <span class="text-gray-500">Amount</span>
+            <span class="text-white font-bold">৳{{ tournament.entry_fee_amount|floatformat:0|intcomma }}</span>
+        </div>
+        {% if tournament.payment_methods %}
+        <div class="flex justify-between">
+            <span class="text-gray-500">Methods</span>
+            <span class="text-white font-semibold">{{ tournament.payment_methods|join:", " }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block phase_js %}
+<script>
+    /* Initialize countdown */
+    {% if countdown_target %}
+    document.addEventListener('DOMContentLoaded', function() {
+        initCountdown('{{ countdown_target }}', 'countdown-main');
+    });
+    {% endif %}
+
+    /* Smooth scroll to section */
+    function scrollToSection(id) {
+        const el = document.getElementById('section-' + id);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Update active tab
+            document.querySelectorAll('.phase-tab').forEach(t => {
+                t.classList.remove('active', 'text-white');
+                t.classList.add('text-gray-500');
+                t.style.borderColor = 'transparent';
+            });
+            event.target.classList.add('active', 'text-white');
+            event.target.classList.remove('text-gray-500');
+            event.target.style.borderColor = 'var(--game-color)';
+        }
+    }
+</script>
+{% endblock %}

@@ -7,7 +7,7 @@ user-friendly messages and action items.
 
 from django.contrib.auth.models import User
 from apps.tournaments.models import Tournament
-from apps.organizations.models import Team, TeamMembership
+from apps.organizations.models import Organization, Team, TeamMembership
 
 
 class EligibilityResult:
@@ -110,15 +110,26 @@ class RegistrationEligibilityService:
         # Game-derived minimum roster size
         min_roster = getattr(tournament.game, 'min_team_size', 1) or 1
         
-        # Get user's teams for this game
+        # Get user's teams for this game (via membership)
         user_teams = Team.objects.filter(
             game_id=tournament.game_id,
             vnext_memberships__user=user,
+            vnext_memberships__status='ACTIVE',
             status='ACTIVE'
         ).distinct()
         
+        # Also include org teams where user is the CEO (even without membership)
+        ceo_org_ids = Organization.objects.filter(ceo=user).values_list('id', flat=True)
+        ceo_teams = Team.objects.filter(
+            game_id=tournament.game_id,
+            organization_id__in=ceo_org_ids,
+            status='ACTIVE'
+        ).exclude(id__in=user_teams.values_list('id', flat=True))
+        
+        all_teams = list(user_teams) + list(ceo_teams)
+        
         # Check if user has any team for this game
-        if not user_teams.exists():
+        if not all_teams:
             return EligibilityResult(
                 is_eligible=False,
                 reason=f"You need to join a {tournament.game.name} team to register for this tournament.",
@@ -136,12 +147,22 @@ class RegistrationEligibilityService:
         # Build list of teams where user has permission
         permitted_teams = []
         blocked_teams = []
+        
+        # CEO teams are automatically permitted (org authority)
+        for team in ceo_teams:
+            permitted_teams.append((team, None))
+        
         for team in user_teams:
-            member = TeamMembership.objects.filter(team=team, user=user).first()
+            member = TeamMembership.objects.filter(
+                team=team, user=user, status='ACTIVE'
+            ).first()
             if not member:
                 blocked_teams.append(team)
                 continue
-            if member.role in permissive_roles:
+            # Check either by role OR by explicit register_tournaments permission
+            # OR by being the CEO of the team's organization
+            is_ceo = team.organization_id and team.organization_id in ceo_org_ids
+            if member.role in permissive_roles or member.has_permission('register_tournaments') or is_ceo:
                 permitted_teams.append((team, member))
             else:
                 blocked_teams.append(team)
@@ -165,11 +186,14 @@ class RegistrationEligibilityService:
             )
         
         # Filter permitted teams by roster size
-        roster_ready = [team for team, _ in permitted_teams if team.members_count >= min_roster]
+        def _active_count(t):
+            return t.memberships.filter(status='ACTIVE').count()
+
+        roster_ready = [team for team, _ in permitted_teams if _active_count(team) >= min_roster]
         if not roster_ready:
             # Use the first permitted team for messaging
             team = permitted_teams[0][0]
-            current = team.members_count
+            current = _active_count(team)
             # Build URL (slug preferred, fallback to pk)
             manage_url = team.get_absolute_url()
             return EligibilityResult(
@@ -197,17 +221,49 @@ class RegistrationEligibilityService:
         """
         Get list of teams user can register for this tournament.
         
-        Returns queryset of teams where user has registration permission.
+        Returns list of teams where user has registration permission
+        (by role, explicit register_tournaments permission, or org CEO status).
         """
         if not user.is_authenticated or tournament.participation_type != 'team':
             return Team.objects.none()
         
-        # Get teams where user is owner/manager
-        eligible_teams = Team.objects.filter(
+        # Get ALL active teams where user is an active member for this game
+        user_teams = Team.objects.filter(
             game_id=tournament.game_id,
             vnext_memberships__user=user,
-            vnext_memberships__role__in=['OWNER', 'MANAGER'],
+            vnext_memberships__status='ACTIVE',
             status='ACTIVE'
         ).distinct()
         
-        return eligible_teams
+        # Also include org teams where user is CEO
+        ceo_org_ids = Organization.objects.filter(ceo=user).values_list('id', flat=True)
+        
+        permissive_roles = [
+            TeamMembership.Role.OWNER,
+            TeamMembership.Role.MANAGER,
+            TeamMembership.Role.CAPTAIN,
+        ]
+        
+        eligible_ids = []
+        
+        # CEO gets access to all org teams for this game
+        if ceo_org_ids:
+            ceo_team_ids = Team.objects.filter(
+                game_id=tournament.game_id,
+                organization_id__in=ceo_org_ids,
+                status='ACTIVE'
+            ).values_list('id', flat=True)
+            eligible_ids.extend(ceo_team_ids)
+        
+        for team in user_teams:
+            if team.id in eligible_ids:
+                continue  # already added via CEO
+            member = TeamMembership.objects.filter(
+                team=team, user=user, status='ACTIVE'
+            ).first()
+            if not member:
+                continue
+            if member.role in permissive_roles or member.has_permission('register_tournaments'):
+                eligible_ids.append(team.id)
+        
+        return Team.objects.filter(id__in=eligible_ids)

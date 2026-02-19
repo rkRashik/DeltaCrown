@@ -121,7 +121,7 @@ class DoubleEliminationGenerator:
             wb_rounds=wb_rounds,
             stage_id=stage.id if stage.id else 0,
             tournament_id=tournament.id if tournament.id else 0,
-            grand_finals_reset=stage.metadata.get("grand_finals_reset", True) if stage.metadata else True,
+            grand_finals_reset=(stage.metadata or {}).get("grand_finals_reset", True),
         )
         matches.extend(gf_matches)
         
@@ -168,12 +168,12 @@ class DoubleEliminationGenerator:
                     stage_id=stage_id,
                     round_number=round_num,
                     match_number=match_number,
-                    stage_type="winners",  # Winners bracket
-                    team1_id=team1.id if team1 else None,
-                    team2_id=team2.id if team2 else None,
+                    stage_type="winners",
+                    team_a_id=team1.id if team1 else None,
+                    team_b_id=team2.id if team2 else None,
                     team1_name=team1.name if team1 else "BYE",
                     team2_name=team2.name if team2 else "BYE",
-                    status="pending",
+                    state="pending",
                     metadata={
                         "bracket_type": "double_elimination",
                         "bracket_stage": "winners",
@@ -233,12 +233,12 @@ class DoubleEliminationGenerator:
                     stage_id=stage_id,
                     round_number=lb_round_num,
                     match_number=match_num,
-                    stage_type="losers",  # Losers bracket
-                    team1_id=None,  # TBD: Based on winners bracket results
-                    team2_id=None,  # TBD: Based on winners bracket results
+                    stage_type="losers",
+                    team_a_id=None,
+                    team_b_id=None,
                     team1_name="TBD",
                     team2_name="TBD",
-                    status="pending",
+                    state="pending",
                     metadata={
                         "bracket_type": "double_elimination",
                         "bracket_stage": "losers",
@@ -287,14 +287,14 @@ class DoubleEliminationGenerator:
             id=None,
             tournament_id=tournament_id,
             stage_id=stage_id,
-            round_number=wb_rounds + 1,  # After all WB rounds
+            round_number=wb_rounds + 1,
             match_number=1,
             stage_type="grand_finals",
-            team1_id=None,  # TBD: Winners bracket champion
-            team2_id=None,  # TBD: Losers bracket champion
+            team_a_id=None,
+            team_b_id=None,
             team1_name="WB Champion (TBD)",
             team2_name="LB Champion (TBD)",
-            status="pending",
+            state="pending",
             metadata={
                 "bracket_type": "double_elimination",
                 "bracket_stage": "grand_finals",
@@ -312,11 +312,11 @@ class DoubleEliminationGenerator:
                 round_number=wb_rounds + 2,
                 match_number=1,
                 stage_type="grand_finals_reset",
-                team1_id=None,  # TBD: Conditional on GF match 1 result
-                team2_id=None,  # TBD: Conditional on GF match 1 result
+                team_a_id=None,
+                team_b_id=None,
                 team1_name="TBD (if reset needed)",
                 team2_name="TBD (if reset needed)",
-                status="pending",
+                state="pending",
                 metadata={
                     "bracket_type": "double_elimination",
                     "bracket_stage": "grand_finals_reset",

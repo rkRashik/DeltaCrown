@@ -270,14 +270,26 @@ class OrganizerHubView(LoginRequiredMixin, View):
         return tournament
     
     def get_common_context(self, tournament):
-        """Get common context data for all tabs (e.g., badge counts)"""
+        """Get common context data for all tabs (badge counts for nav)."""
         open_disputes_count = Dispute.objects.filter(
             match__tournament=tournament,
             status='open'
         ).count()
-        
+
+        # Registration badge
+        reg_pending = Registration.objects.filter(
+            tournament=tournament, is_deleted=False, status='pending'
+        ).count()
+
+        # Payment badge
+        payment_pending = Payment.objects.filter(
+            registration__tournament=tournament, status='pending'
+        ).count()
+
         return {
             'open_disputes_count': open_disputes_count,
+            'reg_stats': {'pending': reg_pending},
+            'payment_stats': {'pending': payment_pending},
         }
     
     def check_permission(self, tournament, permission_code):
@@ -289,6 +301,14 @@ class OrganizerHubView(LoginRequiredMixin, View):
     
     def get(self, request, slug, tab='overview'):
         """Render organizer hub with requested tab"""
+        return self._dispatch_tab(request, slug, tab)
+
+    def post(self, request, slug, tab='overview'):
+        """Handle POST requests (e.g., announcement creation)"""
+        return self._dispatch_tab(request, slug, tab)
+
+    def _dispatch_tab(self, request, slug, tab):
+        """Route to appropriate tab handler"""
         tournament = self.get_tournament(slug)
         checker = StaffPermissionChecker(tournament, request.user)
         
@@ -353,6 +373,11 @@ class OrganizerHubView(LoginRequiredMixin, View):
         # Recent activity (last 10 registrations)
         recent_registrations = registrations.select_related('user').order_by('-created_at')[:10]
         
+        # open_disputes_count needed by _base.html tab nav badge
+        open_disputes_count = Dispute.objects.filter(
+            match__tournament=tournament, status='open'
+        ).count()
+
         context = {
             'tournament': tournament,
             'checker': checker,
@@ -362,10 +387,10 @@ class OrganizerHubView(LoginRequiredMixin, View):
             'match_stats': match_stats,
             'dispute_stats': dispute_stats,
             'recent_registrations': recent_registrations,
+            'open_disputes_count': open_disputes_count,
         }
-        context.update(self.get_common_context(tournament))
         
-        return render(request, 'tournaments/organizer/hub_overview.html', context)
+        return render(request, 'tournaments/manage/overview.html', context)
     
     def participants_tab(self, request, tournament, checker):
         """Participants tab: registration list with actions"""
@@ -382,7 +407,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
         registrations = Registration.objects.filter(
             tournament=tournament,
             is_deleted=False
-        ).select_related('user', 'team')
+        ).select_related('user')
         
         # Apply filters
         if status_filter:
@@ -392,8 +417,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
         if search:
             registrations = registrations.filter(
                 Q(user__username__icontains=search) |
-                Q(user__email__icontains=search) |
-                Q(team__name__icontains=search)
+                Q(user__email__icontains=search)
             )
         
         registrations = registrations.order_by('-created_at')
@@ -405,8 +429,9 @@ class OrganizerHubView(LoginRequiredMixin, View):
             'registrations': registrations,
             'can_manage': checker.can_manage_registrations(),
         }
+        context.update(self.get_common_context(tournament))
         
-        return render(request, 'tournaments/organizer/hub_participants.html', context)
+        return render(request, 'tournaments/manage/participants.html', context)
     
     def payments_tab(self, request, tournament, checker):
         """Payments tab: payment tracking and verification"""
@@ -448,7 +473,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
         }
         context.update(self.get_common_context(tournament))
         
-        return render(request, 'tournaments/organizer/hub_payments.html', context)
+        return render(request, 'tournaments/manage/payments.html', context)
     
     def brackets_tab(self, request, tournament, checker):
         """Brackets tab: bracket management and match list"""
@@ -466,12 +491,12 @@ class OrganizerHubView(LoginRequiredMixin, View):
         matches = Match.objects.filter(
             tournament=tournament,
             is_deleted=False
-        ).select_related('participant1', 'participant2').order_by('round_number', 'match_number')
+        ).order_by('round_number', 'match_number')
         
         # Count pending results for badge notification
         pending_results_count = Match.objects.filter(
             tournament=tournament,
-            status='PENDING_RESULT',
+            state='pending_result',
             is_deleted=False
         ).count()
         
@@ -486,7 +511,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
         }
         context.update(self.get_common_context(tournament))
         
-        return render(request, 'tournaments/organizer/hub_brackets.html', context)
+        return render(request, 'tournaments/manage/brackets.html', context)
     
     def disputes_tab(self, request, tournament, checker):
         """Disputes tab: dispute handling"""
@@ -528,7 +553,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
         }
         context.update(self.get_common_context(tournament))
         
-        return render(request, 'tournaments/organizer/hub_disputes_enhanced.html', context)
+        return render(request, 'tournaments/manage/disputes.html', context)
     
     def announcements_tab(self, request, tournament, checker):
         """Announcements tab: create/manage announcements"""
@@ -571,7 +596,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
         }
         context.update(self.get_common_context(tournament))
         
-        return render(request, 'tournaments/organizer/hub_announcements.html', context)
+        return render(request, 'tournaments/manage/announcements.html', context)
     
     def settings_tab(self, request, tournament, checker):
         """Settings tab: tournament settings and staff management"""
@@ -598,7 +623,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
         }
         context.update(self.get_common_context(tournament))
         
-        return render(request, 'tournaments/organizer/hub_settings.html', context)
+        return render(request, 'tournaments/manage/settings.html', context)
 
 
 # ============================================================================

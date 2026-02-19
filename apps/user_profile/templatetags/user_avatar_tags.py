@@ -6,9 +6,14 @@ Provides template tags for rendering user avatars.
 """
 
 from django import template
+from django.conf import settings
 from django.utils.safestring import mark_safe
 
+import os
+
 register = template.Library()
+
+DEFAULT_AVATAR = '/static/img/user_avatar/default-avatar.png'
 
 
 @register.filter
@@ -26,11 +31,14 @@ def user_avatar_url(user):
     """
     try:
         if hasattr(user, 'profile') and user.profile and hasattr(user.profile, 'avatar') and user.profile.avatar:
-            return user.profile.avatar.url
+            # Verify the file actually exists on disk to prevent 404s
+            avatar_path = os.path.join(settings.MEDIA_ROOT, str(user.profile.avatar))
+            if os.path.isfile(avatar_path):
+                return user.profile.avatar.url
     except Exception:
         pass
     
-    return '/static/images/default-avatar.png'
+    return DEFAULT_AVATAR
 
 
 @register.simple_tag
@@ -66,7 +74,7 @@ def avatar_img(user, size='medium', css_class=''):
         width="{px_size}" 
         height="{px_size}"
         class="user-avatar {css_class}"
-        onerror="this.src='/static/images/default-avatar.png'"
+        onerror="this.src='" + DEFAULT_AVATAR + "'"
     />'''
     
     return mark_safe(html)
@@ -122,7 +130,7 @@ def avatar_with_badge(user, size='medium', show_verified=True):
             height="{px_size}"
             class="user-avatar"
             style="border-radius: 50%; object-fit: cover;"
-            onerror="this.src='/static/images/default-avatar.png'"
+            onerror="this.src='" + DEFAULT_AVATAR + "'"
         />
         {badge_html}
     </div>

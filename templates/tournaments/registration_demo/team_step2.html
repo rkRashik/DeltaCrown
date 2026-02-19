@@ -1,75 +1,69 @@
-{% extends "tournaments/base.html" %}
+{% extends "tournaments/registration_demo/_reg_base.html" %}
 {% load static humanize %}
 
-{# ─────────────────────────────────────────────────────────
-   Registration Wizard — Team Step 2: Roster Review & Terms
-   Phase 4 Frontend Rebuild
-   ───────────────────────────────────────────────────────── #}
+{% comment %}
+Registration Wizard — Team Step 2: Roster Review & Terms
+Cinematic Dark Theme v2
+{% endcomment %}
 
 {% block title %}Team Review — {{ tournament.name }} | DeltaCrown{% endblock %}
 
-{% block tournament_content %}
+{% block reg_type_badge %}TEAM{% endblock %}
 
-<div class="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-
-  {# ── Progress Bar ── #}
-  <div class="mb-8">
-    <div class="flex items-center justify-between mb-2">
-      <span class="text-xs text-gray-500">Step {{ current_step }} of {{ total_steps }}</span>
-      <span class="text-xs text-dc-purple font-mono">{{ step_title }}</span>
-    </div>
-    <div class="h-1 bg-dc-surface rounded-full overflow-hidden">
-      <div class="h-full bg-gradient-to-r from-dc-purple to-dc-cyan rounded-full transition-all duration-500"
-           style="width: {% widthratio current_step total_steps 100 %}%"></div>
-    </div>
-  </div>
+{% block reg_content %}
 
   {# ── Team Summary ── #}
-  <div class="glass rounded-xl p-6 mb-6">
-    <h3 class="text-sm font-display font-semibold text-white mb-4">
-      <i data-lucide="users" class="w-4 h-4 inline mr-1 text-dc-purple"></i> Team Details
+  <div class="reg-glass-strong rounded-2xl p-6 mb-6 fade-in">
+    <h3 class="text-sm font-bold text-white mb-5 flex items-center gap-2">
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center bg-indigo-500/10">
+        <i data-lucide="users" class="w-3.5 h-3.5 text-indigo-400"></i>
+      </div>
+      Team Details
     </h3>
-    <dl class="space-y-2 text-sm">
+    <dl class="space-y-0 text-sm">
       {% if step_data.team_name %}
-        <div class="flex justify-between py-1.5 border-b border-dc-border">
-          <dt class="text-gray-500">Team Name</dt>
-          <dd class="text-white font-semibold">{{ step_data.team_name }}</dd>
-        </div>
+      <div class="flex justify-between py-2.5" style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+        <dt class="text-gray-500">Team Name</dt>
+        <dd class="text-white font-semibold">{{ step_data.team_name }}</dd>
+      </div>
       {% endif %}
       {% if step_data.team_tag %}
-        <div class="flex justify-between py-1.5 border-b border-dc-border">
-          <dt class="text-gray-500">Tag</dt>
-          <dd class="text-dc-purple font-mono">[{{ step_data.team_tag }}]</dd>
-        </div>
+      <div class="flex justify-between py-2.5" style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+        <dt class="text-gray-500">Tag</dt>
+        <dd class="font-mono" style="color: var(--game-color);">[{{ step_data.team_tag }}]</dd>
+      </div>
       {% endif %}
       {% if step_data.captain_name %}
-        <div class="flex justify-between py-1.5 border-b border-dc-border">
-          <dt class="text-gray-500">Captain</dt>
-          <dd class="text-white">{{ step_data.captain_name }}</dd>
-        </div>
+      <div class="flex justify-between py-2.5" style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+        <dt class="text-gray-500">Captain</dt>
+        <dd class="text-white">{{ step_data.captain_name }}</dd>
+      </div>
       {% endif %}
       {% if step_data.captain_game_id %}
-        <div class="flex justify-between py-1.5 border-b border-dc-border">
-          <dt class="text-gray-500">Captain Game ID</dt>
-          <dd class="text-white font-mono">{{ step_data.captain_game_id }}</dd>
-        </div>
+      <div class="flex justify-between py-2.5" style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+        <dt class="text-gray-500">Captain Game ID</dt>
+        <dd class="text-white font-mono">{{ step_data.captain_game_id }}</dd>
+      </div>
       {% endif %}
       {% if step_data.captain_discord %}
-        <div class="flex justify-between py-1.5">
-          <dt class="text-gray-500">Discord</dt>
-          <dd class="text-white font-mono">{{ step_data.captain_discord }}</dd>
-        </div>
+      <div class="flex justify-between py-2.5">
+        <dt class="text-gray-500">Discord</dt>
+        <dd class="text-white font-mono">{{ step_data.captain_discord }}</dd>
+      </div>
       {% endif %}
     </dl>
-    <a href="{{ request.path }}?type=team&step=1" class="inline-block mt-4 text-xs text-dc-purple hover:underline">
-      <i data-lucide="edit-2" class="w-3 h-3 inline mr-0.5"></i> Edit team details
+    <a href="{{ request.path }}?type=team&step=1" class="inline-flex items-center gap-1 mt-4 text-xs hover:underline" style="color: var(--game-color);">
+      <i data-lucide="edit-2" class="w-3 h-3"></i> Edit team details
     </a>
   </div>
 
-  {# ── Tournament Info ── #}
-  <div class="glass rounded-xl p-6 mb-6">
-    <h3 class="text-sm font-display font-semibold text-white mb-4">
-      <i data-lucide="trophy" class="w-4 h-4 inline mr-1 text-dc-gold"></i> Tournament
+  {# ── Tournament Summary ── #}
+  <div class="reg-glass rounded-2xl p-5 mb-6 fade-in fade-in-delay-1">
+    <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center bg-amber-500/10">
+        <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i>
+      </div>
+      Tournament
     </h3>
     <dl class="space-y-2 text-sm">
       <div class="flex justify-between">
@@ -85,54 +79,55 @@
         <dd class="text-white">{{ tournament.tournament_start|date:"M d, Y H:i" }}</dd>
       </div>
       {% if tournament.has_entry_fee %}
-        <div class="flex justify-between">
-          <dt class="text-gray-500">Entry Fee (per team)</dt>
-          <dd class="text-dc-gold font-mono">৳{{ tournament.entry_fee_amount|intcomma }}</dd>
-        </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Entry Fee (per team)</dt>
+        <dd class="text-amber-400 font-mono font-bold">৳{{ tournament.entry_fee_amount|intcomma }}</dd>
+      </div>
       {% endif %}
     </dl>
   </div>
 
   {# ── Terms ── #}
-  <form method="post" class="space-y-6">
+  <form method="post" class="space-y-6 fade-in fade-in-delay-2">
     {% csrf_token %}
     <input type="hidden" name="step" value="2">
     <input type="hidden" name="type" value="team">
 
-    <div class="glass rounded-xl p-6">
-      <h3 class="text-sm font-display font-semibold text-white mb-4">
-        <i data-lucide="file-text" class="w-4 h-4 inline mr-1 text-gray-400"></i> Team Agreements
+    <div class="reg-glass-strong rounded-2xl p-6">
+      <h3 class="text-sm font-bold text-white mb-5 flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center bg-gray-700/40">
+          <i data-lucide="file-text" class="w-3.5 h-3.5 text-gray-400"></i>
+        </div>
+        Team Agreements
       </h3>
-      <div class="space-y-3">
-        <label class="flex items-start gap-3 cursor-pointer">
-          <input type="checkbox" name="accept_rules" required class="form-checkbox mt-0.5">
-          <span class="text-sm text-gray-300">Our team has read and agrees to the tournament rules</span>
+      <div class="space-y-4">
+        <label class="flex items-start gap-3 cursor-pointer group">
+          <input type="checkbox" name="accept_rules" required class="reg-checkbox mt-0.5">
+          <span class="text-sm text-gray-300 group-hover:text-white transition">Our team has read and agrees to the tournament rules</span>
         </label>
-        <label class="flex items-start gap-3 cursor-pointer">
-          <input type="checkbox" name="accept_terms" required class="form-checkbox mt-0.5">
-          <span class="text-sm text-gray-300">I confirm I am authorized to register this team</span>
+        <label class="flex items-start gap-3 cursor-pointer group">
+          <input type="checkbox" name="accept_terms" required class="reg-checkbox mt-0.5">
+          <span class="text-sm text-gray-300 group-hover:text-white transition">I confirm I am authorized to register this team</span>
         </label>
-        <label class="flex items-start gap-3 cursor-pointer">
-          <input type="checkbox" name="accept_roster" required class="form-checkbox mt-0.5">
-          <span class="text-sm text-gray-300">I confirm the team roster meets tournament requirements</span>
+        <label class="flex items-start gap-3 cursor-pointer group">
+          <input type="checkbox" name="accept_roster" required class="reg-checkbox mt-0.5">
+          <span class="text-sm text-gray-300 group-hover:text-white transition">I confirm the team roster meets tournament requirements</span>
         </label>
       </div>
     </div>
 
     <div class="flex items-center justify-between pt-2">
-      <a href="{{ request.path }}?type=team&step=1" class="text-sm text-gray-500 hover:text-white transition">
-        <i data-lucide="arrow-left" class="w-4 h-4 inline mr-1"></i> Back
+      <a href="{{ request.path }}?type=team&step=1" class="btn-back">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back
       </a>
-      <button type="submit" class="px-6 py-3 bg-dc-purple text-white font-bold text-sm rounded-xl hover:bg-dc-purple/90 transition-all">
+      <button type="submit" class="btn-primary">
         {% if tournament.has_entry_fee %}
-          Continue to Payment <i data-lucide="arrow-right" class="w-4 h-4 inline ml-1"></i>
+          Continue to Payment <i data-lucide="arrow-right" class="w-4 h-4"></i>
         {% else %}
-          Complete Registration <i data-lucide="check" class="w-4 h-4 inline ml-1"></i>
+          Complete Registration <i data-lucide="check" class="w-4 h-4"></i>
         {% endif %}
       </button>
     </div>
   </form>
-
-</div>
 
 {% endblock %}

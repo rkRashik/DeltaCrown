@@ -1,0 +1,78 @@
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
+
+{% block title %}Registration — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_content %}
+<div class="min-h-[80vh] flex items-center justify-center px-4 py-12">
+    <div class="max-w-md w-full text-center space-y-6">
+        <!-- Error Icon -->
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl border mx-auto
+            {% if error_type == 'no_team' %}border-amber-500/20{% elif error_type == 'no_permission' %}border-red-500/20{% elif error_type == 'roster_too_small' %}border-amber-500/20{% elif error_type == 'no_profile' %}border-blue-500/20{% else %}border-red-500/20{% endif %}"
+            style="background: {% if error_type == 'no_team' %}rgba(245, 158, 11, 0.1){% elif error_type == 'no_permission' %}rgba(239, 68, 68, 0.1){% elif error_type == 'roster_too_small' %}rgba(245, 158, 11, 0.1){% elif error_type == 'no_profile' %}rgba(59, 130, 246, 0.1){% else %}rgba(239, 68, 68, 0.1){% endif %};">
+            <i data-lucide="{% if error_type == 'no_team' %}users-x{% elif error_type == 'no_permission' %}shield-x{% elif error_type == 'roster_too_small' %}user-plus{% elif error_type == 'no_profile' %}user-cog{% else %}alert-triangle{% endif %}"
+               class="w-10 h-10 {% if error_type == 'no_team' %}text-amber-400{% elif error_type == 'no_permission' %}text-red-400{% elif error_type == 'roster_too_small' %}text-amber-400{% elif error_type == 'no_profile' %}text-blue-400{% else %}text-red-400{% endif %}"></i>
+        </div>
+
+        <div>
+            <h1 class="text-2xl font-display font-black text-white mb-2">{{ error_title|default:"Can't Register" }}</h1>
+            <p class="text-sm text-gray-400 leading-relaxed">{{ error_message }}</p>
+        </div>
+
+        {% if error_type == 'roster_too_small' and user_team %}
+        <!-- Roster Progress for roster_too_small -->
+        <div class="rounded-xl border border-white/8 p-5 text-left space-y-4" style="background: rgba(12, 12, 18, 0.8);">
+            <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-500">Team</span>
+                <span class="text-white font-bold">{{ user_team.name }}</span>
+            </div>
+            <div>
+                <div class="flex justify-between text-xs mb-2">
+                    <span class="text-gray-500">Roster Size</span>
+                    <span class="text-amber-400 font-mono font-bold">{{ current_members }}/{{ required_members }}</span>
+                </div>
+                <div class="h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div class="h-full bg-amber-500 rounded-full transition-all" style="width: {% widthratio current_members required_members 100 %}%;"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if error_type == 'no_permission' and captain_name %}
+        <div class="rounded-xl border border-white/8 p-4" style="background: rgba(12, 12, 18, 0.8);">
+            <p class="text-xs text-gray-400">
+                Contact your team captain <span class="text-white font-semibold">{{ captain_name }}</span> to request registration permission.
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="flex flex-col gap-3">
+            {% if error_type == 'no_team' %}
+            <a href="/teams/create/?game={{ tournament.game.slug }}"
+               class="block w-full py-3.5 rounded-xl text-sm font-bold uppercase tracking-wider text-center text-black"
+               style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i> Create a Team
+            </a>
+            {% elif error_type == 'roster_too_small' and user_team %}
+            <a href="{{ user_team.get_absolute_url }}"
+               class="block w-full py-3.5 rounded-xl text-sm font-bold uppercase tracking-wider text-center text-black"
+               style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                <i data-lucide="user-plus" class="w-4 h-4 inline mr-1"></i> Manage Roster
+            </a>
+            {% elif error_type == 'no_profile' %}
+            <a href="/settings/profile/"
+               class="block w-full py-3.5 rounded-xl text-sm font-bold uppercase tracking-wider text-center text-black"
+               style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                Complete Profile
+            </a>
+            {% endif %}
+
+            <a href="/tournaments/{{ tournament.slug }}/"
+               class="block w-full py-3 rounded-xl border border-white/10 text-sm font-semibold text-gray-400 text-center hover:bg-white/5 transition">
+                Back to Tournament
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

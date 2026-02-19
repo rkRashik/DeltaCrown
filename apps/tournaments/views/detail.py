@@ -21,22 +21,52 @@ from apps.games.services import game_service
 
 class TournamentDetailView(DetailView):
     """
-    FE-T-002: Tournament Detail Page
+    FE-T-002: Tournament Detail Page — Dynamic Status-Aware Routing
 
     URL: /tournaments/<slug>/
-    Template: templates/tournaments/detailPages/detail.html
+    Template: Routes to phase-specific templates based on tournament.status:
+        - draft/pending_approval/published → detail_registration.html
+        - registration_open              → detail_registration.html (CTA active)
+        - registration_closed            → detail_registration.html (check-in mode)
+        - live                           → detail_live.html
+        - completed/archived             → detail_completed.html
+        - cancelled                      → detail_cancelled.html
 
-    Features:
-    - Hero section with banner, game badge, status
-    - Key info bar (format, date, prize, slots)
-    - Tabs: Overview, Participants, Bracket, Matches, Standings, Streams
-    - Registration CTA with dynamic states (FE-T-003)
+    Fallback: tournaments/detailPages/detail.html (original monolith)
     """
     model = Tournament
-    template_name = 'tournaments/detailPages/detail.html'
+    template_name = 'tournaments/detailPages/detail.html'  # fallback
     context_object_name = 'tournament'
     slug_field = 'slug'
     slug_url_kwarg = 'slug'
+
+    # Status → template mapping
+    PHASE_TEMPLATES = {
+        'draft':               'tournaments/detailPages/detail_registration.html',
+        'pending_approval':    'tournaments/detailPages/detail_registration.html',
+        'published':           'tournaments/detailPages/detail_registration.html',
+        'registration_open':   'tournaments/detailPages/detail_registration.html',
+        'registration_closed': 'tournaments/detailPages/detail_registration.html',
+        'live':                'tournaments/detailPages/detail_live.html',
+        'completed':           'tournaments/detailPages/detail_completed.html',
+        'archived':            'tournaments/detailPages/detail_completed.html',
+        'cancelled':           'tournaments/detailPages/detail_cancelled.html',
+    }
+
+    def get_template_names(self):
+        """Route to phase-specific template based on tournament status."""
+        tournament = self.object
+        if tournament and tournament.status in self.PHASE_TEMPLATES:
+            phase_template = self.PHASE_TEMPLATES[tournament.status]
+            # Try phase template first, fall back to monolith
+            from django.template.loader import get_template
+            from django.template import TemplateDoesNotExist
+            try:
+                get_template(phase_template)
+                return [phase_template]
+            except TemplateDoesNotExist:
+                pass
+        return [self.template_name]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -133,7 +163,147 @@ class TournamentDetailView(DetailView):
         # Streams tab
         context.update(self._get_streams_context(tournament))
 
+        # Phase-specific context
+        context.update(self._get_phase_context(tournament, user))
+
         return context
+
+    def _get_phase_context(self, tournament, user):
+        """Build phase-specific context for the dynamic detail view."""
+        now = timezone.now()
+        status = tournament.status
+
+        phase_ctx = {
+            'tournament_phase': status,
+            'is_registration_phase': status in [
+                'draft', 'pending_approval', 'published',
+                'registration_open', 'registration_closed'
+            ],
+            'is_live_phase': status == 'live',
+            'is_completed_phase': status in ['completed', 'archived'],
+            'is_cancelled': status == 'cancelled',
+        }
+
+        # ── State-based section visibility flags ─────────────────────────
+        # These control which sections render in the templates.
+        phase_ctx['show_participants'] = status not in ['draft', 'pending_approval']
+        phase_ctx['show_registration_cta'] = status == 'registration_open'
+        phase_ctx['show_countdown'] = status in [
+            'registration_open', 'registration_closed', 'published',
+        ]
+        phase_ctx['show_schedule'] = True  # always visible
+        phase_ctx['show_prizes'] = True    # always visible
+        phase_ctx['show_rules'] = True     # always visible
+        phase_ctx['show_announcements'] = status not in ['draft', 'pending_approval']
+        phase_ctx['show_bracket'] = status in ['live', 'completed', 'archived']
+        phase_ctx['show_matches'] = status in ['live', 'completed', 'archived']
+        phase_ctx['show_standings'] = status in ['live', 'completed', 'archived']
+        phase_ctx['show_streams'] = status in ['live']
+        phase_ctx['show_checkin_info'] = status == 'registration_closed'
+        phase_ctx['is_pre_registration'] = status in ['draft', 'pending_approval', 'published']
+
+        # Registration phase extras
+        if phase_ctx['is_registration_phase']:
+            # Countdown targets
+            if tournament.status == 'registration_open' and tournament.registration_end:
+                phase_ctx['countdown_target'] = tournament.registration_end.isoformat()
+                phase_ctx['countdown_label'] = 'Registration closes in'
+            elif tournament.status in ['registration_closed', 'published'] and tournament.tournament_start:
+                phase_ctx['countdown_target'] = tournament.tournament_start.isoformat()
+                phase_ctx['countdown_label'] = 'Tournament starts in'
+            elif tournament.status == 'registration_open' and not tournament.registration_end and tournament.tournament_start:
+                phase_ctx['countdown_target'] = tournament.tournament_start.isoformat()
+                phase_ctx['countdown_label'] = 'Tournament starts in'
+            else:
+                phase_ctx['countdown_target'] = None
+                phase_ctx['countdown_label'] = None
+
+            # Check-in info
+            phase_ctx['is_checkin_phase'] = tournament.status == 'registration_closed'
+            phase_ctx['checkin_enabled'] = getattr(tournament, 'enable_check_in', False)
+
+            # Registration window info
+            phase_ctx['registration_is_open'] = tournament.status == 'registration_open'
+            phase_ctx['registration_opens_at'] = tournament.registration_start.isoformat() if tournament.registration_start else None
+            phase_ctx['registration_closes_at'] = tournament.registration_end.isoformat() if tournament.registration_end else None
+
+        # Live phase extras
+        if phase_ctx['is_live_phase']:
+            from apps.tournaments.models import Match
+            live_matches = Match.objects.filter(
+                tournament=tournament,
+                state='live',
+                is_deleted=False
+            ).order_by('round_number', 'match_number')
+
+            phase_ctx['live_match_count'] = live_matches.count()
+
+            total_matches = Match.objects.filter(
+                tournament=tournament,
+                is_deleted=False
+            ).exclude(state='cancelled').count()
+            completed_matches = Match.objects.filter(
+                tournament=tournament,
+                state__in=['completed', 'forfeit'],
+                is_deleted=False
+            ).count()
+            phase_ctx['total_match_count'] = total_matches
+            phase_ctx['completed_match_count'] = completed_matches
+            phase_ctx['match_progress_pct'] = (
+                round(completed_matches / total_matches * 100) if total_matches > 0 else 0
+            )
+
+            # Current round
+            current_round = live_matches.values_list('round_number', flat=True).first()
+            phase_ctx['current_round'] = current_round
+
+            # Bracket info
+            try:
+                bracket = tournament.bracket
+                phase_ctx['total_rounds'] = bracket.total_rounds
+            except Exception:
+                phase_ctx['total_rounds'] = None
+
+            # User's next match (if participant)
+            if user.is_authenticated:
+                from apps.tournaments.models import Registration
+                user_reg = Registration.objects.filter(
+                    tournament=tournament, user=user, is_deleted=False,
+                    status__in=['confirmed', 'pending', 'payment_submitted']
+                ).first()
+                if user_reg:
+                    from django.db.models import Q
+                    pid = user_reg.team_id or user.id
+                    user_next = Match.objects.filter(
+                        tournament=tournament, is_deleted=False,
+                        state__in=['scheduled', 'check_in', 'ready', 'live']
+                    ).filter(
+                        Q(participant1_id=pid) | Q(participant2_id=pid)
+                    ).order_by('round_number', 'match_number').first()
+                    phase_ctx['user_next_match'] = user_next
+                else:
+                    phase_ctx['user_next_match'] = None
+            else:
+                phase_ctx['user_next_match'] = None
+
+        # Completed phase extras
+        if phase_ctx['is_completed_phase']:
+            from apps.tournaments.models.result import TournamentResult
+            try:
+                results = TournamentResult.objects.filter(
+                    tournament=tournament, is_deleted=False
+                ).order_by('placement')[:3]
+                phase_ctx['podium'] = list(results)
+            except Exception:
+                phase_ctx['podium'] = []
+
+            from apps.tournaments.models import Match
+            total = Match.objects.filter(
+                tournament=tournament, is_deleted=False
+            ).exclude(state='cancelled').count()
+            phase_ctx['total_matches_played'] = total
+
+        return phase_ctx
 
     def _get_registration_status(self, tournament, user):
         """Get detailed registration validation status."""

@@ -522,7 +522,21 @@ def change_role(request, slug, membership_id):
                 ).exclude(id=membership.id).update(is_tournament_captain=False)
             membership.is_tournament_captain = new_captain
             update_fields.append('is_tournament_captain')
-    
+
+    # Update granular permissions (JSONField)
+    if 'permissions' in data:
+        new_permissions = data.get('permissions')
+        if isinstance(new_permissions, dict):
+            # Validate permission keys are strings and values are booleans
+            sanitized_perms = {}
+            for perm_key, perm_val in new_permissions.items():
+                if isinstance(perm_key, str) and isinstance(perm_val, bool):
+                    sanitized_perms[perm_key] = perm_val
+            if sanitized_perms != (membership.permissions or {}):
+                changes['permissions'] = {'old': membership.permissions or {}, 'new': sanitized_perms}
+            membership.permissions = sanitized_perms
+            update_fields.append('permissions')
+
     if update_fields:
         membership.save(update_fields=update_fields)
     
@@ -548,6 +562,7 @@ def change_role(request, slug, membership_id):
             'roster_slot': membership.roster_slot or '',
             'display_name': membership.display_name,
             'is_tournament_captain': membership.is_tournament_captain,
+            'permissions': membership.permissions or {},
         }
     })
 

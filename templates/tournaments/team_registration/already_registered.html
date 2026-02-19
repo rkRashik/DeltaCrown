@@ -1,0 +1,62 @@
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
+
+{% block title %}Already Registered — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_content %}
+<div class="min-h-[80vh] flex items-center justify-center px-4 py-12">
+    <div class="max-w-md w-full text-center space-y-6">
+        <!-- Status Icon -->
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl border border-emerald-500/20 mx-auto" style="background: rgba(16, 185, 129, 0.1);">
+            <i data-lucide="check-circle-2" class="w-10 h-10 text-emerald-400"></i>
+        </div>
+
+        <div>
+            <h1 class="text-2xl font-display font-black text-white mb-2">Already Registered</h1>
+            <p class="text-sm text-gray-400">You're already registered for <span class="text-white font-semibold">{{ tournament.name }}</span>.</p>
+        </div>
+
+        <!-- Registration Status -->
+        <div class="rounded-xl border border-white/8 p-5 text-left space-y-3" style="background: rgba(12, 12, 18, 0.8);">
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Status</span>
+                <span class="font-bold {% if registration.status == 'confirmed' %}text-emerald-400{% elif registration.status == 'pending' %}text-amber-400{% else %}text-blue-400{% endif %}">
+                    {{ registration.get_status_display }}
+                </span>
+            </div>
+            {% if registration.team %}
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Team</span>
+                <span class="text-white font-semibold">{{ registration.team.name }}</span>
+            </div>
+            {% endif %}
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Registered</span>
+                <span class="text-white">{{ registration.created_at|date:"M j, Y" }}</span>
+            </div>
+        </div>
+
+        {% if needs_verification %}
+        <div class="rounded-xl border border-amber-500/20 p-4" style="background: rgba(245, 158, 11, 0.06);">
+            <p class="text-xs text-amber-400 flex items-center gap-2 justify-center">
+                <i data-lucide="clock" class="w-4 h-4"></i>
+                Your registration is being verified. You'll be notified once confirmed.
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="flex flex-col gap-3">
+            <a href="/tournaments/{{ tournament.slug }}/lobby/"
+               class="block w-full py-3.5 rounded-xl text-sm font-bold uppercase tracking-wider text-center text-black"
+               style="background: linear-gradient(135deg, #10b981, #059669);">
+                Enter Lobby
+            </a>
+            <a href="/tournaments/{{ tournament.slug }}/"
+               class="block w-full py-3 rounded-xl border border-white/10 text-sm font-semibold text-gray-400 text-center hover:bg-white/5 transition">
+                Back to Tournament
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
