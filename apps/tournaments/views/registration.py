@@ -228,18 +228,52 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                 status='ACTIVE'
             ).distinct()
             
+            # Also include org teams where user is CEO or org MANAGER
+            from apps.organizations.models import Organization, OrganizationMembership
+            ceo_org_ids = set(
+                Organization.objects.filter(ceo=user).values_list('id', flat=True)
+            )
+            staff_org_ids = set(
+                OrganizationMembership.objects.filter(
+                    user=user, role__in=['CEO', 'MANAGER']
+                ).values_list('organization_id', flat=True)
+            )
+            all_org_ids = ceo_org_ids | staff_org_ids
+            
+            org_teams = Team.objects.filter(
+                organization_id__in=all_org_ids,
+                status='ACTIVE'
+            ).exclude(id__in=eligible_teams.values_list('id', flat=True)) if all_org_ids else Team.objects.none()
+            
+            # Combine both querysets into a single list
+            combined_ids = set(eligible_teams.values_list('id', flat=True)) | set(org_teams.values_list('id', flat=True))
+            all_teams = Team.objects.filter(id__in=combined_ids) if combined_ids else Team.objects.none()
+
             # Annotate with permission level
             teams_with_permissions = []
-            for team in eligible_teams:
+            for team in all_teams:
                 try:
                     membership = TeamMembership.objects.get(team=team, user=user, status='ACTIVE')
                 except TeamMembership.DoesNotExist:
-                    continue
-                permission_label = 'Owner' if team.created_by == user else membership.role.title()
-                can_register = (
-                    team.created_by == user or
-                    membership.role in [TeamMembership.Role.OWNER, TeamMembership.Role.MANAGER, TeamMembership.Role.CAPTAIN]
-                )
+                    membership = None
+                is_creator = team.created_by == user
+                is_ceo = team.organization_id and team.organization_id in ceo_org_ids
+                is_org_staff = team.organization_id and team.organization_id in all_org_ids
+                has_role = membership and membership.role in [
+                    TeamMembership.Role.OWNER, TeamMembership.Role.MANAGER
+                ]
+                has_perm = membership and membership.has_permission('register_tournaments')
+                can_register = is_creator or is_ceo or is_org_staff or has_role or has_perm
+                if is_creator:
+                    permission_label = 'Owner'
+                elif is_ceo:
+                    permission_label = 'CEO'
+                elif is_org_staff:
+                    permission_label = 'Org Staff'
+                elif membership:
+                    permission_label = membership.role.title()
+                else:
+                    permission_label = 'CEO'
                 
                 if can_register:
                     teams_with_permissions.append({
@@ -421,10 +455,25 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                 try:
                     team = Team.objects.get(id=team_id, status='ACTIVE')
                     # Verify user has permission
-                    membership = TeamMembership.objects.get(team=team, user=user, status='ACTIVE')
+                    try:
+                        membership = TeamMembership.objects.get(team=team, user=user, status='ACTIVE')
+                    except TeamMembership.DoesNotExist:
+                        membership = None
+                    from apps.organizations.models import Organization, OrganizationMembership
+                    is_ceo = team.organization_id and Organization.objects.filter(
+                        id=team.organization_id, ceo=user
+                    ).exists()
+                    is_org_staff = team.organization_id and OrganizationMembership.objects.filter(
+                        organization_id=team.organization_id,
+                        user=user,
+                        role__in=['CEO', 'MANAGER']
+                    ).exists()
+                    has_role = membership and membership.role in [
+                        TeamMembership.Role.OWNER, TeamMembership.Role.MANAGER
+                    ]
+                    has_perm = membership and membership.has_permission('register_tournaments')
                     can_register = (
-                        team.created_by == user or
-                        membership.role in [TeamMembership.Role.OWNER, TeamMembership.Role.MANAGER, TeamMembership.Role.CAPTAIN]
+                        team.created_by == user or is_ceo or is_org_staff or has_role or has_perm
                     )
                     
                     if not can_register:

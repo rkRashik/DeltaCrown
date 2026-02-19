@@ -458,9 +458,7 @@
     _collectPermissions() {
       const perms = {};
       document.querySelectorAll(".perm-cb").forEach(cb => {
-        const perm = cb.dataset.perm;
-        if (cb.checked) perms[perm] = true;
-        // Only send explicitly checked ones — unchecked = fall through to role default
+        perms[cb.dataset.perm] = cb.checked;
       });
       return perms;
     },
@@ -3004,7 +3002,7 @@
     // Roster
     openInviteModal:   ()                        => Roster.openInviteModal(),
     cancelInvite:      (id, btn)                 => Roster.cancelInvite(id, btn),
-    openRoleModal:     (id, role, name, cap, pr, slot) => Roster.openRoleModal(id, role, name, cap, pr, slot),
+    openRoleModal:     (id, role, name, cap, pr, slot, dn, img) => Roster.openRoleModal(id, role, name, cap, pr, slot, dn, img),
     openRemoveModal:   (id, name)                => Roster.openRemoveModal(id, name),
     confirmRemove:     ()                        => Roster.confirmRemove(),
     handleJoinRequest: (id, act, btn)            => Roster.handleJoinRequest(id, act, btn),

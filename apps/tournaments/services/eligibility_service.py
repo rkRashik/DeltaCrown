@@ -203,7 +203,7 @@ class RegistrationEligibilityService:
                     'action_label': 'Complete Profile',
                 }
             
-            # Get user's teams for this game
+            # Get user's teams for this game (direct membership)
             user_teams = Team.objects.filter(
                 game_id=tournament.game_id,
                 vnext_memberships__user=user_profile.user,
@@ -211,7 +211,30 @@ class RegistrationEligibilityService:
                 status='ACTIVE'
             ).distinct()
             
-            if not user_teams.exists():
+            # Also include teams from orgs where user is CEO/MANAGER
+            # (CEO may not have a direct TeamMembership)
+            from apps.organizations.models import Organization, OrganizationMembership
+            ceo_org_ids = set(
+                Organization.objects.filter(ceo=user).values_list('id', flat=True)
+            )
+            staff_org_ids = set(
+                OrganizationMembership.objects.filter(
+                    user=user, role__in=['CEO', 'MANAGER']
+                ).values_list('organization_id', flat=True)
+            )
+            all_org_ids = ceo_org_ids | staff_org_ids
+            
+            org_teams = Team.objects.filter(
+                game_id=tournament.game_id,
+                organization_id__in=all_org_ids,
+                status='ACTIVE'
+            ).distinct() if all_org_ids else Team.objects.none()
+            
+            # Combine both querysets
+            combined_team_ids = set(user_teams.values_list('id', flat=True)) | set(org_teams.values_list('id', flat=True))
+            all_teams = Team.objects.filter(id__in=combined_team_ids) if combined_team_ids else Team.objects.none()
+            
+            if not all_teams.exists():
                 return {
                     'eligible': False,
                     'reason': f'You need to join a {tournament.game.name} team to register.',
@@ -224,20 +247,23 @@ class RegistrationEligibilityService:
             can_register_team = False
             team_with_permission = None
             
-            for team in user_teams:
+            for team in all_teams:
                 membership = TeamMembership.objects.filter(
                     team=team,
                     user=user_profile.user,
                     status=TeamMembership.Status.ACTIVE
                 ).first()
                 
-                if membership and (
+                is_ceo = team.organization_id and team.organization_id in ceo_org_ids
+                is_creator = team.created_by_id == user.id
+                is_org_staff = team.organization_id and team.organization_id in all_org_ids
+                
+                if is_creator or is_ceo or is_org_staff or (membership and (
                     membership.role in [
                         TeamMembership.Role.OWNER,
                         TeamMembership.Role.MANAGER,
-                        TeamMembership.Role.CAPTAIN
-                    ]
-                ):
+                    ] or membership.has_permission('register_tournaments')
+                )):
                     can_register_team = True
                     team_with_permission = team
                     break

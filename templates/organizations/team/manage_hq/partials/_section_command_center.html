@@ -268,14 +268,14 @@ Section 7.1 of the Master Plan.
             <div class="flex items-center gap-3 p-2.5 rounded-xl bg-red-500/8 border border-red-500/15 text-sm" data-severity="critical">
                 <i data-lucide="alert-circle" class="w-4 h-4 text-red-400 shrink-0"></i>
                 <span class="flex-1 text-white/70">No captain designated — tournament check-ins will fail</span>
-                <button onclick="window.location.hash='#roster'" class="text-xs text-red-400 hover:underline shrink-0">Fix →</button>
+                <button onclick="setActiveRoute('roster')" class="text-xs text-red-400 hover:underline shrink-0">Fix →</button>
             </div>
             {% endif %}
             {% if not team.discord_url %}
             <div class="flex items-center gap-3 p-2.5 rounded-xl bg-red-500/8 border border-red-500/15 text-sm" data-severity="critical">
                 <i data-lucide="alert-circle" class="w-4 h-4 text-red-400 shrink-0"></i>
                 <span class="flex-1 text-white/70">Discord server not linked — required for team comms</span>
-                <button onclick="setActiveRoute('profile')" class="text-xs text-red-400 hover:underline shrink-0">Set Up →</button>
+                <button onclick="setActiveRoute('discord')" class="text-xs text-red-400 hover:underline shrink-0">Set Up →</button>
             </div>
             {% endif %}
 

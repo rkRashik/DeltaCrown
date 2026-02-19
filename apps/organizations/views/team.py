@@ -284,6 +284,7 @@ def team_manage(request, team_slug, org_slug=None):
         is_org_ceo = False
         org_control_plane_url = ''
         org_policies = {}
+        org_staff = []
         if org:
             is_org_ceo = org.ceo_id == request.user.id
             org_control_plane_url = f'/orgs/{org.slug}/control-plane/'
@@ -311,6 +312,32 @@ def team_manage(request, team_slug, org_slug=None):
                 'global_rank': global_rank,
                 'ceo_id': org.ceo_id,
             }
+
+            # ── Org staff with authority over this team ──
+            from apps.organizations.models import OrganizationMembership
+            org_staff_qs = OrganizationMembership.objects.filter(
+                organization=org,
+                role__in=['CEO', 'MANAGER'],
+            ).select_related('user', 'user__profile').order_by('role', 'joined_at')
+            org_staff = []
+            for sm in org_staff_qs:
+                org_staff.append({
+                    'user': sm.user,
+                    'username': sm.user.username,
+                    'role': sm.role,
+                    'role_display': sm.get_role_display(),
+                    'avatar_url': sm.user.profile.avatar.url if hasattr(sm.user, 'profile') and sm.user.profile.avatar else '',
+                })
+            # Also include CEO from org.ceo if not already in staff memberships
+            ceo_user = org.ceo
+            if ceo_user and not any(s['user'].id == ceo_user.id for s in org_staff):
+                org_staff.insert(0, {
+                    'user': ceo_user,
+                    'username': ceo_user.username,
+                    'role': 'CEO',
+                    'role_display': 'CEO (Owner)',
+                    'avatar_url': ceo_user.profile.avatar.url if hasattr(ceo_user, 'profile') and ceo_user.profile.avatar else '',
+                })
 
         # ── Economy context (Phase 4) ──
         wallet_context = None
@@ -361,6 +388,7 @@ def team_manage(request, team_slug, org_slug=None):
             # Roster info
             'current_roster_size': len(members),
             'has_staff': any(m.role in (MembershipRole.MANAGER, MembershipRole.COACH, MembershipRole.ANALYST, MembershipRole.SCOUT) for m in members),
+            'has_captain': any(m.is_tournament_captain for m in members),
             'max_roster_size': roster_config.max_roster_size if roster_config else 10,
             'min_roster_size': roster_config.min_roster_size if roster_config else 1,
             'max_team_size': roster_config.max_team_size if roster_config else 5,
@@ -391,6 +419,7 @@ def team_manage(request, team_slug, org_slug=None):
             ],
             # Phase 4: Org integration
             'org_context': org_context,
+            'org_staff': org_staff if org else [],
             'is_org_ceo': is_org_ceo,
             'org_control_plane_url': org_control_plane_url,
             'org_policies': org_policies,

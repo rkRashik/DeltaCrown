@@ -425,15 +425,6 @@ def change_role(request, slug, membership_id):
         if submitted_role and submitted_role != membership.role:
             return JsonResponse({'error': 'Cannot change the creator\'s role. Use Transfer Ownership.'}, status=400)
     
-    # Parse params — support both JSON body and form POST
-    if request.content_type and 'application/json' in request.content_type:
-        try:
-            data = json.loads(request.body)
-        except (json.JSONDecodeError, ValueError):
-            data = {}
-    else:
-        data = request.POST
-    
     # Parse role
     new_role = data.get('role', '').strip() if data.get('role') else ''
     if not new_role:

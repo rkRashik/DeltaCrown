@@ -428,7 +428,8 @@
               <h2 class="text-xl font-tech font-bold text-white uppercase flex items-center gap-3">
                 <span class="w-1 h-5 bg-delta-electric"></span> Active Roster Registry
               </h2>
-              <button class="px-4 py-2 bg-delta-electric/10 text-delta-electric border border-delta-electric/20 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-delta-electric hover:text-black transition">
+              <button class="px-4 py-2 bg-delta-electric/10 text-delta-electric border border-delta-electric/20 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-delta-electric hover:text-black transition"
+                onclick="window.location.href='/orgs/{{ org.slug }}/teams/create/'">
                 <i class="fas fa-plus mr-2"></i> Register New Team
               </button>
             </div>
@@ -452,9 +453,10 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
-                  <a href="/teams/{{ squad.team_slug }}/" class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-white transition flex items-center justify-center"><i class="fas fa-external-link-alt text-xs"></i></a>
+                  <a href="/orgs/{{ org.slug }}/teams/{{ squad.team_slug }}/manage/" class="w-8 h-8 rounded bg-delta-electric/10 text-delta-electric hover:bg-delta-electric/25 transition flex items-center justify-center" title="Manage Team"><i class="fas fa-cog text-xs"></i></a>
+                  <a href="/teams/{{ squad.team_slug }}/" class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-white transition flex items-center justify-center" title="Public Page"><i class="fas fa-external-link-alt text-xs"></i></a>
                   {% if can_manage_org %}
-                  <button class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-delta-danger transition flex items-center justify-center btn-remove-team" data-team-id="{{ squad.team.id }}" data-team-name="{{ squad.team_name }}"><i class="fas fa-trash-alt text-xs"></i></button>
+                  <button class="w-8 h-8 rounded bg-white/5 text-slate-400 hover:text-delta-danger transition flex items-center justify-center btn-remove-team" data-team-id="{{ squad.team.id }}" data-team-name="{{ squad.team_name }}" title="Remove Team"><i class="fas fa-trash-alt text-xs"></i></button>
                   {% endif %}
                 </div>
               </div>
