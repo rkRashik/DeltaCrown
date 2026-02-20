@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Protocol | Valorant Winter Major</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Rajdhani:wght@500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'dc-cyan': '#06b6d4',
+                        'dc-purple': '#8b5cf6',
+                        'dc-gold': '#facc15',
+                        'dc-bg': '#030303',
+                        'dc-surface': '#0a0a0a',
+                        'dc-card': '#111111',
+                        'val-red': '#ff4655',
+                        'bkash-pink': '#e2136e',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'gaming': ['Rajdhani', 'sans-serif'],
+                        'display': ['Space Grotesk', 'sans-serif'],
+                        'mono': ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'slide-in-right': 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-glow': 'pulseGlow 2.5s infinite alternate',
+                        'scanline': 'scanline 8s linear infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideInRight: {
+                            '0%': { opacity: '0', transform: 'translateX(20px)' },
+                            '100%': { opacity: '1', transform: 'translateX(0)' },
+                        },
+                        pulseGlow: {
+                            '0%': { boxShadow: '0 0 15px rgba(255, 70, 85, 0.2)' },
+                            '100%': { boxShadow: '0 0 35px rgba(255, 70, 85, 0.5)' },
+                        },
+                        scanline: {
+                            '0%': { transform: 'translateY(-100vh)' },
+                            '100%': { transform: 'translateY(100vh)' }
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body {
+            background-color: #030303;
+            color: #e5e5e5;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Cinematic Background Architecture */
+        .bg-cinematic {
+            position: fixed; inset: 0; z-index: -3;
+            background-image: url('https://images.unsplash.com/photo-1624138784181-dc7f5b75e52e?q=80&w=2670&auto=format&fit=crop');
+            background-size: cover; background-position: center;
+            filter: brightness(0.25) contrast(1.2) grayscale(0.2);
+            transform: scale(1.05);
+            animation: slowPan 40s infinite alternate ease-in-out;
+        }
+
+        @keyframes slowPan {
+            0% { transform: scale(1.05) translate(0, 0); }
+            100% { transform: scale(1.1) translate(-2%, -1%); }
+        }
+
+        .bg-overlay {
+            position: fixed; inset: 0; z-index: -2;
+            background: radial-gradient(circle at 60% 0%, rgba(255, 70, 85, 0.1) 0%, transparent 50%),
+                        linear-gradient(to bottom, rgba(3,3,3,0.7) 0%, #030303 100%);
+        }
+
+        .noise-texture {
+            position: fixed; inset: 0; z-index: -1; opacity: 0.04; pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        /* High-End Glassmorphism */
+        .glass-wizard {
+            background: rgba(10, 10, 10, 0.65);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.9), inset 0 0 0 1px rgba(255,255,255,0.02);
+        }
+
+        /* Custom Inputs & Elements */
+        .input-premium {
+            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 0.75rem; padding: 0.875rem 1.25rem; color: white; font-family: 'Inter', sans-serif;
+            font-size: 0.875rem; transition: all 0.3s ease; outline: none;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .input-premium:focus { border-color: #06b6d4; box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15), inset 0 2px 4px rgba(0,0,0,0.2); }
+        .input-premium::placeholder { color: rgba(255,255,255,0.3); font-weight: 400; }
+
+        .input-bkash:focus { border-color: #e2136e; box-shadow: 0 0 0 3px rgba(226, 19, 110, 0.15), inset 0 2px 4px rgba(0,0,0,0.2); }
+
+        .player-slot {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .player-slot:hover { border-color: rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.04); }
+
+        .slot-empty { border: 1px dashed rgba(255, 255, 255, 0.15); background: rgba(0,0,0,0.3); cursor: pointer; }
+        .slot-empty:hover { border-color: #06b6d4; background: rgba(6, 182, 212, 0.05); transform: translateY(-2px); }
+
+        .step-hidden { display: none !important; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff4655; }
+
+        /* Receipt Aesthetics */
+        .receipt-edge {
+            background-image: radial-gradient(circle at 10px 0, transparent 10px, rgba(255,255,255,0.05) 11px);
+            background-size: 20px 20px;
+            background-repeat: repeat-x;
+            height: 20px;
+        }
+    </style>
+</head>
+<body class="relative">
+
+    <div class="bg-cinematic"></div>
+    <div class="bg-overlay"></div>
+    <div class="noise-texture"></div>
+
+    <nav class="w-full h-[72px] flex items-center justify-between px-6 md:px-10 border-b border-white/5 relative z-10 bg-black/40 backdrop-blur-md">
+        <a href="#" class="flex items-center gap-3 group">
+            <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                <i data-lucide="x" class="w-4 h-4 text-gray-400 group-hover:text-white transition-colors"></i>
+            </div>
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-white transition-colors hidden sm:block">Abort Protocol</span>
+        </a>
+
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-dc-cyan to-dc-purple flex items-center justify-center font-black text-white text-base shadow-[0_0_15px_rgba(6,182,212,0.3)]">D</div>
+            <div class="h-4 w-px bg-white/10 mx-1 hidden sm:block"></div>
+            <span class="font-display font-bold text-lg tracking-tight text-white hidden sm:block">Delta<span class="text-dc-cyan">Crown</span> Secure</span>
+        </div>
+
+        <div class="flex items-center gap-3 pl-3 border-l border-white/10">
+            <div class="text-right hidden md:block">
+                <p class="text-xs font-bold text-white">Rock</p>
+                <p class="text-[9px] text-gray-500 font-mono uppercase">Captain</p>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-val-red to-orange-500 p-[1px]">
+                <img src="https://ui-avatars.com/api/?name=Rock&background=000&color=fff" class="w-full h-full rounded-full object-cover border border-black">
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 w-full max-w-[1400px] mx-auto px-4 py-8 md:py-12 flex flex-col items-center justify-center relative z-10">
+
+        <div class="w-full glass-wizard rounded-[2rem] overflow-hidden flex flex-col lg:flex-row min-h-[750px] relative">
+
+            <div id="loading-overlay" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex-col items-center justify-center text-white">
+                <i data-lucide="loader-2" class="w-10 h-10 animate-spin text-dc-cyan mb-4"></i>
+                <p class="font-mono text-xs text-dc-cyan uppercase tracking-widest">Encrypting Data...</p>
+            </div>
+
+            <div class="w-full lg:w-[380px] bg-black/50 border-r border-white/5 flex flex-col relative overflow-hidden shrink-0" id="sidebar-nav">
+                <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-val-red/10 to-transparent pointer-events-none"></div>
+
+                <div class="p-8 pb-6 border-b border-white/5 relative z-10">
+                    <span class="inline-block px-2.5 py-1 bg-val-red text-white text-[9px] font-black uppercase tracking-[0.2em] rounded mb-4 shadow-[0_0_15px_rgba(255,70,85,0.4)]">
+                        Tournament Registration
+                    </span>
+                    <h1 class="font-display font-black text-3xl text-white leading-tight mb-2">Valorant<br>Winter Major</h1>
+                    <p class="text-sm text-gray-400">South Asia Division</p>
+                </div>
+
+                <div class="flex-1 p-8 relative">
+                    <div class="absolute left-[47px] top-10 bottom-10 w-px bg-white/10"></div>
+                    <div id="vertical-progress" class="absolute left-[47px] top-10 w-px bg-val-red shadow-[0_0_10px_rgba(255,70,85,0.8)] transition-all duration-700 ease-out" style="height: 0%;"></div>
+
+                    <div class="space-y-12 relative z-10">
+                        <div class="flex items-start gap-5 group" id="nav-step-1">
+                            <div class="w-8 h-8 rounded-full bg-val-red text-white flex items-center justify-center font-bold text-sm shadow-[0_0_15px_rgba(255,70,85,0.4)] ring-4 ring-black transition-all step-nav-icon relative z-10">1</div>
+                            <div class="pt-1.5">
+                                <p class="text-sm font-bold text-white transition-colors step-nav-text">Identity & Comms</p>
+                                <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Team Info & Coordination</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-5 opacity-50 transition-all duration-300" id="nav-step-2">
+                            <div class="w-8 h-8 rounded-full bg-dc-card border border-white/20 text-gray-500 flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon relative z-10">2</div>
+                            <div class="pt-1.5">
+                                <p class="text-sm font-bold text-gray-400 transition-colors step-nav-text">Roster Engine</p>
+                                <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Starters, Subs & Coach</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-5 opacity-50 transition-all duration-300" id="nav-step-3">
+                            <div class="w-8 h-8 rounded-full bg-dc-card border border-white/20 text-gray-500 flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon relative z-10">3</div>
+                            <div class="pt-1.5">
+                                <p class="text-sm font-bold text-gray-400 transition-colors step-nav-text">Secure Entry Fee</p>
+                                <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">bKash Payment Gateway</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-5 opacity-50 transition-all duration-300" id="nav-step-4">
+                            <div class="w-8 h-8 rounded-full bg-dc-card border border-white/20 text-gray-500 flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon relative z-10">4</div>
+                            <div class="pt-1.5">
+                                <p class="text-sm font-bold text-gray-400 transition-colors step-nav-text">Pre-Flight Manifest</p>
+                                <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Review & Lock</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-black/60 border-t border-white/5 mt-auto">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-green-500"></i>
+                        <p class="text-[10px] text-gray-400 font-medium">Auto-verification active. System secure.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col relative bg-gradient-to-br from-white/[0.01] to-transparent w-full">
+
+                <div class="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12 relative" id="wizard-content">
+
+                    <div id="step-1" class="wizard-step animate-slide-in-right">
+                        <div class="mb-8 border-b border-white/10 pb-6">
+                            <h2 class="font-gaming font-bold text-3xl text-white mb-2">Identify & Coordinate</h2>
+                            <p class="text-sm text-gray-400 max-w-lg">
+                                Confirm your team identity and provide mandatory communication channels for match scheduling and admin support.
+                            </p>
+                        </div>
+
+                        <div class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative overflow-hidden group hover:border-dc-cyan/30 transition-colors">
+                            <div class="absolute right-0 top-0 w-32 h-32 bg-dc-cyan/10 rounded-full blur-3xl group-hover:bg-dc-cyan/20 transition-colors"></div>
+
+                            <div class="w-24 h-24 rounded-2xl bg-black overflow-hidden border-2 border-white/10 relative shrink-0 shadow-lg">
+                                <img src="https://images.unsplash.com/photo-1614027164847-1b28cfe1df60?q=80&w=400&auto=format&fit=crop" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm">
+                                    <i data-lucide="edit-2" class="w-5 h-5 text-white"></i>
+                                </div>
+                            </div>
+
+                            <div class="flex-1 text-center sm:text-left z-10">
+                                <span class="px-2 py-0.5 bg-dc-cyan/20 text-dc-cyan text-[10px] font-bold uppercase tracking-widest rounded mb-2 inline-block">Selected Roster</span>
+                                <h3 class="text-3xl font-display font-bold text-white mb-1">PlaySphere</h3>
+                                <p class="text-gray-400 font-mono text-sm mb-3">Tag: <span class="text-white">#PLS-BD</span></p>
+                                <p class="text-[10px] text-gray-500 italic"><i data-lucide="info" class="w-3 h-3 inline mr-1"></i> To register a different team, go to your Team Hub.</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+                                <i data-lucide="headset" class="w-4 h-4 text-dc-purple"></i> Match Coordinator Info
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Phone / WhatsApp <span class="text-val-red">*</span></label>
+                                    <div class="relative">
+                                        <div class="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 border-r border-white/10 pr-3">
+                                            <img src="https://flagcdn.com/20x15/bd.png" class="rounded-[2px]">
+                                            <span class="text-white font-mono text-sm">+880</span>
+                                        </div>
+                                        <input type="tel" value="1711000000" class="input-premium pl-24 font-mono" id="contact-phone" oninput="checkStep1()">
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Discord ID <span class="text-val-red">*</span></label>
+                                    <div class="relative">
+                                        <div class="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z"/></svg>
+                                        </div>
+                                        <input type="text" value="Rock#1337" class="input-premium pl-12" id="contact-discord" oninput="checkStep1()">
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2 md:col-span-2">
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Facebook Messenger Link <span class="text-gray-600">(Optional)</span></label>
+                                    <div class="relative">
+                                        <div class="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500">
+                                            <i data-lucide="message-circle" class="w-4 h-4"></i>
+                                        </div>
+                                        <input type="url" placeholder="https://m.me/yourusername" class="input-premium pl-12" id="contact-fb">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="step-2" class="wizard-step step-hidden animate-slide-in-right">
+                        <div class="flex justify-between items-end mb-8 border-b border-white/10 pb-6">
+                            <div>
+                                <h2 class="font-gaming font-bold text-3xl text-white mb-1">Roster Engine</h2>
+                                <p class="text-sm text-gray-400">The platform has verified your squad's Game Passports.</p>
+                            </div>
+                            <span class="bg-val-red/10 border border-val-red/30 text-val-red text-[10px] font-bold px-3 py-1 rounded uppercase tracking-widest flex items-center gap-1.5 hidden md:flex">
+                                <i data-lucide="shield-alert" class="w-3 h-3"></i> Vanguard Required
+                            </span>
+                        </div>
+
+                        <div class="space-y-8">
+                            <div>
+                                <h3 class="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-dc-cyan shadow-[0_0_10px_#06b6d4]"></span>
+                                    Core Lineup <span class="text-gray-500">(5/5)</span>
+                                </h3>
+
+                                <div class="space-y-2">
+                                    <div class="player-slot p-3 md:p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between bg-dc-cyan/5 border-dc-cyan/30 relative overflow-hidden">
+                                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-dc-cyan"></div>
+                                        <div class="flex items-center gap-4 pl-2">
+                                            <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-tr from-dc-cyan to-blue-600 p-[1px] shadow-lg">
+                                                <img src="https://ui-avatars.com/api/?name=Rock&background=000&color=fff" class="w-full h-full rounded-full object-cover border-2 border-black">
+                                            </div>
+                                            <div>
+                                                <p class="text-sm md:text-base font-bold text-white flex items-center gap-2">
+                                                    Rock <span class="px-1.5 py-0.5 bg-dc-gold text-black text-[9px] font-black uppercase tracking-wider rounded">Captain</span>
+                                                </p>
+                                                <p class="text-xs text-gray-400 font-mono mt-0.5 flex items-center gap-1"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Valorant_logo_-_pink_color_version.svg/1200px-Valorant_logo_-_pink_color_version.svg.png" class="w-2.5 opacity-50"> SIUU#BD1</p>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 sm:mt-0 ml-16 sm:ml-0 flex items-center gap-3">
+                                            <span class="px-2 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase rounded flex items-center gap-1">
+                                                <i data-lucide="check" class="w-3 h-3"></i> Verified
+                                            </span>
+                                            <i data-lucide="lock" class="w-4 h-4 text-gray-600 cursor-not-allowed"></i>
+                                        </div>
+                                    </div>
+
+                                    <div class="player-slot p-3 md:p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between">
+                                        <div class="flex items-center gap-4 pl-3">
+                                            <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-800 p-[1px]">
+                                                <img src="https://ui-avatars.com/api/?name=Viper&background=000&color=fff" class="w-full h-full rounded-full object-cover">
+                                            </div>
+                                            <div>
+                                                <p class="text-sm md:text-base font-bold text-white">ViperMain</p>
+                                                <p class="text-xs text-gray-400 font-mono mt-0.5">Toxic#888</p>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 sm:mt-0 ml-16 sm:ml-0 flex items-center gap-3">
+                                            <span class="px-2 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase rounded flex items-center gap-1">
+                                                <i data-lucide="check" class="w-3 h-3"></i> Verified
+                                            </span>
+                                            <button class="p-2 bg-white/5 hover:bg-val-red/20 hover:text-val-red rounded-lg transition-colors border border-white/5"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                                        </div>
+                                    </div>
+
+                                    <div class="player-slot p-3 md:p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between">
+                                        <div class="flex items-center gap-4 pl-3">
+                                            <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-800 p-[1px]">
+                                                <img src="https://ui-avatars.com/api/?name=Jett&background=000&color=fff" class="w-full h-full rounded-full object-cover">
+                                            </div>
+                                            <div>
+                                                <p class="text-sm md:text-base font-bold text-white">JettDiff</p>
+                                                <p class="text-xs text-gray-400 font-mono mt-0.5">Dash#FAST</p>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 sm:mt-0 ml-16 sm:ml-0 flex items-center gap-3">
+                                            <span class="px-2 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase rounded flex items-center gap-1">
+                                                <i data-lucide="check" class="w-3 h-3"></i> Verified
+                                            </span>
+                                            <button class="p-2 bg-white/5 hover:bg-val-red/20 hover:text-val-red rounded-lg transition-colors border border-white/5"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                                        </div>
+                                    </div>
+
+                                    <div class="player-slot p-3 md:p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between">
+                                        <div class="flex items-center gap-4 pl-3">
+                                            <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-800 p-[1px]">
+                                                <img src="https://ui-avatars.com/api/?name=Sova&background=000&color=fff" class="w-full h-full rounded-full object-cover">
+                                            </div>
+                                            <div>
+                                                <p class="text-sm md:text-base font-bold text-white">SovaLineup</p>
+                                                <p class="text-xs text-gray-400 font-mono mt-0.5">Dart#AIM</p>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 sm:mt-0 ml-16 sm:ml-0 flex items-center gap-3">
+                                            <span class="px-2 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase rounded flex items-center gap-1">
+                                                <i data-lucide="check" class="w-3 h-3"></i> Verified
+                                            </span>
+                                            <button class="p-2 bg-white/5 hover:bg-val-red/20 hover:text-val-red rounded-lg transition-colors border border-white/5"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                                        </div>
+                                    </div>
+
+                                    <div class="player-slot p-3 md:p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between">
+                                        <div class="flex items-center gap-4 pl-3">
+                                            <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-800 p-[1px]">
+                                                <img src="https://ui-avatars.com/api/?name=Clutch&background=000&color=fff" class="w-full h-full rounded-full object-cover">
+                                            </div>
+                                            <div>
+                                                <p class="text-sm md:text-base font-bold text-white">ClutchKing</p>
+                                                <p class="text-xs text-gray-400 font-mono mt-0.5">Win#EZ</p>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 sm:mt-0 ml-16 sm:ml-0 flex items-center gap-3">
+                                            <span class="px-2 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase rounded flex items-center gap-1">
+                                                <i data-lucide="check" class="w-3 h-3"></i> Verified
+                                            </span>
+                                            <button class="p-2 bg-white/5 hover:bg-val-red/20 hover:text-val-red rounded-lg transition-colors border border-white/5"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
+                                <div>
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-gray-500"></span> Tactical Subs
+                                        </h3>
+                                        <span class="text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded border border-white/5">0 / 2</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button class="player-slot slot-empty p-4 rounded-xl flex flex-col items-center justify-center text-gray-500 h-24 group">
+                                            <i data-lucide="user-plus" class="w-5 h-5 mb-2 group-hover:scale-110 transition-transform"></i>
+                                            <span class="text-[10px] font-bold uppercase tracking-wider">Sub 1</span>
+                                        </button>
+                                        <button class="player-slot slot-empty p-4 rounded-xl flex flex-col items-center justify-center text-gray-500 h-24 group">
+                                            <i data-lucide="user-plus" class="w-5 h-5 mb-2 group-hover:scale-110 transition-transform"></i>
+                                            <span class="text-[10px] font-bold uppercase tracking-wider">Sub 2</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-dc-purple"></span> Coaching Staff
+                                        </h3>
+                                        <span class="text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded border border-white/5">0 / 1</span>
+                                    </div>
+                                    <div class="player-slot p-3 rounded-xl flex items-center justify-between border-dc-purple/30 bg-dc-purple/5 h-24">
+                                        <div class="flex items-center gap-3 pl-1">
+                                            <div class="w-10 h-10 rounded-full bg-gray-800 p-[1px] border border-dc-purple">
+                                                <img src="https://ui-avatars.com/api/?name=Coach&background=000&color=fff" class="w-full h-full rounded-full object-cover">
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-bold text-white text-dc-purple">MasterMind</p>
+                                                <p class="text-[10px] text-gray-400 font-mono mt-0.5">Brain#BIG</p>
+                                            </div>
+                                        </div>
+                                        <button class="p-2 bg-white/5 hover:bg-val-red/20 hover:text-val-red rounded-lg transition-colors border border-white/5"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="step-3" class="wizard-step step-hidden animate-slide-in-right">
+                        <div class="mb-8 border-b border-white/10 pb-6">
+                            <h2 class="font-gaming font-bold text-3xl text-white mb-2">Secure Entry Fee</h2>
+                            <p class="text-sm text-gray-400 max-w-lg">Process the payment to lock your roster into the tournament bracket. Funds are held securely until completion.</p>
+                        </div>
+
+                        <div class="flex flex-col lg:flex-row gap-8">
+
+                            <div class="w-full lg:w-1/3">
+                                <div class="bg-gradient-to-b from-bkash-pink/10 to-transparent border border-bkash-pink/20 rounded-2xl p-6 md:p-8 relative overflow-hidden shadow-xl">
+                                    <div class="absolute -right-6 -bottom-6 opacity-5 pointer-events-none">
+                                        <svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#e2136e" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                    </div>
+
+                                    <div class="flex items-center gap-3 mb-8">
+                                        <div class="w-12 h-12 rounded-xl bg-[#e2136e] flex items-center justify-center shadow-lg shadow-pink-600/30">
+                                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                        </div>
+                                        <h3 class="font-display font-bold text-xl text-white tracking-tight">bKash Payment</h3>
+                                    </div>
+
+                                    <div class="mb-8">
+                                        <p class="text-[10px] font-black text-bkash-pink uppercase tracking-widest mb-1">Amount Due</p>
+                                        <div class="flex items-baseline gap-2">
+                                            <span class="text-6xl font-display font-black text-white tracking-tighter">৳500</span>
+                                            <span class="text-sm font-bold text-gray-400">BDT</span>
+                                        </div>
+                                        <p class="text-xs text-gray-400 mt-2 font-medium">Flat Fee for PlaySphere Roster</p>
+                                    </div>
+
+                                    <div class="pt-5 border-t border-bkash-pink/20">
+                                        <div class="flex items-start gap-2">
+                                            <i data-lucide="shield-check" class="w-4 h-4 text-green-500 mt-0.5"></i>
+                                            <p class="text-[10px] text-gray-400 leading-relaxed font-medium">
+                                                Payments are protected by DeltaCrown Escrow. Non-refundable 24h prior to start.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="w-full lg:w-2/3 flex flex-col">
+                                <div class="bg-dc-card/50 border border-white/5 rounded-2xl p-6 md:p-8 flex-1">
+                                    <h4 class="font-bold text-white mb-6 flex items-center gap-2">
+                                        <i data-lucide="smartphone" class="w-5 h-5 text-gray-400"></i> Payment Instructions
+                                    </h4>
+
+                                    <ol class="space-y-6 text-sm text-gray-300 font-medium mb-8">
+                                        <li class="flex gap-4 items-start">
+                                            <span class="w-6 h-6 rounded-full bg-white/10 text-white flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                                            <p class="pt-0.5">Open your bKash App and select <strong class="text-white">Send Money</strong>.</p>
+                                        </li>
+                                        <li class="flex gap-4 items-start">
+                                            <span class="w-6 h-6 rounded-full bg-white/10 text-white flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                                            <div class="w-full pt-0.5">
+                                                <p>Send to the Official DeltaCrown Number:</p>
+                                                <div class="mt-3 flex items-center justify-between px-5 py-4 bg-black rounded-xl border border-white/10 group cursor-pointer hover:border-dc-cyan/50 transition-colors">
+                                                    <span class="font-mono text-dc-cyan font-bold tracking-[0.1em] text-lg select-all">01799-XXXXXX</span>
+                                                    <button class="text-gray-500 group-hover:text-dc-cyan transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                                                        <i data-lucide="copy" class="w-4 h-4"></i> Copy
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </li>
+                                        <li class="flex gap-4 items-start">
+                                            <span class="w-6 h-6 rounded-full bg-white/10 text-white flex items-center justify-center text-xs font-bold shrink-0">3</span>
+                                            <p class="pt-0.5">Enter exactly <strong class="text-white">৳500</strong>. Enter <strong class="text-dc-cyan">PlaySphere</strong> as the reference.</p>
+                                        </li>
+                                    </ol>
+
+                                    <div class="bg-white/[0.02] p-6 rounded-xl border border-white/10 mt-auto">
+                                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3" for="trxid">Enter Transaction ID (TrxID) <span class="text-val-red">*</span></label>
+                                        <div class="relative">
+                                            <input type="text" id="trxid" class="input-premium input-bkash font-mono tracking-widest text-xl text-center uppercase" placeholder="e.g. 9F8A7B6C5D" maxlength="10" oninput="validateTrxId()">
+                                            <div id="trx-icon" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600">
+                                                <i data-lucide="hash" class="w-5 h-5"></i>
+                                            </div>
+                                        </div>
+                                        <div id="trx-status" class="mt-3 flex items-center justify-center gap-2 text-xs font-medium text-gray-500 h-5">
+                                            Awaiting 10-character alphanumeric ID
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="step-4" class="wizard-step step-hidden animate-slide-in-right">
+                        <div class="text-center mb-10">
+                            <h2 class="font-display font-black text-4xl text-white tracking-tight uppercase mb-2">Pre-Flight Manifest</h2>
+                            <p class="text-gray-400 text-sm max-w-md mx-auto">Review your mission data. This configuration will be locked into the bracket upon deployment.</p>
+                        </div>
+
+                        <div class="max-w-3xl mx-auto bg-dc-card border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative">
+                            <div class="h-1.5 w-full bg-gradient-to-r from-dc-cyan via-dc-purple to-val-red"></div>
+
+                            <div class="p-8 border-b border-white/5 bg-gradient-to-r from-white/[0.02] to-transparent flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                                <div class="flex items-center gap-5">
+                                    <div class="w-16 h-16 rounded-xl bg-black overflow-hidden border border-white/10 shrink-0">
+                                        <img src="https://images.unsplash.com/photo-1614027164847-1b28cfe1df60?q=80&w=200&auto=format&fit=crop" class="w-full h-full object-cover">
+                                    </div>
+                                    <div>
+                                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-dc-cyan/10 text-dc-cyan text-[9px] font-black uppercase tracking-widest rounded mb-1">
+                                            <i data-lucide="zap" class="w-3 h-3 fill-current"></i> Verified
+                                        </span>
+                                        <h3 class="font-display font-bold text-3xl text-white leading-none">PlaySphere</h3>
+                                        <p class="text-xs text-gray-500 font-mono mt-1">Reg ID: <span class="text-gray-300">#VAL-WIN-8821</span></p>
+                                    </div>
+                                </div>
+                                <div class="text-left sm:text-right">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Valorant_logo_-_pink_color_version.svg/1200px-Valorant_logo_-_pink_color_version.svg.png" class="h-6 opacity-60 mb-2 sm:ml-auto">
+                                    <p class="text-xs font-black text-white uppercase tracking-widest">Winter Major</p>
+                                    <p class="text-[10px] text-gray-500 mt-1">South Asia</p>
+                                </div>
+                            </div>
+
+                            <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-10">
+                                <div class="space-y-6">
+                                    <div>
+                                        <h4 class="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-3 border-b border-white/5 pb-2">Coordination</h4>
+                                        <ul class="space-y-3 text-sm text-gray-300">
+                                            <li class="flex justify-between items-center">
+                                                <span class="text-gray-500">Captain:</span>
+                                                <strong class="text-white">Rock</strong>
+                                            </li>
+                                            <li class="flex justify-between items-center">
+                                                <span class="text-gray-500">Contact:</span>
+                                                <strong class="text-white font-mono text-xs">+880 1711000000</strong>
+                                            </li>
+                                            <li class="flex justify-between items-center">
+                                                <span class="text-gray-500">Discord:</span>
+                                                <strong class="text-white font-mono text-xs text-indigo-400">Rock#1337</strong>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <h4 class="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-3 border-b border-white/5 pb-2">Logistics</h4>
+                                        <ul class="space-y-3 text-sm text-gray-300">
+                                            <li class="flex justify-between items-center">
+                                                <span class="text-gray-500">Gateway:</span>
+                                                <strong class="text-bkash-pink flex items-center gap-1">bKash <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i></strong>
+                                            </li>
+                                            <li class="flex justify-between items-center">
+                                                <span class="text-gray-500">Transaction ID:</span>
+                                                <strong class="text-white font-mono text-xs bg-white/10 px-2 py-1 rounded" id="review-trxid">PENDING</strong>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 class="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mb-3 border-b border-white/5 pb-2">Roster Manifest</h4>
+                                    <ul class="space-y-2 text-sm text-gray-300 mb-4">
+                                        <li class="flex justify-between items-center p-2 bg-white/5 rounded-lg">
+                                            <span>Rock <span class="text-[8px] text-dc-gold uppercase ml-1">Cap</span></span>
+                                            <span class="font-mono text-xs text-gray-500">SIUU#BD1</span>
+                                        </li>
+                                        <li class="flex justify-between items-center p-2 hover:bg-white/5 rounded-lg transition-colors">
+                                            <span>ViperMain</span> <span class="font-mono text-xs text-gray-500">Toxic#888</span>
+                                        </li>
+                                        <li class="flex justify-between items-center p-2 hover:bg-white/5 rounded-lg transition-colors">
+                                            <span>JettDiff</span> <span class="font-mono text-xs text-gray-500">Dash#FAST</span>
+                                        </li>
+                                        <li class="flex justify-between items-center p-2 hover:bg-white/5 rounded-lg transition-colors">
+                                            <span>SovaLineup</span> <span class="font-mono text-xs text-gray-500">Dart#AIM</span>
+                                        </li>
+                                        <li class="flex justify-between items-center p-2 hover:bg-white/5 rounded-lg transition-colors">
+                                            <span>ClutchKing</span> <span class="font-mono text-xs text-gray-500">Win#EZ</span>
+                                        </li>
+                                    </ul>
+                                    <div class="flex items-center gap-4 text-xs">
+                                        <span class="px-2 py-1 rounded bg-white/5 text-gray-400">0 Subs</span>
+                                        <span class="px-2 py-1 rounded bg-dc-purple/10 text-dc-purple border border-dc-purple/20 flex items-center gap-1"><i data-lucide="headset" class="w-3 h-3"></i> 1 Coach</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="receipt-edge w-full opacity-20"></div>
+                            <div class="p-8 bg-black/60 border-t border-white/5">
+                                <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                                    <label class="flex items-start gap-4 cursor-pointer group flex-1">
+                                        <div class="mt-0.5 relative shrink-0">
+                                            <input type="checkbox" id="terms-checkbox" class="peer appearance-none w-5 h-5 border-2 border-gray-600 rounded bg-black checked:bg-val-red checked:border-val-red transition-all cursor-pointer" onchange="validateTerms()">
+                                            <i data-lucide="check" class="absolute inset-0 text-white w-5 h-5 scale-0 peer-checked:scale-100 transition-transform pointer-events-none"></i>
+                                        </div>
+                                        <div class="select-none">
+                                            <p class="text-sm font-bold text-white mb-1 group-hover:text-val-red transition-colors">Acknowledge Rules & Terms</p>
+                                            <p class="text-[10px] text-gray-400 leading-relaxed">
+                                                I confirm this roster meets all eligibility criteria. We agree to the <a href="#" class="text-dc-cyan hover:underline">Rulebook</a> and Fair Play policy. Entry fees are non-refundable within 24h of start.
+                                            </p>
+                                        </div>
+                                    </label>
+
+                                    <div class="bg-white/[0.03] rounded-xl px-6 py-4 flex flex-col items-end border border-white/10 shrink-0 w-full md:w-auto">
+                                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Total Authorized</span>
+                                        <span class="font-display font-black text-3xl text-white">৳500</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="step-5" class="wizard-step step-hidden animate-fade-in h-full flex flex-col items-center justify-center text-center py-12">
+                        <div class="relative mb-10">
+                            <div class="absolute inset-0 bg-dc-cyan/20 rounded-full blur-[80px] animate-pulse-glow"></div>
+                            <div class="w-36 h-36 relative z-10 bg-gradient-to-br from-dc-bg to-dc-card border border-dc-cyan/50 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(6,182,212,0.4)]">
+                                <i data-lucide="shield-check" class="w-16 h-16 text-dc-cyan drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]"></i>
+                            </div>
+                            <div class="absolute -inset-6 border border-dashed border-dc-cyan/30 rounded-full animate-[spin_12s_linear_infinite]"></div>
+                            <div class="absolute -inset-10 border border-white/5 rounded-full animate-[spin_20s_linear_infinite_reverse] flex items-start justify-center">
+                                <div class="w-2 h-2 bg-dc-cyan rounded-full mt-[-4px] shadow-[0_0_10px_#06b6d4]"></div>
+                            </div>
+                        </div>
+
+                        <h2 class="font-display font-black text-5xl text-white mb-4 tracking-tight uppercase">Roster Locked.</h2>
+                        <p class="text-gray-400 max-w-lg mx-auto mb-10 text-base leading-relaxed">
+                            <strong class="text-white">PlaySphere</strong> is officially submitted for the Winter Major. Payment verification will complete shortly. Manifest sent to <span class="text-white">rock@example.com</span>.
+                        </p>
+
+                        <div class="flex flex-col sm:flex-row gap-5">
+                            <button class="px-8 py-4 rounded-xl border border-white/10 bg-white/5 text-white font-bold text-sm hover:bg-white/10 hover:border-white/20 transition-all flex items-center justify-center gap-2">
+                                <i data-lucide="layout-dashboard" class="w-4 h-4 text-gray-400"></i> View Dashboard
+                            </button>
+                            <button class="px-8 py-4 rounded-xl bg-dc-cyan text-black font-black uppercase tracking-[0.1em] text-sm hover:bg-cyan-400 transition-all shadow-[0_0_25px_rgba(6,182,212,0.4)] flex items-center justify-center gap-2">
+                                <i data-lucide="message-square" class="w-4 h-4"></i> Join Match Discord
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="p-6 md:px-12 md:py-6 bg-black/80 backdrop-blur-xl border-t border-white/5 flex justify-between items-center" id="wizard-footer">
+                    <button id="btn-back" class="px-6 py-3 rounded-xl font-bold text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-all opacity-0 pointer-events-none border border-transparent hover:border-white/10 flex items-center gap-2" onclick="prevStep()">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back
+                    </button>
+
+                    <button id="btn-next" class="px-8 py-3 rounded-xl font-bold text-sm text-black bg-white hover:bg-gray-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] flex items-center gap-2" onclick="nextStep()">
+                        Configure Roster <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+
+                    <button id="btn-submit" class="hidden px-8 py-3 rounded-xl font-black text-sm text-white bg-val-red hover:bg-red-600 transition-all shadow-[0_0_25px_rgba(255,70,85,0.4)] items-center gap-2 uppercase tracking-[0.15em] opacity-50 cursor-not-allowed" onclick="submitRegistration()">
+                        <i data-lucide="zap" class="w-4 h-4"></i> Deploy Team
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        let currentStep = 1;
+        const totalSteps = 4; // Step 5 is success state
+        let isTrxValid = false;
+        let isTermsAccepted = false;
+
+        // Elements
+        const progressLine = document.getElementById('vertical-progress');
+        const btnBack = document.getElementById('btn-back');
+        const btnNext = document.getElementById('btn-next');
+        const btnSubmit = document.getElementById('btn-submit');
+        const footer = document.getElementById('wizard-footer');
+
+        // Initial validation check for Step 1
+        function checkStep1() {
+            const phone = document.getElementById('contact-phone').value;
+            const discord = document.getElementById('contact-discord').value;
+            if(phone.length > 5 && discord.length > 3) {
+                btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                btnNext.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function updateUI() {
+            // Update Vertical Progress (0, 33, 66, 100%)
+            let progressHeight = ((currentStep - 1) / 3) * 100;
+            if (currentStep === 5) progressHeight = 100;
+            progressLine.style.height = `${progressHeight}%`;
+
+            // Update Left Sidebar Nav Indicators
+            for(let i=1; i<=4; i++) {
+                const navItem = document.getElementById(`nav-step-${i}`);
+                if(!navItem) continue;
+
+                const iconBox = navItem.querySelector('.step-nav-icon');
+                const text = navItem.querySelector('.step-nav-text');
+
+                if (i < currentStep) {
+                    // Completed State
+                    navItem.classList.remove('opacity-50');
+                    iconBox.className = 'w-8 h-8 rounded-full bg-dc-cyan text-black flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon shadow-[0_0_15px_rgba(6,182,212,0.4)] relative z-10';
+                    iconBox.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
+                    text.classList.add('text-gray-400');
+                    text.classList.remove('text-white');
+                } else if (i === currentStep) {
+                    // Active State
+                    navItem.classList.remove('opacity-50');
+                    iconBox.className = 'w-8 h-8 rounded-full bg-val-red text-white flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon shadow-[0_0_15px_rgba(255,70,85,0.4)] relative z-10';
+                    iconBox.innerHTML = i;
+                    text.classList.add('text-white');
+                    text.classList.remove('text-gray-400');
+                } else {
+                    // Future State
+                    navItem.classList.add('opacity-50');
+                    iconBox.className = 'w-8 h-8 rounded-full bg-dc-bg border border-white/20 text-gray-500 flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon relative z-10';
+                    iconBox.innerHTML = i;
+                    text.classList.remove('text-white');
+                    text.classList.add('text-gray-400');
+                }
+            }
+            lucide.createIcons();
+
+            // Toggle Step Content Visibility
+            document.querySelectorAll('.wizard-step').forEach(step => step.classList.add('step-hidden'));
+            const currentTab = document.getElementById(`step-${currentStep}`);
+            if(currentTab) {
+                currentTab.classList.remove('step-hidden');
+                // Retrigger animation
+                currentTab.classList.remove('animate-slide-in-right', 'animate-fade-in');
+                void currentTab.offsetWidth;
+                currentTab.classList.add(currentStep === 5 ? 'animate-fade-in' : 'animate-slide-in-right');
+            }
+
+            // Bottom Navigation Buttons Logic
+            if (currentStep === 1) {
+                btnBack.style.opacity = '0';
+                btnBack.style.pointerEvents = 'none';
+                btnNext.style.display = 'flex';
+                btnSubmit.classList.add('hidden');
+                btnNext.innerHTML = 'Configure Roster <i data-lucide="arrow-right" class="w-4 h-4"></i>';
+                checkStep1(); // Check validation
+                lucide.createIcons();
+            } else if (currentStep === 2) {
+                btnBack.style.opacity = '1';
+                btnBack.style.pointerEvents = 'auto';
+                btnNext.style.display = 'flex';
+                btnSubmit.classList.add('hidden');
+                btnNext.innerHTML = 'Secure Entry Fee <i data-lucide="arrow-right" class="w-4 h-4"></i>';
+                btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+                lucide.createIcons();
+            } else if (currentStep === 3) {
+                btnBack.style.opacity = '1';
+                btnBack.style.pointerEvents = 'auto';
+                btnNext.style.display = 'flex';
+                btnSubmit.classList.add('hidden');
+                btnNext.innerHTML = 'Review Manifest <i data-lucide="arrow-right" class="w-4 h-4"></i>';
+                lucide.createIcons();
+                // Enforce TrxID validation
+                if(!isTrxValid) {
+                    btnNext.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            } else if (currentStep === 4) {
+                btnBack.style.opacity = '1';
+                btnBack.style.pointerEvents = 'auto';
+                btnNext.style.display = 'none';
+                btnSubmit.classList.remove('hidden');
+                btnSubmit.classList.add('flex');
+
+                // Set review data dynamically
+                const trxValue = document.getElementById('trxid').value;
+                document.getElementById('review-trxid').innerText = trxValue.toUpperCase() || 'PENDING';
+                validateTerms();
+            } else if (currentStep === 5) {
+                // Hide footer and sidebar on success
+                footer.style.display = 'none';
+                const sidebar = document.getElementById('sidebar-nav');
+                if(sidebar) sidebar.style.display = 'none';
+            }
+        }
+
+        // Mock Validation for bKash TrxID
+        function validateTrxId() {
+            const input = document.getElementById('trxid');
+            const status = document.getElementById('trx-status');
+            const icon = document.getElementById('trx-icon');
+            const val = input.value.trim();
+
+            if(val.length === 0) {
+                status.innerHTML = 'Awaiting 10-character alphanumeric ID';
+                status.className = 'mt-3 flex items-center justify-center gap-2 text-xs font-medium text-gray-500 h-5';
+                input.style.borderColor = 'rgba(255,255,255,0.1)';
+                icon.innerHTML = '<i data-lucide="hash" class="w-5 h-5 text-gray-600"></i>';
+                isTrxValid = false;
+            } else if (val.length < 10) {
+                status.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Validating format...';
+                status.className = 'mt-3 flex items-center justify-center gap-2 text-xs font-medium text-gray-400 h-5';
+                input.style.borderColor = 'rgba(255,255,255,0.3)';
+                icon.innerHTML = '<i data-lucide="shield" class="w-5 h-5 text-gray-400"></i>';
+                isTrxValid = false;
+            } else {
+                status.innerHTML = '<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Format verified';
+                status.className = 'mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-green-400 h-5 animate-fade-in';
+                input.style.borderColor = '#4ade80';
+                icon.innerHTML = '<i data-lucide="check" class="w-5 h-5 text-green-500"></i>';
+                isTrxValid = true;
+            }
+            lucide.createIcons();
+            if(currentStep === 3) updateUI();
+        }
+
+        // Validate Terms Checkbox
+        function validateTerms() {
+            isTermsAccepted = document.getElementById('terms-checkbox').checked;
+            if(isTermsAccepted) {
+                btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                btnSubmit.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function nextStep() {
+            if (currentStep === 1) {
+                const phone = document.getElementById('contact-phone').value;
+                const discord = document.getElementById('contact-discord').value;
+                if(phone.length < 5 || discord.length < 3) return;
+            }
+            if (currentStep === 3 && !isTrxValid) return;
+
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateUI();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateUI();
+            }
+        }
+
+        function submitRegistration() {
+            if(!isTermsAccepted) return;
+
+            // Loading state animation
+            btnSubmit.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Deploying...';
+            lucide.createIcons();
+            btnSubmit.classList.add('opacity-80', 'cursor-not-allowed');
+
+            // Simulate API Call -> Go to Step 5
+            setTimeout(() => {
+                currentStep = 5;
+                updateUI();
+            }, 1500);
+        }
+
+        // Initialize UI
+        updateUI();
+    </script>
+</body>
+</html>

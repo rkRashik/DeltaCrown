@@ -66,6 +66,15 @@ app.conf.beat_schedule = {
             'expires': 3600,
         },
     },
+
+    # P4-T02: Expire overdue (unpaid) payments every 15 minutes
+    'expire-overdue-payments': {
+        'task': 'apps.tournaments.tasks.expire_overdue_payments',
+        'schedule': crontab(minute='*/15'),
+        'options': {
+            'expires': 900,  # 15 minutes
+        },
+    },
     
     # ========================================================================
     # vNext Team & Organization Ranking Tasks (Phase 4 - P4-T2)

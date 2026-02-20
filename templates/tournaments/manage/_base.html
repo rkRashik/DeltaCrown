@@ -307,6 +307,22 @@
       color: rgba(255, 255, 255, 0.55);
     }
 
+    /* ── Mobile Tab Dropdown ── */
+    .mobile-tab-item {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.55);
+      transition: all 0.15s ease;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .mobile-tab-item:hover { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.9); }
+    .mobile-tab-item.active { color: var(--accent); background: rgba(6,182,212,0.06); }
+
     /* ── SPA Loading State ── */
     .tab-loading {
       position: relative;
@@ -434,10 +450,12 @@
     <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center overflow-x-auto no-scrollbar -mb-px">
         {% with slug=tournament.slug %}
+        {# ── Desktop Tab Navigation (hidden on mobile) ── #}
+        <div class="hidden sm:contents">
         <a href="{% url 'tournaments:organizer_tournament_detail' slug %}"
            class="manage-tab{% if active_tab == 'overview' %} active{% endif %}" data-tab="overview">
-          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-          Overview
+          <i data-lucide="command" class="w-4 h-4"></i>
+          Command Center
         </a>
         <a href="{% url 'tournaments:organizer_hub' slug 'participants' %}"
            class="manage-tab{% if active_tab == 'participants' %} active{% endif %}" data-tab="participants">
@@ -449,6 +467,17 @@
            class="manage-tab{% if active_tab == 'brackets' %} active{% endif %}" data-tab="brackets">
           <i data-lucide="git-merge" class="w-4 h-4"></i>
           Brackets
+        </a>
+        <a href="{% url 'tournaments:organizer_hub' slug 'matches' %}"
+           class="manage-tab{% if active_tab == 'matches' %} active{% endif %}" data-tab="matches">
+          <i data-lucide="swords" class="w-4 h-4"></i>
+          Matches
+          {% if match_stats.pending %}<span class="tab-badge bg-yellow-500/20 text-yellow-400">{{ match_stats.pending }}</span>{% endif %}
+        </a>
+        <a href="{% url 'tournaments:organizer_hub' slug 'schedule' %}"
+           class="manage-tab{% if active_tab == 'schedule' %} active{% endif %}" data-tab="schedule">
+          <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+          Schedule
         </a>
         <a href="{% url 'tournaments:organizer_hub' slug 'payments' %}"
            class="manage-tab{% if active_tab == 'payments' %} active{% endif %}" data-tab="payments">
@@ -472,6 +501,62 @@
           <i data-lucide="settings" class="w-4 h-4"></i>
           Settings
         </a>
+        </div>
+
+        {# ── Mobile Tab Dropdown (visible on small screens) ── #}
+        <div class="sm:hidden flex items-center w-full relative" id="mobile-tab-wrapper">
+          <button type="button" id="mobile-tab-btn"
+                  class="manage-tab active w-full justify-between" onclick="toggleMobileMenu()">
+            <span class="flex items-center gap-2" id="mobile-tab-label">
+              <i data-lucide="command" class="w-4 h-4"></i>
+              <span>{% if active_tab == 'overview' %}Command Center{% elif active_tab == 'participants' %}Participants{% elif active_tab == 'brackets' %}Brackets{% elif active_tab == 'matches' %}Matches{% elif active_tab == 'schedule' %}Schedule{% elif active_tab == 'payments' %}Payments{% elif active_tab == 'disputes' %}Disputes{% elif active_tab == 'announcements' %}Announcements{% elif active_tab == 'settings' %}Settings{% else %}Menu{% endif %}</span>
+            </span>
+            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform" id="mobile-chevron"></i>
+          </button>
+          <div id="mobile-tab-dropdown"
+               class="hidden absolute top-full left-0 right-0 z-50 py-1 rounded-b-xl border border-t-0 border-white/[0.08] bg-[#0A0A0F]/95 backdrop-blur-xl shadow-glass-strong">
+            <a href="{% url 'tournaments:organizer_tournament_detail' slug %}" data-tab="overview"
+               class="mobile-tab-item{% if active_tab == 'overview' %} active{% endif %}">
+              <i data-lucide="command" class="w-4 h-4"></i> Command Center
+            </a>
+            <a href="{% url 'tournaments:organizer_hub' slug 'participants' %}" data-tab="participants"
+               class="mobile-tab-item{% if active_tab == 'participants' %} active{% endif %}">
+              <i data-lucide="users" class="w-4 h-4"></i> Participants
+              {% if reg_stats.pending %}<span class="tab-badge bg-yellow-500/20 text-yellow-400 ml-auto">{{ reg_stats.pending }}</span>{% endif %}
+            </a>
+            <a href="{% url 'tournaments:organizer_hub' slug 'brackets' %}" data-tab="brackets"
+               class="mobile-tab-item{% if active_tab == 'brackets' %} active{% endif %}">
+              <i data-lucide="git-merge" class="w-4 h-4"></i> Brackets
+            </a>
+            <a href="{% url 'tournaments:organizer_hub' slug 'matches' %}" data-tab="matches"
+               class="mobile-tab-item{% if active_tab == 'matches' %} active{% endif %}">
+              <i data-lucide="swords" class="w-4 h-4"></i> Matches
+              {% if match_stats.pending %}<span class="tab-badge bg-yellow-500/20 text-yellow-400 ml-auto">{{ match_stats.pending }}</span>{% endif %}
+            </a>
+            <a href="{% url 'tournaments:organizer_hub' slug 'schedule' %}" data-tab="schedule"
+               class="mobile-tab-item{% if active_tab == 'schedule' %} active{% endif %}">
+              <i data-lucide="calendar-clock" class="w-4 h-4"></i> Schedule
+            </a>
+            <a href="{% url 'tournaments:organizer_hub' slug 'payments' %}" data-tab="payments"
+               class="mobile-tab-item{% if active_tab == 'payments' %} active{% endif %}">
+              <i data-lucide="wallet" class="w-4 h-4"></i> Payments
+              {% if payment_stats.pending %}<span class="tab-badge bg-yellow-500/20 text-yellow-400 ml-auto">{{ payment_stats.pending }}</span>{% endif %}
+            </a>
+            <a href="{% url 'tournaments:organizer_hub' slug 'disputes' %}" data-tab="disputes"
+               class="mobile-tab-item{% if active_tab == 'disputes' %} active{% endif %}">
+              <i data-lucide="shield-alert" class="w-4 h-4"></i> Disputes
+              {% if open_disputes_count %}<span class="tab-badge bg-red-500/20 text-red-400 ml-auto">{{ open_disputes_count }}</span>{% endif %}
+            </a>
+            <a href="{% url 'tournaments:organizer_hub' slug 'announcements' %}" data-tab="announcements"
+               class="mobile-tab-item{% if active_tab == 'announcements' %} active{% endif %}">
+              <i data-lucide="megaphone" class="w-4 h-4"></i> Announcements
+            </a>
+            <a href="{% url 'tournaments:organizer_hub' slug 'settings' %}" data-tab="settings"
+               class="mobile-tab-item{% if active_tab == 'settings' %} active{% endif %}">
+              <i data-lucide="settings" class="w-4 h-4"></i> Settings
+            </a>
+          </div>
+        </div>
         {% endwith %}
       </div>
     </div>
@@ -571,6 +656,91 @@
       container.appendChild(toast);
       setTimeout(function() { toast.remove(); }, 4000);
     }
+
+    /* ── Mobile Tab Dropdown Toggle ── */
+    function toggleMobileMenu() {
+      var dropdown = document.getElementById('mobile-tab-dropdown');
+      var chevron = document.getElementById('mobile-chevron');
+      if (dropdown.classList.contains('hidden')) {
+        dropdown.classList.remove('hidden');
+        chevron.style.transform = 'rotate(180deg)';
+      } else {
+        dropdown.classList.add('hidden');
+        chevron.style.transform = '';
+      }
+    }
+
+    /* Close mobile dropdown on outside click */
+    document.addEventListener('click', function(e) {
+      var wrapper = document.getElementById('mobile-tab-wrapper');
+      if (wrapper && !wrapper.contains(e.target)) {
+        var dropdown = document.getElementById('mobile-tab-dropdown');
+        var chevron = document.getElementById('mobile-chevron');
+        if (dropdown && !dropdown.classList.contains('hidden')) {
+          dropdown.classList.add('hidden');
+          chevron.style.transform = '';
+        }
+      }
+    });
+
+    /* Wire mobile dropdown items into SPA tab switching */
+    (function() {
+      var mobileDropdown = document.getElementById('mobile-tab-dropdown');
+      if (!mobileDropdown) return;
+      var mobileItems = mobileDropdown.querySelectorAll('.mobile-tab-item');
+      mobileItems.forEach(function(item) {
+        item.addEventListener('click', function(e) {
+          e.preventDefault();
+          var url = this.href;
+          var tab = this.dataset.tab;
+
+          /* Update mobile button label */
+          var labelSpan = document.getElementById('mobile-tab-label');
+          if (labelSpan) { labelSpan.innerHTML = this.innerHTML; }
+
+          /* Update desktop tabs active state too */
+          var desktopTabs = document.querySelectorAll('#tab-nav .manage-tab[data-tab]');
+          desktopTabs.forEach(function(t) { t.classList.remove('active'); });
+          var matchingDesktop = document.querySelector('#tab-nav .manage-tab[data-tab="' + tab + '"]');
+          if (matchingDesktop) matchingDesktop.classList.add('active');
+
+          /* Update mobile items active state */
+          mobileItems.forEach(function(m) { m.classList.remove('active'); });
+          item.classList.add('active');
+
+          /* Close dropdown */
+          toggleMobileMenu();
+
+          /* Fetch tab content (SPA) */
+          var tabContent = document.getElementById('tab-content');
+          tabContent.classList.add('tab-loading');
+          tabContent.style.opacity = '0.4';
+          tabContent.style.pointerEvents = 'none';
+
+          fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-Tab-Only': '1' } })
+          .then(function(res) { return res.text(); })
+          .then(function(html) {
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(html, 'text/html');
+            var newContent = doc.getElementById('tab-content');
+            if (newContent) { tabContent.innerHTML = newContent.innerHTML; }
+            else { tabContent.innerHTML = html; }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            tabContent.querySelectorAll('script').forEach(function(oldScript) {
+              var newScript = document.createElement('script');
+              if (oldScript.src) newScript.src = oldScript.src;
+              else newScript.textContent = oldScript.textContent;
+              oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+            history.pushState({ tab: tab }, '', url);
+            tabContent.classList.remove('tab-loading');
+            tabContent.style.opacity = '1';
+            tabContent.style.pointerEvents = '';
+          })
+          .catch(function(err) { window.location.href = url; });
+        });
+      });
+    })();
   </script>
   {% block extra_js %}{% endblock %}
 </body>

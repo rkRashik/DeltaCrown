@@ -3,29 +3,126 @@
 
 {% block manage_content %}
 
+{# ── P3-T01: Bracket Generation Header ── #}
 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
   <div>
-    <h2 class="text-lg font-display font-bold text-white">Brackets &amp; Matches</h2>
+    <h2 class="text-lg font-display font-bold text-white">Brackets &amp; Seeding</h2>
     <p class="text-sm text-white/45 mt-0.5">
-      {{ matches|length|default:"0" }} matches
-      {% if match_stats.completed %}· <span class="text-emerald-400">{{ match_stats.completed }} completed</span>{% endif %}
+      {% if bracket %}
+        {{ bracket.get_format_display }} · {{ matches|length }} matches · {{ bracket.total_rounds }} rounds
+        {% if bracket.is_finalized %}<span class="text-emerald-400 ml-1">Published</span>{% endif %}
+      {% else %}
+        No bracket generated yet · {{ confirmed_count }} confirmed participant{{ confirmed_count|pluralize }}
+      {% endif %}
     </p>
   </div>
   <div class="flex items-center gap-2">
-    {% if can_manage_bracket %}
-      <button class="btn-secondary text-xs !py-2">
-        <i data-lucide="shuffle" class="w-3.5 h-3.5"></i>
-        Generate Bracket
-      </button>
-      <button class="btn-secondary text-xs !py-2">
-        <i data-lucide="list-ordered" class="w-3.5 h-3.5"></i>
-        Seed Participants
+    {% if can_manage_bracket and bracket and not bracket_locked %}
+      <button onclick="resetBracket()" class="btn-secondary text-xs !py-2"
+              title="Destroy bracket and regenerate">
+        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+        Reset
       </button>
     {% endif %}
   </div>
 </div>
 
-<div class="liquid-glass rounded-2xl p-6 mb-6">
+{# ── P3-T01: Bracket Generation Panel (shown when no bracket exists) ── #}
+{% if not bracket and can_manage_bracket %}
+<div class="liquid-glass rounded-2xl p-6 mb-6" id="generate-panel">
+  <div class="flex items-center gap-2 mb-5">
+    <i data-lucide="git-branch" class="w-4 h-4 text-purple-400"></i>
+    <h3 class="text-sm font-display font-semibold text-white">Generate Bracket</h3>
+  </div>
+
+  {% if confirmed_count < 2 %}
+  <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-4">
+    <div class="flex items-center gap-2 text-amber-400 text-sm">
+      <i data-lucide="alert-triangle" class="w-4 h-4 flex-shrink-0"></i>
+      <span>At least 2 confirmed participants required. Currently: <strong>{{ confirmed_count }}</strong></span>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+    {# Format Selector #}
+    <div>
+      <label for="bracket-format" class="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5">Format</label>
+      <select id="bracket-format" class="form-input w-full">
+        <option value="single-elimination">Single Elimination</option>
+        <option value="double-elimination">Double Elimination</option>
+        <option value="round-robin">Round Robin</option>
+        <option value="swiss">Swiss System</option>
+      </select>
+    </div>
+
+    {# Seeding Method Selector #}
+    <div>
+      <label for="seeding-method" class="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5">Seeding Method</label>
+      <select id="seeding-method" class="form-input w-full">
+        <option value="slot-order">Registration Order</option>
+        <option value="random">Random</option>
+        <option value="ranked">Ranked</option>
+        <option value="manual">Manual</option>
+      </select>
+    </div>
+  </div>
+
+  {# Format-specific config #}
+  <div id="format-config" class="mb-5">
+    {# SE config #}
+    <div id="config-se" class="format-config-panel">
+      <label class="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
+        <input type="checkbox" id="cfg-third-place" class="rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500/30">
+        <span>3rd Place Match</span>
+      </label>
+    </div>
+
+    {# DE config #}
+    <div id="config-de" class="format-config-panel hidden">
+      <label class="flex items-center gap-2 text-sm text-white/70 cursor-pointer">
+        <input type="checkbox" id="cfg-gf-reset" class="rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500/30">
+        <span>Grand Finals Reset (losers bracket winner gets a second chance)</span>
+      </label>
+    </div>
+
+    {# Swiss config #}
+    <div id="config-swiss" class="format-config-panel hidden">
+      <label for="cfg-swiss-rounds" class="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5">Number of Rounds</label>
+      <input type="number" id="cfg-swiss-rounds" class="form-input w-32" value="3" min="1" max="20">
+    </div>
+
+    {# RR config #}
+    <div id="config-rr" class="format-config-panel hidden">
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label for="cfg-rr-win" class="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Win Points</label>
+          <input type="number" id="cfg-rr-win" class="form-input w-full" value="3" min="0">
+        </div>
+        <div>
+          <label for="cfg-rr-draw" class="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Draw Points</label>
+          <input type="number" id="cfg-rr-draw" class="form-input w-full" value="1" min="0">
+        </div>
+        <div>
+          <label for="cfg-rr-loss" class="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Loss Points</label>
+          <input type="number" id="cfg-rr-loss" class="form-input w-full" value="0" min="0">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button onclick="generateBracket()" class="btn-primary"
+          {% if confirmed_count < 2 %}disabled{% endif %}
+          id="btn-generate">
+    <i data-lucide="zap" class="w-4 h-4"></i>
+    Generate Bracket
+  </button>
+  <span id="generate-status" class="text-sm text-white/40 ml-3"></span>
+</div>
+{% endif %}
+
+{# ── Bracket Visualization ── #}
+<div class="liquid-glass rounded-2xl p-6 mb-6" id="bracket-viz">
   <div class="flex items-center gap-2 mb-5">
     <i data-lucide="git-merge" class="w-4 h-4 text-purple-400"></i>
     <h3 class="text-sm font-display font-semibold text-white">Bracket Visualization</h3>
@@ -40,17 +137,26 @@
               Round {{ round.number }}
             </div>
             {% for match in round.matches %}
-              <div class="liquid-glass rounded-xl p-3 hover:border-white/[0.15] transition">
-                <div class="text-[11px] text-white/35 font-mono mb-2">M{{ match.match_number }}</div>
+              <div class="liquid-glass rounded-xl p-3 hover:border-white/[0.15] transition
+                {% if match.state == 'live' %}ring-1 ring-red-500/30{% endif %}
+                {% if match.state == 'completed' %}ring-1 ring-emerald-500/20{% endif %}">
+                <div class="text-[11px] text-white/35 font-mono mb-2">
+                  M{{ match.match_number }}
+                  {% if match.state == 'live' %}
+                    <span class="badge badge-red !text-[10px] ml-1">LIVE</span>
+                  {% elif match.state == 'completed' %}
+                    <span class="badge badge-green !text-[10px] ml-1">Done</span>
+                  {% endif %}
+                </div>
                 <div class="space-y-1.5">
                   <div class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg
-                    {% if match.winner_id == match.participant1_id %}bg-emerald-500/5 border border-emerald-500/10{% else %}bg-white/[0.02]{% endif %}">
-                    <span class="text-sm text-white/70 truncate">{{ match.participant1_name|default:"TBD" }}</span>
+                    {% if match.winner_id == match.participant1_id and match.winner_id %}bg-emerald-500/5 border border-emerald-500/10{% else %}bg-white/[0.02]{% endif %}">
+                    <span class="text-sm text-white/70 truncate">{{ match.participant1_name }}</span>
                     <span class="text-sm font-mono font-bold text-white/60">{{ match.score1|default:"-" }}</span>
                   </div>
                   <div class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg
-                    {% if match.winner_id == match.participant2_id %}bg-emerald-500/5 border border-emerald-500/10{% else %}bg-white/[0.02]{% endif %}">
-                    <span class="text-sm text-white/70 truncate">{{ match.participant2_name|default:"TBD" }}</span>
+                    {% if match.winner_id == match.participant2_id and match.winner_id %}bg-emerald-500/5 border border-emerald-500/10{% else %}bg-white/[0.02]{% endif %}">
+                    <span class="text-sm text-white/70 truncate">{{ match.participant2_name }}</span>
                     <span class="text-sm font-mono font-bold text-white/60">{{ match.score2|default:"-" }}</span>
                   </div>
                 </div>
@@ -64,11 +170,58 @@
     <div class="empty-state py-12">
       <i data-lucide="git-merge" class="w-10 h-10 mx-auto"></i>
       <p>Bracket not generated yet</p>
-      <p class="sub">Generate or import a bracket once registrations are finalized.</p>
+      <p class="sub">Configure format and seeding above, then click Generate.</p>
     </div>
   {% endif %}
 </div>
 
+{# ── P3-T02: Drag-and-Drop Seeding Panel ── #}
+{% if bracket and seed_list and can_manage_bracket %}
+<div class="liquid-glass rounded-2xl p-6 mb-6" id="seeding-panel">
+  <div class="flex items-center justify-between mb-5">
+    <div class="flex items-center gap-2">
+      <i data-lucide="list-ordered" class="w-4 h-4 text-cyan-400"></i>
+      <h3 class="text-sm font-display font-semibold text-white">Seed Order</h3>
+      {% if bracket.is_finalized %}
+        <span class="badge badge-green text-[10px]">Published</span>
+      {% else %}
+        <span class="badge badge-yellow text-[10px]">Draft — drag to reorder</span>
+      {% endif %}
+    </div>
+    {% if not bracket_locked %}
+      <button onclick="publishBracket()" class="btn-primary text-xs !py-2" id="btn-publish">
+        <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+        Publish Bracket
+      </button>
+    {% endif %}
+  </div>
+
+  <div id="seed-list" class="space-y-1">
+    {% for s in seed_list %}
+    <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition
+         {% if s.is_bye %}opacity-40{% endif %}"
+         data-participant-id="{{ s.id|default:'bye' }}"
+         {% if s.is_bye %}data-bye="true"{% endif %}>
+      {% if not bracket_locked and not s.is_bye %}
+        <span class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white/50 drag-handle">
+          <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+        </span>
+      {% else %}
+        <span class="w-4"></span>
+      {% endif %}
+      <span class="text-xs font-mono text-white/40 w-6 text-right seed-number">{{ s.seed }}</span>
+      <span class="text-sm text-white/80 flex-1 truncate">{{ s.name }}</span>
+      {% if s.is_bye %}
+        <span class="badge badge-gray text-[10px]">BYE</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <p id="seed-status" class="text-xs text-white/30 mt-3"></p>
+</div>
+{% endif %}
+
+{# ── Match List Table ── #}
 <div class="liquid-glass rounded-2xl overflow-hidden">
   <div class="flex items-center gap-2 px-6 pt-5 pb-3">
     <i data-lucide="list" class="w-4 h-4 text-cyan-400"></i>
@@ -112,9 +265,10 @@
               <td>
                 <span class="badge
                   {% if match.state == 'completed' %}badge-green
-                  {% elif match.state == 'in_progress' or match.state == 'live' %}badge-red
-                  {% elif match.state == 'scheduled' %}badge-blue
+                  {% elif match.state == 'live' %}badge-red
+                  {% elif match.state == 'scheduled' or match.state == 'ready' %}badge-blue
                   {% elif match.state == 'pending_result' %}badge-yellow
+                  {% elif match.state == 'forfeit' %}badge-gray
                   {% else %}badge-gray{% endif %}">
                   {{ match.get_state_display|default:match.state|title }}
                 </span>
@@ -146,5 +300,159 @@
     </div>
   {% endif %}
 </div>
+
+{# ── Sortable.js CDN (P3-T02) ── #}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+
+<script>
+(function() {
+  'use strict';
+
+  const SLUG = '{{ tournament.slug }}';
+  const csrfToken = '{{ csrf_token }}';
+
+  // ── Format config toggle ──
+  const formatSelect = document.getElementById('bracket-format');
+  if (formatSelect) {
+    formatSelect.addEventListener('change', function() {
+      document.querySelectorAll('.format-config-panel').forEach(p => p.classList.add('hidden'));
+      const map = {
+        'single-elimination': 'config-se',
+        'double-elimination': 'config-de',
+        'round-robin': 'config-rr',
+        'swiss': 'config-swiss',
+      };
+      const target = document.getElementById(map[this.value]);
+      if (target) target.classList.remove('hidden');
+    });
+  }
+
+  // ── P3-T01: Generate Bracket ──
+  window.generateBracket = async function() {
+    const btn = document.getElementById('btn-generate');
+    const status = document.getElementById('generate-status');
+    btn.disabled = true;
+    status.textContent = 'Generating…';
+
+    const format = document.getElementById('bracket-format').value;
+    const seeding = document.getElementById('seeding-method').value;
+
+    const config = {};
+    if (format === 'single-elimination') {
+      config.third_place_match = document.getElementById('cfg-third-place')?.checked || false;
+    } else if (format === 'double-elimination') {
+      config.grand_finals_reset = document.getElementById('cfg-gf-reset')?.checked || false;
+    } else if (format === 'swiss') {
+      config.rounds_count = parseInt(document.getElementById('cfg-swiss-rounds')?.value || '3');
+    } else if (format === 'round-robin') {
+      config.win_points = parseInt(document.getElementById('cfg-rr-win')?.value || '3');
+      config.draw_points = parseInt(document.getElementById('cfg-rr-draw')?.value || '1');
+      config.loss_points = parseInt(document.getElementById('cfg-rr-loss')?.value || '0');
+    }
+
+    try {
+      const res = await fetch(`/tournaments/organizer/${SLUG}/generate-bracket/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ format, seeding_method: seeding, config }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        status.textContent = data.message;
+        setTimeout(() => location.reload(), 600);
+      } else {
+        status.textContent = data.error || 'Generation failed.';
+        btn.disabled = false;
+      }
+    } catch (e) {
+      status.textContent = 'Network error.';
+      btn.disabled = false;
+    }
+  };
+
+  // ── P3-T01: Reset Bracket ──
+  window.resetBracket = async function() {
+    if (!confirm('Reset bracket? All matches will be deleted. This cannot be undone.')) return;
+
+    try {
+      const res = await fetch(`/tournaments/organizer/${SLUG}/reset-bracket/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: '{}',
+      });
+      const data = await res.json();
+      if (data.success) {
+        location.reload();
+      } else {
+        alert(data.error || 'Reset failed.');
+      }
+    } catch (e) {
+      alert('Network error.');
+    }
+  };
+
+  // ── P3-T02: Sortable Seed List ──
+  const seedEl = document.getElementById('seed-list');
+  if (seedEl && !{{ bracket_locked|yesno:"true,false" }}) {
+    new Sortable(seedEl, {
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'bg-purple-500/10',
+      filter: '[data-bye="true"]',
+      onEnd: function() {
+        // Renumber seeds
+        const items = seedEl.querySelectorAll('[data-participant-id]');
+        const order = [];
+        items.forEach((el, idx) => {
+          const sn = el.querySelector('.seed-number');
+          if (sn) sn.textContent = idx + 1;
+          const pid = el.dataset.participantId;
+          if (pid && pid !== 'bye') order.push(parseInt(pid));
+        });
+
+        // POST reorder
+        const status = document.getElementById('seed-status');
+        status.textContent = 'Saving…';
+
+        fetch(`/tournaments/organizer/${SLUG}/reorder-seeds/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+          body: JSON.stringify({ order }),
+        })
+        .then(r => r.json())
+        .then(data => {
+          status.textContent = data.success ? 'Saved ✓' : (data.error || 'Failed');
+          setTimeout(() => { status.textContent = ''; }, 2000);
+        })
+        .catch(() => { status.textContent = 'Network error'; });
+      }
+    });
+  }
+
+  // ── P3-T02: Publish Bracket ──
+  window.publishBracket = async function() {
+    if (!confirm('Publish bracket? Seeding will be locked and cannot be changed.')) return;
+
+    try {
+      const res = await fetch(`/tournaments/organizer/${SLUG}/publish-bracket/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: '{}',
+      });
+      const data = await res.json();
+      if (data.success) {
+        location.reload();
+      } else {
+        alert(data.error || 'Publish failed.');
+      }
+    } catch (e) {
+      alert('Network error.');
+    }
+  };
+
+  // Re-init Lucide icons for dynamically rendered content
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+})();
+</script>
 
 {% endblock %}

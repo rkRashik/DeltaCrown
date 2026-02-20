@@ -167,7 +167,60 @@ class Registration(SoftDeleteModel, TimestampedModel):
         blank=True,
         help_text="Position in waitlist queue (FIFO order)"
     )
-    
+
+    # Human-readable registration identifier (e.g., DC-FPS24-001)
+    registration_number = models.CharField(
+        max_length=30,
+        unique=True,
+        blank=True,
+        db_index=True,
+        help_text="Auto-generated registration number: DC-{SLUG}-{SEQ:04d}"
+    )
+
+    # Team roster snapshot at registration time
+    lineup_snapshot = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Frozen team roster at registration: [{user_id, username, game_id, role}, ...]"
+    )
+
+    # Guest team flag (P2-T01)
+    is_guest_team = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Whether this registration is for a guest (unregistered) team"
+    )
+
+    # Guest-to-Real Conversion (P4-T04)
+    invite_token = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        unique=True,
+        db_index=True,
+        help_text="Unique token for guest team invite link (P4-T04)"
+    )
+
+    CONVERSION_PENDING = 'pending'
+    CONVERSION_PARTIAL = 'partial'
+    CONVERSION_COMPLETE = 'complete'
+    CONVERSION_APPROVED = 'approved'
+
+    CONVERSION_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('partial', 'Partial'),
+        ('complete', 'Complete'),
+        ('approved', 'Approved'),
+    ]
+
+    conversion_status = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        choices=CONVERSION_STATUS_CHOICES,
+        help_text="Guest-to-real conversion progress status"
+    )
+
     # Manager
     objects = SoftDeleteManager()
     
@@ -187,6 +240,7 @@ class Registration(SoftDeleteModel, TimestampedModel):
         ]
         constraints = [
             # Either user_id OR team_id must be set, not both
+            # Guest teams have user set but no team_id (is_guest_team=True)
             models.CheckConstraint(
                 check=(
                     models.Q(user__isnull=False, team_id__isnull=True) |
@@ -210,8 +264,9 @@ class Registration(SoftDeleteModel, TimestampedModel):
             models.CheckConstraint(
                 check=models.Q(
                     status__in=[
-                        'pending', 'payment_submitted', 'confirmed',
-                        'rejected', 'cancelled', 'no_show'
+                        'draft', 'submitted', 'pending', 'auto_approved',
+                        'needs_review', 'payment_submitted', 'confirmed',
+                        'rejected', 'cancelled', 'waitlisted', 'no_show'
                     ]
                 ),
                 name='registration_valid_status'
@@ -221,7 +276,35 @@ class Registration(SoftDeleteModel, TimestampedModel):
     def __str__(self) -> str:
         participant = self.user.username if self.user else f"Team {self.team_id}"
         return f"{participant} â†’ {self.tournament.name} ({self.get_status_display()})"
-    
+    def save(self, *args, **kwargs):
+        if not self.registration_number:
+            self.registration_number = self._generate_registration_number()
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def _generate_registration_number(cls) -> str:
+        """Generate a unique human-readable registration number: DC-{SLUG}-{SEQ:04d}"""
+        import uuid
+        from django.db.models import Max
+
+        prefix = "DC"
+        year_suffix = timezone.now().strftime("%y")
+        max_seq = (
+            cls.objects.filter(
+                registration_number__startswith=f"{prefix}-{year_suffix}-"
+            )
+            .aggregate(
+                max_num=Max("registration_number")
+            )["max_num"]
+        )
+        if max_seq:
+            try:
+                last_seq = int(max_seq.rsplit("-", 1)[-1])
+            except (ValueError, IndexError):
+                last_seq = 0
+        else:
+            last_seq = 0
+        return f"{prefix}-{year_suffix}-{last_seq + 1:04d}"    
     def clean(self):
         """Validate registration before saving"""
         super().clean()
@@ -338,6 +421,7 @@ class Payment(models.Model):
     REJECTED = 'rejected'
     REFUNDED = 'refunded'
     WAIVED = 'waived'
+    EXPIRED = 'expired'
     
     STATUS_CHOICES = [
         (PENDING, 'Pending'),
@@ -346,6 +430,7 @@ class Payment(models.Model):
         (REJECTED, 'Rejected'),
         (REFUNDED, 'Refunded'),
         (WAIVED, 'Fee Waived'),
+        (EXPIRED, 'Expired'),
     ]
     
     # Core fields
@@ -449,6 +534,91 @@ class Payment(models.Model):
         help_text="Number of times payment was resubmitted after rejection"
     )
     
+    # ── P4-T03: Consolidated fields from PaymentVerification ──
+    payer_account_number = models.CharField(
+        max_length=32,
+        blank=True,
+        default='',
+        help_text="Payer bKash/Nagad/Rocket account number"
+    )
+    
+    amount_bdt = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Payment amount in BDT (integer, from PaymentVerification)"
+    )
+    
+    note = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text="Registrant note for payment"
+    )
+    
+    proof_image = models.ImageField(
+        upload_to='payments/proofs/',
+        null=True,
+        blank=True,
+        help_text="Payment proof screenshot/receipt image"
+    )
+    
+    notes = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Structured notes for staff actions (reason codes, metadata)"
+    )
+    
+    idempotency_key = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        unique=True,
+        help_text="Idempotency key to prevent duplicate payments"
+    )
+    
+    rejected_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='rejected_payments',
+        help_text="Admin who rejected the payment"
+    )
+    
+    rejected_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When payment was rejected"
+    )
+    
+    refunded_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='refunded_payments',
+        help_text="Admin who processed the refund"
+    )
+    
+    refunded_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When payment was refunded"
+    )
+    
+    reject_reason = models.TextField(
+        blank=True,
+        default='',
+        help_text="Reason for payment rejection"
+    )
+    
+    last_action_reason = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        help_text="Audit trail for last staff action taken"
+    )
+    
     # Timestamps
     submitted_at = models.DateTimeField(
         auto_now_add=True,
@@ -486,7 +656,7 @@ class Payment(models.Model):
             # Status must be valid
             models.CheckConstraint(
                 check=models.Q(
-                    status__in=['pending', 'submitted', 'verified', 'rejected', 'refunded']
+                    status__in=['pending', 'submitted', 'verified', 'rejected', 'refunded', 'expired']
                 ),
                 name='payment_status_valid'
             ),

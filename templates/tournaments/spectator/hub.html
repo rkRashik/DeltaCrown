@@ -67,9 +67,7 @@
     </a>
   </div>
 
-  {# ═══════════════════════════════
-     Tab: Bracket
-     ═══════════════════════════════ #}
+  {# Tab: Bracket #}
   {% if active_tab == 'bracket' %}
     {% if has_bracket and bracket %}
       <div class="glass rounded-xl p-6">
@@ -91,9 +89,7 @@
       </div>
     {% endif %}
 
-  {# ═══════════════════════════════
-     Tab: Groups
-     ═══════════════════════════════ #}
+  {# Tab: Groups #}
   {% elif active_tab == 'groups' and has_groups %}
     {% for group in groups %}
       <div class="glass rounded-xl overflow-hidden mb-4">
@@ -125,9 +121,7 @@
       </div>
     {% endfor %}
 
-  {# ═══════════════════════════════
-     Tab: Standings
-     ═══════════════════════════════ #}
+  {# Tab: Standings #}
   {% elif active_tab == 'standings' %}
     {% if standings %}
       <div class="glass rounded-xl overflow-hidden">
@@ -159,9 +153,7 @@
       </div>
     {% endif %}
 
-  {# ═══════════════════════════════
-     Tab: Matches
-     ═══════════════════════════════ #}
+  {# Tab: Matches #}
   {% elif active_tab == 'matches' %}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 

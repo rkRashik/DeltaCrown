@@ -94,13 +94,13 @@ def resolve_dispute(request, slug, dispute_id):
             # Accept Participant A's claim - set A as winner
             match.winner_id = match.participant1_id
             match.loser_id = match.participant2_id
-            match.status = 'COMPLETED'
+            match.state = 'completed'
             
         elif decision == 'ACCEPT_B':
             # Accept Participant B's claim - set B as winner
             match.winner_id = match.participant2_id
             match.loser_id = match.participant1_id
-            match.status = 'COMPLETED'
+            match.state = 'completed'
             
         elif decision == 'OVERRIDE':
             # Manual score override
@@ -145,15 +145,15 @@ def resolve_dispute(request, slug, dispute_id):
                 match.winner_id = match.participant2_id
                 match.loser_id = match.participant1_id
             
-            match.status = 'COMPLETED'
+            match.state = 'completed'
             
             # Store final scores in dispute record
             dispute.final_participant1_score = final_score_a
             dispute.final_participant2_score = final_score_b
             
         elif decision == 'REJECT':
-            # Reject dispute, keep original result
-            match.status = 'COMPLETED'
+            # Reject dispute — keep match as-is, only resolve the dispute
+            pass
             
         else:
             return JsonResponse({
@@ -161,11 +161,12 @@ def resolve_dispute(request, slug, dispute_id):
                 'message': f'Invalid decision type: {decision}'
             }, status=400)
         
-        # Update match
-        match.save(update_fields=[
-            'participant1_score', 'participant2_score',
-            'winner_id', 'loser_id', 'status', 'updated_at'
-        ])
+        # Update match (only if decision actually changed it)
+        if decision != 'REJECT':
+            match.save(update_fields=[
+                'participant1_score', 'participant2_score',
+                'winner_id', 'loser_id', 'state', 'updated_at'
+            ])
         
         # Update dispute record
         dispute.status = Dispute.RESOLVED
@@ -186,7 +187,7 @@ def resolve_dispute(request, slug, dispute_id):
             'status': 'success',
             'message': 'Dispute resolved successfully',
             'decision': decision,
-            'match_status': match.status
+            'match_status': match.state
         })
         
     except Exception as e:

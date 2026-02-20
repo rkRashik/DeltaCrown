@@ -129,7 +129,7 @@
 <div class="min-h-screen bg-gradient-to-b from-[#020005] via-[#080818] to-[#020005] dash-ambient">
   <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
 
-    {# ════════════════════ HEADER ════════════════════ #}
+    {# HEADER #}
     <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 bf">
       <div class="flex items-center gap-4">
         {% if profile.avatar_url %}
@@ -158,7 +158,7 @@
       </div>
     </header>
 
-    {# ════════════════════ PENDING INVITES BANNER ════════════════════ #}
+    {# PENDING INVITES BANNER #}
     {% if pending_invites %}
     <div class="mb-5 bf bf1">
       <div class="flex items-center gap-2 mb-3">
@@ -200,7 +200,7 @@
     </div>
     {% endif %}
 
-    {# ════════════════════ BENTO GRID ════════════════════ #}
+    {# BENTO GRID #}
     <div class="bento-grid">
 
       {# ── ROW 1: STAT TILES (4 mini stats) ── #}

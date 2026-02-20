@@ -80,21 +80,54 @@ class RegistrationEligibilityService:
                 action_label='Registration Closed'
             )
         
-        # Check 3: Tournament must not be at capacity
-        if tournament.is_full():
-            return EligibilityResult(
-                is_eligible=False,
-                reason=f"This tournament is full ({tournament.max_participants} participants). You may join the waitlist.",
-                action_type='waitlist',
-                action_url=f'/tournaments/{tournament.slug}/waitlist/',
-                action_label='Join Waitlist'
-            )
+        # Check 3: Tournament capacity — allow waitlist instead of blocking
+        is_full = tournament.is_full()
+        if is_full:
+            # Don't block — user can join the waitlist
+            pass
         
         # Check 4: For team tournaments, check team requirements
         if tournament.participation_type == 'team':
-            return RegistrationEligibilityService._check_team_eligibility(tournament, user)
+            result = RegistrationEligibilityService._check_team_eligibility(tournament, user)
+            if not result.is_eligible:
+                # Check for guest team fallback
+                allows_guest = getattr(tournament, 'max_guest_teams', 0) and tournament.max_guest_teams > 0
+                if allows_guest and result.action_type in ('create_or_join_team', 'contact_captain', 'request_permission', 'manage_roster'):
+                    from apps.tournaments.models import Registration
+                    current_guest_count = Registration.objects.filter(
+                        tournament=tournament,
+                        is_guest_team=True,
+                        is_deleted=False,
+                    ).exclude(
+                        status__in=[Registration.CANCELLED, Registration.REJECTED]
+                    ).count()
+                    remaining = tournament.max_guest_teams - current_guest_count
+                    if remaining > 0:
+                        return EligibilityResult(
+                            is_eligible=True,
+                            reason=f"No eligible team found, but you can register as a guest team ({remaining} slot(s) available).",
+                            action_type='guest_team',
+                            action_url=f'/tournaments/{tournament.slug}/register/?guest=1',
+                            action_label='Register as Guest Team'
+                        )
+                return result
         
-        # Solo tournaments - user is eligible
+        # If at capacity, return waitlist-eligible
+        if is_full:
+            return EligibilityResult(
+                is_eligible=True,
+                reason=f"This tournament is full ({tournament.max_participants} participants). You will be placed on the waitlist.",
+                action_type='waitlist',
+                action_url=f'/tournaments/{tournament.slug}/register/',
+                action_label='Join Waitlist'
+            )
+
+        # Check 5: RegistrationRule auto-evaluation (P4-T05)
+        rule_result = RegistrationEligibilityService._evaluate_registration_rules(tournament, user)
+        if rule_result is not None:
+            return rule_result
+
+        # Solo tournaments / eligible team tournament — user is eligible
         return EligibilityResult(
             is_eligible=True,
             reason='',
@@ -267,3 +300,98 @@ class RegistrationEligibilityService:
                 eligible_ids.append(team.id)
         
         return Team.objects.filter(id__in=eligible_ids)
+
+    # ------------------------------------------------------------------ #
+    # P4-T05: RegistrationRule Auto-Evaluation
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _evaluate_registration_rules(tournament: Tournament, user) -> 'EligibilityResult | None':
+        """
+        Evaluate active RegistrationRules for this tournament against the user.
+
+        Checks rules in priority order. If an AUTO_REJECT rule matches, the user
+        is blocked with a clear error message. AUTO_APPROVE / FLAG_FOR_REVIEW
+        return None (caller proceeds normally — the smart-reg wizard handles those
+        at submission time).
+
+        Returns:
+            EligibilityResult if user is blocked by a rule, else None
+        """
+        from apps.tournaments.models.smart_registration import RegistrationRule
+
+        rules = RegistrationRule.objects.filter(
+            tournament=tournament,
+            is_active=True,
+        ).order_by('priority', 'id')
+
+        if not rules.exists():
+            return None
+
+        # Build user context for rule evaluation
+        user_data = RegistrationEligibilityService._build_user_rule_context(user)
+
+        for rule in rules:
+            if rule.rule_type != RegistrationRule.AUTO_REJECT:
+                continue  # Only enforce rejection rules at eligibility gate
+
+            matched = rule.evaluate(user_data, {})
+            if matched:
+                reason = rule.reason_template or f"You do not meet the requirement: {rule.name}"
+                return EligibilityResult(
+                    is_eligible=False,
+                    reason=reason,
+                    action_type='rule_blocked',
+                    action_url='',
+                    action_label='Requirement Not Met',
+                )
+
+        return None
+
+    @staticmethod
+    def _build_user_rule_context(user) -> dict:
+        """
+        Build a flat dict of user attributes for rule evaluation.
+
+        Supported keys (matching RegistrationRule condition fields):
+          - account_age_days: int
+          - rank: str (from profile game_stats if available)
+          - tournaments_played: int
+          - email_verified: bool
+        """
+        from django.utils import timezone
+
+        ctx: dict = {}
+
+        # Account age
+        if hasattr(user, 'date_joined') and user.date_joined:
+            ctx['account_age_days'] = (timezone.now() - user.date_joined).days
+        else:
+            ctx['account_age_days'] = 0
+
+        # Email verified
+        ctx['email_verified'] = getattr(user, 'is_active', False)
+
+        # Tournaments played (count of confirmed registrations)
+        try:
+            from apps.tournaments.models import Registration
+            ctx['tournaments_played'] = Registration.objects.filter(
+                user=user,
+                status=Registration.CONFIRMED,
+                is_deleted=False,
+            ).count()
+        except Exception:
+            ctx['tournaments_played'] = 0
+
+        # Rank (from user profile game_stats, if present)
+        try:
+            profile = getattr(user, 'profile', None)
+            if profile:
+                game_stats = getattr(profile, 'game_stats', None) or {}
+                ctx['rank'] = game_stats.get('rank', '')
+            else:
+                ctx['rank'] = ''
+        except Exception:
+            ctx['rank'] = ''
+
+        return ctx

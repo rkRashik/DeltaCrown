@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Live Draw · {{ tournament.name }} — DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-950 flex flex-col items-center justify-center py-12 px-4">
+
+  {# ── Header ── #}
+  <div class="text-center mb-10">
+    <p class="text-xs uppercase tracking-[0.3em] text-emerald-400 font-semibold mb-2">Live Bracket Draw</p>
+    <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight">{{ tournament.name }}</h1>
+    <p id="draw-subtitle" class="text-gray-500 mt-3 text-sm">Waiting for the organizer to start the draw…</p>
+  </div>
+
+  {# ── Draw Arena ── #}
+  <div class="w-full max-w-2xl">
+
+    {# Status indicator #}
+    <div id="status-bar" class="flex items-center justify-center gap-2 mb-8">
+      <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-gray-600 animate-pulse"></span>
+      <span id="status-text" class="text-sm text-gray-400">Connecting…</span>
+    </div>
+
+    {# Seed reveal cards #}
+    <div id="reveal-container" class="space-y-3">
+      {# Cards inserted by JS #}
+    </div>
+
+    {# Draw complete banner #}
+    <div id="draw-complete" class="hidden mt-8 text-center">
+      <div class="inline-flex items-center gap-2 bg-emerald-900/30 border border-emerald-700 rounded-full px-6 py-2">
+        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        <span class="text-emerald-300 font-semibold text-sm">Draw Complete</span>
+      </div>
+    </div>
+  </div>
+
+  {# ── Organizer Controls ── #}
+  {% if is_organizer %}
+  <div class="mt-10" id="organizer-controls">
+    <button id="btn-start-draw"
+            class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-8 py-3 rounded-xl
+                   text-sm uppercase tracking-wider transition-all shadow-lg shadow-emerald-900/40
+                   disabled:opacity-40 disabled:cursor-not-allowed">
+      Start Live Draw
+    </button>
+  </div>
+  {% endif %}
+
+  {# ── Polling Fallback Notice ── #}
+  <div id="fallback-notice" class="hidden mt-6 text-center">
+    <p class="text-gray-500 text-xs">WebSocket unavailable — using polling mode.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  const tournamentId = {{ tournament.id }};
+  const container = document.getElementById('reveal-container');
+  const statusDot = document.getElementById('status-dot');
+  const statusText = document.getElementById('status-text');
+  const subtitle = document.getElementById('draw-subtitle');
+  const completeBanner = document.getElementById('draw-complete');
+  const startBtn = document.getElementById('btn-start-draw');
+  const fallbackNotice = document.getElementById('fallback-notice');
+
+  let ws = null;
+  let useFallback = false;
+  let pollInterval = null;
+  let revealedSeeds = new Set();
+
+  // ── WebSocket Connection ──
+  function connectWS() {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const url = `${proto}://${location.host}/ws/tournament/${tournamentId}/draw/`;
+
+    try {
+      ws = new WebSocket(url);
+    } catch (e) {
+      enableFallback();
+      return;
+    }
+
+    ws.onopen = function() {
+      statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400';
+      statusText.textContent = 'Connected';
+      statusText.className = 'text-sm text-emerald-400';
+    };
+
+    ws.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+      handleEvent(data);
+    };
+
+    ws.onclose = function() {
+      statusDot.className = 'w-2.5 h-2.5 rounded-full bg-red-500';
+      statusText.textContent = 'Disconnected';
+      statusText.className = 'text-sm text-red-400';
+      // Try fallback after disconnect
+      setTimeout(enableFallback, 2000);
+    };
+
+    ws.onerror = function() {
+      enableFallback();
+    };
+  }
+
+  // ── Event Handler ──
+  function handleEvent(data) {
+    switch (data.type) {
+      case 'draw_status':
+        if (data.status === 'complete') {
+          subtitle.textContent = 'Draw has been completed.';
+          if (startBtn) startBtn.disabled = true;
+          completeBanner.classList.remove('hidden');
+        }
+        break;
+
+      case 'draw_start':
+        subtitle.textContent = `Drawing ${data.total} seeds…`;
+        container.innerHTML = '';
+        revealedSeeds.clear();
+        if (startBtn) startBtn.disabled = true;
+        break;
+
+      case 'draw_reveal':
+        if (revealedSeeds.has(data.seed)) return;
+        revealedSeeds.add(data.seed);
+        addRevealCard(data.seed, data.name, data.total);
+        subtitle.textContent = `${data.seed} of ${data.total} revealed`;
+        break;
+
+      case 'draw_complete':
+        subtitle.textContent = 'Draw complete!';
+        completeBanner.classList.remove('hidden');
+        if (startBtn) startBtn.disabled = true;
+        break;
+
+      case 'error':
+        subtitle.textContent = data.message || 'An error occurred.';
+        break;
+    }
+  }
+
+  // ── Reveal Card Animation ──
+  function addRevealCard(seed, name, total) {
+    const card = document.createElement('div');
+    card.className = 'flex items-center gap-4 bg-gray-900 border border-gray-800 rounded-xl px-5 py-4 ' +
+                     'opacity-0 translate-y-4 transition-all duration-500';
+    card.innerHTML = `
+      <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-600/20 border border-emerald-700
+                  flex items-center justify-center">
+        <span class="text-emerald-400 font-black text-lg">${seed}</span>
+      </div>
+      <div class="flex-1">
+        <p class="text-white font-semibold text-sm">${escapeHtml(name)}</p>
+        <p class="text-gray-500 text-xs">Seed #${seed} of ${total}</p>
+      </div>
+      <div class="flex-shrink-0">
+        <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+    `;
+    container.appendChild(card);
+    // Trigger animation
+    requestAnimationFrame(() => {
+      card.classList.remove('opacity-0', 'translate-y-4');
+    });
+  }
+
+  // ── Fallback Polling ──
+  function enableFallback() {
+    if (useFallback) return;
+    useFallback = true;
+    fallbackNotice.classList.remove('hidden');
+    statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500';
+    statusText.textContent = 'Polling mode';
+    statusText.className = 'text-sm text-amber-400';
+
+    pollInterval = setInterval(pollDrawResults, 3000);
+    pollDrawResults();
+  }
+
+  async function pollDrawResults() {
+    try {
+      const res = await fetch(`/tournaments/${tournamentId}/draw/api/`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.status === 'complete' && data.seeds) {
+        clearInterval(pollInterval);
+        container.innerHTML = '';
+        data.seeds.forEach(s => addRevealCard(s.seed, s.name, data.total));
+        completeBanner.classList.remove('hidden');
+        subtitle.textContent = 'Draw complete!';
+        if (startBtn) startBtn.disabled = true;
+      }
+    } catch (e) { /* silently retry */ }
+  }
+
+  // ── Organizer Start Button ──
+  if (startBtn) {
+    startBtn.addEventListener('click', function() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: 'start_draw' }));
+        startBtn.disabled = true;
+      }
+    });
+  }
+
+  // ── Utilities ──
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ── Init ──
+  connectWS();
+})();
+</script>
+{% endblock %}

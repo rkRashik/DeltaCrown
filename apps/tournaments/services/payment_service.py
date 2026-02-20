@@ -26,8 +26,70 @@ from apps.economy import services as economy_services
 from apps.economy.exceptions import InsufficientFunds, InvalidAmount
 from apps.economy.models import DeltaCrownTransaction, DeltaCrownWallet
 from apps.tournaments.models import Payment, Registration
+from apps.tournaments.models.payment_verification import PaymentVerification
 
 User = get_user_model()
+
+
+import logging
+_logger = logging.getLogger(__name__)
+
+
+def _sync_to_payment_verification(payment: Payment) -> None:
+    """
+    P4-T03 Step 3: Dual-write — mirror Payment fields to PaymentVerification.
+
+    If a PaymentVerification row already exists for the same registration,
+    update it.  If not, create one.  Any errors are logged but never raised
+    so the primary Payment write is never blocked.
+    """
+    try:
+        pv, created = PaymentVerification.objects.get_or_create(
+            registration_id=payment.registration_id,
+            defaults={
+                'method': payment.payment_method if payment.payment_method != 'deltacoin' else 'other',
+                'status': PaymentVerification.Status.PENDING,
+            },
+        )
+
+        # Map Payment fields → PaymentVerification fields
+        method_map = {'bkash': 'bkash', 'nagad': 'nagad', 'rocket': 'rocket', 'bank': 'bank'}
+        pv.method = method_map.get(payment.payment_method, 'other')
+        pv.payer_account_number = payment.payer_account_number or ''
+        pv.transaction_id = payment.transaction_id or ''
+        pv.reference_number = payment.reference_number or ''
+        pv.amount_bdt = payment.amount_bdt or (int(payment.amount) if payment.amount else None)
+        pv.note = payment.note or ''
+        if payment.proof_image:
+            pv.proof_image = payment.proof_image
+        pv.notes = payment.notes if isinstance(payment.notes, dict) else {}
+        if payment.idempotency_key and not pv.idempotency_key:
+            pv.idempotency_key = payment.idempotency_key
+
+        # Map status
+        status_map = {
+            'pending': PaymentVerification.Status.PENDING,
+            'submitted': PaymentVerification.Status.PENDING,
+            'verified': PaymentVerification.Status.VERIFIED,
+            'rejected': PaymentVerification.Status.REJECTED,
+            'refunded': PaymentVerification.Status.REFUNDED,
+            'expired': PaymentVerification.Status.REJECTED,
+        }
+        pv.status = status_map.get(payment.status, PaymentVerification.Status.PENDING)
+
+        # Audit fields
+        pv.verified_by = payment.verified_by
+        pv.verified_at = payment.verified_at
+        pv.rejected_by = payment.rejected_by
+        pv.rejected_at = payment.rejected_at
+        pv.refunded_by = payment.refunded_by
+        pv.refunded_at = payment.refunded_at
+        pv.reject_reason = payment.reject_reason or ''
+        pv.last_action_reason = payment.last_action_reason or ''
+
+        pv.save()
+    except Exception:
+        _logger.exception("Dual-write to PaymentVerification failed for payment %s", payment.pk)
 
 
 class PaymentService:
@@ -194,6 +256,8 @@ class PaymentService:
             status=Payment.VERIFIED,  # Auto-verify DeltaCoin payments
             verified_at=timezone.now(),
             verified_by=user,  # Mark as verified by the payer (system verification)
+            idempotency_key=idempotency_key,
+            amount_bdt=entry_fee,
             notes={
                 'auto_verified': True,
                 'verification_method': 'deltacoin_automatic',
@@ -202,6 +266,9 @@ class PaymentService:
                 'idempotency_key': idempotency_key,
             }
         )
+        
+        # P4-T03: Dual-write to PaymentVerification
+        _sync_to_payment_verification(payment)
         
         # Update registration status to CONFIRMED
         registration.status = Registration.CONFIRMED
@@ -360,6 +427,9 @@ class PaymentService:
         
         payment.save(update_fields=['status', 'refunded_at', 'refunded_by', 'notes', 'updated_at'])
         
+        # P4-T03: Dual-write to PaymentVerification
+        _sync_to_payment_verification(payment)
+        
         # Update registration status to CANCELLED
         registration.status = Registration.CANCELLED
         registration.save(update_fields=['status', 'updated_at'])
@@ -394,7 +464,10 @@ class PaymentService:
         payment.status = 'verified'
         payment.verified_by = verified_by
         payment.verified_at = timezone.now()
+        payment.last_action_reason = 'Manual verify via organizer'
         payment.save()
+        # P4-T03: Dual-write
+        _sync_to_payment_verification(payment)
         return payment
     
     @staticmethod
@@ -422,7 +495,12 @@ class PaymentService:
         payment.status = 'rejected'
         payment.verified_by = rejected_by
         payment.verified_at = timezone.now()
+        payment.rejected_by = rejected_by
+        payment.rejected_at = timezone.now()
+        payment.last_action_reason = 'Manual reject via organizer'
         payment.save()
+        # P4-T03: Dual-write
+        _sync_to_payment_verification(payment)
         return payment
     
     @staticmethod
@@ -487,8 +565,14 @@ class PaymentService:
         ).update(
             status='verified',
             verified_by=verified_by,
-            verified_at=timezone.now()
+            verified_at=timezone.now(),
+            last_action_reason='Bulk verify via organizer',
         )
+        
+        # P4-T03: Dual-write each verified payment
+        if updated:
+            for p in Payment.objects.filter(id__in=payment_ids, status='verified'):
+                _sync_to_payment_verification(p)
         
         return updated
     
@@ -528,11 +612,11 @@ class PaymentService:
         if not reason or not reason.strip():
             raise ValidationError('Refund reason required')
         
-        # Store refund info in payment metadata (JSONB)
-        if not hasattr(payment, 'metadata') or payment.metadata is None:
-            payment.metadata = {}
+        # Store refund info in payment notes (JSONB)
+        if not isinstance(payment.notes, dict):
+            payment.notes = {}
         
-        payment.metadata['refund'] = {
+        payment.notes['refund'] = {
             'amount': str(refund_amount),
             'reason': reason,
             'method': refund_method,
@@ -540,6 +624,11 @@ class PaymentService:
             'processed_by': processed_by_username,
         }
         payment.status = 'refunded'
+        payment.refunded_at = timezone.now()
+        payment.last_action_reason = f'Refund: {reason}'
         payment.save()
+        
+        # P4-T03: Dual-write
+        _sync_to_payment_verification(payment)
         
         return payment

@@ -286,10 +286,18 @@ class OrganizerHubView(LoginRequiredMixin, View):
             registration__tournament=tournament, status='pending'
         ).count()
 
+        # Match badge (pending result confirmation)
+        from apps.tournaments.models import Match
+        match_pending = Match.objects.filter(
+            tournament=tournament,
+            state__in=['scheduled', 'check_in', 'ready', 'live', 'pending_result']
+        ).count()
+
         return {
             'open_disputes_count': open_disputes_count,
             'reg_stats': {'pending': reg_pending},
             'payment_stats': {'pending': payment_pending},
+            'match_stats': {'pending': match_pending},
         }
     
     def check_permission(self, tournament, permission_code):
@@ -324,6 +332,10 @@ class OrganizerHubView(LoginRequiredMixin, View):
             return self.payments_tab(request, tournament, checker)
         elif tab == 'brackets':
             return self.brackets_tab(request, tournament, checker)
+        elif tab == 'matches':
+            return self.matches_tab(request, tournament, checker)
+        elif tab == 'schedule':
+            return self.schedule_tab(request, tournament, checker)
         elif tab == 'disputes':
             return self.disputes_tab(request, tournament, checker)
         elif tab == 'announcements':
@@ -334,13 +346,16 @@ class OrganizerHubView(LoginRequiredMixin, View):
             return redirect('tournaments:organizer_tournament_detail', slug=slug)
     
     def overview_tab(self, request, tournament, checker):
-        """Overview tab: stats, quick actions, recent activity"""
+        """Command Center tab: alerts, stats, lifecycle, quick actions, recent activity"""
+        from apps.tournaments.services.command_center_service import CommandCenterService
+
         # Registration stats
         registrations = Registration.objects.filter(tournament=tournament, is_deleted=False)
         reg_stats = {
             'total': registrations.count(),
             'pending': registrations.filter(status='pending').count(),
             'confirmed': registrations.filter(status='confirmed').count(),
+            'waitlisted': registrations.filter(status='waitlisted').count(),
             'checked_in': registrations.filter(checked_in=True).count(),
         }
         
@@ -369,14 +384,20 @@ class OrganizerHubView(LoginRequiredMixin, View):
             'open': disputes.filter(status='open').count(),
             'under_review': disputes.filter(status='under_review').count(),
         }
+
+        # Command Center alerts
+        alerts = CommandCenterService.get_alerts(
+            tournament, reg_stats, payment_stats, dispute_stats, match_stats
+        )
+
+        # Lifecycle progress
+        lifecycle = CommandCenterService.get_lifecycle_progress(tournament)
+
+        # Upcoming events
+        upcoming_events = CommandCenterService.get_upcoming_events(tournament)
         
         # Recent activity (last 10 registrations)
         recent_registrations = registrations.select_related('user').order_by('-created_at')[:10]
-        
-        # open_disputes_count needed by _base.html tab nav badge
-        open_disputes_count = Dispute.objects.filter(
-            match__tournament=tournament, status='open'
-        ).count()
 
         context = {
             'tournament': tournament,
@@ -386,14 +407,17 @@ class OrganizerHubView(LoginRequiredMixin, View):
             'payment_stats': payment_stats,
             'match_stats': match_stats,
             'dispute_stats': dispute_stats,
+            'alerts': alerts,
+            'lifecycle': lifecycle,
+            'upcoming_events': upcoming_events,
             'recent_registrations': recent_registrations,
-            'open_disputes_count': open_disputes_count,
         }
+        context.update(self.get_common_context(tournament))
         
         return render(request, 'tournaments/manage/overview.html', context)
     
     def participants_tab(self, request, tournament, checker):
-        """Participants tab: registration list with actions"""
+        """Participants tab: registration list with actions, pagination, and search"""
         if not checker.has_any(['manage_registrations', 'view_all']):
             messages.error(request, "You don't have permission to view participants.")
             return redirect('tournaments:organizer_hub', slug=tournament.slug, tab='overview')
@@ -402,6 +426,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
         status_filter = request.GET.get('status', '')
         search = request.GET.get('search', '')
         checked_in_filter = request.GET.get('checked_in', '')
+        page_number = request.GET.get('page', 1)
         
         # Base queryset
         registrations = Registration.objects.filter(
@@ -409,24 +434,60 @@ class OrganizerHubView(LoginRequiredMixin, View):
             is_deleted=False
         ).select_related('user')
         
+        # Stats — computed before filtering for the header
+        from django.db.models import Count
+        reg_stats = registrations.aggregate(
+            total=Count('id'),
+            pending=Count('id', filter=Q(status='pending')),
+            confirmed=Count('id', filter=Q(status='confirmed')),
+            payment_submitted=Count('id', filter=Q(status='payment_submitted')),
+            waitlisted=Count('id', filter=Q(status='waitlisted')),
+            rejected=Count('id', filter=Q(status='rejected')),
+            checked_in_count=Count('id', filter=Q(checked_in=True)),
+        )
+        
         # Apply filters
         if status_filter:
-            registrations = registrations.filter(status=status_filter)
+            if status_filter == 'checked_in':
+                registrations = registrations.filter(checked_in=True)
+            else:
+                registrations = registrations.filter(status=status_filter)
         if checked_in_filter:
             registrations = registrations.filter(checked_in=(checked_in_filter == 'yes'))
         if search:
             registrations = registrations.filter(
                 Q(user__username__icontains=search) |
-                Q(user__email__icontains=search)
+                Q(user__email__icontains=search) |
+                Q(registration_number__icontains=search) |
+                Q(registration_data__game_id__icontains=search)
             )
         
         registrations = registrations.order_by('-created_at')
+        
+        # Pagination
+        from django.core.paginator import Paginator
+        paginator = Paginator(registrations, 20)
+        page_obj = paginator.get_page(page_number)
+        
+        # Status tabs for filter bar
+        status_tabs = [
+            ('pending', 'Pending', reg_stats['pending']),
+            ('confirmed', 'Confirmed', reg_stats['confirmed']),
+            ('payment_submitted', 'Payment Queue', reg_stats['payment_submitted']),
+            ('waitlisted', 'Waitlisted', reg_stats['waitlisted']),
+            ('rejected', 'Rejected', reg_stats['rejected']),
+            ('checked_in', 'Checked In', reg_stats['checked_in_count']),
+        ]
         
         context = {
             'tournament': tournament,
             'checker': checker,
             'active_tab': 'participants',
-            'registrations': registrations,
+            'registrations': page_obj,
+            'page_obj': page_obj,
+            'reg_stats': reg_stats,
+            'status_tabs': status_tabs,
+            'max_participants': tournament.max_participants,
             'can_manage': checker.can_manage_registrations(),
         }
         context.update(self.get_common_context(tournament))
@@ -434,40 +495,65 @@ class OrganizerHubView(LoginRequiredMixin, View):
         return render(request, 'tournaments/manage/participants.html', context)
     
     def payments_tab(self, request, tournament, checker):
-        """Payments tab: payment tracking and verification"""
+        """Payments tab: payment tracking and verification with queue focus"""
         if not checker.has_any(['approve_payments', 'view_all']):
             messages.error(request, "You don't have permission to view payments.")
             return redirect('tournaments:organizer_hub', slug=tournament.slug, tab='overview')
         
-        # Get filter parameters
-        status_filter = request.GET.get('status', '')
+        # Get filter parameters — default to submitted (pending queue)
+        status_filter = request.GET.get('status', 'submitted')
         method_filter = request.GET.get('method', '')
+        search = request.GET.get('search', '')
+        page_number = request.GET.get('page', 1)
         
         # Base queryset
         payments = Payment.objects.filter(
             registration__tournament=tournament
         ).select_related('registration', 'registration__user')
         
+        # Payment statistics (before filtering)
+        from django.db.models import Count
+        all_payment_stats = payments.aggregate(
+            total=Count('id'),
+            submitted=Count('id', filter=Q(status='submitted')),
+            verified=Count('id', filter=Q(status='verified')),
+            rejected=Count('id', filter=Q(status='rejected')),
+            total_amount=Sum('amount', filter=Q(status='verified')),
+        )
+        
         # Apply filters
-        if status_filter:
+        if status_filter and status_filter != 'all':
             payments = payments.filter(status=status_filter)
         if method_filter:
             payments = payments.filter(payment_method=method_filter)
+        if search:
+            payments = payments.filter(
+                Q(registration__user__username__icontains=search) |
+                Q(registration__registration_number__icontains=search) |
+                Q(transaction_id__icontains=search)
+            )
         
         payments = payments.order_by('-submitted_at')
         
-        # Payment statistics
+        # Pagination
+        from django.core.paginator import Paginator
+        paginator = Paginator(payments, 20)
+        page_obj = paginator.get_page(page_number)
+        
         payment_stats = {
-            'total_submitted': payments.filter(status__in=['submitted', 'verified']).count(),
-            'total_amount': payments.filter(status='verified').aggregate(Sum('amount'))['amount__sum'] or 0,
-            'pending_verification': payments.filter(status='submitted').count(),
+            'total': all_payment_stats['total'] or 0,
+            'submitted': all_payment_stats['submitted'] or 0,
+            'verified': all_payment_stats['verified'] or 0,
+            'rejected': all_payment_stats['rejected'] or 0,
+            'total_amount': all_payment_stats['total_amount'] or 0,
         }
         
         context = {
             'tournament': tournament,
             'checker': checker,
             'active_tab': 'payments',
-            'payments': payments,
+            'payments': page_obj,
+            'page_obj': page_obj,
             'payment_stats': payment_stats,
             'can_approve': checker.can_approve_payments(),
         }
@@ -476,7 +562,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
         return render(request, 'tournaments/manage/payments.html', context)
     
     def brackets_tab(self, request, tournament, checker):
-        """Brackets tab: bracket management and match list"""
+        """Brackets tab: bracket management, seeding, and match list"""
         if not checker.has_any(['manage_brackets', 'view_all']):
             messages.error(request, "You don't have permission to view brackets.")
             return redirect('tournaments:organizer_hub', slug=tournament.slug, tab='overview')
@@ -499,20 +585,182 @@ class OrganizerHubView(LoginRequiredMixin, View):
             state='pending_result',
             is_deleted=False
         ).count()
-        
+
+        # Build bracket_data for visualization
+        from apps.tournaments.views.organizer_brackets import (
+            _build_bracket_data, _seed_list_from_matches, _any_match_started,
+            _get_confirmed_participants,
+        )
+        bracket_data = _build_bracket_data(tournament, bracket) if bracket else None
+
+        # Seed list for drag-and-drop seeding panel
+        seed_list = _seed_list_from_matches(tournament) if bracket else []
+
+        # Confirmed participant count for generate gate
+        confirmed_count = _get_confirmed_participants(tournament).count()
+
+        # Lock state
+        matches_started = _any_match_started(tournament)
+        bracket_locked = matches_started or (bracket and bracket.is_finalized)
+
         context = {
             'tournament': tournament,
             'checker': checker,
             'active_tab': 'brackets',
             'bracket': bracket,
+            'bracket_data': bracket_data,
             'matches': matches,
+            'seed_list': seed_list,
+            'confirmed_count': confirmed_count,
+            'matches_started': matches_started,
+            'bracket_locked': bracket_locked,
             'pending_results_count': pending_results_count,
             'can_manage': checker.can_manage_brackets(),
+            'can_manage_bracket': checker.can_manage_brackets(),
         }
         context.update(self.get_common_context(tournament))
         
         return render(request, 'tournaments/manage/brackets.html', context)
     
+    def matches_tab(self, request, tournament, checker):
+        """Matches tab: Match Medic — all match operations, scores, controls."""
+        from apps.tournaments.models import Match
+
+        matches_qs = Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False
+        ).order_by('round_number', 'match_number')
+
+        # Tab filter (state-based)
+        status_filter = request.GET.get('status', '')
+        state_map = {
+            'active': ['live'],
+            'upcoming': ['scheduled', 'check_in', 'ready'],
+            'completed': ['completed', 'forfeit'],
+            'paused': ['pending_result'],
+        }
+        if status_filter and status_filter in state_map:
+            matches_qs = matches_qs.filter(state__in=state_map[status_filter])
+        elif status_filter:
+            matches_qs = matches_qs.filter(state=status_filter)
+
+        # Stats (always unfiltered)
+        all_matches = Match.objects.filter(tournament=tournament, is_deleted=False)
+        total_matches = all_matches.count()
+        active_matches = all_matches.filter(state='live').count()
+        completed_matches = all_matches.filter(state__in=['completed', 'forfeit']).count()
+        pending_matches = all_matches.filter(
+            state__in=['scheduled', 'check_in', 'ready', 'pending_result']
+        ).count()
+
+        context = {
+            'tournament': tournament,
+            'checker': checker,
+            'active_tab': 'matches',
+            'matches': matches_qs,
+            'status_filter': status_filter,
+            'total_matches': total_matches,
+            'active_matches': active_matches,
+            'completed_matches': completed_matches,
+            'pending_matches': pending_matches,
+            'can_manage': checker.can_manage_brackets(),
+        }
+        context.update(self.get_common_context(tournament))
+
+        return render(request, 'tournaments/manage/matches.html', context)
+
+    def schedule_tab(self, request, tournament, checker):
+        """Schedule tab: tournament timeline, check-in windows, round scheduling."""
+        from apps.tournaments.models import Match
+        from datetime import timedelta
+        from collections import OrderedDict
+
+        # All matches (for round-by-round schedule)
+        all_matches = Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+        ).order_by('round_number', 'match_number')
+
+        # Group matches by round
+        rounds_dict = OrderedDict()
+        for m in all_matches:
+            rn = m.round_number
+            if rn not in rounds_dict:
+                rounds_dict[rn] = []
+            rounds_dict[rn].append(m)
+
+        rounds_data = []
+        for rn, matches in rounds_dict.items():
+            scheduled_count = sum(1 for m in matches if m.scheduled_time)
+            completed_count = sum(1 for m in matches if m.state in ('completed', 'forfeit'))
+            rounds_data.append({
+                'round_number': rn,
+                'matches': matches,
+                'total': len(matches),
+                'scheduled': scheduled_count,
+                'completed': completed_count,
+                'all_scheduled': scheduled_count == len(matches),
+            })
+
+        # Upcoming matches (not yet completed)
+        upcoming_matches = all_matches.filter(
+            state__in=['scheduled', 'check_in', 'ready', 'live']
+        )[:20]
+
+        # Check-in participants list (confirmed registrations)
+        checkin_registrations = Registration.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+            status='confirmed',
+        ).select_related('user').order_by('checked_in', 'created_at')
+
+        # Check-in stats
+        total_confirmed = checkin_registrations.count()
+        checked_in_count = checkin_registrations.filter(checked_in=True).count()
+        not_checked_in = total_confirmed - checked_in_count
+        checkin_percentage = int((checked_in_count / total_confirmed) * 100) if total_confirmed else 0
+
+        checkin_stats = {
+            'total_confirmed': total_confirmed,
+            'checked_in': checked_in_count,
+            'not_checked_in': not_checked_in,
+            'percentage': checkin_percentage,
+        }
+
+        # Check-in window status
+        now = timezone.now()
+        checkin_window = {
+            'is_open': False,
+            'opens_at': None,
+            'closes_at': None,
+            'can_open_early': False,
+            'can_extend': False,
+        }
+        if tournament.enable_check_in and tournament.tournament_start:
+            minutes_before = getattr(tournament, 'check_in_minutes_before', 30) or 30
+            close_minutes = getattr(tournament, 'check_in_closes_minutes_before', 10) or 10
+            opens_at = tournament.tournament_start - timedelta(minutes=minutes_before)
+            closes_at = tournament.tournament_start - timedelta(minutes=close_minutes)
+            checkin_window['opens_at'] = opens_at
+            checkin_window['closes_at'] = closes_at
+            checkin_window['is_open'] = opens_at <= now < closes_at
+            checkin_window['can_open_early'] = now < opens_at
+            checkin_window['can_extend'] = now >= closes_at and now < tournament.tournament_start
+
+        context = {
+            'tournament': tournament,
+            'checker': checker,
+            'active_tab': 'schedule',
+            'rounds_data': rounds_data,
+            'upcoming_matches': upcoming_matches,
+            'checkin_stats': checkin_stats,
+            'checkin_registrations': checkin_registrations,
+            'checkin_window': checkin_window,
+        }
+        context.update(self.get_common_context(tournament))
+
+        return render(request, 'tournaments/manage/schedule.html', context)
+
     def disputes_tab(self, request, tournament, checker):
         """Disputes tab: dispute handling"""
         if not checker.has_any(['resolve_disputes', 'view_all']):

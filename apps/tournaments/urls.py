@@ -144,6 +144,8 @@ from apps.tournaments.views.organizer_results import (
 from apps.tournaments.views.smart_registration import (
     SmartRegistrationView,
     SmartRegistrationSuccessView,
+    SmartDraftSaveAPIView,
+    SmartDraftGetAPIView,
 )
 from apps.tournaments.views.withdrawal import (
     withdraw_registration_view,
@@ -177,6 +179,13 @@ from apps.tournaments.views.organizer_participants import (
     bulk_reject_registrations,
     disqualify_participant,
     export_roster_csv,
+    promote_registration,
+    auto_promote_next,
+    force_checkin,
+    drop_noshow,
+    close_drop_noshows,
+    add_participant_manually,
+    disqualify_with_cascade,
 )
 from apps.tournaments.views.organizer_payments import (
     verify_payment,
@@ -193,6 +202,25 @@ from apps.tournaments.views.organizer_matches import (
     override_match_score,
     cancel_match,
 )
+from apps.tournaments.views.organizer_brackets import (
+    generate_bracket,
+    reset_bracket,
+    reorder_seeds,
+    publish_bracket,
+)
+from apps.tournaments.views.organizer_match_ops import (
+    match_mark_live,
+    match_pause,
+    match_resume,
+    match_force_complete,
+    match_add_note,
+    match_force_start,
+)
+from apps.tournaments.views.organizer_scheduling import (
+    auto_schedule_round,
+    bulk_shift_matches,
+    add_schedule_break,
+)
 
 app_name = 'tournaments'
 
@@ -206,7 +234,6 @@ urlpatterns = [
     path('organizer/', OrganizerDashboardView.as_view(), name='organizer_dashboard'),
     path('organizer/create/', create_tournament, name='create_tournament'),
     path('organizer/<slug:slug>/', OrganizerHubView.as_view(), {'tab': 'overview'}, name='organizer_tournament_detail'),
-    path('organizer/<slug:slug>/<str:tab>/', OrganizerHubView.as_view(), name='organizer_hub'),
     
     # Organizer Result Management (FE-T-015)
     path('organizer/<slug:slug>/pending-results/', PendingResultsView.as_view(), name='pending_results'),
@@ -234,7 +261,18 @@ urlpatterns = [
     path('organizer/<slug:slug>/bulk-approve-registrations/', bulk_approve_registrations, name='bulk_approve_registrations'),
     path('organizer/<slug:slug>/bulk-reject-registrations/', bulk_reject_registrations, name='bulk_reject_registrations'),
     path('organizer/<slug:slug>/disqualify/<int:registration_id>/', disqualify_participant, name='disqualify_participant'),
+    path('organizer/<slug:slug>/promote-waitlist/<int:registration_id>/', promote_registration, name='promote_registration'),
+    path('organizer/<slug:slug>/auto-promote-waitlist/', auto_promote_next, name='auto_promote_next'),
     path('organizer/<slug:slug>/export-roster/', export_roster_csv, name='export_roster_csv'),
+    
+    # P3-T06: Participant Data Control
+    path('organizer/<slug:slug>/add-participant/', add_participant_manually, name='add_participant_manually'),
+    path('organizer/<slug:slug>/dq-cascade/<int:registration_id>/', disqualify_with_cascade, name='disqualify_with_cascade'),
+    
+    # P2-T05: Check-In Control Panel Actions
+    path('organizer/<slug:slug>/force-checkin/<int:registration_id>/', force_checkin, name='force_checkin'),
+    path('organizer/<slug:slug>/drop-noshow/<int:registration_id>/', drop_noshow, name='drop_noshow'),
+    path('organizer/<slug:slug>/close-drop-noshows/', close_drop_noshows, name='close_drop_noshows'),
     
     # FE-T-023: Payment Management Actions
     path('organizer/<slug:slug>/bulk-verify-payments/', bulk_verify_payments, name='bulk_verify_payments'),
@@ -247,6 +285,30 @@ urlpatterns = [
     path('organizer/<slug:slug>/forfeit-match/<int:match_id>/', forfeit_match, name='forfeit_match'),
     path('organizer/<slug:slug>/override-score/<int:match_id>/', override_match_score, name='override_match_score'),
     path('organizer/<slug:slug>/cancel-match/<int:match_id>/', cancel_match, name='cancel_match'),
+    
+    # P3-T01: Bracket Generation & Reset
+    path('organizer/<slug:slug>/generate-bracket/', generate_bracket, name='generate_bracket'),
+    path('organizer/<slug:slug>/reset-bracket/', reset_bracket, name='reset_bracket'),
+    
+    # P3-T02: Seeding Reorder & Publish
+    path('organizer/<slug:slug>/reorder-seeds/', reorder_seeds, name='reorder_seeds'),
+    path('organizer/<slug:slug>/publish-bracket/', publish_bracket, name='publish_bracket'),
+    
+    # P3-T03: Match Operations (Match Medic)
+    path('organizer/<slug:slug>/match-ops/<int:match_id>/mark-live/', match_mark_live, name='match_mark_live'),
+    path('organizer/<slug:slug>/match-ops/<int:match_id>/pause/', match_pause, name='match_pause'),
+    path('organizer/<slug:slug>/match-ops/<int:match_id>/resume/', match_resume, name='match_resume'),
+    path('organizer/<slug:slug>/match-ops/<int:match_id>/force-complete/', match_force_complete, name='match_force_complete'),
+    path('organizer/<slug:slug>/match-ops/<int:match_id>/add-note/', match_add_note, name='match_add_note'),
+    path('organizer/<slug:slug>/match-ops/<int:match_id>/force-start/', match_force_start, name='match_force_start'),
+    
+    # P3-T04: Scheduling Panel
+    path('organizer/<slug:slug>/auto-schedule-round/', auto_schedule_round, name='auto_schedule_round'),
+    path('organizer/<slug:slug>/bulk-shift-matches/', bulk_shift_matches, name='bulk_shift_matches'),
+    path('organizer/<slug:slug>/add-schedule-break/', add_schedule_break, name='add_schedule_break'),
+    
+    # Organizer Hub Tab (catch-all for tabs — MUST be after all specific organizer/ URLs)
+    path('organizer/<slug:slug>/<str:tab>/', OrganizerHubView.as_view(), name='organizer_hub'),
     
     # Sprint 2: Player Dashboard URLs (must be before <slug> pattern)
     path('my/', TournamentPlayerDashboardView.as_view(), name='my_tournaments'),
@@ -270,6 +332,10 @@ urlpatterns = [
     # Smart Registration (Production — One-Click Auto-Fill)
     path('<slug:slug>/register/smart/', SmartRegistrationView.as_view(), name='smart_registration'),
     path('<slug:slug>/register/smart/success/<int:registration_id>/', SmartRegistrationSuccessView.as_view(), name='smart_registration_success'),
+    
+    # P2-T07: Smart Registration Draft Auto-Save API
+    path('<slug:slug>/api/smart-draft/save/', SmartDraftSaveAPIView.as_view(), name='smart_draft_save'),
+    path('<slug:slug>/api/smart-draft/get/', SmartDraftGetAPIView.as_view(), name='smart_draft_get'),
     
     # Registration Permission Request (Team Members)
     path('<slug:slug>/request-permission/', request_permission, name='request_permission'),

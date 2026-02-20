@@ -3,41 +3,78 @@
 
 {% block manage_content %}
 
+{# Header with count #}
 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
   <div>
     <h2 class="text-lg font-display font-bold text-white">Participants</h2>
     <p class="text-sm text-white/45 mt-0.5">
-      {{ registrations|length|default:"0" }} total
+      <span class="text-emerald-400 font-semibold">{{ reg_stats.confirmed|default:"0" }} confirmed</span>
+      / {{ max_participants|default:"∞" }} max
       {% if reg_stats.pending %} · <span class="text-yellow-400">{{ reg_stats.pending }} pending</span>{% endif %}
+      {% if reg_stats.waitlisted %} · <span class="text-purple-400">{{ reg_stats.waitlisted }} waitlist</span>{% endif %}
     </p>
   </div>
   <div class="flex items-center gap-2">
-    {% if can_approve %}
-      <button id="bulk-approve-btn" disabled
-              class="btn-primary text-xs !py-2 opacity-50 cursor-not-allowed">
-        <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-        Approve Selected
+    <a href="{% url 'tournaments:export_roster_csv' tournament.slug %}"
+       class="btn-secondary text-xs !py-2">
+      <i data-lucide="download" class="w-3.5 h-3.5"></i> Export CSV
+    </a>
+    {% if can_manage %}
+      <button onclick="document.getElementById('add-participant-modal').classList.remove('hidden')"
+              class="btn-primary text-xs !py-2">
+        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Add Participant
       </button>
+    {% endif %}
+    {% if can_manage and reg_stats.waitlisted %}
+      <button id="auto-promote-btn"
+              class="btn-secondary text-xs !py-2 text-purple-400 border-purple-500/20 hover:bg-purple-500/10">
+        <i data-lucide="arrow-up-circle" class="w-3.5 h-3.5"></i> Auto-Promote Next
+      </button>
+    {% endif %}
+    {% if can_manage %}
+      <form method="post" action="{% url 'tournaments:bulk_approve_registrations' tournament.slug %}" id="bulk-form">
+        {% csrf_token %}
+        <div id="bulk-ids-container"></div>
+        <button type="submit" id="bulk-approve-btn" disabled
+                class="btn-primary text-xs !py-2 opacity-50 cursor-not-allowed">
+          <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Approve Selected
+        </button>
+      </form>
     {% endif %}
   </div>
 </div>
 
+{# Status tabs #}
+<div class="flex items-center gap-1 mb-4 overflow-x-auto pb-1">
+  {% with current_status=request.GET.status|default:"" %}
+  <a href="?search={{ request.GET.search|default:'' }}"
+     class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {% if not current_status %}bg-white/10 text-white{% else %}text-white/40 hover:text-white/60 hover:bg-white/5{% endif %}">
+    All <span class="ml-1 text-white/30 font-mono">{{ reg_stats.total }}</span>
+  </a>
+  {% for code, label, count in status_tabs %}
+  {% if count %}
+  <a href="?status={{ code }}&search={{ request.GET.search|default:'' }}"
+     class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {% if current_status == code %}bg-white/10 text-white{% else %}text-white/40 hover:text-white/60 hover:bg-white/5{% endif %}">
+    {{ label }} <span class="ml-1 text-white/30 font-mono">{{ count }}</span>
+  </a>
+  {% endif %}
+  {% endfor %}
+  {% endwith %}
+</div>
+
+{# Search & Filter #}
 <form method="get" class="flex flex-wrap items-center gap-3 mb-5">
-  <div class="relative flex-1 min-w-[200px] max-w-xs">
+  {% if request.GET.status %}<input type="hidden" name="status" value="{{ request.GET.status }}">{% endif %}
+  <div class="relative flex-1 min-w-[200px] max-w-sm">
     <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/25"></i>
-    <input type="text" name="q" value="{{ request.GET.q }}"
-           placeholder="Search players…"
-           class="form-input !pl-10 !py-2.5 text-sm">
+    <input type="text" name="search" value="{{ request.GET.search|default:'' }}"
+           placeholder="Search name, email, reg #, game ID…"
+           class="form-input !pl-10 !py-2.5 text-sm w-full">
   </div>
-  <select name="status" class="form-select !w-auto !py-2.5 text-sm">
-    <option value="">All Statuses</option>
-    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
-    <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
-    <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
-    <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
-    <option value="checked_in" {% if request.GET.status == 'checked_in' %}selected{% endif %}>Checked In</option>
-  </select>
-  <button type="submit" class="btn-secondary text-xs !py-2.5">Filter</button>
+  <button type="submit" class="btn-secondary text-xs !py-2.5">Search</button>
+  {% if request.GET.search or request.GET.status %}
+    <a href="?" class="text-xs text-white/30 hover:text-white/60 transition">Clear</a>
+  {% endif %}
 </form>
 
 {% if registrations %}
@@ -46,86 +83,163 @@
     <table class="data-table">
       <thead>
         <tr>
-          {% if can_approve %}
+          {% if can_manage %}
             <th class="w-10">
               <input type="checkbox" id="select-all" class="rounded accent-cyan-500 cursor-pointer">
             </th>
           {% endif %}
+          <th>Reg #</th>
           <th>Player</th>
+          <th>Game ID</th>
           <th>Team</th>
           <th>Status</th>
           <th>Registered</th>
-          {% if can_approve %}<th class="text-right">Actions</th>{% endif %}
+          <th class="text-right">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for reg in registrations %}
           <tr class="group">
-            {% if can_approve %}
+            {% if can_manage %}
               <td>
                 <input type="checkbox" name="reg_ids" value="{{ reg.id }}"
                        class="reg-checkbox rounded accent-cyan-500 cursor-pointer">
               </td>
             {% endif %}
             <td>
+              <span class="text-xs font-mono text-cyan-400/70">{{ reg.registration_number|default:"—" }}</span>
+            </td>
+            <td>
               <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center text-xs font-bold text-white/60 flex-shrink-0">
-                  {{ reg.user.username|first|upper }}
+                  {% if reg.user %}{{ reg.user.username|first|upper }}{% else %}T{% endif %}
                 </div>
                 <div class="min-w-0">
-                  <p class="text-sm text-white/80 font-medium truncate">{{ reg.user.username }}</p>
-                  <p class="text-xs text-white/35">{{ reg.user.email|default:"" }}</p>
+                  <p class="text-sm text-white/80 font-medium truncate">
+                    {% if reg.user %}{{ reg.user.username }}{% else %}Team {{ reg.team_id }}{% endif %}
+                  </p>
+                  <p class="text-xs text-white/35">
+                    {% if reg.user %}{{ reg.user.email|default:"" }}{% endif %}
+                  </p>
                 </div>
               </div>
             </td>
             <td>
-              {% if reg.team %}
-                <span class="text-sm text-white/60">{{ reg.team.name }}</span>
+              <span class="text-xs text-white/50 font-mono">{{ reg.registration_data.game_id|default:"—" }}</span>
+            </td>
+            <td>
+              {% if reg.is_guest_team %}
+                <span class="badge badge-amber text-[10px]">
+                  <i data-lucide="users-round" class="w-2.5 h-2.5 inline -mt-px"></i>
+                  Guest: {{ reg.registration_data.guest_team.team_name|default:"Guest" }}
+                </span>
+              {% elif reg.team_id %}
+                <span class="badge badge-purple text-[10px]">
+                  <i data-lucide="shield" class="w-2.5 h-2.5 inline -mt-px"></i>
+                  Team {{ reg.team_id }}
+                </span>
               {% else %}
-                <span class="text-sm text-white/25 italic">Solo</span>
+                <span class="text-xs text-white/25 italic">Solo</span>
               {% endif %}
             </td>
             <td>
               <span class="badge
                 {% if reg.status == 'confirmed' %}badge-green
                 {% elif reg.status == 'pending' %}badge-yellow
+                {% elif reg.status == 'payment_submitted' %}badge-blue
+                {% elif reg.status == 'waitlisted' %}badge-purple
                 {% elif reg.status == 'rejected' %}badge-red
-                {% elif reg.status == 'checked_in' %}badge-cyan
                 {% elif reg.status == 'cancelled' %}badge-gray
+                {% elif reg.status == 'no_show' %}badge-gray
+                {% elif reg.checked_in %}badge-cyan
                 {% else %}badge-gray{% endif %}">
-                {{ reg.status|title }}
+                {% if reg.checked_in %}Checked In{% else %}{{ reg.get_status_display }}{% endif %}
               </span>
             </td>
             <td class="text-white/40 text-xs font-mono">{{ reg.created_at|timesince }} ago</td>
-            {% if can_approve %}
-              <td class="text-right">
-                <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
-                  {% if reg.status == 'pending' %}
+            <td class="text-right">
+              <div class="relative" data-dropdown>
+                <button class="p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-white/60 transition"
+                        data-dropdown-toggle>
+                  <i data-lucide="more-vertical" class="w-4 h-4"></i>
+                </button>
+                <div class="absolute right-0 top-full mt-1 w-44 rounded-xl bg-[#1a1a24] border border-white/10 shadow-xl z-20 hidden"
+                     data-dropdown-menu>
+                  {% if reg.status == 'pending' and can_manage %}
                     <a href="{% url 'tournaments:approve_registration' tournament.slug reg.id %}"
-                       title="Approve"
-                       class="p-1.5 rounded-lg hover:bg-emerald-500/15 text-white/30 hover:text-emerald-400 transition">
-                      <i data-lucide="check" class="w-4 h-4"></i>
+                       class="flex items-center gap-2 px-3 py-2 text-xs text-emerald-400 hover:bg-white/5 transition rounded-t-xl">
+                      <i data-lucide="check" class="w-3.5 h-3.5"></i> Approve
                     </a>
                     <a href="{% url 'tournaments:reject_registration' tournament.slug reg.id %}"
-                       title="Reject"
-                       class="p-1.5 rounded-lg hover:bg-red-500/15 text-white/30 hover:text-red-400 transition">
-                      <i data-lucide="x" class="w-4 h-4"></i>
+                       class="flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-white/5 transition">
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i> Reject
                     </a>
-                  {% elif reg.status == 'confirmed' %}
-                    <button title="Check In"
-                            class="p-1.5 rounded-lg hover:bg-cyan-500/15 text-white/30 hover:text-cyan-400 transition">
-                      <i data-lucide="log-in" class="w-4 h-4"></i>
+                  {% endif %}
+                  {% if reg.status == 'confirmed' and can_manage %}
+                    <a href="{% url 'tournaments:toggle_checkin' tournament.slug reg.id %}"
+                       class="flex items-center gap-2 px-3 py-2 text-xs text-cyan-400 hover:bg-white/5 transition rounded-t-xl">
+                      <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
+                      {% if reg.checked_in %}Undo Check-In{% else %}Check In{% endif %}
+                    </a>
+                  {% endif %}
+                  {% if can_manage and reg.status != 'rejected' and reg.status != 'cancelled' %}
+                    <a href="{% url 'tournaments:disqualify_participant' tournament.slug reg.id %}"
+                       class="flex items-center gap-2 px-3 py-2 text-xs text-orange-400 hover:bg-white/5 transition">
+                      <i data-lucide="ban" class="w-3.5 h-3.5"></i> Disqualify
+                    </a>
+                    <button onclick="dqCascade('{{ tournament.slug }}', {{ reg.id }}, '{{ reg.user.username|default:"this participant" }}')"
+                       class="flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-white/5 transition w-full text-left">
+                      <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> DQ + Forfeit Matches
+                    </button>
+                  {% endif %}
+                  {% if reg.status == 'waitlisted' and can_manage %}
+                    <button data-promote-id="{{ reg.id }}"
+                       class="flex items-center gap-2 px-3 py-2 text-xs text-purple-400 hover:bg-white/5 transition w-full text-left rounded-b-xl promote-btn">
+                      <i data-lucide="arrow-up-circle" class="w-3.5 h-3.5"></i> Promote from Waitlist
                     </button>
                   {% endif %}
                 </div>
-              </td>
-            {% endif %}
+              </div>
+            </td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
+
+{# Pagination #}
+{% if page_obj.has_other_pages %}
+<div class="flex items-center justify-between mt-4">
+  <p class="text-xs text-white/30">
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    · {{ page_obj.paginator.count }} total
+  </p>
+  <div class="flex items-center gap-1">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}&status={{ request.GET.status|default:'' }}&search={{ request.GET.search|default:'' }}"
+         class="px-3 py-1.5 rounded-lg text-xs text-white/40 hover:text-white hover:bg-white/5 transition">
+        <i data-lucide="chevron-left" class="w-3.5 h-3.5 inline"></i> Prev
+      </a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+        <span class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white/10 text-white">{{ num }}</span>
+      {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+        <a href="?page={{ num }}&status={{ request.GET.status|default:'' }}&search={{ request.GET.search|default:'' }}"
+           class="px-3 py-1.5 rounded-lg text-xs text-white/40 hover:text-white hover:bg-white/5 transition">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}&status={{ request.GET.status|default:'' }}&search={{ request.GET.search|default:'' }}"
+         class="px-3 py-1.5 rounded-lg text-xs text-white/40 hover:text-white hover:bg-white/5 transition">
+        Next <i data-lucide="chevron-right" class="w-3.5 h-3.5 inline"></i>
+      </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 {% else %}
 <div class="liquid-glass rounded-2xl">
   <div class="empty-state py-16">
@@ -136,24 +250,62 @@
 </div>
 {% endif %}
 
+{# ── Add Participant Modal ── #}
+<div id="add-participant-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+  <div class="liquid-glass rounded-2xl p-6 w-full max-w-md">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-display font-bold text-white">Add Participant Manually</h3>
+      <button onclick="document.getElementById('add-participant-modal').classList.add('hidden')" class="text-white/30 hover:text-white transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs text-white/50 mb-1">Username</label>
+        <input type="text" id="ap-username" class="form-input w-full" placeholder="Enter username" />
+      </div>
+      <div>
+        <label class="block text-xs text-white/50 mb-1">Team ID <span class="text-white/30">(optional, for team tournaments)</span></label>
+        <input type="number" id="ap-team-id" class="form-input w-full" placeholder="Leave blank for solo" />
+      </div>
+      <button onclick="submitAddParticipant('{{ tournament.slug }}')" class="btn-primary w-full">
+        <i data-lucide="user-plus" class="w-4 h-4"></i> Add Participant
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
 (function() {
+  // Bulk selection
   var selectAll = document.getElementById('select-all');
   var bulkBtn = document.getElementById('bulk-approve-btn');
+  var bulkContainer = document.getElementById('bulk-ids-container');
   var checkboxes = document.querySelectorAll('.reg-checkbox');
 
   function updateBulkBtn() {
     if (!bulkBtn) return;
-    var checked = document.querySelectorAll('.reg-checkbox:checked').length;
-    if (checked > 0) {
+    var checked = document.querySelectorAll('.reg-checkbox:checked');
+    if (checked.length > 0) {
       bulkBtn.disabled = false;
       bulkBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      bulkBtn.textContent = 'Approve ' + checked.length + ' Selected';
     } else {
       bulkBtn.disabled = true;
       bulkBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      bulkBtn.textContent = 'Approve Selected';
+    }
+    // Sync hidden inputs
+    if (bulkContainer) {
+      bulkContainer.innerHTML = '';
+      checked.forEach(function(cb) {
+        var input = document.createElement('input');
+        input.type = 'hidden'; input.name = 'registration_ids'; input.value = cb.value;
+        bulkContainer.appendChild(input);
+      });
     }
   }
 
@@ -163,10 +315,108 @@
       updateBulkBtn();
     });
   }
+  checkboxes.forEach(function(cb) { cb.addEventListener('change', updateBulkBtn); });
 
-  checkboxes.forEach(function(cb) {
-    cb.addEventListener('change', updateBulkBtn);
+  // Dropdown menus
+  document.querySelectorAll('[data-dropdown]').forEach(function(el) {
+    var toggle = el.querySelector('[data-dropdown-toggle]');
+    var menu = el.querySelector('[data-dropdown-menu]');
+    if (!toggle || !menu) return;
+
+    toggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      // Close all other dropdowns
+      document.querySelectorAll('[data-dropdown-menu]').forEach(function(m) {
+        if (m !== menu) m.classList.add('hidden');
+      });
+      menu.classList.toggle('hidden');
+    });
   });
+
+  document.addEventListener('click', function() {
+    document.querySelectorAll('[data-dropdown-menu]').forEach(function(m) {
+      m.classList.add('hidden');
+    });
+  });
+
+  // Promote from waitlist
+  document.querySelectorAll('.promote-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var regId = this.dataset.promoteId;
+      if (!confirm('Promote this registration from the waitlist?')) return;
+      fetch('{% url "tournaments:promote_registration" tournament.slug 0 %}'.replace('/0/', '/' + regId + '/'), {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) location.reload();
+        else alert(data.error || 'Failed to promote');
+      })
+      .catch(function() { alert('Network error'); });
+    });
+  });
+
+  // Auto-promote next
+  var autoBtn = document.getElementById('auto-promote-btn');
+  if (autoBtn) {
+    autoBtn.addEventListener('click', function() {
+      if (!confirm('Promote the next waitlisted participant?')) return;
+      fetch('{% url "tournaments:auto_promote_next" tournament.slug %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) location.reload();
+        else alert(data.error || 'No eligible participants on waitlist');
+      })
+      .catch(function() { alert('Network error'); });
+    });
+  }
 })();
+
+/* P3-T06: Add Participant Manually */
+function submitAddParticipant(slug) {
+  var username = document.getElementById('ap-username').value.trim();
+  var teamId = document.getElementById('ap-team-id').value.trim();
+  if (!username) { alert('Username is required.'); return; }
+  var body = { username: username };
+  if (teamId) body.team_id = parseInt(teamId);
+  fetch('/tournaments/organizer/' + slug + '/add-participant/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify(body),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) { document.getElementById('add-participant-modal').classList.add('hidden'); location.reload(); }
+    else alert(data.error || 'Failed to add participant');
+  })
+  .catch(function() { alert('Network error'); });
+}
+
+/* P3-T06: DQ with Cascade */
+function dqCascade(slug, regId, name) {
+  var reason = prompt('Disqualification reason for ' + name + ':');
+  if (!reason) return;
+  if (!confirm('This will DQ ' + name + ' AND forfeit all their future matches. Continue?')) return;
+  fetch('/tournaments/organizer/' + slug + '/dq-cascade/' + regId + '/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ reason: reason }),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      alert(name + ' disqualified. ' + data.forfeited_count + ' match(es) forfeited.');
+      location.reload();
+    } else alert(data.error || 'Failed');
+  })
+  .catch(function() { alert('Network error'); });
+}
 </script>
 {% endblock %}

@@ -1,0 +1,546 @@
+{% extends "tournaments/manage/_base.html" %}
+{% load humanize %}
+
+{% block manage_content %}
+<div class="space-y-6">
+  {# ── Header ── #}
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-xl font-display font-bold text-white">Match Medic</h2>
+      <p class="text-sm text-white/50 mt-1">Live controls, score overrides, and match operations</p>
+    </div>
+  </div>
+
+  {# ── Stats Bar ── #}
+  <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+    <div class="metric-card">
+      <p class="text-xs text-white/45 uppercase tracking-wider font-bold mb-1">Total</p>
+      <p class="text-2xl font-display font-bold text-white">{{ total_matches|default:0 }}</p>
+    </div>
+    <div class="metric-card">
+      <p class="text-xs text-white/45 uppercase tracking-wider font-bold mb-1">Active (Live)</p>
+      <p class="text-2xl font-display font-bold text-red-400">{{ active_matches|default:0 }}</p>
+    </div>
+    <div class="metric-card">
+      <p class="text-xs text-white/45 uppercase tracking-wider font-bold mb-1">Completed</p>
+      <p class="text-2xl font-display font-bold text-emerald-400">{{ completed_matches|default:0 }}</p>
+    </div>
+    <div class="metric-card">
+      <p class="text-xs text-white/45 uppercase tracking-wider font-bold mb-1">Upcoming / Pending</p>
+      <p class="text-2xl font-display font-bold text-amber-400">{{ pending_matches|default:0 }}</p>
+    </div>
+  </div>
+
+  {# ── Tab Filters ── #}
+  <div class="flex items-center gap-2 flex-wrap">
+    <a href="?tab=matches" class="badge {% if not status_filter %}badge-cyan{% else %}badge-gray{% endif %} cursor-pointer">All</a>
+    <a href="?tab=matches&status=active" class="badge {% if status_filter == 'active' %}badge-red{% else %}badge-gray{% endif %} cursor-pointer">Active</a>
+    <a href="?tab=matches&status=upcoming" class="badge {% if status_filter == 'upcoming' %}badge-blue{% else %}badge-gray{% endif %} cursor-pointer">Upcoming</a>
+    <a href="?tab=matches&status=completed" class="badge {% if status_filter == 'completed' %}badge-green{% else %}badge-gray{% endif %} cursor-pointer">Completed</a>
+  </div>
+
+  {# ── Match Cards ── #}
+  {% if matches %}
+  <div class="space-y-4" id="match-cards">
+    {% for match in matches %}
+    <div class="liquid-glass rounded-2xl p-5 match-card
+      {% if match.state == 'live' %}ring-1 ring-red-500/30{% endif %}"
+      data-match-id="{{ match.id }}" data-state="{{ match.state }}">
+
+      {# Card header #}
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-mono text-white/40">R{{ match.round_number }} · M{{ match.match_number }}</span>
+          <span class="badge
+            {% if match.state == 'completed' or match.state == 'forfeit' %}badge-green
+            {% elif match.state == 'live' %}badge-red
+            {% elif match.state == 'check_in' %}badge-yellow
+            {% elif match.state == 'scheduled' or match.state == 'ready' %}badge-blue
+            {% elif match.state == 'pending_result' %}badge-yellow
+            {% elif match.state == 'cancelled' %}badge-gray
+            {% else %}badge-gray{% endif %}">
+            {{ match.get_state_display|default:match.state|title }}
+          </span>
+        </div>
+        {% if match.scheduled_time %}
+          <span class="text-xs text-white/30">{{ match.scheduled_time|date:"M d, H:i" }}</span>
+        {% endif %}
+      </div>
+
+      {# Participants & Score #}
+      <div class="flex items-center justify-between gap-4 mb-4">
+        <div class="flex-1 text-right">
+          <p class="text-sm font-semibold text-white/80">{{ match.participant1_name|default:"TBD" }}</p>
+          {% if match.state == 'check_in' %}
+            <span class="text-[10px] {% if match.participant1_checked_in %}text-emerald-400{% else %}text-red-400{% endif %}">
+              {% if match.participant1_checked_in %}Checked In{% else %}Not Checked In{% endif %}
+            </span>
+          {% endif %}
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xl font-mono font-bold text-white/80 min-w-[28px] text-center">{{ match.participant1_score|default:"-" }}</span>
+          <span class="text-white/20">:</span>
+          <span class="text-xl font-mono font-bold text-white/80 min-w-[28px] text-center">{{ match.participant2_score|default:"-" }}</span>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-white/80">{{ match.participant2_name|default:"TBD" }}</p>
+          {% if match.state == 'check_in' %}
+            <span class="text-[10px] {% if match.participant2_checked_in %}text-emerald-400{% else %}text-red-400{% endif %}">
+              {% if match.participant2_checked_in %}Checked In{% else %}Not Checked In{% endif %}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Action Buttons #}
+      {% if can_manage %}
+      <div class="flex flex-wrap gap-2 border-t border-white/5 pt-3">
+        {# State-dependent actions #}
+        {% if match.state == 'scheduled' or match.state == 'ready' or match.state == 'check_in' %}
+          <button onclick="matchAction({{ match.id }}, 'mark-live')" class="btn-secondary !text-xs !py-1.5 !px-3">
+            <i data-lucide="play" class="w-3 h-3"></i> Start
+          </button>
+          <button onclick="matchAction({{ match.id }}, 'force-start')" class="btn-secondary !text-xs !py-1.5 !px-3">
+            <i data-lucide="zap" class="w-3 h-3"></i> Force Start
+          </button>
+        {% endif %}
+
+        {% if match.state == 'live' %}
+          <button onclick="matchAction({{ match.id }}, 'pause')" class="btn-secondary !text-xs !py-1.5 !px-3">
+            <i data-lucide="pause" class="w-3 h-3"></i> Pause
+          </button>
+        {% endif %}
+
+        {% if match.state == 'pending_result' %}
+          <button onclick="matchAction({{ match.id }}, 'resume')" class="btn-secondary !text-xs !py-1.5 !px-3">
+            <i data-lucide="play" class="w-3 h-3"></i> Resume
+          </button>
+        {% endif %}
+
+        {% if match.state != 'completed' and match.state != 'forfeit' and match.state != 'cancelled' %}
+          <button onclick="openForceComplete({{ match.id }})" class="btn-secondary !text-xs !py-1.5 !px-3 text-amber-400 hover:text-amber-300">
+            <i data-lucide="flag" class="w-3 h-3"></i> Force Complete
+          </button>
+        {% endif %}
+
+        {# Always available actions #}
+        <button onclick="openScoreOverride({{ match.id }}, {{ match.participant1_score }}, {{ match.participant2_score }})" class="btn-secondary !text-xs !py-1.5 !px-3">
+          <i data-lucide="edit-2" class="w-3 h-3"></i> Edit Score
+        </button>
+        <button onclick="openAddNote({{ match.id }})" class="btn-secondary !text-xs !py-1.5 !px-3">
+          <i data-lucide="message-square" class="w-3 h-3"></i> Add Note
+        </button>
+
+        {% if match.state != 'completed' and match.state != 'forfeit' and match.state != 'cancelled' %}
+          <button onclick="openForfeit({{ match.id }})" class="btn-secondary !text-xs !py-1.5 !px-3 text-red-400 hover:text-red-300">
+            <i data-lucide="shield-off" class="w-3 h-3"></i> Forfeit
+          </button>
+          <button onclick="openCancel({{ match.id }})" class="btn-secondary !text-xs !py-1.5 !px-3 text-red-400 hover:text-red-300">
+            <i data-lucide="x-circle" class="w-3 h-3"></i> Cancel
+          </button>
+          <button onclick="openReschedule({{ match.id }})" class="btn-secondary !text-xs !py-1.5 !px-3">
+            <i data-lucide="calendar" class="w-3 h-3"></i> Reschedule
+          </button>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {# Status bar #}
+      <p class="text-xs text-white/20 mt-2 action-status" id="status-{{ match.id }}"></p>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="liquid-glass rounded-2xl empty-state">
+    <i data-lucide="swords" class="w-12 h-12 mx-auto"></i>
+    <p>No matches{% if status_filter %} matching "{{ status_filter }}"{% endif %}</p>
+    <p class="sub">Matches will appear once brackets are generated.</p>
+  </div>
+  {% endif %}
+</div>
+
+{# ── Modals ── #}
+
+{# Score Override Modal #}
+<div id="modal-score" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60">
+  <div class="liquid-glass rounded-2xl p-6 w-full max-w-md mx-4">
+    <h3 class="text-sm font-display font-semibold text-white mb-4">Score Override</h3>
+    <div class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-4 text-xs text-amber-300">
+      <i data-lucide="alert-triangle" class="w-3.5 h-3.5 inline mr-1"></i>
+      This will be logged in the audit trail.
+    </div>
+    <input type="hidden" id="modal-score-match-id">
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div>
+        <label class="block text-xs text-white/50 mb-1">Score P1</label>
+        <input type="number" id="modal-score-p1" class="form-input w-full" min="0">
+      </div>
+      <div>
+        <label class="block text-xs text-white/50 mb-1">Score P2</label>
+        <input type="number" id="modal-score-p2" class="form-input w-full" min="0">
+      </div>
+    </div>
+    <label class="block text-xs text-white/50 mb-1">Reason (required)</label>
+    <textarea id="modal-score-reason" class="form-input w-full" rows="2" placeholder="Reason for score override…"></textarea>
+    <div class="flex justify-end gap-2 mt-4">
+      <button onclick="closeModal('modal-score')" class="btn-secondary !text-xs">Cancel</button>
+      <button onclick="submitScoreOverride()" class="btn-primary !text-xs">Override Score</button>
+    </div>
+  </div>
+</div>
+
+{# Force Complete Modal #}
+<div id="modal-force-complete" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60">
+  <div class="liquid-glass rounded-2xl p-6 w-full max-w-md mx-4">
+    <h3 class="text-sm font-display font-semibold text-white mb-4">Force Complete Match</h3>
+    <div class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-4 text-xs text-amber-300">
+      <i data-lucide="alert-triangle" class="w-3.5 h-3.5 inline mr-1"></i>
+      This will be logged in the audit trail.
+    </div>
+    <input type="hidden" id="modal-fc-match-id">
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div>
+        <label class="block text-xs text-white/50 mb-1">Final Score P1</label>
+        <input type="number" id="modal-fc-score1" class="form-input w-full" min="0" value="0">
+      </div>
+      <div>
+        <label class="block text-xs text-white/50 mb-1">Final Score P2</label>
+        <input type="number" id="modal-fc-score2" class="form-input w-full" min="0" value="0">
+      </div>
+    </div>
+    <label class="block text-xs text-white/50 mb-1">Reason (required)</label>
+    <textarea id="modal-fc-reason" class="form-input w-full" rows="2" placeholder="Reason for force completion…"></textarea>
+    <div class="flex justify-end gap-2 mt-4">
+      <button onclick="closeModal('modal-force-complete')" class="btn-secondary !text-xs">Cancel</button>
+      <button onclick="submitForceComplete()" class="btn-primary !text-xs bg-amber-600 hover:bg-amber-500">Force Complete</button>
+    </div>
+  </div>
+</div>
+
+{# Add Note Modal #}
+<div id="modal-note" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60">
+  <div class="liquid-glass rounded-2xl p-6 w-full max-w-md mx-4">
+    <h3 class="text-sm font-display font-semibold text-white mb-4">Add Moderator Note</h3>
+    <input type="hidden" id="modal-note-match-id">
+    <textarea id="modal-note-content" class="form-input w-full" rows="3" placeholder="Add a note about this match…"></textarea>
+    <div class="flex justify-end gap-2 mt-4">
+      <button onclick="closeModal('modal-note')" class="btn-secondary !text-xs">Cancel</button>
+      <button onclick="submitNote()" class="btn-primary !text-xs">Add Note</button>
+    </div>
+  </div>
+</div>
+
+{# Forfeit Modal #}
+<div id="modal-forfeit" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60">
+  <div class="liquid-glass rounded-2xl p-6 w-full max-w-md mx-4">
+    <h3 class="text-sm font-display font-semibold text-white mb-4">Forfeit Match</h3>
+    <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4 text-xs text-red-300">
+      <i data-lucide="alert-triangle" class="w-3.5 h-3.5 inline mr-1"></i>
+      This will be logged in the audit trail.
+    </div>
+    <input type="hidden" id="modal-forfeit-match-id">
+    <label class="block text-xs text-white/50 mb-1">Forfeiting Participant</label>
+    <select id="modal-forfeit-participant" class="form-input w-full mb-3">
+      <option value="1">Participant 1</option>
+      <option value="2">Participant 2</option>
+    </select>
+    <label class="block text-xs text-white/50 mb-1">Reason</label>
+    <textarea id="modal-forfeit-reason" class="form-input w-full" rows="2" placeholder="Reason for forfeit…"></textarea>
+    <div class="flex justify-end gap-2 mt-4">
+      <button onclick="closeModal('modal-forfeit')" class="btn-secondary !text-xs">Cancel</button>
+      <button onclick="submitForfeit()" class="btn-primary !text-xs bg-red-600 hover:bg-red-500">Forfeit</button>
+    </div>
+  </div>
+</div>
+
+{# Cancel Modal #}
+<div id="modal-cancel" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60">
+  <div class="liquid-glass rounded-2xl p-6 w-full max-w-md mx-4">
+    <h3 class="text-sm font-display font-semibold text-white mb-4">Cancel Match</h3>
+    <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4 text-xs text-red-300">
+      <i data-lucide="alert-triangle" class="w-3.5 h-3.5 inline mr-1"></i>
+      This will be logged in the audit trail.
+    </div>
+    <input type="hidden" id="modal-cancel-match-id">
+    <label class="block text-xs text-white/50 mb-1">Reason (required)</label>
+    <textarea id="modal-cancel-reason" class="form-input w-full" rows="2" placeholder="Reason for cancellation…"></textarea>
+    <div class="flex justify-end gap-2 mt-4">
+      <button onclick="closeModal('modal-cancel')" class="btn-secondary !text-xs">Cancel</button>
+      <button onclick="submitCancel()" class="btn-primary !text-xs bg-red-600 hover:bg-red-500">Cancel Match</button>
+    </div>
+  </div>
+</div>
+
+{# Reschedule Modal #}
+<div id="modal-reschedule" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60">
+  <div class="liquid-glass rounded-2xl p-6 w-full max-w-md mx-4">
+    <h3 class="text-sm font-display font-semibold text-white mb-4">Reschedule Match</h3>
+    <input type="hidden" id="modal-reschedule-match-id">
+    <label class="block text-xs text-white/50 mb-1">New Scheduled Time</label>
+    <input type="datetime-local" id="modal-reschedule-time" class="form-input w-full mb-3">
+    <label class="block text-xs text-white/50 mb-1">Reason</label>
+    <textarea id="modal-reschedule-reason" class="form-input w-full" rows="2" placeholder="Reason for rescheduling…"></textarea>
+    <div class="flex justify-end gap-2 mt-4">
+      <button onclick="closeModal('modal-reschedule')" class="btn-secondary !text-xs">Cancel</button>
+      <button onclick="submitReschedule()" class="btn-primary !text-xs">Reschedule</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const SLUG = '{{ tournament.slug }}';
+  const csrfToken = '{{ csrf_token }}';
+
+  function setStatus(matchId, msg, isError) {
+    const el = document.getElementById('status-' + matchId);
+    if (el) {
+      el.textContent = msg;
+      el.className = 'text-xs mt-2 action-status ' + (isError ? 'text-red-400' : 'text-emerald-400');
+      setTimeout(() => { el.textContent = ''; }, 4000);
+    }
+  }
+
+  // ── Simple actions (no modal) ──
+  window.matchAction = async function(matchId, action) {
+    const body = {};
+    if (action === 'pause') {
+      body.reason = 'Paused by organizer';
+    }
+
+    try {
+      const res = await fetch(`/tournaments/organizer/${SLUG}/match-ops/${matchId}/${action}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStatus(matchId, data.message || 'Done');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        setStatus(matchId, data.error || 'Action failed', true);
+      }
+    } catch (e) {
+      setStatus(matchId, 'Network error', true);
+    }
+  };
+
+  // ── Modal helpers ──
+  function openModal(id) {
+    const el = document.getElementById(id);
+    el.classList.remove('hidden');
+    el.classList.add('flex');
+  }
+
+  window.closeModal = function(id) {
+    const el = document.getElementById(id);
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+  };
+
+  // ── Score Override ──
+  window.openScoreOverride = function(matchId, s1, s2) {
+    document.getElementById('modal-score-match-id').value = matchId;
+    document.getElementById('modal-score-p1').value = s1 || 0;
+    document.getElementById('modal-score-p2').value = s2 || 0;
+    document.getElementById('modal-score-reason').value = '';
+    openModal('modal-score');
+  };
+
+  window.submitScoreOverride = async function() {
+    const matchId = document.getElementById('modal-score-match-id').value;
+    const score1 = parseInt(document.getElementById('modal-score-p1').value);
+    const score2 = parseInt(document.getElementById('modal-score-p2').value);
+    const reason = document.getElementById('modal-score-reason').value.trim();
+
+    if (!reason) { alert('Reason is required.'); return; }
+
+    try {
+      const res = await fetch(`/tournaments/organizer/${SLUG}/override-score/${matchId}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ score1, score2, reason }),
+      });
+      const data = await res.json();
+      closeModal('modal-score');
+      if (data.success) {
+        setStatus(matchId, 'Score overridden');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        setStatus(matchId, data.error || 'Override failed', true);
+      }
+    } catch (e) {
+      setStatus(matchId, 'Network error', true);
+    }
+  };
+
+  // ── Force Complete ──
+  window.openForceComplete = function(matchId) {
+    document.getElementById('modal-fc-match-id').value = matchId;
+    document.getElementById('modal-fc-reason').value = '';
+    openModal('modal-force-complete');
+  };
+
+  window.submitForceComplete = async function() {
+    const matchId = document.getElementById('modal-fc-match-id').value;
+    const reason = document.getElementById('modal-fc-reason').value.trim();
+    const score1 = parseInt(document.getElementById('modal-fc-score1').value || 0);
+    const score2 = parseInt(document.getElementById('modal-fc-score2').value || 0);
+
+    if (!reason) { alert('Reason is required.'); return; }
+
+    try {
+      const res = await fetch(`/tournaments/organizer/${SLUG}/match-ops/${matchId}/force-complete/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ reason, score1, score2 }),
+      });
+      const data = await res.json();
+      closeModal('modal-force-complete');
+      if (data.success) {
+        setStatus(matchId, 'Match force-completed');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        setStatus(matchId, data.error || 'Failed', true);
+      }
+    } catch (e) {
+      setStatus(matchId, 'Network error', true);
+    }
+  };
+
+  // ── Add Note ──
+  window.openAddNote = function(matchId) {
+    document.getElementById('modal-note-match-id').value = matchId;
+    document.getElementById('modal-note-content').value = '';
+    openModal('modal-note');
+  };
+
+  window.submitNote = async function() {
+    const matchId = document.getElementById('modal-note-match-id').value;
+    const content = document.getElementById('modal-note-content').value.trim();
+
+    if (!content) { alert('Note content required.'); return; }
+
+    try {
+      const res = await fetch(`/tournaments/organizer/${SLUG}/match-ops/${matchId}/add-note/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ content }),
+      });
+      const data = await res.json();
+      closeModal('modal-note');
+      if (data.success) {
+        setStatus(matchId, 'Note added');
+      } else {
+        setStatus(matchId, data.error || 'Failed', true);
+      }
+    } catch (e) {
+      setStatus(matchId, 'Network error', true);
+    }
+  };
+
+  // ── Forfeit ──
+  window.openForfeit = function(matchId) {
+    document.getElementById('modal-forfeit-match-id').value = matchId;
+    document.getElementById('modal-forfeit-reason').value = '';
+    openModal('modal-forfeit');
+  };
+
+  window.submitForfeit = async function() {
+    const matchId = document.getElementById('modal-forfeit-match-id').value;
+    const participant = document.getElementById('modal-forfeit-participant').value;
+    const reason = document.getElementById('modal-forfeit-reason').value.trim();
+
+    try {
+      const res = await fetch(`/tournaments/organizer/${SLUG}/forfeit-match/${matchId}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ forfeiting_participant: parseInt(participant), reason }),
+      });
+      const data = await res.json();
+      closeModal('modal-forfeit');
+      if (data.success) {
+        setStatus(matchId, 'Forfeit recorded');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        setStatus(matchId, data.error || 'Failed', true);
+      }
+    } catch (e) {
+      setStatus(matchId, 'Network error', true);
+    }
+  };
+
+  // ── Cancel ──
+  window.openCancel = function(matchId) {
+    document.getElementById('modal-cancel-match-id').value = matchId;
+    document.getElementById('modal-cancel-reason').value = '';
+    openModal('modal-cancel');
+  };
+
+  window.submitCancel = async function() {
+    const matchId = document.getElementById('modal-cancel-match-id').value;
+    const reason = document.getElementById('modal-cancel-reason').value.trim();
+
+    if (!reason) { alert('Reason is required.'); return; }
+
+    try {
+      const res = await fetch(`/tournaments/organizer/${SLUG}/cancel-match/${matchId}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json();
+      closeModal('modal-cancel');
+      if (data.success) {
+        setStatus(matchId, 'Match cancelled');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        setStatus(matchId, data.error || 'Failed', true);
+      }
+    } catch (e) {
+      setStatus(matchId, 'Network error', true);
+    }
+  };
+
+  // ── Reschedule ──
+  window.openReschedule = function(matchId) {
+    document.getElementById('modal-reschedule-match-id').value = matchId;
+    document.getElementById('modal-reschedule-reason').value = '';
+    openModal('modal-reschedule');
+  };
+
+  window.submitReschedule = async function() {
+    const matchId = document.getElementById('modal-reschedule-match-id').value;
+    const time = document.getElementById('modal-reschedule-time').value;
+    const reason = document.getElementById('modal-reschedule-reason').value.trim();
+
+    if (!time) { alert('New time is required.'); return; }
+
+    try {
+      const res = await fetch(`/tournaments/organizer/${SLUG}/reschedule-match/${matchId}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ scheduled_time: time, reason }),
+      });
+      const data = await res.json();
+      closeModal('modal-reschedule');
+      if (data.success) {
+        setStatus(matchId, 'Match rescheduled');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        setStatus(matchId, data.error || 'Failed', true);
+      }
+    } catch (e) {
+      setStatus(matchId, 'Network error', true);
+    }
+  };
+
+  // Re-init Lucide icons
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+})();
+</script>
+
+{% endblock %}

@@ -528,7 +528,7 @@ Settings auto-save via AJAX.
 
 </section>
 
-{# ══════ Transfer Ownership Modal ══════ #}
+{# Transfer Ownership Modal #}
 {% if is_owner %}
 <div id="modal-transfer" class="hidden fixed inset-0 z-[900] items-center justify-center bg-black/60 backdrop-blur-sm p-4" onclick="if(event.target===this)ManageHQ.closeModal('modal-transfer')">
     <div class="bg-[#0c0c1c] border border-red-500/25 rounded-3xl shadow-2xl max-w-md w-full p-6" onclick="event.stopPropagation()">
@@ -574,7 +574,7 @@ Settings auto-save via AJAX.
     </div>
 </div>
 
-{# ══════ Disband Team Modal ══════ #}
+{# Disband Team Modal #}
 <div id="modal-disband" class="hidden fixed inset-0 z-[900] items-center justify-center bg-black/60 backdrop-blur-sm p-4" onclick="if(event.target===this)ManageHQ.closeModal('modal-disband')">
     <div class="bg-[#0c0c1c] border border-red-500/25 rounded-3xl shadow-2xl max-w-md w-full p-6" onclick="event.stopPropagation()">
         <h3 class="text-lg font-bold text-red-400 flex items-center gap-2 mb-4">

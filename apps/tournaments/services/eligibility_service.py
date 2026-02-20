@@ -145,22 +145,54 @@ class RegistrationEligibilityService:
         
         # Check if tournament is full
         if tournament.is_full():
+            # Allow waitlist registration — don't block, just hint
             result.update({
-                'reason': 'This tournament is full.',
-                'status': 'full',
-                'action_url': f'/tournaments/{tournament.slug}/',
-                'action_label': 'View Details',
+                'can_register': True,
+                'reason': 'This tournament is full. You will be placed on the waitlist.',
+                'status': 'full_waitlist',
+                'action_url': f'/tournaments/{tournament.slug}/register/',
+                'action_label': 'Join Waitlist',
             })
-            return result
+            # Don't return — continue to team checks below
         
         # Team tournament eligibility checks
         if tournament.participation_type == Tournament.TEAM:
+            # Check if guest teams are allowed — if user has no team but guest slots remain, allow
+            allows_guest = getattr(tournament, 'max_guest_teams', 0) and tournament.max_guest_teams > 0
+            
             team_check = RegistrationEligibilityService._check_team_eligibility(
                 tournament, user
             )
             
             if not team_check['eligible']:
+                # If guest teams are allowed and the failure is about having no team
+                # or no permission, offer guest team path as fallback
+                if allows_guest and team_check['status'] in ('no_team', 'no_eligible_team', 'no_permission', 'no_profile'):
+                    current_guest_count = Registration.objects.filter(
+                        tournament=tournament,
+                        is_guest_team=True,
+                        is_deleted=False,
+                    ).exclude(
+                        status__in=[Registration.CANCELLED, Registration.REJECTED]
+                    ).count()
+                    
+                    if current_guest_count < tournament.max_guest_teams:
+                        # User can register as a guest team
+                        result.update({
+                            'can_register': True,
+                            'reason': (
+                                f"{team_check['reason']} "
+                                f"You can register as a guest team instead "
+                                f"({tournament.max_guest_teams - current_guest_count} guest slot(s) remaining)."
+                            ),
+                            'status': 'guest_team_eligible',
+                            'action_url': f'/tournaments/{tournament.slug}/register/?guest=1',
+                            'action_label': 'Register as Guest Team',
+                        })
+                        return result
+                
                 result.update({
+                    'can_register': False,
                     'reason': team_check['reason'],
                     'status': team_check['status'],
                     'action_url': team_check.get('action_url', f'/tournaments/{tournament.slug}/'),

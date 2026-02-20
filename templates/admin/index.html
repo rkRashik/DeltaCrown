@@ -10,10 +10,7 @@
 
 <div class="mb-8">
 
-    {# ══════════════════════════════════════════════════════════════════════ #}
     {# GREETING & QUICK ACTIONS BAR                                         #}
-    {# ══════════════════════════════════════════════════════════════════════ #}
-
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <div>
             <h1 class="text-2xl font-bold text-important">{{ dc_greeting }}</h1>
@@ -32,10 +29,7 @@
         </div>
     </div>
 
-    {# ══════════════════════════════════════════════════════════════════════ #}
     {# ROW 1: CORE STATS — Tournaments, Registrations, Matches, Users       #}
-    {# ══════════════════════════════════════════════════════════════════════ #}
-
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
         {% component "unfold/components/card.html" with title="Tournaments" icon="emoji_events" footer="total across all statuses" %}
@@ -120,10 +114,7 @@
 
     </div>
 
-    {# ══════════════════════════════════════════════════════════════════════ #}
     {# ROW 2: SECONDARY STATS — Completed, Recent, Economy, Organizations  #}
-    {# ══════════════════════════════════════════════════════════════════════ #}
-
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
         {% component "unfold/components/card.html" with title="Completed" icon="check_circle" %}
@@ -162,10 +153,7 @@
 
     </div>
 
-    {# ══════════════════════════════════════════════════════════════════════ #}
     {# ROW 3: PLATFORM HEALTH INDICATORS                                    #}
-    {# ══════════════════════════════════════════════════════════════════════ #}
-
     {% component "unfold/components/card.html" with title="Platform Health" icon="health_and_safety" class="mb-6" %}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {% for indicator in dc_health %}
@@ -196,10 +184,7 @@
         </div>
     {% endcomponent %}
 
-    {# ══════════════════════════════════════════════════════════════════════ #}
     {# ROW 4: CHARTS — Status Breakdown + Activity Trends                   #}
-    {# ══════════════════════════════════════════════════════════════════════ #}
-
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
 
         {% component "unfold/components/card.html" with title="Tournament Status Breakdown" icon="bar_chart" %}
@@ -214,10 +199,7 @@
 
     </div>
 
-    {# ══════════════════════════════════════════════════════════════════════ #}
     {# ROW 5: TABLES — Recent Registrations + Upcoming Tournaments          #}
-    {# ══════════════════════════════════════════════════════════════════════ #}
-
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
 
         {% component "unfold/components/card.html" with title="Recent Registrations" icon="list" %}
@@ -276,10 +258,7 @@
 
     </div>
 
-    {# ══════════════════════════════════════════════════════════════════════ #}
     {# ROW 6: TOP TOURNAMENTS                                               #}
-    {# ══════════════════════════════════════════════════════════════════════ #}
-
     {% component "unfold/components/card.html" with title="Top Tournaments by Registrations" icon="leaderboard" class="mb-6" %}
         {% if dc_top_table.rows %}
         <div class="overflow-x-auto -mx-6 px-6">

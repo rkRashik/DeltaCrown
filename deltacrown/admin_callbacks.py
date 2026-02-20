@@ -68,6 +68,8 @@ def dashboard_callback(request, context):
     """
     from apps.accounts.models import User
     from apps.tournaments.models import Tournament, Registration, Match
+    from django.db.models import Count, Q, F
+    from django.db.models.functions import TruncWeek
 
     now = timezone.now()
     month_ago = now - timedelta(days=30)
@@ -151,9 +153,10 @@ def dashboard_callback(request, context):
         "draft", "pending_approval", "published", "registration_open",
         "registration_closed", "live", "completed", "cancelled",
     ]
-    status_counts = [
-        Tournament.objects.filter(status=key).count() for key in status_keys
-    ]
+    # Single aggregate query instead of 8 separate COUNT queries
+    _status_agg = Tournament.objects.values('status').annotate(c=Count('id'))
+    _status_map = {row['status']: row['c'] for row in _status_agg}
+    status_counts = [_status_map.get(key, 0) for key in status_keys]
 
     chart_status = json.dumps({
         "labels": status_labels,
@@ -176,24 +179,31 @@ def dashboard_callback(request, context):
     })
 
     # ── Registration trend (line chart — last 8 weeks) ───────────────────
+    # Two aggregate queries instead of 16 individual queries
+    _trend_start = now - timedelta(weeks=9)
+    _reg_weekly_qs = (
+        Registration.objects.filter(created_at__gte=_trend_start)
+        .annotate(week=TruncWeek('created_at'))
+        .values('week').annotate(c=Count('id')).order_by('week')
+    )
+    _match_weekly_qs = (
+        Match.objects.filter(created_at__gte=_trend_start)
+        .annotate(week=TruncWeek('created_at'))
+        .values('week').annotate(c=Count('id')).order_by('week')
+    )
+    _reg_by_week = {row['week'].date(): row['c'] for row in _reg_weekly_qs}
+    _match_by_week = {row['week'].date(): row['c'] for row in _match_weekly_qs}
+
     week_labels = []
     reg_weekly_data = []
     match_weekly_data = []
 
     for i in range(7, -1, -1):
-        w_start = now - timedelta(weeks=i + 1)
         w_end = now - timedelta(weeks=i)
+        w_key = (w_end - timedelta(days=w_end.weekday())).date()  # Monday of that week
         week_labels.append(_week_label(w_end))
-        reg_weekly_data.append(
-            Registration.objects.filter(
-                created_at__gte=w_start, created_at__lt=w_end
-            ).count()
-        )
-        match_weekly_data.append(
-            Match.objects.filter(
-                created_at__gte=w_start, created_at__lt=w_end
-            ).count()
-        )
+        reg_weekly_data.append(_reg_by_week.get(w_key, 0))
+        match_weekly_data.append(_match_by_week.get(w_key, 0))
 
     chart_trends = json.dumps({
         "labels": week_labels,
@@ -229,7 +239,8 @@ def dashboard_callback(request, context):
 
     # ── Recent registrations ─────────────────────────────────────────────
     latest_regs = (
-        Registration.objects.select_related("tournament")
+        Registration.objects
+        .select_related("tournament", "user")
         .order_by("-created_at")[:8]
     )
 
@@ -259,8 +270,15 @@ def dashboard_callback(request, context):
 
     # ── Upcoming tournaments ─────────────────────────────────────────────
     upcoming_statuses = ["registration_open", "registration_closed", "published"]
+    # Annotate confirmed count to avoid N+1 per-tournament query
     upcoming_tournaments = (
         Tournament.objects.filter(status__in=upcoming_statuses)
+        .annotate(
+            confirmed_count=Count(
+                'registrations',
+                filter=Q(registrations__status='confirmed'),
+            )
+        )
         .order_by("tournament_start")[:6]
     )
 
@@ -284,16 +302,11 @@ def dashboard_callback(request, context):
 
         slot_info = "\u2014"
         if t.max_participants:
-            filled = Registration.objects.filter(
-                tournament=t, status="confirmed"
-            ).count()
-            slot_info = f"{filled}/{t.max_participants}"
+            slot_info = f"{t.confirmed_count}/{t.max_participants}"
 
         upcoming_table_rows.append([t_name, status_display, start_date or "\u2014", slot_info])
 
     # ── Top tournaments by registrations ─────────────────────────────────
-    from django.db.models import Count
-
     top_tournaments = (
         Tournament.objects.annotate(reg_count=Count("registrations"))
         .order_by("-reg_count")[:5]

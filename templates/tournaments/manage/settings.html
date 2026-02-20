@@ -178,6 +178,77 @@
   </div>
 
   {% if can_edit %}
+    {# Guest Team & Registration Features #}
+    <div class="lg:col-span-2 liquid-glass rounded-2xl p-6">
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-2">
+          <i data-lucide="users-round" class="w-4 h-4 text-amber-400"></i>
+          <h3 class="text-sm font-display font-semibold text-white">Registration Features</h3>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {# Guest Teams #}
+        <div class="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-semibold text-white/70">Guest Teams</p>
+            {% if tournament.max_guest_teams > 0 %}
+              <span class="badge badge-green text-[10px]">Enabled</span>
+            {% else %}
+              <span class="badge badge-gray text-[10px]">Disabled</span>
+            {% endif %}
+          </div>
+          <p class="text-[11px] text-white/40 mb-3">Allow players without a registered team to create ad-hoc teams during registration.</p>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-white/50">Max guest teams:</span>
+            <span class="text-sm font-mono text-white/70 font-semibold">{{ tournament.max_guest_teams|default:"0" }}</span>
+          </div>
+        </div>
+
+        {# Waitlist #}
+        <div class="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-semibold text-white/70">Waitlist</p>
+            <span class="badge badge-green text-[10px]">Active</span>
+          </div>
+          <p class="text-[11px] text-white/40 mb-3">When the tournament is full, new registrations are automatically placed on the waitlist.</p>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-white/50">Currently waitlisted:</span>
+            <span class="text-sm font-mono text-white/70 font-semibold">{{ reg_stats.waitlisted|default:"0" }}</span>
+          </div>
+        </div>
+
+        {# Duplicate Detection #}
+        <div class="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-semibold text-white/70">Duplicate Detection</p>
+            <span class="badge badge-green text-[10px]">Active</span>
+          </div>
+          <p class="text-[11px] text-white/40">Blocks registrations with duplicate game IDs across teams — prevents multi-team smurf accounts.</p>
+        </div>
+
+        {# Display Name Override #}
+        <div class="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-semibold text-white/70">Display Name Override</p>
+            {% if tournament.allow_display_name_override %}
+              <span class="badge badge-green text-[10px]">Enabled</span>
+            {% else %}
+              <span class="badge badge-gray text-[10px]">Disabled</span>
+            {% endif %}
+          </div>
+          <p class="text-[11px] text-white/40 mb-3">Allow participants to set a custom display name instead of using their username.</p>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-white/50">Default:</span>
+            <span class="text-sm text-white/70 font-semibold">
+              {% if tournament.allow_display_name_override %}Custom name{% else %}Username (locked){% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Danger Zone #}
     <div class="lg:col-span-2 liquid-glass rounded-2xl p-6" style="border-color: rgba(239,68,68,0.15);">
       <div class="flex items-center gap-2 mb-5">
         <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400"></i>

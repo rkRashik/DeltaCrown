@@ -1,11 +1,9 @@
-{# ═══════════════════════════════════════════════════════════════════ #}
 {# SECTION: Scouting Grounds — Smart Recruitment Hub (5-Point 1A/1B) #}
 {# Route: #join-requests                                             #}
 {# Features:                                                         #}
 {#   • Recruitment Post builder (positions + requirements CRUD)        #}
 {#   • Tryout Manager workflow (Schedule → Complete → Offer → Sign)   #}
 {#   • Recruitment profile & stats                                    #}
-{# ═══════════════════════════════════════════════════════════════════ #}
 {% if is_admin or is_owner %}
 <section id="join-requests" class="hq-section space-y-6">
 
@@ -48,9 +46,7 @@
         </button>
     </div>
 
-    {# ═══════════════════════════════════════════════════ #}
     {# TAB 1: APPLICATION PIPELINE — Tryout Manager       #}
-    {# ═══════════════════════════════════════════════════ #}
     <div id="sg-panel-pipeline" class="sg-panel">
 
         {# Stats Row #}
@@ -94,9 +90,7 @@
         </div>
     </div>
 
-    {# ═══════════════════════════════════════════════════ #}
     {# TAB 2: RECRUITMENT POST — Positions + Requirements #}
-    {# ═══════════════════════════════════════════════════ #}
     <div id="sg-panel-jobpost" class="sg-panel hidden">
 
         {# Open Positions ─────────────────────────────── #}
@@ -177,9 +171,7 @@
         </div>
     </div>
 
-    {# ═══════════════════════════════════════════════════ #}
     {# TAB 3: RECRUITMENT PROFILE                         #}
-    {# ═══════════════════════════════════════════════════ #}
     <div id="sg-panel-profile" class="sg-panel hidden">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             {# Status Card #}
@@ -257,9 +249,7 @@
 
 </section>
 
-{# ═══════════════════════════════════════════════════════ #}
 {# SCOUTING GROUNDS — STYLE + LOGIC                       #}
-{# ═══════════════════════════════════════════════════════ #}
 <style>
     .sg-tab--active { border-color: #34d399; color: #fff; }
     .sg-tab:not(.sg-tab--active) { border-color: transparent; color: rgba(255,255,255,.35); }

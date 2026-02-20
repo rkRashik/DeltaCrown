@@ -1,0 +1,9 @@
+﻿python : 
+At line:1 char:38
++ ... eltaCrown"; python -m pytest tests/tournaments/test_phase1.py tests/t ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+\u274c DATABASE_URL_TEST required for tests. Set to local postgres URL.
+

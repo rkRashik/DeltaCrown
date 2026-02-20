@@ -3,6 +3,55 @@
 
 {% block manage_content %}
 
+{# ── COMMAND CENTER: ACTION REQUIRED ALERTS ─────────── #}
+{% if alerts %}
+<div class="mb-6 space-y-3">
+  <div class="flex items-center gap-2 mb-1">
+    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+    <h3 class="text-sm font-display font-bold text-white uppercase tracking-wider">Action Required</h3>
+    <span class="badge badge-yellow ml-1">{{ alerts|length }}</span>
+  </div>
+
+  {% for alert in alerts %}
+  <div class="flex items-center gap-4 px-5 py-4 rounded-2xl border
+    {% if alert.severity == 'critical' %}bg-red-500/[0.06] border-red-500/20
+    {% elif alert.severity == 'warning' %}bg-amber-500/[0.06] border-amber-500/20
+    {% else %}bg-cyan-500/[0.06] border-cyan-500/15{% endif %}">
+    <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+      {% if alert.severity == 'critical' %}bg-red-500/15
+      {% elif alert.severity == 'warning' %}bg-amber-500/15
+      {% else %}bg-cyan-500/15{% endif %}">
+      <i data-lucide="{{ alert.icon }}" class="w-5 h-5
+        {% if alert.severity == 'critical' %}text-red-400
+        {% elif alert.severity == 'warning' %}text-amber-400
+        {% else %}text-cyan-400{% endif %}"></i>
+    </div>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-bold text-white">{{ alert.title }}</p>
+      <p class="text-xs text-white/50 mt-0.5">{{ alert.description }}</p>
+    </div>
+    {% if alert.link_tab %}
+    <a href="{% url 'tournaments:organizer_hub' tournament.slug alert.link_tab %}"
+       class="btn-secondary !py-2 !px-4 !text-xs flex-shrink-0 whitespace-nowrap">
+      {{ alert.link_label }} →
+    </a>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="mb-6 px-5 py-4 rounded-2xl bg-emerald-500/[0.04] border border-emerald-500/15 flex items-center gap-4">
+  <div class="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+    <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+  </div>
+  <div>
+    <p class="text-sm font-bold text-white">Nothing needs your attention</p>
+    <p class="text-xs text-white/50 mt-0.5">All clear — no pending actions right now.</p>
+  </div>
+</div>
+{% endif %}
+
+{# ── QUICK STATS ──────────────────────────────────────── #}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   <div class="metric-card group">
     <div class="flex items-center justify-between mb-3">
@@ -12,9 +61,10 @@
       </div>
     </div>
     <p class="text-2xl font-display font-bold text-white">{{ reg_stats.total|default:"0" }}</p>
-    <div class="flex items-center gap-3 mt-2">
+    <div class="flex items-center gap-3 mt-2 flex-wrap">
       <span class="text-xs text-white/40"><span class="text-yellow-400 font-mono">{{ reg_stats.pending|default:"0" }}</span> pending</span>
       <span class="text-xs text-white/40"><span class="text-emerald-400 font-mono">{{ reg_stats.confirmed|default:"0" }}</span> confirmed</span>
+      {% if reg_stats.waitlisted %}<span class="text-xs text-white/40"><span class="text-blue-400 font-mono">{{ reg_stats.waitlisted }}</span> waitlisted</span>{% endif %}
     </div>
     {% if tournament.max_participants %}
     <div class="mt-3">
@@ -74,77 +124,86 @@
   </div>
 </div>
 
+{# ── LIFECYCLE PROGRESS + UPCOMING EVENTS ─────────────── #}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+  {# Lifecycle Progress Bar #}
   <div class="lg:col-span-2 liquid-glass rounded-2xl p-6">
     <div class="flex items-center gap-2 mb-5">
-      <i data-lucide="calendar-clock" class="w-4 h-4 text-cyan-400"></i>
-      <h3 class="text-sm font-display font-semibold text-white">Tournament Timeline</h3>
+      <i data-lucide="compass" class="w-4 h-4 text-cyan-400"></i>
+      <h3 class="text-sm font-display font-semibold text-white">Tournament Lifecycle</h3>
+      {% if lifecycle.stage == 'cancelled' %}
+        <span class="badge badge-red ml-auto">Cancelled</span>
+      {% else %}
+        <span class="text-xs text-white/35 font-mono ml-auto">{{ lifecycle.progress_pct }}%</span>
+      {% endif %}
     </div>
 
-    <div class="space-y-4">
-      <div class="flex items-start gap-4">
-        <div class="flex flex-col items-center gap-1">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center
-            {% if tournament.status == 'registration_open' %}bg-emerald-500/20 ring-2 ring-emerald-500/40
-            {% elif tournament.status == 'draft' %}bg-white/[0.04]
-            {% else %}bg-emerald-500/10{% endif %}">
-            <i data-lucide="user-plus" class="w-3.5 h-3.5
-              {% if tournament.status == 'registration_open' %}text-emerald-400
-              {% elif tournament.status == 'draft' %}text-white/30
-              {% else %}text-emerald-400/60{% endif %}"></i>
-          </div>
-          <div class="w-px h-8 bg-white/[0.06]"></div>
-        </div>
-        <div class="flex-1 min-w-0 pt-1">
-          <p class="text-sm font-semibold text-white/70">Registration Period</p>
-          <p class="text-xs text-white/40 font-mono mt-0.5">
-            {{ tournament.registration_start|date:"M d, Y H:i" }} — {{ tournament.registration_end|date:"M d, Y H:i" }}
-          </p>
-        </div>
-      </div>
+    {# Progress stages #}
+    <div class="flex items-center gap-0 mb-2">
+      {% for stage in lifecycle.stages %}
+      <div class="flex-1 flex flex-col items-center relative">
+        {# Connector line #}
+        {% if not forloop.first %}
+        <div class="absolute top-4 -left-1/2 w-full h-0.5
+          {% if stage.status == 'done' or stage.status == 'active' %}bg-cyan-500/40
+          {% elif stage.status == 'cancelled' %}bg-red-500/20
+          {% else %}bg-white/[0.06]{% endif %}"></div>
+        {% endif %}
 
-      <div class="flex items-start gap-4">
-        <div class="flex flex-col items-center gap-1">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center
-            {% if tournament.status == 'live' %}bg-red-500/20 ring-2 ring-red-500/40 animate-pulse
-            {% elif tournament.status == 'completed' %}bg-blue-500/10
-            {% else %}bg-white/[0.04]{% endif %}">
-            <i data-lucide="play" class="w-3.5 h-3.5
-              {% if tournament.status == 'live' %}text-red-400
-              {% elif tournament.status == 'completed' %}text-blue-400/60
-              {% else %}text-white/30{% endif %}"></i>
-          </div>
-          <div class="w-px h-8 bg-white/[0.06]"></div>
+        {# Stage dot #}
+        <div class="w-8 h-8 rounded-full flex items-center justify-center z-10 relative mb-2
+          {% if stage.status == 'done' %}bg-cyan-500/20 ring-2 ring-cyan-500/40
+          {% elif stage.status == 'active' %}bg-cyan-500/30 ring-2 ring-cyan-500 animate-pulse
+          {% elif stage.status == 'cancelled' %}bg-red-500/10
+          {% else %}bg-white/[0.04]{% endif %}">
+          <i data-lucide="{{ stage.icon }}" class="w-3.5 h-3.5
+            {% if stage.status == 'done' %}text-cyan-400
+            {% elif stage.status == 'active' %}text-cyan-300
+            {% elif stage.status == 'cancelled' %}text-red-400/40
+            {% else %}text-white/20{% endif %}"></i>
         </div>
-        <div class="flex-1 min-w-0 pt-1">
-          <p class="text-sm font-semibold text-white/70">Tournament Start</p>
-          <p class="text-xs text-white/40 font-mono mt-0.5">{{ tournament.tournament_start|date:"M d, Y H:i" }}</p>
-          {% if time_status.days_until_start > 0 %}
-            <p class="text-xs text-cyan-400/70 mt-0.5">{{ time_status.days_until_start }} days away</p>
-          {% endif %}
-        </div>
+        <span class="text-[10px] font-semibold uppercase tracking-wider
+          {% if stage.status == 'active' %}text-cyan-400
+          {% elif stage.status == 'done' %}text-white/60
+          {% else %}text-white/25{% endif %}">{{ stage.name }}</span>
       </div>
-
-      <div class="flex items-start gap-4">
-        <div class="flex flex-col items-center gap-1">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center
-            {% if tournament.status == 'completed' %}bg-blue-500/20 ring-2 ring-blue-500/40
-            {% else %}bg-white/[0.04]{% endif %}">
-            <i data-lucide="flag" class="w-3.5 h-3.5
-              {% if tournament.status == 'completed' %}text-blue-400
-              {% else %}text-white/30{% endif %}"></i>
-          </div>
-        </div>
-        <div class="flex-1 min-w-0 pt-1">
-          <p class="text-sm font-semibold text-white/70">Tournament End</p>
-          <p class="text-xs text-white/40 font-mono mt-0.5">
-            {% if tournament.tournament_end %}{{ tournament.tournament_end|date:"M d, Y H:i" }}{% else %}TBD{% endif %}
-          </p>
-        </div>
-      </div>
+      {% endfor %}
     </div>
   </div>
 
+  {# Upcoming Events #}
+  <div class="liquid-glass rounded-2xl p-6">
+    <div class="flex items-center gap-2 mb-5">
+      <i data-lucide="calendar-clock" class="w-4 h-4 text-amber-400"></i>
+      <h3 class="text-sm font-display font-semibold text-white">Upcoming</h3>
+    </div>
+
+    {% if upcoming_events %}
+    <div class="space-y-3">
+      {% for event in upcoming_events %}
+      <div class="flex items-start gap-3">
+        <div class="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center flex-shrink-0 mt-0.5">
+          <i data-lucide="{{ event.icon }}" class="w-3.5 h-3.5 text-white/40"></i>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-white/70">{{ event.label }}</p>
+          <p class="text-xs text-white/40 font-mono">{{ event.datetime|date:"M d, Y — h:i A" }}</p>
+          <p class="text-[10px] text-cyan-400/60 mt-0.5">{{ event.datetime|timeuntil }} from now</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-4">
+      <p class="text-xs text-white/35">No upcoming events</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ── QUICK ACTIONS + DETAILS + RECENT ACTIVITY ────────── #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
   <div class="liquid-glass rounded-2xl p-6">
     <div class="flex items-center gap-2 mb-5">
       <i data-lucide="zap" class="w-4 h-4 text-yellow-400"></i>
@@ -184,53 +243,6 @@
       </a>
     </div>
   </div>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-  <div class="liquid-glass rounded-2xl p-6">
-    <div class="flex items-center gap-2 mb-5">
-      <i data-lucide="info" class="w-4 h-4 text-cyan-400"></i>
-      <h3 class="text-sm font-display font-semibold text-white">Details</h3>
-    </div>
-    <dl class="space-y-3">
-      <div class="flex justify-between">
-        <dt class="text-xs text-white/45">Game</dt>
-        <dd class="text-sm text-white/70 font-medium">{{ tournament.game.display_name }}</dd>
-      </div>
-      <div class="flex justify-between">
-        <dt class="text-xs text-white/45">Format</dt>
-        <dd class="text-sm text-white/70 font-medium capitalize">{{ tournament.get_format_display|default:tournament.format }}</dd>
-      </div>
-      <div class="flex justify-between">
-        <dt class="text-xs text-white/45">Mode</dt>
-        <dd class="text-sm text-white/70 font-medium capitalize">{{ tournament.get_participation_type_display }}</dd>
-      </div>
-      <div class="flex justify-between">
-        <dt class="text-xs text-white/45">Platform</dt>
-        <dd class="text-sm text-white/70 font-medium capitalize">{{ tournament.get_platform_display }}</dd>
-      </div>
-      <div class="flex justify-between">
-        <dt class="text-xs text-white/45">Max Slots</dt>
-        <dd class="text-sm text-white/70 font-mono">{{ tournament.max_participants|default:"∞" }}</dd>
-      </div>
-      <div class="flex justify-between">
-        <dt class="text-xs text-white/45">Prize Pool</dt>
-        <dd class="text-sm text-yellow-400/80 font-mono">
-          {% if tournament.prize_pool %}৳{{ tournament.prize_pool|intcomma }}{% else %}—{% endif %}
-        </dd>
-      </div>
-      <div class="flex justify-between">
-        <dt class="text-xs text-white/45">Entry Fee</dt>
-        <dd class="text-sm text-white/70 font-mono">
-          {% if tournament.has_entry_fee %}৳{{ tournament.entry_fee_amount|intcomma }}{% else %}Free{% endif %}
-        </dd>
-      </div>
-      <div class="flex justify-between">
-        <dt class="text-xs text-white/45">Organizer</dt>
-        <dd class="text-sm text-white/70">{{ tournament.organizer.username }}</dd>
-      </div>
-    </dl>
-  </div>
 
   <div class="lg:col-span-2 liquid-glass rounded-2xl p-6">
     <div class="flex items-center justify-between mb-5">
@@ -263,6 +275,7 @@
               {% elif reg.status == 'pending' %}badge-yellow
               {% elif reg.status == 'rejected' %}badge-red
               {% elif reg.status == 'cancelled' %}badge-gray
+              {% elif reg.status == 'waitlisted' %}badge-blue
               {% else %}badge-gray{% endif %}">
               {{ reg.status|title }}
             </span>
@@ -276,6 +289,52 @@
         <p class="sub">Participants will appear here when they register.</p>
       </div>
     {% endif %}
+  </div>
+</div>
+
+{# ── Tournament Details Card ── #}
+<div class="liquid-glass rounded-2xl p-6">
+  <div class="flex items-center gap-2 mb-5">
+    <i data-lucide="info" class="w-4 h-4 text-cyan-400"></i>
+    <h3 class="text-sm font-display font-semibold text-white">Tournament Details</h3>
+  </div>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-3">
+    <div>
+      <dt class="text-xs text-white/45 mb-0.5">Game</dt>
+      <dd class="text-sm text-white/70 font-medium">{{ tournament.game.display_name }}</dd>
+    </div>
+    <div>
+      <dt class="text-xs text-white/45 mb-0.5">Format</dt>
+      <dd class="text-sm text-white/70 font-medium capitalize">{{ tournament.get_format_display|default:tournament.format }}</dd>
+    </div>
+    <div>
+      <dt class="text-xs text-white/45 mb-0.5">Mode</dt>
+      <dd class="text-sm text-white/70 font-medium capitalize">{{ tournament.get_participation_type_display }}</dd>
+    </div>
+    <div>
+      <dt class="text-xs text-white/45 mb-0.5">Platform</dt>
+      <dd class="text-sm text-white/70 font-medium capitalize">{{ tournament.get_platform_display }}</dd>
+    </div>
+    <div>
+      <dt class="text-xs text-white/45 mb-0.5">Max Slots</dt>
+      <dd class="text-sm text-white/70 font-mono">{{ tournament.max_participants|default:"∞" }}</dd>
+    </div>
+    <div>
+      <dt class="text-xs text-white/45 mb-0.5">Prize Pool</dt>
+      <dd class="text-sm text-yellow-400/80 font-mono">
+        {% if tournament.prize_pool %}৳{{ tournament.prize_pool|intcomma }}{% else %}—{% endif %}
+      </dd>
+    </div>
+    <div>
+      <dt class="text-xs text-white/45 mb-0.5">Entry Fee</dt>
+      <dd class="text-sm text-white/70 font-mono">
+        {% if tournament.has_entry_fee %}৳{{ tournament.entry_fee_amount|intcomma }}{% else %}Free{% endif %}
+      </dd>
+    </div>
+    <div>
+      <dt class="text-xs text-white/45 mb-0.5">Organizer</dt>
+      <dd class="text-sm text-white/70">{{ tournament.organizer.username }}</dd>
+    </div>
   </div>
 </div>
 

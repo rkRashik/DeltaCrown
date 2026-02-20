@@ -1,0 +1,17 @@
+﻿[TEST] localhost:5432/deltacrown_test
+
+======================================================================
+TEST DATABASE: deltacrown_test @ localhost
+======================================================================
+
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-8.4.2, pluggy-1.6.0
+benchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+django: version: 5.2.8, settings: deltacrown.settings_test (from ini)
+rootdir: G:\My Projects\WORK\DeltaCrown
+configfile: pytest.ini
+plugins: Faker-37.12.0, hypothesis-6.147.0, asyncio-1.2.0, benchmark-5.2.3, cov-7.0.0, django-4.11.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 0 items
+
+============================ no tests ran in 0.23s ============================

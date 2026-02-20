@@ -18,8 +18,13 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.db import models as db_models
+from django.http import JsonResponse
 
 from apps.tournaments.models import Tournament, Registration, Payment
+from apps.tournaments.models.smart_registration import (
+    RegistrationQuestion, RegistrationAnswer, RegistrationDraft,
+)
 from apps.tournaments.services.registration_service import RegistrationService
 from apps.tournaments.services.payment_service import PaymentService
 from apps.tournaments.services.registration_autofill import RegistrationAutoFillService
@@ -51,7 +56,7 @@ class SmartRegistrationView(LoginRequiredMixin, View):
         if not eligibility['can_register']:
             return self._render_ineligible(request, tournament, eligibility)
 
-        context = self._build_context(request, tournament)
+        context = self._build_context(request, tournament, eligibility)
         return render(request, self.template_name, context)
 
     def post(self, request, slug=None, tournament_slug=None):
@@ -68,26 +73,54 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             return redirect('tournaments:detail', slug=actual_slug)
 
         try:
-            registration = self._process_registration(request, tournament)
+            registration = self._process_registration(request, tournament, eligibility)
             return redirect('tournaments:dynamic_registration_success', tournament_slug=actual_slug, registration_id=registration.id)
         except ValidationError as e:
             error_msg = e.message if hasattr(e, 'message') else str(e)
             messages.error(request, error_msg)
-            context = self._build_context(request, tournament)
+            context = self._build_context(request, tournament, eligibility)
             return render(request, self.template_name, context)
         except Exception as e:
             logger.exception(f"Registration failed for {request.user.username} in {actual_slug}: {e}")
             messages.error(request, "Something went wrong. Please try again.")
-            context = self._build_context(request, tournament)
+            context = self._build_context(request, tournament, eligibility)
             return render(request, self.template_name, context)
 
     # ──────────────────────────────────────────────
     # Context Builder
     # ──────────────────────────────────────────────
 
-    def _build_context(self, request, tournament):
+    def _build_context(self, request, tournament, eligibility=None):
         user = request.user
         is_team = tournament.participation_type == Tournament.TEAM
+
+        # Guest team detection
+        is_guest_mode = (
+            request.GET.get('guest') == '1'
+            or request.POST.get('registration_type') == 'guest_team'
+        )
+        allows_guest = getattr(tournament, 'max_guest_teams', 0) and tournament.max_guest_teams > 0
+        is_guest_team = is_team and allows_guest and is_guest_mode
+        
+        # Guest team slot info
+        guest_slots_remaining = 0
+        if allows_guest:
+            current_guest_count = Registration.objects.filter(
+                tournament=tournament,
+                is_guest_team=True,
+                is_deleted=False,
+            ).exclude(
+                status__in=[Registration.CANCELLED, Registration.REJECTED]
+            ).count()
+            guest_slots_remaining = max(0, tournament.max_guest_teams - current_guest_count)
+        
+        # Waitlist info
+        is_waitlist = eligibility and eligibility.get('status') == 'full_waitlist'
+        waitlist_count = Registration.objects.filter(
+            tournament=tournament,
+            status=Registration.WAITLISTED,
+            is_deleted=False,
+        ).count() if is_waitlist else 0
 
         # Game theme
         canonical_slug = game_service.normalize_slug(tournament.game.slug)
@@ -156,6 +189,34 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                               'Steam profile URL' if 'cs' in (canonical_slug or '') else \
                               'Your in-game name/ID'
 
+        # Section completeness for progressive disclosure summary bar
+        section_flags = [
+            ('identity', identity_complete),
+            ('game', game_complete),
+        ]
+        if is_team:
+            section_flags.append(('team', team is not None))
+        section_flags.append(('contact', True))   # always has a default
+        section_flags.append(('details', True))    # read-only info
+        if tournament.has_entry_fee:
+            section_flags.append(('payment', False))  # needs user action
+        section_flags.append(('terms', False))  # needs checkboxes
+
+        sections_total = len(section_flags)
+        sections_complete = sum(1 for _, done in section_flags if done)
+        sections_needing_input = sections_total - sections_complete
+
+        # ── Custom Questions ──
+        custom_questions = list(
+            RegistrationQuestion.objects.filter(
+                db_models.Q(tournament=tournament) | db_models.Q(game=tournament.game, tournament__isnull=True),
+                is_active=True,
+            ).order_by('order', 'id')
+        )
+        # Filter by scope: for solo tournaments, exclude team-level questions
+        if not is_team:
+            custom_questions = [q for q in custom_questions if q.scope != RegistrationQuestion.TEAM_LEVEL]
+
         return {
             'tournament': tournament,
             'game_spec': game_spec,
@@ -178,6 +239,23 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             'deltacoin_balance': deltacoin_balance,
             'game_id_label': game_id_label,
             'game_id_placeholder': game_id_placeholder,
+            'sections_complete': sections_complete,
+            'sections_total': sections_total,
+            'sections_needing_input': sections_needing_input,
+            'custom_questions': custom_questions,
+            'refund_policy': tournament.refund_policy,
+            'refund_policy_display': tournament.get_refund_policy_display(),
+            'refund_policy_text': tournament.refund_policy_text,
+            # Guest team context
+            'is_guest_team': is_guest_team,
+            'allows_guest_teams': allows_guest,
+            'guest_slots_remaining': guest_slots_remaining,
+            'max_guest_teams': getattr(tournament, 'max_guest_teams', 0),
+            # Waitlist context
+            'is_waitlist': is_waitlist,
+            'waitlist_count': waitlist_count,
+            # Display name override
+            'allow_display_name_override': getattr(tournament, 'allow_display_name_override', False),
         }
 
     def _build_fields(self, user, tournament, autofill_data, game_spec):
@@ -246,8 +324,8 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             },
             'display_name': {
                 'value': user.username,
-                'locked': True,
-                'source': 'username',
+                'locked': not getattr(tournament, 'allow_display_name_override', False),
+                'source': 'username' if not getattr(tournament, 'allow_display_name_override', False) else 'editable',
             },
             'email': {
                 'value': user.email,
@@ -295,22 +373,72 @@ class SmartRegistrationView(LoginRequiredMixin, View):
     def _resolve_team(self, request, tournament):
         """
         Resolve team for team tournaments.
+
+        Permission logic mirrors ``_check_team_eligibility`` in the
+        eligibility service.  A user can register a team if ANY of:
+          1. Role is OWNER or MANAGER on the membership
+          2. ``is_tournament_captain`` flag is set
+          3. Granular ``register_tournaments`` permission in JSON overrides
+          4. User created the team (``team.created_by == user``)
+          5. User is CEO of the team's owning Organization
+          6. User is CEO/MANAGER in the owning Organization's membership
+
         Returns (selected_team_or_None, list_of_user_teams).
         """
         user = request.user
-
-        # Get user's active team memberships where they can register
-        # (OWNER, MANAGER, or is_tournament_captain)
         from django.db.models import Q
-        eligible_memberships = TeamMembership.objects.filter(
-            user=user,
-            status=TeamMembership.Status.ACTIVE,
-            team__game_id=tournament.game_id,
-        ).filter(
-            Q(role__in=['OWNER', 'MANAGER']) | Q(is_tournament_captain=True)
-        ).select_related('team')
+        from apps.organizations.models import Organization, OrganizationMembership
 
-        user_teams = [m.team for m in eligible_memberships]
+        # ── 1. Teams via direct membership ──────────────────────────────
+        memberships = list(
+            TeamMembership.objects.filter(
+                user=user,
+                status=TeamMembership.Status.ACTIVE,
+                team__game_id=tournament.game_id,
+                team__status='ACTIVE',
+            ).select_related('team')
+        )
+
+        # Filter in Python: role/captain/granular permission
+        direct_teams = {}          # team_id → Team
+        for m in memberships:
+            if (
+                m.role in ['OWNER', 'MANAGER']
+                or m.is_tournament_captain
+                or m.has_permission('register_tournaments')
+            ):
+                direct_teams[m.team_id] = m.team
+
+        # ── 2. Teams via org-level authority (CEO / org MANAGER) ────────
+        ceo_org_ids = set(
+            Organization.objects.filter(ceo=user).values_list('id', flat=True)
+        )
+        staff_org_ids = set(
+            OrganizationMembership.objects.filter(
+                user=user, role__in=['CEO', 'MANAGER']
+            ).values_list('organization_id', flat=True)
+        )
+        all_org_ids = ceo_org_ids | staff_org_ids
+
+        if all_org_ids:
+            org_teams = Team.objects.filter(
+                game_id=tournament.game_id,
+                organization_id__in=all_org_ids,
+                status='ACTIVE',
+            )
+            for t in org_teams:
+                direct_teams.setdefault(t.id, t)
+
+        # ── 3. Teams the user personally created ────────────────────────
+        created_teams = Team.objects.filter(
+            created_by=user,
+            game_id=tournament.game_id,
+            status='ACTIVE',
+        )
+        for t in created_teams:
+            direct_teams.setdefault(t.id, t)
+
+        user_teams = list(direct_teams.values())
 
         if not user_teams:
             return None, []
@@ -323,10 +451,11 @@ class SmartRegistrationView(LoginRequiredMixin, View):
         team_id = request.GET.get('team_id') or request.POST.get('team_id')
         if team_id:
             try:
-                selected = Team.objects.get(id=int(team_id))
-                if selected in user_teams:
+                tid = int(team_id)
+                selected = direct_teams.get(tid)
+                if selected:
                     return selected, user_teams
-            except (Team.DoesNotExist, ValueError):
+            except (ValueError, TypeError):
                 pass
 
         return None, user_teams
@@ -335,10 +464,13 @@ class SmartRegistrationView(LoginRequiredMixin, View):
     # Registration Processing
     # ──────────────────────────────────────────────
 
-    def _process_registration(self, request, tournament):
+    def _process_registration(self, request, tournament, eligibility=None):
         """Process form submission: create Registration + Payment."""
         user = request.user
         is_team = tournament.participation_type == Tournament.TEAM
+        
+        # Detect guest team submission
+        is_guest_team = request.POST.get('registration_type') == 'guest_team'
 
         # Collect form data
         form_data = request.POST
@@ -361,9 +493,35 @@ class SmartRegistrationView(LoginRequiredMixin, View):
         if not registration_data['game_id']:
             raise ValidationError("Game ID is required for registration.")
 
-        # Team ID
+        # Team ID / Guest team data
         team_id = None
-        if is_team:
+        guest_team_data = None
+        
+        if is_guest_team:
+            # Collect guest team fields
+            guest_team_data = {
+                'team_name': form_data.get('guest_team_name', '').strip(),
+                'team_tag': form_data.get('guest_team_tag', '').strip(),
+                'justification': form_data.get('guest_team_justification', '').strip(),
+                'members': [],
+            }
+            
+            # Collect member fields (dynamic rows, indexed 0..N)
+            idx = 0
+            while True:
+                member_gid = form_data.get(f'member_game_id_{idx}', '').strip()
+                member_name = form_data.get(f'member_display_name_{idx}', '').strip()
+                if not member_gid and not member_name:
+                    break
+                if member_gid:
+                    guest_team_data['members'].append({
+                        'game_id': member_gid,
+                        'display_name': member_name or member_gid,
+                    })
+                idx += 1
+                if idx > 20:  # safety cap
+                    break
+        elif is_team:
             team_id_str = form_data.get('team_id', '')
             if not team_id_str:
                 raise ValidationError("Please select a team for registration.")
@@ -375,11 +533,82 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             user=user,
             team_id=team_id,
             registration_data=registration_data,
+            is_guest_team=is_guest_team,
+            guest_team_data=guest_team_data,
         )
+
+        # ── Capture Lineup Snapshot (team tournaments) ──
+        if is_team and team_id:
+            try:
+                roster_qs = TeamMembership.objects.filter(
+                    team_id=team_id,
+                    status=TeamMembership.Status.ACTIVE,
+                ).select_related('user')
+
+                snapshot = []
+                for member in roster_qs:
+                    snapshot.append({
+                        'user_id': member.user_id,
+                        'username': member.user.username,
+                        'role': member.role,
+                        'display_name': member.display_name or member.user.username,
+                    })
+
+                registration.lineup_snapshot = snapshot
+                registration.save(update_fields=['lineup_snapshot'])
+            except Exception as e:
+                logger.warning(f"Failed to capture lineup snapshot: {e}")
 
         # Handle payment
         if tournament.has_entry_fee:
             self._process_payment(request, registration, tournament)
+
+        # ── Save Custom Question Answers ──
+        custom_questions = RegistrationQuestion.objects.filter(
+            db_models.Q(tournament=tournament) | db_models.Q(game=tournament.game, tournament__isnull=True),
+            is_active=True,
+        )
+        if not is_team:
+            custom_questions = custom_questions.exclude(scope=RegistrationQuestion.TEAM_LEVEL)
+
+        answers_to_create = []
+        for question in custom_questions:
+            field_name = f'custom_q_{question.id}'
+            if question.type == RegistrationQuestion.MULTI_SELECT:
+                raw_value = form_data.getlist(field_name)
+                value = raw_value if raw_value else []
+            elif question.type == RegistrationQuestion.BOOLEAN:
+                value = field_name in form_data
+            elif question.type == RegistrationQuestion.FILE:
+                if field_name in request.FILES:
+                    # Store filename reference — file handling can be extended later
+                    value = request.FILES[field_name].name
+                else:
+                    value = ''
+            else:
+                value = form_data.get(field_name, '').strip()
+
+            # Validate required
+            if question.is_required and not value:
+                raise ValidationError(f'"{question.text}" is required.')
+
+            if value or value == 0 or value is False:
+                answers_to_create.append(RegistrationAnswer(
+                    registration=registration,
+                    question=question,
+                    value=value if isinstance(value, (list, bool)) else str(value),
+                    normalized_value=str(value).lower() if isinstance(value, str) else str(value),
+                ))
+
+        if answers_to_create:
+            RegistrationAnswer.objects.bulk_create(answers_to_create)
+
+        # P2-T07: Delete draft on successful registration
+        RegistrationDraft.objects.filter(
+            user=user,
+            tournament=tournament,
+            submitted=False,
+        ).update(submitted=True)
 
         return registration
 
@@ -515,5 +744,74 @@ class SmartRegistrationSuccessView(LoginRequiredMixin, View):
             'team': registration.team,
             'game_color': game_color,
             'game_color_rgb': game_color_rgb,
+        })
+
+
+class SmartDraftSaveAPIView(LoginRequiredMixin, View):
+    """P2-T07: Auto-save draft for smart registration (JSON API)."""
+
+    def post(self, request, slug=None, tournament_slug=None):
+        import json as _json
+        actual_slug = slug or tournament_slug
+        tournament = get_object_or_404(Tournament, slug=actual_slug)
+
+        try:
+            body = _json.loads(request.body)
+        except (ValueError, TypeError):
+            return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+        form_data = body.get('form_data', {})
+        if not isinstance(form_data, dict):
+            return JsonResponse({'success': False, 'error': 'form_data must be a dict'}, status=400)
+
+        draft, created = RegistrationDraft.objects.get_or_create(
+            user=request.user,
+            tournament=tournament,
+            defaults={
+                'registration_number': f"DRF-{tournament.id}-{request.user.id}",
+                'form_data': form_data,
+                'expires_at': timezone.now() + timezone.timedelta(days=7),
+            }
+        )
+
+        if not created:
+            draft.form_data = form_data
+            draft.expires_at = timezone.now() + timezone.timedelta(days=7)
+            draft.save(update_fields=['form_data', 'expires_at', 'updated_at'])
+
+        return JsonResponse({
+            'success': True,
+            'draft_uuid': str(draft.uuid),
+            'saved_at': draft.last_saved_at.isoformat() if draft.last_saved_at else None,
+        })
+
+
+class SmartDraftGetAPIView(LoginRequiredMixin, View):
+    """P2-T07: Retrieve saved draft for smart registration (JSON API)."""
+
+    def get(self, request, slug=None, tournament_slug=None):
+        actual_slug = slug or tournament_slug
+        tournament = get_object_or_404(Tournament, slug=actual_slug)
+
+        try:
+            draft = RegistrationDraft.objects.get(
+                user=request.user,
+                tournament=tournament,
+                submitted=False,
+            )
+        except RegistrationDraft.DoesNotExist:
+            return JsonResponse({'success': True, 'draft': None})
+
+        if draft.is_expired():
+            draft.delete()
+            return JsonResponse({'success': True, 'draft': None})
+
+        return JsonResponse({
+            'success': True,
+            'draft': {
+                'uuid': str(draft.uuid),
+                'form_data': draft.form_data,
+                'saved_at': draft.last_saved_at.isoformat() if draft.last_saved_at else None,
+            },
         })
 

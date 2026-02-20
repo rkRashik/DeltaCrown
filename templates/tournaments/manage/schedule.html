@@ -1,0 +1,430 @@
+{% extends "tournaments/manage/_base.html" %}
+{% load humanize %}
+
+{% block manage_content %}
+<div class="space-y-6">
+  {# ── Header ── #}
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-xl font-display font-bold text-white">Schedule</h2>
+      <p class="text-sm text-white/50 mt-1">Tournament timeline, check-in windows, and round scheduling</p>
+    </div>
+  </div>
+
+  {# ── Tournament Timeline ── #}
+  <div class="liquid-glass rounded-2xl p-6">
+    <h3 class="section-title mb-4">Tournament Timeline</h3>
+    <div class="relative pl-8 space-y-6">
+      <div class="timeline-line"></div>
+
+      {# Registration Period #}
+      <div class="flex items-start gap-3">
+        <div class="timeline-dot {% if tournament.registration_start %}completed{% endif %}"></div>
+        <div>
+          <p class="text-sm font-semibold text-white">Registration Opens</p>
+          <p class="text-xs text-white/45 font-mono">
+            {% if tournament.registration_start %}
+              {{ tournament.registration_start|date:"M d, Y — h:i A" }}
+            {% else %}
+              Not set
+            {% endif %}
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-3">
+        <div class="timeline-dot {% if tournament.registration_end %}completed{% endif %}"></div>
+        <div>
+          <p class="text-sm font-semibold text-white">Registration Closes</p>
+          <p class="text-xs text-white/45 font-mono">
+            {% if tournament.registration_end %}
+              {{ tournament.registration_end|date:"M d, Y — h:i A" }}
+            {% else %}
+              Not set
+            {% endif %}
+          </p>
+        </div>
+      </div>
+
+      {# Check-In Window #}
+      {% if tournament.enable_check_in %}
+      <div class="flex items-start gap-3">
+        <div class="timeline-dot"></div>
+        <div>
+          <p class="text-sm font-semibold text-white">Check-In Window</p>
+          <p class="text-xs text-white/45">
+            Opens {{ tournament.check_in_minutes_before|default:30 }} minutes before tournament start
+          </p>
+        </div>
+      </div>
+      {% endif %}
+
+      {# Tournament Start #}
+      <div class="flex items-start gap-3">
+        <div class="timeline-dot"></div>
+        <div>
+          <p class="text-sm font-semibold text-white">Tournament Starts</p>
+          <p class="text-xs text-white/45 font-mono">
+            {% if tournament.tournament_start %}
+              {{ tournament.tournament_start|date:"M d, Y — h:i A" }}
+            {% else %}
+              Not set
+            {% endif %}
+          </p>
+        </div>
+      </div>
+
+      {# Tournament End #}
+      <div class="flex items-start gap-3">
+        <div class="timeline-dot"></div>
+        <div>
+          <p class="text-sm font-semibold text-white">Tournament Ends</p>
+          <p class="text-xs text-white/45 font-mono">
+            {% if tournament.tournament_end %}
+              {{ tournament.tournament_end|date:"M d, Y — h:i A" }}
+            {% else %}
+              Not set
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Check-In Control Panel ── #}
+  {% if tournament.enable_check_in %}
+  <div class="liquid-glass rounded-2xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="section-title">Check-In Control Panel</h3>
+      {% if checkin_window.is_open %}
+        <span class="badge badge-green">Window Open</span>
+      {% elif checkin_window.can_open_early %}
+        <span class="badge badge-yellow">Not Yet Open</span>
+      {% else %}
+        <span class="badge badge-gray">Closed</span>
+      {% endif %}
+    </div>
+
+    {# Stats bar #}
+    <div class="grid grid-cols-3 gap-4 mb-5">
+      <div class="metric-card">
+        <p class="text-xs text-white/45 uppercase tracking-wider font-bold mb-1">Confirmed</p>
+        <p class="text-2xl font-display font-bold text-white">{{ checkin_stats.total_confirmed|default:0 }}</p>
+      </div>
+      <div class="metric-card">
+        <p class="text-xs text-white/45 uppercase tracking-wider font-bold mb-1">Checked In</p>
+        <p class="text-2xl font-display font-bold text-emerald-400">{{ checkin_stats.checked_in|default:0 }}</p>
+      </div>
+      <div class="metric-card">
+        <p class="text-xs text-white/45 uppercase tracking-wider font-bold mb-1">Not Checked In</p>
+        <p class="text-2xl font-display font-bold text-amber-400">{{ checkin_stats.not_checked_in|default:0 }}</p>
+      </div>
+    </div>
+
+    {# Progress bar #}
+    {% if checkin_stats.total_confirmed %}
+    <div class="mb-5">
+      <div class="flex items-center justify-between text-xs text-white/50 mb-1.5">
+        <span>Check-in progress</span>
+        <span class="font-mono">{{ checkin_stats.percentage }}%</span>
+      </div>
+      <div class="w-full h-2 rounded-full bg-white/[0.06]">
+        <div class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all"
+             style="width: {{ checkin_stats.percentage }}%"></div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Bulk actions #}
+    <div class="flex flex-wrap items-center gap-2 mb-5">
+      <button onclick="closeDropNoshows('{{ tournament.slug }}')"
+              class="btn-secondary text-xs !py-1.5 !px-3 hover:!border-red-500/30 hover:!text-red-400">
+        <i data-lucide="user-x" class="w-3.5 h-3.5"></i>
+        Close &amp; Drop All No-Shows
+      </button>
+    </div>
+
+    {# Participant list #}
+    {% if checkin_registrations %}
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Participant</th>
+            <th>Status</th>
+            <th>Checked In At</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for reg in checkin_registrations %}
+          <tr class="group" id="checkin-row-{{ reg.id }}">
+            <td>
+              <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center text-xs font-bold text-white/60 flex-shrink-0">
+                  {% if reg.user %}{{ reg.user.username|first|upper }}{% else %}?{% endif %}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm text-white/70">
+                    {% if reg.team %}{{ reg.team.name }}{% elif reg.user %}{{ reg.user.username }}{% else %}Unknown{% endif %}
+                  </p>
+                  {% if reg.team and reg.user %}
+                    <p class="text-xs text-white/35">{{ reg.user.username }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td>
+              {% if reg.checked_in %}
+                <span class="badge badge-green">Checked In</span>
+              {% else %}
+                <span class="badge badge-yellow">Waiting</span>
+              {% endif %}
+            </td>
+            <td class="text-xs text-white/40 font-mono">
+              {% if reg.checked_in_at %}{{ reg.checked_in_at|date:"h:i A" }}{% else %}—{% endif %}
+            </td>
+            <td class="text-right">
+              <div class="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition">
+                {% if not reg.checked_in %}
+                  <button onclick="forceCheckin('{{ tournament.slug }}', {{ reg.id }})"
+                          title="Force Check-In"
+                          class="p-1.5 rounded-lg hover:bg-emerald-500/15 text-white/20 hover:text-emerald-400 transition">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                  </button>
+                  <button onclick="dropNoshow('{{ tournament.slug }}', {{ reg.id }})"
+                          title="Drop (No-Show)"
+                          class="p-1.5 rounded-lg hover:bg-red-500/15 text-white/20 hover:text-red-400 transition">
+                    <i data-lucide="user-x" class="w-3.5 h-3.5"></i>
+                  </button>
+                {% else %}
+                  <button onclick="toggleCheckin('{{ tournament.slug }}', {{ reg.id }})"
+                          title="Undo Check-In"
+                          class="p-1.5 rounded-lg hover:bg-amber-500/15 text-white/20 hover:text-amber-400 transition">
+                    <i data-lucide="undo-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state py-8">
+      <i data-lucide="user-check" class="w-8 h-8 mx-auto"></i>
+      <p class="text-sm">No confirmed participants yet</p>
+      <p class="sub">Confirmed registrations will appear here for check-in management.</p>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# ── Round-by-Round Schedule ── #}
+  {% if rounds_data %}
+  <div class="liquid-glass rounded-2xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="section-title">Round Schedule</h3>
+      <div class="flex items-center gap-2">
+        <button onclick="bulkShiftAll('{{ tournament.slug }}', 30)"
+                class="btn-secondary text-xs !py-1.5 !px-3">
+          <i data-lucide="clock" class="w-3.5 h-3.5"></i> Shift All +30 min
+        </button>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      {% for round in rounds_data %}
+      <div class="border border-white/[0.06] rounded-xl overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-3 bg-white/[0.03]">
+          <div class="flex items-center gap-3">
+            <span class="badge badge-blue font-mono text-xs">Round {{ round.round_number }}</span>
+            <span class="text-xs text-white/40">{{ round.total }} match{{ round.total|pluralize:"es" }}</span>
+            {% if round.all_scheduled %}
+              <span class="badge badge-green text-xs">Scheduled</span>
+            {% elif round.scheduled > 0 %}
+              <span class="badge badge-yellow text-xs">{{ round.scheduled }}/{{ round.total }}</span>
+            {% else %}
+              <span class="badge badge-gray text-xs">Unscheduled</span>
+            {% endif %}
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="showAutoScheduleModal({{ round.round_number }})"
+                    class="btn-secondary text-xs !py-1 !px-2.5"
+                    title="Auto-schedule this round">
+              <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i> Auto-Schedule
+            </button>
+            <button onclick="addBreakAfter('{{ tournament.slug }}', {{ round.round_number }})"
+                    class="btn-secondary text-xs !py-1 !px-2.5"
+                    title="Insert 15-min break after this round">
+              <i data-lucide="coffee" class="w-3.5 h-3.5"></i> Add Break
+            </button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="w-20">Match</th>
+                <th>Participants</th>
+                <th>State</th>
+                <th>Scheduled Time</th>
+                <th class="text-right w-28">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for match in round.matches %}
+              <tr class="group" id="match-row-{{ match.id }}">
+                <td><span class="badge badge-blue font-mono text-xs">M{{ match.match_number }}</span></td>
+                <td>
+                  <span class="text-sm text-white">
+                    {{ match.participant1_name|default:"TBD" }}
+                    <span class="text-white/30 mx-1">vs</span>
+                    {{ match.participant2_name|default:"TBD" }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge {% if match.state == 'completed' %}badge-green{% elif match.state == 'live' %}badge-green{% elif match.state == 'scheduled' %}badge-yellow{% elif match.state == 'cancelled' or match.state == 'forfeit' %}badge-red{% else %}badge-gray{% endif %} text-xs">
+                    {{ match.get_state_display }}
+                  </span>
+                </td>
+                <td>
+                  {% if match.scheduled_time %}
+                    <span class="text-xs text-white/60 font-mono">{{ match.scheduled_time|date:"M d, h:i A" }}</span>
+                  {% else %}
+                    <span class="text-xs text-white/30">Not set</span>
+                  {% endif %}
+                </td>
+                <td class="text-right">
+                  <div class="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition">
+                    <button onclick="rescheduleMatch('{{ tournament.slug }}', {{ match.id }})"
+                            title="Reschedule"
+                            class="p-1.5 rounded-lg hover:bg-cyan-500/15 text-white/20 hover:text-cyan-400 transition">
+                      <i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="liquid-glass rounded-2xl empty-state">
+    <i data-lucide="calendar-clock" class="w-12 h-12 mx-auto"></i>
+    <p>No matches generated yet</p>
+    <p class="sub">Generate brackets first, then come here to schedule matches.</p>
+  </div>
+  {% endif %}
+
+  {# ── Auto-Schedule Modal ── #}
+  <div id="auto-schedule-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div class="liquid-glass rounded-2xl p-6 w-full max-w-md">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-display font-bold text-white">Auto-Schedule Round</h3>
+        <button onclick="closeAutoScheduleModal()" class="text-white/30 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <input type="hidden" id="as-round" value="">
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs text-white/50 mb-1">Start Time</label>
+          <input type="datetime-local" id="as-start-time" class="form-input w-full" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-white/50 mb-1">Slot Duration (min)</label>
+            <input type="number" id="as-slot-duration" class="form-input w-full" value="30" min="5" />
+          </div>
+          <div>
+            <label class="block text-xs text-white/50 mb-1">Gap Between (min)</label>
+            <input type="number" id="as-gap" class="form-input w-full" value="5" min="0" />
+          </div>
+        </div>
+        <button onclick="submitAutoSchedule('{{ tournament.slug }}')" class="btn-primary w-full">
+          <i data-lucide="calendar-check" class="w-4 h-4"></i> Schedule Round
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+function getCookie(name) {
+  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return v ? v.pop() : '';
+}
+const csrfHeaders = { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' };
+
+function postAction(url, onSuccess) {
+  fetch(url, { method: 'POST', headers: csrfHeaders, credentials: 'same-origin' })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) { onSuccess(data); location.reload(); }
+    else { alert(data.error || 'Action failed.'); }
+  })
+  .catch(() => alert('Network error.'));
+}
+
+function postJSON(url, body, onSuccess) {
+  fetch(url, { method: 'POST', headers: csrfHeaders, credentials: 'same-origin', body: JSON.stringify(body) })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) { onSuccess(data); location.reload(); }
+    else { alert(data.error || 'Action failed.'); }
+  })
+  .catch(() => alert('Network error.'));
+}
+
+/* Check-in actions */
+function forceCheckin(slug, regId) { postAction(`/tournaments/organizer/${slug}/force-checkin/${regId}/`, () => {}); }
+function dropNoshow(slug, regId) { if (!confirm('Drop this participant as a no-show?')) return; postAction(`/tournaments/organizer/${slug}/drop-noshow/${regId}/`, () => {}); }
+function toggleCheckin(slug, regId) { postAction(`/tournaments/organizer/${slug}/toggle-checkin/${regId}/`, () => {}); }
+function closeDropNoshows(slug) { if (!confirm('This will drop ALL participants who have not checked in. Continue?')) return; postAction(`/tournaments/organizer/${slug}/close-drop-noshows/`, () => {}); }
+
+/* Schedule actions */
+function showAutoScheduleModal(roundNumber) {
+  document.getElementById('as-round').value = roundNumber;
+  document.getElementById('auto-schedule-modal').classList.remove('hidden');
+}
+function closeAutoScheduleModal() { document.getElementById('auto-schedule-modal').classList.add('hidden'); }
+
+function submitAutoSchedule(slug) {
+  const rn = document.getElementById('as-round').value;
+  const st = document.getElementById('as-start-time').value;
+  const sd = document.getElementById('as-slot-duration').value;
+  const gp = document.getElementById('as-gap').value;
+  if (!st) { alert('Please select a start time.'); return; }
+  postJSON(`/tournaments/organizer/${slug}/auto-schedule-round/`, {
+    round_number: parseInt(rn), start_time: st,
+    slot_duration: parseInt(sd), gap_minutes: parseInt(gp),
+  }, () => {});
+  closeAutoScheduleModal();
+}
+
+function bulkShiftAll(slug, mins) {
+  if (!confirm(`Shift all unfinished matches by +${mins} minutes?`)) return;
+  postJSON(`/tournaments/organizer/${slug}/bulk-shift-matches/`, { delta_minutes: mins }, () => {});
+}
+
+function addBreakAfter(slug, rn) {
+  const mins = prompt('Break duration in minutes:', '15');
+  if (!mins) return;
+  postJSON(`/tournaments/organizer/${slug}/add-schedule-break/`, { after_round: rn, break_minutes: parseInt(mins) }, () => {});
+}
+
+function rescheduleMatch(slug, matchId) {
+  const t = prompt('New scheduled time (YYYY-MM-DD HH:MM):');
+  if (!t) return;
+  postJSON(`/tournaments/organizer/${slug}/reschedule-match/${matchId}/`, { scheduled_time: t }, () => {});
+}
+</script>
+{% endblock %}
+{% endblock %}

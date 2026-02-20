@@ -109,7 +109,9 @@ class RegistrationService:
         tournament_id: int,
         user,
         team_id: Optional[int] = None,
-        registration_data: Optional[Dict[str, Any]] = None
+        registration_data: Optional[Dict[str, Any]] = None,
+        is_guest_team: bool = False,
+        guest_team_data: Optional[Dict[str, Any]] = None,
     ) -> Registration:
         """
         Register a participant (user or team) for a tournament.
@@ -124,6 +126,13 @@ class RegistrationService:
                 - notes (str): Additional notes
                 - custom_fields (dict): Tournament-specific custom fields
                 - team_roster (list): For team registrations
+            is_guest_team: Whether this is a guest (ad-hoc) team registration
+            guest_team_data: Guest team details when is_guest_team=True
+                - team_name (str): Name of the guest team
+                - team_tag (str): Short tag/abbreviation (max 6 chars)
+                - captain (dict): { 'game_id': ..., 'display_name': ... }
+                - members (list[dict]): [{ 'game_id': ..., 'display_name': ... }, ...]
+                - justification (str): Optional reason for guest team
         
         Returns:
             Registration: Created registration instance
@@ -143,18 +152,27 @@ class RegistrationService:
             ...     }
             ... )
         """
-        # Get tournament
+        # Get tournament with lock for capacity checks
         try:
-            tournament = Tournament.objects.select_related('game').get(id=tournament_id)
+            tournament = Tournament.objects.select_related('game').select_for_update().get(id=tournament_id)
         except Tournament.DoesNotExist:
             raise ValidationError(f"Tournament with ID {tournament_id} not found")
         
-        # Validate eligibility
+        # Validate eligibility (skips team requirement for guest teams)
         RegistrationService.check_eligibility(
             tournament=tournament,
             user=user,
-            team_id=team_id
+            team_id=team_id,
+            is_guest_team=is_guest_team,
         )
+        
+        # Guest team validations
+        if is_guest_team:
+            RegistrationService._validate_guest_team(
+                tournament=tournament,
+                user=user,
+                guest_team_data=guest_team_data,
+            )
         
         # Auto-fill registration data from user profile if not provided
         if registration_data is None:
@@ -167,28 +185,79 @@ class RegistrationService:
         # Merge auto-filled with provided data (provided data takes precedence)
         merged_data = {**auto_filled_data, **registration_data}
         
+        # Store guest team data in registration_data JSON
+        if is_guest_team and guest_team_data:
+            merged_data['guest_team'] = guest_team_data
+        
+        # Duplicate game ID detection
+        game_id = merged_data.get('game_id', '')
+        if game_id:
+            RegistrationService._check_duplicate_game_id(
+                tournament=tournament,
+                game_id=game_id,
+                exclude_user=user,
+            )
+        
+        # Determine registration status based on capacity
+        current_registrations = Registration.objects.filter(
+            tournament=tournament,
+            status__in=[Registration.PENDING, Registration.PAYMENT_SUBMITTED, Registration.CONFIRMED],
+            is_deleted=False,
+        ).count()
+        
+        at_capacity = current_registrations >= tournament.max_participants
+        
+        if is_guest_team:
+            initial_status = Registration.PENDING  # Guest teams always start as PENDING for review
+        elif at_capacity:
+            initial_status = Registration.WAITLISTED
+        else:
+            initial_status = Registration.PENDING
+        
         # Create registration
         # Note: For team registrations, user must be None (XOR constraint)
+        # For guest teams: user is set, team_id is None, is_guest_team=True
         registration = Registration(
             tournament=tournament,
-            user=None if team_id else user,
-            team_id=team_id,
+            user=user if (is_guest_team or not team_id) else None,
+            team_id=team_id if not is_guest_team else None,
             registration_data=merged_data,
-            status=Registration.PENDING
+            status=initial_status,
+            is_guest_team=is_guest_team,
         )
+        
+        # Assign waitlist position if waitlisted
+        if initial_status == Registration.WAITLISTED:
+            last_position = Registration.objects.filter(
+                tournament=tournament,
+                status=Registration.WAITLISTED,
+                is_deleted=False,
+            ).aggregate(max_pos=models.Max('waitlist_position'))['max_pos'] or 0
+            registration.waitlist_position = last_position + 1
         
         # Validate
         registration.full_clean()
         registration.save()
         
-        # Publish registration.created event
+        # Publish registration.created event + UserProfile activity tracking
         def _emit_created():
+            try:
+                on_registration_status_change(
+                    user_id=user.id if user else None,
+                    tournament_id=tournament.id,
+                    registration_id=registration.id,
+                    status='created',
+                )
+            except Exception:
+                pass  # Non-blocking
             _publish_registration_event(
                 "registration.created",
                 registration_id=registration.id,
                 tournament_id=tournament.id,
                 team_id=team_id,
                 user_id=user.id if user else None,
+                is_guest_team=is_guest_team,
+                is_waitlisted=initial_status == Registration.WAITLISTED,
                 source="registration_service",
             )
         transaction.on_commit(_emit_created)
@@ -199,7 +268,8 @@ class RegistrationService:
     def check_eligibility(
         tournament: Tournament,
         user,
-        team_id: Optional[int] = None
+        team_id: Optional[int] = None,
+        is_guest_team: bool = False,
     ) -> None:
         """
         Check if a participant is eligible to register for a tournament.
@@ -208,6 +278,7 @@ class RegistrationService:
             tournament: Tournament to check eligibility for
             user: User attempting to register
             team_id: Team ID if registering as a team
+            is_guest_team: Whether this is a guest team registration
         
         Raises:
             ValidationError: If participant is not eligible
@@ -215,9 +286,9 @@ class RegistrationService:
         Validation Rules:
             1. Tournament must be accepting registrations (status = REGISTRATION_OPEN)
             2. Registration period must be active (within registration_start and registration_end)
-            3. Tournament must not be full (check max_participants)
+            3. Tournament capacity check (auto-waitlist when full, no hard reject)
             4. User/team must not already be registered
-            5. Participation type must match (team vs solo)
+            5. Participation type must match (team vs solo; guest teams bypass team requirement)
         """
         # Check tournament status
         if tournament.status != Tournament.REGISTRATION_OPEN:
@@ -236,26 +307,23 @@ class RegistrationService:
                 f"Registration closed on {tournament.registration_end.strftime('%Y-%m-%d %H:%M')}"
             )
         
-        # Check capacity
-        current_registrations = Registration.objects.filter(
-            tournament=tournament,
-            status__in=[Registration.PENDING, Registration.PAYMENT_SUBMITTED, Registration.CONFIRMED],
-            is_deleted=False
-        ).count()
-        
-        if current_registrations >= tournament.max_participants:
-            raise ValidationError(
-                f"Tournament is full ({tournament.max_participants} participants)"
-            )
+        # Capacity check — no longer hard-rejects; register_participant() auto-waitlists
+        # We still hard-reject if waitlist is also disabled in future, but for now allow through
         
         # Check participation type match
-        if tournament.participation_type == Tournament.TEAM and team_id is None:
-            raise ValidationError("This tournament requires team registration")
-        if tournament.participation_type == Tournament.SOLO and team_id is not None:
-            raise ValidationError("This tournament is for solo participants only")
+        # Guest teams bypass the "must have a team_id" requirement for TEAM tournaments
+        if not is_guest_team:
+            if tournament.participation_type == Tournament.TEAM and team_id is None:
+                raise ValidationError("This tournament requires team registration")
+            if tournament.participation_type == Tournament.SOLO and team_id is not None:
+                raise ValidationError("This tournament is for solo participants only")
+        else:
+            # Guest teams only valid for TEAM tournaments
+            if tournament.participation_type != Tournament.TEAM:
+                raise ValidationError("Guest teams are only allowed for team tournaments")
         
         # For team registrations, validate user has permission to register the team
-        if team_id is not None:
+        if team_id is not None and not is_guest_team:
             RegistrationService._validate_team_registration_permission(team_id, user)
         
         # Check for duplicate registration
@@ -268,6 +336,10 @@ class RegistrationService:
         ).first()
         
         if existing_registration:
+            if is_guest_team:
+                raise ValidationError(
+                    "You have already submitted a guest team for this tournament."
+                )
             raise ValidationError("You are already registered for this tournament")
         
         # For team registrations, check if team is already registered
@@ -375,12 +447,250 @@ class RegistrationService:
             data['game_id'] = game_id
         
         # Add optional profile fields if they exist
-        if hasattr(profile, 'discord_id') and profile.discord_id:
-            data['discord_id'] = profile.discord_id
-        if hasattr(profile, 'phone_number') and profile.phone_number:
-            data['phone'] = profile.phone_number
+        # Discord is stored in SocialLink model, not on UserProfile
+        try:
+            from apps.user_profile.models_main import SocialLink
+            discord_link = SocialLink.objects.filter(
+                user=user, platform='discord'
+            ).first()
+            if discord_link and discord_link.handle:
+                data['discord'] = discord_link.handle
+        except Exception:
+            pass
+        if hasattr(profile, 'phone') and profile.phone:
+            data['phone'] = profile.phone
         
         return data
+    
+    @staticmethod
+    def _validate_guest_team(
+        tournament: Tournament,
+        user,
+        guest_team_data: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Validate guest team registration constraints.
+        
+        Checks:
+        1. Tournament allows guest teams (max_guest_teams > 0)
+        2. Guest team cap not reached (atomic check)
+        3. User hasn't already registered a guest team for this tournament
+        4. Required guest_team_data fields are present
+        
+        Raises:
+            ValidationError: If guest team registration is not allowed
+        """
+        # Check if tournament allows guest teams
+        if not getattr(tournament, 'max_guest_teams', 0) or tournament.max_guest_teams <= 0:
+            raise ValidationError(
+                "This tournament does not allow guest team registrations."
+            )
+        
+        # Check guest team cap (atomic, tournament already locked with select_for_update)
+        current_guest_count = Registration.objects.filter(
+            tournament=tournament,
+            is_guest_team=True,
+            is_deleted=False,
+        ).exclude(
+            status__in=[Registration.CANCELLED, Registration.REJECTED]
+        ).count()
+        
+        if current_guest_count >= tournament.max_guest_teams:
+            raise ValidationError(
+                f"Guest team slots are full ({tournament.max_guest_teams} max). "
+                "Consider joining an existing team instead."
+            )
+        
+        # Rate limit: 1 guest team per user per tournament
+        existing_guest = Registration.objects.filter(
+            tournament=tournament,
+            user=user,
+            is_guest_team=True,
+            is_deleted=False,
+        ).exclude(
+            status__in=[Registration.CANCELLED, Registration.REJECTED]
+        ).exists()
+        
+        if existing_guest:
+            raise ValidationError(
+                "You have already submitted a guest team for this tournament."
+            )
+        
+        # Validate required guest_team_data fields
+        if not guest_team_data:
+            raise ValidationError("Guest team details are required.")
+        
+        if not guest_team_data.get('team_name', '').strip():
+            raise ValidationError("Guest team name is required.")
+        
+        if not guest_team_data.get('team_tag', '').strip():
+            raise ValidationError("Guest team tag is required.")
+        
+        tag = guest_team_data['team_tag'].strip()
+        if len(tag) > 6:
+            raise ValidationError("Guest team tag must be 6 characters or fewer.")
+        
+        members = guest_team_data.get('members', [])
+        if not members or len(members) < 1:
+            raise ValidationError(
+                "At least one team member is required for guest team registration."
+            )
+    
+    @staticmethod
+    def _check_duplicate_game_id(
+        tournament: Tournament,
+        game_id: str,
+        exclude_user=None,
+    ) -> None:
+        """
+        Check if a game ID is already used in another active registration.
+        
+        Prevents the same in-game account from appearing in multiple
+        registrations for the same tournament (cross-team duplicate detection).
+        
+        Args:
+            tournament: Tournament to check within
+            game_id: The in-game ID to check
+            exclude_user: User to exclude from the check (for re-registration)
+        
+        Raises:
+            ValidationError: If the game ID is already registered
+        """
+        if not game_id:
+            return
+        
+        normalized_id = game_id.strip().lower()
+        
+        # Check registration_data JSONB for matching game_id (case-insensitive)
+        duplicates = Registration.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+        ).exclude(
+            status__in=[Registration.CANCELLED, Registration.REJECTED]
+        )
+        
+        if exclude_user:
+            duplicates = duplicates.exclude(user=exclude_user)
+        
+        # Use PostgreSQL JSONB lookup for game_id field
+        for reg in duplicates.only('registration_data', 'user', 'team_id'):
+            existing_game_id = (reg.registration_data or {}).get('game_id', '')
+            if existing_game_id and existing_game_id.strip().lower() == normalized_id:
+                participant = f"team #{reg.team_id}" if reg.team_id else "another participant"
+                raise ValidationError(
+                    f"Game ID '{game_id}' is already registered by {participant} in this tournament. "
+                    "Each player may only be registered once."
+                )
+            
+            # Also check member game IDs in guest team data
+            guest_team = (reg.registration_data or {}).get('guest_team', {})
+            for member in guest_team.get('members', []):
+                member_gid = (member.get('game_id', '') or '').strip().lower()
+                if member_gid and member_gid == normalized_id:
+                    team_name = guest_team.get('team_name', 'a guest team')
+                    raise ValidationError(
+                        f"Game ID '{game_id}' is already registered as a member of guest team "
+                        f"'{team_name}' in this tournament."
+                    )
+    
+    @staticmethod
+    @transaction.atomic
+    def promote_from_waitlist(
+        tournament_id: int,
+        registration_id: Optional[int] = None,
+        promoted_by=None,
+    ) -> Optional[Registration]:
+        """
+        Promote a registration from the waitlist.
+        
+        If registration_id is given, promotes that specific registration.
+        Otherwise, promotes the next in FIFO order (lowest waitlist_position).
+        
+        Args:
+            tournament_id: Tournament ID
+            registration_id: Specific registration to promote (optional)
+            promoted_by: Staff user performing the promotion
+        
+        Returns:
+            Registration that was promoted, or None if waitlist is empty
+        
+        Raises:
+            ValidationError: If registration cannot be promoted
+        """
+        tournament = Tournament.objects.select_for_update().get(id=tournament_id)
+        
+        # Check if there's room
+        active_count = Registration.objects.filter(
+            tournament=tournament,
+            status__in=[Registration.PENDING, Registration.PAYMENT_SUBMITTED, Registration.CONFIRMED],
+            is_deleted=False,
+        ).count()
+        
+        if active_count >= tournament.max_participants:
+            raise ValidationError(
+                "Cannot promote from waitlist: tournament is still at capacity."
+            )
+        
+        if registration_id:
+            reg = Registration.objects.select_for_update().get(
+                id=registration_id,
+                tournament=tournament,
+                status=Registration.WAITLISTED,
+                is_deleted=False,
+            )
+        else:
+            # FIFO: get the earliest waitlisted registration
+            reg = Registration.objects.select_for_update().filter(
+                tournament=tournament,
+                status=Registration.WAITLISTED,
+                is_deleted=False,
+            ).order_by('waitlist_position', 'created_at').first()
+        
+        if not reg:
+            return None
+        
+        # Promote
+        old_position = reg.waitlist_position
+        reg.status = Registration.PENDING
+        reg.waitlist_position = None
+        reg.save(update_fields=['status', 'waitlist_position'])
+        
+        # Reorder remaining waitlist positions
+        remaining = Registration.objects.filter(
+            tournament=tournament,
+            status=Registration.WAITLISTED,
+            is_deleted=False,
+        ).order_by('waitlist_position', 'created_at')
+        
+        for idx, waitlisted_reg in enumerate(remaining, start=1):
+            if waitlisted_reg.waitlist_position != idx:
+                waitlisted_reg.waitlist_position = idx
+                waitlisted_reg.save(update_fields=['waitlist_position'])
+        
+        logger.info(
+            "Promoted registration %d from waitlist position %s (by %s)",
+            reg.id, old_position, promoted_by,
+        )
+        
+        return reg
+    
+    @staticmethod
+    @transaction.atomic
+    def auto_promote_waitlist(tournament_id: int) -> Optional[Registration]:
+        """
+        Automatically promote the next waitlisted registration when a slot opens.
+        
+        Called after cancellation, rejection, or disqualification creates a vacancy.
+        
+        Returns:
+            The promoted Registration, or None if waitlist is empty or tournament full.
+        """
+        try:
+            return RegistrationService.promote_from_waitlist(
+                tournament_id=tournament_id,
+            )
+        except (Tournament.DoesNotExist, ValidationError):
+            return None
     
     @staticmethod
     @transaction.atomic
@@ -464,6 +774,10 @@ class RegistrationService:
         # Validate
         payment.full_clean()
         payment.save()
+        
+        # P4-T03: Dual-write to PaymentVerification
+        from apps.tournaments.services.payment_service import _sync_to_payment_verification
+        _sync_to_payment_verification(payment)
         
         # Update registration status
         registration.status = Registration.PAYMENT_SUBMITTED
@@ -738,10 +1052,19 @@ class RegistrationService:
             logger = logging.getLogger(__name__)
             logger.error(f"Failed to send payment pending notification: {e}")
         
-        # TODO: Module 3.2 - Future integration points
-        # - Send notification to organizer (apps.notifications)
-        # - Celery task: send_proof_uploaded_email(payment.id)
-        # - Log proof submission event in audit log
+        # Emit payment.submitted event (P4-T06)
+        _reg_id = registration.id
+        _tourney_id = registration.tournament_id
+        _pay_id = payment.id
+        def _emit_payment_submitted():
+            _publish_registration_event(
+                "payment.submitted",
+                registration_id=_reg_id,
+                tournament_id=_tourney_id,
+                payment_id=_pay_id,
+                source="registration_service",
+            )
+        transaction.on_commit(_emit_payment_submitted)
         
         return payment
     
@@ -937,6 +1260,22 @@ class RegistrationService:
         # - Send rejection notification to participant (apps.notifications)
         # - Explain how to resubmit payment
         
+        # Emit payment.rejected event (P4-T06)
+        _reg_id = registration.id
+        _tourney_id = registration.tournament_id
+        _pay_id = payment_id
+        _reason = reason
+        def _emit_payment_rejected():
+            _publish_registration_event(
+                "payment.rejected",
+                registration_id=_reg_id,
+                tournament_id=_tourney_id,
+                payment_id=_pay_id,
+                reason=_reason,
+                source="registration_service",
+            )
+        transaction.on_commit(_emit_payment_rejected)
+        
         return payment
     
     @staticmethod
@@ -1001,8 +1340,18 @@ class RegistrationService:
                 reason=reason or 'Registration cancelled'
             )
         
-        # Publish registration.cancelled event
+        # Publish registration.cancelled event + UserProfile tracking
         def _emit_cancelled():
+            try:
+                on_registration_status_change(
+                    user_id=registration.user_id,
+                    tournament_id=registration.tournament_id,
+                    registration_id=registration.id,
+                    status='cancelled',
+                    actor_user_id=user.id if user else None,
+                )
+            except Exception:
+                pass  # Non-blocking
             _publish_registration_event(
                 "registration.cancelled",
                 registration_id=registration.id,
@@ -1088,8 +1437,8 @@ class RegistrationService:
         registration.status = 'rejected'
         registration.save()
         
-        # User Profile Integration Hook
-        def _notify_profile():
+        # User Profile Integration Hook + event emission (P4-T06)
+        def _notify_profile_reject():
             try:
                 on_registration_status_change(
                     user_id=registration.user_id,
@@ -1100,7 +1449,15 @@ class RegistrationService:
                 )
             except Exception:
                 pass  # Non-blocking
-        transaction.on_commit(_notify_profile)
+            _publish_registration_event(
+                "registration.rejected",
+                registration_id=registration.id,
+                tournament_id=registration.tournament_id,
+                team_id=registration.team_id,
+                user_id=registration.user_id,
+                source="registration_service",
+            )
+        transaction.on_commit(_notify_profile_reject)
         
         return registration
     
@@ -1432,113 +1789,6 @@ class RegistrationService:
             pass
         
         return (False, "No auto-waive criteria met")
-    
-    @staticmethod
-    @transaction.atomic
-    def promote_from_waitlist(
-        tournament_id: int,
-        promoted_by=None
-    ) -> list[Registration]:
-        """
-        Automatically promote waitlisted participants to confirmed when spots become available.
-        
-        This method is called when:
-        - A confirmed registration is cancelled
-        - Tournament capacity is increased
-        - Admin manually triggers promotion
-        
-        Promotion Logic:
-        1. Check available spots (capacity - confirmed registrations)
-        2. Get waitlisted registrations ordered by waitlist_position (FIFO)
-        3. Promote participants until capacity is filled
-        4. Send notification emails to promoted participants
-        5. Update waitlist positions for remaining participants
-        
-        Args:
-            tournament_id: ID of tournament to process waitlist for
-            promoted_by: User triggering promotion (optional, for audit)
-        
-        Returns:
-            list[Registration]: List of promoted registrations
-        
-        Example:
-            >>> from apps.tournaments.services import RegistrationService
-            >>> promoted = RegistrationService.promote_from_waitlist(tournament_id=42)
-            >>> print(f"Promoted {len(promoted)} participants from waitlist")
-        """
-        from apps.tournaments.models import Tournament
-        from datetime import timedelta
-        
-        # Get tournament
-        try:
-            tournament = Tournament.objects.select_for_update().get(id=tournament_id)
-        except Tournament.DoesNotExist:
-            raise ValidationError(f"Tournament with ID {tournament_id} not found")
-        
-        # Check if tournament has capacity limit
-        if not tournament.max_participants:
-            return []  # Unlimited capacity, no waitlist needed
-        
-        # Count confirmed registrations (excluding soft-deleted)
-        confirmed_count = Registration.objects.filter(
-            tournament=tournament,
-            status=Registration.CONFIRMED,
-            is_deleted=False
-        ).count()
-        
-        # Calculate available spots
-        available_spots = tournament.max_participants - confirmed_count
-        
-        if available_spots <= 0:
-            return []  # No spots available
-        
-        # Get waitlisted registrations ordered by position (FIFO)
-        waitlisted = Registration.objects.filter(
-            tournament=tournament,
-            status=Registration.WAITLISTED,
-            is_deleted=False
-        ).order_by('waitlist_position', 'created_at')[:available_spots]
-        
-        promoted_registrations = []
-        
-        for registration in waitlisted:
-            # Move from waitlist to pending payment status
-            registration.status = Registration.PENDING
-            registration.waitlist_position = None
-            registration.save(update_fields=['status', 'waitlist_position', 'updated_at'])
-            
-            promoted_registrations.append(registration)
-            
-            # Send promotion notification
-            try:
-                from apps.tournaments.services.notification_service import TournamentNotificationService
-                
-                # Calculate payment deadline (24 hours from promotion)
-                payment_deadline = timezone.now() + timedelta(hours=24)
-                
-                TournamentNotificationService.notify_waitlist_promotion(
-                    registration=registration,
-                    payment_deadline=payment_deadline
-                )
-            except Exception as e:
-                # Don't fail promotion if notification fails
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"Failed to send waitlist promotion notification: {e}")
-        
-        # Reorder remaining waitlist positions
-        remaining_waitlisted = Registration.objects.filter(
-            tournament=tournament,
-            status=Registration.WAITLISTED,
-            is_deleted=False
-        ).order_by('waitlist_position', 'created_at')
-        
-        for idx, reg in enumerate(remaining_waitlisted, start=1):
-            if reg.waitlist_position != idx:
-                reg.waitlist_position = idx
-                reg.save(update_fields=['waitlist_position'])
-        
-        return promoted_registrations
     
     @staticmethod
     @transaction.atomic

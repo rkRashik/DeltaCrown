@@ -469,3 +469,49 @@ def broadcast_event(
     except Exception as e:
         logger.error(f"Failed to broadcast {event_type}: {e}")
         return False
+
+
+# ======================================================================== #
+# Live Draw Polling Fallback (P4-T07)
+# ======================================================================== #
+
+def get_draw_results(tournament_id: int) -> Dict[str, Any]:
+    """
+    Get current draw results for a tournament (polling fallback).
+
+    Returns a dict with seeds list and draw status, usable by
+    clients that cannot establish a WebSocket connection.
+    """
+    from apps.tournaments.models import Registration
+
+    registrations = Registration.objects.filter(
+        tournament_id=tournament_id,
+        status=Registration.CONFIRMED,
+        seed__isnull=False,
+        is_deleted=False,
+    ).select_related('user').order_by('seed')
+
+    seeds = []
+    for reg in registrations:
+        name = ''
+        if reg.user:
+            name = reg.user.username
+        elif reg.team_id:
+            try:
+                from apps.organizations.models import Team
+                team = Team.objects.get(id=reg.team_id)
+                name = team.name
+            except Exception:
+                name = f"Team #{reg.team_id}"
+
+        seeds.append({
+            'seed': reg.seed,
+            'name': name,
+            'registration_id': reg.id,
+        })
+
+    return {
+        'status': 'complete' if seeds else 'waiting',
+        'total': len(seeds),
+        'seeds': seeds,
+    }

@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solo Registration | eFootball 2026 Championship</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Rajdhani:wght@500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'dc-cyan': '#06b6d4',
+                        'dc-purple': '#8b5cf6',
+                        'dc-gold': '#facc15',
+                        'dc-bg': '#030303',
+                        'dc-surface': '#0a0a0a',
+                        'dc-card': '#111111',
+                        'bkash-pink': '#e2136e',
+                        'ef-blue': '#1e3a8a',
+                        'ef-neon': '#3b82f6',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'gaming': ['Rajdhani', 'sans-serif'],
+                        'display': ['Space Grotesk', 'sans-serif'],
+                        'mono': ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'slide-in-right': 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-glow': 'pulseGlow 2.5s infinite alternate',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideInRight: {
+                            '0%': { opacity: '0', transform: 'translateX(20px)' },
+                            '100%': { opacity: '1', transform: 'translateX(0)' },
+                        },
+                        pulseGlow: {
+                            '0%': { boxShadow: '0 0 15px rgba(59, 130, 246, 0.2)' },
+                            '100%': { boxShadow: '0 0 35px rgba(59, 130, 246, 0.6)' },
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body {
+            background-color: #030303;
+            color: #e5e5e5;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Cinematic Background Architecture */
+        .bg-cinematic {
+            position: fixed; inset: 0; z-index: -3;
+            background-image: url('https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2671&auto=format&fit=crop'); /* Stadium/Turf Vibe */
+            background-size: cover; background-position: center;
+            filter: brightness(0.2) contrast(1.2) saturate(1.3);
+            transform: scale(1.05);
+            animation: slowPan 40s infinite alternate ease-in-out;
+        }
+
+        @keyframes slowPan {
+            0% { transform: scale(1.05) translate(0, 0); }
+            100% { transform: scale(1.1) translate(-2%, -1%); }
+        }
+
+        .bg-overlay {
+            position: fixed; inset: 0; z-index: -2;
+            background: radial-gradient(circle at 60% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 60%),
+                        linear-gradient(to bottom, rgba(3,3,3,0.6) 0%, #030303 100%);
+        }
+
+        .noise-texture {
+            position: fixed; inset: 0; z-index: -1; opacity: 0.035; pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        /* High-End Glassmorphism */
+        .glass-wizard {
+            background: rgba(10, 10, 10, 0.65);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.9), inset 0 0 0 1px rgba(255,255,255,0.02);
+        }
+
+        /* Custom Inputs & Elements */
+        .input-premium {
+            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 0.75rem; padding: 0.875rem 1.25rem; color: white; font-family: 'Inter', sans-serif;
+            font-size: 0.875rem; transition: all 0.3s ease; outline: none;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .input-premium:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), inset 0 2px 4px rgba(0,0,0,0.2); }
+        .input-premium::placeholder { color: rgba(255,255,255,0.3); font-weight: 400; }
+
+        .input-bkash:focus { border-color: #e2136e; box-shadow: 0 0 0 3px rgba(226, 19, 110, 0.15), inset 0 2px 4px rgba(0,0,0,0.2); }
+
+        .step-hidden { display: none !important; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+
+        /* Receipt Aesthetics */
+        .receipt-edge {
+            background-image: radial-gradient(circle at 10px 0, transparent 10px, rgba(255,255,255,0.05) 11px);
+            background-size: 20px 20px;
+            background-repeat: repeat-x;
+            height: 20px;
+        }
+    </style>
+</head>
+<body class="relative">
+
+    <div class="bg-cinematic"></div>
+    <div class="bg-overlay"></div>
+    <div class="noise-texture"></div>
+
+    <nav class="w-full h-[72px] flex items-center justify-between px-6 md:px-10 border-b border-white/5 relative z-10 bg-black/40 backdrop-blur-md">
+        <a href="#" class="flex items-center gap-3 group">
+            <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                <i data-lucide="x" class="w-4 h-4 text-gray-400 group-hover:text-white transition-colors"></i>
+            </div>
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-white transition-colors hidden sm:block">Abort Protocol</span>
+        </a>
+
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-dc-cyan to-dc-purple flex items-center justify-center font-black text-white text-base shadow-[0_0_15px_rgba(6,182,212,0.3)]">D</div>
+            <div class="h-4 w-px bg-white/10 mx-1 hidden sm:block"></div>
+            <span class="font-display font-bold text-lg tracking-tight text-white hidden sm:block">Delta<span class="text-dc-cyan">Crown</span> Secure</span>
+        </div>
+
+        <div class="flex items-center gap-3 pl-3 border-l border-white/10">
+            <div class="text-right hidden md:block">
+                <p class="text-xs font-bold text-white">Rock</p>
+                <p class="text-[9px] text-gray-500 font-mono uppercase">Solo Competitor</p>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-ef-neon to-dc-cyan p-[1px]">
+                <img src="https://ui-avatars.com/api/?name=Rock&background=000&color=fff" class="w-full h-full rounded-full object-cover border border-black">
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 w-full max-w-[1400px] mx-auto px-4 py-8 md:py-12 flex flex-col items-center justify-center relative z-10">
+
+        <div class="w-full glass-wizard rounded-[2rem] overflow-hidden flex flex-col lg:flex-row min-h-[700px] relative">
+
+            <div id="loading-overlay" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex-col items-center justify-center text-white">
+                <i data-lucide="loader-2" class="w-10 h-10 animate-spin text-ef-neon mb-4"></i>
+                <p class="font-mono text-xs text-ef-neon uppercase tracking-widest">Encrypting Data...</p>
+            </div>
+
+            <div class="w-full lg:w-[380px] bg-black/50 border-r border-white/5 flex flex-col relative overflow-hidden shrink-0" id="sidebar-nav">
+                <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-ef-neon/10 to-transparent pointer-events-none"></div>
+
+                <div class="p-8 pb-6 border-b border-white/5 relative z-10">
+                    <span class="inline-block px-2.5 py-1 bg-ef-neon/10 border border-ef-neon/30 text-ef-neon text-[9px] font-black uppercase tracking-[0.2em] rounded mb-4 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
+                        Solo Registration
+                    </span>
+                    <h1 class="font-display font-black text-3xl text-white leading-tight mb-2">eFootball 2026<br>Championship</h1>
+                    <p class="text-sm text-gray-400">1v1 Mobile Division</p>
+                </div>
+
+                <div class="p-8 border-b border-white/5 bg-white/[0.01]">
+                    <div class="flex justify-between items-end mb-3">
+                        <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Passport Synchronization</h3>
+                        <span class="text-ef-neon font-mono font-bold text-sm">100%</span>
+                    </div>
+                    <div class="w-full bg-black/50 h-1.5 rounded-full overflow-hidden mb-4 border border-white/5">
+                        <div class="bg-ef-neon h-full rounded-full" style="width: 100%"></div>
+                    </div>
+                    <div class="flex items-center gap-2 text-[10px] text-gray-400">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-green-500"></i>
+                        <span>In-game identity verified.</span>
+                    </div>
+                </div>
+
+                <div class="flex-1 p-8 relative">
+                    <div class="absolute left-[47px] top-10 bottom-10 w-px bg-white/10"></div>
+                    <div id="vertical-progress" class="absolute left-[47px] top-10 w-px bg-ef-neon shadow-[0_0_10px_rgba(59,130,246,0.8)] transition-all duration-700 ease-out" style="height: 0%;"></div>
+
+                    <div class="space-y-12 relative z-10">
+                        <div class="flex items-start gap-5 group" id="nav-step-1">
+                            <div class="w-8 h-8 rounded-full bg-ef-neon text-white flex items-center justify-center font-bold text-sm shadow-[0_0_15px_rgba(59,130,246,0.4)] ring-4 ring-black transition-all step-nav-icon relative z-10">
+                                1
+                            </div>
+                            <div class="pt-1.5">
+                                <p class="text-sm font-bold text-white transition-colors step-nav-text">Identity & Comms</p>
+                                <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Verify Player Info</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-5 opacity-50 transition-all duration-300" id="nav-step-2">
+                            <div class="w-8 h-8 rounded-full bg-dc-bg border border-white/20 text-gray-500 flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon relative z-10">
+                                2
+                            </div>
+                            <div class="pt-1.5">
+                                <p class="text-sm font-bold text-gray-400 transition-colors step-nav-text">Secure Entry Fee</p>
+                                <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">bKash Payment Gateway</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-5 opacity-50 transition-all duration-300" id="nav-step-3">
+                            <div class="w-8 h-8 rounded-full bg-dc-bg border border-white/20 text-gray-500 flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon relative z-10">
+                                3
+                            </div>
+                            <div class="pt-1.5">
+                                <p class="text-sm font-bold text-gray-400 transition-colors step-nav-text">Pre-Flight Manifest</p>
+                                <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Review & Lock</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-black/60 border-t border-white/5 mt-auto">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-green-500"></i>
+                        <p class="text-[10px] text-gray-400 font-medium">Auto-verification active. System secure.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col relative bg-gradient-to-br from-white/[0.01] to-transparent w-full">
+
+                <div class="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12 relative" id="wizard-content">
+
+                    <div id="step-1" class="wizard-step animate-slide-in-right">
+                        <div class="mb-8 border-b border-white/10 pb-6">
+                            <h2 class="font-gaming font-bold text-3xl text-white mb-2">Player Identity</h2>
+                            <p class="text-sm text-gray-400 max-w-lg">
+                                Your platform profile and Game Passport have been synchronized. Confirm your details below.
+                            </p>
+                        </div>
+
+                        <div class="bg-gradient-to-r from-ef-blue/20 to-dc-bg border border-white/10 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative overflow-hidden group hover:border-ef-neon/30 transition-colors">
+                            <div class="absolute right-0 top-0 w-32 h-32 bg-ef-neon/10 rounded-full blur-3xl group-hover:bg-ef-neon/20 transition-colors"></div>
+
+                            <div class="w-20 h-20 rounded-2xl bg-black overflow-hidden border border-white/10 relative shrink-0 shadow-lg">
+                                <img src="https://ui-avatars.com/api/?name=Rock&background=000&color=fff" class="w-full h-full object-cover">
+                            </div>
+
+                            <div class="flex-1 text-center sm:text-left z-10">
+                                <span class="px-2 py-0.5 bg-ef-neon/20 text-ef-neon text-[10px] font-bold uppercase tracking-widest rounded mb-2 inline-flex items-center gap-1">
+                                    <i data-lucide="user" class="w-3 h-3"></i> Competitor Profile
+                                </span>
+                                <h3 class="text-2xl font-display font-bold text-white mb-1">Rock</h3>
+                                <p class="text-gray-400 text-xs">DeltaCrown ID: <span class="font-mono text-gray-300">#DC-7742</span></p>
+                            </div>
+                        </div>
+
+                        <div class="mb-8">
+                            <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+                                <i data-lucide="gamepad-2" class="w-4 h-4 text-ef-neon"></i> Primary Game Identity
+                            </h3>
+                            <div class="p-4 rounded-xl flex items-center justify-between bg-ef-neon/5 border border-ef-neon/20 relative overflow-hidden">
+                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-ef-neon"></div>
+                                <div class="flex items-center gap-4 pl-2">
+                                    <div class="w-12 h-12 rounded-lg bg-black flex items-center justify-center border border-white/10 shadow-inner p-1.5">
+                                        <div class="w-full h-full bg-blue-900 rounded flex items-center justify-center text-[10px] font-black text-white italic">eF</div>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">eFootball 2026</p>
+                                        <p class="text-lg font-bold text-white font-mono tracking-wider">SIUU</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-1">
+                                    <i data-lucide="check-circle-2" class="w-5 h-5 text-green-500"></i>
+                                    <span class="text-[9px] font-bold text-green-500 uppercase tracking-widest">Verified</span>
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-gray-500 mt-2 flex items-center gap-1">
+                                <i data-lucide="info" class="w-3 h-3"></i> To update your in-game name, modify your Game Passport in settings.
+                            </p>
+                        </div>
+
+                        <div>
+                            <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+                                <i data-lucide="headset" class="w-4 h-4 text-dc-purple"></i> Match Coordinator Info
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Phone / WhatsApp <span class="text-val-red">*</span></label>
+                                    <div class="relative">
+                                        <div class="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 border-r border-white/10 pr-3">
+                                            <img src="https://flagcdn.com/20x15/bd.png" class="rounded-[2px] opacity-90">
+                                            <span class="text-white font-mono text-sm">+880</span>
+                                        </div>
+                                        <input type="tel" value="1711000000" class="input-premium pl-24 font-mono" id="contact-phone" oninput="checkStep1()">
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Discord ID <span class="text-gray-500">(Optional)</span></label>
+                                    <div class="relative">
+                                        <div class="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400">
+                                            <i data-lucide="message-square" class="w-5 h-5"></i>
+                                        </div>
+                                        <input type="text" placeholder="Username#0000" class="input-premium pl-12" id="contact-discord">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="step-2" class="wizard-step step-hidden animate-slide-in-right">
+
+                        <div class="flex flex-col md:flex-row gap-10">
+
+                            <div class="w-full md:w-1/3">
+                                <h2 class="font-gaming font-bold text-3xl text-white mb-2">Secure Entry</h2>
+                                <p class="text-sm text-gray-400 mb-8">Process payment to lock your slot.</p>
+
+                                <div class="bg-gradient-to-b from-bkash-pink/10 to-transparent border border-bkash-pink/20 rounded-2xl p-6 md:p-8 relative overflow-hidden shadow-xl">
+                                    <div class="absolute -right-6 -bottom-6 opacity-5 pointer-events-none">
+                                        <svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#e2136e" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                    </div>
+
+                                    <div class="flex items-center gap-3 mb-6">
+                                        <div class="w-10 h-10 rounded-lg bg-[#e2136e] flex items-center justify-center shadow-lg shadow-pink-600/30">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                        </div>
+                                        <h3 class="font-bold text-xl text-white">bKash Payment</h3>
+                                    </div>
+
+                                    <div class="mb-6">
+                                        <p class="text-[10px] font-black text-bkash-pink uppercase tracking-widest mb-1">Amount Due</p>
+                                        <div class="flex items-baseline gap-2">
+                                            <span class="text-5xl font-display font-black text-white">৳100</span>
+                                            <span class="text-sm font-bold text-gray-400">BDT</span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-2">Solo Entry Fee</p>
+                                    </div>
+
+                                    <div class="pt-4 border-t border-bkash-pink/20">
+                                        <p class="text-[10px] text-gray-400 leading-relaxed">
+                                            Payments are held in secure escrow until tournament completion.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="w-full md:w-2/3 flex flex-col justify-center">
+
+                                <div class="bg-black/30 border border-white/5 rounded-2xl p-6 md:p-8">
+                                    <h4 class="font-bold text-white mb-6 flex items-center gap-2">
+                                        <i data-lucide="smartphone" class="w-5 h-5 text-gray-400"></i> Instructions
+                                    </h4>
+
+                                    <ol class="space-y-5 text-sm text-gray-300 font-medium mb-8">
+                                        <li class="flex gap-4 items-start">
+                                            <span class="w-6 h-6 rounded-full bg-white/10 text-white flex items-center justify-center text-xs shrink-0 font-bold">1</span>
+                                            <p class="pt-0.5">Go to your bKash App and select <strong class="text-white">Send Money</strong>.</p>
+                                        </li>
+                                        <li class="flex gap-4 items-start">
+                                            <span class="w-6 h-6 rounded-full bg-white/10 text-white flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                                            <div class="w-full pt-0.5">
+                                                <p>Send to the Official DeltaCrown Number:</p>
+                                                <div class="mt-2 flex items-center justify-between px-4 py-3 bg-black rounded-xl border border-white/10 group cursor-pointer hover:border-ef-neon/50 transition-colors">
+                                                    <span class="font-mono text-ef-neon font-bold tracking-widest text-lg select-all">01799-XXXXXX</span>
+                                                    <button class="text-gray-500 group-hover:text-ef-neon transition-colors flex items-center gap-1.5 text-[10px] font-bold uppercase">
+                                                        <i data-lucide="copy" class="w-4 h-4"></i> Copy
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </li>
+                                        <li class="flex gap-4 items-start">
+                                            <span class="w-6 h-6 rounded-full bg-white/10 text-white flex items-center justify-center text-xs font-bold shrink-0">3</span>
+                                            <p class="pt-0.5">Enter exactly <strong class="text-white">৳100</strong>. Enter your in-game name (<span class="text-ef-neon font-bold">SIUU</span>) as the reference.</p>
+                                        </li>
+                                    </ol>
+
+                                    <div class="bg-white/[0.02] p-6 rounded-xl border border-white/10 mt-auto">
+                                        <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3" for="trxid">Enter Transaction ID (TrxID) <span class="text-val-red">*</span></label>
+                                        <div class="relative">
+                                            <input type="text" id="trxid" class="input-premium input-bkash font-mono tracking-widest text-xl text-center uppercase" placeholder="e.g. 9F8A7B6C5D" maxlength="10" oninput="validateTrxId()">
+                                            <div id="trx-icon" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600">
+                                                <i data-lucide="hash" class="w-5 h-5"></i>
+                                            </div>
+                                        </div>
+
+                                        <div id="trx-status" class="mt-3 flex items-center justify-center gap-2 text-xs font-medium text-gray-500 h-5">
+                                            Awaiting 10-character alphanumeric ID
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="step-3" class="wizard-step step-hidden animate-slide-in-right">
+                        <div class="text-center mb-8">
+                            <h2 class="font-display font-black text-4xl text-white tracking-tight uppercase">Registration Manifest</h2>
+                            <p class="text-gray-400 mt-2">Review your entry data. This configuration will be locked upon submission.</p>
+                        </div>
+
+                        <div class="max-w-2xl mx-auto bg-dc-card border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative">
+                            <div class="h-1.5 w-full bg-gradient-to-r from-ef-neon via-dc-cyan to-dc-purple"></div>
+
+                            <div class="p-6 md:p-8">
+                                <div class="flex justify-between items-start mb-8 pb-6 border-b border-white/5">
+                                    <div>
+                                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-ef-neon/10 text-ef-neon text-[9px] font-black uppercase tracking-widest rounded mb-2 border border-ef-neon/20">
+                                            <i data-lucide="user" class="w-3 h-3 fill-current"></i> Solo Entry
+                                        </span>
+                                        <h3 class="font-display font-bold text-2xl text-white">Rock</h3>
+                                        <p class="text-xs text-gray-500 font-mono mt-1">Reg ID: <span class="text-gray-300">#EFC-WIN-1029</span></p>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="px-2 py-1 bg-blue-900 rounded mb-2 inline-block ml-auto border border-blue-700">
+                                            <span class="text-xs font-black text-white italic">eF</span>
+                                        </div>
+                                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">eFootball 2026</p>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-y-6 gap-x-4 mb-8">
+                                    <div>
+                                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Game Identity</p>
+                                        <p class="text-lg font-bold text-white font-mono">SIUU</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Contact Phone</p>
+                                        <p class="text-sm font-bold text-white font-mono">+880 1711000000</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Payment Gateway</p>
+                                        <p class="text-sm font-bold text-bkash-pink flex items-center gap-1">bKash <i data-lucide="check-circle-2" class="w-3 h-3"></i></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Transaction ID</p>
+                                        <p class="text-xs text-white font-mono mt-0.5 px-2 py-1 bg-white/10 rounded inline-block border border-white/5" id="review-trxid">PENDING</p>
+                                    </div>
+                                </div>
+
+                                <div class="bg-gradient-to-r from-white/[0.05] to-transparent rounded-xl p-4 flex justify-between items-center border border-white/5">
+                                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Authorized</span>
+                                    <span class="font-display font-black text-2xl text-white">৳100</span>
+                                </div>
+                            </div>
+
+                            <div class="receipt-edge w-full opacity-20"></div>
+                            <div class="p-6 bg-black/40">
+                                <label class="flex items-start gap-4 cursor-pointer group">
+                                    <div class="mt-0.5 relative shrink-0">
+                                        <input type="checkbox" id="terms-checkbox" class="peer appearance-none w-5 h-5 border-2 border-gray-600 rounded bg-transparent checked:bg-ef-neon checked:border-ef-neon transition-all cursor-pointer" onchange="validateTerms()">
+                                        <i data-lucide="check" class="absolute inset-0 text-white w-5 h-5 scale-0 peer-checked:scale-100 transition-transform pointer-events-none"></i>
+                                    </div>
+                                    <div class="select-none">
+                                        <p class="text-sm font-bold text-white mb-1 group-hover:text-ef-neon transition-colors">Acknowledge Rules & Terms</p>
+                                        <p class="text-[11px] text-gray-400 leading-relaxed">
+                                            I confirm my identity meets all eligibility criteria. I agree to the <a href="#" class="text-dc-cyan hover:underline">Official Rulebook</a> and DeltaCrown's Fair Play policy. Entry fees are non-refundable.
+                                        </p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="step-4" class="wizard-step step-hidden animate-fade-in h-full flex flex-col items-center justify-center text-center py-12">
+                        <div class="relative mb-8">
+                            <div class="absolute inset-0 bg-ef-neon/20 rounded-full blur-[50px] animate-pulse-glow"></div>
+                            <div class="w-28 h-28 relative z-10 bg-gradient-to-br from-dc-bg to-dc-card border border-ef-neon/50 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(59,130,246,0.4)]">
+                                <i data-lucide="shield-check" class="w-14 h-14 text-ef-neon drop-shadow-md"></i>
+                            </div>
+                            <div class="absolute -inset-4 border-2 border-dashed border-ef-neon/30 rounded-full animate-[spin_8s_linear_infinite]"></div>
+                        </div>
+
+                        <h2 class="font-display font-black text-4xl text-white mb-3 tracking-tight uppercase">Entry Confirmed.</h2>
+                        <p class="text-gray-400 max-w-md mx-auto mb-8 text-sm leading-relaxed">
+                            You are officially locked in for the Championship. Payment verification will complete shortly. Your entry details have been saved to your profile.
+                        </p>
+
+                        <div class="w-full max-w-sm bg-black/40 border border-white/10 rounded-xl p-4 mb-8 text-left">
+                            <div class="flex justify-between items-center mb-2 pb-2 border-b border-white/5">
+                                <span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Entry ID</span>
+                                <span class="text-xs font-mono text-ef-neon font-bold">#EFC-WIN-1029</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Next Action</span>
+                                <span class="text-xs font-bold text-white flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5 text-gray-400"></i> Bracket Release (Dec 25)</span>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4">
+                            <button class="px-6 py-3 rounded-xl border border-white/10 bg-white/5 text-white font-bold text-sm hover:bg-white/10 hover:border-white/20 transition-all">
+                                Go to Dashboard
+                            </button>
+                            <button class="px-6 py-3 rounded-xl bg-ef-neon text-white font-black uppercase tracking-widest text-xs hover:bg-blue-400 transition-all shadow-[0_0_20px_rgba(59,130,246,0.4)] flex items-center justify-center gap-2">
+                                <i data-lucide="swords" class="w-4 h-4"></i> Tournament Hub
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="p-6 md:px-12 md:py-6 bg-black/80 backdrop-blur-xl border-t border-white/5 flex justify-between items-center" id="wizard-footer">
+                    <button id="btn-back" class="px-6 py-3 rounded-xl font-bold text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-all opacity-0 pointer-events-none border border-transparent hover:border-white/10 flex items-center gap-2" onclick="prevStep()">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Go Back
+                    </button>
+
+                    <button id="btn-next" class="px-8 py-3 rounded-xl font-bold text-sm text-black bg-white hover:bg-gray-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)] flex items-center gap-2" onclick="nextStep()">
+                        Proceed to Payment <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+
+                    <button id="btn-submit" class="hidden px-8 py-3 rounded-xl font-black text-sm text-white bg-ef-neon hover:bg-blue-600 transition-all shadow-[0_0_20px_rgba(59,130,246,0.4)] items-center gap-2 uppercase tracking-[0.15em] opacity-50 cursor-not-allowed" onclick="submitRegistration()">
+                        <i data-lucide="zap" class="w-4 h-4 fill-current"></i> Confirm & Deploy
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        let currentStep = 1;
+        const totalSteps = 3; // Step 4 is success
+        let isTrxValid = false;
+        let isTermsAccepted = false;
+
+        // Elements
+        const progressLine = document.getElementById('vertical-progress');
+        const btnBack = document.getElementById('btn-back');
+        const btnNext = document.getElementById('btn-next');
+        const btnSubmit = document.getElementById('btn-submit');
+        const footer = document.getElementById('wizard-footer');
+
+        // Initial validation check for Step 1
+        function checkStep1() {
+            const phone = document.getElementById('contact-phone').value;
+            // Discord is optional for solo, so only phone is mandatory
+            if(phone.length > 5) {
+                btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                btnNext.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function updateUI() {
+            // Update Vertical Progress Line Height
+            let progressHeight = 0;
+            if(currentStep === 2) progressHeight = 50;
+            if(currentStep >= 3) progressHeight = 100;
+            progressLine.style.height = `${progressHeight}%`;
+
+            // Update Left Sidebar Nav Indicators
+            for(let i=1; i<=3; i++) {
+                const navItem = document.getElementById(`nav-step-${i}`);
+                if(!navItem) continue;
+
+                const iconBox = navItem.querySelector('.step-nav-icon');
+                const text = navItem.querySelector('.step-nav-text');
+
+                if (i < currentStep) {
+                    // Completed State
+                    navItem.classList.remove('opacity-50');
+                    iconBox.className = 'w-8 h-8 rounded-full bg-ef-neon text-white flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon shadow-[0_0_15px_rgba(59,130,246,0.4)] relative z-10';
+                    iconBox.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
+                    text.classList.add('text-gray-400');
+                    text.classList.remove('text-white');
+                } else if (i === currentStep) {
+                    // Active State
+                    navItem.classList.remove('opacity-50');
+                    iconBox.className = 'w-8 h-8 rounded-full bg-ef-neon text-white flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon shadow-[0_0_15px_rgba(59,130,246,0.4)] relative z-10';
+                    iconBox.innerHTML = i;
+                    text.classList.add('text-white');
+                    text.classList.remove('text-gray-400');
+                } else {
+                    // Future State
+                    navItem.classList.add('opacity-50');
+                    iconBox.className = 'w-8 h-8 rounded-full bg-dc-bg border border-white/20 text-gray-500 flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon relative z-10';
+                    iconBox.innerHTML = i;
+                    text.classList.remove('text-white');
+                    text.classList.add('text-gray-400');
+                }
+            }
+            lucide.createIcons();
+
+            // Toggle Step Content Visibility
+            document.querySelectorAll('.wizard-step').forEach(step => step.classList.add('step-hidden'));
+            const currentTab = document.getElementById(`step-${currentStep}`);
+            if(currentTab) {
+                currentTab.classList.remove('step-hidden');
+                // Retrigger animation
+                currentTab.classList.remove('animate-slide-in-right', 'animate-fade-in');
+                void currentTab.offsetWidth;
+                currentTab.classList.add(currentStep === 4 ? 'animate-fade-in' : 'animate-slide-in-right');
+            }
+
+            // Bottom Navigation Buttons Logic
+            if (currentStep === 1) {
+                btnBack.style.opacity = '0';
+                btnBack.style.pointerEvents = 'none';
+                btnNext.style.display = 'flex';
+                btnSubmit.classList.add('hidden');
+                btnNext.innerHTML = 'Secure Entry Fee <i data-lucide="arrow-right" class="w-4 h-4"></i>';
+                checkStep1();
+                lucide.createIcons();
+            } else if (currentStep === 2) {
+                btnBack.style.opacity = '1';
+                btnBack.style.pointerEvents = 'auto';
+                btnNext.style.display = 'flex';
+                btnSubmit.classList.add('hidden');
+                btnNext.innerHTML = 'Review Manifest <i data-lucide="arrow-right" class="w-4 h-4"></i>';
+                lucide.createIcons();
+
+                // Enforce TrxID validation
+                if(!isTrxValid) {
+                    btnNext.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            } else if (currentStep === 3) {
+                btnBack.style.opacity = '1';
+                btnBack.style.pointerEvents = 'auto';
+                btnNext.style.display = 'none';
+                btnSubmit.classList.remove('hidden');
+                btnSubmit.classList.add('flex');
+
+                // Set review data dynamically
+                const trxValue = document.getElementById('trxid').value;
+                document.getElementById('review-trxid').innerText = trxValue.toUpperCase() || 'PENDING';
+                validateTerms();
+            } else if (currentStep === 4) {
+                // Hide footer and sidebar on success
+                footer.style.display = 'none';
+                const sidebar = document.getElementById('sidebar-nav');
+                if(sidebar) sidebar.style.display = 'none';
+            }
+        }
+
+        // Mock Validation for bKash TrxID
+        function validateTrxId() {
+            const input = document.getElementById('trxid');
+            const status = document.getElementById('trx-status');
+            const icon = document.getElementById('trx-icon');
+            const val = input.value.trim();
+
+            if(val.length === 0) {
+                status.innerHTML = 'Awaiting 10-character alphanumeric ID';
+                status.className = 'mt-3 flex items-center justify-center gap-2 text-xs font-medium text-gray-500 h-5';
+                input.style.borderColor = 'rgba(255,255,255,0.1)';
+                icon.innerHTML = '<i data-lucide="hash" class="w-5 h-5 text-gray-600"></i>';
+                isTrxValid = false;
+            } else if (val.length < 10) {
+                status.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Validating format...';
+                status.className = 'mt-3 flex items-center justify-center gap-2 text-xs font-medium text-gray-400 h-5';
+                input.style.borderColor = 'rgba(255,255,255,0.3)';
+                icon.innerHTML = '<i data-lucide="shield" class="w-5 h-5 text-gray-400"></i>';
+                isTrxValid = false;
+            } else {
+                status.innerHTML = '<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Format verified';
+                status.className = 'mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-green-400 h-5 animate-fade-in';
+                input.style.borderColor = '#4ade80';
+                icon.innerHTML = '<i data-lucide="check" class="w-5 h-5 text-green-500"></i>';
+                isTrxValid = true;
+            }
+            lucide.createIcons();
+            if(currentStep === 2) updateUI();
+        }
+
+        // Validate Terms Checkbox
+        function validateTerms() {
+            isTermsAccepted = document.getElementById('terms-checkbox').checked;
+            if(isTermsAccepted) {
+                btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                btnSubmit.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function nextStep() {
+            if (currentStep === 1) {
+                const phone = document.getElementById('contact-phone').value;
+                if(phone.length < 5) return;
+            }
+            if (currentStep === 2 && !isTrxValid) return;
+
+            if (currentStep <= totalSteps) {
+                currentStep++;
+                updateUI();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateUI();
+            }
+        }
+
+        function submitRegistration() {
+            if(!isTermsAccepted) return;
+
+            // Loading state animation
+            btnSubmit.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Deploying...';
+            lucide.createIcons();
+            btnSubmit.classList.add('opacity-80', 'cursor-not-allowed');
+
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+
+            // Simulate API Call -> Go to Step 4 (Success)
+            setTimeout(() => {
+                overlay.classList.remove('flex');
+                overlay.classList.add('hidden');
+                currentStep = 4;
+                updateUI();
+            }, 1500);
+        }
+
+        // Initialize UI
+        checkStep1();
+        updateUI();
+    </script>
+</body>
+</html>

@@ -168,6 +168,38 @@ class RegistrationAutoFillService:
                 update_url='/profile/edit/'
             )
         
+        # Discord (from SocialLink model)
+        try:
+            from apps.user_profile.models_main import SocialLink
+            discord_link = SocialLink.objects.filter(
+                user=user, platform='discord'
+            ).first()
+            if discord_link and discord_link.handle:
+                data['discord'] = AutoFillField(
+                    field_name='discord',
+                    value=discord_link.handle,
+                    source='social_link',
+                    confidence='high'
+                )
+            else:
+                data['discord'] = AutoFillField(
+                    field_name='discord',
+                    value='',
+                    source='social_link',
+                    confidence='low',
+                    missing=True,
+                    update_url='/profile/edit/#social-links'
+                )
+        except Exception:
+            data['discord'] = AutoFillField(
+                field_name='discord',
+                value='',
+                source='social_link',
+                confidence='low',
+                missing=True,
+                update_url='/profile/edit/#social-links'
+            )
+        
         # Game-specific data (IGN, Rank, Platform)
         game_data = RegistrationAutoFillService._get_game_account_data(
             user, tournament.game
@@ -216,10 +248,10 @@ class RegistrationAutoFillService:
                     )
                 
                 # Rank
-                if passport.rank:
+                if passport.rank_name:
                     data['rank'] = AutoFillField(
                         field_name='rank',
-                        value=passport.rank,
+                        value=passport.rank_name,
                         source='game_passport',
                         confidence='high'
                     )
@@ -242,14 +274,8 @@ class RegistrationAutoFillService:
                         confidence='high'
                     )
                 
-                # Server
-                if passport.server:
-                    data['server'] = AutoFillField(
-                        field_name='server',
-                        value=passport.server,
-                        source='game_passport',
-                        confidence='high'
-                    )
+                # Server (derived from region — GameProfile has no 'server' field)
+                # Region is already captured above; skip server.
                 
                 return data
             
@@ -335,10 +361,10 @@ class RegistrationAutoFillService:
                     confidence='high'
                 )
                 
-                if hasattr(captain.user, 'profile') and captain.user.profile.phone_number:
+                if hasattr(captain.user, 'profile') and captain.user.profile.phone:
                     data['captain_phone'] = AutoFillField(
                         field_name='captain_phone',
-                        value=captain.user.profile.phone_number,
+                        value=captain.user.profile.phone,
                         source='team',
                         confidence='high'
                     )
@@ -350,7 +376,7 @@ class RegistrationAutoFillService:
             from apps.organizations.models import TeamMembership
             members = TeamMembership.objects.filter(
                 team=team,
-                is_active=True
+                status=TeamMembership.Status.ACTIVE
             ).select_related('user').order_by('role', '-joined_at')
             
             roster_data = []
@@ -407,10 +433,10 @@ class RegistrationAutoFillService:
             profile = user.profile
             
             # Payment Mobile Number (often same as phone)
-            if profile.phone_number:
+            if profile.phone:
                 data['payment_mobile'] = AutoFillField(
                     field_name='payment_mobile',
-                    value=profile.phone_number,
+                    value=profile.phone,
                     source='profile',
                     confidence='high',
                     needs_verification=True

@@ -291,12 +291,41 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         help_text='Entry fee in DeltaCoins'
     )
     
+    # Payment deadline (P4-T02: Auto-expiry)
+    payment_deadline_hours = models.PositiveIntegerField(
+        default=48,
+        help_text='Hours after registration to submit payment before auto-expiry (0 = no deadline)'
+    )
+    
     # Payment methods (PostgreSQL ArrayField)
     payment_methods = ArrayField(
         models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES),
         default=list,
         blank=True,
         help_text='Accepted payment methods'
+    )
+    
+    # Refund policy
+    REFUND_POLICY_CHOICES = [
+        ('no_refund', 'No Refunds'),
+        ('refund_until_checkin', 'Refund Until Check-In'),
+        ('refund_until_bracket', 'Refund Until Bracket Generation'),
+        ('full_refund', 'Full Refund Anytime'),
+        ('custom', 'Custom Policy'),
+    ]
+    
+    refund_policy = models.CharField(
+        max_length=30,
+        choices=REFUND_POLICY_CHOICES,
+        default='no_refund',
+        blank=True,
+        help_text='Refund policy for entry fees'
+    )
+    
+    refund_policy_text = models.TextField(
+        blank=True,
+        default='',
+        help_text='Custom refund policy text (shown to registrants when policy is "custom")'
     )
     
     # Fee waiver
@@ -375,6 +404,18 @@ class Tournament(SoftDeleteModel, TimestampedModel):
     enable_fan_voting = models.BooleanField(
         default=False,
         help_text='Enable spectator voting/predictions'
+    )
+
+    # Guest team settings (P2-T02)
+    max_guest_teams = models.PositiveIntegerField(
+        default=0,
+        help_text='Maximum number of guest team registrations allowed (0 = disabled)'
+    )
+    
+    # Display name override (P2-T06)
+    allow_display_name_override = models.BooleanField(
+        default=False,
+        help_text='Allow participants to set a custom display name for brackets and match rooms'
     )
     
     # Rules

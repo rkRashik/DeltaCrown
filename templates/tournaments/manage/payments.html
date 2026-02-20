@@ -3,26 +3,37 @@
 
 {% block manage_content %}
 
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+{# Metric Cards #}
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
   <div class="metric-card text-center">
-    <p class="text-xs font-semibold uppercase tracking-widest text-white/45 mb-2">Submitted</p>
-    <p class="text-2xl font-display font-bold text-white">{{ payment_stats.total_submitted|default:"0" }}</p>
+    <p class="text-xs font-semibold uppercase tracking-widest text-white/45 mb-2">Total</p>
+    <p class="text-2xl font-display font-bold text-white">{{ payment_stats.total|default:"0" }}</p>
   </div>
   <div class="metric-card text-center border-yellow-500/10">
     <p class="text-xs font-semibold uppercase tracking-widest text-white/45 mb-2">Pending Verify</p>
-    <p class="text-2xl font-display font-bold text-yellow-400">{{ payment_stats.pending_verification|default:"0" }}</p>
+    <p class="text-2xl font-display font-bold text-yellow-400">{{ payment_stats.submitted|default:"0" }}</p>
   </div>
   <div class="metric-card text-center border-emerald-500/10">
-    <p class="text-xs font-semibold uppercase tracking-widest text-white/45 mb-2">Verified Total</p>
+    <p class="text-xs font-semibold uppercase tracking-widest text-white/45 mb-2">Verified</p>
+    <p class="text-2xl font-display font-bold text-emerald-400">{{ payment_stats.verified|default:"0" }}</p>
+  </div>
+  <div class="metric-card text-center border-emerald-500/10">
+    <p class="text-xs font-semibold uppercase tracking-widest text-white/45 mb-2">Revenue</p>
     <p class="text-2xl font-display font-bold text-emerald-400">৳{{ payment_stats.total_amount|default:"0"|intcomma }}</p>
   </div>
 </div>
 
+{# Filter Bar #}
 <form method="get" class="flex flex-wrap items-center gap-3 mb-5">
+  <div class="relative flex-1 min-w-[180px] max-w-sm">
+    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/25"></i>
+    <input type="text" name="search" value="{{ request.GET.search|default:'' }}"
+           placeholder="Search player, reg #, txn ID…"
+           class="form-input !pl-10 !py-2.5 text-sm w-full">
+  </div>
   <select name="status" class="form-select !w-auto !py-2.5 text-sm">
-    <option value="">All Statuses</option>
-    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
-    <option value="submitted" {% if request.GET.status == 'submitted' %}selected{% endif %}>Submitted</option>
+    <option value="submitted" {% if request.GET.status == 'submitted' or not request.GET.status %}selected{% endif %}>Pending Queue</option>
+    <option value="all" {% if request.GET.status == 'all' %}selected{% endif %}>All Statuses</option>
     <option value="verified" {% if request.GET.status == 'verified' %}selected{% endif %}>Verified</option>
     <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
   </select>
@@ -30,10 +41,33 @@
     <option value="">All Methods</option>
     <option value="bkash" {% if request.GET.method == 'bkash' %}selected{% endif %}>bKash</option>
     <option value="nagad" {% if request.GET.method == 'nagad' %}selected{% endif %}>Nagad</option>
-    <option value="bank" {% if request.GET.method == 'bank' %}selected{% endif %}>Bank Transfer</option>
+    <option value="rocket" {% if request.GET.method == 'rocket' %}selected{% endif %}>Rocket</option>
+    <option value="deltacoin" {% if request.GET.method == 'deltacoin' %}selected{% endif %}>DeltaCoin</option>
+    <option value="bank" {% if request.GET.method == 'bank' %}selected{% endif %}>Bank</option>
   </select>
   <button type="submit" class="btn-secondary text-xs !py-2.5">Filter</button>
+  {% if request.GET.search or request.GET.method %}
+    <a href="?" class="text-xs text-white/30 hover:text-white/60 transition">Clear</a>
+  {% endif %}
 </form>
+
+{# Bulk Actions #}
+{% if can_approve %}
+<form method="post" action="{% url 'tournaments:bulk_verify_payments' tournament.slug %}" id="bulk-verify-form" class="mb-4">
+  {% csrf_token %}
+  <div id="bulk-pay-ids"></div>
+  <div class="flex items-center gap-2">
+    <button type="submit" id="bulk-verify-btn" disabled
+            class="btn-primary text-xs !py-2 opacity-50 cursor-not-allowed">
+      <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Verify Selected
+    </button>
+    <a href="{% url 'tournaments:export_payments_csv' tournament.slug %}"
+       class="btn-secondary text-xs !py-2">
+      <i data-lucide="download" class="w-3.5 h-3.5"></i> Export CSV
+    </a>
+  </div>
+</form>
+{% endif %}
 
 {% if payments %}
 <div class="liquid-glass rounded-2xl overflow-hidden">
@@ -41,32 +75,69 @@
     <table class="data-table">
       <thead>
         <tr>
+          {% if can_approve %}
+            <th class="w-10">
+              <input type="checkbox" id="pay-select-all" class="rounded accent-cyan-500 cursor-pointer">
+            </th>
+          {% endif %}
+          <th>Reg #</th>
           <th>Player</th>
           <th>Amount</th>
           <th>Method</th>
           <th>Transaction ID</th>
+          <th>Proof</th>
           <th>Status</th>
           <th>Submitted</th>
-          {% if can_approve %}<th class="text-right">Actions</th>{% endif %}
+          <th class="text-right">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for payment in payments %}
           <tr class="group">
+            {% if can_approve %}
+              <td>
+                {% if payment.status == 'submitted' %}
+                <input type="checkbox" name="payment_ids" value="{{ payment.id }}"
+                       class="pay-checkbox rounded accent-cyan-500 cursor-pointer">
+                {% endif %}
+              </td>
+            {% endif %}
+            <td>
+              <span class="text-xs font-mono text-cyan-400/70">{{ payment.registration.registration_number|default:"—" }}</span>
+            </td>
             <td>
               <div class="flex items-center gap-2.5">
                 <div class="w-7 h-7 rounded-full bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center text-xs font-bold text-white/60 flex-shrink-0">
-                  {{ payment.registration.user.username|first|upper }}
+                  {% if payment.registration.user %}{{ payment.registration.user.username|first|upper }}{% else %}T{% endif %}
                 </div>
-                <span class="text-sm text-white/70">{{ payment.registration.user.username }}</span>
+                <span class="text-sm text-white/70">
+                  {% if payment.registration.user %}{{ payment.registration.user.username }}{% else %}Team {{ payment.registration.team_id }}{% endif %}
+                </span>
               </div>
             </td>
             <td class="text-white/80 font-mono text-sm">৳{{ payment.amount|default:"0"|intcomma }}</td>
-            <td class="text-white/45 capitalize text-sm">{{ payment.payment_method|default:"—" }}</td>
+            <td class="text-white/45 capitalize text-sm">{{ payment.get_payment_method_display|default:"—" }}</td>
             <td>
               <span class="text-xs font-mono text-white/40 bg-white/[0.03] px-2 py-0.5 rounded">
                 {{ payment.transaction_id|default:"—"|truncatechars:16 }}
               </span>
+            </td>
+            <td>
+              {% if payment.payment_proof %}
+                <button class="proof-zoom-btn p-1 rounded hover:bg-white/5 transition"
+                        data-proof-url="{{ payment.payment_proof.url }}"
+                        data-proof-type="{{ payment.file_type|default:'IMAGE' }}"
+                        title="View proof">
+                  {% if payment.file_type == 'PDF' %}
+                    <i data-lucide="file-text" class="w-4 h-4 text-blue-400"></i>
+                  {% else %}
+                    <img src="{{ payment.payment_proof.url }}" alt="Proof"
+                         class="w-8 h-8 rounded object-cover border border-white/10 cursor-pointer">
+                  {% endif %}
+                </button>
+              {% else %}
+                <span class="text-xs text-white/20">—</span>
+              {% endif %}
             </td>
             <td>
               <span class="badge
@@ -74,37 +145,75 @@
                 {% elif payment.status == 'submitted' %}badge-blue
                 {% elif payment.status == 'pending' %}badge-yellow
                 {% elif payment.status == 'rejected' %}badge-red
+                {% elif payment.status == 'refunded' %}badge-purple
+                {% elif payment.status == 'waived' %}badge-cyan
                 {% else %}badge-gray{% endif %}">
-                {{ payment.status|title }}
+                {{ payment.get_status_display }}
               </span>
             </td>
             <td class="text-white/40 text-xs font-mono">{{ payment.submitted_at|timesince }} ago</td>
-            {% if can_approve %}
-              <td class="text-right">
-                {% if payment.status == 'submitted' %}
-                  <div class="flex items-center justify-end gap-1">
+            <td class="text-right">
+              <div class="relative" data-dropdown>
+                <button class="p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-white/60 transition"
+                        data-dropdown-toggle>
+                  <i data-lucide="more-vertical" class="w-4 h-4"></i>
+                </button>
+                <div class="absolute right-0 top-full mt-1 w-48 rounded-xl bg-[#1a1a24] border border-white/10 shadow-xl z-20 hidden"
+                     data-dropdown-menu>
+                  {% if payment.status == 'submitted' and can_approve %}
                     <a href="{% url 'tournaments:verify_payment' tournament.slug payment.id %}"
-                       title="Verify"
-                       class="p-1.5 rounded-lg hover:bg-emerald-500/15 text-white/30 hover:text-emerald-400 transition">
-                      <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                       class="flex items-center gap-2 px-3 py-2 text-xs text-emerald-400 hover:bg-white/5 transition rounded-t-xl">
+                      <i data-lucide="check" class="w-3.5 h-3.5"></i> Verify Payment
                     </a>
-                    <a href="{% url 'tournaments:reject_payment' tournament.slug payment.id %}"
-                       title="Reject"
-                       class="p-1.5 rounded-lg hover:bg-red-500/15 text-white/30 hover:text-red-400 transition">
-                      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    <button class="reject-with-reason flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-white/5 transition w-full text-left"
+                            data-payment-id="{{ payment.id }}">
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i> Reject with Reason
+                    </button>
+                  {% endif %}
+                  {% if payment.status == 'verified' and can_approve %}
+                    <a href="{% url 'tournaments:process_refund' tournament.slug payment.id %}"
+                       class="flex items-center gap-2 px-3 py-2 text-xs text-orange-400 hover:bg-white/5 transition rounded-t-xl">
+                      <i data-lucide="undo-2" class="w-3.5 h-3.5"></i> Process Refund
                     </a>
-                  </div>
-                {% elif payment.status == 'verified' %}
-                  <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400/50 inline"></i>
-                {% endif %}
-              </td>
-            {% endif %}
+                  {% endif %}
+                  {% if payment.admin_notes %}
+                    <div class="px-3 py-2 text-xs text-white/30 border-t border-white/5">
+                      <span class="text-white/50 font-semibold">Note:</span> {{ payment.admin_notes|truncatechars:60 }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
+
+{# Pagination #}
+{% if page_obj.has_other_pages %}
+<div class="flex items-center justify-between mt-4">
+  <p class="text-xs text-white/30">
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+  </p>
+  <div class="flex items-center gap-1">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}&status={{ request.GET.status|default:'submitted' }}&method={{ request.GET.method|default:'' }}&search={{ request.GET.search|default:'' }}"
+         class="px-3 py-1.5 rounded-lg text-xs text-white/40 hover:text-white hover:bg-white/5 transition">
+        <i data-lucide="chevron-left" class="w-3.5 h-3.5 inline"></i> Prev
+      </a>
+    {% endif %}
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}&status={{ request.GET.status|default:'submitted' }}&method={{ request.GET.method|default:'' }}&search={{ request.GET.search|default:'' }}"
+         class="px-3 py-1.5 rounded-lg text-xs text-white/40 hover:text-white hover:bg-white/5 transition">
+        Next <i data-lucide="chevron-right" class="w-3.5 h-3.5 inline"></i>
+      </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 {% else %}
 <div class="liquid-glass rounded-2xl">
   <div class="empty-state py-16">
@@ -115,4 +224,142 @@
 </div>
 {% endif %}
 
+{# Proof Image Lightbox #}
+<div id="proof-lightbox" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center cursor-pointer" style="display: none;">
+  <button class="absolute top-4 right-4 p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition" id="lightbox-close">
+    <i data-lucide="x" class="w-5 h-5"></i>
+  </button>
+  <img id="lightbox-img" src="" alt="Payment proof" class="max-w-[90vw] max-h-[85vh] rounded-xl shadow-2xl object-contain">
+</div>
+
+{# Reject Reason Modal #}
+<div id="reject-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center" style="display: none;">
+  <div class="w-full max-w-md mx-4 rounded-2xl bg-[#12121a] border border-white/10 p-6 shadow-2xl">
+    <h3 class="text-sm font-bold text-white mb-4">
+      <i data-lucide="x-circle" class="w-4 h-4 inline text-red-400 -mt-0.5"></i> Reject Payment
+    </h3>
+    <form method="post" id="reject-form">
+      {% csrf_token %}
+      <textarea name="reason" rows="3" required placeholder="Reason for rejection (visible to player)…"
+                class="form-input w-full text-sm mb-4"></textarea>
+      <div class="flex items-center justify-end gap-2">
+        <button type="button" class="btn-secondary text-xs" id="reject-cancel">Cancel</button>
+        <button type="submit" class="btn-primary text-xs !bg-red-500 hover:!bg-red-600">Reject Payment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  // Bulk selection
+  var selectAll = document.getElementById('pay-select-all');
+  var bulkBtn = document.getElementById('bulk-verify-btn');
+  var bulkIds = document.getElementById('bulk-pay-ids');
+  var checkboxes = document.querySelectorAll('.pay-checkbox');
+
+  function updateBulk() {
+    if (!bulkBtn) return;
+    var checked = document.querySelectorAll('.pay-checkbox:checked');
+    if (checked.length > 0) {
+      bulkBtn.disabled = false;
+      bulkBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      bulkBtn.textContent = 'Verify ' + checked.length + ' Selected';
+    } else {
+      bulkBtn.disabled = true;
+      bulkBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      bulkBtn.textContent = 'Verify Selected';
+    }
+    if (bulkIds) {
+      bulkIds.innerHTML = '';
+      checked.forEach(function(cb) {
+        var input = document.createElement('input');
+        input.type = 'hidden'; input.name = 'payment_ids'; input.value = cb.value;
+        bulkIds.appendChild(input);
+      });
+    }
+  }
+
+  if (selectAll) {
+    selectAll.addEventListener('change', function() {
+      checkboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
+      updateBulk();
+    });
+  }
+  checkboxes.forEach(function(cb) { cb.addEventListener('change', updateBulk); });
+
+  // Dropdown menus
+  document.querySelectorAll('[data-dropdown]').forEach(function(el) {
+    var toggle = el.querySelector('[data-dropdown-toggle]');
+    var menu = el.querySelector('[data-dropdown-menu]');
+    if (!toggle || !menu) return;
+    toggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      document.querySelectorAll('[data-dropdown-menu]').forEach(function(m) {
+        if (m !== menu) m.classList.add('hidden');
+      });
+      menu.classList.toggle('hidden');
+    });
+  });
+  document.addEventListener('click', function() {
+    document.querySelectorAll('[data-dropdown-menu]').forEach(function(m) { m.classList.add('hidden'); });
+  });
+
+  // Proof lightbox
+  var lightbox = document.getElementById('proof-lightbox');
+  var lightboxImg = document.getElementById('lightbox-img');
+  var lightboxClose = document.getElementById('lightbox-close');
+
+  document.querySelectorAll('.proof-zoom-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var url = this.dataset.proofUrl;
+      var type = this.dataset.proofType;
+      if (type === 'PDF') {
+        window.open(url, '_blank');
+        return;
+      }
+      lightboxImg.src = url;
+      lightbox.style.display = 'flex';
+    });
+  });
+
+  if (lightboxClose) {
+    lightboxClose.addEventListener('click', function() { lightbox.style.display = 'none'; });
+  }
+  if (lightbox) {
+    lightbox.addEventListener('click', function(e) {
+      if (e.target === lightbox) lightbox.style.display = 'none';
+    });
+  }
+
+  // Reject with reason modal
+  var rejectModal = document.getElementById('reject-modal');
+  var rejectForm = document.getElementById('reject-form');
+  var rejectCancel = document.getElementById('reject-cancel');
+
+  document.querySelectorAll('.reject-with-reason').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var paymentId = this.dataset.paymentId;
+      var slug = '{{ tournament.slug }}';
+      rejectForm.action = '/tournaments/organizer/' + slug + '/reject-payment/' + paymentId + '/';
+      rejectModal.style.display = 'flex';
+      // Close dropdown
+      document.querySelectorAll('[data-dropdown-menu]').forEach(function(m) { m.classList.add('hidden'); });
+    });
+  });
+
+  if (rejectCancel) {
+    rejectCancel.addEventListener('click', function() { rejectModal.style.display = 'none'; });
+  }
+  if (rejectModal) {
+    rejectModal.addEventListener('click', function(e) {
+      if (e.target === rejectModal) rejectModal.style.display = 'none';
+    });
+  }
+})();
+</script>
 {% endblock %}

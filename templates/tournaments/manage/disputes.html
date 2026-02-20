@@ -101,18 +101,24 @@
           {% if can_resolve %}
             <div class="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition">
               {% if dispute.status == 'open' %}
-                <button title="Start Review" class="p-2 rounded-lg hover:bg-yellow-500/15 text-white/30 hover:text-yellow-400 transition">
+                <button onclick="startReview('{{ tournament.slug }}', {{ dispute.id }})"
+                        title="Start Review"
+                        class="p-2 rounded-lg hover:bg-yellow-500/15 text-white/30 hover:text-yellow-400 transition">
                   <i data-lucide="search" class="w-4 h-4"></i>
                 </button>
               {% endif %}
               {% if dispute.status == 'open' or dispute.status == 'under_review' %}
-                <button title="Resolve" class="p-2 rounded-lg hover:bg-emerald-500/15 text-white/30 hover:text-emerald-400 transition">
+                <button onclick="openResolveModal({{ dispute.id }}, {{ dispute.match.id }})"
+                        title="Resolve"
+                        class="p-2 rounded-lg hover:bg-emerald-500/15 text-white/30 hover:text-emerald-400 transition">
                   <i data-lucide="check-circle" class="w-4 h-4"></i>
                 </button>
+                <button onclick="escalateDispute('{{ tournament.slug }}', {{ dispute.id }})"
+                        title="Escalate"
+                        class="p-2 rounded-lg hover:bg-orange-500/15 text-white/30 hover:text-orange-400 transition">
+                  <i data-lucide="arrow-up-circle" class="w-4 h-4"></i>
+                </button>
               {% endif %}
-              <button title="View Details" class="p-2 rounded-lg hover:bg-white/10 text-white/30 hover:text-white/60 transition">
-                <i data-lucide="external-link" class="w-4 h-4"></i>
-              </button>
             </div>
           {% endif %}
         </div>
@@ -129,4 +135,112 @@
   </div>
 {% endif %}
 
+{# ── Resolution Modal ── #}
+<div id="resolve-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+  <div class="liquid-glass rounded-2xl p-6 w-full max-w-lg">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-display font-bold text-white">Resolve Dispute</h3>
+      <button onclick="closeResolveModal()" class="text-white/30 hover:text-white transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    <input type="hidden" id="rm-dispute-id" value="">
+    <input type="hidden" id="rm-match-id" value="">
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs text-white/50 mb-1.5">Decision</label>
+        <select id="rm-decision" class="form-input w-full" onchange="toggleOverrideScores()">
+          <option value="ACCEPT_A">Accept Participant A's Claim</option>
+          <option value="ACCEPT_B">Accept Participant B's Claim</option>
+          <option value="OVERRIDE">Override — Set Custom Scores</option>
+          <option value="REJECT">Reject Dispute</option>
+        </select>
+      </div>
+      <div id="rm-scores" class="hidden grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-white/50 mb-1">Participant A Score</label>
+          <input type="number" id="rm-score-a" class="form-input w-full" min="0" value="0" />
+        </div>
+        <div>
+          <label class="block text-xs text-white/50 mb-1">Participant B Score</label>
+          <input type="number" id="rm-score-b" class="form-input w-full" min="0" value="0" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs text-white/50 mb-1.5">Resolution Notes <span class="text-red-400">*</span></label>
+        <textarea id="rm-notes" class="form-input w-full" rows="3" placeholder="Explain the decision..."></textarea>
+      </div>
+      <button onclick="submitResolve('{{ tournament.slug }}')" class="btn-primary w-full">
+        <i data-lucide="gavel" class="w-4 h-4"></i> Submit Resolution
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getCookie(name) {
+  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return v ? v.pop() : '';
+}
+const csrfH = { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' };
+
+function postJSON(url, body) {
+  return fetch(url, { method: 'POST', headers: csrfH, credentials: 'same-origin', body: JSON.stringify(body) })
+    .then(r => r.json());
+}
+
+/* Start Review: transition dispute from open → under_review */
+function startReview(slug, disputeId) {
+  postJSON(`/tournaments/organizer/${slug}/update-dispute-status/${disputeId}/`, { status: 'under_review' })
+    .then(data => { if (data.status === 'success' || data.success) location.reload(); else alert(data.message || data.error || 'Failed'); })
+    .catch(() => alert('Network error'));
+}
+
+/* Escalate dispute */
+function escalateDispute(slug, disputeId) {
+  if (!confirm('Escalate this dispute to admin?')) return;
+  postJSON(`/tournaments/organizer/${slug}/update-dispute-status/${disputeId}/`, { status: 'escalated' })
+    .then(data => { if (data.status === 'success' || data.success) location.reload(); else alert(data.message || data.error || 'Failed'); })
+    .catch(() => alert('Network error'));
+}
+
+/* Resolution modal */
+function openResolveModal(disputeId, matchId) {
+  document.getElementById('rm-dispute-id').value = disputeId;
+  document.getElementById('rm-match-id').value = matchId;
+  document.getElementById('rm-notes').value = '';
+  document.getElementById('rm-decision').value = 'ACCEPT_A';
+  toggleOverrideScores();
+  document.getElementById('resolve-modal').classList.remove('hidden');
+}
+function closeResolveModal() { document.getElementById('resolve-modal').classList.add('hidden'); }
+
+function toggleOverrideScores() {
+  const dec = document.getElementById('rm-decision').value;
+  document.getElementById('rm-scores').classList.toggle('hidden', dec !== 'OVERRIDE');
+}
+
+function submitResolve(slug) {
+  const disputeId = document.getElementById('rm-dispute-id').value;
+  const decision = document.getElementById('rm-decision').value;
+  const notes = document.getElementById('rm-notes').value.trim();
+  if (!notes) { alert('Resolution notes are required.'); return; }
+
+  const body = { decision, resolution_notes: notes };
+  if (decision === 'OVERRIDE') {
+    body.final_score_a = parseInt(document.getElementById('rm-score-a').value) || 0;
+    body.final_score_b = parseInt(document.getElementById('rm-score-b').value) || 0;
+  }
+
+  postJSON(`/tournaments/organizer/${slug}/resolve-dispute/${disputeId}/`, body)
+    .then(data => {
+      if (data.status === 'success' || data.success) { closeResolveModal(); location.reload(); }
+      else alert(data.message || data.error || 'Failed');
+    })
+    .catch(() => alert('Network error'));
+}
+</script>
 {% endblock %}
