@@ -252,8 +252,10 @@ def team_manage(request, team_slug, org_slug=None):
                     user_id__in=member_user_ids, game=game
                 ).only(
                     'user_id', 'ign', 'discriminator', 'in_game_name',
-                    'rank_name', 'rank_image', 'main_role', 'region',
-                    'matches_played', 'win_rate', 'kd_ratio',
+                    'platform', 'rank_name', 'rank_image', 'rank_points',
+                    'peak_rank', 'main_role', 'region',
+                    'matches_played', 'win_rate', 'kd_ratio', 'hours_played',
+                    'is_lft', 'verification_status',
                 ):
                     gp_map[gp.user_id] = gp
             except Exception:
@@ -263,13 +265,19 @@ def team_manage(request, team_slug, org_slug=None):
                 m.gp_ign = gp.ign if gp else ''
                 m.gp_discriminator = gp.discriminator if gp else ''
                 m.gp_in_game_name = gp.in_game_name if gp else ''
+                m.gp_platform = gp.platform if gp else ''
                 m.gp_rank_name = gp.rank_name if gp else ''
                 m.gp_rank_image_url = gp.rank_image.url if gp and gp.rank_image else ''
+                m.gp_rank_points = gp.rank_points if gp and gp.rank_points else ''
+                m.gp_peak_rank = gp.peak_rank if gp else ''
                 m.gp_main_role = gp.main_role if gp else ''
                 m.gp_region = gp.region if gp else ''
                 m.gp_matches_played = gp.matches_played if gp else 0
                 m.gp_win_rate = gp.win_rate if gp else 0
                 m.gp_kd_ratio = gp.kd_ratio if gp else None
+                m.gp_hours_played = gp.hours_played if gp and gp.hours_played else ''
+                m.gp_is_lft = gp.is_lft if gp else False
+                m.gp_verification_status = gp.verification_status if gp else ''
 
         is_owner = (
             user_membership and user_membership.role == MembershipRole.OWNER

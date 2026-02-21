@@ -433,6 +433,11 @@ class BadgeAdmin(ModelAdmin):
 class UserBadgeAdmin(ModelAdmin):
     """User badges admin"""
     
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'badge')
+
     list_display = ['user', 'badge', 'earned_at', 'is_pinned']
     list_filter = ['is_pinned', 'earned_at', 'badge__rarity']
     search_fields = ['user__username', 'badge__name']
@@ -1101,6 +1106,11 @@ class CertificateAdmin(ModelAdmin):
 class UserAuditEventAdmin(ModelAdmin):
     """Audit event admin - completely immutable, read-only compliance log"""
     
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('subject_user', 'actor_user')
+
     list_display = [
         'id',
         'subject_user_link',
@@ -1646,6 +1656,13 @@ class SkillEndorsementAdmin(ModelAdmin):
     - View match details and validation status
     - Flag endorsements for review (spam/manipulation detection)
     """
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'endorser', 'receiver', 'match', 'match__tournament'
+        )
+
     list_display = [
         'id',
         'endorser_username',
@@ -1910,7 +1927,13 @@ class BountyAdmin(ModelAdmin):
     - Track escrow status and payouts
     - Admin actions to resolve disputes
     """
-    
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'creator', 'acceptor', 'game', 'winner'
+        )
+
     list_display = [
         'id',
         'title',

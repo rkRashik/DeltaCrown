@@ -20,7 +20,7 @@ from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import display
 from django.utils.html import format_html
 from django.urls import reverse
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.contrib import messages
 
 from apps.tournaments.models import TournamentStaffRole, TournamentStaff
@@ -38,6 +38,16 @@ class TournamentStaffRoleAdmin(ModelAdmin):
     search_fields = ['name', 'slug', 'description']
     readonly_fields = ['created_at', 'updated_at', 'staff_count']
     prepopulated_fields = {'slug': ('name',)}
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        """Annotate staff count to avoid per-row queries."""
+        return super().get_queryset(request).annotate(
+            _active_staff_count=Count(
+                'staff_assignments',
+                filter=Q(staff_assignments__is_active=True),
+            )
+        )
     
     fieldsets = (
         ('Basic Information', {
@@ -93,8 +103,8 @@ class TournamentStaffRoleAdmin(ModelAdmin):
     permission_summary.short_description = 'Permissions'
     
     def staff_count(self, obj):
-        """Display count of staff members with this role."""
-        count = TournamentStaff.objects.filter(role=obj, is_active=True).count()
+        """Display count of staff members with this role (from annotation)."""
+        count = getattr(obj, '_active_staff_count', 0)
         if count > 0:
             url = f'/admin/tournaments/tournamentstaff/?role__id__exact={obj.id}&is_active__exact=1'
             return format_html('<a href="{}">{} active</a>', url, count)
@@ -195,7 +205,14 @@ class TournamentStaffAdmin(ModelAdmin):
         'assigned_at', 'assigned_by', 'deactivated_at', 'deactivated_by'
     ]
     autocomplete_fields = ['user', 'tournament', 'assigned_by', 'deactivated_by']
-    
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        """Optimize with select_related for FK fields used in list_display."""
+        return super().get_queryset(request).select_related(
+            'user', 'tournament', 'role', 'assigned_by'
+        )
+
     fieldsets = (
         ('Staff Assignment', {
             'fields': ('tournament', 'user', 'role', 'is_active')

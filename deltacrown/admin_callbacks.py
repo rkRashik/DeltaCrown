@@ -80,41 +80,65 @@ def dashboard_callback(request, context):
     # CORE STATS
     # ══════════════════════════════════════════════════════════════════════
 
-    # ── Tournament stats ─────────────────────────────────────────────────
-    total_tournaments = Tournament.objects.count()
-    live_tournaments = Tournament.objects.filter(status="live").count()
-    draft_tournaments = Tournament.objects.filter(status="draft").count()
-    open_reg = Tournament.objects.filter(status="registration_open").count()
-    completed = Tournament.objects.filter(status="completed").count()
-    cancelled = Tournament.objects.filter(status="cancelled").count()
+    # ── Tournament stats (single aggregated query) ───────────────────────
+    _t_agg = Tournament.objects.aggregate(
+        total=Count('id'),
+        live=Count('id', filter=Q(status='live')),
+        draft=Count('id', filter=Q(status='draft')),
+        open_reg=Count('id', filter=Q(status='registration_open')),
+        completed=Count('id', filter=Q(status='completed')),
+        cancelled=Count('id', filter=Q(status='cancelled')),
+    )
+    total_tournaments = _t_agg['total']
+    live_tournaments = _t_agg['live']
+    draft_tournaments = _t_agg['draft']
+    open_reg = _t_agg['open_reg']
+    completed = _t_agg['completed']
+    cancelled = _t_agg['cancelled']
 
-    # ── Registration stats ───────────────────────────────────────────────
-    total_registrations = Registration.objects.count()
-    pending_registrations = Registration.objects.filter(
-        status__in=["pending", "submitted", "needs_review", "payment_submitted"]
-    ).count()
-    confirmed_registrations = Registration.objects.filter(status="confirmed").count()
-    recent_registrations = Registration.objects.filter(
-        created_at__gte=month_ago
-    ).count()
-    rejected_registrations = Registration.objects.filter(
-        status__in=["rejected", "denied"]
-    ).count()
+    # ── Registration stats (single aggregated query) ─────────────────────
+    _r_agg = Registration.objects.aggregate(
+        total=Count('id'),
+        pending=Count('id', filter=Q(status__in=["pending", "submitted", "needs_review", "payment_submitted"])),
+        confirmed=Count('id', filter=Q(status='confirmed')),
+        recent=Count('id', filter=Q(created_at__gte=month_ago)),
+        rejected=Count('id', filter=Q(status__in=["rejected", "denied"])),
+    )
+    total_registrations = _r_agg['total']
+    pending_registrations = _r_agg['pending']
+    confirmed_registrations = _r_agg['confirmed']
+    recent_registrations = _r_agg['recent']
+    rejected_registrations = _r_agg['rejected']
 
-    # ── Match stats ──────────────────────────────────────────────────────
-    total_matches = Match.objects.count()
-    live_matches = Match.objects.filter(state="live").count()
-    disputed_matches = Match.objects.filter(state="disputed").count()
-    completed_matches = Match.objects.filter(state="completed").count()
-    recent_matches = Match.objects.filter(created_at__gte=week_ago).count()
-    scheduled_matches = Match.objects.filter(state="scheduled").count()
+    # ── Match stats (single aggregated query) ────────────────────────────
+    _m_agg = Match.objects.aggregate(
+        total=Count('id'),
+        live=Count('id', filter=Q(state='live')),
+        disputed=Count('id', filter=Q(state='disputed')),
+        completed=Count('id', filter=Q(state='completed')),
+        recent=Count('id', filter=Q(created_at__gte=week_ago)),
+        scheduled=Count('id', filter=Q(state='scheduled')),
+    )
+    total_matches = _m_agg['total']
+    live_matches = _m_agg['live']
+    disputed_matches = _m_agg['disputed']
+    completed_matches = _m_agg['completed']
+    recent_matches = _m_agg['recent']
+    scheduled_matches = _m_agg['scheduled']
 
-    # ── User stats ───────────────────────────────────────────────────────
-    total_users = User.objects.count()
-    active_users = User.objects.filter(is_active=True).count()
-    new_users_month = User.objects.filter(date_joined__gte=month_ago).count()
-    new_users_week = User.objects.filter(date_joined__gte=week_ago).count()
-    staff_users = User.objects.filter(is_staff=True).count()
+    # ── User stats (single aggregated query) ─────────────────────────────
+    _u_agg = User.objects.aggregate(
+        total=Count('id'),
+        active=Count('id', filter=Q(is_active=True)),
+        new_month=Count('id', filter=Q(date_joined__gte=month_ago)),
+        new_week=Count('id', filter=Q(date_joined__gte=week_ago)),
+        staff=Count('id', filter=Q(is_staff=True)),
+    )
+    total_users = _u_agg['total']
+    active_users = _u_agg['active']
+    new_users_month = _u_agg['new_month']
+    new_users_week = _u_agg['new_week']
+    staff_users = _u_agg['staff']
 
     # ── Economy stats (safe import) ──────────────────────────────────────
     try:

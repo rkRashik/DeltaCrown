@@ -94,6 +94,7 @@ class OrganizationAdmin(ModelAdmin):
     """
     
     form = OrganizationAdminForm
+    list_per_page = 25
     list_display = ['name', 'slug', 'public_id_display', 'ceo_link', 'member_count', 'team_count', 'is_verified', 'created_at']
     search_fields = ['name', 'slug', 'public_id', 'ceo__username', 'ceo__email']
     list_filter = ['is_verified', 'created_at']
@@ -222,6 +223,7 @@ class OrganizationRankingAdmin(ModelAdmin):
 class TeamAdmin(ModelAdmin):
     """Admin interface for vNext Teams."""
     
+    list_per_page = 25
     list_display = ['name', 'slug', 'game_id_display', 'region', 'created_by_link', 'organization_link', 'status', 'created_at']
     search_fields = ['name', 'slug', 'created_by__username', 'organization__name']
     list_filter = ['region', 'status', 'created_at']
@@ -291,6 +293,7 @@ class TeamAdmin(ModelAdmin):
 class TeamMembershipAdmin(ModelAdmin):
     """Admin interface for Team Memberships."""
     
+    list_per_page = 25
     list_display = ['user_link', 'team_link', 'role', 'status', 'roster_slot', 'is_tournament_captain', 'joined_at']
     search_fields = ['user__username', 'user__email', 'team__name']
     list_filter = ['role', 'status', 'roster_slot', 'is_tournament_captain', 'joined_at']

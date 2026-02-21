@@ -253,6 +253,9 @@
                      data-gp-rank-img="{{ m.gp_rank_image_url|default:'' }}" data-gp-role="{{ m.gp_main_role|default:'' }}"
                      data-gp-region="{{ m.gp_region|default:'' }}" data-gp-matches="{{ m.gp_matches_played|default:'0' }}"
                      data-gp-winrate="{{ m.gp_win_rate|default:'0' }}" data-gp-kd="{{ m.gp_kd_ratio|default:'' }}"
+                     data-gp-platform="{{ m.gp_platform|default:'' }}" data-gp-rank-points="{{ m.gp_rank_points|default:'' }}"
+                     data-gp-peak-rank="{{ m.gp_peak_rank|default:'' }}" data-gp-hours="{{ m.gp_hours_played|default:'' }}"
+                     data-gp-lft="{{ m.gp_is_lft|yesno:'true,false' }}" data-gp-verified="{{ m.gp_verification_status|default:'' }}"
                      data-profile-url="/@{{ m.user.username }}/">
 
                     <div class="flex items-start gap-3">
@@ -343,6 +346,9 @@
                      data-gp-rank-img="{{ m.gp_rank_image_url|default:'' }}" data-gp-role="{{ m.gp_main_role|default:'' }}"
                      data-gp-region="{{ m.gp_region|default:'' }}" data-gp-matches="{{ m.gp_matches_played|default:'0' }}"
                      data-gp-winrate="{{ m.gp_win_rate|default:'0' }}" data-gp-kd="{{ m.gp_kd_ratio|default:'' }}"
+                     data-gp-platform="{{ m.gp_platform|default:'' }}" data-gp-rank-points="{{ m.gp_rank_points|default:'' }}"
+                     data-gp-peak-rank="{{ m.gp_peak_rank|default:'' }}" data-gp-hours="{{ m.gp_hours_played|default:'' }}"
+                     data-gp-lft="{{ m.gp_is_lft|yesno:'true,false' }}" data-gp-verified="{{ m.gp_verification_status|default:'' }}"
                      data-profile-url="/@{{ m.user.username }}/">
                     <div class="flex items-start gap-3">
                         <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500/15 to-indigo-500/15 grid place-items-center text-sm font-bold overflow-hidden border border-white/8 shrink-0">
@@ -405,6 +411,9 @@
                      data-gp-rank-img="{{ m.gp_rank_image_url|default:'' }}" data-gp-role="{{ m.gp_main_role|default:'' }}"
                      data-gp-region="{{ m.gp_region|default:'' }}" data-gp-matches="{{ m.gp_matches_played|default:'0' }}"
                      data-gp-winrate="{{ m.gp_win_rate|default:'0' }}" data-gp-kd="{{ m.gp_kd_ratio|default:'' }}"
+                     data-gp-platform="{{ m.gp_platform|default:'' }}" data-gp-rank-points="{{ m.gp_rank_points|default:'' }}"
+                     data-gp-peak-rank="{{ m.gp_peak_rank|default:'' }}" data-gp-hours="{{ m.gp_hours_played|default:'' }}"
+                     data-gp-lft="{{ m.gp_is_lft|yesno:'true,false' }}" data-gp-verified="{{ m.gp_verification_status|default:'' }}"
                      data-profile-url="/@{{ m.user.username }}/">
                     <div class="flex items-center gap-3">
                         <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/15 grid place-items-center text-sm font-bold overflow-hidden border border-white/8 shrink-0">

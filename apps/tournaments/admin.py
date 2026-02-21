@@ -248,6 +248,7 @@ class TournamentPaymentMethodInline(StackedInline):
 class TournamentAdmin(ModelAdmin):
     """Comprehensive tournament management - similar to Teams admin quality"""
     
+    list_per_page = 25
     list_display = [
         'name', 'game_badge', 'official_badge', 'featured_badge', 'organizer_link', 'status_badge', 
         'format', 'registration_count', 'tournament_start', 

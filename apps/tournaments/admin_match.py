@@ -93,7 +93,14 @@ class MatchAdmin(ModelAdmin):
         'deleted_by',
     ]
     autocomplete_fields = ['tournament', 'bracket']
-    
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        """Optimize queryset with select_related for FK fields used in list_display."""
+        return super().get_queryset(request).select_related(
+            'tournament', 'bracket', 'deleted_by'
+        )
+
     fieldsets = (
         (_('Match Identification'), {
             'fields': (
@@ -361,7 +368,14 @@ class DisputeAdmin(ModelAdmin):
         'resolved_at',
         'evidence_screenshot_preview',
     ]
-    
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        """Optimize queryset with select_related for FK fields used in list_display."""
+        return super().get_queryset(request).select_related(
+            'match', 'match__tournament'
+        )
+
     fieldsets = (
         (_('Dispute Information'), {
             'fields': (

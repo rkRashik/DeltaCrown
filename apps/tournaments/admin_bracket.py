@@ -158,7 +158,17 @@ class BracketAdmin(ModelAdmin):
     ]
     
     inlines = [BracketNodeInline]
-    
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        """Optimize with select_related and annotated node counts."""
+        return super().get_queryset(request).select_related(
+            'tournament'
+        ).annotate(
+            _total_nodes=Count('nodes'),
+            _completed_nodes=Count('nodes', filter=Q(nodes__winner_id__isnull=False)),
+        )
+
     actions = [
         'regenerate_bracket',
         'finalize_bracket',
@@ -197,16 +207,12 @@ class BracketAdmin(ModelAdmin):
         return obj.is_finalized
     
     def progress_bar(self, obj):
-        """Show bracket completion progress"""
-        # Count completed nodes
-        total_nodes = BracketNode.objects.filter(bracket=obj).count()
+        """Show bracket completion progress using annotated counts."""
+        total_nodes = getattr(obj, '_total_nodes', 0)
         if total_nodes == 0:
             return "—"
         
-        completed_nodes = BracketNode.objects.filter(
-            bracket=obj,
-            winner_id__isnull=False
-        ).count()
+        completed_nodes = getattr(obj, '_completed_nodes', 0)
         
         percentage = (completed_nodes / total_nodes) * 100 if total_nodes > 0 else 0
         

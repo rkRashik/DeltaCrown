@@ -640,7 +640,14 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             for channel in channels:
                 key = channel.get('key', '')
                 if key:
-                    val = form_data.get(f'comm_{key}', '').strip()
+                    # Check both comm_<key> (dynamic field) and <key> (static field)
+                    val = (
+                        form_data.get(f'comm_{key}', '').strip()
+                        or form_data.get(key, '').strip()
+                    )
+                    # Also check captain_<key> variant (e.g. captain_whatsapp)
+                    if not val:
+                        val = form_data.get(f'captain_{key}', '').strip()
                     if val:
                         comms_data[key] = val
                     # Validate required channels

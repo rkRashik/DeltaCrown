@@ -152,6 +152,8 @@ class RegistrationAdmin(ModelAdmin):
             'tournament', 'user', 'deleted_by'
         ).prefetch_related('payment')
     
+    list_per_page = 25
+
     def participant_display(self, obj):
         """Display participant name (user or team)."""
         return obj.participant_identifier
@@ -161,26 +163,26 @@ class RegistrationAdmin(ModelAdmin):
     def team_name_display(self, obj):
         """Display team name if it's a team registration."""
         if obj.team_id:
-            try:
-                from apps.organizations.models import Team
-                team = Team.objects.get(id=obj.team_id)
-                return team.name
-            except Team.DoesNotExist:
-                return f"Team {obj.team_id} (Not Found)"
+            # Read from cached prefetch (registration_data JSON) to avoid per-row queries
+            data = obj.registration_data or {}
+            team_name = data.get('team_name') or data.get('team', {}).get('name') if isinstance(data, dict) else None
+            if team_name:
+                return team_name
+            # Fallback: the team_id reference
+            return f"Team #{obj.team_id}"
         return "-"
     team_name_display.short_description = "Team Name"
     
     def captain_display(self, obj):
-        """Display captain name if it's a team registration."""
+        """Display captain name from registration_data to avoid per-row queries."""
         if obj.team_id:
-            try:
-                from apps.organizations.models import Team
-                team = Team.objects.get(id=obj.team_id)
-                if team.captain:
-                    return team.captain.display_name or team.captain.user.username
-                return "No Captain"
-            except Team.DoesNotExist:
-                return f"Team {obj.team_id} (Not Found)"
+            data = obj.registration_data or {}
+            if isinstance(data, dict):
+                captain_name = data.get('captain_name') or data.get('captain', {}).get('name') or data.get('captain_username')
+                if captain_name:
+                    return captain_name
+            # Fallback to the registering user
+            return obj.user.username if obj.user_id else "-"
         return "-"
     captain_display.short_description = "Captain"
     
@@ -270,6 +272,7 @@ class PaymentAdmin(ModelAdmin):
     
     Payment verification and refund management with detailed filtering.
     """
+    list_per_page = 25
     list_display = [
         'id', 'registration_participant', 'tournament_display', 'payment_method',
         'amount', 'reference_number', 'status_display', 'submitted_at', 'verified_by', 'verified_at'

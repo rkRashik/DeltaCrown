@@ -3003,15 +3003,21 @@
 
       // Read game passport data from card data attributes
       const card = document.querySelector(`[data-membership-id="${memberId}"]`);
-      const gpIgn      = card?.dataset.gpIgn || '';
-      const gpRank     = card?.dataset.gpRank || '';
-      const gpRankImg  = card?.dataset.gpRankImg || '';
-      const gpRole     = card?.dataset.gpRole || '';
-      const gpRegion   = card?.dataset.gpRegion || '';
-      const gpMatches  = card?.dataset.gpMatches || '0';
-      const gpWinrate  = card?.dataset.gpWinrate || '0';
-      const gpKd       = card?.dataset.gpKd || '';
-      const profileUrl = card?.dataset.profileUrl || `/@${username}/`;
+      const gpIgn        = card?.dataset.gpIgn || '';
+      const gpRank       = card?.dataset.gpRank || '';
+      const gpRankImg    = card?.dataset.gpRankImg || '';
+      const gpRole       = card?.dataset.gpRole || '';
+      const gpRegion     = card?.dataset.gpRegion || '';
+      const gpMatches    = card?.dataset.gpMatches || '0';
+      const gpWinrate    = card?.dataset.gpWinrate || '0';
+      const gpKd         = card?.dataset.gpKd || '';
+      const gpPlatform   = card?.dataset.gpPlatform || '';
+      const gpRankPoints = card?.dataset.gpRankPoints || '';
+      const gpPeakRank   = card?.dataset.gpPeakRank || '';
+      const gpHours      = card?.dataset.gpHours || '';
+      const gpLft        = card?.dataset.gpLft || 'false';
+      const gpVerified   = card?.dataset.gpVerified || '';
+      const profileUrl   = card?.dataset.profileUrl || `/@${username}/`;
 
       // ── Basic Info rows ──
       const rows = [];
@@ -3021,17 +3027,53 @@
       if (email)      rows.push(this._row('Email',       `<a href="mailto:${this._esc(email)}" class="text-cyan-400 hover:underline">${this._esc(email)}</a>`));
       if (joinedAt)   rows.push(this._row('Joined',      this._fmtDate(joinedAt)));
 
-      // ── Game Passport rows ──
+      // ── Game Passport rows (show ALL available fields) ──
       const gpRows = [];
       if (gpIgn) {
-        const rankBadge = gpRankImg
-          ? `<img src="${this._esc(gpRankImg)}" class="w-4 h-4 inline -mt-0.5 mr-1" alt="">`
-          : '';
         gpRows.push(this._row('In-Game Name', `<span class="font-semibold text-white">${this._esc(gpIgn)}</span>`));
-        if (gpRank) gpRows.push(this._row('Rank', `${rankBadge}<span class="text-amber-300">${this._esc(gpRank)}</span>`));
-        if (gpRole) gpRows.push(this._row('Main Role', this._esc(gpRole)));
-        if (gpRegion) gpRows.push(this._row('Region', this._esc(gpRegion)));
-        if (parseInt(gpMatches) > 0) gpRows.push(this._row('Stats', `${gpMatches} matches &middot; ${gpWinrate}% WR${gpKd ? ` &middot; ${gpKd} K/D` : ''}`));
+      }
+      if (gpPlatform) {
+        gpRows.push(this._row('Platform', `<span class="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-300 text-[10px] font-bold uppercase">${this._esc(gpPlatform)}</span>`));
+      }
+      if (gpRegion) {
+        gpRows.push(this._row('Region', `<span class="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[10px] font-bold uppercase">${this._esc(gpRegion)}</span>`));
+      }
+      if (gpRank) {
+        const rankBadge = gpRankImg
+          ? `<img src="${this._esc(gpRankImg)}" class="w-5 h-5 inline -mt-0.5 mr-1.5" alt="">`
+          : '';
+        const rpText = gpRankPoints ? ` <span class="text-white/40 text-[10px]">(${this._esc(gpRankPoints)} pts)</span>` : '';
+        gpRows.push(this._row('Current Rank', `${rankBadge}<span class="text-amber-300 font-semibold">${this._esc(gpRank)}</span>${rpText}`));
+      }
+      if (gpPeakRank) {
+        gpRows.push(this._row('Peak Rank', `<span class="text-yellow-200">${this._esc(gpPeakRank)}</span>`));
+      }
+      if (gpRole) {
+        gpRows.push(this._row('Main Role', `<span class="text-purple-300">${this._esc(gpRole)}</span>`));
+      }
+
+      // Stats section
+      const statParts = [];
+      if (parseInt(gpMatches) > 0) statParts.push(`<span class="text-white">${gpMatches}</span> matches`);
+      if (parseInt(gpWinrate) > 0) statParts.push(`<span class="text-emerald-400">${gpWinrate}%</span> WR`);
+      if (gpKd) statParts.push(`<span class="text-cyan-400">${gpKd}</span> K/D`);
+      if (statParts.length > 0) {
+        gpRows.push(this._row('Stats', statParts.join(' <span class="text-white/20 mx-0.5">&middot;</span> ')));
+      }
+      if (gpHours) {
+        gpRows.push(this._row('Hours Played', `<span class="text-white/70">${this._esc(gpHours)}h</span>`));
+      }
+
+      // Status indicators
+      if (gpLft === 'true') {
+        gpRows.push(this._row('LFT Status', `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 text-[10px] font-bold"><span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span> Looking for Team</span>`));
+      }
+      if (gpVerified === 'VERIFIED') {
+        gpRows.push(this._row('Verification', `<span class="inline-flex items-center gap-1 text-emerald-400 text-[11px] font-semibold"><i data-lucide="badge-check" class="w-3.5 h-3.5"></i> Verified</span>`));
+      } else if (gpVerified === 'PENDING') {
+        gpRows.push(this._row('Verification', `<span class="inline-flex items-center gap-1 text-amber-400/80 text-[11px]"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Pending</span>`));
+      } else if (gpVerified === 'FLAGGED') {
+        gpRows.push(this._row('Verification', `<span class="inline-flex items-center gap-1 text-red-400/80 text-[11px]"><i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Flagged</span>`));
       }
 
       const hasPassport = gpRows.length > 0;
