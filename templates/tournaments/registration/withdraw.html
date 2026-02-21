@@ -30,7 +30,6 @@
 
     <div class="p-6">
       {% if not can_withdraw %}
-        {# Blocked #}
         <div class="rounded-xl p-4 bg-red-900/20 border border-red-700/30 mb-4">
           <p class="text-sm text-red-400">
             <i data-lucide="shield-x" class="w-4 h-4 inline mr-1"></i>
@@ -39,7 +38,6 @@
         </div>
 
       {% else %}
-        {# Refund Policy #}
         {% if refund_info.policy %}
           <div class="glass rounded-xl p-4 mb-6">
             <h3 class="text-sm font-display font-semibold text-white mb-3">

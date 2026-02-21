@@ -25,6 +25,7 @@ from apps.tournaments.models import Tournament, Registration, Payment
 from apps.tournaments.models.smart_registration import (
     RegistrationQuestion, RegistrationAnswer, RegistrationDraft,
 )
+from apps.tournaments.models.form_configuration import TournamentFormConfiguration
 from apps.tournaments.services.registration_service import RegistrationService
 from apps.tournaments.services.payment_service import PaymentService
 from apps.tournaments.services.registration_autofill import RegistrationAutoFillService
@@ -139,7 +140,51 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                 roster_members = TeamMembership.objects.filter(
                     team=team,
                     status=TeamMembership.Status.ACTIVE
-                ).select_related('user').order_by('role', '-joined_at')[:12]
+                ).select_related('user__profile').order_by('role', '-joined_at')[:20]
+
+        # ── Form Configuration (organizer-defined) ──
+        form_config = TournamentFormConfiguration.get_or_create_for_tournament(tournament)
+        form_config_ctx = form_config.to_template_context()
+
+        # ── Game Roster Config (game-specific limits) ──
+        roster_config = {}
+        try:
+            rl = game_service.get_roster_limits(tournament.game)
+            roster_config = {
+                'min_team_size': rl.get('min_team_size', 1),
+                'max_team_size': rl.get('max_team_size', 5),
+                'min_substitutes': rl.get('min_substitutes', 0),
+                'max_substitutes': rl.get('max_substitutes', 2),
+                'min_roster_size': rl.get('min_roster_size', 1),
+                'max_roster_size': rl.get('max_roster_size', 10),
+                'allow_coaches': rl.get('allow_coaches', True),
+                'max_coaches': rl.get('max_coaches', 1),
+                'allow_analysts': rl.get('allow_analysts', False),
+                'max_analysts': rl.get('max_analysts', 0),
+                'team_size_display': f"{rl.get('max_team_size', 5)}v{rl.get('max_team_size', 5)}" if rl.get('min_team_size') == rl.get('max_team_size') else f"{rl.get('min_team_size', 1)}-{rl.get('max_team_size', 5)}",
+            }
+        except Exception:
+            roster_config = {
+                'min_team_size': 5, 'max_team_size': 5,
+                'min_substitutes': 0, 'max_substitutes': 2,
+                'min_roster_size': 5, 'max_roster_size': 10,
+                'allow_coaches': True, 'max_coaches': 1,
+                'allow_analysts': False, 'max_analysts': 0,
+                'team_size_display': '5v5',
+            }
+
+        # ── Roster role positions (game-specific from GameRole) ──
+        roster_roles = []
+        try:
+            from apps.games.models import GameRole
+            roster_roles = list(
+                GameRole.objects.filter(
+                    game=tournament.game,
+                    is_active=True,
+                ).order_by('order', 'role_name').values('role_name', 'role_code', 'icon', 'color', 'description')
+            )
+        except Exception:
+            pass
 
         # Auto-fill via service
         autofill_data = RegistrationAutoFillService.get_autofill_data(user, tournament, team)
@@ -256,6 +301,13 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             'waitlist_count': waitlist_count,
             # Display name override
             'allow_display_name_override': getattr(tournament, 'allow_display_name_override', False),
+            # ── NEW: Form configuration (organizer-defined) ──
+            'form_config': form_config_ctx,
+            # ── NEW: Game roster config ──
+            'roster_config': roster_config,
+            'roster_roles': roster_roles,
+            # ── NEW: Payment methods from tournament ──
+            'payment_methods': getattr(tournament, 'payment_methods', None) or ['bkash', 'nagad', 'rocket'],
         }
 
     def _build_fields(self, user, tournament, autofill_data, game_spec):
@@ -475,7 +527,10 @@ class SmartRegistrationView(LoginRequiredMixin, View):
         # Collect form data
         form_data = request.POST
 
-        # Build registration_data JSON
+        # ── Load form configuration for toggle-aware processing ──
+        form_config = TournamentFormConfiguration.get_or_create_for_tournament(tournament)
+
+        # Build registration_data JSON — core fields always captured
         registration_data = {
             'full_name': form_data.get('full_name', '').strip(),
             'display_name': form_data.get('display_name', user.username),
@@ -488,6 +543,74 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             'rank': form_data.get('rank', '').strip(),
             'preferred_contact': form_data.get('preferred_contact', 'discord'),
         }
+
+        # ── Coordinator role ──
+        if form_config.enable_coordinator_role:
+            registration_data['coordinator_role'] = form_data.get('coordinator_role', '').strip()
+
+        # ── Organizer-enabled solo fields ──
+        if form_config.enable_age_field:
+            age_raw = form_data.get('age', '').strip()
+            if age_raw:
+                try:
+                    age_val = int(age_raw)
+                    if age_val < 13 or age_val > 99:
+                        raise ValidationError("Age must be between 13 and 99.")
+                    registration_data['age'] = age_val
+                except (ValueError, TypeError):
+                    raise ValidationError("Please enter a valid age.")
+
+        # ── Captain contact fields ──
+        if form_config.enable_captain_display_name_field:
+            registration_data['captain_display_name'] = form_data.get('captain_display_name', '').strip()
+        if form_config.enable_captain_whatsapp_field:
+            registration_data['captain_whatsapp'] = form_data.get('captain_whatsapp', '').strip()
+        if form_config.enable_captain_phone_field:
+            registration_data['captain_phone'] = form_data.get('captain_phone', '').strip()
+        if form_config.enable_captain_discord_field:
+            registration_data['captain_discord'] = form_data.get('captain_discord', '').strip()
+
+        # ── Dynamic communication channels ──
+        channels = form_config.get_communication_channels()
+        if channels:
+            comms_data = {}
+            for channel in channels:
+                key = channel.get('key', '')
+                if key:
+                    val = form_data.get(f'comm_{key}', '').strip()
+                    if val:
+                        comms_data[key] = val
+                    # Validate required channels
+                    if channel.get('required') and not val:
+                        label = channel.get('label', key)
+                        raise ValidationError(f"{label} is required.")
+            if comms_data:
+                registration_data['communication_channels'] = comms_data
+
+        # ── Team-specific fields ──
+        if is_team:
+            if form_config.enable_team_region_field:
+                registration_data['team_region'] = form_data.get('team_region', '').strip()
+            if form_config.enable_team_bio:
+                registration_data['team_bio'] = form_data.get('team_bio', '').strip()
+            # File uploads — store filenames; actual files stored via MEDIA_ROOT
+            if form_config.enable_team_logo_upload and 'team_logo' in request.FILES:
+                logo_file = request.FILES['team_logo']
+                if logo_file.size > 5 * 1024 * 1024:
+                    raise ValidationError("Team logo file must be under 5MB.")
+                registration_data['team_logo_filename'] = logo_file.name
+            if form_config.enable_team_banner_upload and 'team_banner' in request.FILES:
+                banner_file = request.FILES['team_banner']
+                if banner_file.size > 10 * 1024 * 1024:
+                    raise ValidationError("Team banner file must be under 10MB.")
+                registration_data['team_banner_filename'] = banner_file.name
+
+        # ── Payment extra fields (stored in registration_data, not Payment) ──
+        if tournament.has_entry_fee:
+            if form_config.enable_payment_mobile_number_field:
+                registration_data['payment_mobile_number'] = form_data.get('payment_mobile_number', '').strip()
+            if form_config.enable_payment_notes_field:
+                registration_data['payment_notes'] = form_data.get('payment_notes', '').strip()
 
         # Validate required fields
         if not registration_data['game_id']:
@@ -525,7 +648,16 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             team_id_str = form_data.get('team_id', '')
             if not team_id_str:
                 raise ValidationError("Please select a team for registration.")
-            team_id = int(team_id_str)
+            try:
+                team_id = int(team_id_str)
+            except (ValueError, TypeError):
+                raise ValidationError("Invalid team selection.")
+
+            # Re-verify team ownership — prevent team_id tampering
+            resolved_team, user_teams = self._resolve_team(request, tournament)
+            valid_team_ids = {t.id for t in user_teams}
+            if team_id not in valid_team_ids:
+                raise ValidationError("You don't have permission to register this team.")
 
         # Create registration via service
         registration = RegistrationService.register_participant(
@@ -543,19 +675,60 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                 roster_qs = TeamMembership.objects.filter(
                     team_id=team_id,
                     status=TeamMembership.Status.ACTIVE,
-                ).select_related('user')
+                ).select_related('user__profile')
+
+                # Get roster limits for validation
+                try:
+                    rl = game_service.get_roster_limits(tournament.game)
+                    min_roster = rl.get('min_team_size', 1)
+                    max_roster = rl.get('max_roster_size', 20)
+                except Exception:
+                    min_roster = 1
+                    max_roster = 20
+
+                active_count = roster_qs.count()
+                if active_count < min_roster:
+                    raise ValidationError(
+                        f"Your team needs at least {min_roster} active members "
+                        f"but only has {active_count}."
+                    )
+                if active_count > max_roster:
+                    raise ValidationError(
+                        f"Your team roster ({active_count}) exceeds the maximum "
+                        f"of {max_roster} members."
+                    )
+
+                # Collect per-member form overrides (roster_slot, player_role)
+                submitted_member_ids = form_data.getlist('roster_member_ids')
 
                 snapshot = []
                 for member in roster_qs:
-                    snapshot.append({
+                    member_entry = {
                         'user_id': member.user_id,
                         'username': member.user.username,
                         'role': member.role,
                         'display_name': member.display_name or member.user.username,
-                    })
+                    }
+                    # Capture per-member form data if submitted
+                    mid = str(member.id)
+                    roster_slot = form_data.get(f'member_{mid}_roster_slot', '').strip()
+                    player_role = form_data.get(f'member_{mid}_player_role', '').strip()
+                    if roster_slot:
+                        member_entry['roster_slot'] = roster_slot
+                    if player_role:
+                        member_entry['player_role'] = player_role
+                    # Capture game_id if available from profile
+                    if hasattr(member.user, 'profile') and member.user.profile:
+                        profile = member.user.profile
+                        member_entry['avatar'] = (profile.avatar.url if getattr(profile, 'avatar', None) else '')
+
+                    snapshot.append(member_entry)
 
                 registration.lineup_snapshot = snapshot
                 registration.save(update_fields=['lineup_snapshot'])
+            except ValidationError:
+                # Re-raise validation errors (roster size issues)
+                raise
             except Exception as e:
                 logger.warning(f"Failed to capture lineup snapshot: {e}")
 

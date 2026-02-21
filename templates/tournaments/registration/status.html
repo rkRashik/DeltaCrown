@@ -20,7 +20,6 @@
     </a>
   </div>
 
-  {# ── Status Header ── #}
   <div class="glass rounded-xl p-6 mb-6
     {% if status_info.color == 'green' %}neon-border-cyan{% elif status_info.color == 'red' %}border border-red-700/30{% else %}border border-dc-border{% endif %}">
     <div class="flex items-center gap-4">
@@ -55,7 +54,6 @@
     {% endif %}
   </div>
 
-  {# ── Registration Details ── #}
   <div class="glass rounded-xl p-6 mb-6">
     <h3 class="text-sm font-display font-semibold text-white mb-4">
       <i data-lucide="clipboard-list" class="w-4 h-4 inline mr-1 text-dc-cyan"></i> Registration Details
@@ -90,7 +88,6 @@
     </dl>
   </div>
 
-  {# ── Payment Timeline ── #}
   {% if payment_history %}
     <div class="glass rounded-xl p-6">
       <h3 class="text-sm font-display font-semibold text-white mb-4">

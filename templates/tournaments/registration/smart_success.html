@@ -107,7 +107,6 @@
 
 <div class="max-w-lg mx-auto px-4 sm:px-6 py-12 relative z-10">
 
-    {# ── Hero ────────────────────────────── #}
     <div class="text-center mb-8 drop-in">
         <div class="success-ring mx-auto mb-6">
             <i data-lucide="check" class="w-10 h-10 text-emerald-400"></i>
@@ -116,7 +115,6 @@
         <p class="text-sm text-gray-400">Registration confirmed for <span class="text-white font-semibold">{{ tournament.name }}</span></p>
     </div>
 
-    {# ── Registration Card ───────────────── #}
     <div class="glass-card rounded-2xl p-6 mb-5 drop-in" style="animation-delay: 0.15s; opacity: 0;">
 
         {% if registration.id %}
@@ -161,7 +159,6 @@
         {% endif %}
     </div>
 
-    {# ── What's Next Card ────────────────── #}
     <div class="glass-card rounded-2xl p-6 mb-6 drop-in" style="animation-delay: 0.3s; opacity: 0;">
         <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">What's Next</h3>
         <div class="space-y-3">
@@ -197,7 +194,6 @@
         </div>
     </div>
 
-    {# ── Actions ─────────────────────────── #}
     <div class="flex gap-3 drop-in" style="animation-delay: 0.45s; opacity: 0;">
         <a href="{% url 'tournaments:detail' tournament.slug %}" class="btn-accent flex-1 justify-center">
             <i data-lucide="arrow-right" class="w-4 h-4"></i> Go to Tournament

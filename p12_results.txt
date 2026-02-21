@@ -1,8 +1,0 @@
-============================= test session starts =============================
-collected 58 items
-
-tests\tournaments\test_phase1_registration.py .......................... [ 44%]
-....ss                                                                   [ 55%]
-tests\tournaments\test_phase2_registration.py .......................... [100%]
-
-======================= 56 passed, 2 skipped in 14.11s ========================

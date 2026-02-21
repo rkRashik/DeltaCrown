@@ -65,58 +65,121 @@ class TournamentVersionInline(TabularInline):
     """Inline display for TournamentVersion within Tournament admin (read-only audit trail)"""
     model = TournamentVersion
     extra = 0
+    max_num = 20  # Cap to prevent unbounded inline loading
     can_delete = False
     readonly_fields = ['version_number', 'change_summary', 'changed_by', 'changed_at', 'is_active']
     fields = ['version_number', 'change_summary', 'changed_by', 'changed_at', 'is_active']
+    ordering = ['-changed_at']
     
     def has_add_permission(self, request, obj=None):
         """Versions are created automatically, not manually"""
         return False
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('changed_by')
+
 
 class TournamentFormConfigurationInline(StackedInline):
     """
     Inline editor for registration form configuration.
-    Allows organizers to customize which fields appear in the registration form.
+    Allows organizers to customise every aspect of the registration experience:
+    - Coordinator role options
+    - Dynamic communication channels
+    - Team info fields
+    - Roster / member requirements
+    - Legacy boolean toggles (backward-compatible)
+    - Payment field toggles
     """
     model = TournamentFormConfiguration
     extra = 0
     can_delete = False
     max_num = 1
-    
+
     fieldsets = (
         ('Form Type Selection', {
             'fields': ('form_type', 'custom_form'),
-            'description': 'Choose between default solo/team forms or create a custom form'
+            'description': 'Choose between default solo/team forms or create a custom form.',
+        }),
+        ('Coordinator Role', {
+            'fields': (
+                'enable_coordinator_role',
+                'coordinator_role_choices',
+                'coordinator_help_text',
+            ),
+            'classes': ('collapse',),
+            'description': (
+                'Configure the "Match Coordinator" role selector shown in the registration form. '
+                'Leave role choices empty to use the built-in defaults (Captain/IGL, Manager, Coach, Other).'
+            ),
+        }),
+        ('Communication Channels', {
+            'fields': (
+                'communication_channels',
+                'enable_preferred_communication',
+            ),
+            'classes': ('collapse',),
+            'description': (
+                'Define which contact channels appear in the registration form. '
+                'Each channel: {"key":"discord","label":"Discord ID","placeholder":"User#0000",'
+                '"icon":"discord","required":true,"type":"text"}. '
+                'Leave empty to use defaults (Phone + Discord).'
+            ),
+        }),
+        ('Team Info Fields', {
+            'fields': (
+                'enable_team_logo_upload',
+                'enable_team_banner_upload',
+                'enable_team_bio',
+            ),
+            'classes': ('collapse',),
+            'description': 'Allow teams to upload logo/banner or add a bio during registration.',
+        }),
+        ('Roster & Member Requirements', {
+            'fields': (
+                'allow_roster_editing',
+                'show_member_ranks',
+                'show_member_game_ids',
+                'require_member_real_name',
+                'require_member_photo',
+                'require_member_email',
+                'require_member_age',
+                'require_member_national_id',
+                'member_custom_fields',
+            ),
+            'classes': ('collapse',),
+            'description': (
+                'Configure what information is required for each roster member. '
+                'For LAN / official tournaments, enable real name, photo, and national ID.'
+            ),
         }),
         ('Solo Registration Fields', {
             'fields': (
                 'enable_age_field', 'enable_country_field',
                 'enable_platform_field', 'enable_rank_field',
                 'enable_phone_field', 'enable_discord_field',
-                'enable_preferred_contact_field'
+                'enable_preferred_contact_field',
             ),
             'classes': ('collapse',),
-            'description': 'Toggle optional fields for solo player registration'
+            'description': 'Toggle which optional fields appear on solo / per-player registration forms.',
         }),
         ('Team Registration Fields', {
             'fields': (
                 'enable_team_logo_field', 'enable_team_region_field',
                 'enable_captain_display_name_field', 'enable_captain_whatsapp_field',
                 'enable_captain_phone_field', 'enable_captain_discord_field',
-                'enable_roster_display_names', 'enable_roster_emails'
+                'enable_roster_display_names', 'enable_roster_emails',
             ),
             'classes': ('collapse',),
-            'description': 'Toggle optional fields for team registration'
+            'description': 'Toggle which optional fields appear on team registration forms (captain details, roster extras).',
         }),
         ('Payment Fields', {
             'fields': (
                 'enable_payment_mobile_number_field',
                 'enable_payment_screenshot_field',
-                'enable_payment_notes_field'
+                'enable_payment_notes_field',
             ),
             'classes': ('collapse',),
-            'description': 'Toggle optional payment-related fields'
+            'description': 'Toggle optional payment-related fields.',
         }),
     )
 
@@ -205,7 +268,7 @@ class TournamentAdmin(ModelAdmin):
     formfield_overrides = {
         models.BooleanField: {"widget": UnfoldBooleanSwitchWidget},
     }
-    inlines = [TournamentFormConfigurationInline, TournamentPaymentMethodInline, TournamentStaffInline, CustomFieldInline, TournamentVersionInline]
+    inlines = [TournamentFormConfigurationInline, TournamentPaymentMethodInline, CustomFieldInline, TournamentVersionInline]
     ordering = ['-created_at']
     date_hierarchy = 'tournament_start'
     
@@ -444,17 +507,8 @@ class TournamentAdmin(ModelAdmin):
             User = get_user_model()
             kwargs['queryset'] = User.objects.filter(is_staff=True)
         elif db_field.name == 'game':
-            # Filter to only show active games from Games app (games.Game)
-            all_games = game_service.list_active_games()
-            game_ids = [g.id for g in all_games]
-            kwargs['queryset'] = GamesGame.objects.filter(id__in=game_ids, is_active=True)
-            # Override widget to show display_name
-            if 'widget' not in kwargs:
-                from django import forms
-                choices = [('', '---------')]
-                for game in all_games:
-                    choices.append((game.id, game.display_name))
-                kwargs['widget'] = forms.Select(choices=choices)
+            # Filter to only show active games — single query, no double-hit
+            kwargs['queryset'] = GamesGame.objects.filter(is_active=True).order_by('display_name')
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
     
     def formfield_for_dbfield(self, db_field, request, **kwargs):
@@ -688,6 +742,9 @@ class CustomFieldAdmin(ModelAdmin):
         }),
     )
     
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('tournament')
+
     def tournament_link(self, obj):
         """Link to tournament"""
         url = reverse('admin:tournaments_tournament_change', args=[obj.tournament.pk])
@@ -742,6 +799,9 @@ class TournamentVersionAdmin(ModelAdmin):
         }),
     )
     
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('tournament', 'changed_by', 'rolled_back_by')
+
     def tournament_link(self, obj):
         """Link to tournament"""
         url = reverse('admin:tournaments_tournament_change', args=[obj.tournament.pk])
@@ -833,6 +893,7 @@ class TournamentAnnouncementAdmin(ModelAdmin):
     list_filter = ['is_pinned', 'is_important', 'created_at', 'tournament']
     search_fields = ['title', 'message', 'tournament__name', 'created_by__username']
     readonly_fields = ['created_at', 'updated_at', 'created_by']
+    list_select_related = ['tournament', 'created_by']
     ordering = ['-is_pinned', '-created_at']
     date_hierarchy = 'created_at'
     
@@ -1099,6 +1160,7 @@ class FormResponseAdmin(ModelAdmin):
     ]
     list_filter = ['status', 'has_paid', 'payment_verified', 'tournament']
     search_fields = ['user__username', 'tournament__name']
+    list_select_related = ['user', 'tournament', 'team']
     readonly_fields = ['created_at', 'submitted_at', 'approved_at', 'updated_at']
     
     fieldsets = (
@@ -1209,6 +1271,7 @@ class FormWebhookAdmin(ModelAdmin):
     list_display = ['id', 'tournament_form', 'url', 'event_count', 'is_active', 'delivery_stats', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['url', 'tournament_form__tournament__name']
+    list_select_related = ['tournament_form', 'tournament_form__tournament']
     readonly_fields = ['created_at', 'updated_at']
     
     fieldsets = (
@@ -1228,9 +1291,19 @@ class FormWebhookAdmin(ModelAdmin):
         return len(obj.events) if obj.events else 0
     event_count.short_description = 'Events'
     
+    def get_queryset(self, request):
+        """Annotate delivery stats to avoid N+1 in list_display"""
+        from django.db.models import Q
+        qs = super().get_queryset(request)
+        qs = qs.annotate(
+            _delivery_total=Count('deliveries'),
+            _delivery_success=Count('deliveries', filter=Q(deliveries__status='success')),
+        )
+        return qs
+
     def delivery_stats(self, obj):
-        total = obj.deliveries.count()
-        success = obj.deliveries.filter(status='success').count()
+        total = getattr(obj, '_delivery_total', 0)
+        success = getattr(obj, '_delivery_success', 0)
         if total == 0:
             return '-'
         rate = int((success / total) * 100)

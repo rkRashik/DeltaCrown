@@ -1,0 +1,707 @@
+{% comment %}
+Smart Registration — Cinematic Wizard
+Unified template for solo / team / guest-team registration.
+Dynamically generates wizard steps based on tournament configuration.
+{% endcomment %}
+{% load static humanize %}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register — {{ tournament.name }} | DeltaCrown</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Rajdhani:wght@500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'dc-cyan': '#06b6d4',
+                        'dc-purple': '#8b5cf6',
+                        'dc-gold': '#facc15',
+                        'dc-bg': '#030303',
+                        'dc-surface': '#0a0a0a',
+                        'dc-card': '#111111',
+                        'val-red': '#ff4655',
+                        'bkash-pink': '#e2136e',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'gaming': ['Rajdhani', 'sans-serif'],
+                        'display': ['Space Grotesk', 'sans-serif'],
+                        'mono': ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'slide-in-right': 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-glow': 'pulseGlow 2.5s infinite alternate',
+                        'scanline': 'scanline 8s linear infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideInRight: {
+                            '0%': { opacity: '0', transform: 'translateX(20px)' },
+                            '100%': { opacity: '1', transform: 'translateX(0)' },
+                        },
+                        pulseGlow: {
+                            '0%': { boxShadow: '0 0 15px rgba(var(--accent-rgb), 0.2)' },
+                            '100%': { boxShadow: '0 0 35px rgba(var(--accent-rgb), 0.5)' },
+                        },
+                        scanline: {
+                            '0%': { transform: 'translateY(-100vh)' },
+                            '100%': { transform: 'translateY(100vh)' }
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        :root {
+            --accent: {{ game_color|default:"#06b6d4" }};
+            --accent-rgb: {{ game_color_rgb|default:"6, 182, 212" }};
+        }
+
+        body {
+            background-color: #030303;
+            color: #e5e5e5;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Cinematic Background Architecture ────────────── */
+        .bg-cinematic {
+            position: fixed; inset: 0; z-index: -3;
+            background:
+                radial-gradient(ellipse 100% 80% at 50% -20%, rgba(var(--accent-rgb), 0.12) 0%, transparent 60%),
+                radial-gradient(circle at 80% 120%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+                linear-gradient(135deg, #030303 0%, #0a0a12 50%, #030303 100%);
+            background-size: cover;
+            transform: scale(1.05);
+            animation: slowPan 40s infinite alternate ease-in-out;
+        }
+
+        @keyframes slowPan {
+            0% { transform: scale(1.05) translate(0, 0); }
+            100% { transform: scale(1.1) translate(-2%, -1%); }
+        }
+
+        .bg-overlay {
+            position: fixed; inset: 0; z-index: -2;
+            background: radial-gradient(circle at 60% 0%, rgba(var(--accent-rgb), 0.08) 0%, transparent 50%),
+                        linear-gradient(to bottom, rgba(3,3,3,0.7) 0%, #030303 100%);
+        }
+
+        .noise-texture {
+            position: fixed; inset: 0; z-index: -1; opacity: 0.04; pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        /* ── High-End Glassmorphism ───────────────────────── */
+        .glass-wizard {
+            background: rgba(10, 10, 10, 0.65);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.9), inset 0 0 0 1px rgba(255,255,255,0.02);
+        }
+
+        /* ── Custom Inputs & Elements ─────────────────────── */
+        .input-premium {
+            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 0.75rem; padding: 0.875rem 1.25rem; color: white; font-family: 'Inter', sans-serif;
+            font-size: 0.875rem; transition: all 0.3s ease; outline: none;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .input-premium:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15), inset 0 2px 4px rgba(0,0,0,0.2); }
+        .input-premium::placeholder { color: rgba(255,255,255,0.3); font-weight: 400; }
+
+        .input-bkash:focus { border-color: #e2136e; box-shadow: 0 0 0 3px rgba(226, 19, 110, 0.15), inset 0 2px 4px rgba(0,0,0,0.2); }
+
+        .player-slot {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .player-slot:hover { border-color: rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.04); }
+
+        .slot-empty { border: 1px dashed rgba(255, 255, 255, 0.15); background: rgba(0,0,0,0.3); cursor: pointer; }
+        .slot-empty:hover { border-color: var(--accent); background: rgba(var(--accent-rgb), 0.05); transform: translateY(-2px); }
+
+        .step-hidden { display: none !important; }
+
+        /* ── Custom Scrollbar ─────────────────────────────── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* ── Receipt Aesthetics ───────────────────────────── */
+        .receipt-edge {
+            background-image: radial-gradient(circle at 10px 0, transparent 10px, rgba(255,255,255,0.05) 11px);
+            background-size: 20px 20px;
+            background-repeat: repeat-x;
+            height: 20px;
+        }
+    </style>
+</head>
+<body class="relative">
+
+    <div class="bg-cinematic"></div>
+    <div class="bg-overlay"></div>
+    <div class="noise-texture"></div>
+
+    {# ── Top Navigation Bar ──────────────────────────────── #}
+    <nav class="w-full h-[72px] flex items-center justify-between px-6 md:px-10 border-b border-white/5 relative z-10 bg-black/40 backdrop-blur-md">
+        <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="flex items-center gap-3 group">
+            <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                <i data-lucide="x" class="w-4 h-4 text-gray-400 group-hover:text-white transition-colors"></i>
+            </div>
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-white transition-colors hidden sm:block">Abort Protocol</span>
+        </a>
+
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-dc-cyan to-dc-purple flex items-center justify-center font-black text-white text-base shadow-[0_0_15px_rgba(6,182,212,0.3)]">D</div>
+            <div class="h-4 w-px bg-white/10 mx-1 hidden sm:block"></div>
+            <span class="font-display font-bold text-lg tracking-tight text-white hidden sm:block">Delta<span class="text-dc-cyan">Crown</span> Secure</span>
+        </div>
+
+        <div class="flex items-center gap-3 pl-3 border-l border-white/10">
+            <div class="text-right hidden md:block">
+                <p class="text-xs font-bold text-white">{{ request.user.username }}</p>
+                <p class="text-[9px] text-gray-500 font-mono uppercase">{% if registration_type == 'team' %}Captain{% else %}Solo Competitor{% endif %}</p>
+            </div>
+            <div class="w-9 h-9 rounded-full p-[1px]" style="background: linear-gradient(to top right, var(--accent), rgba(var(--accent-rgb), 0.5));">
+                <img src="https://ui-avatars.com/api/?name={{ request.user.username|urlencode }}&background=000&color=fff" class="w-full h-full rounded-full object-cover border border-black" alt="">
+            </div>
+        </div>
+    </nav>
+
+    {# ── Messages (Django flash messages) ────────────────── #}
+    {% if messages %}
+    <div class="w-full max-w-[1400px] mx-auto px-4 pt-4 relative z-10">
+        {% for message in messages %}
+        <div class="p-4 rounded-xl border mb-2 text-sm font-medium {% if message.tags == 'error' %}bg-red-500/10 border-red-500/20 text-red-400{% elif message.tags == 'warning' %}bg-yellow-500/10 border-yellow-500/20 text-yellow-400{% else %}bg-dc-cyan/10 border-dc-cyan/20 text-dc-cyan{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# ── Main Wizard ─────────────────────────────────────── #}
+    <main class="flex-1 w-full max-w-[1400px] mx-auto px-4 py-8 md:py-12 flex flex-col items-center justify-center relative z-10">
+        <form method="post" enctype="multipart/form-data" id="registration-form" class="w-full">
+            {% csrf_token %}
+            <input type="hidden" name="registration_type" value="{{ registration_type }}">
+
+            <div class="w-full glass-wizard rounded-[2rem] overflow-hidden flex flex-col lg:flex-row min-h-[700px] relative">
+
+                {# ── Loading Overlay ─────────────────────── #}
+                <div id="loading-overlay" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center text-white" style="display: none;">
+                    <div class="flex flex-col items-center justify-center">
+                        <i data-lucide="loader-2" class="w-10 h-10 animate-spin mb-4" style="color: var(--accent);"></i>
+                        <p class="font-mono text-xs uppercase tracking-widest" style="color: var(--accent);">Encrypting Data...</p>
+                    </div>
+                </div>
+
+                {# ── Left Sidebar ────────────────────────── #}
+                <div class="w-full lg:w-[380px] bg-black/50 border-r border-white/5 flex flex-col relative overflow-hidden shrink-0" id="sidebar-nav">
+                    <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b to-transparent pointer-events-none" style="background: linear-gradient(to bottom, rgba(var(--accent-rgb), 0.1), transparent);"></div>
+
+                    {# Tournament header #}
+                    <div class="p-8 pb-6 border-b border-white/5 relative z-10">
+                        <span class="inline-block px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] rounded mb-4" style="background: rgba(var(--accent-rgb), 0.15); color: var(--accent); border: 1px solid rgba(var(--accent-rgb), 0.3); box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.4);">
+                            {% if registration_type == 'team' %}Team Registration{% else %}Solo Registration{% endif %}
+                        </span>
+                        <h1 class="font-display font-black text-3xl text-white leading-tight mb-2">{{ tournament.name }}</h1>
+                        <p class="text-sm text-gray-400">{{ tournament.game.name }}</p>
+                    </div>
+
+                    {# Readiness bar #}
+                    <div class="p-8 border-b border-white/5 bg-white/[0.01]">
+                        <div class="flex justify-between items-end mb-3">
+                            <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Passport Synchronization</h3>
+                            <span class="font-mono font-bold text-sm" style="color: var(--accent);">{{ readiness }}%</span>
+                        </div>
+                        <div class="w-full bg-black/50 h-1.5 rounded-full overflow-hidden mb-4 border border-white/5">
+                            <div class="h-full rounded-full transition-all duration-700" style="width: {{ readiness }}%; background: var(--accent);"></div>
+                        </div>
+                        <div class="flex items-center gap-2 text-[10px] text-gray-400">
+                            {% if readiness >= 80 %}
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-green-500"></i>
+                            <span>{{ filled_count }} of {{ total_fields }} fields synced.</span>
+                            {% else %}
+                            <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-yellow-500"></i>
+                            <span>{{ missing_count }} field{{ missing_count|pluralize }} need{{ missing_count|pluralize:"s," }} attention.</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {# Step Navigation — built dynamically by JS from STEPS config #}
+                    <div class="flex-1 p-8 relative">
+                        <div class="absolute left-[47px] top-10 bottom-10 w-px bg-white/10"></div>
+                        <div id="vertical-progress" class="absolute left-[47px] top-10 w-px transition-all duration-700 ease-out" style="height: 0%; background: var(--accent); box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.8);"></div>
+
+                        <div class="space-y-12 relative z-10" id="sidebar-steps">
+                            {# Populated by buildSidebar() #}
+                        </div>
+                    </div>
+
+                    <div class="p-6 bg-black/60 border-t border-white/5 mt-auto">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="shield-check" class="w-4 h-4 text-green-500"></i>
+                            <p class="text-[10px] text-gray-400 font-medium">Auto-verification active. System secure.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {# ── Right Content Area ──────────────────── #}
+                <div class="flex-1 flex flex-col relative bg-gradient-to-br from-white/[0.01] to-transparent w-full">
+                    <div class="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12 relative" id="wizard-content">
+
+                        {# Step panels — conditionally included #}
+                        {% include "tournaments/registration/includes/_step_identity.html" %}
+
+                        {% if registration_type == 'team' %}
+                        {% include "tournaments/registration/includes/_step_roster.html" %}
+                        {% endif %}
+
+                        {% if tournament.has_entry_fee %}
+                        {% include "tournaments/registration/includes/_step_payment.html" %}
+                        {% endif %}
+
+                        {% if custom_questions %}
+                        {% include "tournaments/registration/includes/_step_questions.html" %}
+                        {% endif %}
+
+                        {% include "tournaments/registration/includes/_step_review.html" %}
+
+                    </div>
+
+                    {# ── Footer Navigation ───────────────── #}
+                    <div class="p-6 md:px-12 md:py-6 bg-black/80 backdrop-blur-xl border-t border-white/5 flex justify-between items-center" id="wizard-footer">
+                        <button type="button" id="btn-back" class="px-6 py-3 rounded-xl font-bold text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-all opacity-0 pointer-events-none border border-transparent hover:border-white/10 flex items-center gap-2" onclick="prevStep()">
+                            <i data-lucide="arrow-left" class="w-4 h-4"></i> Go Back
+                        </button>
+
+                        <button type="button" id="btn-next" class="px-8 py-3 rounded-xl font-bold text-sm text-black bg-white hover:bg-gray-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)] flex items-center gap-2" onclick="nextStep()">
+                            Next <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+
+                        <button type="submit" id="btn-submit" class="hidden px-8 py-3 rounded-xl font-black text-sm text-white transition-all items-center gap-2 uppercase tracking-[0.15em] opacity-50 cursor-not-allowed" style="background: var(--accent); box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.4);" onclick="return handleSubmit(event)">
+                            <i data-lucide="zap" class="w-4 h-4 fill-current"></i>
+                            {% if registration_type == 'team' %}Deploy Team{% else %}Confirm & Deploy{% endif %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    {# ── Wizard Step Configuration (JSON) ──────────────────── #}
+    <script id="wizard-steps-config" type="application/json">
+    [
+        {"key": "identity", "label": "Identity & Comms", "subtitle": "{% if registration_type == 'team' %}Team Info & Coordination{% else %}Verify Player Info{% endif %}"}
+        {% if registration_type == 'team' %}
+        ,{"key": "roster", "label": "Roster Engine", "subtitle": "{% if is_guest_team %}Guest Members{% else %}Starters, Subs & Coach{% endif %}"}
+        {% endif %}
+        {% if tournament.has_entry_fee %}
+        ,{"key": "payment", "label": "Secure Entry Fee", "subtitle": "Payment Gateway"}
+        {% endif %}
+        {% if custom_questions %}
+        ,{"key": "questions", "label": "Additional Details", "subtitle": "Tournament Questions"}
+        {% endif %}
+        ,{"key": "review", "label": "Pre-Flight Manifest", "subtitle": "Review & Lock"}
+    ]
+    </script>
+
+    {# ── Wizard Engine (JavaScript) ────────────────────────── #}
+    <script>
+        // ─────────────────────────────────────────────────────
+        // WIZARD ENGINE — Dynamic Step Management
+        // ─────────────────────────────────────────────────────
+        lucide.createIcons();
+
+        const STEPS = JSON.parse(document.getElementById('wizard-steps-config').textContent);
+        const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+        const accentRgb = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim();
+
+        let currentStepIndex = 0;
+        let isTrxValid = false;
+        let isTermsAccepted = false;
+        let selectedPaymentMethod = '{{ deltacoin_can_afford|yesno:"deltacoin,mobile" }}';
+
+        // DOM refs
+        const progressLine = document.getElementById('vertical-progress');
+        const btnBack = document.getElementById('btn-back');
+        const btnNext = document.getElementById('btn-next');
+        const btnSubmit = document.getElementById('btn-submit');
+        const sidebarSteps = document.getElementById('sidebar-steps');
+
+        // ── Build Sidebar Navigation from STEPS config ───────
+        function buildSidebar() {
+            sidebarSteps.innerHTML = '';
+            STEPS.forEach((step, i) => {
+                const num = i + 1;
+                const el = document.createElement('div');
+                el.id = `nav-step-${num}`;
+                el.className = `flex items-start gap-5 ${i > 0 ? 'opacity-50' : ''} transition-all duration-300`;
+                el.innerHTML = `
+                    <div class="w-8 h-8 rounded-full ${i === 0 ? '' : 'bg-dc-bg border border-white/20 text-gray-500'} flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon relative z-10" ${i === 0 ? `style="background: ${accentColor}; color: white; box-shadow: 0 0 15px rgba(${accentRgb}, 0.4);"` : ''}>
+                        ${num}
+                    </div>
+                    <div class="pt-1.5">
+                        <p class="text-sm font-bold ${i === 0 ? 'text-white' : 'text-gray-400'} transition-colors step-nav-text">${step.label}</p>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">${step.subtitle}</p>
+                    </div>
+                `;
+                sidebarSteps.appendChild(el);
+            });
+            lucide.createIcons();
+        }
+
+        // ── Step Validation ─────────────────────────────────
+        function checkStep(stepKey) {
+            updateNavigationButtons();
+        }
+
+        function isCurrentStepValid() {
+            const step = STEPS[currentStepIndex];
+            if (!step) return false;
+
+            switch (step.key) {
+                case 'identity': {
+                    const phone = document.getElementById('contact-phone');
+                    const discord = document.getElementById('contact-discord');
+                    const phoneOk = phone && phone.value.trim().length >= 5;
+                    {% if registration_type == 'team' %}
+                    const discordOk = discord && discord.value.trim().length >= 3;
+                    {% else %}
+                    const discordOk = true;
+                    {% endif %}
+
+                    const gameIdInput = document.querySelector('[data-wizard-step="identity"] input[name="game_id"]');
+                    const gameIdOk = !gameIdInput || gameIdInput.value.trim().length > 0;
+
+                    {% if is_guest_team %}
+                    const guestName = document.querySelector('input[name="guest_team_name"]');
+                    const guestTag = document.querySelector('input[name="guest_team_tag"]');
+                    const guestOk = guestName && guestName.value.trim().length > 0 && guestTag && guestTag.value.trim().length > 0;
+                    return phoneOk && discordOk && gameIdOk && guestOk;
+                    {% else %}
+                    return phoneOk && discordOk && gameIdOk;
+                    {% endif %}
+                }
+                case 'roster':
+                    return true;
+                case 'payment': {
+                    if (selectedPaymentMethod === 'deltacoin') return true;
+                    return isTrxValid;
+                }
+                case 'questions': {
+                    const panel = document.querySelector('[data-wizard-step="questions"]');
+                    if (!panel) return true;
+                    const requiredInputs = panel.querySelectorAll('[required]');
+                    for (const input of requiredInputs) {
+                        if (input.type === 'checkbox' && !input.checked) return false;
+                        if (input.value !== undefined && !input.value.trim()) return false;
+                    }
+                    return true;
+                }
+                case 'review':
+                    return isTermsAccepted;
+                default:
+                    return true;
+            }
+        }
+
+        // ── UI Update Engine ────────────────────────────────
+        function updateUI() {
+            const totalSteps = STEPS.length;
+            const progressPct = totalSteps > 1 ? ((currentStepIndex) / (totalSteps - 1)) * 100 : 100;
+            progressLine.style.height = `${progressPct}%`;
+
+            // Update sidebar nav indicators
+            for (let i = 0; i < totalSteps; i++) {
+                const navItem = document.getElementById(`nav-step-${i + 1}`);
+                if (!navItem) continue;
+                const iconBox = navItem.querySelector('.step-nav-icon');
+                const text = navItem.querySelector('.step-nav-text');
+
+                if (i < currentStepIndex) {
+                    navItem.classList.remove('opacity-50');
+                    iconBox.className = 'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon relative z-10';
+                    iconBox.style.background = accentColor;
+                    iconBox.style.color = 'white';
+                    iconBox.style.boxShadow = `0 0 15px rgba(${accentRgb}, 0.4)`;
+                    iconBox.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
+                    text.classList.add('text-gray-400');
+                    text.classList.remove('text-white');
+                } else if (i === currentStepIndex) {
+                    navItem.classList.remove('opacity-50');
+                    iconBox.className = 'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon relative z-10';
+                    iconBox.style.background = accentColor;
+                    iconBox.style.color = 'white';
+                    iconBox.style.boxShadow = `0 0 15px rgba(${accentRgb}, 0.4)`;
+                    iconBox.innerHTML = `${i + 1}`;
+                    text.classList.add('text-white');
+                    text.classList.remove('text-gray-400');
+                } else {
+                    navItem.classList.add('opacity-50');
+                    iconBox.className = 'w-8 h-8 rounded-full bg-dc-bg border border-white/20 text-gray-500 flex items-center justify-center font-bold text-sm ring-4 ring-black transition-all step-nav-icon relative z-10';
+                    iconBox.style.background = '';
+                    iconBox.style.color = '';
+                    iconBox.style.boxShadow = '';
+                    iconBox.innerHTML = `${i + 1}`;
+                    text.classList.remove('text-white');
+                    text.classList.add('text-gray-400');
+                }
+            }
+            lucide.createIcons();
+
+            // Show/hide step panels
+            document.querySelectorAll('.wizard-step').forEach(panel => panel.classList.add('step-hidden'));
+            const currentKey = STEPS[currentStepIndex].key;
+            const currentPanel = document.querySelector(`[data-wizard-step="${currentKey}"]`);
+            if (currentPanel) {
+                currentPanel.classList.remove('step-hidden');
+                currentPanel.classList.remove('animate-slide-in-right', 'animate-fade-in');
+                void currentPanel.offsetWidth;
+                currentPanel.classList.add('animate-slide-in-right');
+            }
+
+            updateNavigationButtons();
+            updateReviewData();
+        }
+
+        function updateNavigationButtons() {
+            const totalSteps = STEPS.length;
+            const isFirst = currentStepIndex === 0;
+            const isLast = currentStepIndex === totalSteps - 1;
+            const valid = isCurrentStepValid();
+
+            // Back button
+            btnBack.style.opacity = isFirst ? '0' : '1';
+            btnBack.style.pointerEvents = isFirst ? 'none' : 'auto';
+
+            if (isLast) {
+                btnNext.style.display = 'none';
+                btnSubmit.classList.remove('hidden');
+                btnSubmit.classList.add('flex');
+                if (valid) {
+                    btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    btnSubmit.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            } else {
+                btnNext.style.display = 'flex';
+                btnSubmit.classList.add('hidden');
+                btnSubmit.classList.remove('flex');
+
+                const nextLabel = STEPS[currentStepIndex + 1]?.label || 'Next';
+                btnNext.innerHTML = `${nextLabel} <i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+                lucide.createIcons();
+
+                if (valid) {
+                    btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    btnNext.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        }
+
+        // ── Populate Review Step (live data sync) ───────────
+        function updateReviewData() {
+            const phone = document.getElementById('contact-phone');
+            const discord = document.getElementById('contact-discord');
+            const reviewPhone = document.getElementById('review-phone');
+            const reviewDiscord = document.getElementById('review-discord');
+
+            if (reviewPhone && phone) reviewPhone.textContent = phone.value || '—';
+            if (reviewDiscord && discord) reviewDiscord.textContent = discord.value || '—';
+
+            {% if tournament.has_entry_fee %}
+            const reviewGateway = document.getElementById('review-gateway');
+            const reviewTrxId = document.getElementById('review-trxid');
+            if (reviewGateway) {
+                if (selectedPaymentMethod === 'deltacoin') {
+                    reviewGateway.innerHTML = '<span class="text-dc-cyan flex items-center gap-1"><i data-lucide="coins" class="w-3 h-3"></i> DeltaCoin</span>';
+                } else {
+                    reviewGateway.innerHTML = '<span class="text-bkash-pink flex items-center gap-1"><i data-lucide="smartphone" class="w-3 h-3"></i> Mobile Payment</span>';
+                }
+                lucide.createIcons();
+            }
+            if (reviewTrxId) {
+                const trxInput = document.getElementById('trxid');
+                reviewTrxId.textContent = trxInput ? (trxInput.value.toUpperCase() || '—') : (selectedPaymentMethod === 'deltacoin' ? 'AUTO' : '—');
+            }
+            {% endif %}
+
+            {% if is_guest_team %}
+            const guestNameInput = document.querySelector('input[name="guest_team_name"]');
+            const reviewGuestName = document.getElementById('review-guest-name');
+            if (reviewGuestName && guestNameInput) reviewGuestName.textContent = guestNameInput.value || '—';
+            {% endif %}
+        }
+
+        // ── Navigation ──────────────────────────────────────
+        function nextStep() {
+            if (!isCurrentStepValid()) return;
+            if (currentStepIndex < STEPS.length - 1) {
+                currentStepIndex++;
+                updateUI();
+                document.getElementById('wizard-content').scrollTop = 0;
+            }
+        }
+
+        function prevStep() {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                updateUI();
+                document.getElementById('wizard-content').scrollTop = 0;
+            }
+        }
+
+        // ── Payment Logic ───────────────────────────────────
+        function selectPaymentMethod(method) {
+            selectedPaymentMethod = method;
+            const dcPanel = document.getElementById('panel-deltacoin');
+            const mobilePanel = document.getElementById('panel-mobile');
+            const dcRadio = document.getElementById('pay-deltacoin');
+            const mobileRadio = document.getElementById('pay-mobile');
+
+            if (method === 'deltacoin') {
+                if (dcPanel) dcPanel.classList.remove('step-hidden');
+                if (mobilePanel) mobilePanel.classList.add('step-hidden');
+                if (dcRadio) dcRadio.checked = true;
+            } else {
+                if (dcPanel) dcPanel.classList.add('step-hidden');
+                if (mobilePanel) mobilePanel.classList.remove('step-hidden');
+                if (mobileRadio) mobileRadio.checked = true;
+            }
+            updateNavigationButtons();
+        }
+
+        function selectMobileMethod(method) {
+            document.querySelectorAll('.mobile-tab').forEach(tab => {
+                const isActive = tab.dataset.mobileMethod === method;
+                tab.className = `mobile-tab px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${isActive ? 'bg-bkash-pink/10 border-bkash-pink/30 text-bkash-pink' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'}`;
+            });
+        }
+
+        function validateTrxId() {
+            const input = document.getElementById('trxid');
+            const status = document.getElementById('trx-status');
+            const icon = document.getElementById('trx-icon');
+            if (!input || !status || !icon) return;
+
+            const val = input.value.trim();
+
+            if (val.length === 0) {
+                status.innerHTML = 'Awaiting 10-character alphanumeric ID';
+                status.className = 'mt-3 flex items-center justify-center gap-2 text-xs font-medium text-gray-500 h-5';
+                input.style.borderColor = 'rgba(255,255,255,0.1)';
+                icon.innerHTML = '<i data-lucide="hash" class="w-5 h-5 text-gray-600"></i>';
+                isTrxValid = false;
+            } else if (val.length < 10) {
+                status.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Validating format...';
+                status.className = 'mt-3 flex items-center justify-center gap-2 text-xs font-medium text-gray-400 h-5';
+                input.style.borderColor = 'rgba(255,255,255,0.3)';
+                icon.innerHTML = '<i data-lucide="shield" class="w-5 h-5 text-gray-400"></i>';
+                isTrxValid = false;
+            } else {
+                status.innerHTML = '<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Format verified';
+                status.className = 'mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-green-400 h-5 animate-fade-in';
+                input.style.borderColor = '#4ade80';
+                icon.innerHTML = '<i data-lucide="check" class="w-5 h-5 text-green-500"></i>';
+                isTrxValid = true;
+            }
+            lucide.createIcons();
+            updateNavigationButtons();
+        }
+
+        function validateTerms() {
+            const cb = document.getElementById('terms-checkbox');
+            isTermsAccepted = cb && cb.checked;
+            updateNavigationButtons();
+        }
+
+        function copyNumber(el) {
+            const text = el.querySelector('.select-all');
+            if (text) {
+                navigator.clipboard.writeText(text.textContent.replace(/-/g, '').trim());
+                const btn = el.querySelector('button span, .copy-label');
+                if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy'; }, 2000); }
+            }
+        }
+
+        // ── Guest Team Member Management ────────────────────
+        let guestMemberCount = 1;
+        function addGuestMember() {
+            if (guestMemberCount >= 20) return;
+            const list = document.getElementById('guest-members-list');
+            if (!list) return;
+            const idx = guestMemberCount;
+            const row = document.createElement('div');
+            row.className = 'player-slot p-4 rounded-xl flex flex-col sm:flex-row gap-3';
+            row.dataset.guestRow = idx;
+            row.innerHTML = `
+                <div class="flex items-center gap-3 shrink-0">
+                    <span class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white">${idx + 1}</span>
+                </div>
+                <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input type="text" name="member_game_id_${idx}" class="input-premium text-sm" placeholder="{{ game_id_label|default:'Game ID' }}">
+                    <input type="text" name="member_display_name_${idx}" class="input-premium text-sm" placeholder="Display Name">
+                </div>
+                <button type="button" class="p-2 bg-white/5 hover:bg-red-500/20 hover:text-red-400 rounded-lg transition-colors border border-white/5 self-center" onclick="removeGuestMember(this)">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+            `;
+            list.appendChild(row);
+            guestMemberCount++;
+            lucide.createIcons();
+        }
+
+        function removeGuestMember(btn) {
+            const row = btn.closest('[data-guest-row]');
+            if (row) row.remove();
+        }
+
+        // ── Form Submission ─────────────────────────────────
+        function handleSubmit(e) {
+            if (!isTermsAccepted) {
+                e.preventDefault();
+                return false;
+            }
+
+            btnSubmit.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Deploying...';
+            lucide.createIcons();
+            btnSubmit.classList.add('opacity-80', 'cursor-not-allowed');
+
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = 'flex';
+
+            return true;
+        }
+
+        // ── Initialize ──────────────────────────────────────
+        buildSidebar();
+        updateUI();
+    </script>
+</body>
+</html>

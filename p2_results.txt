@@ -1,6 +1,0 @@
-============================= test session starts =============================
-collected 26 items
-
-tests\tournaments\test_phase2_registration.py .......................... [100%]
-
-============================= 26 passed in 10.83s =============================

@@ -1,0 +1,72 @@
+{% comment %}
+Step: Additional Details — Custom Tournament Questions
+Only rendered when custom_questions is non-empty.
+{% endcomment %}
+
+<div data-wizard-step="questions" class="wizard-step step-hidden animate-slide-in-right">
+    <div class="mb-8 border-b border-white/10 pb-6">
+        <h2 class="font-gaming font-bold text-3xl text-white mb-2">Additional Details</h2>
+        <p class="text-sm text-gray-400 max-w-lg">
+            The organizer requires some additional information. Please fill in the fields below.
+        </p>
+    </div>
+
+    <div class="space-y-6">
+        {% for question in custom_questions %}
+        <div class="space-y-2">
+            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2" for="custom_q_{{ question.id }}">
+                {{ question.text }}
+                {% if question.is_required %}<span class="text-red-400">*</span>{% else %}<span class="text-gray-600">(Optional)</span>{% endif %}
+            </label>
+
+            {% if question.help_text %}
+            <p class="text-[10px] text-gray-500 ml-1 mb-1">{{ question.help_text }}</p>
+            {% endif %}
+
+            {% if question.type == 'text' %}
+            <input type="text" name="custom_q_{{ question.id }}" id="custom_q_{{ question.id }}" class="input-premium" placeholder="Enter your answer..." {% if question.is_required %}required oninput="checkStep('questions')"{% endif %}>
+
+            {% elif question.type == 'number' %}
+            <input type="number" name="custom_q_{{ question.id }}" id="custom_q_{{ question.id }}" class="input-premium" placeholder="0" {% if question.config.min is not None %}min="{{ question.config.min }}"{% endif %} {% if question.config.max is not None %}max="{{ question.config.max }}"{% endif %} {% if question.is_required %}required oninput="checkStep('questions')"{% endif %}>
+
+            {% elif question.type == 'date' %}
+            <input type="date" name="custom_q_{{ question.id }}" id="custom_q_{{ question.id }}" class="input-premium" {% if question.is_required %}required onchange="checkStep('questions')"{% endif %}>
+
+            {% elif question.type == 'select' %}
+            <div class="relative">
+                <select name="custom_q_{{ question.id }}" id="custom_q_{{ question.id }}" class="input-premium appearance-none pr-10" {% if question.is_required %}required onchange="checkStep('questions')"{% endif %}>
+                    <option value="">Select an option...</option>
+                    {% for option in question.config.options %}
+                    <option value="{{ option }}">{{ option }}</option>
+                    {% endfor %}
+                </select>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+            </div>
+
+            {% elif question.type == 'multi_select' %}
+            <div class="space-y-2 p-4 rounded-xl bg-black/30 border border-white/5">
+                {% for option in question.config.options %}
+                <label class="flex items-center gap-3 cursor-pointer group p-2 rounded-lg hover:bg-white/5 transition-colors">
+                    <input type="checkbox" name="custom_q_{{ question.id }}" value="{{ option }}" class="appearance-none w-4 h-4 border border-gray-600 rounded bg-transparent checked:bg-[color:var(--accent)] checked:border-[color:var(--accent)] transition-all cursor-pointer" {% if question.is_required %}onchange="checkStep('questions')"{% endif %}>
+                    <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ option }}</span>
+                </label>
+                {% endfor %}
+            </div>
+
+            {% elif question.type == 'boolean' %}
+            <label class="flex items-center gap-3 cursor-pointer group p-4 rounded-xl bg-black/30 border border-white/5 hover:border-white/10 transition-colors">
+                <input type="checkbox" name="custom_q_{{ question.id }}" id="custom_q_{{ question.id }}" value="true" class="appearance-none w-5 h-5 border-2 border-gray-600 rounded bg-transparent checked:bg-[color:var(--accent)] checked:border-[color:var(--accent)] transition-all cursor-pointer" {% if question.is_required %}onchange="checkStep('questions')"{% endif %}>
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ question.text }}</span>
+            </label>
+
+            {% elif question.type == 'file' %}
+            <label class="flex items-center gap-3 p-4 rounded-xl border border-dashed border-white/10 bg-black/30 cursor-pointer hover:border-white/20 transition-all">
+                <i data-lucide="upload" class="w-5 h-5 text-gray-500 shrink-0"></i>
+                <span class="text-sm text-gray-400 file-label">Choose file...</span>
+                <input type="file" name="custom_q_{{ question.id }}" id="custom_q_{{ question.id }}" class="sr-only" {% if question.is_required %}required onchange="checkStep('questions')"{% endif %} onchange="this.previousElementSibling.textContent = this.files[0]?.name || 'Choose file...'">
+            </label>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>

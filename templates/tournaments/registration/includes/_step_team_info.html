@@ -1,0 +1,265 @@
+<div data-wizard-step="team_info" class="wizard-step step-hidden animate-slide-in-right">
+    <div class="mb-8 border-b border-white/10 pb-6">
+        <h2 class="font-gaming font-bold text-3xl text-white mb-2">Team Profile</h2>
+        <p class="text-sm text-gray-400 max-w-lg">
+            {% if is_guest_team %}
+            Set up your guest team profile for this tournament.
+            {% else %}
+            Review your team details below. This is the identity that will represent your team in this tournament.
+            {% endif %}
+        </p>
+    </div>
+
+    {% if not is_guest_team and team %}
+    <div class="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden mb-8">
+        <div class="relative h-28 sm:h-36 bg-gradient-to-r from-black via-dc-card to-black overflow-hidden">
+            {% if team.banner %}
+            <img src="{{ team.banner.url }}" class="w-full h-full object-cover opacity-60" alt="">
+            {% else %}
+            <div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.15) 0%, transparent 60%);"></div>
+            {% endif %}
+            <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0a0a0a] to-transparent"></div>
+        </div>
+
+        <div class="px-6 pb-6 -mt-10 relative z-10">
+            <div class="flex items-end gap-4 mb-5">
+                <div class="w-20 h-20 rounded-2xl bg-black overflow-hidden border-2 border-dc-card shadow-xl shrink-0">
+                    {% if team.logo %}
+                    <img src="{{ team.logo.url }}" class="w-full h-full object-cover" alt="{{ team.name }}">
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center text-2xl font-black text-white/30 bg-dc-card">{{ team.tag|default:team.name|truncatechars:3 }}</div>
+                    {% endif %}
+                </div>
+                <div class="flex-1 min-w-0 pb-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h3 class="text-xl font-black text-white truncate">{{ team.name }}</h3>
+                        {% if team.tag %}
+                        <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border border-white/10 bg-white/5 text-gray-400">[{{ team.tag }}]</span>
+                        {% endif %}
+                        {% if team.is_verified %}
+                        <i data-lucide="badge-check" class="w-4 h-4 text-dc-cyan shrink-0" title="Verified Team"></i>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-0.5 truncate">Registered team on DeltaCrown</p>
+                </div>
+                <span class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg shrink-0 flex items-center gap-1.5" style="background: rgba(var(--accent-rgb), 0.1); color: var(--accent); border: 1px solid rgba(var(--accent-rgb), 0.2);">
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Verified
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="p-3 rounded-xl bg-black/40 border border-white/5">
+                    <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1">Members</p>
+                    <p class="text-lg font-black text-white">{{ roster_members|length|default:"0" }}</p>
+                </div>
+                <div class="p-3 rounded-xl bg-black/40 border border-white/5">
+                    <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1">Game</p>
+                    <p class="text-sm font-bold text-white truncate">{{ tournament.game.name }}</p>
+                </div>
+                <div class="p-3 rounded-xl bg-black/40 border border-white/5">
+                    <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1">Region</p>
+                    <p class="text-sm font-bold text-white">{{ team.region|default:"Global" }}</p>
+                </div>
+                <div class="p-3 rounded-xl bg-black/40 border border-white/5">
+                    <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1">Created</p>
+                    <p class="text-sm font-bold text-white">{{ team.created_at|date:"M Y" }}</p>
+                </div>
+            </div>
+
+            {% if team.bio %}
+            <div class="mt-4 p-3 rounded-xl bg-black/30 border border-white/5">
+                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Team Bio</p>
+                <p class="text-xs text-gray-400 leading-relaxed">{{ team.bio|truncatewords:50 }}</p>
+            </div>
+            {% endif %}
+
+            {% if roster_members %}
+            <div class="mt-4">
+                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-2">Active Roster Preview</p>
+                <div class="flex -space-x-2">
+                    {% for member in roster_members|slice:":8" %}
+                    <div class="w-8 h-8 rounded-full border-2 border-dc-card overflow-hidden bg-black" title="{{ member.display_name|default:member.user.profile.display_name|default:member.user.username }}">
+                        {% if member.roster_image %}
+                        <img src="{{ member.roster_image.url }}" class="w-full h-full object-cover" alt="">
+                        {% elif member.user.profile.avatar %}
+                        <img src="{{ member.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="">
+                        {% else %}
+                        <img src="https://ui-avatars.com/api/?name={{ member.user.username|urlencode }}&background=111&color=fff&size=32" class="w-full h-full object-cover" alt="">
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% if roster_members|length > 8 %}
+                    <div class="w-8 h-8 rounded-full border-2 border-dc-card bg-white/10 flex items-center justify-center text-[10px] font-bold text-gray-400">+{{ roster_members|length|add:"-8" }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="mt-4 flex items-center gap-2 p-2.5 rounded-lg bg-white/[0.02] border border-white/5">
+                <i data-lucide="info" class="w-3.5 h-3.5 text-gray-500 shrink-0"></i>
+                <p class="text-[10px] text-gray-500">To edit core team details (name, tag, region), visit your <a href="{% url 'organizations:team_detail' team_slug=team.slug %}" target="_blank" class="font-bold hover:text-white transition-colors" style="color: var(--accent);">Team Hub</a>.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if form_config.enable_team_region_field or form_config.enable_roster_display_names or form_config.enable_roster_emails %}
+    <div class="mb-6">
+        <h3 class="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full shadow-lg" style="background: var(--accent); box-shadow: 0 0 10px var(--accent);"></span>
+            Additional Team Details
+        </h3>
+        <p class="text-[10px] text-gray-500 ml-4">The organizer has requested the following information.</p>
+    </div>
+    <div class="space-y-5 mb-8">
+        {% if form_config.enable_team_region_field %}
+        <div class="space-y-2">
+            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <i data-lucide="globe" class="w-3.5 h-3.5" style="color: var(--accent);"></i> Team Region
+            </label>
+            <input type="text" name="team_region" class="input-premium" placeholder="e.g. South Asia, SEA, NA, EU" value="{{ team.region|default:'' }}" oninput="checkStep('team_info')">
+        </div>
+        {% endif %}
+        {% if form_config.enable_roster_display_names %}
+        <div class="p-4 rounded-xl bg-white/[0.02] border border-white/5 flex items-start gap-3">
+            <i data-lucide="info" class="w-4 h-4 text-dc-cyan mt-0.5 shrink-0"></i>
+            <div>
+                <p class="text-xs font-bold text-white mb-0.5">Display names required</p>
+                <p class="text-[10px] text-gray-400">The organizer requires display names for all roster members. You can set these in the Team Lineup step.</p>
+            </div>
+        </div>
+        {% endif %}
+        {% if form_config.enable_roster_emails %}
+        <div class="p-4 rounded-xl bg-white/[0.02] border border-white/5 flex items-start gap-3">
+            <i data-lucide="info" class="w-4 h-4 text-dc-cyan mt-0.5 shrink-0"></i>
+            <div>
+                <p class="text-xs font-bold text-white mb-0.5">Email addresses required</p>
+                <p class="text-[10px] text-gray-400">The organizer requires email addresses for all roster members. These will be collected in the Team Lineup step.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if form_config.enable_team_logo_upload or form_config.enable_team_banner_upload or form_config.enable_team_bio %}
+    <div class="mb-6">
+        <h3 class="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full shadow-lg" style="background: var(--accent); box-shadow: 0 0 10px var(--accent);"></span>
+            Tournament Branding
+        </h3>
+        <p class="text-[10px] text-gray-500 ml-4">The organizer has enabled additional branding options for this tournament.</p>
+    </div>
+    {% endif %}
+
+    <div class="space-y-8">
+        {% if form_config.enable_team_logo_upload %}
+        <div>
+            <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
+                <i data-lucide="image" class="w-4 h-4" style="color: var(--accent);"></i>
+                Team Logo
+                {% if is_guest_team %}<span class="text-red-400 text-[10px]">* Required</span>{% else %}<span class="text-gray-600 text-[10px]">(Override for this tournament)</span>{% endif %}
+            </h3>
+            <p class="text-[10px] text-gray-500 mb-4">Square image, minimum 256×256px. PNG or JPG, max 2MB.</p>
+
+            <div class="drop-zone rounded-2xl p-8 flex flex-col items-center justify-center gap-4 group" id="logo-drop-zone"
+                 ondragover="event.preventDefault(); this.classList.add('drag-over')"
+                 ondragleave="this.classList.remove('drag-over')"
+                 ondrop="handleFileDrop(event, 'team_logo')"
+                 onclick="document.getElementById('team_logo_input').click()">
+
+                <div id="logo-preview-container" class="{% if not team or not team.logo %}hidden{% endif %}">
+                    {% if team and team.logo %}
+                    <img id="logo-preview" src="{{ team.logo.url }}" class="preview rounded-xl border border-white/10 shadow-lg" alt="Current logo">
+                    <p class="text-[10px] text-gray-500 text-center mt-2">Current logo — drop a new one to replace</p>
+                    {% else %}
+                    <img id="logo-preview" class="preview rounded-xl border border-white/10 shadow-lg" alt="Logo preview">
+                    {% endif %}
+                </div>
+                <div id="logo-placeholder" class="text-center {% if team and team.logo %}hidden{% endif %}">
+                    <div class="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-3 group-hover:border-[color:var(--accent)] transition-colors">
+                        <i data-lucide="upload" class="w-6 h-6 text-gray-500 group-hover:text-[color:var(--accent)] transition-colors"></i>
+                    </div>
+                    <p class="text-sm text-gray-400 font-medium">Drop logo here or <span style="color: var(--accent);" class="font-bold">browse</span></p>
+                    <p class="text-[10px] text-gray-600 mt-1">PNG, JPG — max 2MB</p>
+                </div>
+                <input type="file" id="team_logo_input" name="team_logo" accept="image/png,image/jpeg,image/webp" class="sr-only" onchange="previewUpload(this, 'logo')">
+            </div>
+        </div>
+        {% endif %}
+
+        {% if form_config.enable_team_banner_upload %}
+        <div>
+            <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
+                <i data-lucide="panorama" class="w-4 h-4 text-dc-purple"></i>
+                Team Banner
+                <span class="text-gray-600 text-[10px]">(Optional)</span>
+            </h3>
+            <p class="text-[10px] text-gray-500 mb-4">Wide banner image, recommended 1200×400px. Used in bracket overlays and stream displays.</p>
+
+            <div class="drop-zone rounded-2xl p-6 flex flex-col items-center justify-center gap-4 group" id="banner-drop-zone"
+                 ondragover="event.preventDefault(); this.classList.add('drag-over')"
+                 ondragleave="this.classList.remove('drag-over')"
+                 ondrop="handleFileDrop(event, 'team_banner')"
+                 onclick="document.getElementById('team_banner_input').click()">
+
+                <div id="banner-preview-container" class="{% if not team or not team.banner %}hidden{% endif %} w-full">
+                    {% if team and team.banner %}
+                    <img id="banner-preview" src="{{ team.banner.url }}" class="w-full max-h-[160px] object-cover rounded-xl border border-white/10 shadow-lg" alt="Current banner">
+                    <p class="text-[10px] text-gray-500 text-center mt-2">Current banner — drop a new one to replace</p>
+                    {% else %}
+                    <img id="banner-preview" class="w-full max-h-[160px] object-cover rounded-xl border border-white/10 shadow-lg" alt="Banner preview">
+                    {% endif %}
+                </div>
+                <div id="banner-placeholder" class="text-center {% if team and team.banner %}hidden{% endif %}">
+                    <div class="w-24 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-3">
+                        <i data-lucide="image" class="w-5 h-5 text-gray-500"></i>
+                    </div>
+                    <p class="text-sm text-gray-400 font-medium">Drop banner here or <span class="text-dc-purple font-bold">browse</span></p>
+                    <p class="text-[10px] text-gray-600 mt-1">1200×400px recommended — max 5MB</p>
+                </div>
+                <input type="file" id="team_banner_input" name="team_banner" accept="image/png,image/jpeg,image/webp" class="sr-only" onchange="previewUpload(this, 'banner')">
+            </div>
+        </div>
+        {% endif %}
+
+        {% if form_config.enable_team_bio %}
+        <div>
+            <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4 text-dc-cyan"></i>
+                Team Bio
+                <span class="text-gray-600 text-[10px]">(Optional — override for this tournament)</span>
+            </h3>
+            <p class="text-[10px] text-gray-500 mb-4">Write a short introduction about your team. Displayed on the tournament page alongside your roster.</p>
+
+            <textarea name="team_bio" id="team-bio" class="input-premium" rows="4" maxlength="500" placeholder="Tell the community about your team — history, achievements, playstyle..." oninput="updateBioCounter(this)">{% if team and team.bio %}{{ team.bio }}{% endif %}</textarea>
+            <div class="flex justify-between items-center mt-2">
+                <p class="text-[10px] text-gray-500 flex items-center gap-1">
+                    <i data-lucide="info" class="w-3 h-3"></i> Supports basic text. No HTML.
+                </p>
+                <span class="text-[10px] font-mono text-gray-500" id="bio-counter">0 / 500</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if is_guest_team %}
+    <div class="mt-8 space-y-6">
+        <div>
+            <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
+                <i data-lucide="shield" class="w-4 h-4" style="color: var(--accent);"></i>
+                Guest Team Name <span class="text-red-400 text-[10px]">*</span>
+            </h3>
+            <input type="text" name="guest_team_name" class="input-premium" placeholder="Enter your team name" required oninput="checkStep('team_info')">
+        </div>
+        {% if form_config.enable_team_bio %}{% else %}
+        <div>
+            <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4 text-dc-cyan"></i>
+                Team Description <span class="text-gray-600 text-[10px]">(Optional)</span>
+            </h3>
+            <textarea name="team_bio" class="input-premium" rows="3" maxlength="300" placeholder="Brief team description..."></textarea>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

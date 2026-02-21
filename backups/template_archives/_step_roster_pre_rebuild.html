@@ -1,0 +1,104 @@
+{% comment %}
+Step: Roster Engine (Team tournaments only)
+Displays the synchronized roster from Game Passports.
+Guest team mode shows dynamic member input rows.
+{% endcomment %}
+
+<div data-wizard-step="roster" class="wizard-step step-hidden animate-slide-in-right">
+    <div class="flex justify-between items-end mb-8 border-b border-white/10 pb-6">
+        <div>
+            <h2 class="font-gaming font-bold text-3xl text-white mb-1">Roster Engine</h2>
+            <p class="text-sm text-gray-400">
+                {% if is_guest_team %}
+                Add your guest team members below.
+                {% else %}
+                The platform has verified your squad's Game Passports.
+                {% endif %}
+            </p>
+        </div>
+        {% if not is_guest_team and roster_members %}
+        <span class="text-[10px] font-bold px-3 py-1 rounded uppercase tracking-widest items-center gap-1.5 hidden md:flex" style="background: rgba(var(--accent-rgb), 0.1); border: 1px solid rgba(var(--accent-rgb), 0.3); color: var(--accent);">
+            <i data-lucide="shield-alert" class="w-3 h-3"></i> {{ roster_members|length }} Active
+        </span>
+        {% endif %}
+    </div>
+
+    {% if is_guest_team %}
+    {# ── Guest Team Member Rows ─────────────────────── #}
+    <div class="space-y-6">
+        <div>
+            <h3 class="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full shadow-lg" style="background: var(--accent); box-shadow: 0 0 10px var(--accent);"></span>
+                Guest Members
+            </h3>
+            <div id="guest-members-list" class="space-y-3">
+                {# First member row (always present) #}
+                <div class="player-slot p-4 rounded-xl flex flex-col sm:flex-row gap-3" data-guest-row="0">
+                    <div class="flex items-center gap-3 shrink-0">
+                        <span class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white">1</span>
+                    </div>
+                    <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input type="text" name="member_game_id_0" class="input-premium text-sm" placeholder="{{ game_id_label }}" required>
+                        <input type="text" name="member_display_name_0" class="input-premium text-sm" placeholder="Display Name">
+                    </div>
+                </div>
+            </div>
+            <button type="button" id="btn-add-guest-member" class="mt-4 w-full p-4 rounded-xl border border-dashed border-white/15 bg-black/30 text-gray-500 hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] transition-all flex items-center justify-center gap-2 text-sm font-bold" onclick="addGuestMember()">
+                <i data-lucide="user-plus" class="w-4 h-4"></i> Add Member
+            </button>
+        </div>
+    </div>
+
+    {% else %}
+    {# ── Verified Roster ────────────────────────────── #}
+    <div class="space-y-8">
+        <div>
+            <h3 class="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full shadow-lg" style="background: var(--accent); box-shadow: 0 0 10px var(--accent);"></span>
+                Core Lineup <span class="text-gray-500">({{ roster_members|length }})</span>
+            </h3>
+
+            <div class="space-y-2">
+                {% for member in roster_members %}
+                <div class="player-slot p-3 md:p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between {% if forloop.first %}border-[color:var(--accent)]/30 relative overflow-hidden{% endif %}" {% if forloop.first %}style="background: rgba(var(--accent-rgb), 0.05);"{% endif %}>
+                    {% if forloop.first %}
+                    <div class="absolute left-0 top-0 bottom-0 w-1" style="background: var(--accent);"></div>
+                    {% endif %}
+                    <div class="flex items-center gap-4 {% if forloop.first %}pl-2{% else %}pl-3{% endif %}">
+                        <div class="w-10 h-10 md:w-12 md:h-12 rounded-full p-[1px] shadow-lg {% if forloop.first %}bg-gradient-to-tr{% else %}bg-gray-800{% endif %}" {% if forloop.first %}style="background: linear-gradient(to top right, var(--accent), rgba(var(--accent-rgb), 0.5));"{% endif %}>
+                            <img src="https://ui-avatars.com/api/?name={{ member.user.username|urlencode }}&background=000&color=fff" class="w-full h-full rounded-full object-cover {% if forloop.first %}border-2 border-black{% endif %}">
+                        </div>
+                        <div>
+                            <p class="text-sm md:text-base font-bold text-white flex items-center gap-2">
+                                {{ member.display_name|default:member.user.username }}
+                                {% if member.role == 'OWNER' %}
+                                <span class="px-1.5 py-0.5 bg-dc-gold text-black text-[9px] font-black uppercase tracking-wider rounded">Captain</span>
+                                {% elif member.role == 'COACH' %}
+                                <span class="px-1.5 py-0.5 bg-dc-purple/30 text-dc-purple text-[9px] font-black uppercase tracking-wider rounded">Coach</span>
+                                {% elif member.role == 'SUBSTITUTE' %}
+                                <span class="px-1.5 py-0.5 bg-white/10 text-gray-400 text-[9px] font-black uppercase tracking-wider rounded">Sub</span>
+                                {% endif %}
+                            </p>
+                            <p class="text-xs text-gray-400 font-mono mt-0.5">{{ member.user.username }}</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 sm:mt-0 ml-16 sm:ml-0 flex items-center gap-3">
+                        <span class="px-2 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase rounded flex items-center gap-1">
+                            <i data-lucide="check" class="w-3 h-3"></i> Active
+                        </span>
+                        {% if forloop.first %}
+                        <i data-lucide="lock" class="w-4 h-4 text-gray-600 cursor-not-allowed"></i>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500 border border-dashed border-white/10 rounded-xl">
+                    <i data-lucide="users" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+                    <p class="text-sm">No active roster members found.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
