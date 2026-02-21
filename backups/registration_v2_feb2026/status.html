@@ -1,0 +1,124 @@
+{% extends "tournaments/base.html" %}
+{% load static humanize %}
+
+{# ─────────────────────────────────────────────────────────
+   Registration / Payment Status
+   Context: tournament, registration, current_payment,
+            payment_history, status_info, is_organizer
+   Phase 4 Frontend Rebuild
+   ───────────────────────────────────────────────────────── #}
+
+{% block title %}Registration Status — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_content %}
+
+<div class="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+
+  <div class="mb-6">
+    <a href="{% url 'tournaments:detail' tournament.slug %}" class="text-xs text-gray-500 hover:text-dc-cyan transition">
+      <i data-lucide="arrow-left" class="w-3 h-3 inline mr-1"></i> {{ tournament.name }}
+    </a>
+  </div>
+
+  <div class="glass rounded-xl p-6 mb-6
+    {% if status_info.color == 'green' %}neon-border-cyan{% elif status_info.color == 'red' %}border border-red-700/30{% else %}border border-dc-border{% endif %}">
+    <div class="flex items-center gap-4">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center
+        {% if status_info.color == 'green' %}bg-green-900/30
+        {% elif status_info.color == 'red' %}bg-red-900/30
+        {% elif status_info.color == 'yellow' %}bg-yellow-900/30
+        {% else %}bg-dc-surface{% endif %}">
+        {% if status_info.color == 'green' %}
+          <i data-lucide="check-circle" class="w-7 h-7 text-green-400"></i>
+        {% elif status_info.color == 'red' %}
+          <i data-lucide="x-circle" class="w-7 h-7 text-red-400"></i>
+        {% elif status_info.color == 'yellow' %}
+          <i data-lucide="clock" class="w-7 h-7 text-yellow-400"></i>
+        {% else %}
+          <i data-lucide="circle" class="w-7 h-7 text-gray-400"></i>
+        {% endif %}
+      </div>
+      <div>
+        <h1 class="text-lg font-display font-bold text-white">{{ status_info.title }}</h1>
+        <p class="text-sm text-gray-400">{{ status_info.message }}</p>
+      </div>
+    </div>
+
+    {% if status_info.action == 'resubmit' %}
+      <div class="mt-4">
+        <a href="{% url 'tournaments:payment_resubmit' tournament.slug registration.id %}"
+           class="inline-flex items-center px-4 py-2 bg-dc-cyan text-dc-dark font-bold text-xs rounded-lg hover:bg-dc-cyan/90 transition">
+          <i data-lucide="upload" class="w-3 h-3 mr-1"></i> Resubmit Payment
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="glass rounded-xl p-6 mb-6">
+    <h3 class="text-sm font-display font-semibold text-white mb-4">
+      <i data-lucide="clipboard-list" class="w-4 h-4 inline mr-1 text-dc-cyan"></i> Registration Details
+    </h3>
+    <dl class="space-y-3 text-sm">
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Tournament</dt>
+        <dd class="text-white">{{ tournament.name }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Registration ID</dt>
+        <dd class="text-white font-mono">#{{ registration.id }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Status</dt>
+        <dd>
+          <span class="px-2 py-0.5 text-xs rounded-full
+            {% if registration.status == 'confirmed' %}bg-green-900/40 text-green-400 border border-green-700/30
+            {% elif registration.status == 'pending' %}bg-yellow-900/40 text-yellow-400 border border-yellow-700/30
+            {% elif registration.status == 'rejected' or registration.status == 'cancelled' %}bg-red-900/40 text-red-400 border border-red-700/30
+            {% else %}bg-gray-800/40 text-gray-400 border border-gray-700/30{% endif %}">
+            {{ registration.get_status_display|default:registration.status|title }}
+          </span>
+        </dd>
+      </div>
+      {% if registration.created_at %}
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Registered</dt>
+          <dd class="text-white">{{ registration.created_at|date:"M d, Y g:i A" }}</dd>
+        </div>
+      {% endif %}
+    </dl>
+  </div>
+
+  {% if payment_history %}
+    <div class="glass rounded-xl p-6">
+      <h3 class="text-sm font-display font-semibold text-white mb-4">
+        <i data-lucide="history" class="w-4 h-4 inline mr-1 text-dc-gold"></i> Payment History
+      </h3>
+      <div class="relative pl-6 space-y-4">
+        <div class="absolute left-2 top-2 bottom-2 w-px bg-dc-border"></div>
+        {% for payment in payment_history %}
+          <div class="relative">
+            <div class="absolute -left-4 w-4 h-4 rounded-full bg-dc-surface border-2
+              {% if payment.status == 'verified' %}border-green-400{% elif payment.status == 'rejected' %}border-red-400{% else %}border-yellow-400{% endif %}
+              flex items-center justify-center">
+              <div class="w-1.5 h-1.5 rounded-full
+                {% if payment.status == 'verified' %}bg-green-400{% elif payment.status == 'rejected' %}bg-red-400{% else %}bg-yellow-400{% endif %}"></div>
+            </div>
+            <div>
+              <p class="text-sm text-white">{{ payment.get_status_display|default:payment.status|title }}</p>
+              {% if payment.amount %}
+                <p class="text-xs text-dc-gold font-mono">৳{{ payment.amount|intcomma }}</p>
+              {% endif %}
+              {% if payment.rejection_reason %}
+                <p class="text-xs text-red-400 mt-1">{{ payment.rejection_reason }}</p>
+              {% endif %}
+              <p class="text-[10px] text-gray-600 mt-1">{{ payment.submitted_at|date:"M d, Y g:i A" }}</p>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,92 @@
+{% load humanize %}
+{# Step 1 (Guest Team): Create your ad-hoc team #}
+<div data-wizard-step="guest_team" class="wizard-step step-hidden animate-slide-up">
+
+    <div class="mb-6 pb-4 border-b border-white/10">
+        <h2 class="font-gaming font-bold text-2xl md:text-3xl text-white mb-1">Create Guest Team</h2>
+        <p class="text-sm text-gray-400">No verified team? Register with a temporary guest roster for <span class="text-white font-medium">{{ tournament.name }}</span>.</p>
+    </div>
+
+    {% if guest_slots_remaining > 0 %}
+    <div class="mb-5 p-3 rounded-xl border flex items-center gap-2 text-xs font-medium" style="background: rgba(var(--accent-rgb), 0.05); border-color: rgba(var(--accent-rgb), 0.2); color: var(--accent);">
+        <i data-lucide="info" class="w-4 h-4 shrink-0"></i>
+        {{ guest_slots_remaining }} guest slot{{ guest_slots_remaining|pluralize }} remaining out of {{ max_guest_teams }}.
+    </div>
+    {% endif %}
+
+    {# Team Identity #}
+    <div class="mb-6">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="shield" class="w-4 h-4" style="color: var(--accent);"></i> Team Identity
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Team Name <span class="text-red-400">*</span></label>
+                <input type="text" name="guest_team_name" class="input-premium" placeholder="e.g. Shadow Legends" required maxlength="50" oninput="checkStep('guest_team')">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Team Tag <span class="text-red-400">*</span></label>
+                <input type="text" name="guest_team_tag" class="input-premium font-mono" placeholder="e.g. SL" required maxlength="6" oninput="checkStep('guest_team')">
+                <p class="text-[10px] text-gray-600 ml-1">2-6 characters</p>
+            </div>
+        </div>
+    </div>
+
+    {# Justification #}
+    <div class="mb-6">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="message-square" class="w-4 h-4" style="color: var(--accent);"></i> Why Guest Team?
+        </h3>
+        <textarea name="guest_team_justification" class="input-premium min-h-[80px] resize-y" placeholder="Briefly explain why you're registering as a guest team (e.g., team not yet created on platform)" maxlength="500"></textarea>
+        <p class="text-[10px] text-gray-600 mt-1 ml-1">Optional — helps organizers understand context</p>
+    </div>
+
+    {# Guest Members #}
+    <div class="mb-4">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                <i data-lucide="users" class="w-4 h-4" style="color: var(--accent);"></i> Team Members
+            </h3>
+            <div class="flex items-center gap-2 text-xs text-gray-500">
+                <span id="roster-count-text">1</span>/<span>{{ roster_config.max_roster_size|default:10 }}</span> members
+            </div>
+        </div>
+
+        <p class="text-xs text-gray-500 mb-4 flex items-start gap-2">
+            <i data-lucide="lightbulb" class="w-4 h-4 shrink-0 text-dc-gold mt-0.5"></i>
+            Add at least <strong class="text-white">{{ roster_config.min_team_size|default:5 }}</strong> starters. You can add up to {{ roster_config.max_substitutes|default:2 }} subs{% if roster_config.allow_coaches %} and {{ roster_config.max_coaches|default:1 }} coach{% endif %}.
+        </p>
+
+        {# First member is always you (the registrant) #}
+        <div class="space-y-3" id="guest-members-list">
+            <div class="player-slot slot-starter p-4 rounded-xl" data-guest-row="0">
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex items-center gap-3 shrink-0">
+                        <span class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-black" style="background: var(--accent);">1</span>
+                        <select name="member_role_0" class="input-premium text-xs w-28 py-2 px-3" onchange="updateRosterCounts()">
+                            <option value="starter">Starter</option>
+                            <option value="substitute">Substitute</option>
+                            {% if roster_config.allow_coaches %}<option value="coach">Coach</option>{% endif %}
+                        </select>
+                    </div>
+                    <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input type="text" name="member_game_id_0" class="input-premium text-sm" placeholder="{{ game_id_label }}" value="{{ fields.game_id.value }}" required oninput="checkStep('guest_team')">
+                        <input type="text" name="member_display_name_0" class="input-premium text-sm" placeholder="Display Name" value="{{ request.user.username }}" required oninput="checkStep('guest_team')">
+                    </div>
+                    <div class="w-8 h-8 flex items-center justify-center">
+                        <span class="px-2 py-0.5 text-[8px] font-black uppercase rounded bg-dc-gold/20 text-dc-gold border border-dc-gold/30">You</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" onclick="addGuestMember()" class="mt-4 w-full py-3 rounded-xl border-2 border-dashed border-white/10 text-sm font-bold text-gray-400 hover:text-white hover:border-white/20 flex items-center justify-center gap-2 transition-all hover:bg-white/5">
+            <i data-lucide="plus" class="w-4 h-4"></i> Add Team Member
+        </button>
+    </div>
+
+    <input type="hidden" name="full_name" value="{{ fields.full_name.value }}">
+    <input type="hidden" name="display_name" value="{{ fields.display_name.value }}">
+    <input type="hidden" name="email" value="{{ fields.email.value }}">
+    <input type="hidden" name="game_id" value="{{ fields.game_id.value }}">
+</div>

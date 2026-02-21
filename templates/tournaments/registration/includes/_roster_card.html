@@ -1,0 +1,109 @@
+{# Reusable roster card for a member — included by _step_roster.html #}
+{# Expects: member, slot_type (starter|sub|coach) #}
+<div class="player-slot slot-{{ slot_type }} p-3 md:p-4 rounded-xl cursor-pointer transition-all hover:shadow-lg hover:shadow-black/50 group"
+     data-member-id="{{ member.id }}"
+     data-member-username="{{ member.user.username }}"
+     data-member-display-name="{{ member.display_name|default:member.user.username }}"
+     data-member-roster-slot="{% if member.roster_slot %}{{ member.roster_slot }}{% elif member.role == 'HEAD_COACH' or member.role == 'COACH' %}COACH{% else %}STARTER{% endif %}"
+     data-member-player-role="{{ member.player_role|default:'' }}"
+     data-member-is-captain="{% if member.is_captain or member.role == 'OWNER' %}true{% else %}false{% endif %}"
+     data-member-user-id="{{ member.user_id }}"
+     data-member-gp-ign="{{ member.gp_ign|default:'' }}"
+     data-member-gp-discriminator="{{ member.gp_discriminator|default:'' }}"
+     data-member-gp-in-game-name="{{ member.gp_in_game_name|default:'' }}"
+     data-member-gp-rank="{{ member.gp_rank_name|default:'' }}"
+     data-member-gp-rank-image="{{ member.gp_rank_image_url|default:'' }}"
+     data-member-gp-platform="{{ member.gp_platform|default:'' }}"
+     data-member-gp-region="{{ member.gp_region|default:'' }}"
+     data-member-gp-main-role="{{ member.gp_main_role|default:'' }}"
+     data-member-gp-matches="{{ member.gp_matches_played|default:0 }}"
+     data-member-gp-winrate="{{ member.gp_win_rate|default:0 }}"
+     data-member-gp-kd="{{ member.gp_kd_ratio|default:'' }}"
+     data-member-gp-hours="{{ member.gp_hours_played|default:'' }}"
+     data-member-gp-has-passport="{% if member.gp_has_passport %}true{% else %}false{% endif %}"
+     data-member-profile-full-name="{{ member.profile_full_name|default:'' }}"
+     data-member-profile-email="{{ member.profile_email|default:'' }}"
+     data-member-profile-discord="{{ member.profile_discord|default:'' }}"
+     data-member-profile-pronouns="{{ member.profile_pronouns|default:'' }}"
+     data-member-profile-phone="{{ member.profile_phone|default:'' }}"
+     data-member-profile-dob="{{ member.profile_dob|default:'' }}"
+     data-member-profile-country="{{ member.profile_country|default:'' }}"
+     data-member-profile-gender="{{ member.profile_gender|default:'' }}"
+     onclick="openMemberModal(this)">
+
+    <div class="flex items-center gap-3 md:gap-4">
+        {# Avatar #}
+        <div class="w-11 h-11 md:w-13 md:h-13 rounded-full overflow-hidden border-2 {% if member.is_captain or member.role == 'OWNER' %}border-dc-gold{% else %}border-white/10{% endif %} shadow-lg shrink-0 relative group-hover:scale-105 transition-transform">
+            {% if member.user.profile.avatar %}
+            <img src="{{ member.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="{{ member.user.username }}">
+            {% else %}
+            <div class="w-full h-full bg-dc-card flex items-center justify-center text-sm font-bold text-white/40">{{ member.user.username|truncatechars:2 }}</div>
+            {% endif %}
+            {% if member.is_captain or member.role == 'OWNER' %}
+            <div class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-dc-gold rounded-full flex items-center justify-center shadow">
+                <i data-lucide="crown" class="w-2.5 h-2.5 text-black"></i>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Info #}
+        <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+                <p class="text-base font-bold text-white truncate">{{ member.display_name|default:member.user.username }}</p>
+                {% if member.is_captain or member.role == 'OWNER' %}
+                <span class="px-1.5 py-0.5 text-[10px] font-black uppercase rounded bg-dc-gold/20 text-dc-gold border border-dc-gold/30">Captain</span>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                <span class="text-xs text-gray-500 font-mono">@{{ member.user.username }}</span>
+                {% if member.gp_main_role %}
+                <span class="player-role-badge text-xs px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-gray-400 font-bold">{{ member.gp_main_role }}</span>
+                {% elif member.player_role %}
+                <span class="player-role-badge text-xs px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-gray-400 font-bold">{{ member.player_role }}</span>
+                {% endif %}
+            </div>
+            {# Game passport mini info #}
+            {% if member.gp_has_passport %}
+            <div class="flex items-center gap-3 mt-1.5 flex-wrap">
+                {% if member.gp_in_game_name %}
+                <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-black/40 border border-white/5 text-gray-400 truncate max-w-[160px]" title="{{ game_id_label }}: {{ member.gp_in_game_name }}">
+                    <i data-lucide="gamepad-2" class="w-3 h-3 inline -mt-0.5 mr-0.5 opacity-50"></i>{{ member.gp_in_game_name }}
+                </span>
+                {% endif %}
+                {% if member.gp_rank_name %}
+                <span class="text-xs px-1.5 py-0.5 rounded bg-black/40 border border-white/5 text-yellow-400/80 font-bold flex items-center gap-1">
+                    {% if member.gp_rank_image_url %}
+                    <img src="{{ member.gp_rank_image_url }}" class="w-3.5 h-3.5 object-contain" alt="">
+                    {% else %}
+                    <i data-lucide="trophy" class="w-3 h-3 inline opacity-60"></i>
+                    {% endif %}
+                    {{ member.gp_rank_name }}
+                </span>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="mt-1.5">
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 border border-orange-500/15 text-orange-400/70 font-medium">
+                    <i data-lucide="alert-circle" class="w-3 h-3 inline -mt-0.5 mr-0.5"></i>No game passport
+                </span>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Slot badge + chevron #}
+        <div class="flex items-center gap-2 shrink-0">
+            {% if slot_type == 'sub' %}
+            <span class="px-2 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase rounded tracking-wider">Sub</span>
+            {% elif slot_type == 'coach' %}
+            <span class="px-2 py-1 bg-dc-purple/10 border border-dc-purple/20 text-dc-purple text-[10px] font-black uppercase rounded tracking-wider">Coach</span>
+            {% else %}
+            <span class="px-2 py-1 text-[10px] font-black uppercase rounded tracking-wider" style="background: rgba(var(--accent-rgb), 0.1); border: 1px solid rgba(var(--accent-rgb), 0.2); color: var(--accent);">Starter</span>
+            {% endif %}
+            <i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 group-hover:text-white/40 transition-colors"></i>
+        </div>
+    </div>
+
+    {# Hidden inputs for this member #}
+    <input type="hidden" name="member_{{ member.id }}_roster_slot" value="{% if member.roster_slot %}{{ member.roster_slot }}{% elif member.role == 'HEAD_COACH' or member.role == 'COACH' %}COACH{% else %}STARTER{% endif %}">
+    <input type="hidden" name="member_{{ member.id }}_player_role" value="{{ member.player_role|default:member.gp_main_role|default:'' }}">
+</div>

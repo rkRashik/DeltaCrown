@@ -1,0 +1,153 @@
+{% load humanize %}
+{# Step 4: Extras — custom questions + team branding #}
+<div data-wizard-step="extras" class="wizard-step step-hidden animate-slide-up">
+
+    <div class="mb-6 pb-4 border-b border-white/10">
+        <h2 class="font-gaming font-bold text-2xl md:text-3xl text-white mb-1">Additional Info</h2>
+        <p class="text-sm text-gray-400">Answer a few tournament-specific questions from the organizer.</p>
+    </div>
+
+    {# Custom Questions #}
+    {% if custom_questions %}
+    <div class="mb-6">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <i data-lucide="clipboard-list" class="w-4 h-4" style="color: var(--accent);"></i> Organizer Questions
+        </h3>
+        <div class="space-y-5">
+            {% for question in custom_questions %}
+            <div class="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                <label class="text-sm font-bold text-gray-200 mb-2 block">
+                    {{ question.text }}
+                    {% if question.is_required %}<span class="text-red-400">*</span>{% endif %}
+                </label>
+                {% if question.help_text %}
+                <p class="text-[10px] text-gray-500 mb-3">{{ question.help_text }}</p>
+                {% endif %}
+
+                {% if question.type == 'text' %}
+                <input type="text" name="custom_q_{{ question.id }}" class="input-premium" placeholder="Your answer" {% if question.is_required %}required{% endif %} oninput="checkStep('extras')">
+
+                {% elif question.type == 'textarea' %}
+                <textarea name="custom_q_{{ question.id }}" class="input-premium min-h-[80px] resize-y" placeholder="Your answer" {% if question.is_required %}required{% endif %} oninput="checkStep('extras')"></textarea>
+
+                {% elif question.type == 'number' %}
+                <input type="number" name="custom_q_{{ question.id }}" class="input-premium" placeholder="0" {% if question.is_required %}required{% endif %} oninput="checkStep('extras')">
+
+                {% elif question.type == 'boolean' %}
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox" name="custom_q_{{ question.id }}" value="true" class="appearance-none w-5 h-5 border-2 border-gray-600 rounded checked:border-[color:var(--accent)] checked:bg-[color:var(--accent)] transition-all shrink-0" onchange="checkStep('extras')">
+                    <span class="text-sm text-gray-400 group-hover:text-white transition-colors">Yes</span>
+                </label>
+
+                {% elif question.type == 'select' %}
+                <select name="custom_q_{{ question.id }}" class="input-premium" {% if question.is_required %}required{% endif %} onchange="checkStep('extras')">
+                    <option value="">— Select —</option>
+                    {% for choice in question.choices_list %}
+                    <option value="{{ choice }}">{{ choice }}</option>
+                    {% endfor %}
+                </select>
+
+                {% elif question.type == 'multi_select' %}
+                <div class="flex flex-wrap gap-2">
+                    {% for choice in question.choices_list %}
+                    <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                        <input type="checkbox" name="custom_q_{{ question.id }}" value="{{ choice }}" class="sr-only" onchange="checkStep('extras')"> {{ choice }}
+                    </label>
+                    {% endfor %}
+                </div>
+
+                {% elif question.type == 'url' %}
+                <input type="url" name="custom_q_{{ question.id }}" class="input-premium" placeholder="https://" {% if question.is_required %}required{% endif %} oninput="checkStep('extras')">
+
+                {% elif question.type == 'file' %}
+                <label class="drop-zone flex items-center justify-center gap-3 cursor-pointer">
+                    <i data-lucide="upload-cloud" class="w-5 h-5 text-gray-500"></i>
+                    <span class="text-sm text-gray-400" id="file-label-{{ question.id }}">Click or drag to upload</span>
+                    <input type="file" name="custom_q_{{ question.id }}" class="sr-only" {% if question.is_required %}required{% endif %} onchange="this.previousElementSibling.textContent = this.files[0]?.name || 'Click or drag to upload'; checkStep('extras')">
+                </label>
+
+                {% else %}
+                <input type="text" name="custom_q_{{ question.id }}" class="input-premium" placeholder="Your answer" {% if question.is_required %}required{% endif %} oninput="checkStep('extras')">
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# Team Branding (only for team tournaments) #}
+    {% if registration_type == 'team' %}
+        {% if form_config.enable_team_logo_upload or form_config.enable_team_banner_upload or form_config.enable_team_bio or form_config.enable_team_region_field %}
+        <div class="mb-4">
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <i data-lucide="palette" class="w-4 h-4" style="color: var(--accent);"></i> Team Branding
+            </h3>
+            <p class="text-xs text-gray-500 mb-4">Optional — enhance your registration with team branding.</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {% if form_config.enable_team_logo_upload %}
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Team Logo</label>
+                    <div class="drop-zone flex flex-col items-center justify-center gap-2 aspect-square max-h-40 relative overflow-hidden" id="logo-placeholder"
+                         ondragover="event.preventDefault(); this.classList.add('drag-over')"
+                         ondragleave="this.classList.remove('drag-over')"
+                         ondrop="handleFileDrop(event, 'team_logo')">
+                        <i data-lucide="image" class="w-6 h-6 text-gray-600"></i>
+                        <span class="text-[10px] text-gray-500">Drop or click</span>
+                        <span class="text-[9px] text-gray-600">Max 5MB</span>
+                        <input type="file" name="team_logo" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewUpload(this, 'logo')">
+                    </div>
+                    <div id="logo-preview-container" class="hidden">
+                        <img id="logo-preview" class="w-full h-40 object-contain rounded-xl border border-white/10 bg-black/30">
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if form_config.enable_team_banner_upload %}
+                <div class="space-y-2 {% if not form_config.enable_team_logo_upload %}sm:col-span-2{% endif %}">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Team Banner</label>
+                    <div class="drop-zone flex flex-col items-center justify-center gap-2 h-32 relative overflow-hidden" id="banner-placeholder"
+                         ondragover="event.preventDefault(); this.classList.add('drag-over')"
+                         ondragleave="this.classList.remove('drag-over')"
+                         ondrop="handleFileDrop(event, 'team_banner')">
+                        <i data-lucide="panorama" class="w-6 h-6 text-gray-600"></i>
+                        <span class="text-[10px] text-gray-500">Drop or click</span>
+                        <span class="text-[9px] text-gray-600">Max 10MB · 16:9 recommended</span>
+                        <input type="file" name="team_banner" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewUpload(this, 'banner')">
+                    </div>
+                    <div id="banner-preview-container" class="hidden">
+                        <img id="banner-preview" class="w-full h-32 object-cover rounded-xl border border-white/10 bg-black/30">
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if form_config.enable_team_region_field %}
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Team Region</label>
+                    <input type="text" name="team_region" class="input-premium" placeholder="e.g. South Asia, SEA" value="" oninput="checkStep('extras')">
+                </div>
+                {% endif %}
+
+                {% if form_config.enable_team_bio %}
+                <div class="space-y-1.5 sm:col-span-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center justify-between">
+                        Team Bio
+                        <span class="text-gray-600 font-normal" id="bio-counter">0 / 500</span>
+                    </label>
+                    <textarea name="team_bio" id="team-bio" class="input-premium min-h-[80px] resize-y" placeholder="Tell the organizers about your team..." maxlength="500" oninput="updateBioCounter(this); checkStep('extras')"></textarea>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+
+    {# Empty state if no questions and no branding #}
+    {% if not custom_questions and registration_type != 'team' %}
+    <div class="text-center py-10 text-gray-500">
+        <i data-lucide="check-circle" class="w-10 h-10 mx-auto mb-3 text-green-500/50"></i>
+        <p class="text-sm font-medium mb-1 text-green-400">No additional information needed</p>
+        <p class="text-xs">The organizer hasn't added any extra questions. You're good!</p>
+    </div>
+    {% endif %}
+</div>

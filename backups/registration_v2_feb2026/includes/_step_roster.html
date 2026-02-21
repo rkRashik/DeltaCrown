@@ -1,0 +1,248 @@
+<div data-wizard-step="roster" class="wizard-step step-hidden animate-slide-in-right">
+    <div class="flex justify-between items-end mb-8 border-b border-white/10 pb-6">
+        <div>
+            <h2 class="font-gaming font-bold text-3xl text-white mb-1">Squad Lineup</h2>
+            <p class="text-sm text-gray-400">
+                {% if is_guest_team %}
+                Build your guest squad for this tournament.
+                {% else %}
+                Review your squad, assign positions, and make sure everyone's ready to compete.
+                {% endif %}
+            </p>
+        </div>
+        <div class="hidden md:flex items-center gap-3">
+            <span class="text-[10px] font-bold px-3 py-1 rounded uppercase tracking-widest flex items-center gap-1.5" style="background: rgba(var(--accent-rgb), 0.1); border: 1px solid rgba(var(--accent-rgb), 0.3); color: var(--accent);" id="roster-counter">
+                <i data-lucide="users" class="w-3 h-3"></i>
+                <span id="roster-count-text">{{ roster_members|length|default:"0" }}</span> / <span id="roster-max-text">{{ roster_config.max_roster_size|default:10 }}</span>
+            </span>
+        </div>
+    </div>
+
+    <div class="p-4 rounded-xl bg-white/[0.02] border border-white/5 mb-6">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(var(--accent-rgb), 0.15);">
+                <i data-lucide="gamepad-2" class="w-4 h-4" style="color: var(--accent);"></i>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-white">{{ tournament.game.name }} — {{ roster_config.team_size_display|default:"5v5" }} Format</p>
+                <p class="text-[10px] text-gray-500">Roster limits based on game rules and tournament configuration</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/40 border border-white/5 text-[10px] font-medium">
+                <span class="w-2 h-2 rounded-full" style="background: var(--accent);"></span>
+                <span class="text-gray-400">Starters:</span>
+                <span class="text-white font-bold">{{ roster_config.min_team_size|default:5 }}{% if roster_config.min_team_size != roster_config.max_team_size %} – {{ roster_config.max_team_size|default:5 }}{% endif %}</span>
+            </div>
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/40 border border-white/5 text-[10px] font-medium">
+                <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                <span class="text-gray-400">Substitutes:</span>
+                <span class="text-white font-bold">{{ roster_config.min_substitutes|default:0 }} – {{ roster_config.max_substitutes|default:2 }}</span>
+            </div>
+            {% if roster_config.allow_coaches %}
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/40 border border-white/5 text-[10px] font-medium">
+                <span class="w-2 h-2 rounded-full bg-dc-purple"></span>
+                <span class="text-gray-400">Coach:</span>
+                <span class="text-white font-bold">0 – {{ roster_config.max_coaches|default:1 }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if roster_roles %}
+    <div class="mb-6">
+        <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-2">Available In-Game Roles</p>
+        <div class="flex flex-wrap gap-1.5">
+            {% for gr in roster_roles %}
+            <span class="px-2 py-1 rounded text-[10px] font-bold border" style="border-color: {{ gr.color|default:'rgba(255,255,255,0.1)' }}; color: {{ gr.color|default:'#a0a0a0' }}; background: {{ gr.color|default:'#ffffff' }}10;">
+                {% if gr.icon %}{{ gr.icon }} {% endif %}{{ gr.role_name }}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div id="roster-validation-msg" class="hidden mb-6 p-4 rounded-xl border text-sm font-medium flex items-center gap-3">
+        <i data-lucide="alert-circle" class="w-5 h-5 shrink-0"></i>
+        <span id="roster-validation-text"></span>
+    </div>
+
+    {% if is_guest_team %}
+    <div class="space-y-6">
+        <div>
+            <h3 class="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full shadow-lg" style="background: var(--accent); box-shadow: 0 0 10px var(--accent);"></span>
+                Guest Members
+            </h3>
+            <div id="guest-members-list" class="space-y-3">
+                <div class="player-slot slot-starter p-4 rounded-xl" data-guest-row="0">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="flex items-center gap-3 shrink-0">
+                            <span class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-black" style="background: var(--accent);">1</span>
+                            <select name="member_role_0" class="input-premium text-xs w-28 py-2 px-3" onchange="updateRosterCounts()">
+                                <option value="starter" selected>Starter</option>
+                                <option value="substitute">Substitute</option>
+                                {% if roster_config.allow_coaches %}<option value="coach">Coach</option>{% endif %}
+                            </select>
+                        </div>
+                        <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <input type="text" name="member_game_id_0" class="input-premium text-sm" placeholder="{{ game_id_label }}" required oninput="checkStep('roster')">
+                            <input type="text" name="member_display_name_0" class="input-premium text-sm" placeholder="Display Name" required oninput="checkStep('roster')">
+                        </div>
+                        <button type="button" class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 hover:text-red-400 hover:border-red-400/30 transition-all opacity-0 pointer-events-none" title="Remove">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    {% if form_config.require_member_real_name or form_config.require_member_email or form_config.require_member_photo %}
+                    <button type="button" class="mt-3 text-[10px] font-bold text-gray-500 hover:text-white flex items-center gap-1 transition-colors" onclick="toggleMemberDetail(this)">
+                        <i data-lucide="chevron-down" class="w-3 h-3 transition-transform"></i> Additional Details
+                    </button>
+                    <div class="member-detail-panel mt-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-white/5">
+                            {% if form_config.require_member_real_name %}
+                            <input type="text" name="member_real_name_0" class="input-premium text-sm" placeholder="Real Name *">
+                            {% endif %}
+                            {% if form_config.require_member_email %}
+                            <input type="email" name="member_email_0" class="input-premium text-sm" placeholder="Email *">
+                            {% endif %}
+                            {% if form_config.require_member_photo %}
+                            <div class="sm:col-span-2">
+                                <label class="flex items-center gap-3 p-3 rounded-xl border border-dashed border-white/10 bg-black/30 cursor-pointer hover:border-white/20 transition-all text-sm">
+                                    <i data-lucide="camera" class="w-4 h-4 text-gray-500 shrink-0"></i>
+                                    <span class="text-gray-400 text-xs">Upload photo</span>
+                                    <input type="file" name="member_photo_0" accept="image/*" class="sr-only" onchange="this.previousElementSibling.textContent = this.files[0]?.name || 'Upload photo'">
+                                </label>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if roster_roles %}
+                    <div class="mt-3 pt-3 border-t border-white/5">
+                        <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 block">In-Game Role</label>
+                        <select name="member_game_role_0" class="input-premium text-xs py-2 w-48">
+                            <option value="">— Select Role —</option>
+                            {% for gr in roster_roles %}
+                            <option value="{{ gr.role_code }}">{{ gr.role_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <button type="button" id="btn-add-guest-member" class="mt-4 w-full p-4 rounded-xl border border-dashed border-white/15 bg-black/30 text-gray-500 hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] transition-all flex items-center justify-center gap-2 text-sm font-bold" onclick="addGuestMember()">
+                <i data-lucide="user-plus" class="w-4 h-4"></i> Add Member
+            </button>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="space-y-8">
+        <div>
+            <h3 class="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full shadow-lg" style="background: var(--accent); box-shadow: 0 0 10px var(--accent);"></span>
+                Active Roster
+                <span class="text-gray-500">({{ roster_members|length }})</span>
+            </h3>
+
+            <div class="space-y-2" id="roster-starters">
+                {% for member in roster_members %}
+                <div class="player-slot {% if member.roster_slot == 'SUBSTITUTE' or member.role == 'SUBSTITUTE' %}slot-sub{% elif member.roster_slot == 'COACH' or member.role == 'HEAD_COACH' or member.role == 'ASSISTANT_COACH' or member.role == 'COACH' %}slot-coach{% else %}slot-starter{% endif %} p-3 md:p-4 rounded-xl relative group cursor-pointer hover:bg-white/[0.04] transition-all"
+                     data-member-id="{{ member.id }}"
+                     data-member-username="{{ member.user.username }}"
+                     data-member-role="{{ member.role }}"
+                     data-member-roster-slot="{{ member.roster_slot|default:'STARTER' }}"
+                     data-member-player-role="{{ member.player_role }}"
+                     data-member-display-name="{{ member.display_name|default:member.user.profile.display_name|default:member.user.username }}"
+                     data-member-email="{{ member.user.email }}"
+                     data-member-is-captain="{{ member.is_tournament_captain|yesno:'true,false' }}"
+                     onclick="openMemberModal(this)">
+
+                    <div class="flex items-center gap-4">
+                        <div class="relative shrink-0">
+                            <div class="w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden border-2 shadow-lg {% if member.is_tournament_captain %}border-dc-gold{% elif member.role == 'OWNER' %}border-[color:var(--accent)]{% else %}border-white/10{% endif %}">
+                                {% if member.roster_image %}
+                                <img src="{{ member.roster_image.url }}" class="w-full h-full object-cover" alt="{{ member.display_name|default:member.user.profile.display_name }}">
+                                {% elif member.user.profile.avatar %}
+                                <img src="{{ member.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="{{ member.display_name|default:member.user.profile.display_name }}">
+                                {% else %}
+                                <img src="https://ui-avatars.com/api/?name={{ member.user.username|urlencode }}&background=111&color=fff&size=56" class="w-full h-full object-cover" alt="">
+                                {% endif %}
+                            </div>
+                            {% if member.is_tournament_captain %}
+                            <div class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-dc-gold flex items-center justify-center shadow-lg">
+                                <i data-lucide="crown" class="w-3 h-3 text-black"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <p class="text-sm md:text-base font-bold text-white truncate">{{ member.display_name|default:member.user.profile.display_name|default:member.user.username }}</p>
+                                {% if member.role == 'OWNER' %}
+                                <span class="px-1.5 py-0.5 bg-dc-gold/20 text-dc-gold text-[10px] font-black uppercase tracking-wider rounded">Owner</span>
+                                {% endif %}
+                                {% if member.is_tournament_captain %}
+                                <span class="px-1.5 py-0.5 bg-dc-gold text-black text-[10px] font-black uppercase tracking-wider rounded">Captain</span>
+                                {% endif %}
+                            </div>
+                            <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                                <span class="text-[10px] text-gray-500 font-mono">@{{ member.user.username }}</span>
+                                {% if member.player_role %}
+                                <span class="text-[10px] px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-gray-400 font-bold">{{ member.player_role }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 shrink-0">
+                            {% if member.roster_slot == 'SUBSTITUTE' or member.role == 'SUBSTITUTE' %}
+                            <span class="px-2 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase rounded tracking-wider">Sub</span>
+                            {% elif member.roster_slot == 'COACH' or member.role == 'HEAD_COACH' or member.role == 'ASSISTANT_COACH' or member.role == 'COACH' %}
+                            <span class="px-2 py-1 bg-dc-purple/10 border border-dc-purple/20 text-dc-purple text-[10px] font-black uppercase rounded tracking-wider">Coach</span>
+                            {% else %}
+                            <span class="px-2 py-1 text-[10px] font-black uppercase rounded tracking-wider" style="background: rgba(var(--accent-rgb), 0.1); border: 1px solid rgba(var(--accent-rgb), 0.2); color: var(--accent);">Starter</span>
+                            {% endif %}
+
+                            <span class="px-2 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase rounded flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span> Active
+                            </span>
+
+                            <div class="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-gray-500 group-hover:text-white transition-colors">
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="roster_member_ids" value="{{ member.id }}">
+                    <input type="hidden" name="member_{{ member.id }}_roster_slot" value="{{ member.roster_slot|default:'STARTER' }}">
+                    <input type="hidden" name="member_{{ member.id }}_player_role" value="{{ member.player_role }}">
+                </div>
+                {% empty %}
+                <div class="p-8 text-center text-gray-500 border border-dashed border-white/10 rounded-xl">
+                    <i data-lucide="users" class="w-10 h-10 mx-auto mb-3 opacity-30"></i>
+                    <p class="text-sm font-medium">No active roster members found.</p>
+                    <p class="text-[10px] text-gray-600 mt-1">Invite members from your <a href="{% if team %}{% url 'organizations:team_detail' team_slug=team.slug %}{% else %}#{% endif %}" class="font-bold hover:text-white" style="color: var(--accent);">Team Hub</a> to build a roster.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if roster_members|length < roster_config.min_team_size|default:5 %}
+        <div class="p-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5 flex items-start gap-3">
+            <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-500 mt-0.5 shrink-0"></i>
+            <div>
+                <p class="text-sm font-bold text-yellow-400 mb-1">Insufficient Roster</p>
+                <p class="text-xs text-gray-400">
+                    You need at least <strong class="text-white">{{ roster_config.min_team_size|default:5 }}</strong> starters for {{ tournament.game.name }}.
+                    Currently <strong class="text-yellow-400">{{ roster_members|length }}</strong> active member{{ roster_members|length|pluralize }}.
+                    <a href="{% if team %}{% url 'organizations:team_detail' team_slug=team.slug %}{% else %}#{% endif %}" class="font-bold hover:text-white ml-1" style="color: var(--accent);">Add members →</a>
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

@@ -1,0 +1,382 @@
+{% load static humanize %}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register — {{ tournament.name }} | DeltaCrown</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Rajdhani:wght@500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" type="image/svg+xml">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'dc-cyan': '#06b6d4',
+                        'dc-purple': '#8b5cf6',
+                        'dc-gold': '#facc15',
+                        'dc-bg': '#030303',
+                        'dc-surface': '#0a0a0a',
+                        'dc-card': '#111111',
+                        'val-red': '#ff4655',
+                        'bkash-pink': '#e2136e',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'gaming': ['Rajdhani', 'sans-serif'],
+                        'display': ['Space Grotesk', 'sans-serif'],
+                        'mono': ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'slide-in-right': 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-glow': 'pulseGlow 2.5s infinite alternate',
+                    },
+                    keyframes: {
+                        fadeIn:        { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideInRight:  { '0%': { opacity: '0', transform: 'translateX(20px)' }, '100%': { opacity: '1', transform: 'translateX(0)' } },
+                        pulseGlow:     { '0%': { boxShadow: '0 0 15px rgba(var(--accent-rgb), 0.2)' }, '100%': { boxShadow: '0 0 35px rgba(var(--accent-rgb), 0.5)' } },
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        :root {
+            --accent: {{ game_color|default:"#06b6d4" }};
+            --accent-rgb: {{ game_color_rgb|default:"6, 182, 212" }};
+        }
+        body { background-color:#030303; color:#e5e5e5; overflow-x:hidden; min-height:100vh; display:flex; flex-direction:column; -webkit-font-smoothing:antialiased; }
+
+        /* ── Cinematic Background ───────────────────── */
+        .bg-cinematic { position:fixed;inset:0;z-index:-3;
+            background:radial-gradient(ellipse 100% 80% at 50% -20%,rgba(var(--accent-rgb),.12) 0%,transparent 60%),
+                        radial-gradient(circle at 80% 120%,rgba(139,92,246,.08) 0%,transparent 40%),
+                        linear-gradient(135deg,#030303 0%,#0a0a12 50%,#030303 100%);
+            transform:scale(1.05); animation:slowPan 40s infinite alternate ease-in-out; }
+        @keyframes slowPan { 0%{transform:scale(1.05) translate(0,0)} 100%{transform:scale(1.1) translate(-2%,-1%)} }
+        .bg-overlay { position:fixed;inset:0;z-index:-2;
+            background:radial-gradient(circle at 60% 0%,rgba(var(--accent-rgb),.08) 0%,transparent 50%),
+                        linear-gradient(to bottom,rgba(3,3,3,.7) 0%,#030303 100%); }
+        .noise-texture { position:fixed;inset:0;z-index:-1;opacity:.04;pointer-events:none;
+            background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+        /* ── Glassmorphism ──────────────────────────── */
+        .glass-wizard { background:rgba(10,10,10,.65); backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px);
+            border:1px solid rgba(255,255,255,.08); box-shadow:0 40px 80px -20px rgba(0,0,0,.9),inset 0 0 0 1px rgba(255,255,255,.02); }
+
+        /* ── Inputs ─────────────────────────────────── */
+        .input-premium { width:100%;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:.75rem;padding:.875rem 1.25rem;
+            color:white;font-family:'Inter',sans-serif;font-size:.875rem;transition:all .3s ease;outline:none;box-shadow:inset 0 2px 4px rgba(0,0,0,.2); }
+        .input-premium:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.15),inset 0 2px 4px rgba(0,0,0,.2); }
+        .input-premium::placeholder { color:rgba(255,255,255,.3);font-weight:400; }
+        .input-premium.input-bkash:focus { border-color:#e2136e;box-shadow:0 0 0 3px rgba(226,19,110,.15),inset 0 2px 4px rgba(0,0,0,.2); }
+        .input-premium.input-valid { border-color:#4ade80; }
+        .input-premium.input-error { border-color:#f87171; }
+        select.input-premium { appearance:none; padding-right:2.5rem; }
+
+        /* ── Player / Member Slots ──────────────────── */
+        .player-slot { background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);transition:all .3s cubic-bezier(.4,0,.2,1); }
+        .player-slot:hover { border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.04); }
+        .player-slot.slot-starter { border-left:3px solid var(--accent); }
+        .player-slot.slot-sub { border-left:3px solid rgba(255,255,255,.2); }
+        .player-slot.slot-coach { border-left:3px solid #8b5cf6; }
+        .slot-empty { border:1px dashed rgba(255,255,255,.15);background:rgba(0,0,0,.3);cursor:pointer; }
+        .slot-empty:hover { border-color:var(--accent);background:rgba(var(--accent-rgb),.05);transform:translateY(-2px); }
+
+        .step-hidden { display:none !important; }
+
+        /* ── File Drop Zone ─────────────────────────── */
+        .drop-zone { border:2px dashed rgba(255,255,255,.12);border-radius:1rem;padding:2rem;text-align:center;transition:all .3s ease;cursor:pointer; }
+        .drop-zone:hover,.drop-zone.drag-over { border-color:var(--accent);background:rgba(var(--accent-rgb),.05); }
+        .drop-zone img.preview { max-height:120px;border-radius:.5rem;margin:0 auto; }
+
+        /* ── Scrollbar ──────────────────────────────── */
+        ::-webkit-scrollbar { width:6px; }
+        ::-webkit-scrollbar-track { background:transparent; }
+        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.15);border-radius:3px; }
+        ::-webkit-scrollbar-thumb:hover { background:var(--accent); }
+        .scrollbar-hide { -ms-overflow-style:none; scrollbar-width:none; }
+        .scrollbar-hide::-webkit-scrollbar { display:none; }
+
+        /* ── Tooltip ────────────────────────────────── */
+        .info-tooltip { position:relative; }
+        .info-tooltip .tooltip-content { position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+            background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:.75rem;padding:.75rem 1rem;
+            font-size:.75rem;color:#a0a0a0;white-space:normal;width:280px;z-index:50;opacity:0;pointer-events:none;
+            transition:opacity .2s ease;box-shadow:0 8px 24px rgba(0,0,0,.6); }
+        .info-tooltip:hover .tooltip-content { opacity:1;pointer-events:auto; }
+
+        /* ── Receipt Edge ───────────────────────────── */
+        .receipt-edge { background-image:radial-gradient(circle at 10px 0,transparent 10px,rgba(255,255,255,.05) 11px);background-size:20px 20px;background-repeat:repeat-x;height:20px; }
+
+        /* ── Member Detail Panel (expandable) ───────── */
+        .member-detail-panel { max-height:0;overflow:hidden;transition:max-height .35s ease,opacity .25s ease;opacity:0; }
+        .member-detail-panel.expanded { max-height:600px;opacity:1; }
+    </style>
+</head>
+<body class="relative">
+
+    <div class="bg-cinematic"></div>
+    <div class="bg-overlay"></div>
+    <div class="noise-texture"></div>
+
+    <nav class="w-full h-16 md:h-[72px] flex items-center justify-between px-4 md:px-8 border-b border-white/5 relative z-10 bg-black/50 backdrop-blur-xl">
+        <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="flex items-center gap-2.5 group" title="Back to tournament">
+            <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                <i data-lucide="arrow-left" class="w-4 h-4 text-gray-400 group-hover:text-white transition-colors"></i>
+            </div>
+            <span class="text-xs font-semibold text-gray-500 group-hover:text-white transition-colors hidden sm:block">Back</span>
+        </a>
+
+        <div class="flex items-center gap-2.5">
+            <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" class="w-8 h-8 drop-shadow-[0_0_8px_rgba(108,0,255,0.3)]">
+            <img src="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DeltaCrown" class="h-5 w-auto hidden sm:block">
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="text-right hidden md:block">
+                <p class="text-xs font-semibold text-white leading-tight">{{ request.user.username }}</p>
+                <p class="text-[10px] text-gray-500">{% if registration_type == 'team' %}Team Captain{% else %}Player{% endif %}</p>
+            </div>
+            <div class="w-9 h-9 rounded-full overflow-hidden border-2 border-white/10 shadow-lg">
+                {% if request.user.profile.avatar %}
+                <img src="{{ request.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="{{ request.user.username }}">
+                {% else %}
+                <img src="https://ui-avatars.com/api/?name={{ request.user.username|urlencode }}&background=0a0a0a&color=fff&size=72" class="w-full h-full object-cover" alt="{{ request.user.username }}">
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="lg:hidden w-full bg-black/60 backdrop-blur-md border-b border-white/5 relative z-10" id="mobile-progress">
+        <div class="flex items-center justify-between px-4 py-2.5">
+            <div class="flex items-center gap-1.5 overflow-x-auto flex-1 scrollbar-hide" id="mobile-steps"></div>
+            <span class="text-[10px] font-mono font-bold ml-3 shrink-0" style="color: var(--accent);" id="mobile-pct">0%</span>
+        </div>
+        <div class="h-0.5 bg-black/50"><div class="h-full transition-all duration-500" id="mobile-bar" style="width: 0%; background: var(--accent);"></div></div>
+    </div>
+
+    {% if messages %}
+    <div class="w-full max-w-[1400px] mx-auto px-4 pt-4 relative z-10">
+        {% for message in messages %}
+        <div class="p-4 rounded-xl border mb-2 text-sm font-medium {% if message.tags == 'error' %}bg-red-500/10 border-red-500/20 text-red-400{% elif message.tags == 'warning' %}bg-yellow-500/10 border-yellow-500/20 text-yellow-400{% else %}bg-dc-cyan/10 border-dc-cyan/20 text-dc-cyan{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <main class="flex-1 w-full max-w-[1400px] mx-auto px-4 py-8 md:py-12 flex flex-col items-center justify-center relative z-10">
+        <form method="post" enctype="multipart/form-data" id="registration-form" class="w-full">
+            {% csrf_token %}
+            <input type="hidden" name="registration_type" value="{{ registration_type }}">
+
+            <div class="w-full glass-wizard rounded-[2rem] overflow-hidden flex flex-col lg:flex-row min-h-[700px] relative">
+
+                <div id="loading-overlay" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center text-white" style="display: none;">
+                    <div class="flex flex-col items-center justify-center">
+                        <i data-lucide="loader-2" class="w-10 h-10 animate-spin mb-4" style="color: var(--accent);"></i>
+                        <p class="font-mono text-xs uppercase tracking-widest" style="color: var(--accent);">Processing Registration...</p>
+                    </div>
+                </div>
+
+                <div class="hidden lg:flex w-[360px] bg-black/50 border-r border-white/5 flex-col relative overflow-hidden shrink-0" id="sidebar-nav">
+                    <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b to-transparent pointer-events-none" style="background: linear-gradient(to bottom, rgba(var(--accent-rgb), 0.1), transparent);"></div>
+
+                    <div class="p-7 pb-5 border-b border-white/5 relative z-10">
+                        <div class="flex items-center gap-3 mb-4">
+                            {% if tournament.game.icon %}
+                            <img src="{{ tournament.game.icon.url }}" class="w-10 h-10 rounded-lg border border-white/10 shadow-lg object-cover" alt="{{ tournament.game.name }}">
+                            {% elif tournament.game.logo %}
+                            <img src="{{ tournament.game.logo.url }}" class="w-10 h-10 rounded-lg border border-white/10 shadow-lg object-cover" alt="{{ tournament.game.name }}">
+                            {% else %}
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-black border border-white/10" style="background: rgba(var(--accent-rgb), 0.2); color: var(--accent);">{{ tournament.game.name|truncatechars:2 }}</div>
+                            {% endif %}
+                            <span class="px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.15em] rounded" style="background: rgba(var(--accent-rgb), 0.15); color: var(--accent); border: 1px solid rgba(var(--accent-rgb), 0.3);">
+                                {% if registration_type == 'team' %}Team Entry{% else %}Solo Entry{% endif %}
+                            </span>
+                        </div>
+                        <h1 class="font-display font-black text-2xl text-white leading-tight mb-1.5">{{ tournament.name }}</h1>
+                        <p class="text-sm text-gray-400">{{ tournament.game.name }} &middot; {{ tournament.get_format_display }}</p>
+                    </div>
+
+                    <div class="p-8 border-b border-white/5 bg-white/[0.01]">
+                        <div class="flex justify-between items-end mb-3">
+                            <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Form Completion</h3>
+                            <span class="font-mono font-bold text-sm" style="color: var(--accent);" id="readiness-pct">{{ readiness }}%</span>
+                        </div>
+                        <div class="w-full bg-black/50 h-1.5 rounded-full overflow-hidden mb-4 border border-white/5">
+                            <div class="h-full rounded-full transition-all duration-700" id="readiness-bar" style="width: {{ readiness }}%; background: var(--accent);"></div>
+                        </div>
+                        <div class="flex items-center gap-2 text-[10px] text-gray-400">
+                            {% if readiness >= 80 %}
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-green-500"></i>
+                            <span>{{ filled_count }} of {{ total_fields }} fields synced.</span>
+                            {% else %}
+                            <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-yellow-500"></i>
+                            <span>{{ missing_count }} field{{ missing_count|pluralize }} need{{ missing_count|pluralize:"s," }} attention.</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="flex-1 p-8 relative overflow-y-auto">
+                        <div class="absolute left-[47px] top-10 bottom-10 w-px bg-white/10"></div>
+                        <div id="vertical-progress" class="absolute left-[47px] top-10 w-px transition-all duration-700 ease-out" style="height: 0%; background: var(--accent); box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.8);"></div>
+                        <div class="space-y-10 relative z-10" id="sidebar-steps"></div>
+                    </div>
+
+                    <div class="p-6 bg-black/60 border-t border-white/5 mt-auto">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="shield-check" class="w-4 h-4 text-green-500"></i>
+                            <p class="text-[10px] text-gray-400 font-medium">Your progress is saved as you go.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col relative bg-gradient-to-br from-white/[0.01] to-transparent w-full">
+                    <div class="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12 relative" id="wizard-content">
+
+                        {% include "tournaments/registration/includes/_step_coordinator.html" %}
+
+                        {% include "tournaments/registration/includes/_step_comms.html" %}
+
+                        {% if registration_type == 'team' %}
+                        {% include "tournaments/registration/includes/_step_team_info.html" %}
+                        {% endif %}
+
+                        {% if registration_type == 'team' %}
+                        {% include "tournaments/registration/includes/_step_roster.html" %}
+                        {% endif %}
+
+                        {% if custom_questions %}
+                        {% include "tournaments/registration/includes/_step_questions.html" %}
+                        {% endif %}
+
+                        {% if tournament.has_entry_fee %}
+                        {% include "tournaments/registration/includes/_step_payment.html" %}
+                        {% endif %}
+
+                        {% include "tournaments/registration/includes/_step_review.html" %}
+
+                    </div>
+
+                    <div class="p-6 md:px-12 md:py-6 bg-black/80 backdrop-blur-xl border-t border-white/5 flex justify-between items-center" id="wizard-footer">
+                        <button type="button" id="btn-back" class="px-6 py-3 rounded-xl font-bold text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-all opacity-0 pointer-events-none border border-transparent hover:border-white/10 flex items-center gap-2" onclick="prevStep()">
+                            <i data-lucide="arrow-left" class="w-4 h-4"></i> Go Back
+                        </button>
+
+                        <button type="button" id="btn-next" class="px-8 py-3 rounded-xl font-bold text-sm text-black bg-white hover:bg-gray-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)] flex items-center gap-2" onclick="nextStep()">
+                            Next <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+
+                        <button type="submit" id="btn-submit" class="hidden px-8 py-3 rounded-xl font-black text-sm text-white transition-all items-center gap-2 uppercase tracking-[0.15em] opacity-50 cursor-not-allowed" style="background: var(--accent); box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.4);" onclick="return handleSubmit(event)">
+                            <i data-lucide="zap" class="w-4 h-4 fill-current"></i>
+                            {% if registration_type == 'team' %}Register Team{% else %}Register Now{% endif %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    <div id="member-modal-overlay" class="fixed inset-0 z-[200] hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);" onclick="closeMemberModal(event)">
+        <div class="relative w-full max-w-md bg-[#0e0e0e] border border-white/10 rounded-2xl overflow-hidden shadow-2xl" id="member-modal-panel" style="transition: transform 0.2s ease, opacity 0.2s ease;" onclick="event.stopPropagation()">
+            <div class="bg-black/60 border-b border-white/10 px-5 py-4 flex items-center justify-between">
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                    <i data-lucide="user-cog" class="w-4 h-4" style="color: var(--accent);"></i> Edit Player
+                </h3>
+                <button type="button" onclick="closeMemberModal()" class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-white/20 transition-all">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="p-5 max-h-[65vh] overflow-y-auto space-y-5" id="member-modal-body"></div>
+            <div class="bg-black/60 border-t border-white/10 p-4 flex justify-end gap-3">
+                <button type="button" onclick="closeMemberModal()" class="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10 transition-all">Cancel</button>
+                <button type="button" onclick="saveMemberChanges()" class="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all" style="background: var(--accent); box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.3);">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script id="wizard-steps-config" type="application/json">
+    [
+        {"key": "coordinator", "label": "{% if registration_type == 'team' %}Your Role{% else %}Your Profile{% endif %}", "subtitle": "{% if registration_type == 'team' %}Team selection & your role{% else %}Confirm your player profile{% endif %}", "icon": "user-check"}
+        ,{"key": "comms", "label": "Contact Info", "subtitle": "How organizers can reach you", "icon": "headset"}
+        {% if registration_type == 'team' %}
+        ,{"key": "team_info", "label": "Your Team", "subtitle": "Team details & branding", "icon": "shield"}
+        ,{"key": "roster", "label": "Squad Lineup", "subtitle": "{% if is_guest_team %}Build your guest squad{% else %}Starters, subs & positions{% endif %}", "icon": "users"}
+        {% endif %}
+        {% if custom_questions %}
+        ,{"key": "questions", "label": "Additional Details", "subtitle": "Tournament-specific questions", "icon": "clipboard-list"}
+        {% endif %}
+        {% if tournament.has_entry_fee %}
+        ,{"key": "payment", "label": "Payment", "subtitle": "Secure entry fee", "icon": "credit-card"}
+        {% endif %}
+        ,{"key": "review", "label": "Final Review", "subtitle": "Lock in & confirm", "icon": "lock"}
+    ]
+    </script>
+
+    <script id="runtime-config" type="application/json">
+    {
+        "tournamentSlug": "{{ tournament.slug }}",
+        "registrationType": "{{ registration_type }}",
+        "isTeam": {% if registration_type == 'team' %}true{% else %}false{% endif %},
+        "isGuestTeam": {% if is_guest_team %}true{% else %}false{% endif %},
+        "hasEntryFee": {% if tournament.has_entry_fee %}true{% else %}false{% endif %},
+        "entryFeeAmount": "{{ tournament.entry_fee_amount|default:'0' }}",
+        "entryFeeCurrency": "{{ tournament.entry_fee_currency|default:'BDT' }}",
+        "deltacoinCanAfford": {% if deltacoin_can_afford %}true{% else %}false{% endif %},
+        "deltacoinBalance": {{ deltacoin_balance|default:0 }},
+        "rosterConfig": {
+            "minTeamSize": {{ roster_config.min_team_size|default:5 }},
+            "maxTeamSize": {{ roster_config.max_team_size|default:5 }},
+            "minSubs": {{ roster_config.min_substitutes|default:0 }},
+            "maxSubs": {{ roster_config.max_substitutes|default:2 }},
+            "minRoster": {{ roster_config.min_roster_size|default:5 }},
+            "maxRoster": {{ roster_config.max_roster_size|default:10 }},
+            "allowCoaches": {% if roster_config.allow_coaches %}true{% else %}false{% endif %},
+            "maxCoaches": {{ roster_config.max_coaches|default:1 }},
+            "allowAnalysts": {% if roster_config.allow_analysts %}true{% else %}false{% endif %},
+            "maxAnalysts": {{ roster_config.max_analysts|default:0 }},
+            "teamSizeDisplay": "{{ roster_config.team_size_display|default:'5v5' }}"
+        },
+        "rosterRoles": [{% for gr in roster_roles %}{"code": "{{ gr.role_code }}", "name": "{{ gr.role_name }}", "icon": "{{ gr.icon|default:'' }}", "color": "{{ gr.color|default:'' }}"}{% if not forloop.last %}, {% endif %}{% endfor %}],
+        "formConfig": {
+            "enableCoordinatorRole": {% if form_config.enable_coordinator_role %}true{% else %}false{% endif %},
+            "allowRosterEditing": {% if form_config.allow_roster_editing %}true{% else %}false{% endif %},
+            "showMemberRanks": {% if form_config.show_member_ranks %}true{% else %}false{% endif %},
+            "showMemberGameIds": {% if form_config.show_member_game_ids %}true{% else %}false{% endif %},
+            "requireMemberRealName": {% if form_config.require_member_real_name %}true{% else %}false{% endif %},
+            "requireMemberPhoto": {% if form_config.require_member_photo %}true{% else %}false{% endif %},
+            "requireMemberEmail": {% if form_config.require_member_email %}true{% else %}false{% endif %},
+            "enableTeamLogoUpload": {% if form_config.enable_team_logo_upload %}true{% else %}false{% endif %},
+            "enableTeamBannerUpload": {% if form_config.enable_team_banner_upload %}true{% else %}false{% endif %},
+            "enableTeamBio": {% if form_config.enable_team_bio %}true{% else %}false{% endif %},
+            "enablePreferredComm": {% if form_config.enable_preferred_communication %}true{% else %}false{% endif %},
+            "enableAgeField": {% if form_config.enable_age_field %}true{% else %}false{% endif %},
+            "enableCountryField": {% if form_config.enable_country_field %}true{% else %}false{% endif %},
+            "enablePlatformField": {% if form_config.enable_platform_field %}true{% else %}false{% endif %},
+            "enableRankField": {% if form_config.enable_rank_field %}true{% else %}false{% endif %},
+            "enableTeamRegionField": {% if form_config.enable_team_region_field %}true{% else %}false{% endif %},
+            "enablePaymentScreenshot": {% if form_config.enable_payment_screenshot_field %}true{% else %}false{% endif %},
+            "enablePaymentMobile": {% if form_config.enable_payment_mobile_number_field %}true{% else %}false{% endif %},
+            "enablePaymentNotes": {% if form_config.enable_payment_notes_field %}true{% else %}false{% endif %}
+        },
+        "gameIdLabel": "{{ game_id_label|default:'Game ID' }}",
+        "gameIdPlaceholder": "{{ game_id_placeholder|default:'Your in-game name/ID' }}"
+    }
+    </script>
+
+    <script>
+    {% include "tournaments/registration/includes/_wizard_engine.js" %}
+    </script>
+</body>
+</html>

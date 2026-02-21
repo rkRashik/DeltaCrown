@@ -137,10 +137,65 @@ class SmartRegistrationView(LoginRequiredMixin, View):
         if is_team:
             team, user_teams = self._resolve_team(request, tournament)
             if team:
-                roster_members = TeamMembership.objects.filter(
-                    team=team,
-                    status=TeamMembership.Status.ACTIVE
-                ).select_related('user__profile').order_by('role', '-joined_at')[:20]
+                roster_members = list(
+                    TeamMembership.objects.filter(
+                        team=team,
+                        status=TeamMembership.Status.ACTIVE
+                    ).select_related('user__profile').order_by('role', '-joined_at')[:20]
+                )
+
+                # ── Attach game passport data per member ──
+                if roster_members:
+                    from apps.user_profile.models_main import GameProfile, SocialLink
+                    member_user_ids = [m.user_id for m in roster_members]
+                    passports = {
+                        gp.user_id: gp
+                        for gp in GameProfile.objects.filter(
+                            user_id__in=member_user_ids,
+                            game=tournament.game,
+                            status=GameProfile.STATUS_ACTIVE,
+                        )
+                    }
+
+                    # Prefetch discord social links for Player Info tab
+                    discord_links = {}
+                    try:
+                        for sl in SocialLink.objects.filter(
+                            user_id__in=member_user_ids,
+                            platform='discord',
+                        ):
+                            discord_links[sl.user_id] = sl.handle or sl.url or ''
+                    except Exception:
+                        pass  # SocialLink may not exist yet
+
+                    for member in roster_members:
+                        gp = passports.get(member.user_id)
+                        member._game_passport = gp  # attach for template access
+                        member.gp_ign = gp.ign if gp else ''
+                        member.gp_discriminator = gp.discriminator if gp else ''
+                        member.gp_in_game_name = gp.in_game_name if gp else ''
+                        member.gp_rank_name = gp.rank_name if gp else ''
+                        member.gp_rank_image_url = gp.rank_image.url if gp and gp.rank_image else ''
+                        member.gp_platform = gp.platform if gp else ''
+                        member.gp_region = gp.region if gp else ''
+                        member.gp_main_role = gp.main_role if gp else ''
+                        member.gp_matches_played = gp.matches_played if gp else 0
+                        member.gp_win_rate = gp.win_rate if gp else 0
+                        member.gp_kd_ratio = gp.kd_ratio if gp else None
+                        member.gp_hours_played = gp.hours_played if gp else None
+                        member.gp_has_passport = bool(gp)
+
+                        # ── Attach user profile data for Player Info tab ──
+                        profile = getattr(member.user, 'profile', None)
+                        member.profile_full_name = getattr(profile, 'real_full_name', '') or ''
+                        member.profile_email = getattr(member.user, 'email', '') or ''
+                        member.profile_discord = discord_links.get(member.user_id, '')
+                        member.profile_pronouns = getattr(profile, 'pronouns', '') or ''
+                        member.profile_phone = getattr(profile, 'phone', '') or ''
+                        member.profile_country = str(getattr(profile, 'country', '') or '')
+                        member.profile_gender = getattr(profile, 'gender', '') or ''
+                        dob = getattr(profile, 'date_of_birth', None)
+                        member.profile_dob = dob.isoformat() if dob else ''
 
         # ── Form Configuration (organizer-defined) ──
         form_config = TournamentFormConfiguration.get_or_create_for_tournament(tournament)
@@ -544,6 +599,14 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             'preferred_contact': form_data.get('preferred_contact', 'discord'),
         }
 
+        # ── Coordinator delegation (v3 flow) ──
+        coordinator_is_self = form_data.get('coordinator_is_self', 'true')
+        registration_data['coordinator_is_self'] = coordinator_is_self == 'true'
+        if coordinator_is_self != 'true':
+            coordinator_member_id = form_data.get('coordinator_member_id', '').strip()
+            if coordinator_member_id:
+                registration_data['coordinator_member_id'] = int(coordinator_member_id)
+
         # ── Coordinator role ──
         if form_config.enable_coordinator_role:
             registration_data['coordinator_role'] = form_data.get('coordinator_role', '').strip()
@@ -717,6 +780,10 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                         member_entry['roster_slot'] = roster_slot
                     if player_role:
                         member_entry['player_role'] = player_role
+                    # Capture per-member game_id override from form
+                    member_game_id = form_data.get(f'member_{mid}_game_id', '').strip()
+                    if member_game_id:
+                        member_entry['game_id'] = member_game_id
                     # Capture game_id if available from profile
                     if hasattr(member.user, 'profile') and member.user.profile:
                         profile = member.user.profile

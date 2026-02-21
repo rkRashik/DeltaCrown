@@ -2993,6 +2993,124 @@
 
 
   /* ═══════════════════════════════════════════════════════════════════════
+     MEMBER INFO POPOVER  (lightweight info overlay for roster cards)
+     ═══════════════════════════════════════════════════════════════════════ */
+  const MemberInfo = {
+    _overlay: null,
+
+    show(memberId, displayName, username, roleDisplay, playerRole, email, joinedAt) {
+      this.close();                       // close any existing
+
+      // Read game passport data from card data attributes
+      const card = document.querySelector(`[data-membership-id="${memberId}"]`);
+      const gpIgn      = card?.dataset.gpIgn || '';
+      const gpRank     = card?.dataset.gpRank || '';
+      const gpRankImg  = card?.dataset.gpRankImg || '';
+      const gpRole     = card?.dataset.gpRole || '';
+      const gpRegion   = card?.dataset.gpRegion || '';
+      const gpMatches  = card?.dataset.gpMatches || '0';
+      const gpWinrate  = card?.dataset.gpWinrate || '0';
+      const gpKd       = card?.dataset.gpKd || '';
+      const profileUrl = card?.dataset.profileUrl || `/@${username}/`;
+
+      // ── Basic Info rows ──
+      const rows = [];
+      rows.push(this._row('User',        `<span class="font-semibold text-white">${this._esc(displayName)}</span> <span class="text-white/40">@${this._esc(username)}</span>`));
+      rows.push(this._row('Team Role',   `<span class="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 text-[10px] font-bold uppercase tracking-wider">${this._esc(roleDisplay)}</span>`));
+      if (playerRole) rows.push(this._row('Player Role', this._esc(playerRole)));
+      if (email)      rows.push(this._row('Email',       `<a href="mailto:${this._esc(email)}" class="text-cyan-400 hover:underline">${this._esc(email)}</a>`));
+      if (joinedAt)   rows.push(this._row('Joined',      this._fmtDate(joinedAt)));
+
+      // ── Game Passport rows ──
+      const gpRows = [];
+      if (gpIgn) {
+        const rankBadge = gpRankImg
+          ? `<img src="${this._esc(gpRankImg)}" class="w-4 h-4 inline -mt-0.5 mr-1" alt="">`
+          : '';
+        gpRows.push(this._row('In-Game Name', `<span class="font-semibold text-white">${this._esc(gpIgn)}</span>`));
+        if (gpRank) gpRows.push(this._row('Rank', `${rankBadge}<span class="text-amber-300">${this._esc(gpRank)}</span>`));
+        if (gpRole) gpRows.push(this._row('Main Role', this._esc(gpRole)));
+        if (gpRegion) gpRows.push(this._row('Region', this._esc(gpRegion)));
+        if (parseInt(gpMatches) > 0) gpRows.push(this._row('Stats', `${gpMatches} matches &middot; ${gpWinrate}% WR${gpKd ? ` &middot; ${gpKd} K/D` : ''}`));
+      }
+
+      const hasPassport = gpRows.length > 0;
+
+      const html = `
+        <div id="member-info-overlay" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm" onclick="ManageHQ.closeMemberInfo(event)">
+          <div class="relative w-full max-w-md mx-4 rounded-2xl border border-white/10 bg-[#0d1117] shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between px-5 pt-4 pb-2">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4 text-cyan-400"></i> Player Info
+              </h3>
+              <button onclick="ManageHQ.closeMemberInfo()" class="h-7 w-7 rounded-lg bg-white/5 hover:bg-white/10 grid place-items-center transition">
+                <i data-lucide="x" class="w-3.5 h-3.5 text-white/50"></i>
+              </button>
+            </div>
+            <div class="px-5 pb-2 space-y-2">
+              ${rows.join('')}
+            </div>
+
+            ${hasPassport ? `
+            <div class="mx-5 border-t border-white/8"></div>
+            <div class="px-5 pt-3 pb-2">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-white/30 mb-2 flex items-center gap-1.5">
+                <i data-lucide="gamepad-2" class="w-3 h-3"></i> Game Passport
+              </div>
+              <div class="space-y-1.5">
+                ${gpRows.join('')}
+              </div>
+            </div>` : `
+            <div class="mx-5 border-t border-white/8"></div>
+            <div class="px-5 pt-3 pb-2">
+              <div class="text-xs text-white/30 flex items-center gap-1.5">
+                <i data-lucide="alert-circle" class="w-3 h-3"></i> No game passport linked
+              </div>
+            </div>`}
+
+            <div class="mx-5 border-t border-white/8"></div>
+            <div class="px-5 pt-3 pb-4">
+              <a href="${this._esc(profileUrl)}" target="_blank"
+                 class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-cyan-500/20 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-semibold transition">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                View Full Profile
+              </a>
+            </div>
+          </div>
+        </div>`;
+
+      document.body.insertAdjacentHTML('beforeend', html);
+      this._overlay = document.getElementById('member-info-overlay');
+
+      // re-init lucide icons inside the overlay
+      if (window.lucide) lucide.createIcons({ attrs: { class: '' }, nameAttr: 'data-lucide' });
+    },
+
+    close(e) {
+      if (e && e.target && e.target.id !== 'member-info-overlay') return;
+      const el = document.getElementById('member-info-overlay');
+      if (el) el.remove();
+      this._overlay = null;
+    },
+
+    _row(label, value) {
+      return `<div class="flex items-start gap-3 py-1.5 border-b border-white/5 last:border-0">
+        <span class="text-[11px] text-white/40 uppercase tracking-wider w-24 shrink-0 pt-0.5">${label}</span>
+        <span class="text-xs text-white/80 flex-1 min-w-0">${value}</span>
+      </div>`;
+    },
+
+    _esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; },
+
+    _fmtDate(iso) {
+      if (!iso) return '—';
+      try { return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
+      catch { return iso; }
+    },
+  };
+
+
+  /* ═══════════════════════════════════════════════════════════════════════
      PUBLIC API (used by onclick handlers in templates)
      ═══════════════════════════════════════════════════════════════════════ */
   window.ManageHQ = {
@@ -3011,6 +3129,9 @@
     // Player Info
     openPlayerInfoModal: (userId, username)       => PlayerInfo.open(userId, username),
     nudgePlayerPassport: ()                       => PlayerInfo.nudge(),
+    // Member Info (roster card info button)
+    showMemberInfo:    (id, dn, un, role, pr, em, ja) => MemberInfo.show(id, dn, un, role, pr, em, ja),
+    closeMemberInfo:   (e)                        => MemberInfo.close(e),
     // Command Center
     loadMoreActivity:  ()                        => Command.loadMore(),
     // Self-Edit (player edits own card)

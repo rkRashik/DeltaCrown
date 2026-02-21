@@ -248,7 +248,12 @@
                 {% for m in members %}
                 {% if m.roster_slot == 'STARTER' or m.role == 'PLAYER' and not m.roster_slot or m.role == 'OWNER' and not m.roster_slot %}
                 <div class="group relative rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] hover:border-white/20 transition-all duration-200 p-4"
-                     data-membership-id="{{ m.id }}" data-permissions='{{ m|effective_perms_json }}'>
+                     data-membership-id="{{ m.id }}" data-permissions='{{ m|effective_perms_json }}'
+                     data-gp-ign="{{ m.gp_in_game_name|default:'' }}" data-gp-rank="{{ m.gp_rank_name|default:'' }}"
+                     data-gp-rank-img="{{ m.gp_rank_image_url|default:'' }}" data-gp-role="{{ m.gp_main_role|default:'' }}"
+                     data-gp-region="{{ m.gp_region|default:'' }}" data-gp-matches="{{ m.gp_matches_played|default:'0' }}"
+                     data-gp-winrate="{{ m.gp_win_rate|default:'0' }}" data-gp-kd="{{ m.gp_kd_ratio|default:'' }}"
+                     data-profile-url="/@{{ m.user.username }}/">
 
                     <div class="flex items-start gap-3">
                         <div class="relative shrink-0">
@@ -281,6 +286,10 @@
 
                     {% if can_manage_roster and not roster_locked %}
                     <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                        <button onclick="ManageHQ.showMemberInfo({{ m.id }}, '{{ m.display_name|default:m.user.username|escapejs }}', '{{ m.user.username|escapejs }}', '{{ m.get_role_display|escapejs }}', '{{ m.player_role|default:""|escapejs }}', '{{ m.user.email|escapejs }}', '{{ m.joined_at|date:"Y-m-d"|default:""|escapejs }}')"
+                            class="h-7 w-7 rounded-lg bg-white/10 hover:bg-cyan-500/20 grid place-items-center transition" title="Player Info">
+                            <i data-lucide="info" class="w-3 h-3 text-white/60"></i>
+                        </button>
                         <button onclick="ManageHQ.openRoleModal({{ m.id }}, '{{ m.role }}', '{{ m.user.username|escapejs }}', {{ m.is_tournament_captain|yesno:'true,false' }}, '{{ m.player_role|default:""|escapejs }}', '{{ m.roster_slot|default:""|escapejs }}', '{{ m.display_name|default:""|escapejs }}', '{% if m.roster_image %}{{ m.roster_image.url }}{% endif %}')"
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-blue-500/20 grid place-items-center transition" title="Edit">
                             <i data-lucide="pencil" class="w-3 h-3 text-white/60"></i>
@@ -329,7 +338,12 @@
                 {% for m in members %}
                 {% if m.roster_slot == 'SUBSTITUTE' or m.role == 'SUBSTITUTE' %}
                 <div class="group relative rounded-2xl border border-white/8 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/15 transition-all duration-200 p-4"
-                     data-membership-id="{{ m.id }}" data-permissions='{{ m|effective_perms_json }}'>
+                     data-membership-id="{{ m.id }}" data-permissions='{{ m|effective_perms_json }}'
+                     data-gp-ign="{{ m.gp_in_game_name|default:'' }}" data-gp-rank="{{ m.gp_rank_name|default:'' }}"
+                     data-gp-rank-img="{{ m.gp_rank_image_url|default:'' }}" data-gp-role="{{ m.gp_main_role|default:'' }}"
+                     data-gp-region="{{ m.gp_region|default:'' }}" data-gp-matches="{{ m.gp_matches_played|default:'0' }}"
+                     data-gp-winrate="{{ m.gp_win_rate|default:'0' }}" data-gp-kd="{{ m.gp_kd_ratio|default:'' }}"
+                     data-profile-url="/@{{ m.user.username }}/">
                     <div class="flex items-start gap-3">
                         <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500/15 to-indigo-500/15 grid place-items-center text-sm font-bold overflow-hidden border border-white/8 shrink-0">
                             {% if m.roster_image %}<img src="{{ m.roster_image.url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ m.user.username|slice:':2'|upper|escapejs }}')">
@@ -346,6 +360,10 @@
                     </div>
                     {% if can_manage_roster and not roster_locked %}
                     <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                        <button onclick="ManageHQ.showMemberInfo({{ m.id }}, '{{ m.display_name|default:m.user.username|escapejs }}', '{{ m.user.username|escapejs }}', '{{ m.get_role_display|escapejs }}', '{{ m.player_role|default:""|escapejs }}', '{{ m.user.email|escapejs }}', '{{ m.joined_at|date:"Y-m-d"|default:""|escapejs }}')"
+                            class="h-7 w-7 rounded-lg bg-white/10 hover:bg-cyan-500/20 grid place-items-center transition" title="Player Info">
+                            <i data-lucide="info" class="w-3 h-3 text-white/60"></i>
+                        </button>
                         <button onclick="ManageHQ.swapSlot({{ m.id }}, 'STARTER')"
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-emerald-500/20 grid place-items-center transition" title="Promote to Starter">
                             <i data-lucide="arrow-up" class="w-3 h-3 text-white/60"></i>
@@ -382,7 +400,12 @@
                 {% for m in members %}
                 {% if m.role == 'MANAGER' or m.role == 'COACH' or m.role == 'ANALYST' or m.role == 'SCOUT' %}
                 <div class="group relative rounded-2xl border border-purple-500/10 bg-purple-500/[0.03] hover:bg-purple-500/[0.06] hover:border-purple-500/20 transition-all duration-200 p-4"
-                     data-membership-id="{{ m.id }}" data-permissions='{{ m|effective_perms_json }}'>
+                     data-membership-id="{{ m.id }}" data-permissions='{{ m|effective_perms_json }}'
+                     data-gp-ign="{{ m.gp_in_game_name|default:'' }}" data-gp-rank="{{ m.gp_rank_name|default:'' }}"
+                     data-gp-rank-img="{{ m.gp_rank_image_url|default:'' }}" data-gp-role="{{ m.gp_main_role|default:'' }}"
+                     data-gp-region="{{ m.gp_region|default:'' }}" data-gp-matches="{{ m.gp_matches_played|default:'0' }}"
+                     data-gp-winrate="{{ m.gp_win_rate|default:'0' }}" data-gp-kd="{{ m.gp_kd_ratio|default:'' }}"
+                     data-profile-url="/@{{ m.user.username }}/">
                     <div class="flex items-center gap-3">
                         <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/15 grid place-items-center text-sm font-bold overflow-hidden border border-white/8 shrink-0">
                             {% if m.user.profile.avatar %}<img src="{{ m.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="" onerror="this.onerror=null;this.replaceWith('{{ m.user.username|slice:':2'|upper|escapejs }}')">
@@ -395,6 +418,10 @@
                     </div>
                     {% if can_manage_roster and not roster_locked and m.role != 'OWNER' %}
                     <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                        <button onclick="ManageHQ.showMemberInfo({{ m.id }}, '{{ m.display_name|default:m.user.username|escapejs }}', '{{ m.user.username|escapejs }}', '{{ m.get_role_display|escapejs }}', '{{ m.player_role|default:""|escapejs }}', '{{ m.user.email|escapejs }}', '{{ m.joined_at|date:"Y-m-d"|default:""|escapejs }}')"
+                            class="h-7 w-7 rounded-lg bg-white/10 hover:bg-cyan-500/20 grid place-items-center transition" title="Player Info">
+                            <i data-lucide="info" class="w-3 h-3 text-white/60"></i>
+                        </button>
                         <button onclick="ManageHQ.openRoleModal({{ m.id }}, '{{ m.role }}', '{{ m.user.username|escapejs }}', {{ m.is_tournament_captain|yesno:'true,false' }}, '{{ m.player_role|default:""|escapejs }}', '{{ m.roster_slot|default:""|escapejs }}', '{{ m.display_name|default:""|escapejs }}', '')"
                             class="h-7 w-7 rounded-lg bg-white/10 hover:bg-blue-500/20 grid place-items-center transition" title="Edit">
                             <i data-lucide="pencil" class="w-3 h-3 text-white/60"></i>

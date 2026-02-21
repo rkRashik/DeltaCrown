@@ -1,0 +1,277 @@
+{% load humanize %}
+
+<div data-wizard-step="coordinator" class="wizard-step step-hidden animate-slide-in-right">
+    <div class="mb-8 border-b border-white/10 pb-6">
+        {% if registration_type == 'team' %}
+        <h2 class="font-gaming font-bold text-3xl text-white mb-2">Choose Your Role</h2>
+        <p class="text-sm text-gray-400 max-w-lg">
+            Select your team, choose your role, and let's get you tournament-ready.
+        </p>
+        {% else %}
+        <h2 class="font-gaming font-bold text-3xl text-white mb-2">Your Profile</h2>
+        <p class="text-sm text-gray-400 max-w-lg">
+            Your profile is linked and ready. Just confirm your details below.
+        </p>
+        {% endif %}
+    </div>
+
+    {% if registration_type == 'team' and not is_guest_team %}
+    {% if team %}
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative overflow-hidden group hover:border-[color:var(--accent)]/30 transition-colors">
+        <div class="absolute right-0 top-0 w-32 h-32 rounded-full blur-3xl group-hover:opacity-100 opacity-50 transition-opacity" style="background: rgba(var(--accent-rgb), 0.1);"></div>
+        <div class="w-24 h-24 rounded-2xl bg-black overflow-hidden border-2 border-white/10 relative shrink-0 shadow-lg">
+            {% if team.logo %}
+            <img src="{{ team.logo.url }}" class="w-full h-full object-cover" alt="{{ team.name }}">
+            {% else %}
+            <div class="w-full h-full flex items-center justify-center text-2xl font-black text-white/50 bg-dc-card">{{ team.tag|truncatechars:3 }}</div>
+            {% endif %}
+        </div>
+        <div class="flex-1 text-center sm:text-left z-10">
+            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded mb-2 inline-block" style="background: rgba(var(--accent-rgb), 0.2); color: var(--accent);">Selected Roster</span>
+            <h3 class="text-3xl font-display font-bold text-white mb-1">{{ team.name }}</h3>
+            {% if team.tag %}<p class="text-gray-400 font-mono text-sm mb-3">Tag: <span class="text-white">#{{ team.tag }}</span></p>{% endif %}
+            {% if user_teams|length > 1 %}
+            <p class="text-[10px] text-gray-500 italic"><i data-lucide="info" class="w-3 h-3 inline mr-1"></i> To register a different team, go back and select from your Team Hub.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% elif user_teams %}
+    <div class="bg-white/5 border border-yellow-500/20 rounded-2xl p-6 mb-8">
+        <h3 class="text-xs font-black text-yellow-400 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+            <i data-lucide="users" class="w-4 h-4"></i> Select Your Team
+        </h3>
+        <p class="text-sm text-gray-400 mb-4">You manage multiple eligible teams. Select the one you want to register.</p>
+        <div class="space-y-3">
+            {% for t in user_teams %}
+            <label class="flex items-center gap-4 p-4 rounded-xl border border-white/10 bg-black/30 cursor-pointer hover:border-white/20 transition-all group">
+                <input type="radio" name="team_id" value="{{ t.id }}" class="appearance-none w-5 h-5 border-2 border-gray-600 rounded-full checked:border-[color:var(--accent)] checked:bg-[color:var(--accent)] transition-all" {% if forloop.first %}checked{% endif %} onchange="checkStep('coordinator')">
+                <div class="w-12 h-12 rounded-xl bg-dc-card overflow-hidden border border-white/10 shrink-0">
+                    {% if t.logo %}
+                    <img src="{{ t.logo.url }}" class="w-full h-full object-cover" alt="{{ t.name }}">
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center text-sm font-black text-white/40">{{ t.tag|truncatechars:3 }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-white group-hover:text-[color:var(--accent)] transition-colors">{{ t.name }}</p>
+                    {% if t.tag %}<p class="text-[10px] text-gray-500 font-mono">#{{ t.tag }}</p>{% endif %}
+                </div>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 mb-8">
+        <p class="text-red-400 text-sm font-medium"><i data-lucide="alert-triangle" class="w-4 h-4 inline mr-2"></i>No eligible team found for this tournament.</p>
+    </div>
+    {% endif %}
+
+    {% if form_config.enable_coordinator_role %}
+    <div class="mb-8 p-6 rounded-2xl border border-white/10 bg-white/[0.02]">
+        <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
+            <i data-lucide="user-cog" class="w-4 h-4" style="color: var(--accent);"></i> Your Role in This Registration
+        </h3>
+        {% if form_config.coordinator_help %}
+        <p class="text-[11px] text-gray-500 mb-4">{{ form_config.coordinator_help }}</p>
+        {% else %}
+        <p class="text-[11px] text-gray-500 mb-4">Select your role for this tournament entry. This helps the organizer understand who to contact.</p>
+        {% endif %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {% for role in form_config.coordinator_roles %}
+            <label class="flex items-center gap-3 p-4 rounded-xl border border-white/10 bg-black/30 cursor-pointer hover:border-white/20 transition-all group has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/5">
+                <input type="radio" name="coordinator_role" value="{{ role.value }}" class="appearance-none w-4 h-4 border-2 border-gray-600 rounded-full checked:border-[color:var(--accent)] checked:bg-[color:var(--accent)] transition-all" {% if forloop.first %}checked{% endif %} onchange="checkStep('coordinator')">
+                <div>
+                    <p class="text-sm font-bold text-gray-300 group-hover:text-white transition-colors">{{ role.label }}</p>
+                    {% if role.description %}
+                    <p class="text-[10px] text-gray-500 mt-0.5">{{ role.description }}</p>
+                    {% endif %}
+                </div>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% elif is_guest_team %}
+    <div class="bg-white/5 border border-dc-purple/20 rounded-2xl p-6 mb-8">
+        <span class="px-2 py-0.5 bg-dc-purple/20 text-dc-purple text-[10px] font-bold uppercase tracking-widest rounded mb-4 inline-block">Guest Team Entry</span>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Team Name <span class="text-red-400">*</span></label>
+                <input type="text" name="guest_team_name" class="input-premium" placeholder="Your team name" required oninput="checkStep('coordinator')">
+            </div>
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Team Tag <span class="text-red-400">*</span></label>
+                <input type="text" name="guest_team_tag" class="input-premium" placeholder="e.g. PLS" maxlength="6" required oninput="checkStep('coordinator')">
+            </div>
+            <div class="space-y-2 md:col-span-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Justification <span class="text-gray-600">(Optional)</span></label>
+                <textarea name="guest_team_justification" class="input-premium" rows="2" placeholder="Why are you registering as a guest team?"></textarea>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="border border-white/10 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative overflow-hidden group hover:border-[color:var(--accent)]/30 transition-colors" style="background: linear-gradient(to right, rgba(var(--accent-rgb), 0.08), transparent);">
+        <div class="absolute right-0 top-0 w-32 h-32 rounded-full blur-3xl group-hover:opacity-100 opacity-50 transition-opacity" style="background: rgba(var(--accent-rgb), 0.1);"></div>
+        <div class="w-20 h-20 rounded-2xl bg-black overflow-hidden border border-white/10 relative shrink-0 shadow-lg">
+            {% if request.user.profile.avatar %}
+            <img src="{{ request.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="{{ request.user.username }}">
+            {% else %}
+            <img src="https://ui-avatars.com/api/?name={{ request.user.username|urlencode }}&background=0a0a0a&color=fff&size=160" class="w-full h-full object-cover" alt="{{ request.user.username }}">
+            {% endif %}
+        </div>
+        <div class="flex-1 text-center sm:text-left z-10">
+            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded mb-2 inline-flex items-center gap-1" style="background: rgba(var(--accent-rgb), 0.2); color: var(--accent);">
+                <i data-lucide="user" class="w-3 h-3"></i> Competitor Profile
+            </span>
+            <h3 class="text-2xl font-display font-bold text-white mb-1">{{ request.user.username }}</h3>
+            <p class="text-gray-400 text-xs">{{ request.user.email }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if registration_type != 'team' %}
+    <div class="mb-8">
+        <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+            <i data-lucide="gamepad-2" class="w-4 h-4" style="color: var(--accent);"></i> Primary Game Identity
+        </h3>
+        {% if fields.game_id.value %}
+        <div class="p-4 rounded-xl flex items-center justify-between relative overflow-hidden" style="background: rgba(var(--accent-rgb), 0.05); border: 1px solid rgba(var(--accent-rgb), 0.2);">
+            <div class="absolute left-0 top-0 bottom-0 w-1" style="background: var(--accent);"></div>
+            <div class="flex items-center gap-4 pl-2">
+                <div class="w-12 h-12 rounded-lg bg-black flex items-center justify-center border border-white/10 shadow-inner p-1.5">
+                    {% if tournament.game.icon %}
+                    <img src="{{ tournament.game.icon.url }}" class="w-full h-full rounded object-cover" alt="{{ tournament.game.name }}">
+                    {% elif tournament.game.logo %}
+                    <img src="{{ tournament.game.logo.url }}" class="w-full h-full rounded object-cover" alt="{{ tournament.game.name }}">
+                    {% else %}
+                    <div class="w-full h-full rounded flex items-center justify-center text-[10px] font-black text-white/70 uppercase" style="background: rgba(var(--accent-rgb), 0.3);">{{ tournament.game.name|truncatechars:3 }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">{{ tournament.game.name }}</p>
+                    <p class="text-lg font-bold text-white font-mono tracking-wider">{{ fields.game_id.value }}</p>
+                </div>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+                {% if fields.game_id.locked %}
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-green-500"></i>
+                <span class="text-[9px] font-bold text-green-500 uppercase tracking-widest">Verified</span>
+                {% else %}
+                <i data-lucide="edit-2" class="w-4 h-4 text-gray-500"></i>
+                <span class="text-[9px] font-bold text-yellow-500 uppercase tracking-widest">Editable</span>
+                {% endif %}
+            </div>
+        </div>
+        <input type="hidden" name="game_id" value="{{ fields.game_id.value }}">
+        {% else %}
+        <div class="p-5 rounded-xl border border-yellow-500/20 bg-yellow-500/5">
+            <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-yellow-500"></i>
+                <span class="text-xs font-bold text-yellow-400">{{ game_id_label }} Required</span>
+            </div>
+            <input type="text" name="game_id" class="input-premium" placeholder="{{ game_id_placeholder }}" required oninput="checkStep('coordinator')">
+            <p class="text-[10px] text-gray-500 mt-2 flex items-center gap-1">
+                <i data-lucide="info" class="w-3 h-3"></i> Add a Game Passport in settings for automatic sync.
+            </p>
+        </div>
+        {% endif %}
+        <p class="text-[10px] text-gray-500 mt-2 flex items-center gap-1">
+            <i data-lucide="info" class="w-3 h-3"></i> To update your in-game name, modify your Game Passport in settings.
+        </p>
+    </div>
+    {% endif %}
+
+    {% if registration_type != 'team' %}
+    {% if form_config.enable_age_field or form_config.enable_country_field or form_config.enable_platform_field or form_config.enable_rank_field %}
+    <div class="mb-8">
+        <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+            <i data-lucide="clipboard-list" class="w-4 h-4" style="color: var(--accent);"></i> Additional Details
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {% if form_config.enable_age_field %}
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Age <span class="text-red-400">*</span></label>
+                <input type="number" name="age" class="input-premium" placeholder="Your age" min="13" max="99" required oninput="checkStep('coordinator')">
+                <p class="text-[10px] text-gray-500 ml-1">Must be 13 or older to participate.</p>
+            </div>
+            {% endif %}
+            {% if form_config.enable_country_field %}
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Country / Region</label>
+                <input type="text" name="country" class="input-premium" placeholder="e.g. Bangladesh, India, Philippines" value="{{ fields.country.value|default:'' }}" oninput="checkStep('coordinator')">
+            </div>
+            {% endif %}
+            {% if form_config.enable_platform_field %}
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Platform / Server</label>
+                <input type="text" name="platform_server" class="input-premium" placeholder="e.g. APAC, NA, EU, Mobile, PC" value="{{ fields.platform_server.value|default:'' }}" oninput="checkStep('coordinator')">
+            </div>
+            {% endif %}
+            {% if form_config.enable_rank_field %}
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Current Rank</label>
+                <input type="text" name="rank" class="input-premium" placeholder="e.g. Diamond, Gold, Radiant" value="{{ fields.rank.value|default:'' }}" oninput="checkStep('coordinator')">
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if registration_type == 'team' %}
+    {% if form_config.enable_captain_display_name_field or form_config.enable_captain_whatsapp_field or form_config.enable_captain_phone_field or form_config.enable_captain_discord_field %}
+    <div class="mb-8 p-6 rounded-2xl border border-white/10 bg-white/[0.02]">
+        <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
+            <i data-lucide="crown" class="w-4 h-4 text-dc-gold"></i> Captain / Coordinator Details
+        </h3>
+        <p class="text-[10px] text-gray-500 mb-4">The organizer requires additional contact details for the team captain or coordinator.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {% if form_config.enable_captain_display_name_field %}
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Captain Display Name</label>
+                <input type="text" name="captain_display_name" class="input-premium" placeholder="In-game name / nickname" value="{{ fields.display_name.value|default:'' }}" oninput="checkStep('coordinator')">
+            </div>
+            {% endif %}
+            {% if form_config.enable_captain_whatsapp_field %}
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                    <i data-lucide="phone" class="w-3.5 h-3.5 text-green-400"></i> Captain WhatsApp
+                </label>
+                <input type="tel" name="captain_whatsapp" class="input-premium" placeholder="WhatsApp number" oninput="checkStep('coordinator')">
+            </div>
+            {% endif %}
+            {% if form_config.enable_captain_phone_field %}
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                    <i data-lucide="phone" class="w-3.5 h-3.5 text-gray-400"></i> Captain Phone
+                </label>
+                <input type="tel" name="captain_phone" class="input-premium" placeholder="Phone number" oninput="checkStep('coordinator')">
+            </div>
+            {% endif %}
+            {% if form_config.enable_captain_discord_field %}
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286z"/></svg>
+                    Captain Discord
+                </label>
+                <input type="text" name="captain_discord" class="input-premium" placeholder="Username#0000" oninput="checkStep('coordinator')">
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <input type="hidden" name="full_name" value="{{ fields.full_name.value }}">
+    <input type="hidden" name="display_name" value="{{ fields.display_name.value }}">
+    <input type="hidden" name="email" value="{{ fields.email.value }}">
+    {% if not form_config.enable_country_field and fields.country.value %}<input type="hidden" name="country" value="{{ fields.country.value }}">{% endif %}
+    {% if not form_config.enable_rank_field and fields.rank.value %}<input type="hidden" name="rank" value="{{ fields.rank.value }}">{% endif %}
+    {% if not form_config.enable_platform_field and fields.platform_server.value %}<input type="hidden" name="platform_server" value="{{ fields.platform_server.value }}">{% endif %}
+    {% if registration_type == 'team' and team and not is_guest_team %}
+    <input type="hidden" name="team_id" value="{{ team.id }}">
+    {% endif %}
+</div>

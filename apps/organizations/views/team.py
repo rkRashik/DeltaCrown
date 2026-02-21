@@ -227,6 +227,7 @@ def team_manage(request, team_slug, org_slug=None):
         game_display = "Unknown"
         roster_config = None
         game_roles = []
+        game = None
         try:
             game = Game.objects.select_related('roster_config').get(id=team.game_id)
             game_display = game.name
@@ -240,6 +241,35 @@ def team_manage(request, team_slug, org_slug=None):
             )
         except Game.DoesNotExist:
             pass
+
+        # ── Attach game passport data to each member (for info popover) ──
+        if game and members:
+            from apps.user_profile.models_main import GameProfile
+            member_user_ids = [m.user_id for m in members]
+            gp_map = {}
+            try:
+                for gp in GameProfile.objects.filter(
+                    user_id__in=member_user_ids, game=game
+                ).only(
+                    'user_id', 'ign', 'discriminator', 'in_game_name',
+                    'rank_name', 'rank_image', 'main_role', 'region',
+                    'matches_played', 'win_rate', 'kd_ratio',
+                ):
+                    gp_map[gp.user_id] = gp
+            except Exception:
+                pass
+            for m in members:
+                gp = gp_map.get(m.user_id)
+                m.gp_ign = gp.ign if gp else ''
+                m.gp_discriminator = gp.discriminator if gp else ''
+                m.gp_in_game_name = gp.in_game_name if gp else ''
+                m.gp_rank_name = gp.rank_name if gp else ''
+                m.gp_rank_image_url = gp.rank_image.url if gp and gp.rank_image else ''
+                m.gp_main_role = gp.main_role if gp else ''
+                m.gp_region = gp.region if gp else ''
+                m.gp_matches_played = gp.matches_played if gp else 0
+                m.gp_win_rate = gp.win_rate if gp else 0
+                m.gp_kd_ratio = gp.kd_ratio if gp else None
 
         is_owner = (
             user_membership and user_membership.role == MembershipRole.OWNER

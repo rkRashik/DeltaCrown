@@ -1,267 +1,210 @@
 {% load humanize %}
+{# Step 3 (Team) / Step 2 (Solo): Match Coordinator / Contact Info #}
+<div data-wizard-step="coordinator" class="wizard-step step-hidden animate-slide-up">
 
-<div data-wizard-step="coordinator" class="wizard-step step-hidden animate-slide-in-right">
-    <div class="mb-8 border-b border-white/10 pb-6">
+    <div class="mb-6 pb-4 border-b border-white/10">
         {% if registration_type == 'team' %}
-        <h2 class="font-gaming font-bold text-3xl text-white mb-2">Coordinator & Identity</h2>
-        <p class="text-sm text-gray-400 max-w-lg">
-            Confirm your team, designate who's coordinating this registration, and verify the identity link.
-        </p>
+        <h2 class="font-gaming font-bold text-2xl md:text-3xl text-white mb-1">Match Coordinator</h2>
+        <p class="text-sm text-gray-400">Who will be the main point of contact for tournament communications?</p>
         {% else %}
-        <h2 class="font-gaming font-bold text-3xl text-white mb-2">Player Identity</h2>
-        <p class="text-sm text-gray-400 max-w-lg">
-            Your platform profile and Game Passport have been synchronized. Confirm your details below.
-        </p>
+        <h2 class="font-gaming font-bold text-2xl md:text-3xl text-white mb-1">Contact Info</h2>
+        <p class="text-sm text-gray-400">How should the organizers reach you during the tournament?</p>
         {% endif %}
     </div>
-
-    {% if registration_type == 'team' and not is_guest_team %}
-    {% if team %}
-    <div class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative overflow-hidden group hover:border-[color:var(--accent)]/30 transition-colors">
-        <div class="absolute right-0 top-0 w-32 h-32 rounded-full blur-3xl group-hover:opacity-100 opacity-50 transition-opacity" style="background: rgba(var(--accent-rgb), 0.1);"></div>
-        <div class="w-24 h-24 rounded-2xl bg-black overflow-hidden border-2 border-white/10 relative shrink-0 shadow-lg">
-            {% if team.logo %}
-            <img src="{{ team.logo.url }}" class="w-full h-full object-cover" alt="{{ team.name }}">
-            {% else %}
-            <div class="w-full h-full flex items-center justify-center text-2xl font-black text-white/50 bg-dc-card">{{ team.tag|truncatechars:3 }}</div>
-            {% endif %}
-        </div>
-        <div class="flex-1 text-center sm:text-left z-10">
-            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded mb-2 inline-block" style="background: rgba(var(--accent-rgb), 0.2); color: var(--accent);">Selected Roster</span>
-            <h3 class="text-3xl font-display font-bold text-white mb-1">{{ team.name }}</h3>
-            {% if team.tag %}<p class="text-gray-400 font-mono text-sm mb-3">Tag: <span class="text-white">#{{ team.tag }}</span></p>{% endif %}
-            {% if user_teams|length > 1 %}
-            <p class="text-[10px] text-gray-500 italic"><i data-lucide="info" class="w-3 h-3 inline mr-1"></i> To register a different team, go back and select from your Team Hub.</p>
-            {% endif %}
-        </div>
-    </div>
-    {% elif user_teams %}
-    <div class="bg-white/5 border border-yellow-500/20 rounded-2xl p-6 mb-8">
-        <h3 class="text-xs font-black text-yellow-400 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
-            <i data-lucide="users" class="w-4 h-4"></i> Select Your Team
-        </h3>
-        <p class="text-sm text-gray-400 mb-4">You manage multiple eligible teams. Select the one you want to register.</p>
-        <div class="space-y-3">
-            {% for t in user_teams %}
-            <label class="flex items-center gap-4 p-4 rounded-xl border border-white/10 bg-black/30 cursor-pointer hover:border-white/20 transition-all group">
-                <input type="radio" name="team_id" value="{{ t.id }}" class="appearance-none w-5 h-5 border-2 border-gray-600 rounded-full checked:border-[color:var(--accent)] checked:bg-[color:var(--accent)] transition-all" {% if forloop.first %}checked{% endif %} onchange="checkStep('coordinator')">
-                <div class="w-12 h-12 rounded-xl bg-dc-card overflow-hidden border border-white/10 shrink-0">
-                    {% if t.logo %}
-                    <img src="{{ t.logo.url }}" class="w-full h-full object-cover" alt="{{ t.name }}">
-                    {% else %}
-                    <div class="w-full h-full flex items-center justify-center text-sm font-black text-white/40">{{ t.tag|truncatechars:3 }}</div>
-                    {% endif %}
-                </div>
-                <div>
-                    <p class="text-sm font-bold text-white group-hover:text-[color:var(--accent)] transition-colors">{{ t.name }}</p>
-                    {% if t.tag %}<p class="text-[10px] text-gray-500 font-mono">#{{ t.tag }}</p>{% endif %}
-                </div>
-            </label>
-            {% endfor %}
-        </div>
-    </div>
-    {% else %}
-    <div class="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 mb-8">
-        <p class="text-red-400 text-sm font-medium"><i data-lucide="alert-triangle" class="w-4 h-4 inline mr-2"></i>No eligible team found for this tournament.</p>
-    </div>
-    {% endif %}
-
-    {% if form_config.enable_coordinator_role %}
-    <div class="mb-8 p-6 rounded-2xl border border-white/10 bg-white/[0.02]">
-        <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
-            <i data-lucide="user-cog" class="w-4 h-4" style="color: var(--accent);"></i> Your Role in This Registration
-        </h3>
-        {% if form_config.coordinator_help %}
-        <p class="text-[11px] text-gray-500 mb-4">{{ form_config.coordinator_help }}</p>
-        {% else %}
-        <p class="text-[11px] text-gray-500 mb-4">Select your role for this tournament entry. This helps the organizer understand who to contact.</p>
-        {% endif %}
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {% for role in form_config.coordinator_roles %}
-            <label class="flex items-center gap-3 p-4 rounded-xl border border-white/10 bg-black/30 cursor-pointer hover:border-white/20 transition-all group has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/5">
-                <input type="radio" name="coordinator_role" value="{{ role.value }}" class="appearance-none w-4 h-4 border-2 border-gray-600 rounded-full checked:border-[color:var(--accent)] checked:bg-[color:var(--accent)] transition-all" {% if forloop.first %}checked{% endif %} onchange="checkStep('coordinator')">
-                <div>
-                    <p class="text-sm font-bold text-gray-300 group-hover:text-white transition-colors">{{ role.label }}</p>
-                    {% if role.description %}
-                    <p class="text-[10px] text-gray-500 mt-0.5">{{ role.description }}</p>
-                    {% endif %}
-                </div>
-            </label>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    {% elif is_guest_team %}
-    <div class="bg-white/5 border border-dc-purple/20 rounded-2xl p-6 mb-8">
-        <span class="px-2 py-0.5 bg-dc-purple/20 text-dc-purple text-[10px] font-bold uppercase tracking-widest rounded mb-4 inline-block">Guest Team Entry</span>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
-            <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Team Name <span class="text-red-400">*</span></label>
-                <input type="text" name="guest_team_name" class="input-premium" placeholder="Your team name" required oninput="checkStep('coordinator')">
-            </div>
-            <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Team Tag <span class="text-red-400">*</span></label>
-                <input type="text" name="guest_team_tag" class="input-premium" placeholder="e.g. PLS" maxlength="6" required oninput="checkStep('coordinator')">
-            </div>
-            <div class="space-y-2 md:col-span-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Justification <span class="text-gray-600">(Optional)</span></label>
-                <textarea name="guest_team_justification" class="input-premium" rows="2" placeholder="Why are you registering as a guest team?"></textarea>
-            </div>
-        </div>
-    </div>
-
-    {% else %}
-    <div class="border border-white/10 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative overflow-hidden group hover:border-[color:var(--accent)]/30 transition-colors" style="background: linear-gradient(to right, rgba(var(--accent-rgb), 0.08), transparent);">
-        <div class="absolute right-0 top-0 w-32 h-32 rounded-full blur-3xl group-hover:opacity-100 opacity-50 transition-opacity" style="background: rgba(var(--accent-rgb), 0.1);"></div>
-        <div class="w-20 h-20 rounded-2xl bg-black overflow-hidden border border-white/10 relative shrink-0 shadow-lg">
-            <img src="https://ui-avatars.com/api/?name={{ request.user.username|urlencode }}&background=000&color=fff&size=160" class="w-full h-full object-cover" alt="{{ request.user.username }}">
-        </div>
-        <div class="flex-1 text-center sm:text-left z-10">
-            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded mb-2 inline-flex items-center gap-1" style="background: rgba(var(--accent-rgb), 0.2); color: var(--accent);">
-                <i data-lucide="user" class="w-3 h-3"></i> Competitor Profile
-            </span>
-            <h3 class="text-2xl font-display font-bold text-white mb-1">{{ request.user.username }}</h3>
-            <p class="text-gray-400 text-xs">{{ request.user.email }}</p>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if registration_type != 'team' %}
-    <div class="mb-8">
-        <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
-            <i data-lucide="gamepad-2" class="w-4 h-4" style="color: var(--accent);"></i> Primary Game Identity
-        </h3>
-        {% if fields.game_id.value %}
-        <div class="p-4 rounded-xl flex items-center justify-between relative overflow-hidden" style="background: rgba(var(--accent-rgb), 0.05); border: 1px solid rgba(var(--accent-rgb), 0.2);">
-            <div class="absolute left-0 top-0 bottom-0 w-1" style="background: var(--accent);"></div>
-            <div class="flex items-center gap-4 pl-2">
-                <div class="w-12 h-12 rounded-lg bg-black flex items-center justify-center border border-white/10 shadow-inner p-1.5">
-                    <div class="w-full h-full rounded flex items-center justify-center text-[9px] font-black text-white/70 uppercase" style="background: rgba(var(--accent-rgb), 0.3);">{{ tournament.game.name|truncatechars:3 }}</div>
-                </div>
-                <div>
-                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">{{ tournament.game.name }}</p>
-                    <p class="text-lg font-bold text-white font-mono tracking-wider">{{ fields.game_id.value }}</p>
-                </div>
-            </div>
-            <div class="flex flex-col items-end gap-1">
-                {% if fields.game_id.locked %}
-                <i data-lucide="check-circle-2" class="w-5 h-5 text-green-500"></i>
-                <span class="text-[9px] font-bold text-green-500 uppercase tracking-widest">Verified</span>
-                {% else %}
-                <i data-lucide="edit-2" class="w-4 h-4 text-gray-500"></i>
-                <span class="text-[9px] font-bold text-yellow-500 uppercase tracking-widest">Editable</span>
-                {% endif %}
-            </div>
-        </div>
-        <input type="hidden" name="game_id" value="{{ fields.game_id.value }}">
-        {% else %}
-        <div class="p-5 rounded-xl border border-yellow-500/20 bg-yellow-500/5">
-            <div class="flex items-center gap-2 mb-3">
-                <i data-lucide="alert-triangle" class="w-4 h-4 text-yellow-500"></i>
-                <span class="text-xs font-bold text-yellow-400">{{ game_id_label }} Required</span>
-            </div>
-            <input type="text" name="game_id" class="input-premium" placeholder="{{ game_id_placeholder }}" required oninput="checkStep('coordinator')">
-            <p class="text-[10px] text-gray-500 mt-2 flex items-center gap-1">
-                <i data-lucide="info" class="w-3 h-3"></i> Add a Game Passport in settings for automatic sync.
-            </p>
-        </div>
-        {% endif %}
-        <p class="text-[10px] text-gray-500 mt-2 flex items-center gap-1">
-            <i data-lucide="info" class="w-3 h-3"></i> To update your in-game name, modify your Game Passport in settings.
-        </p>
-    </div>
-    {% endif %}
-
-    {% if registration_type != 'team' %}
-    {% if form_config.enable_age_field or form_config.enable_country_field or form_config.enable_platform_field or form_config.enable_rank_field %}
-    <div class="mb-8">
-        <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
-            <i data-lucide="clipboard-list" class="w-4 h-4" style="color: var(--accent);"></i> Additional Details
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {% if form_config.enable_age_field %}
-            <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Age <span class="text-red-400">*</span></label>
-                <input type="number" name="age" class="input-premium" placeholder="Your age" min="13" max="99" required oninput="checkStep('coordinator')">
-                <p class="text-[10px] text-gray-500 ml-1">Must be 13 or older to participate.</p>
-            </div>
-            {% endif %}
-            {% if form_config.enable_country_field %}
-            <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Country / Region</label>
-                <input type="text" name="country" class="input-premium" placeholder="e.g. Bangladesh, India, Philippines" value="{{ fields.country.value|default:'' }}" oninput="checkStep('coordinator')">
-            </div>
-            {% endif %}
-            {% if form_config.enable_platform_field %}
-            <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Platform / Server</label>
-                <input type="text" name="platform_server" class="input-premium" placeholder="e.g. APAC, NA, EU, Mobile, PC" value="{{ fields.platform_server.value|default:'' }}" oninput="checkStep('coordinator')">
-            </div>
-            {% endif %}
-            {% if form_config.enable_rank_field %}
-            <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Current Rank</label>
-                <input type="text" name="rank" class="input-premium" placeholder="e.g. Diamond, Gold, Radiant" value="{{ fields.rank.value|default:'' }}" oninput="checkStep('coordinator')">
-            </div>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-    {% endif %}
 
     {% if registration_type == 'team' %}
-    {% if form_config.enable_captain_display_name_field or form_config.enable_captain_whatsapp_field or form_config.enable_captain_phone_field or form_config.enable_captain_discord_field %}
-    <div class="mb-8 p-6 rounded-2xl border border-white/10 bg-white/[0.02]">
-        <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
-            <i data-lucide="crown" class="w-4 h-4 text-dc-gold"></i> Captain / Coordinator Details
+    {# ----------- TEAM MODE: Choose who coordinates ----------- #}
+
+    <div class="mb-6">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="headset" class="w-4 h-4" style="color: var(--accent);"></i> Coordinator Selection
         </h3>
-        <p class="text-[10px] text-gray-500 mb-4">The organizer requires additional contact details for the team captain or coordinator.</p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {% if form_config.enable_captain_display_name_field %}
-            <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Captain Display Name</label>
-                <input type="text" name="captain_display_name" class="input-premium" placeholder="In-game name / nickname" value="{{ fields.display_name.value|default:'' }}" oninput="checkStep('coordinator')">
-            </div>
-            {% endif %}
-            {% if form_config.enable_captain_whatsapp_field %}
-            <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                    <i data-lucide="phone" class="w-3.5 h-3.5 text-green-400"></i> Captain WhatsApp
-                </label>
-                <input type="tel" name="captain_whatsapp" class="input-premium" placeholder="WhatsApp number" oninput="checkStep('coordinator')">
-            </div>
-            {% endif %}
-            {% if form_config.enable_captain_phone_field %}
-            <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                    <i data-lucide="phone" class="w-3.5 h-3.5 text-gray-400"></i> Captain Phone
-                </label>
-                <input type="tel" name="captain_phone" class="input-premium" placeholder="Phone number" oninput="checkStep('coordinator')">
-            </div>
-            {% endif %}
-            {% if form_config.enable_captain_discord_field %}
-            <div class="space-y-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286z"/></svg>
-                    Captain Discord
-                </label>
-                <input type="text" name="captain_discord" class="input-premium" placeholder="Username#0000" oninput="checkStep('coordinator')">
-            </div>
-            {% endif %}
+        <p class="text-sm text-gray-500 mb-4">The coordinator receives all tournament updates, match schedules, and handles check-ins. This can be you or another team member.</p>
+
+        <div class="space-y-3">
+            {# Option A: Self #}
+            <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-black/30 cursor-pointer hover:border-white/20 transition-all group has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/5">
+                <input type="radio" name="coordinator_is_self" value="true" class="appearance-none w-5 h-5 mt-0.5 border-2 border-gray-600 rounded-full checked:border-[color:var(--accent)] checked:bg-[color:var(--accent)] transition-all shrink-0" checked onchange="toggleCoordinatorMode(true); checkStep('coordinator')">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <p class="text-sm font-bold text-white group-hover:text-[color:var(--accent)] transition-colors">I'll handle it myself</p>
+                        <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-green-500/10 border border-green-500/20 text-green-400">Recommended</span>
+                    </div>
+                    <p class="text-sm text-gray-500">Your contact info from your profile will be used.</p>
+                </div>
+            </label>
+
+            {# Option B: Delegate to a team member #}
+            <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-black/30 cursor-pointer hover:border-white/20 transition-all group has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/5">
+                <input type="radio" name="coordinator_is_self" value="false" class="appearance-none w-5 h-5 mt-0.5 border-2 border-gray-600 rounded-full checked:border-[color:var(--accent)] checked:bg-[color:var(--accent)] transition-all shrink-0" onchange="toggleCoordinatorMode(false); checkStep('coordinator')">
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-white group-hover:text-[color:var(--accent)] transition-colors mb-1">Designate a team member</p>
+                    <p class="text-sm text-gray-500">Choose someone from your roster to handle tournament comms.</p>
+                </div>
+            </label>
+        </div>
+    </div>
+
+    {# Panel: Delegate to member #}
+    <div id="coordinator-delegate-panel" class="mb-6 hidden">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="user-check" class="w-4 h-4" style="color: var(--accent);"></i> Select Coordinator
+        </h3>
+        <div class="space-y-2">
+            {% for member in roster_members %}
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-black/30 cursor-pointer hover:border-white/20 transition-all group has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/5">
+                <input type="radio" name="coordinator_member_id" value="{{ member.id }}" class="appearance-none w-4 h-4 border-2 border-gray-600 rounded-full checked:border-[color:var(--accent)] checked:bg-[color:var(--accent)] transition-all shrink-0" onchange="selectCoordinatorMember(this); checkStep('coordinator')">
+                <div class="w-8 h-8 rounded-full overflow-hidden border border-white/10 shrink-0">
+                    {% if member.user.profile.avatar %}
+                    <img src="{{ member.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="{{ member.user.username }}">
+                    {% else %}
+                    <div class="w-full h-full bg-dc-card flex items-center justify-center text-xs font-bold text-white/40">{{ member.user.username|truncatechars:2 }}</div>
+                    {% endif %}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-white truncate">{{ member.display_name|default:member.user.username }}</p>
+                    <p class="text-xs text-gray-500 font-mono">@{{ member.user.username }}</p>
+                </div>
+                {% if member.is_captain or member.role == 'OWNER' %}
+                <span class="px-1.5 py-0.5 text-[10px] font-black uppercase rounded bg-dc-gold/20 text-dc-gold border border-dc-gold/30">Captain</span>
+                {% endif %}
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# Coordinator Role (if enabled by organizer) — this is different from "who is the coordinator" #}
+    {% if form_config.enable_coordinator_role %}
+    <div class="mb-6">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="badge-check" class="w-4 h-4" style="color: var(--accent);"></i> Coordinator's Team Role
+        </h3>
+        <p class="text-sm text-gray-500 mb-3">Select the coordinator's role within the team. This helps organizers understand the team structure.</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {% for role in form_config.coordinator_role_choices %}
+            <label class="flex items-center justify-center gap-1.5 p-3 rounded-xl border border-white/10 bg-black/30 cursor-pointer hover:border-white/20 text-center transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/5">
+                <input type="radio" name="coordinator_role" value="{{ role.value }}" class="sr-only" {% if forloop.first %}checked{% endif %} onchange="checkStep('coordinator')">
+                <span class="text-xs font-bold text-gray-300">{{ role.label }}</span>
+            </label>
+            {% endfor %}
         </div>
     </div>
     {% endif %}
-    {% endif %}
 
-    <input type="hidden" name="full_name" value="{{ fields.full_name.value }}">
-    <input type="hidden" name="display_name" value="{{ fields.display_name.value }}">
-    <input type="hidden" name="email" value="{{ fields.email.value }}">
-    {% if not form_config.enable_country_field and fields.country.value %}<input type="hidden" name="country" value="{{ fields.country.value }}">{% endif %}
-    {% if not form_config.enable_rank_field and fields.rank.value %}<input type="hidden" name="rank" value="{{ fields.rank.value }}">{% endif %}
-    {% if not form_config.enable_platform_field and fields.platform_server.value %}<input type="hidden" name="platform_server" value="{{ fields.platform_server.value }}">{% endif %}
-    {% if registration_type == 'team' and team and not is_guest_team %}
-    <input type="hidden" name="team_id" value="{{ team.id }}">
+    {# Contact info section — always shown, auto-filled for self or from delegate's profile #}
+    <div class="mb-4" id="coordinator-contact">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="phone" class="w-4 h-4" style="color: var(--accent);"></i> Contact Details
+        </h3>
+        <p class="text-sm text-gray-500 mb-3" id="contact-source-hint">These are auto-filled from your profile. Update if needed.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {% if form_config.enable_captain_phone_field %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Phone {% if form_config.require_captain_phone %}<span class="text-red-400">*</span>{% endif %}</label>
+                <input type="tel" name="phone" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.phone.value|default:'' }}" {% if form_config.require_captain_phone %}required{% endif %} oninput="applyInputValidation(this); checkStep('coordinator')">
+            </div>
+            {% endif %}
+
+            {% if form_config.enable_captain_whatsapp_field %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.496A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.317 0-4.47-.693-6.27-1.882l-.44-.295-2.851.957.957-2.851-.295-.44A9.965 9.965 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                    WhatsApp
+                </label>
+                <input type="tel" name="captain_whatsapp" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.phone.value|default:'' }}" oninput="applyInputValidation(this); checkStep('coordinator')">
+            </div>
+            {% endif %}
+
+            {% if form_config.enable_captain_discord_field %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.369a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037 19.736 19.736 0 00-4.885 1.515.07.07 0 00-.032.027C.533 9.045-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 01.078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.009c.12.099.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z"/></svg>
+                    Discord
+                </label>
+                <input type="text" name="discord" class="input-premium" placeholder="username#0000 or username" value="{{ fields.discord.value|default:'' }}" oninput="applyInputValidation(this); checkStep('coordinator')">
+            </div>
+            {% endif %}
+
+            {# Dynamic communication channels from organizer config #}
+            {% for channel in form_config.communication_channels %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">{{ channel.label }} {% if channel.required %}<span class="text-red-400">*</span>{% endif %}</label>
+                <input type="text" name="comm_{{ channel.key }}" class="input-premium" data-channel-key="{{ channel.key }}" placeholder="{{ channel.placeholder|default:channel.label }}" {% if channel.required %}required{% endif %} oninput="applyInputValidation(this); checkStep('coordinator')">
+            </div>
+            {% endfor %}
+        </div>
+
+        {# Preferred contact method #}
+        <div class="mt-4">
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Preferred Contact Method</label>
+            <div class="flex flex-wrap gap-2">
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="discord" class="sr-only" {% if fields.preferred_contact.value == 'discord' %}checked{% endif %} onchange="checkStep('coordinator')"> Discord
+                </label>
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="phone" class="sr-only" {% if fields.preferred_contact.value == 'phone' %}checked{% endif %} onchange="checkStep('coordinator')"> Phone
+                </label>
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="whatsapp" class="sr-only" {% if fields.preferred_contact.value == 'whatsapp' %}checked{% endif %} onchange="checkStep('coordinator')"> WhatsApp
+                </label>
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="email" class="sr-only" {% if fields.preferred_contact.value == 'email' %}checked{% endif %} onchange="checkStep('coordinator')"> Email
+                </label>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    {# ----------- SOLO MODE: Just your contact info ----------- #}
+
+    <div class="mb-4">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="phone" class="w-4 h-4" style="color: var(--accent);"></i> Your Contact Details
+        </h3>
+        <p class="text-sm text-gray-500 mb-4">These are pulled from your profile. Organizers will use them to reach you for match scheduling and announcements.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Phone</label>
+                <input type="tel" name="phone" class="input-premium" placeholder="+880 1XXX-XXXXXX" value="{{ fields.phone.value|default:'' }}" oninput="applyInputValidation(this); checkStep('coordinator')">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.369a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037 19.736 19.736 0 00-4.885 1.515.07.07 0 00-.032.027C.533 9.045-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 01.078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.009c.12.099.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z"/></svg>
+                    Discord
+                </label>
+                <input type="text" name="discord" class="input-premium" placeholder="username" value="{{ fields.discord.value|default:'' }}" oninput="applyInputValidation(this); checkStep('coordinator')">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Country</label>
+                <input type="text" name="country" class="input-premium" placeholder="e.g. Bangladesh" value="{{ fields.country.value|default:'' }}" oninput="checkStep('coordinator')">
+            </div>
+
+            {# Dynamic channels #}
+            {% for channel in form_config.communication_channels %}
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">{{ channel.label }} {% if channel.required %}<span class="text-red-400">*</span>{% endif %}</label>
+                <input type="text" name="comm_{{ channel.key }}" class="input-premium" data-channel-key="{{ channel.key }}" placeholder="{{ channel.placeholder|default:channel.label }}" {% if channel.required %}required{% endif %} oninput="checkStep('coordinator')">
+            </div>
+            {% endfor %}
+        </div>
+
+        {# Preferred contact #}
+        <div class="mt-4">
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Preferred Contact Method</label>
+            <div class="flex flex-wrap gap-2">
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="discord" class="sr-only" {% if fields.preferred_contact.value == 'discord' %}checked{% endif %}> Discord
+                </label>
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="phone" class="sr-only" {% if fields.preferred_contact.value == 'phone' %}checked{% endif %}> Phone
+                </label>
+                <label class="px-3 py-2 rounded-xl border border-white/10 bg-black/30 cursor-pointer text-xs font-bold text-gray-400 transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/10 has-[:checked]:text-[color:var(--accent)]">
+                    <input type="radio" name="preferred_contact" value="email" class="sr-only" {% if fields.preferred_contact.value == 'email' %}checked{% endif %}> Email
+                </label>
+            </div>
+        </div>
+    </div>
     {% endif %}
 </div>

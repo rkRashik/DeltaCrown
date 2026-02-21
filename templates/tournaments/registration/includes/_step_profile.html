@@ -1,0 +1,116 @@
+{% load humanize %}
+{# Step 1 (Solo): Confirm your player profile #}
+<div data-wizard-step="profile" class="wizard-step step-hidden animate-slide-up">
+
+    <div class="mb-6 pb-4 border-b border-white/10">
+        <h2 class="font-gaming font-bold text-2xl md:text-3xl text-white mb-1">Your Profile</h2>
+        <p class="text-sm text-gray-400">Your information has been pulled from your account. Confirm everything looks correct.</p>
+    </div>
+
+    {# Player card #}
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-5 mb-6 flex flex-col sm:flex-row items-center sm:items-start gap-5 relative overflow-hidden group hover:border-[color:var(--accent)]/30 transition-colors">
+        <div class="absolute right-0 top-0 w-32 h-32 rounded-full blur-3xl opacity-50" style="background: rgba(var(--accent-rgb), 0.1);"></div>
+        <div class="w-20 h-20 rounded-2xl bg-black overflow-hidden border-2 border-white/10 shadow-lg shrink-0">
+            {% if request.user.profile.avatar %}
+            <img src="{{ request.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="{{ request.user.username }}">
+            {% else %}
+            <div class="w-full h-full bg-dc-card flex items-center justify-center text-xl font-bold text-white/40">{{ request.user.username|truncatechars:2 }}</div>
+            {% endif %}
+        </div>
+        <div class="flex-1 text-center sm:text-left z-10">
+            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded mb-2 inline-flex items-center gap-1" style="background: rgba(var(--accent-rgb), 0.2); color: var(--accent);">
+                <i data-lucide="user" class="w-3 h-3"></i> Player
+            </span>
+            <h3 class="text-2xl font-display font-bold text-white mb-0.5">{{ request.user.username }}</h3>
+            <p class="text-gray-500 text-xs">{{ request.user.email }}</p>
+            {% if fields.full_name.value %}<p class="text-gray-400 text-xs mt-1">{{ fields.full_name.value }}</p>{% endif %}
+        </div>
+    </div>
+
+    {# Game Identity #}
+    <div class="mb-6">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="gamepad-2" class="w-4 h-4" style="color: var(--accent);"></i> Game Identity
+        </h3>
+
+        {% if fields.game_id.value %}
+        <div class="p-4 rounded-xl flex items-center justify-between relative overflow-hidden" style="background: rgba(var(--accent-rgb), 0.05); border: 1px solid rgba(var(--accent-rgb), 0.2);">
+            <div class="absolute left-0 top-0 bottom-0 w-1" style="background: var(--accent);"></div>
+            <div class="flex items-center gap-3 pl-2">
+                {% if tournament.game.icon %}
+                <img src="{{ tournament.game.icon.url }}" class="w-10 h-10 rounded-lg border border-white/10 object-cover" alt="{{ tournament.game.name }}">
+                {% elif tournament.game.logo %}
+                <img src="{{ tournament.game.logo.url }}" class="w-10 h-10 rounded-lg border border-white/10 object-cover" alt="{{ tournament.game.name }}">
+                {% else %}
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-black" style="background: rgba(var(--accent-rgb), 0.3); color: var(--accent);">{{ tournament.game.name|truncatechars:3 }}</div>
+                {% endif %}
+                <div>
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">{{ tournament.game.name }}</p>
+                    <p class="text-lg font-bold text-white font-mono">{{ fields.game_id.value }}</p>
+                </div>
+            </div>
+            <div class="flex flex-col items-end gap-0.5">
+                {% if fields.game_id.locked %}
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-green-500"></i>
+                <span class="text-[9px] font-bold text-green-500 uppercase">Verified</span>
+                {% else %}
+                <i data-lucide="edit-2" class="w-4 h-4 text-gray-500"></i>
+                <span class="text-[9px] font-bold text-yellow-500 uppercase">Editable</span>
+                {% endif %}
+            </div>
+        </div>
+        <input type="hidden" name="game_id" value="{{ fields.game_id.value }}">
+        {% else %}
+        <div class="p-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5">
+            <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-yellow-500"></i>
+                <span class="text-xs font-bold text-yellow-400">{{ game_id_label }} Required</span>
+            </div>
+            <input type="text" name="game_id" class="input-premium" placeholder="{{ game_id_placeholder }}" required oninput="checkStep('profile')">
+            <p class="text-[10px] text-gray-500 mt-2 flex items-center gap-1">
+                <i data-lucide="info" class="w-3 h-3"></i> Add a Game Passport in your profile settings for automatic sync.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+    {# Optional fields (age, rank, platform, country) #}
+    {% if form_config.enable_age_field or form_config.enable_rank_field or form_config.enable_platform_field or form_config.enable_country_field %}
+    <div class="mb-4">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <i data-lucide="clipboard-list" class="w-4 h-4" style="color: var(--accent);"></i> Additional Details
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {% if form_config.enable_age_field %}
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Age <span class="text-red-400">*</span></label>
+                <input type="number" name="age" class="input-premium" placeholder="Your age" min="13" max="99" required oninput="checkStep('profile')">
+                <p class="text-[10px] text-gray-600 ml-1">Must be 13+</p>
+            </div>
+            {% endif %}
+            {% if form_config.enable_country_field %}
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Country</label>
+                <input type="text" name="country" class="input-premium" placeholder="e.g. Bangladesh" value="{{ fields.country.value|default:'' }}" oninput="checkStep('profile')">
+            </div>
+            {% endif %}
+            {% if form_config.enable_platform_field %}
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Platform / Server</label>
+                <input type="text" name="platform_server" class="input-premium" placeholder="e.g. APAC, NA, PC" value="{{ fields.platform_server.value|default:'' }}" oninput="checkStep('profile')">
+            </div>
+            {% endif %}
+            {% if form_config.enable_rank_field %}
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Current Rank</label>
+                <input type="text" name="rank" class="input-premium" placeholder="e.g. Diamond, Gold" value="{{ fields.rank.value|default:'' }}" oninput="checkStep('profile')">
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <input type="hidden" name="full_name" value="{{ fields.full_name.value }}">
+    <input type="hidden" name="display_name" value="{{ fields.display_name.value }}">
+    <input type="hidden" name="email" value="{{ fields.email.value }}">
+</div>
