@@ -16,6 +16,9 @@ def notification_counts(request):
     """
     Provides: notif_unread, unread_notifications_count
     """
+    # Skip on admin pages — admin has its own notification system
+    if request.path.startswith('/admin/'):
+        return {'notif_unread': 0, 'unread_notifications_count': 0}
     user = getattr(request, "user", None)
     count = _get_unread_count_for_user(user)
     return {"notif_unread": count, "unread_notifications_count": count}

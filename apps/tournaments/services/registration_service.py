@@ -367,25 +367,46 @@ class RegistrationService:
         Raises:
             ValidationError: If user lacks permission to register this team
         
-        Permission Rules:
-            - Team Owner (role=OWNER): Always allowed
-            - Team Manager (role=MANAGER): Always allowed  
-            - Other roles with can_register_tournaments=True: Allowed (explicit permission)
-            - All other roles: Not allowed
-        
-        Note:
-            Uses TeamMembership.can_register_tournaments cached permission field.
-            This field is automatically updated when membership role changes.
+        Permission Rules (any ONE is sufficient):
+            1. Team role is OWNER or MANAGER
+            2. ``is_tournament_captain`` flag is set on membership
+            3. Granular ``register_tournaments`` permission in JSON overrides
+            4. User is the team's creator (``team.created_by == user``)
+            5. User is CEO of the team's owning Organization
+            6. User is CEO/MANAGER in owning Organization's staff membership
         """
         from apps.organizations.models import TeamMembership, Team
+        from apps.organizations.models import Organization, OrganizationMembership
         
         # Get team
         try:
-            team = Team.objects.get(id=team_id)
+            team = Team.objects.select_related('organization').get(id=team_id)
         except Team.DoesNotExist:
             raise ValidationError(f"Team with ID {team_id} not found")
         
-        # Get user's membership
+        # ── Check 4: Team creator ───────────────────────────────────
+        if team.created_by_id == user.id:
+            return  # Allowed
+        
+        # ── Check 5 & 6: Org-level authority (CEO / org MANAGER) ───
+        if team.organization_id:
+            # Direct CEO field on Organization
+            is_org_ceo = (
+                team.organization and team.organization.ceo_id == user.id
+            )
+            if is_org_ceo:
+                return  # Allowed
+            
+            # OrganizationMembership with CEO or MANAGER role
+            is_org_staff = OrganizationMembership.objects.filter(
+                organization_id=team.organization_id,
+                user=user,
+                role__in=['CEO', 'MANAGER'],
+            ).exists()
+            if is_org_staff:
+                return  # Allowed
+        
+        # ── Check 1, 2, 3: Team membership checks ──────────────────
         try:
             membership = TeamMembership.objects.get(
                 team=team,
@@ -398,16 +419,26 @@ class RegistrationService:
                 "Only team members can register their team."
             )
         
-        # Check permission (role-based)
-        if membership.role not in [
+        # Role-based: OWNER or MANAGER
+        if membership.role in [
             TeamMembership.Role.OWNER,
             TeamMembership.Role.MANAGER,
-            TeamMembership.Role.CAPTAIN
         ]:
-            raise ValidationError(
-                f"You do not have permission to register {team.name} for tournaments. "
-                "Only team owners, managers, or captains can register teams."
-            )
+            return  # Allowed
+        
+        # Tournament captain flag
+        if membership.is_tournament_captain:
+            return  # Allowed
+        
+        # Granular permission override
+        if membership.has_permission('register_tournaments'):
+            return  # Allowed
+        
+        raise ValidationError(
+            f"You do not have permission to register {team.name} for tournaments. "
+            "Only team owners, managers, or members with explicit registration "
+            "permission can register teams."
+        )
     
     @staticmethod
     def _auto_fill_registration_data(user, tournament: Tournament) -> Dict[str, Any]:

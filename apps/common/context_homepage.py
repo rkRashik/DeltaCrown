@@ -29,6 +29,9 @@ def homepage_context(request):
     """
     Comprehensive homepage context with live data and static content.
     """
+    # Skip on admin pages — none of this data is used there
+    if request.path.startswith('/admin/'):
+        return {}
     
     # ================================================================
     # HERO SECTION - Dynamic Tournament Feature

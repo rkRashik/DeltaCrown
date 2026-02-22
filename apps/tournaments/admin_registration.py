@@ -143,7 +143,7 @@ class RegistrationAdmin(ModelAdmin):
         }),
     )
     
-    actions = ['bulk_confirm_registrations', 'bulk_cancel_registrations']
+    actions = ['bulk_confirm_registrations', 'bulk_reject_registrations', 'bulk_cancel_registrations', 'export_registrations_csv']
     
     def get_queryset(self, request):
         """Include soft-deleted registrations in admin."""
@@ -263,6 +263,44 @@ class RegistrationAdmin(ModelAdmin):
             f"Successfully cancelled {cancelled_count} registration(s)."
         )
     bulk_cancel_registrations.short_description = "Cancel selected registrations"
+
+    def bulk_reject_registrations(self, request, queryset):
+        """Bulk reject registrations (e.g. ineligible, duplicate, fraudulent)."""
+        rejected_count = 0
+        for registration in queryset.exclude(status__in=[Registration.CONFIRMED, 'cancelled']):
+            registration.status = 'rejected'
+            registration.save(update_fields=['status'])
+            rejected_count += 1
+        self.message_user(request, f"Rejected {rejected_count} registration(s).")
+    bulk_reject_registrations.short_description = "Reject selected registrations"
+
+    def export_registrations_csv(self, request, queryset):
+        """Export selected registrations as a CSV download."""
+        import csv
+        from django.http import HttpResponse
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="registrations_export.csv"'
+        writer = csv.writer(response)
+        writer.writerow([
+            'ID', 'Tournament', 'Username', 'Email', 'Team ID',
+            'Status', 'Game ID', 'Phone', 'Registered At',
+        ])
+        for reg in queryset.select_related('tournament', 'user'):
+            data = reg.registration_data or {}
+            writer.writerow([
+                reg.id,
+                str(reg.tournament) if reg.tournament else '',
+                reg.user.username if reg.user_id else '',
+                reg.user.email if reg.user_id else '',
+                reg.team_id or '',
+                reg.status,
+                data.get('game_id', ''),
+                data.get('phone', ''),
+                reg.registered_at.strftime('%Y-%m-%d %H:%M') if reg.registered_at else '',
+            ])
+        return response
+    export_registrations_csv.short_description = "Export selected as CSV"
 
 
 @admin.register(Payment)

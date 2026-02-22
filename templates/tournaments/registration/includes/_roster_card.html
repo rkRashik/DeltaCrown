@@ -106,4 +106,5 @@
     {# Hidden inputs for this member #}
     <input type="hidden" name="member_{{ member.id }}_roster_slot" value="{% if member.roster_slot %}{{ member.roster_slot }}{% elif member.role == 'HEAD_COACH' or member.role == 'COACH' %}COACH{% else %}STARTER{% endif %}">
     <input type="hidden" name="member_{{ member.id }}_player_role" value="{{ member.player_role|default:member.gp_main_role|default:'' }}">
+    <input type="hidden" name="member_{{ member.id }}_is_igl" value="{% if member.is_captain or member.role == 'OWNER' %}true{% else %}false{% endif %}">
 </div>

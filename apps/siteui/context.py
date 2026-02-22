@@ -7,6 +7,9 @@ def site_settings(request):
     Inject SITE defaults + dynamic featured/stats/spotlight/timeline.
     Safe-by-default: never raise if sources are missing.
     """
+    # Skip expensive queries on admin pages
+    if request.path.startswith('/admin/'):
+        return {'SITE': dict(SITE_CONTENT)}
     site = dict(SITE_CONTENT)
 
     # Featured

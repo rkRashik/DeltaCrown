@@ -65,6 +65,11 @@ class PrizeTransactionAdmin(ModelAdmin):
         'participant__team_name',
         'notes',
     ]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'tournament', 'participant__user', 'processed_by'
+        )
     
     # Read-only fields (all fields)
     readonly_fields = [

@@ -3030,7 +3030,8 @@
       // ── Game Passport rows (show ALL available fields) ──
       const gpRows = [];
       if (gpIgn) {
-        gpRows.push(this._row('In-Game Name', `<span class="font-semibold text-white">${this._esc(gpIgn)}</span>`));
+        const idLabel = (window.MANAGE_HQ && window.MANAGE_HQ.gameIdLabel) || 'Game ID';
+        gpRows.push(this._row(idLabel, `<span class="font-mono font-semibold text-white tracking-wide">${this._esc(gpIgn)}</span>`));
       }
       if (gpPlatform) {
         gpRows.push(this._row('Platform', `<span class="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-300 text-[10px] font-bold uppercase">${this._esc(gpPlatform)}</span>`));

@@ -64,6 +64,11 @@ class TournamentResultAdmin(ModelAdmin):
         'runner_up__user__username',
         'runner_up__team__name',
     ]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'tournament', 'winner__user', 'runner_up__user', 'created_by'
+        )
     
     readonly_fields = [
         'tournament',

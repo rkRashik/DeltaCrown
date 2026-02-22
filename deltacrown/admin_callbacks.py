@@ -15,8 +15,12 @@ from collections import defaultdict
 from datetime import timedelta
 
 from django.conf import settings
+from django.core.cache import cache
 from django.urls import reverse
 from django.utils import timezone
+
+# Cache TTL for dashboard data (seconds)
+_DASHBOARD_CACHE_TTL = 60  # 1 minute — fresh enough for admin, avoids repeated DB hits
 
 
 # ---------------------------------------------------------------------------
@@ -72,9 +76,19 @@ def dashboard_callback(request, context):
     from django.db.models.functions import TruncWeek
 
     now = timezone.now()
+
+    # ── Try serving from cache first ─────────────────────────────────────
+    cache_key = 'admin_dashboard_data_v2'
+    cached = cache.get(cache_key)
+    if cached:
+        context.update(cached)
+        # Always refresh greeting/time (cheap, user-specific)
+        context["dc_greeting"] = _get_greeting(request.user)
+        context["dc_current_time"] = now.strftime("%A, %B %d · %I:%M %p")
+        return context
+
     month_ago = now - timedelta(days=30)
     week_ago = now - timedelta(days=7)
-    two_months_ago = now - timedelta(days=56)
 
     # ══════════════════════════════════════════════════════════════════════
     # CORE STATS
@@ -152,13 +166,18 @@ def dashboard_callback(request, context):
         total_wallets = 0
         recent_transactions = 0
 
-    # ── Organization / Team stats (safe import) ──────────────────────────
+    # ── Organization / Team stats (safe import, single query) ──────────
     try:
         from apps.organizations.models import Organization, Team
+        from django.db.models import Q as _Q
 
         total_orgs = Organization.objects.count()
-        total_teams = Team.objects.count()
-        active_teams = Team.objects.filter(is_active=True).count()
+        _team_agg = Team.objects.aggregate(
+            total=Count('id'),
+            active=Count('id', filter=_Q(is_active=True)),
+        )
+        total_teams = _team_agg['total']
+        active_teams = _team_agg['active']
     except Exception:
         total_orgs = 0
         total_teams = 0
@@ -422,7 +441,7 @@ def dashboard_callback(request, context):
     # ══════════════════════════════════════════════════════════════════════
     # INJECT ALL DATA
     # ══════════════════════════════════════════════════════════════════════
-    context.update({
+    dashboard_data = {
         # ── Core stats ───────────────────────────────────────────────────
         "dc_total_tournaments": total_tournaments,
         "dc_live_tournaments": live_tournaments,
@@ -472,7 +491,14 @@ def dashboard_callback(request, context):
         "dc_quick_actions": quick_actions,
         # ── Health indicators ────────────────────────────────────────────
         "dc_health": health_indicators,
-        # ── Meta ─────────────────────────────────────────────────────────
+    }
+
+    # Cache the dashboard payload (excludes user-specific greeting/time)
+    cache.set(cache_key, dashboard_data, _DASHBOARD_CACHE_TTL)
+
+    context.update(dashboard_data)
+    context.update({
+        # ── Meta (user-specific, never cached) ───────────────────────────
         "dc_greeting": _get_greeting(request.user),
         "dc_current_time": now.strftime("%A, %B %d · %I:%M %p"),
     })

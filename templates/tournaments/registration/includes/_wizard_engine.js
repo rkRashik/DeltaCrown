@@ -26,6 +26,13 @@
         initBioCounter();
         lucide.createIcons();
 
+        // Pre-populate first mobile payment tab details (without selecting the radio)
+        const firstMobileTab = document.querySelector('.mobile-tab');
+        if (firstMobileTab) {
+            const subInput = document.getElementById('payment-sub-method');
+            if (subInput) subInput.value = firstMobileTab.dataset.mobileMethod;
+        }
+
         // Auto-validate first step after brief delay
         setTimeout(() => checkStep(stepsConfig[0].key), 150);
     });
@@ -404,7 +411,9 @@
         const method = document.querySelector('input[name="payment_method"]:checked');
         if (!method) return false;
         if (method.value === 'deltacoin') return true;
-        // Mobile payment — need valid TrxID
+        // Mobile payment — need a sub-method selected and valid TrxID
+        const subMethod = document.getElementById('payment-sub-method');
+        if (!subMethod || !subMethod.value) return false;
         const trxid = document.getElementById('trxid');
         if (!trxid || !/^[A-Za-z0-9]{10}$/.test(trxid.value.trim())) return false;
         // Payment mobile number if visible
@@ -482,63 +491,153 @@
         const dcPanel = document.getElementById('panel-deltacoin');
         const mobilePanel = document.getElementById('panel-mobile');
 
+        // Ensure the correct radio is checked (handles programmatic calls)
+        const radio = document.querySelector(`input[name="payment_method"][value="${method === 'deltacoin' ? 'deltacoin' : 'mobile'}"]`);
+        if (radio && !radio.checked) radio.checked = true;
+
         if (method === 'deltacoin') {
             if (dcPanel) dcPanel.classList.remove('step-hidden');
             if (mobilePanel) mobilePanel.classList.add('step-hidden');
         } else {
             if (dcPanel) dcPanel.classList.add('step-hidden');
             if (mobilePanel) mobilePanel.classList.remove('step-hidden');
+            // Always (re)populate the active sub-method details when mobile panel opens
+            const subInput = document.getElementById('payment-sub-method');
+            const activeMethod = subInput?.value || '';
+            const targetTab = activeMethod
+                ? document.querySelector(`.mobile-tab[data-mobile-method="${activeMethod}"]`)
+                : document.querySelector('.mobile-tab');
+            if (targetTab) selectMobileMethod(targetTab.dataset.mobileMethod);
         }
         checkStep('payment');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
     window.selectPaymentMethod = selectPaymentMethod;
 
     function selectMobileMethod(method) {
+        // Update hidden sub-method tracker
+        const subInput = document.getElementById('payment-sub-method');
+        if (subInput) subInput.value = method;
+
+        // Highlight the active tab
         document.querySelectorAll('.mobile-tab').forEach(tab => {
             const isActive = tab.getAttribute('data-mobile-method') === method;
-            tab.className = `mobile-tab px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
-                isActive
-                    ? 'bg-bkash-pink/10 border-bkash-pink/30 text-bkash-pink'
-                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
-            }`;
+            if (isActive) {
+                tab.className = 'mobile-tab group flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition-all duration-200 bg-bkash-pink/10 border-bkash-pink/30 text-bkash-pink ring-1 ring-bkash-pink/20';
+            } else {
+                tab.className = 'mobile-tab group flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition-all duration-200 bg-white/[0.03] border-white/10 text-gray-400 hover:text-white hover:border-white/20';
+            }
+
+            // Populate payment details from the active tab's data attributes
+            if (isActive) {
+                const acctNum = document.getElementById('pm-account-number');
+                const acctName = document.getElementById('pm-account-name');
+                const acctType = document.getElementById('pm-account-type');
+                const customInstr = document.getElementById('pm-custom-instructions');
+                const instrTitle = document.getElementById('pm-instructions-title');
+                const bankDetails = document.getElementById('pm-bank-details');
+                const label = tab.dataset.pmLabel || method;
+
+                // Update title based on provider
+                if (instrTitle) {
+                    instrTitle.textContent = method === 'bank_transfer' ? 'Bank Transfer Details' : `Send Money via ${label}`;
+                }
+
+                if (acctNum) acctNum.textContent = tab.dataset.pmAccount || '—';
+                if (acctName) acctName.textContent = tab.dataset.pmName ? `(${tab.dataset.pmName})` : '';
+                if (acctType) acctType.textContent = tab.dataset.pmType ? `Account type: ${tab.dataset.pmType}` : '';
+
+                // Bank transfer extra details
+                if (bankDetails) {
+                    if (method === 'bank_transfer') {
+                        const bankName = document.getElementById('pm-bank-name');
+                        const bankBranch = document.getElementById('pm-bank-branch');
+                        const bankRouting = document.getElementById('pm-bank-routing');
+                        if (bankName) bankName.textContent = tab.dataset.pmBankName || '—';
+                        if (bankBranch) bankBranch.textContent = tab.dataset.pmBankBranch || '—';
+                        if (bankRouting) bankRouting.textContent = tab.dataset.pmBankRouting || '—';
+                        bankDetails.classList.remove('hidden');
+                    } else {
+                        bankDetails.classList.add('hidden');
+                    }
+                }
+
+                if (customInstr) {
+                    const instr = tab.dataset.pmInstructions || '';
+                    if (instr) {
+                        customInstr.textContent = instr;
+                        customInstr.classList.remove('hidden');
+                    } else {
+                        customInstr.classList.add('hidden');
+                    }
+                }
+            }
         });
-        // Update the radio value to the selected sub-method
-        const matchingRadio = document.querySelector(`input[name="payment_method"][value="${method}"]`);
-        if (matchingRadio) {
-            matchingRadio.checked = true;
-        } else {
-            const bkashRadio = document.querySelector('input[name="payment_method"][value="bkash"]');
-            if (bkashRadio) bkashRadio.value = method;
-        }
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
     window.selectMobileMethod = selectMobileMethod;
+
+    // Copy account number with visual feedback
+    function copyNumber(el) {
+        const numEl = el.querySelector('#pm-account-number') || el.querySelector('.select-all');
+        if (!numEl) return;
+        const text = numEl.textContent.trim();
+        if (!text || text === '—') return;
+        navigator.clipboard.writeText(text).then(() => {
+            const label = el.querySelector('.copy-label');
+            if (label) {
+                label.textContent = 'Copied!';
+                label.classList.add('text-green-400');
+                setTimeout(() => { label.textContent = 'Copy'; label.classList.remove('text-green-400'); }, 2000);
+            }
+        }).catch(() => {});
+    }
+    window.copyNumber = copyNumber;
+
+    // Handle payment proof upload display
+    function handlePaymentProof(input) {
+        const label = document.getElementById('proof-label');
+        if (label && input.files.length) {
+            label.textContent = input.files[0].name;
+            label.classList.add('text-white');
+        } else if (label) {
+            label.textContent = 'Upload screenshot of transaction';
+            label.classList.remove('text-white');
+        }
+    }
+    window.handlePaymentProof = handlePaymentProof;
 
     // ── Transaction ID Validation ─────────────────────────────
     function validateTrxId() {
         const input = document.getElementById('trxid');
         const status = document.getElementById('trx-status');
+        const icon = document.getElementById('trx-icon');
         if (!input || !status) return;
 
         const val = input.value.trim().toUpperCase();
         input.value = val;
 
         if (val.length === 0) {
-            status.innerHTML = 'Awaiting 10-character alphanumeric ID';
-            status.className = 'mt-3 flex items-center justify-center gap-2 text-xs font-medium text-gray-500 h-5';
+            status.innerHTML = 'Enter the 10-character alphanumeric Transaction ID';
+            status.className = 'flex items-center justify-center gap-2 text-xs font-medium text-gray-500 h-5';
             input.classList.remove('input-valid', 'input-error');
+            if (icon) icon.innerHTML = '';
         } else if (/^[A-Z0-9]{10}$/.test(val)) {
             status.innerHTML = '<i data-lucide="check-circle-2" class="w-4 h-4"></i> Valid Transaction ID';
-            status.className = 'mt-3 flex items-center justify-center gap-2 text-xs font-medium text-green-400 h-5';
+            status.className = 'flex items-center justify-center gap-2 text-xs font-medium text-green-400 h-5';
             input.classList.add('input-valid');
             input.classList.remove('input-error');
+            if (icon) icon.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-green-400"></i>';
         } else {
             const remaining = 10 - val.length;
             status.innerHTML = remaining > 0
                 ? `${remaining} more character${remaining !== 1 ? 's' : ''} needed`
                 : 'Must be exactly 10 alphanumeric characters';
-            status.className = 'mt-3 flex items-center justify-center gap-2 text-xs font-medium text-yellow-400 h-5';
+            status.className = 'flex items-center justify-center gap-2 text-xs font-medium text-yellow-400 h-5';
             input.classList.remove('input-valid');
             if (val.length === 10) input.classList.add('input-error');
+            if (icon) icon.innerHTML = '';
         }
 
         lucide.createIcons();
@@ -865,13 +964,24 @@
                         <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Roster Position</label>
                         <select id="modal-roster-slot" class="input-premium text-sm w-full py-3">${slotOptions}</select>
                     </div>
-                    ${roles.length > 0 ? `
                     <div>
                         <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">In-Game Role</label>
+                        ${roles.length > 0 ? `
                         <select id="modal-player-role" class="input-premium text-sm w-full py-3">${roleOptions}</select>
-                        <p class="text-xs text-gray-600 mt-1">Tactical role (e.g., Duelist, Controller, IGL)</p>
+                        <p class="text-[10px] text-gray-600 mt-1">Select the player's tactical role for this tournament.</p>
+                        ` : `
+                        <input type="text" id="modal-player-role" class="input-premium text-sm w-full py-3" placeholder="e.g. Duelist, IGL, Support" value="${playerRole || ''}">
+                        <p class="text-[10px] text-gray-600 mt-1">Type the player's in-game role.</p>
+                        `}
                     </div>
-                    ` : ''}
+                    <div>
+                        <label class="flex items-center gap-3 p-2.5 rounded-lg border border-white/5 bg-black/20 cursor-pointer hover:border-amber-500/20 transition-all has-[:checked]:border-amber-500/30 has-[:checked]:bg-amber-500/5">
+                            <input type="checkbox" id="modal-is-igl" class="w-4 h-4 accent-[#f59e0b] cursor-pointer">
+                            <span class="text-xs font-bold text-gray-400 flex items-center gap-1.5 has-[:checked]:text-amber-400">
+                                <i data-lucide="crown" class="w-3 h-3 text-amber-500/60"></i> IGL / Shot Caller
+                            </span>
+                        </label>
+                    </div>
                     ${runtimeConfig.formConfig.showMemberGameIds ? `
                     <div>
                         <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">${runtimeConfig.gameIdLabel}</label>
@@ -999,6 +1109,7 @@
         const existSlot = document.querySelector(`[name="member_${activeModalMemberId}_roster_slot"]`);
         const existRole = document.querySelector(`[name="member_${activeModalMemberId}_player_role"]`);
         const existGameId = document.querySelector(`[name="member_${activeModalMemberId}_game_id"]`);
+        const existIgl = document.querySelector(`[name="member_${activeModalMemberId}_is_igl"]`);
         if (existSlot && document.getElementById('modal-roster-slot')) {
             document.getElementById('modal-roster-slot').value = existSlot.value;
         }
@@ -1007,6 +1118,15 @@
         }
         if (existGameId && document.getElementById('modal-game-id')) {
             document.getElementById('modal-game-id').value = existGameId.value;
+        }
+        const iglCheckbox = document.getElementById('modal-is-igl');
+        if (iglCheckbox) {
+            // Use saved value if exists, otherwise default captain to IGL only on first open
+            if (existIgl) {
+                iglCheckbox.checked = existIgl.value === 'true';
+            } else {
+                iglCheckbox.checked = isCaptain;
+            }
         }
 
         // Show modal
@@ -1080,6 +1200,56 @@
                 card.appendChild(hiddenGameId);
             }
             hiddenGameId.value = gameIdInput.value;
+        }
+
+        // Save IGL designation
+        const iglCheckbox = document.getElementById('modal-is-igl');
+        if (iglCheckbox) {
+            const isIgl = iglCheckbox.checked;
+            let hiddenIgl = card.querySelector(`[name="member_${activeModalMemberId}_is_igl"]`);
+            if (!hiddenIgl) {
+                hiddenIgl = document.createElement('input');
+                hiddenIgl.type = 'hidden';
+                hiddenIgl.name = `member_${activeModalMemberId}_is_igl`;
+                card.appendChild(hiddenIgl);
+            }
+            hiddenIgl.value = isIgl ? 'true' : 'false';
+
+            // If toggling ON, un-IGL everyone else
+            if (isIgl) {
+                document.querySelectorAll('[name$="_is_igl"]').forEach(inp => {
+                    if (inp !== hiddenIgl) inp.value = 'false';
+                });
+                // Update visual badges on all cards
+                document.querySelectorAll('.player-slot .igl-indicator').forEach(el => el.remove());
+            }
+
+            // Show/remove IGL badge on this card
+            const nameEl = card.querySelector('.flex.items-center.gap-2.flex-wrap');
+            if (nameEl) {
+                const existBadge = nameEl.querySelector('.igl-indicator');
+                if (isIgl && !existBadge) {
+                    const badge = document.createElement('span');
+                    badge.className = 'igl-indicator px-1.5 py-0.5 text-[10px] font-black uppercase rounded bg-amber-500/20 text-amber-400 border border-amber-500/30';
+                    badge.innerHTML = '<i data-lucide="crown" class="w-2.5 h-2.5 inline -mt-0.5 mr-0.5"></i>IGL';
+                    nameEl.appendChild(badge);
+                } else if (!isIgl && existBadge) {
+                    existBadge.remove();
+                }
+            }
+
+            // Update the global IGL member ID hidden field
+            const iglHidden = document.getElementById('igl-member-id');
+            if (iglHidden) {
+                if (isIgl) {
+                    iglHidden.value = activeModalMemberId;
+                } else if (iglHidden.value === activeModalMemberId) {
+                    iglHidden.value = '';
+                }
+            }
+
+            // Re-render Lucide icons for the newly created badge
+            if (isIgl && typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         // Save player info fields (coordinator-provided for missing data)
@@ -1349,8 +1519,15 @@
         const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
         const reviewGateway = document.getElementById('review-gateway');
         if (paymentMethod && reviewGateway) {
-            const map = { deltacoin: 'DeltaCoin', bkash: 'bKash', nagad: 'Nagad', rocket: 'Rocket' };
-            reviewGateway.textContent = map[paymentMethod.value] || paymentMethod.value;
+            if (paymentMethod.value === 'mobile') {
+                const subInput = document.getElementById('payment-sub-method');
+                const subVal = subInput ? subInput.value : '';
+                const subMap = { bkash: 'bKash', nagad: 'Nagad', rocket: 'Rocket', bank_transfer: 'Bank Transfer' };
+                reviewGateway.textContent = subMap[subVal] || 'Mobile Payment';
+            } else {
+                const map = { deltacoin: 'DeltaCoin' };
+                reviewGateway.textContent = map[paymentMethod.value] || paymentMethod.value;
+            }
         }
 
         const trxid = document.getElementById('trxid');
@@ -1377,6 +1554,28 @@
                 }
             }
         });
+
+        // IGL designation in roster review
+        const iglId = document.getElementById('igl-member-id')?.value;
+        document.querySelectorAll('[data-review-member-slot]').forEach(el => {
+            const row = el.closest('.flex.items-center.justify-between');
+            if (!row) return;
+            const existingIgl = row.querySelector('.review-igl-badge');
+            if (existingIgl) existingIgl.remove();
+        });
+        if (iglId) {
+            const iglSlot = document.querySelector(`[data-review-member-slot="${iglId}"]`);
+            if (iglSlot) {
+                const row = iglSlot.closest('.flex.items-center.justify-between');
+                const nameCol = row?.querySelector('.flex.items-center.gap-1\\.5');
+                if (nameCol && !nameCol.querySelector('.review-igl-badge')) {
+                    const badge = document.createElement('span');
+                    badge.className = 'review-igl-badge px-1 py-0.5 text-[8px] font-black uppercase rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 ml-1';
+                    badge.textContent = 'IGL';
+                    nameCol.appendChild(badge);
+                }
+            }
+        }
 
         // Dynamic comm channels
         syncDynamicCommsToReview();

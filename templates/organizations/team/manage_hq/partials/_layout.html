@@ -305,6 +305,7 @@
             slug: "{{ team.slug|escapejs }}",
             csrfToken: "{{ csrf_token }}",
             teamName: "{{ team.name|escapejs }}",
+            gameIdLabel: "{{ game_id_label|escapejs }}",
         };
     </script>
     <script src="{% static 'organizations/js/team-manage-hq.js' %}"></script>

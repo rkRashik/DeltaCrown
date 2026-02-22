@@ -173,7 +173,17 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                         member._game_passport = gp  # attach for template access
                         member.gp_ign = gp.ign if gp else ''
                         member.gp_discriminator = gp.discriminator if gp else ''
-                        member.gp_in_game_name = gp.in_game_name if gp else ''
+                        # Build full Game ID on the fly (ign + discriminator)
+                        if gp and gp.ign:
+                            if gp.discriminator:
+                                disc = gp.discriminator
+                                if not disc.startswith('#') and not disc.startswith('-'):
+                                    disc = f'#{disc}'
+                                member.gp_in_game_name = f"{gp.ign}{disc}"
+                            else:
+                                member.gp_in_game_name = gp.ign
+                        else:
+                            member.gp_in_game_name = ''
                         member.gp_rank_name = gp.rank_name if gp else ''
                         member.gp_rank_image_url = gp.rank_image.url if gp and gp.rank_image else ''
                         member.gp_platform = gp.platform if gp else ''
@@ -196,6 +206,12 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                         member.profile_gender = getattr(profile, 'gender', '') or ''
                         dob = getattr(profile, 'date_of_birth', None)
                         member.profile_dob = dob.isoformat() if dob else ''
+
+        # ── Pre-group roster members by category (avoids 3x template loops) ──
+        _staff_roles = {'COACH', 'HEAD_COACH', 'MANAGER', 'ANALYST', 'SCOUT'}
+        roster_starters = [m for m in roster_members if m.roster_slot != 'SUBSTITUTE' and m.role not in _staff_roles]
+        roster_substitutes = [m for m in roster_members if m.roster_slot == 'SUBSTITUTE']
+        roster_staff = [m for m in roster_members if m.role in _staff_roles]
 
         # ── Form Configuration (organizer-defined) ──
         form_config = TournamentFormConfiguration.get_or_create_for_tournament(tournament)
@@ -281,13 +297,10 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             except Exception:
                 pass
 
-        # Game ID label (game-specific)
-        game_id_label = 'Riot ID' if 'valorant' in (canonical_slug or '') else \
-                        'Steam ID' if 'cs' in (canonical_slug or '') else \
-                        'Game ID'
-        game_id_placeholder = 'Name#TAG' if 'valorant' in (canonical_slug or '') else \
-                              'Steam profile URL' if 'cs' in (canonical_slug or '') else \
-                              'Your in-game name/ID'
+        # Game ID label (game-specific — configurable per Game)
+        game_obj = tournament.game
+        game_id_label = getattr(game_obj, 'game_id_label', '') or 'Game ID'
+        game_id_placeholder = getattr(game_obj, 'game_id_placeholder', '') or 'Your in-game name/ID'
 
         # Section completeness for progressive disclosure summary bar
         section_flags = [
@@ -334,6 +347,9 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             'game_complete': game_complete,
             'team': team,
             'roster_members': roster_members,
+            'roster_starters': roster_starters,
+            'roster_substitutes': roster_substitutes,
+            'roster_staff': roster_staff,
             'user_teams': user_teams,
             'deltacoin_can_afford': deltacoin_can_afford,
             'deltacoin_balance': deltacoin_balance,
@@ -361,9 +377,45 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             # ── NEW: Game roster config ──
             'roster_config': roster_config,
             'roster_roles': roster_roles,
-            # ── NEW: Payment methods from tournament ──
-            'payment_methods': getattr(tournament, 'payment_methods', None) or ['bkash', 'nagad', 'rocket'],
+            # ── NEW: Payment methods from tournament (backed by TournamentPaymentMethod) ──
+            'payment_methods': self._get_payment_methods_context(tournament),
         }
+
+    @staticmethod
+    def _get_payment_methods_context(tournament):
+        """
+        Build payment methods context from TournamentPaymentMethod model.
+        Falls back to a simple method list if no detailed config exists.
+        """
+        from apps.tournaments.models.payment_config import TournamentPaymentMethod
+        configs = list(
+            TournamentPaymentMethod.objects.filter(
+                tournament=tournament,
+                is_enabled=True,
+            ).order_by('display_order', 'method')
+        )
+
+        if not configs:
+            # Fallback: convert legacy simple list to basic dicts
+            legacy = getattr(tournament, 'payment_methods', None) or ['bkash', 'nagad', 'rocket']
+            return [{'method': m, 'label': m.title(), 'account_number': '', 'account_name': '', 'instructions': '', 'requires_reference': True} for m in legacy]
+
+        methods = []
+        for cfg in configs:
+            methods.append({
+                'method': cfg.method,
+                'label': cfg.get_method_display(),
+                'account_number': cfg.get_account_number(),
+                'account_name': getattr(cfg, f'{cfg.method}_account_name', '') or (cfg.bank_account_name if cfg.method == 'bank_transfer' else ''),
+                'account_type': getattr(cfg, f'{cfg.method}_account_type', '') if cfg.method != 'bank_transfer' else '',
+                'instructions': cfg.get_instructions(),
+                'requires_reference': cfg.requires_reference(),
+                # Bank-specific extras
+                'bank_name': cfg.bank_name if cfg.method == 'bank_transfer' else '',
+                'bank_branch': cfg.bank_branch if cfg.method == 'bank_transfer' else '',
+                'bank_routing_number': cfg.bank_routing_number if cfg.method == 'bank_transfer' else '',
+            })
+        return methods
 
     def _build_fields(self, user, tournament, autofill_data, game_spec):
         """
@@ -682,6 +734,24 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             if form_config.enable_payment_notes_field:
                 registration_data['payment_notes'] = form_data.get('payment_notes', '').strip()
 
+        # ── Auto-populate game_id from passport for team registrations ──
+        # Team flow has no Profile step, so game_id won't be in form data.
+        # Resolve it from the captain's (registering user's) game passport.
+        if not registration_data['game_id'] and (is_team or is_guest_team):
+            try:
+                from apps.user_profile.services.game_passport_service import GamePassportService
+                passport = GamePassportService.get_passport(user, tournament.game.slug)
+                if passport and passport.ign:
+                    gid = passport.ign
+                    if passport.discriminator:
+                        disc = passport.discriminator
+                        if not disc.startswith('#') and not disc.startswith('-'):
+                            disc = f'#{disc}'
+                        gid = f"{passport.ign}{disc}"
+                    registration_data['game_id'] = gid
+            except Exception:
+                pass  # fall through to the validation below
+
         # Validate required fields
         if not registration_data['game_id']:
             raise ValidationError("Game ID is required for registration.")
@@ -729,6 +799,23 @@ class SmartRegistrationView(LoginRequiredMixin, View):
             if team_id not in valid_team_ids:
                 raise ValidationError("You don't have permission to register this team.")
 
+            # ── Validate coordinator is an active roster member ──
+            if not registration_data.get('coordinator_is_self', True):
+                coord_mid = registration_data.get('coordinator_member_id')
+                if coord_mid:
+                    from apps.organizations.models import TeamMembership
+                    is_active_member = TeamMembership.objects.filter(
+                        id=coord_mid,
+                        team_id=team_id,
+                        status=TeamMembership.Status.ACTIVE,
+                    ).exists()
+                    if not is_active_member:
+                        raise ValidationError(
+                            "The designated coordinator must be an active member of the team roster."
+                        )
+                else:
+                    raise ValidationError("Please select a coordinator from your team roster.")
+
         # Create registration via service
         registration = RegistrationService.register_participant(
             tournament_id=tournament.id,
@@ -770,6 +857,7 @@ class SmartRegistrationView(LoginRequiredMixin, View):
 
                 # Collect per-member form overrides (roster_slot, player_role)
                 submitted_member_ids = form_data.getlist('roster_member_ids')
+                igl_member_id = form_data.get('igl_member_id', '').strip()
 
                 snapshot = []
                 for member in roster_qs:
@@ -787,6 +875,9 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                         member_entry['roster_slot'] = roster_slot
                     if player_role:
                         member_entry['player_role'] = player_role
+                    # IGL designation
+                    if igl_member_id == mid:
+                        member_entry['is_igl'] = True
                     # Capture per-member game_id override from form
                     member_game_id = form_data.get(f'member_{mid}_game_id', '').strip()
                     if member_game_id:
@@ -865,6 +956,10 @@ class SmartRegistrationView(LoginRequiredMixin, View):
 
         if not payment_method:
             raise ValidationError("Please select a payment method.")
+
+        # Resolve actual gateway from sub-method when "mobile" is selected
+        if payment_method == 'mobile':
+            payment_method = request.POST.get('payment_sub_method', '').strip() or 'bkash'
 
         amount = tournament.entry_fee_amount
 

@@ -81,9 +81,9 @@
         </h3>
         <p class="text-sm text-gray-500 mb-3">Select the coordinator's role within the team. This helps organizers understand the team structure.</p>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {% for role in form_config.coordinator_role_choices %}
+            {% for role in form_config.coordinator_roles %}
             <label class="flex items-center justify-center gap-1.5 p-3 rounded-xl border border-white/10 bg-black/30 cursor-pointer hover:border-white/20 text-center transition-all has-[:checked]:border-[color:var(--accent)] has-[:checked]:bg-[color:var(--accent)]/5">
-                <input type="radio" name="coordinator_role" value="{{ role.value }}" class="sr-only" {% if forloop.first %}checked{% endif %} onchange="checkStep('coordinator')">
+                <input type="radio" name="coordinator_role" value="{{ role.key }}" class="sr-only" onchange="checkStep('coordinator')">
                 <span class="text-xs font-bold text-gray-300">{{ role.label }}</span>
             </label>
             {% endfor %}

@@ -145,6 +145,11 @@ class CertificateAdmin(ModelAdmin):
     
     # Pagination
     list_per_page = 50
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'tournament', 'participant__user'
+        )
     
     # Permissions: View-only (no add/change/delete)
     def has_add_permission(self, request):

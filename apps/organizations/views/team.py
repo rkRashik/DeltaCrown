@@ -264,7 +264,18 @@ def team_manage(request, team_slug, org_slug=None):
                 gp = gp_map.get(m.user_id)
                 m.gp_ign = gp.ign if gp else ''
                 m.gp_discriminator = gp.discriminator if gp else ''
-                m.gp_in_game_name = gp.in_game_name if gp else ''
+                # Build full Game ID on the fly (ign + discriminator) — resilient to stale in_game_name
+                if gp and gp.ign:
+                    if gp.discriminator:
+                        disc = gp.discriminator
+                        # Ensure separator character is present (some records lack #)
+                        if not disc.startswith('#') and not disc.startswith('-'):
+                            disc = f'#{disc}'
+                        m.gp_in_game_name = f"{gp.ign}{disc}"
+                    else:
+                        m.gp_in_game_name = gp.ign
+                else:
+                    m.gp_in_game_name = ''
                 m.gp_platform = gp.platform if gp else ''
                 m.gp_rank_name = gp.rank_name if gp else ''
                 m.gp_rank_image_url = gp.rank_image.url if gp and gp.rank_image else ''
@@ -443,6 +454,7 @@ def team_manage(request, team_slug, org_slug=None):
             'role_choices': role_choices,
             'region_choices': region_choices,
             'game_display': game_display,
+            'game_id_label': (game.game_id_label if game and game.game_id_label else 'Game ID'),
             'game_roles': game_roles,
             'visibility_choices': [
                 ('PUBLIC', 'Public'),

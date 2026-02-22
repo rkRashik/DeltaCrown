@@ -1,0 +1,137 @@
+/* ═══════════════════════════════════════════════
+   JSON Widget Styles — Dark theme matching Unfold admin
+   ═══════════════════════════════════════════════ */
+
+.jw-widget {
+    background: #1a1d23;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.jw-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.jw-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #e0e0e0;
+    letter-spacing: 0.5px;
+}
+
+.jw-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.jw-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.05);
+    color: #b0b0b0;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.jw-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+}
+
+.jw-btn-add {
+    border-color: rgba(52, 211, 153, 0.3);
+    color: #34d399;
+}
+
+.jw-btn-add:hover {
+    background: rgba(52, 211, 153, 0.15);
+    color: #6ee7b7;
+}
+
+.jw-btn-remove {
+    padding: 2px 8px;
+    font-size: 12px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 4px;
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.jw-btn-remove:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.jw-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.jw-table thead th {
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: rgba(255,255,255,0.35);
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.jw-table tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.jw-table tbody tr:hover {
+    background: rgba(255,255,255,0.02);
+}
+
+.jw-table td {
+    padding: 6px 8px;
+}
+
+.jw-input {
+    width: 100%;
+    padding: 5px 8px;
+    font-size: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.04);
+    color: #e0e0e0;
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+}
+
+.jw-input:focus {
+    border-color: rgba(99,102,241,0.5);
+}
+
+.jw-input::placeholder {
+    color: rgba(255,255,255,0.2);
+}
+
+.jw-center {
+    text-align: center;
+}
+
+.jw-hidden-textarea {
+    display: none !important;
+}
+
+/* Select styling */
+.jw-input option {
+    background: #1a1d23;
+    color: #e0e0e0;
+}

@@ -61,6 +61,14 @@ class GameAdmin(ModelAdmin):
         ('Metadata', {
             'fields': ['developer', 'publisher', 'official_website']
         }),
+        ('Game ID Customisation', {
+            'fields': ['game_id_label', 'game_id_placeholder'],
+            'description': (
+                'How the in-game identifier is labelled for this game '
+                '(e.g. "Riot ID" for Valorant, "Steam ID" for CS2). '
+                'Leave blank to use the default "Game ID".'
+            ),
+        }),
         ('System', {
             'fields': ['created_by', 'created_at', 'updated_at'],
             'classes': ['collapse']

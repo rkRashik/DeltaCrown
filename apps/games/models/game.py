@@ -161,7 +161,28 @@ class Game(models.Model):
         max_length=100,
         blank=True
     )
-    
+
+    # === GAME ID CUSTOMISATION ===
+    game_id_label = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text=(
+            "Custom label for a player's in-game identifier "
+            "(e.g. 'Riot ID' for Valorant, 'Steam ID' for CS2, 'UID' for PUBG Mobile). "
+            "Leave blank to use the default 'Game ID'."
+        ),
+    )
+    game_id_placeholder = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text=(
+            "Placeholder text shown in the Game ID input field "
+            "(e.g. 'Username#TAG'). Leave blank for a generic placeholder."
+        ),
+    )
+
     # === SYSTEM ===
     created_by = models.ForeignKey(
         'user_profile.UserProfile',

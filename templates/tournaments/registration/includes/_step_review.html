@@ -76,8 +76,7 @@
                             <i data-lucide="swords" class="w-3 h-3"></i> Starters
                         </div>
                         <div class="space-y-0.5" id="review-starters-list">
-                        {% for member in roster_members %}
-                        {% if member.roster_slot != 'SUBSTITUTE' and member.role != 'COACH' and member.role != 'MANAGER' and member.role != 'ANALYST' and member.role != 'SCOUT' and member.role != 'HEAD_COACH' %}
+                        {% for member in roster_starters %}
                             <div class="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
                                 <div class="flex items-center gap-2">
                                     <div class="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
@@ -87,26 +86,31 @@
                                         <div class="w-full h-full bg-dc-card flex items-center justify-center text-[8px] font-bold text-white/40">{{ member.user.username|truncatechars:2 }}</div>
                                         {% endif %}
                                     </div>
-                                    <span class="text-sm text-gray-300">{{ member.display_name|default:member.user.username }}</span>
-                                    {% if member.is_captain or member.role == 'OWNER' %}
-                                    <i data-lucide="crown" class="w-3 h-3 text-dc-gold"></i>
-                                    {% endif %}
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-sm text-gray-300">{{ member.display_name|default:member.user.username }}</span>
+                                            {% if member.is_captain or member.role == 'OWNER' %}
+                                            <i data-lucide="crown" class="w-3 h-3 text-dc-gold"></i>
+                                            {% endif %}
+                                        </div>
+                                        {% if member.gp_in_game_name %}
+                                        <span class="text-[10px] text-white/30 font-mono">{{ member.gp_in_game_name }}{% if member.gp_rank_name %} · {{ member.gp_rank_name }}{% endif %}</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 <span class="text-[10px] font-bold uppercase text-emerald-400/50" data-review-member-slot="{{ member.id }}">Starter</span>
                             </div>
-                        {% endif %}
                         {% endfor %}
                         </div>
                     </div>
 
                     {# ── Substitutes ── #}
-                    <div id="review-subs-section" class="hidden">
+                    <div id="review-subs-section" {% if not roster_substitutes %}class="hidden"{% endif %}>
                         <div class="text-[10px] font-bold uppercase tracking-widest text-amber-400/60 mb-1.5 flex items-center gap-1.5">
                             <i data-lucide="refresh-cw" class="w-3 h-3"></i> Substitutes
                         </div>
                         <div class="space-y-0.5" id="review-subs-list">
-                        {% for member in roster_members %}
-                        {% if member.roster_slot == 'SUBSTITUTE' %}
+                        {% for member in roster_substitutes %}
                             <div class="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
                                 <div class="flex items-center gap-2">
                                     <div class="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
@@ -116,23 +120,26 @@
                                         <div class="w-full h-full bg-dc-card flex items-center justify-center text-[8px] font-bold text-white/40">{{ member.user.username|truncatechars:2 }}</div>
                                         {% endif %}
                                     </div>
-                                    <span class="text-sm text-gray-300">{{ member.display_name|default:member.user.username }}</span>
+                                    <div class="flex flex-col">
+                                        <span class="text-sm text-gray-300">{{ member.display_name|default:member.user.username }}</span>
+                                        {% if member.gp_in_game_name %}
+                                        <span class="text-[10px] text-white/30 font-mono">{{ member.gp_in_game_name }}{% if member.gp_rank_name %} · {{ member.gp_rank_name }}{% endif %}</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 <span class="text-[10px] font-bold uppercase text-amber-400/50" data-review-member-slot="{{ member.id }}">Sub</span>
                             </div>
-                        {% endif %}
                         {% endfor %}
                         </div>
                     </div>
 
                     {# ── Coaching & Staff ── #}
-                    <div id="review-staff-section" class="hidden">
+                    <div id="review-staff-section" {% if not roster_staff %}class="hidden"{% endif %}>
                         <div class="text-[10px] font-bold uppercase tracking-widest text-purple-400/60 mb-1.5 flex items-center gap-1.5">
                             <i data-lucide="briefcase" class="w-3 h-3"></i> Coaching &amp; Staff
                         </div>
                         <div class="space-y-0.5" id="review-staff-list">
-                        {% for member in roster_members %}
-                        {% if member.role == 'COACH' or member.role == 'MANAGER' or member.role == 'ANALYST' or member.role == 'SCOUT' or member.role == 'HEAD_COACH' %}
+                        {% for member in roster_staff %}
                             <div class="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
                                 <div class="flex items-center gap-2">
                                     <div class="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
@@ -142,11 +149,15 @@
                                         <div class="w-full h-full bg-dc-card flex items-center justify-center text-[8px] font-bold text-white/40">{{ member.user.username|truncatechars:2 }}</div>
                                         {% endif %}
                                     </div>
-                                    <span class="text-sm text-gray-300">{{ member.display_name|default:member.user.username }}</span>
+                                    <div class="flex flex-col">
+                                        <span class="text-sm text-gray-300">{{ member.display_name|default:member.user.username }}</span>
+                                        {% if member.gp_in_game_name %}
+                                        <span class="text-[10px] text-white/30 font-mono">{{ member.gp_in_game_name }}{% if member.gp_rank_name %} · {{ member.gp_rank_name }}{% endif %}</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 <span class="text-[10px] font-bold uppercase text-purple-400/50" data-review-member-slot="{{ member.id }}">{{ member.get_role_display }}</span>
                             </div>
-                        {% endif %}
                         {% endfor %}
                         </div>
                     </div>
@@ -298,6 +309,28 @@
         </div>
         {% endif %}
 
+        {# ── Organizer Registration Rules Accordion (if provided) ── #}
+        {% if form_config.custom_registration_rules %}
+        <div class="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden" id="accordion-reg-rules">
+            <button type="button" onclick="toggleAccordion('accordion-reg-rules')" class="w-full flex items-center justify-between p-3.5 group hover:bg-white/[0.02] transition-all">
+                <div class="flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                        <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-orange-400"></i>
+                    </div>
+                    <span class="text-xs font-bold text-white">Registration Rules</span>
+                </div>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500 transition-transform duration-300 accordion-chevron"></i>
+            </button>
+            <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                <div class="px-4 pb-4 pt-1">
+                    <div class="text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
+                        {{ form_config.custom_registration_rules|linebreaksbr }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         {# ── Terms of Service Accordion ── #}
         <div class="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden" id="accordion-tos">
             <button type="button" onclick="toggleAccordion('accordion-tos')" class="w-full flex items-center justify-between p-3.5 group hover:bg-white/[0.02] transition-all">
@@ -305,24 +338,14 @@
                     <div class="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
                         <i data-lucide="shield" class="w-3.5 h-3.5 text-purple-400"></i>
                     </div>
-                    <span class="text-xs font-bold text-white">DeltaCrown Terms of Service</span>
+                    <span class="text-xs font-bold text-white">Terms of Service</span>
                 </div>
                 <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500 transition-transform duration-300 accordion-chevron"></i>
             </button>
             <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
                 <div class="px-4 pb-4 pt-1">
                     <div class="text-xs text-gray-400 leading-relaxed max-h-[250px] overflow-y-auto pr-2 space-y-2 scrollbar-thin" style="scrollbar-width: thin; scrollbar-color: rgba(var(--accent-rgb),0.3) transparent;">
-                        <p>By participating in any DeltaCrown tournament, you agree to abide by the following terms:</p>
-                        <ul class="list-disc pl-4 space-y-1">
-                            <li>All participants must be at least 13 years of age or have parental consent.</li>
-                            <li>Use of cheats, exploits, or third-party software to gain unfair advantage is strictly prohibited and will result in permanent disqualification.</li>
-                            <li>Players must be respectful to all participants, organizers, and staff. Toxic behavior, hate speech, or harassment will not be tolerated.</li>
-                            <li>Team rosters are locked once registration is confirmed. Substitutions may only be made according to tournament rules.</li>
-                            <li>Match results are final once confirmed by tournament admins. Disputes must be raised within 30 minutes of match completion.</li>
-                            <li>DeltaCrown reserves the right to modify tournament structure, rules, or prize distribution with prior notice.</li>
-                            <li>Personal data provided during registration will be handled in accordance with our privacy policy.</li>
-                        </ul>
-                        <p class="text-gray-500 mt-2">Full terms available at <a href="/terms/" class="underline" style="color: var(--accent);" target="_blank">deltacrown.com/terms</a></p>
+                        {{ form_config.custom_tos_text|linebreaksbr }}
                     </div>
                 </div>
             </div>
@@ -342,13 +365,7 @@
             <div class="accordion-body max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
                 <div class="px-4 pb-4 pt-1">
                     <div class="text-xs text-gray-400 leading-relaxed space-y-2">
-                        <p>By registering, you pledge to:</p>
-                        <ul class="list-disc pl-4 space-y-1">
-                            <li>Play fairly and competitively without exploiting bugs or glitches.</li>
-                            <li>Show sportsmanship regardless of match outcomes.</li>
-                            <li>Report any suspected rule violations to tournament admins.</li>
-                            <li>Be available for scheduled matches and communicate any scheduling conflicts promptly.</li>
-                        </ul>
+                        {{ form_config.custom_fair_play_text|linebreaksbr }}
                     </div>
                 </div>
             </div>

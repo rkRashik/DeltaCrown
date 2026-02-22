@@ -10,6 +10,9 @@ def nav_context(request) -> Dict[str, Any]:
     Provides: nav_live, nav_unread_count, nav_user_can_create_event, nav_primary_items.
     Safe, fast (single lightweight DB pass), and tolerant of missing apps.
     """
+    # Skip on admin pages — admin uses its own navigation
+    if request.path.startswith('/admin/'):
+        return {'nav_live': False, 'nav_unread_count': 0, 'nav_user_can_create_event': False, 'nav_primary_items': []}
     now = timezone.now()
     nav_live = False
     nav_unread_count = 0

@@ -11,6 +11,7 @@ Architecture:
 
 from django.contrib import admin
 from django.db import models
+from django import forms
 from unfold.admin import ModelAdmin, TabularInline, StackedInline
 from unfold.decorators import display
 from unfold.widgets import UnfoldBooleanSwitchWidget
@@ -38,6 +39,10 @@ from apps.tournaments.models import (
 from apps.games.services import game_service
 from apps.games.models.game import Game as GamesGame
 from apps.tournaments.utils import import_rules_from_pdf
+from deltacrown.admin_widgets import (
+    PrizeDistributionWidget, CoordinatorRolesWidget,
+    CommunicationChannelsWidget, MemberCustomFieldsWidget,
+)
 
 # Import specialized admin classes from separate modules
 from apps.tournaments.admin_registration import RegistrationAdmin, PaymentAdmin
@@ -181,29 +186,67 @@ class TournamentFormConfigurationInline(StackedInline):
             'classes': ('collapse',),
             'description': 'Toggle optional payment-related fields.',
         }),
+        ('Rules & Agreements', {
+            'fields': (
+                'custom_registration_rules',
+                'custom_tos_text',
+                'custom_fair_play_text',
+            ),
+            'description': (
+                '📋 Shown on the Review & Submit step. Leave any field blank to use DeltaCrown\'s default text. '
+                'Tip: write your own tournament-specific rules, terms, or fair-play expectations here.'
+            ),
+        }),
     )
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        """Replace JSON textareas with user-friendly table widgets, add Rules placeholders."""
+        widget_map = {
+            'coordinator_role_choices': CoordinatorRolesWidget,
+            'communication_channels': CommunicationChannelsWidget,
+            'member_custom_fields': MemberCustomFieldsWidget,
+        }
+        if db_field.name in widget_map:
+            kwargs['widget'] = widget_map[db_field.name]()
+        # Helpful placeholders for Rules & Agreements text fields
+        rules_placeholders = {
+            'custom_registration_rules': 'e.g. Players must be 16+ to participate.\nEach team must have a minimum of 5 active players.\nAll participants must join the tournament Discord server.',
+            'custom_tos_text': 'e.g. By registering, you agree to follow all tournament rules.\nViolations may result in disqualification and account suspension.',
+            'custom_fair_play_text': 'e.g. No use of cheats, exploits, or third-party software.\nRespect all opponents and tournament staff.\nUnsportsmanlike conduct will result in penalties.',
+        }
+        if db_field.name in rules_placeholders:
+            kwargs.setdefault('widget', forms.Textarea(attrs={
+                'rows': 5,
+                'placeholder': rules_placeholders[db_field.name],
+                'style': 'width:100%;',
+            }))
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
 
 class TournamentPaymentMethodInline(StackedInline):
     """
     Inline editor for configuring payment methods.
-    Each method (bKash, Nagad, etc.) has its own collapsible section.
+    Each method (bKash, Nagad, etc.) only shows the relevant fields
+    based on the selected method type — powered by dynamic JS toggle.
     """
     model = TournamentPaymentMethod
-    extra = 0
+    extra = 1
     can_delete = True
     show_change_link = True
+    verbose_name = "Payment Method"
+    verbose_name_plural = "Payment Methods (add one per provider: bKash, Nagad, etc.)"
     
     fieldsets = (
         ('Basic Configuration', {
-            'fields': ('method', 'is_enabled', 'display_order')
+            'fields': ('method', 'is_enabled', 'display_order'),
+            'description': 'Select a method and it will reveal the relevant configuration fields below.'
         }),
         ('bKash Configuration', {
             'fields': (
                 'bkash_account_number', 'bkash_account_type', 'bkash_account_name',
                 'bkash_instructions', 'bkash_reference_required'
             ),
-            'classes': ('collapse',),
+            'classes': ('pm-section', 'pm-bkash',),
             'description': 'Configure bKash mobile money payment method'
         }),
         ('Nagad Configuration', {
@@ -211,7 +254,7 @@ class TournamentPaymentMethodInline(StackedInline):
                 'nagad_account_number', 'nagad_account_type', 'nagad_account_name',
                 'nagad_instructions', 'nagad_reference_required'
             ),
-            'classes': ('collapse',),
+            'classes': ('pm-section', 'pm-nagad',),
             'description': 'Configure Nagad mobile money payment method'
         }),
         ('Rocket Configuration', {
@@ -219,7 +262,7 @@ class TournamentPaymentMethodInline(StackedInline):
                 'rocket_account_number', 'rocket_account_type', 'rocket_account_name',
                 'rocket_instructions', 'rocket_reference_required'
             ),
-            'classes': ('collapse',),
+            'classes': ('pm-section', 'pm-rocket',),
             'description': 'Configure Rocket mobile money payment method'
         }),
         ('Bank Transfer Configuration', {
@@ -228,15 +271,18 @@ class TournamentPaymentMethodInline(StackedInline):
                 'bank_routing_number', 'bank_swift_code', 'bank_instructions', 
                 'bank_reference_required'
             ),
-            'classes': ('collapse',),
+            'classes': ('pm-section', 'pm-bank_transfer',),
             'description': 'Configure traditional bank transfer method'
         }),
         ('DeltaCoin Configuration', {
             'fields': ('deltacoin_instructions',),
-            'classes': ('collapse',),
+            'classes': ('pm-section', 'pm-deltacoin',),
             'description': 'Optional custom instructions for DeltaCoin payments (usually not needed)'
         }),
     )
+    
+    class Media:
+        js = ('admin/js/payment_method_toggle.js',)
 
 
 # ============================================================================
@@ -274,104 +320,90 @@ class TournamentAdmin(ModelAdmin):
     date_hierarchy = 'tournament_start'
     
     fieldsets = (
-        ('Basic Information', {
-            'fields': ('name', 'slug', 'game', 'platform', 'mode', 'venue_name', 'venue_address', 'venue_city', 'venue_map_url', 'description', 'organizer', 'is_official', 'is_featured', 'organizer_console_button'),
+        ('Core Tournament', {
+            'fields': (
+                'name', 'slug', 'game', 'organizer', 'status',
+                'is_official', 'is_featured', 'organizer_console_button',
+            ),
             'description': (
-                'Core tournament identity. <strong>Name</strong> appears in listings and search. '
-                '<strong>Game</strong> determines icon/color theming. '
-                '<strong>Organizer</strong> gets full management access via the Organizer Console.'
+                'Essential tournament identity. <strong>Organizer</strong> gets full management '
+                'via the Organizer Console. Status workflow: Draft → Published → Reg Open → Live → Completed.'
             ),
         }),
-        ('Schedule & Timeline', {
+        ('Format & Capacity', {
             'fields': (
-                'registration_start', 'registration_end', 
+                'format', 'participation_type', 'platform', 'mode',
+                'max_participants', 'min_participants',
+                'max_guest_teams', 'allow_display_name_override',
+            ),
+            'description': (
+                'Tournament format (Single/Double Elim, Round Robin, Swiss, Group+Playoffs), '
+                'Solo vs Team, and participant limits. Guest teams allow unregistered squads to join.'
+            ),
+        }),
+        ('Schedule & Check-In', {
+            'fields': (
+                'registration_start', 'registration_end',
                 'tournament_start', 'tournament_end',
-                'enable_check_in', 'check_in_minutes_before', 'check_in_closes_minutes_before'
+                'enable_check_in', 'check_in_minutes_before', 'check_in_closes_minutes_before',
             ),
-            'description': (
-                'Set registration windows and tournament dates. '
-                '<strong>Check-in</strong>: When enabled, participants must check in before match start. '
-                'Set the window (e.g., 30 min before) and close time (e.g., 5 min before).'
-            ),
+            'description': 'Registration window and tournament dates. Check-in requires participants to confirm attendance before matches.',
         }),
-        ('Entry Fee & Payments', {
+        ('Entry Fees & Prizes', {
             'fields': (
-                'has_entry_fee', 'entry_fee_amount', 'entry_fee_currency', 
-                'entry_fee_deltacoin', 'payment_methods',
+                'has_entry_fee', 'entry_fee_amount', 'entry_fee_currency', 'entry_fee_deltacoin',
+                'payment_deadline_hours', 'refund_policy', 'refund_policy_text',
                 'enable_fee_waiver', 'fee_waiver_top_n_teams',
-                'prize_pool', 'prize_currency', 'prize_deltacoin', 'prize_distribution'
+                'prize_pool', 'prize_currency', 'prize_deltacoin', 'prize_distribution',
             ),
             'description': (
-                'Configure entry fees and prize distribution. '
-                '<strong>Fee waiver</strong>: Top N teams from previous season get free entry. '
-                '<strong>Prize distribution</strong>: JSON object mapping placements to amounts '
-                '(e.g., {"1": 500, "2": 250, "3": 125}). '
-                'Payment methods are configured in the inline section below.'
+                'Configure fees and prizes. Payment method details (account numbers, instructions) '
+                'are set in the <strong>Payment Methods</strong> inline below. '
+                'Prize distribution: JSON e.g. <code>{"1": 500, "2": 250, "3": 125}</code>.'
             ),
         }),
         ('Rules & Terms', {
             'fields': (
                 'rules_text', 'rules_pdf',
-                'terms_and_conditions', 'terms_pdf', 'require_terms_acceptance'
+                'terms_and_conditions', 'terms_pdf', 'require_terms_acceptance',
             ),
             'description': (
                 'Provide rules as rich text or PDF upload. '
-                'When <strong>Require Terms Acceptance</strong> is enabled, participants must '
-                'agree to terms before completing registration.'
+                'Additional registration-specific rules can be set in the '
+                '<strong>Form Configuration</strong> inline below.'
             ),
         }),
-        ('Registration Form', {
-            'description': 'Registration form fields are configured in the inline section below.',
-            'fields': ()
-        }),
-        ('Staff & Permissions', {
-            'description': (
-                'Assign staff roles (caster, referee, moderator) in the inline section below. '
-                'Staff members get access to the Organizer Console for their assigned permissions.'
-            ),
-            'fields': ()
-        }),
-        ('Advanced Configuration', {
+        ('Description & Media', {
             'fields': (
-                'format', 'participation_type', 'max_participants', 'min_participants',
-                'enable_dynamic_seeding', 'enable_live_updates', 
+                'description', 'banner_image', 'thumbnail_image',
+                'promo_video_url', 'stream_youtube_url', 'stream_twitch_url',
+            ),
+            'description': 'Tournament description and media. Banner: 1920x480, Thumbnail: 400x400.',
+        }),
+        ('Venue (LAN / Hybrid)', {
+            'fields': ('venue_name', 'venue_address', 'venue_city', 'venue_map_url'),
+            'classes': ('collapse',),
+            'description': 'Only needed for LAN or Hybrid tournaments.',
+        }),
+        ('Feature Toggles', {
+            'fields': (
+                'enable_dynamic_seeding', 'enable_live_updates',
                 'enable_certificates', 'enable_challenges', 'enable_fan_voting',
-                'status', 'published_at'
             ),
             'classes': ('collapse',),
-            'description': (
-                '<strong>Format</strong>: Single/Double Elimination, Round Robin, Swiss, or Group+Playoffs. '
-                '<strong>Status workflow</strong>: Draft → Published → Registration Open → Live → Completed. '
-                'Change status carefully — some transitions trigger automated actions (notifications, bracket generation).'
-            ),
-        }),
-        ('Media & Streaming', {
-            'fields': (
-                'banner_image', 'thumbnail_image',
-                'promo_video_url', 'stream_youtube_url', 'stream_twitch_url'
-            ),
-            'classes': ('collapse',),
-            'description': (
-                'Upload banner (1920x480 recommended) and thumbnail (400x400) images. '
-                'Add YouTube/Twitch stream URLs for live tournament viewing.'
-            ),
-        }),
-        ('Status & Statistics', {
-            'fields': (
-                'registration_count_display', 'match_count', 'created_at', 'updated_at'
-            ),
-            'classes': ('collapse',),
-            'description': 'Read-only statistics. Click links to view related records.',
+            'description': 'Optional features: auto-seeding, live score updates, completion certificates, challenges, fan voting.',
         }),
         ('SEO & Metadata', {
             'fields': ('meta_description', 'meta_keywords'),
             'classes': ('collapse',),
-            'description': 'Optional. Overrides auto-generated meta tags for search engines.',
+        }),
+        ('Statistics', {
+            'fields': ('registration_count_display', 'match_count', 'created_at', 'updated_at', 'published_at'),
+            'classes': ('collapse',),
         }),
         ('Soft Delete', {
             'fields': ('is_deleted', 'deleted_at', 'deleted_by'),
             'classes': ('collapse',),
-            'description': 'Soft-deleted tournaments are hidden from public views but preserved in the database.',
         }),
     )
     
@@ -514,7 +546,9 @@ class TournamentAdmin(ModelAdmin):
     
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         """Enhance text and JSON fields with better widgets"""
-        if db_field.name == 'config' or db_field.name == 'prize_distribution':
+        if db_field.name == 'prize_distribution':
+            kwargs['widget'] = PrizeDistributionWidget()
+        elif db_field.name == 'config':
             kwargs['widget'] = admin.widgets.AdminTextareaWidget(
                 attrs={'rows': 15, 'cols': 80, 'style': 'font-family: monospace;'}
             )

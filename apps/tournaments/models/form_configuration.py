@@ -281,6 +281,36 @@ class TournamentFormConfiguration(models.Model):
         default=False,
         help_text='Allow optional payment notes'
     )
+
+    # ═══════════════════════════════════════════════
+    # RULES & AGREEMENTS (organizer-configurable)
+    # ═══════════════════════════════════════════════
+
+    custom_registration_rules = models.TextField(
+        blank=True,
+        default='',
+        help_text=(
+            'Custom registration-specific rules provided by the organizer. '
+            'Shown in the Review & Submit step. If blank, only the tournament\'s '
+            'main rules field is shown. Supports plain text with line breaks.'
+        ),
+    )
+    custom_fair_play_text = models.TextField(
+        blank=True,
+        default='',
+        help_text=(
+            'Custom fair play / code of conduct text. If blank, a default '
+            'DeltaCrown fair play agreement is shown.'
+        ),
+    )
+    custom_tos_text = models.TextField(
+        blank=True,
+        default='',
+        help_text=(
+            'Custom terms of service text for this tournament. '
+            'If blank, the default DeltaCrown ToS is shown.'
+        ),
+    )
     
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
@@ -449,6 +479,48 @@ class TournamentFormConfiguration(models.Model):
         """Return per-member custom fields."""
         return self.member_custom_fields or []
 
+    def get_fair_play_text(self):
+        """Return organizer's fair play text or platform default."""
+        if self.custom_fair_play_text:
+            return self.custom_fair_play_text
+        return (
+            'By registering, you pledge to:\n'
+            '• Play fairly and competitively without exploiting bugs or glitches.\n'
+            '• Show sportsmanship regardless of match outcomes.\n'
+            '• Report any suspected rule violations to tournament admins.\n'
+            '• Be available for scheduled matches and communicate any scheduling conflicts promptly.'
+        )
+
+    def get_tos_text(self):
+        """Return organizer's ToS text or platform default."""
+        if self.custom_tos_text:
+            return self.custom_tos_text
+        return (
+            'By participating in any DeltaCrown tournament, you agree to abide by the following terms:\n'
+            '• All participants must be at least 13 years of age or have parental consent.\n'
+            '• Use of cheats, exploits, or third-party software to gain unfair advantage is strictly prohibited.\n'
+            '• Players must be respectful to all participants, organizers, and staff.\n'
+            '• Team rosters are locked once registration is confirmed.\n'
+            '• Match results are final once confirmed by tournament admins.\n'
+            '• DeltaCrown reserves the right to modify tournament structure, rules, or prize distribution with prior notice.\n'
+            '• Personal data provided during registration will be handled in accordance with our privacy policy.'
+        )
+
+    def get_filtered_communication_channels(self):
+        """
+        Return communication channels excluding those that duplicate
+        already-enabled static fields (phone, discord, whatsapp).
+        """
+        channels = self.get_communication_channels()
+        static_keys = set()
+        if self.enable_captain_phone_field:
+            static_keys.add('phone')
+        if self.enable_captain_discord_field:
+            static_keys.add('discord')
+        if self.enable_captain_whatsapp_field:
+            static_keys.add('whatsapp')
+        return [ch for ch in channels if ch.get('key') not in static_keys]
+
     def to_template_context(self):
         """
         Serialize the full form configuration as a template-friendly dict.
@@ -461,7 +533,7 @@ class TournamentFormConfiguration(models.Model):
             'coordinator_roles': self.get_coordinator_roles(),
             'coordinator_help': self.get_coordinator_help(),
             # Communication
-            'channels': self.get_communication_channels(),
+            'communication_channels': self.get_filtered_communication_channels(),
             'enable_preferred_communication': self.enable_preferred_communication,
             # Team info
             'enable_team_logo_upload': self.enable_team_logo_upload,
@@ -496,4 +568,8 @@ class TournamentFormConfiguration(models.Model):
             'enable_payment_mobile_number_field': self.enable_payment_mobile_number_field,
             'enable_payment_screenshot_field': self.enable_payment_screenshot_field,
             'enable_payment_notes_field': self.enable_payment_notes_field,
+            # Rules & Agreements
+            'custom_registration_rules': self.custom_registration_rules,
+            'custom_fair_play_text': self.get_fair_play_text(),
+            'custom_tos_text': self.get_tos_text(),
         }
