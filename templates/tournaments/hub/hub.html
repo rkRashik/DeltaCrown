@@ -1,0 +1,124 @@
+{% extends "tournaments/base.html" %}
+{% load static %}
+{% comment %}
+  THE HUB — Unified Participant Mission Control (Sprint 12)
+  Full-screen SPA shell. Tabs swap via JS; data refreshes via JSON polling.
+{% endcomment %}
+
+{% block title %}The Hub — {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block tournament_css %}
+<link rel="stylesheet" href="{% static 'tournaments/css/hub.css' %}">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block footer %}{% endblock %}
+
+{% block tournament_content %}
+
+{% comment %}Hub Shell — sits under the primary navigation{% endcomment %}
+<div class="hub-shell" id="hub-shell"
+     data-slug="{{ tournament.slug }}"
+     data-api-state="{{ api_state_url }}"
+     data-api-checkin="{{ api_checkin_url }}"
+     data-api-announcements="{{ api_announcements_url }}"
+     data-api-roster="{{ api_roster_url }}"
+     data-api-squad="{{ api_squad_url }}"
+     data-tournament-status="{{ tournament.status }}"
+     data-check-in-status="{{ check_in_status }}"
+     data-is-checked-in="{{ is_checked_in|yesno:'true,false' }}"
+     data-is-captain="{{ is_captain|yesno:'true,false' }}"
+     data-is-team="{{ is_team|yesno:'true,false' }}"
+     data-roster-locked="{{ roster_locked|yesno:'true,false' }}"
+>
+
+  {% comment %}Cinematic Background Layers{% endcomment %}
+  <div class="hub-bg-cinematic"></div>
+  <div class="hub-bg-gradient"></div>
+  <div class="hub-tactical-grid"></div>
+
+  {% comment %}Inline Status Bar (replaces separate nav — primary nav is in base.html){% endcomment %}
+  <div class="hub-status-bar px-4 py-2 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3 min-w-0">
+      <button class="hub-mobile-toggle lg:hidden p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5"
+              onclick="HubEngine.openMobileSidebar()">
+        <i data-lucide="panel-left" class="w-4 h-4 text-gray-400"></i>
+      </button>
+      <span class="hub-badge hub-badge-{% if tournament.status == 'live' %}live{% elif tournament.status == 'completed' %}neutral{% else %}info{% endif %}">
+        {{ tournament.get_status_display|default:tournament.status }}
+      </span>
+      <span class="text-sm font-bold text-white truncate">{{ tournament.name }}</span>
+      {% if game_name %}
+        <span class="text-xs text-gray-500 hidden sm:inline">{{ game_name }}</span>
+      {% endif %}
+    </div>
+    <div class="flex items-center gap-3 shrink-0">
+      <span class="text-[10px] text-gray-500 hidden md:inline" style="font-family:'Space Grotesk',monospace;" id="hub-status-label">{{ user_status }}</span>
+      {% if is_checked_in %}
+        <span class="w-2 h-2 rounded-full bg-[#00FF66] shadow-[0_0_6px_#00FF66]" title="Checked In"></span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% comment %}Main Layout: Sidebar + Content{% endcomment %}
+  <div class="flex-1 flex overflow-hidden w-full relative" style="z-index:10;">
+
+    {% comment %}Desktop Sidebar{% endcomment %}
+    <aside class="hub-sidebar-desktop w-[240px] xl:w-[270px] flex flex-col hub-glass-heavy border-r border-white/5 shrink-0" style="z-index:20;">
+      {% include "tournaments/hub/_sidebar.html" %}
+    </aside>
+
+    {% comment %}Mobile Sidebar Overlay{% endcomment %}
+    <div class="hub-mobile-overlay" id="hub-mobile-overlay" onclick="HubEngine.closeMobileSidebar()"></div>
+    <aside class="hub-sidebar-mobile fixed top-0 left-0 bottom-0 w-[280px] flex flex-col hub-glass-heavy border-r border-white/5" id="hub-mobile-sidebar" style="z-index:70;">
+      {% include "tournaments/hub/_sidebar.html" %}
+    </aside>
+
+    {% comment %}Main Viewport{% endcomment %}
+    <main class="flex-1 overflow-y-auto relative" id="hub-viewport">
+
+      {% comment %}Tab: Command Center (Overview){% endcomment %}
+      <div id="hub-tab-overview" class="hub-tab-content active">
+        {% include "tournaments/hub/_tab_overview.html" %}
+      </div>
+
+      {% comment %}Tab: Match Lobby{% endcomment %}
+      <div id="hub-tab-matches" class="hub-tab-content">
+        {% include "tournaments/hub/_tab_matches.html" %}
+      </div>
+
+      {% comment %}Tab: Squad Management{% endcomment %}
+      <div id="hub-tab-squad" class="hub-tab-content">
+        {% include "tournaments/hub/_tab_squad.html" %}
+      </div>
+
+      {% comment %}Tab: Bracket{% endcomment %}
+      <div id="hub-tab-bracket" class="hub-tab-content">
+        {% include "tournaments/hub/_tab_bracket.html" %}
+      </div>
+
+      {% comment %}Tab: Standings{% endcomment %}
+      <div id="hub-tab-standings" class="hub-tab-content">
+        {% include "tournaments/hub/_tab_standings.html" %}
+      </div>
+
+      {% comment %}Tab: Schedule{% endcomment %}
+      <div id="hub-tab-schedule" class="hub-tab-content">
+        {% include "tournaments/hub/_tab_schedule.html" %}
+      </div>
+
+    </main>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block tournament_js %}
+<script src="{% static 'tournaments/js/hub-engine.js' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    HubEngine.init();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% comment %}
+  Tab: Standings — Global leaderboard with "You" highlight
+  Leaderboard data will be fetched from the standings API in a future sprint.
+{% endcomment %}
+
+<div class="p-4 md:p-8 lg:p-10 max-w-[1400px] mx-auto space-y-8">
+
+  {% comment %}── Header ──────────────────────────────────────────────────{% endcomment %}
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-white/5 pb-6 gap-4">
+    <div>
+      <h2 class="font-black text-2xl lg:text-3xl text-white" style="font-family:Outfit,sans-serif;">Standings</h2>
+      <p class="text-sm text-gray-400 mt-1">Live leaderboard updated automatically after every match.</p>
+    </div>
+  </div>
+
+  {% comment %}── Standings Table ────────────────────────────────────────{% endcomment %}
+  <div id="hub-standings-container">
+
+    {% comment %}Placeholder until real data is wired{% endcomment %}
+    <div class="hub-glass rounded-2xl p-10 flex flex-col items-center justify-center text-center">
+      <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+        <i data-lucide="bar-chart-2" class="w-8 h-8 text-gray-600"></i>
+      </div>
+      <h3 class="text-lg font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">Standings Unavailable</h3>
+      <p class="text-sm text-gray-500 max-w-md">
+        Standings will be populated once matches have been played and results have been submitted.
+      </p>
+    </div>
+
+  </div>
+
+</div>

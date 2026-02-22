@@ -1,0 +1,41 @@
+{% comment %}
+  Tab: Bracket — Tournament bracket visualization
+  Full bracket data will be wired in a future sprint.
+  For now: structural placeholder with the cinematic bracket aesthetic.
+{% endcomment %}
+
+<div class="h-full w-full relative">
+
+  {% comment %}── Floating Header ───────────────────────────────────────{% endcomment %}
+  <div class="absolute top-0 left-0 right-0 p-4 md:p-6 flex items-center justify-between z-20 pointer-events-none">
+    <div class="hub-glass px-5 py-3 rounded-xl pointer-events-auto flex items-center gap-4">
+      <h2 class="font-black text-lg lg:text-2xl text-white uppercase tracking-wide" style="font-family:Outfit,sans-serif;">
+        Bracket
+      </h2>
+      <div class="h-5 w-px bg-white/10"></div>
+      <span class="text-xs text-gray-400">{{ tournament.get_format_display|default:tournament.format|default:"Single Elimination" }}</span>
+    </div>
+  </div>
+
+  {% comment %}── Bracket Canvas ────────────────────────────────────────{% endcomment %}
+  <div class="absolute inset-0 overflow-auto pt-24 pb-16 px-6 md:px-10"
+       style="background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 20px 20px;">
+
+    {% comment %}Placeholder — bracket data will be dynamically rendered{% endcomment %}
+    <div class="flex items-center justify-center min-h-[400px]">
+      <div class="text-center">
+        <div class="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-6">
+          <i data-lucide="git-merge" class="w-10 h-10 text-gray-600 transform rotate-90"></i>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">Bracket Not Generated</h3>
+        <p class="text-sm text-gray-500 max-w-md">
+          The tournament bracket will appear here once the organizer generates matchups.
+          {% if tournament.status == 'registration_open' or tournament.status == 'registration_closed' %}
+            This typically happens after check-in closes.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>

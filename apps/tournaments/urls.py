@@ -125,14 +125,16 @@ from apps.tournaments.views.group_stage import (
     GroupDrawView,
     GroupStandingsView,
 )
-from apps.tournaments.views.lobby import (
-    TournamentLobbyView,
-    CheckInView,
-    LobbyRosterAPIView,
-    LobbyAnnouncementsAPIView,
-)
 from apps.tournaments.views.spectator import (
     PublicSpectatorView,
+)
+from apps.tournaments.views.hub import (
+    TournamentHubView as HubMainView,
+    HubStateAPIView,
+    HubCheckInAPIView,
+    HubAnnouncementsAPIView,
+    HubRosterAPIView,
+    HubSquadAPIView,
 )
 from apps.tournaments.views.organizer_results import (
     PendingResultsView,
@@ -383,25 +385,26 @@ urlpatterns = [
     path('<slug:slug>/leaderboard/', TournamentLeaderboardView.as_view(), name='leaderboard'),
     
     # Sprint 5: Check-In & Tournament Lobby (FE-T-007)
+    # /lobby/ redirects to The Hub (v3) — see checkin.TournamentLobbyView
     path('<slug:slug>/lobby/', checkin.TournamentLobbyView.as_view(), name='lobby'),
     path('<slug:slug>/check-in/', checkin.CheckInActionView.as_view(), name='check_in'),
-    path('<slug:slug>/check-in-status/', checkin.CheckInStatusView.as_view(), name='check_in_status'),
-    path('<slug:slug>/roster/', checkin.RosterView.as_view(), name='roster'),
     
     # Sprint 10: Group Stage Management (FE-T-011, FE-T-012, FE-T-013)
     path('organizer/<slug:slug>/groups/configure/', GroupConfigurationView.as_view(), name='group_configure'),
     path('organizer/<slug:slug>/groups/draw/', GroupDrawView.as_view(), name='group_draw'),
     path('<slug:slug>/groups/standings/', GroupStandingsView.as_view(), name='group_standings'),
     
-    # Sprint 10: Enhanced Tournament Lobby (FE-T-007)
-    path('<slug:slug>/lobby/v2/', TournamentLobbyView.as_view(), name='lobby_v2'),
-    path('<slug:slug>/lobby/check-in/', CheckInView.as_view(), name='lobby_check_in'),
-    path('api/<slug:slug>/lobby/roster/', LobbyRosterAPIView.as_view(), name='lobby_roster_api'),
-    path('api/<slug:slug>/lobby/announcements/', LobbyAnnouncementsAPIView.as_view(), name='lobby_announcements_api'),
-    
     # Sprint 11: Public Spectator View (FE-T-006)
     path('<slug:slug>/spectate/', PublicSpectatorView.as_view(), name='spectate'),
     
+    # Sprint 12: The Hub — Unified Participant Mission Control (v3)
+    path('<slug:slug>/hub/', HubMainView.as_view(), name='tournament_hub'),
+    path('<slug:slug>/hub/api/state/', HubStateAPIView.as_view(), name='hub_state_api'),
+    path('<slug:slug>/hub/api/check-in/', HubCheckInAPIView.as_view(), name='hub_checkin_api'),
+    path('<slug:slug>/hub/api/announcements/', HubAnnouncementsAPIView.as_view(), name='hub_announcements_api'),
+    path('<slug:slug>/hub/api/roster/', HubRosterAPIView.as_view(), name='hub_roster_api'),
+    path('<slug:slug>/hub/api/squad/', HubSquadAPIView.as_view(), name='hub_squad_api'),
+
     # Legacy URL compatibility
     path('hub/', RedirectView.as_view(pattern_name='tournaments:list', permanent=True), name='hub'),
     

@@ -1,0 +1,241 @@
+/* ═══════════════════════════════════════════════════════════
+   THE HUB — Tournament Mission Control
+   DeltaCrown Design System 2026
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Full-Screen Lock ─────────────────────────────────────── */
+.hub-shell {
+  background-color: #020203;
+  color: #E2E8F0;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+/* ── Cinematic Background Layers ──────────────────────────── */
+.hub-bg-cinematic {
+  position: absolute; inset: 0; z-index: 0;
+  background-size: cover; background-position: center;
+  opacity: 0.08; mix-blend-mode: luminosity; filter: contrast(1.2);
+  pointer-events: none;
+}
+.hub-bg-gradient {
+  position: absolute; inset: 0; z-index: 1;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.07) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(112, 0, 255, 0.04) 0%, transparent 40%),
+    linear-gradient(180deg, rgba(2,2,3,0.85) 0%, #020203 100%);
+  pointer-events: none;
+}
+.hub-tactical-grid {
+  position: absolute; inset: 0; z-index: 2; opacity: 0.025;
+  background-image:
+    linear-gradient(to right, #ffffff 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: hub-gridPan 40s linear infinite;
+  pointer-events: none;
+}
+.hub-scanline {
+  position: absolute; inset: 0; z-index: 100; pointer-events: none; opacity: 0.035;
+  background: linear-gradient(to bottom, transparent, #fff, transparent);
+  height: 8px;
+  animation: hub-scanline 8s linear infinite;
+}
+
+/* ── Glassmorphism ────────────────────────────────────────── */
+.hub-glass {
+  background: rgba(12, 12, 16, 0.75);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+.hub-glass-heavy {
+  background: rgba(6, 6, 10, 0.88);
+  backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+.hub-glass-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hub-glass-hover:hover {
+  background: rgba(20, 20, 28, 0.9);
+  border-color: rgba(0, 240, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -10px rgba(0, 240, 255, 0.15);
+}
+
+/* ── UI Micro-elements ────────────────────────────────────── */
+.digital-clock { font-variant-numeric: tabular-nums; letter-spacing: 0.05em; }
+.clip-slant { clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+.hex-clip { clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+
+/* ── Scrollbar ────────────────────────────────────────────── */
+.hub-shell ::-webkit-scrollbar { width: 6px; height: 6px; }
+.hub-shell ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 8px; }
+.hub-shell ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 8px; }
+.hub-shell ::-webkit-scrollbar-thumb:hover { background: #00F0FF; }
+
+/* ── Tab System ───────────────────────────────────────────── */
+.hub-tab-content {
+  display: none;
+  animation: hub-slideIn 0.4s ease-out forwards;
+}
+.hub-tab-content.active { display: block; }
+
+/* ── Sidebar Nav Button States ────────────────────────────── */
+.hub-nav-btn {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  color: #9CA3AF;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+}
+.hub-nav-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+.hub-nav-btn.active {
+  background: rgba(0, 240, 255, 0.1);
+  color: #00F0FF;
+  font-weight: 600;
+}
+.hub-nav-btn.active svg { color: #00F0FF; }
+
+/* ── Status Badges ────────────────────────────────────────── */
+.hub-badge {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.5rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.hub-badge-live { background: rgba(0, 255, 102, 0.1); border: 1px solid rgba(0, 255, 102, 0.2); color: #00FF66; }
+.hub-badge-danger { background: rgba(255, 42, 85, 0.1); border: 1px solid rgba(255, 42, 85, 0.2); color: #FF2A55; }
+.hub-badge-warning { background: rgba(255, 184, 0, 0.1); border: 1px solid rgba(255, 184, 0, 0.2); color: #FFB800; }
+.hub-badge-info { background: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.2); color: #00F0FF; }
+.hub-badge-neutral { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #9CA3AF; }
+
+/* ── Announcement Dot Colors ──────────────────────────────── */
+.ann-dot-urgent { background: #FF2A55; box-shadow: 0 0 10px rgba(255, 42, 85, 0.6); }
+.ann-dot-warning { background: #FFB800; box-shadow: 0 0 10px rgba(255, 184, 0, 0.5); }
+.ann-dot-info { background: #00F0FF; }
+.ann-dot-success { background: #00FF66; }
+
+/* ── Squad / Roster Slot Colors ───────────────────────────── */
+.roster-starter { border-left: 2px solid #00F0FF; }
+.roster-sub { border-left: 2px solid #FFB800; }
+.roster-coach { border-left: 2px solid #7000FF; }
+
+/* ── Phase Countdown Blocks ───────────────────────────────── */
+.countdown-block {
+  width: 4rem; height: 4rem;
+  border-radius: 0.75rem;
+  background: #000;
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+}
+.countdown-block.danger {
+  border-color: rgba(255, 42, 85, 0.3);
+  box-shadow: 0 0 20px rgba(255, 42, 85, 0.2);
+}
+.countdown-block.danger .countdown-val { color: #FF2A55; }
+.countdown-val {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #00F0FF;
+  font-family: 'Space Grotesk', monospace;
+}
+
+/* ── Check-In Button ──────────────────────────────────────── */
+.hub-checkin-btn {
+  padding: 1rem 2.5rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.75rem;
+  transition: all 0.3s;
+  border: none;
+  cursor: pointer;
+}
+.hub-checkin-btn.ready {
+  background: #00F0FF;
+  color: #000;
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.4);
+}
+.hub-checkin-btn.ready:hover {
+  background: #33F3FF;
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.6);
+}
+.hub-checkin-btn.done {
+  background: rgba(0, 255, 102, 0.15);
+  border: 1px solid rgba(0, 255, 102, 0.3);
+  color: #00FF66;
+  cursor: default;
+}
+.hub-checkin-btn.disabled {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #6B7280;
+  cursor: not-allowed;
+}
+
+/* ── Mobile Overlay for Sidebar ───────────────────────────── */
+.hub-mobile-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  display: none;
+}
+.hub-mobile-overlay.open { display: block; }
+.hub-sidebar-mobile {
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hub-sidebar-mobile.open { transform: translateX(0); }
+
+/* ── Animations / Keyframes ───────────────────────────────── */
+@keyframes hub-gridPan {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+@keyframes hub-scanline {
+  0% { transform: translateY(-100vh); }
+  100% { transform: translateY(100vh); }
+}
+@keyframes hub-slideIn {
+  0% { opacity: 0; transform: translateX(-16px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes hub-pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; filter: brightness(1.3); }
+}
+@keyframes hub-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-hub-pulse { animation: hub-pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.animate-hub-float { animation: hub-float 6s ease-in-out infinite; }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1023px) {
+  .hub-sidebar-desktop { display: none !important; }
+}
+@media (min-width: 1024px) {
+  .hub-mobile-toggle { display: none !important; }
+}

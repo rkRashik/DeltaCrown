@@ -1,0 +1,121 @@
+{% comment %}
+  Tab: Schedule — Tournament timeline / phase schedule
+  Renders tournament date milestones from context data.
+{% endcomment %}
+
+<div class="p-4 md:p-8 lg:p-10 max-w-[1200px] mx-auto space-y-8">
+
+  {% comment %}── Header ──────────────────────────────────────────────────{% endcomment %}
+  <div class="flex items-center justify-between border-b border-white/5 pb-6">
+    <div>
+      <h2 class="font-black text-2xl lg:text-3xl text-white" style="font-family:Outfit,sans-serif;">Event Schedule</h2>
+      <p class="text-sm text-gray-400 mt-1">Official timeline for all tournament phases.</p>
+    </div>
+  </div>
+  <div class="relative border-l-2 border-white/10 ml-4 md:ml-8 space-y-10 pb-12">
+
+    {% comment %}── Registration Start ────────────────────────────────────{% endcomment %}
+    {% if tournament.registration_start %}
+    <div class="relative pl-8 md:pl-12 {% if tournament.status != 'registration_open' and tournament.status != 'draft' and tournament.status != 'published' %}opacity-50{% endif %}">
+      <div class="absolute -left-[11px] top-1 w-5 h-5 rounded-full
+        {% if tournament.status == 'registration_open' %}bg-[#00FF66]/20 border-2 border-[#00FF66]
+        {% else %}bg-gray-800 border-4 border-[#020203]{% endif %}">
+        {% if tournament.status == 'registration_open' %}
+          <div class="w-full h-full rounded-full flex items-center justify-center">
+            <div class="w-1.5 h-1.5 rounded-full bg-[#00FF66] animate-pulse"></div>
+          </div>
+        {% endif %}
+      </div>
+      <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1" style="font-family:'Space Grotesk',monospace;">
+        {{ tournament.registration_start|date:"M d, Y — H:i" }}
+      </p>
+      <h3 class="font-bold text-xl text-white" style="font-family:Outfit,sans-serif;">Registration Opens</h3>
+      <p class="text-sm text-gray-400 mt-1">Teams can begin registering and paying entry fees.</p>
+    </div>
+    {% endif %}
+
+    {% comment %}── Registration End ──────────────────────────────────────{% endcomment %}
+    {% if tournament.registration_end %}
+    <div class="relative pl-8 md:pl-12 {% if tournament.status == 'registration_open' or tournament.status == 'draft' or tournament.status == 'published' %}{% else %}opacity-50{% endif %}">
+      <div class="absolute -left-[11px] top-1 w-5 h-5 rounded-full
+        {% if tournament.status == 'registration_closed' %}bg-[#FFB800]/20 border-2 border-[#FFB800]
+        {% else %}bg-gray-800 border-4 border-[#020203]{% endif %}"></div>
+      <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1" style="font-family:'Space Grotesk',monospace;">
+        {{ tournament.registration_end|date:"M d, Y — H:i" }}
+      </p>
+      <h3 class="font-bold text-xl text-white" style="font-family:Outfit,sans-serif;">Registration Closes</h3>
+      <p class="text-sm text-gray-400 mt-1">Late entries finalized. Waitlist promotions processed.</p>
+    </div>
+    {% endif %}
+
+    {% comment %}── Check-In Window ───────────────────────────────────────{% endcomment %}
+    {% if lobby and lobby.check_in_opens_at %}
+    <div class="relative pl-8 md:pl-12 {% if check_in_status == 'open' %}{% else %}{% endif %}">
+      {% if check_in_status == 'open' %}
+        <div class="absolute -left-[13px] top-1 w-6 h-6 rounded-full bg-[#00F0FF]/20 border-2 border-[#00F0FF] shadow-[0_0_15px_rgba(0,240,255,0.5)] flex items-center justify-center">
+          <div class="w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse"></div>
+        </div>
+        <div class="hub-glass p-6 rounded-2xl border-[#00F0FF]/30 mt-[-0.5rem]">
+          <p class="text-[10px] font-bold text-[#00F0FF] uppercase tracking-widest mb-1" style="font-family:'Space Grotesk',monospace;">Right Now</p>
+          <h3 class="font-black text-2xl text-white" style="font-family:Outfit,sans-serif;">Check-In Open</h3>
+          <p class="text-sm text-gray-400 mt-1">
+            Confirm your presence now.
+            {% if lobby.check_in_closes_at %}Window closes at {{ lobby.check_in_closes_at|date:"H:i" }}.{% endif %}
+          </p>
+        </div>
+      {% else %}
+        <div class="absolute -left-[11px] top-1 w-5 h-5 rounded-full bg-gray-800 border-4 border-[#020203]"></div>
+        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1" style="font-family:'Space Grotesk',monospace;">
+          {{ lobby.check_in_opens_at|date:"M d, Y — H:i" }}
+        </p>
+        <h3 class="font-bold text-xl text-white" style="font-family:Outfit,sans-serif;">Check-In Window</h3>
+        <p class="text-sm text-gray-400 mt-1">
+          Opens for registered participants.
+          {% if lobby.check_in_closes_at %}Closes at {{ lobby.check_in_closes_at|date:"H:i" }}.{% endif %}
+        </p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% comment %}── Tournament Start ──────────────────────────────────────{% endcomment %}
+    {% if tournament.tournament_start %}
+    <div class="relative pl-8 md:pl-12">
+      {% if tournament.status == 'live' %}
+        <div class="absolute -left-[13px] top-1 w-6 h-6 rounded-full bg-[#00FF66]/20 border-2 border-[#00FF66] shadow-[0_0_15px_rgba(0,255,102,0.5)] flex items-center justify-center">
+          <div class="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse"></div>
+        </div>
+        <div class="hub-glass p-6 rounded-2xl border-[#00FF66]/30 mt-[-0.5rem]">
+          <p class="text-[10px] font-bold text-[#00FF66] uppercase tracking-widest mb-1" style="font-family:'Space Grotesk',monospace;">Live Now</p>
+          <h3 class="font-black text-2xl text-white" style="font-family:Outfit,sans-serif;">Tournament In Progress</h3>
+          <p class="text-sm text-gray-400 mt-1">Matches are underway. Report scores immediately after completion.</p>
+        </div>
+      {% else %}
+        <div class="absolute -left-[11px] top-1 w-5 h-5 rounded-full bg-white/10 border-4 border-[#020203]"></div>
+        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1" style="font-family:'Space Grotesk',monospace;">
+          {{ tournament.tournament_start|date:"M d, Y — H:i" }}
+        </p>
+        <h3 class="font-bold text-xl text-white" style="font-family:Outfit,sans-serif;">Tournament Begins</h3>
+        <p class="text-sm text-gray-400 mt-1">First round matches go live.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% comment %}── Tournament End ────────────────────────────────────────{% endcomment %}
+    {% if tournament.tournament_end %}
+    <div class="relative pl-8 md:pl-12 {% if tournament.status != 'completed' %}opacity-40{% endif %}">
+      <div class="absolute -left-[11px] top-1 w-5 h-5 rounded-full
+        {% if tournament.status == 'completed' %}bg-gray-500 border-4 border-[#020203]
+        {% else %}bg-white/5 border-4 border-[#020203]{% endif %}"></div>
+      <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1" style="font-family:'Space Grotesk',monospace;">
+        {{ tournament.tournament_end|date:"M d, Y — H:i" }}
+      </p>
+      <h3 class="font-bold text-xl text-white" style="font-family:Outfit,sans-serif;">
+        {% if tournament.status == 'completed' %}Tournament Concluded{% else %}Grand Finals{% endif %}
+      </h3>
+      <p class="text-sm text-gray-400 mt-1">Final matches and prize distribution.</p>
+    </div>
+    {% endif %}
+
+  </div>
+
+</div>

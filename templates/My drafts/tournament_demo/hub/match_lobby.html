@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth overflow-hidden">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Lobby | DeltaCrown</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                        mono: ['Space Grotesk', 'monospace'],
+                    },
+                    colors: {
+                        dc: {
+                            base: '#020203',
+                            surface: '#08080A',
+                            panel: 'rgba(12, 12, 16, 0.7)',
+                            cyan: '#00F0FF',
+                            danger: '#FF2A55',
+                            warning: '#FFB800',
+                            success: '#00FF66'
+                        }
+                    },
+                    animation: {
+                        'pulse-glow-cyan': 'pulseGlowCyan 2s infinite alternate',
+                        'pulse-glow-danger': 'pulseGlowDanger 2s infinite alternate',
+                        'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        pulseGlowCyan: { '0%': { boxShadow: '0 0 10px rgba(0,240,255,0.2)' }, '100%': { boxShadow: '0 0 30px rgba(0,240,255,0.6)' } },
+                        pulseGlowDanger: { '0%': { boxShadow: '0 0 10px rgba(255,42,85,0.2)' }, '100%': { boxShadow: '0 0 30px rgba(255,42,85,0.6)' } },
+                        slideUp: { '0%': { opacity: 0, transform: 'translateY(20px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body { background-color: #020203; color: #E2E8F0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Cinematic Background */
+        .bg-cinematic {
+            position: absolute; inset: 0; z-index: -10;
+            background-image: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2850&auto=format&fit=crop');
+            background-size: cover; background-position: center;
+            opacity: 0.1; filter: grayscale(80%) contrast(1.2);
+        }
+        .bg-gradient-overlay {
+            position: absolute; inset: 0; z-index: -9;
+            background: radial-gradient(circle at 0% 50%, rgba(0, 240, 255, 0.05) 0%, transparent 40%),
+                        radial-gradient(circle at 100% 50%, rgba(255, 42, 85, 0.05) 0%, transparent 40%),
+                        linear-gradient(180deg, rgba(2,2,3,0.85) 0%, #020203 100%);
+        }
+
+        /* Glass Architecture */
+        .glass-panel {
+            background: var(--tw-colors-dc-panel);
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Veto Map Cards */
+        .map-card { position: relative; overflow: hidden; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); height: 140px; }
+        .map-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; filter: grayscale(50%); }
+        .map-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.1) 100%); transition: opacity 0.3s; }
+        .map-card:hover { border-color: rgba(255,255,255,0.3); transform: translateY(-4px); }
+        .map-card:hover img { transform: scale(1.05); filter: grayscale(0%); }
+
+        /* Banned State */
+        .map-card.banned { pointer-events: none; border-color: rgba(255,42,85,0.3); }
+        .map-card.banned img { filter: grayscale(100%) brightness(0.3); }
+        .map-card.banned .status-badge { opacity: 1; background: rgba(255,42,85,0.9); color: white; content: 'BANNED'; }
+
+        /* Picked State */
+        .map-card.picked { pointer-events: none; border-color: #00F0FF; box-shadow: 0 0 20px rgba(0,240,255,0.3); }
+        .map-card.picked img { filter: grayscale(0%) brightness(1.1); }
+        .map-card.picked .status-badge { opacity: 1; background: rgba(0,240,255,0.9); color: black; content: 'PICKED'; }
+
+        .status-badge {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            padding: 0.25rem 1rem; font-family: 'Space Grotesk'; font-weight: 900; font-size: 1.25rem; letter-spacing: 0.2em;
+            opacity: 0; z-index: 10; transition: opacity 0.3s;
+        }
+
+        /* Slant & Custom Scroll */
+        .clip-slant { clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+        .hidden-state { display: none !important; }
+    </style>
+</head>
+<body class="relative">
+
+    <div class="bg-cinematic"></div>
+    <div class="bg-gradient-overlay"></div>
+
+    <nav class="w-full h-16 flex items-center justify-between px-6 border-b border-white/5 z-50 bg-dc-base/80 backdrop-blur-md shrink-0">
+        <div class="flex items-center gap-4">
+            <a href="#" class="text-gray-400 hover:text-white transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Hub
+            </a>
+            <div class="h-4 w-px bg-white/10"></div>
+            <span class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Match ID: #VAL-8821-X</span>
+        </div>
+
+        <button class="px-4 py-1.5 rounded bg-dc-danger/10 text-dc-danger border border-dc-danger/30 hover:bg-dc-danger hover:text-white transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-[0_0_15px_rgba(255,42,85,0.2)]">
+            <i data-lucide="siren" class="w-3 h-3"></i> Call Match Medic
+        </button>
+    </nav>
+
+    <header class="w-full border-b border-white/5 bg-black/40 backdrop-blur-sm shrink-0 relative overflow-hidden">
+        <div class="absolute left-0 top-0 bottom-0 w-1/2 bg-gradient-to-r from-dc-cyan/10 to-transparent pointer-events-none"></div>
+        <div class="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-dc-danger/10 to-transparent pointer-events-none"></div>
+
+        <div class="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between relative z-10">
+            <div class="flex items-center gap-4 flex-1">
+                <div class="w-16 h-16 rounded-xl bg-dc-cyan/20 border border-dc-cyan/40 flex items-center justify-center text-dc-cyan font-display font-black text-2xl animate-pulse-glow-cyan shadow-[0_0_20px_rgba(0,240,255,0.2)]">PS</div>
+                <div>
+                    <h2 class="font-display font-bold text-2xl text-white tracking-wide">PlaySphere</h2>
+                    <p class="text-[10px] text-dc-cyan font-mono tracking-widest uppercase">Your Squad • Seed #4</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center justify-center px-8 shrink-0">
+                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Round of 32 • BO1</span>
+                <div class="w-12 h-12 rounded-full bg-dc-base border border-white/10 flex items-center justify-center font-display font-black text-gray-400 italic text-xl z-10 shadow-[0_0_20px_rgba(0,0,0,0.8)]">VS</div>
+            </div>
+
+            <div class="flex items-center gap-4 flex-1 justify-end text-right">
+                <div>
+                    <h2 class="font-display font-bold text-2xl text-white tracking-wide">Sentinels Acad</h2>
+                    <p class="text-[10px] text-dc-danger font-mono tracking-widest uppercase">Opponent • Seed #12</p>
+                </div>
+                <div class="w-16 h-16 rounded-xl bg-dc-danger/20 border border-dc-danger/40 flex items-center justify-center text-dc-danger font-display font-black text-2xl shadow-[0_0_20px_rgba(255,42,85,0.2)]">SEN</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-hidden w-full max-w-[1800px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-0 relative z-10">
+
+        <section class="col-span-1 lg:col-span-8 h-full overflow-y-auto p-6 lg:p-10 border-r border-white/5 flex flex-col gap-8 pb-32">
+
+            <div class="flex items-center justify-between glass-panel px-6 py-4 rounded-xl">
+                <div class="flex items-center gap-3">
+                    <div id="phase-1-icon" class="w-6 h-6 rounded-full bg-dc-cyan text-black flex items-center justify-center font-bold text-xs"><i data-lucide="map" class="w-3 h-3"></i></div>
+                    <span id="phase-1-text" class="text-xs font-bold text-white uppercase tracking-widest">Map Veto</span>
+                </div>
+                <div class="flex-1 h-px bg-white/10 mx-4"></div>
+                <div class="flex items-center gap-3 opacity-40" id="phase-2-container">
+                    <div id="phase-2-icon" class="w-6 h-6 rounded-full bg-gray-800 border border-gray-600 text-gray-400 flex items-center justify-center font-bold text-xs"><i data-lucide="server" class="w-3 h-3"></i></div>
+                    <span id="phase-2-text" class="text-xs font-bold text-gray-400 uppercase tracking-widest">Server Connection</span>
+                </div>
+                <div class="flex-1 h-px bg-white/10 mx-4"></div>
+                <div class="flex items-center gap-3 opacity-40" id="phase-3-container">
+                    <div id="phase-3-icon" class="w-6 h-6 rounded-full bg-gray-800 border border-gray-600 text-gray-400 flex items-center justify-center font-bold text-xs"><i data-lucide="flag" class="w-3 h-3"></i></div>
+                    <span id="phase-3-text" class="text-xs font-bold text-gray-400 uppercase tracking-widest">Report Result</span>
+                </div>
+            </div>
+
+            <div id="module-veto" class="animate-slide-up">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="font-display font-black text-2xl text-white">Map Pool (BO1)</h3>
+                        <p id="veto-instruction" class="text-sm text-dc-cyan font-bold mt-1 animate-pulse">Your turn: BAN a map.</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Turn Timer</p>
+                        <p class="font-mono text-xl text-white font-bold">01:45</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div class="map-card" onclick="processVeto(this, 'Ascent')">
+                        <img src="https://images.unsplash.com/photo-1635848528956-613d18e803c1?q=80&w=600&auto=format&fit=crop">
+                        <span class="absolute bottom-3 left-4 font-display font-bold text-white text-xl z-10">Ascent</span>
+                        <div class="status-badge"></div>
+                    </div>
+                    <div class="map-card" onclick="processVeto(this, 'Bind')">
+                        <img src="https://images.unsplash.com/photo-1635848529064-9694b46b6bb7?q=80&w=600&auto=format&fit=crop">
+                        <span class="absolute bottom-3 left-4 font-display font-bold text-white text-xl z-10">Bind</span>
+                        <div class="status-badge"></div>
+                    </div>
+                    <div class="map-card" onclick="processVeto(this, 'Haven')">
+                        <img src="https://images.unsplash.com/photo-1635848529239-1ff472147395?q=80&w=600&auto=format&fit=crop">
+                        <span class="absolute bottom-3 left-4 font-display font-bold text-white text-xl z-10">Haven</span>
+                        <div class="status-badge"></div>
+                    </div>
+                    <div class="map-card" onclick="processVeto(this, 'Split')">
+                        <img src="https://images.unsplash.com/photo-1635848528766-3d2b270b22a6?q=80&w=600&auto=format&fit=crop">
+                        <span class="absolute bottom-3 left-4 font-display font-bold text-white text-xl z-10">Split</span>
+                        <div class="status-badge"></div>
+                    </div>
+                    <div class="map-card" onclick="processVeto(this, 'Lotus')">
+                        <img src="https://images.unsplash.com/photo-1635848528766-3d2b270b22a6?q=80&w=600&auto=format&fit=crop">
+                        <span class="absolute bottom-3 left-4 font-display font-bold text-white text-xl z-10">Lotus</span>
+                        <div class="status-badge"></div>
+                    </div>
+                </div>
+
+                <div class="mt-6 glass-panel p-4 rounded-xl">
+                    <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 border-b border-white/5 pb-2">Veto Audit Log</h4>
+                    <ul id="veto-log" class="space-y-2 text-xs font-mono text-gray-400">
+                        <li><span class="text-white">System:</span> Coin toss won by PlaySphere. PlaySphere gets first ban.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="module-server" class="hidden-state animate-slide-up">
+                <div class="bg-gradient-to-br from-dc-cyan/10 to-transparent border border-dc-cyan/30 rounded-2xl p-8 relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-64 h-64 bg-dc-cyan/20 blur-[60px] pointer-events-none rounded-full"></div>
+
+                    <div class="flex items-start justify-between relative z-10">
+                        <div>
+                            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-dc-cyan/20 text-dc-cyan text-[10px] font-black uppercase tracking-widest mb-4">
+                                <span class="w-1.5 h-1.5 rounded-full bg-dc-cyan animate-pulse"></span> Server Generated
+                            </div>
+                            <h3 class="font-display font-black text-4xl text-white mb-2" id="final-map-name">Map Name</h3>
+                            <p class="text-sm text-gray-400">Join the custom lobby within 10 minutes to avoid an auto-forfeit.</p>
+                        </div>
+
+                        <div class="text-right">
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Host Details</p>
+                            <div class="bg-black/60 border border-white/10 rounded-xl p-4 flex flex-col gap-3 min-w-[200px]">
+                                <div>
+                                    <p class="text-[10px] text-gray-500 uppercase mb-0.5">Lobby Host (Add Friend)</p>
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono text-sm font-bold text-white">TourneyBot#882</span>
+                                        <i data-lucide="copy" class="w-4 h-4 text-gray-500 cursor-pointer hover:text-white transition-colors"></i>
+                                    </div>
+                                </div>
+                                <div class="h-px w-full bg-white/5"></div>
+                                <div>
+                                    <p class="text-[10px] text-gray-500 uppercase mb-0.5">Lobby Password</p>
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono text-sm font-bold text-dc-cyan">WINTER26</span>
+                                        <i data-lucide="copy" class="w-4 h-4 text-gray-500 cursor-pointer hover:text-white transition-colors"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="module-report" class="hidden-state animate-slide-up glass-panel p-8 rounded-2xl">
+                <h3 class="font-display font-black text-2xl text-white mb-2">Submit Match Result</h3>
+                <p class="text-sm text-gray-400 mb-8">Both captains must submit the final score. Deliberately falsifying scores will result in a permanent ban.</p>
+
+                <form class="space-y-6" onsubmit="event.preventDefault();">
+                    <div class="flex items-center justify-center gap-8 bg-black/40 rounded-xl p-6 border border-white/5">
+                        <div class="text-center">
+                            <label class="block text-[10px] font-bold text-dc-cyan uppercase tracking-widest mb-2">PlaySphere Score</label>
+                            <input type="number" min="0" max="99" class="w-24 text-center bg-white/5 border border-white/10 rounded-lg py-4 text-3xl font-display font-black text-white focus:border-dc-cyan focus:outline-none" placeholder="0">
+                        </div>
+                        <span class="text-2xl font-black text-gray-600">-</span>
+                        <div class="text-center">
+                            <label class="block text-[10px] font-bold text-dc-danger uppercase tracking-widest mb-2">Sentinels Acad Score</label>
+                            <input type="number" min="0" max="99" class="w-24 text-center bg-white/5 border border-white/10 rounded-lg py-4 text-3xl font-display font-black text-white focus:border-dc-danger focus:outline-none" placeholder="0">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Proof of Victory (Screenshot)</label>
+                        <div class="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-dc-cyan/50 hover:bg-dc-cyan/5 transition-colors cursor-pointer group">
+                            <i data-lucide="image-plus" class="w-8 h-8 mx-auto text-gray-500 group-hover:text-dc-cyan mb-3 transition-colors"></i>
+                            <p class="text-sm font-bold text-white">Click to upload or drag and drop</p>
+                            <p class="text-xs text-gray-500 mt-1">PNG, JPG up to 5MB</p>
+                        </div>
+                    </div>
+
+                    <button class="w-full clip-slant py-4 bg-white text-black font-black uppercase tracking-widest text-sm hover:bg-gray-200 transition-colors">
+                        Submit Final Result
+                    </button>
+                </form>
+            </div>
+
+        </section>
+
+        <aside class="col-span-1 lg:col-span-4 h-full flex flex-col bg-dc-surface z-20 shadow-[-20px_0_50px_rgba(0,0,0,0.5)]">
+
+            <div class="flex border-b border-white/5 shrink-0 bg-dc-base/50">
+                <button class="flex-1 py-4 text-xs font-bold text-dc-cyan border-b-2 border-dc-cyan transition-colors" onclick="toggleSidebar('chat', this)">Match Chat</button>
+                <button class="flex-1 py-4 text-xs font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors" onclick="toggleSidebar('intel', this)">Squad Intel</button>
+            </div>
+
+            <div id="view-chat" class="flex-1 flex flex-col overflow-hidden">
+                <div id="chat-window" class="flex-1 overflow-y-auto p-4 space-y-4 font-sans text-sm">
+                    <div class="flex justify-center my-2">
+                        <span class="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold uppercase tracking-widest text-gray-400">Match Lobby Secure Link Established</span>
+                    </div>
+                </div>
+
+                <div class="p-4 border-t border-white/5 bg-black/40 shrink-0">
+                    <form class="relative flex items-center" id="chat-form">
+                        <input type="text" id="chat-input" placeholder="Coordinate with opponent..." class="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm text-white focus:outline-none focus:border-dc-cyan transition-all">
+                        <button type="submit" class="absolute right-2 p-2 text-gray-400 hover:text-dc-cyan transition-colors">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="view-intel" class="flex-1 overflow-y-auto p-6 hidden-state">
+
+                <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Your Squad (PS)</h3>
+                <div class="space-y-2 mb-8">
+                    <div class="flex items-center justify-between p-3 rounded-lg bg-dc-cyan/5 border border-dc-cyan/20">
+                        <div class="flex items-center gap-3">
+                            <img src="https://ui-avatars.com/api/?name=R&background=000&color=fff" class="w-8 h-8 rounded border border-gray-700">
+                            <div><p class="text-sm font-bold text-white">Rock <span class="text-dc-cyan text-[10px]">(C)</span></p><p class="text-[10px] text-gray-500 font-mono">SIUU#BD1</p></div>
+                        </div>
+                        <span class="text-[10px] font-mono text-white bg-white/10 px-2 py-1 rounded">Ascendant</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-xs font-bold">V</div>
+                            <div><p class="text-sm font-bold text-white">ViperMain</p><p class="text-[10px] text-gray-500 font-mono">Toxic#888</p></div>
+                        </div>
+                        <span class="text-[10px] font-mono text-white bg-white/10 px-2 py-1 rounded">Immortal</span>
+                    </div>
+                    </div>
+
+                <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Opponent (SEN)</h3>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between p-3 rounded-lg bg-dc-danger/5 border border-dc-danger/20">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded bg-dc-danger/20 flex items-center justify-center text-dc-danger font-bold text-xs">T</div>
+                            <div><p class="text-sm font-bold text-white">TenzClone <span class="text-dc-danger text-[10px]">(C)</span></p><p class="text-[10px] text-gray-500 font-mono">Aim#GOD</p></div>
+                        </div>
+                        <span class="text-[10px] font-mono text-white bg-white/10 px-2 py-1 rounded">Radiant</span>
+                    </div>
+                     <div class="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-xs font-bold">O</div>
+                            <div><p class="text-sm font-bold text-white">OmenGod</p><p class="text-[10px] text-gray-500 font-mono">TP#WIN</p></div>
+                        </div>
+                        <span class="text-[10px] font-mono text-white bg-white/10 px-2 py-1 rounded">Immortal</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </aside>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // --- VETO STATE MACHINE ---
+        let vetoStep = 0; // Max 4 bans, 1 pick
+        let isMyTurn = true;
+        const log = document.getElementById('veto-log');
+        const instruction = document.getElementById('veto-instruction');
+
+        function processVeto(card, mapName) {
+            // Guard clause
+            if(card.classList.contains('banned') || card.classList.contains('picked') || !isMyTurn) return;
+
+            vetoStep++;
+            isMyTurn = false; // Lock interactions
+
+            if (vetoStep <= 4) {
+                // IT IS A BAN
+                card.classList.add('banned');
+                card.querySelector('.status-badge').innerText = 'BANNED';
+
+                // Add to log
+                addLogEntry(`PlaySphere BANNED ${mapName}`, 'dc-cyan');
+                instruction.innerText = "Opponent is banning a map...";
+                instruction.classList.remove('text-dc-cyan', 'animate-pulse');
+                instruction.classList.add('text-dc-danger');
+
+                // Simulate opponent action after 1.5 seconds
+                if(vetoStep < 4) {
+                    setTimeout(() => simulateOpponentVeto(), 1500);
+                } else {
+                    // It's the final pick next
+                    setTimeout(() => {
+                        isMyTurn = true;
+                        instruction.innerText = "Your turn: PICK the final map.";
+                        instruction.classList.remove('text-dc-danger');
+                        instruction.classList.add('text-dc-success', 'animate-pulse');
+                    }, 1500);
+                }
+
+            } else if (vetoStep === 5) {
+                // IT IS THE FINAL PICK
+                card.classList.add('picked');
+                card.querySelector('.status-badge').innerText = 'PICKED';
+                document.getElementById('final-map-name').innerText = mapName;
+
+                addLogEntry(`PlaySphere PICKED ${mapName}. Generating server...`, 'dc-success');
+                instruction.innerText = "Veto Phase Complete.";
+                instruction.classList.remove('animate-pulse');
+
+                // Trigger Phase Transition
+                triggerPhaseTransition();
+            }
+        }
+
+        function simulateOpponentVeto() {
+            // Find an available map
+            const availableCards = Array.from(document.querySelectorAll('.map-card:not(.banned):not(.picked)'));
+            if(availableCards.length === 0) return;
+
+            const randomCard = availableCards[Math.floor(Math.random() * availableCards.length)];
+            const mapName = randomCard.querySelector('span').innerText;
+
+            vetoStep++;
+            randomCard.classList.add('banned');
+            randomCard.querySelector('.status-badge').innerText = 'BANNED';
+
+            addLogEntry(`Sentinels Acad BANNED ${mapName}`, 'dc-danger');
+
+            // Give control back to user
+            isMyTurn = true;
+            instruction.innerText = "Your turn: BAN a map.";
+            instruction.classList.remove('text-dc-danger');
+            instruction.classList.add('text-dc-cyan', 'animate-pulse');
+
+            if(vetoStep === 4) {
+                instruction.innerText = "Your turn: PICK the final map.";
+                instruction.classList.remove('text-dc-cyan');
+                instruction.classList.add('text-dc-success');
+            }
+        }
+
+        function addLogEntry(text, colorClass) {
+            const li = document.createElement('li');
+            li.innerHTML = `<span class="text-${colorClass} font-bold mr-2">></span> ${text}`;
+            log.appendChild(li);
+        }
+
+        // --- PHASE MORPHING LOGIC ---
+        function triggerPhaseTransition() {
+            // 1. Update Top Phase Tracker UI
+            document.getElementById('phase-1-icon').className = 'w-6 h-6 rounded-full bg-dc-success text-black flex items-center justify-center font-bold text-xs';
+            document.getElementById('phase-1-icon').innerHTML = '<i data-lucide="check" class="w-3 h-3"></i>';
+            document.getElementById('phase-1-text').classList.replace('text-white', 'text-gray-400');
+
+            const p2c = document.getElementById('phase-2-container');
+            p2c.classList.remove('opacity-40');
+            document.getElementById('phase-2-icon').className = 'w-6 h-6 rounded-full bg-dc-cyan text-black flex items-center justify-center font-bold text-xs';
+            document.getElementById('phase-2-text').classList.replace('text-gray-400', 'text-white');
+            lucide.createIcons();
+
+            // 2. Hide Veto, Show Server
+            setTimeout(() => {
+                document.getElementById('module-veto').classList.add('hidden-state');
+                document.getElementById('module-server').classList.remove('hidden-state');
+
+                // Add System Chat Message
+                appendChatMessage('Server details have been securely distributed.', 'system');
+
+                // 3. Simulate Match Completion -> Unlock Result Form
+                setTimeout(() => {
+                    // Update Phase Tracker again
+                    document.getElementById('phase-2-icon').className = 'w-6 h-6 rounded-full bg-dc-success text-black flex items-center justify-center font-bold text-xs';
+                    document.getElementById('phase-2-icon').innerHTML = '<i data-lucide="check" class="w-3 h-3"></i>';
+                    document.getElementById('phase-2-text').classList.replace('text-white', 'text-gray-400');
+
+                    const p3c = document.getElementById('phase-3-container');
+                    p3c.classList.remove('opacity-40');
+                    document.getElementById('phase-3-icon').className = 'w-6 h-6 rounded-full bg-dc-cyan text-black flex items-center justify-center font-bold text-xs';
+                    document.getElementById('phase-3-text').classList.replace('text-gray-400', 'text-white');
+                    lucide.createIcons();
+
+                    document.getElementById('module-report').classList.remove('hidden-state');
+                    appendChatMessage('Match concluded. Both captains must submit results.', 'system');
+
+                    // Scroll down to the report module smoothly
+                    document.querySelector('.lg\\:col-span-8').scrollTo({ top: 1000, behavior: 'smooth' });
+                }, 4000); // Wait 4 seconds for demo purposes
+
+            }, 1500);
+        }
+
+        // --- SIDEBAR TOGGLE ---
+        function toggleSidebar(view, btn) {
+            // Reset Buttons
+            const buttons = btn.parentElement.querySelectorAll('button');
+            buttons.forEach(b => {
+                b.classList.remove('text-dc-cyan', 'border-dc-cyan');
+                b.classList.add('text-gray-500', 'border-transparent');
+            });
+
+            // Activate Clicked
+            btn.classList.remove('text-gray-500', 'border-transparent');
+            btn.classList.add('text-dc-cyan', 'border-dc-cyan');
+
+            // Hide all views
+            document.getElementById('view-chat').classList.add('hidden-state');
+            document.getElementById('view-intel').classList.add('hidden-state');
+
+            // Show target
+            document.getElementById(`view-${view}`).classList.remove('hidden-state');
+        }
+
+        // --- SIMPLE CHAT LOGIC ---
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const chatWindow = document.getElementById('chat-window');
+
+        chatForm.addEventListener('submit', (e) => {
+            const text = chatInput.value.trim();
+            if(!text) return;
+            appendChatMessage(text, 'user');
+            chatInput.value = '';
+        });
+
+        function appendChatMessage(text, type) {
+            const div = document.createElement('div');
+
+            if(type === 'system') {
+                div.className = "flex justify-center my-4 animate-slide-up";
+                div.innerHTML = `<span class="px-3 py-1 bg-dc-cyan/10 border border-dc-cyan/30 rounded-full text-[10px] font-bold uppercase tracking-widest text-dc-cyan">${text}</span>`;
+            } else {
+                div.className = "flex gap-3 flex-row-reverse text-right animate-slide-up mt-4";
+                div.innerHTML = `
+                    <div class="w-8 h-8 rounded bg-dc-cyan/20 flex items-center justify-center text-dc-cyan font-bold text-xs shrink-0">R</div>
+                    <div class="flex flex-col items-end">
+                        <div class="flex items-baseline gap-2 mb-0.5 flex-row-reverse">
+                            <span class="font-bold text-dc-cyan text-xs">Rock [PS]</span>
+                            <span class="text-[9px] text-gray-500">Just now</span>
+                        </div>
+                        <p class="text-white bg-dc-cyan/10 p-2.5 rounded-lg rounded-tr-none border border-dc-cyan/20 inline-block text-left">${text}</p>
+                    </div>
+                `;
+            }
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+    </script>
+</body>
+</html>

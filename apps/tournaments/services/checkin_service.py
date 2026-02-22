@@ -14,6 +14,7 @@ Date: November 8, 2025
 import logging
 from typing import Dict, List, Optional
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.contrib.auth import get_user_model
@@ -355,7 +356,71 @@ class CheckinService:
     # Private Helper Methods
     # ========================
     
+    # ========================
+    # Public Query Methods (used by Sprint 5 checkin.py views)
+    # ========================
+
     @staticmethod
+    def get_check_in_opens_at(tournament: Tournament):
+        """Return the datetime when check-in opens for this tournament."""
+        # If there's a Sprint 10 TournamentLobby with explicit timestamps, prefer those
+        lobby = getattr(tournament, 'lobby', None)
+        if lobby and lobby.check_in_opens_at:
+            return lobby.check_in_opens_at
+        # Fallback: computed from tournament_start
+        if tournament.tournament_start:
+            return tournament.tournament_start - timezone.timedelta(
+                minutes=CheckinService.CHECK_IN_WINDOW_BEFORE_START
+            )
+        return None
+
+    @staticmethod
+    def get_check_in_closes_at(tournament: Tournament):
+        """Return the datetime when check-in closes for this tournament."""
+        lobby = getattr(tournament, 'lobby', None)
+        if lobby and lobby.check_in_closes_at:
+            return lobby.check_in_closes_at
+        # Fallback: closes at tournament start
+        if tournament.tournament_start:
+            return tournament.tournament_start
+        return None
+
+    @staticmethod
+    def is_check_in_window_open(tournament: Tournament) -> bool:
+        """Public wrapper: is the check-in window currently open?"""
+        # Prefer TournamentLobby if it exists
+        lobby = getattr(tournament, 'lobby', None)
+        if lobby:
+            return lobby.is_check_in_open
+        return CheckinService._is_check_in_window_open(tournament)
+
+    @staticmethod
+    def can_check_in(tournament: Tournament, user) -> bool:
+        """
+        Return True if the given user is eligible to check in right now.
+        Checks: window open + has confirmed registration + not already checked in.
+        """
+        if not CheckinService.is_check_in_window_open(tournament):
+            return False
+
+        # Find the user's registration
+        reg = Registration.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+            status='confirmed',
+        ).filter(
+            Q(user=user) |
+            Q(team__memberships__user=user, team__memberships__status='ACTIVE')
+        ).first()
+
+        if not reg:
+            return False
+
+        # Already checked in?
+        if getattr(reg, 'checked_in', False):
+            return False
+
+        return True
     def _validate_check_in_eligibility(
         registration: Registration,
         tournament: Tournament,
