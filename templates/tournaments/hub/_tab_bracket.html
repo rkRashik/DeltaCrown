@@ -1,7 +1,6 @@
 {% comment %}
   Tab: Bracket — Tournament bracket visualization
-  Full bracket data will be wired in a future sprint.
-  For now: structural placeholder with the cinematic bracket aesthetic.
+  Data loaded async via /hub/api/bracket/ and rendered by hub-engine.js
 {% endcomment %}
 
 <div class="h-full w-full relative">
@@ -13,7 +12,20 @@
         Bracket
       </h2>
       <div class="h-5 w-px bg-white/10"></div>
-      <span class="text-xs text-gray-400">{{ tournament.get_format_display|default:tournament.format|default:"Single Elimination" }}</span>
+      <span id="bracket-format-label" class="text-xs text-gray-400">{{ tournament.get_format_display|default:tournament.format|default:"Single Elimination" }}</span>
+    </div>
+
+    {% comment %}Zoom controls{% endcomment %}
+    <div id="bracket-zoom-controls" class="hub-glass px-3 py-2 rounded-xl pointer-events-auto flex items-center gap-2 hidden">
+      <button onclick="HubEngine.bracketZoom(1)" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors" title="Zoom In">
+        <i data-lucide="zoom-in" class="w-4 h-4 text-gray-400"></i>
+      </button>
+      <button onclick="HubEngine.bracketReset()" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors" title="Reset">
+        <i data-lucide="maximize-2" class="w-4 h-4 text-gray-400"></i>
+      </button>
+      <button onclick="HubEngine.bracketZoom(-1)" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors" title="Zoom Out">
+        <i data-lucide="zoom-out" class="w-4 h-4 text-gray-400"></i>
+      </button>
     </div>
   </div>
 
@@ -21,8 +33,23 @@
   <div class="absolute inset-0 overflow-auto pt-24 pb-16 px-6 md:px-10"
        style="background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 20px 20px;">
 
-    {% comment %}Placeholder — bracket data will be dynamically rendered{% endcomment %}
-    <div class="flex items-center justify-center min-h-[400px]">
+    {% comment %}Loading skeleton{% endcomment %}
+    <div id="bracket-skeleton" class="flex gap-12 items-start justify-center min-h-[400px] py-8">
+      {% for _ in "123" %}
+      <div class="space-y-4 animate-pulse">
+        <div class="h-3 bg-white/10 rounded w-24 mx-auto mb-6"></div>
+        {% for _ in "12" %}
+        <div class="w-56 h-20 rounded-xl bg-white/5 border border-white/5"></div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+
+    {% comment %}Dynamic bracket tree — rendered by JS{% endcomment %}
+    <div id="hub-bracket-tree" class="bracket-tree-container" style="transform-origin: top left;"></div>
+
+    {% comment %}Not generated placeholder{% endcomment %}
+    <div id="bracket-not-generated" class="flex items-center justify-center min-h-[400px] hidden">
       <div class="text-center">
         <div class="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-6">
           <i data-lucide="git-merge" class="w-10 h-10 text-gray-600 transform rotate-90"></i>
@@ -30,9 +57,7 @@
         <h3 class="text-xl font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">Bracket Not Generated</h3>
         <p class="text-sm text-gray-500 max-w-md">
           The tournament bracket will appear here once the organizer generates matchups.
-          {% if tournament.status == 'registration_open' or tournament.status == 'registration_closed' %}
-            This typically happens after check-in closes.
-          {% endif %}
+          This typically happens after check-in closes.
         </p>
       </div>
     </div>

@@ -35,6 +35,7 @@ from apps.tournaments.models import (
     TournamentStaffRole, TournamentStaff, TournamentAnnouncement,
     RegistrationFormTemplate, TournamentRegistrationForm, FormResponse,
     TournamentFormConfiguration,
+    TournamentSponsor, PrizeClaim,
 )
 from apps.games.services import game_service
 from apps.games.models.game import Game as GamesGame
@@ -379,6 +380,14 @@ class TournamentAdmin(ModelAdmin):
                 'promo_video_url', 'stream_youtube_url', 'stream_twitch_url',
             ),
             'description': 'Tournament description and media. Banner: 1920x480, Thumbnail: 400x400.',
+        }),
+        ('Social & Contact Links', {
+            'fields': (
+                'social_discord', 'social_twitter', 'social_instagram',
+                'social_youtube', 'social_website', 'contact_email',
+            ),
+            'classes': ('collapse',),
+            'description': 'Organizer social links and contact info displayed in the Hub Resources tab.',
         }),
         ('Venue (LAN / Hybrid)', {
             'fields': ('venue_name', 'venue_address', 'venue_city', 'venue_map_url'),
@@ -1383,3 +1392,107 @@ class WebhookDeliveryAdmin(ModelAdmin):
 # TemplateRating and RatingHelpful models have been removed as part of
 # marketplace cleanup. These were only used for the template marketplace
 # which is now an admin-only feature without public ratings.
+
+
+# ============================================================================
+# HUB EXPANSION: Sponsor & Prize Claim Admin
+# ============================================================================
+
+@admin.register(TournamentSponsor)
+class TournamentSponsorAdmin(ModelAdmin):
+    """Admin for managing tournament sponsors."""
+
+    list_display = ['name', 'tournament', 'tier_badge', 'display_order', 'is_active', 'created_at']
+    list_filter = ['tier', 'is_active', 'created_at']
+    search_fields = ['name', 'tournament__name']
+    list_editable = ['display_order', 'is_active']
+    autocomplete_fields = ['tournament']
+    readonly_fields = ['created_at', 'updated_at']
+
+    fieldsets = (
+        (None, {
+            'fields': ('tournament', 'name', 'tier', 'display_order', 'is_active'),
+        }),
+        ('Branding', {
+            'fields': ('logo', 'banner_image', 'description'),
+        }),
+        ('Links', {
+            'fields': ('website_url',),
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def tier_badge(self, obj):
+        colors = {
+            'title': '#FFD700',
+            'gold': '#FFB800',
+            'silver': '#C0C0C0',
+            'bronze': '#CD7F32',
+            'partner': '#00F0FF',
+        }
+        color = colors.get(obj.tier, '#9CA3AF')
+        return format_html(
+            '<span style="background:{}; color:#000; padding:3px 10px; '
+            'border-radius:4px; font-size:11px; font-weight:700;">{}</span>',
+            color, obj.get_tier_display()
+        )
+    tier_badge.short_description = 'Tier'
+
+
+@admin.register(PrizeClaim)
+class PrizeClaimAdmin(ModelAdmin):
+    """Admin for managing prize claims."""
+
+    list_display = ['id', 'claimed_by', 'prize_tournament', 'prize_placement',
+                    'prize_amount', 'payout_method', 'status_badge', 'claimed_at']
+    list_filter = ['status', 'payout_method', 'claimed_at']
+    search_fields = ['claimed_by__username', 'prize_transaction__tournament__name']
+    readonly_fields = ['prize_transaction', 'claimed_by', 'claimed_at', 'created_at', 'updated_at']
+    autocomplete_fields = []
+
+    fieldsets = (
+        (None, {
+            'fields': ('prize_transaction', 'claimed_by', 'status'),
+        }),
+        ('Payout Details', {
+            'fields': ('payout_method', 'payout_destination', 'paid_at'),
+        }),
+        ('Admin', {
+            'fields': ('admin_notes',),
+        }),
+        ('Timestamps', {
+            'fields': ('claimed_at', 'created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def prize_tournament(self, obj):
+        return obj.prize_transaction.tournament.name if obj.prize_transaction else '-'
+    prize_tournament.short_description = 'Tournament'
+
+    def prize_placement(self, obj):
+        return obj.prize_transaction.get_placement_display() if obj.prize_transaction else '-'
+    prize_placement.short_description = 'Placement'
+
+    def prize_amount(self, obj):
+        return f"{obj.prize_transaction.amount}" if obj.prize_transaction else '-'
+    prize_amount.short_description = 'Amount'
+
+    def status_badge(self, obj):
+        colors = {
+            'pending': '#FFB800',
+            'processing': '#00F0FF',
+            'paid': '#00FF66',
+            'rejected': '#FF2A55',
+        }
+        color = colors.get(obj.status, '#9CA3AF')
+        return format_html(
+            '<span style="background:{}20; color:{}; padding:3px 10px; '
+            'border:1px solid {}40; border-radius:4px; font-size:11px; font-weight:700;">{}</span>',
+            color, color, color, obj.get_status_display()
+        )
+    status_badge.short_description = 'Status'
+

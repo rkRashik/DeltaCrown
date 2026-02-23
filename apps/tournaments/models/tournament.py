@@ -372,6 +372,38 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         help_text='Official Twitch stream URL'
     )
     
+    # Social & Contact Links (Hub Resources Module)
+    social_twitter = models.URLField(
+        blank=True,
+        default='',
+        help_text='Organizer X (Twitter) profile URL'
+    )
+    social_instagram = models.URLField(
+        blank=True,
+        default='',
+        help_text='Organizer Instagram URL'
+    )
+    social_youtube = models.URLField(
+        blank=True,
+        default='',
+        help_text='Organizer YouTube channel URL'
+    )
+    social_website = models.URLField(
+        blank=True,
+        default='',
+        help_text='Organizer website URL'
+    )
+    social_discord = models.URLField(
+        blank=True,
+        default='',
+        help_text='Discord server invite URL'
+    )
+    contact_email = models.EmailField(
+        blank=True,
+        default='',
+        help_text='Organizer contact email for participants'
+    )
+    
     # Features (enable/disable various tournament features)
     enable_check_in = models.BooleanField(
         default=True,

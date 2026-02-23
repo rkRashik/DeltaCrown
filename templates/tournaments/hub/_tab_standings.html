@@ -1,6 +1,6 @@
 {% comment %}
-  Tab: Standings — Global leaderboard with "You" highlight
-  Leaderboard data will be fetched from the standings API in a future sprint.
+  Tab: Standings — Group stage leaderboard with "You" highlight
+  Data loaded async via /hub/api/standings/ and rendered by hub-engine.js
 {% endcomment %}
 
 <div class="p-4 md:p-8 lg:p-10 max-w-[1400px] mx-auto space-y-8">
@@ -11,22 +11,37 @@
       <h2 class="font-black text-2xl lg:text-3xl text-white" style="font-family:Outfit,sans-serif;">Standings</h2>
       <p class="text-sm text-gray-400 mt-1">Live leaderboard updated automatically after every match.</p>
     </div>
+    <div id="standings-format-badge" class="hidden">
+      <span class="hub-badge hub-badge-info">{{ tournament.get_format_display }}</span>
+    </div>
   </div>
 
-  {% comment %}── Standings Table ────────────────────────────────────────{% endcomment %}
-  <div id="hub-standings-container">
-
-    {% comment %}Placeholder until real data is wired{% endcomment %}
-    <div class="hub-glass rounded-2xl p-10 flex flex-col items-center justify-center text-center">
-      <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-        <i data-lucide="bar-chart-2" class="w-8 h-8 text-gray-600"></i>
+  {% comment %}── Loading Skeleton ────────────────────────────────────────{% endcomment %}
+  <div id="standings-skeleton" class="space-y-4 animate-pulse">
+    <div class="h-4 bg-white/10 rounded w-32 mb-4"></div>
+    {% for _ in "12345" %}
+    <div class="hub-glass rounded-xl p-4 flex items-center gap-4">
+      <div class="w-8 h-8 rounded-full bg-white/10"></div>
+      <div class="flex-1 space-y-2">
+        <div class="h-3 bg-white/10 rounded w-1/3"></div>
+        <div class="h-2 bg-white/5 rounded w-2/3"></div>
       </div>
-      <h3 class="text-lg font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">Standings Unavailable</h3>
-      <p class="text-sm text-gray-500 max-w-md">
-        Standings will be populated once matches have been played and results have been submitted.
-      </p>
     </div>
+    {% endfor %}
+  </div>
 
+  {% comment %}── Standings Container (rendered by JS) ────────────────────{% endcomment %}
+  <div id="hub-standings-container" class="space-y-8 hidden"></div>
+
+  {% comment %}── Empty State ─────────────────────────────────────────────{% endcomment %}
+  <div id="standings-empty" class="hub-glass rounded-2xl p-10 flex flex-col items-center justify-center text-center hidden">
+    <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+      <i data-lucide="bar-chart-2" class="w-8 h-8 text-gray-600"></i>
+    </div>
+    <h3 class="text-lg font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">Standings Unavailable</h3>
+    <p class="text-sm text-gray-500 max-w-md">
+      Standings will be populated once matches have been played and results have been submitted.
+    </p>
   </div>
 
 </div>

@@ -1,0 +1,136 @@
+{% comment %}
+  Hub Tab: Resources Hub
+  Async-loaded via HubEngine.fetchResources() — skeleton → real data.
+  Module 3: Resources Hub — Rules, social links, sponsors, contact info.
+{% endcomment %}
+
+<div class="p-6 lg:p-8 space-y-8 min-h-[80vh]">
+
+  {% comment %}── Section Header ─────────────────────────────{% endcomment %}
+  <div>
+    <h2 class="text-2xl font-black text-white tracking-tight" style="font-family:Outfit,sans-serif;">
+      <i data-lucide="library" class="w-6 h-6 inline-block text-[#00F0FF] mr-2 align-text-bottom"></i>
+      Resources
+    </h2>
+    <p class="text-xs text-gray-500 mt-1" style="font-family:'Space Grotesk',monospace;">Rules, links &amp; sponsor showcase</p>
+  </div>
+
+  {% comment %}── Rules & Regulations ─────────────────────────{% endcomment %}
+  <div id="resources-rules-section">
+    <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">
+      <i data-lucide="book-open" class="w-3 h-3 inline-block mr-1 align-text-bottom"></i>
+      Rules &amp; Regulations
+    </p>
+
+    {# Skeleton #}
+    <div id="rules-skeleton" class="space-y-3 animate-pulse">
+      <div class="h-4 w-3/4 bg-white/10 rounded"></div>
+      <div class="h-4 w-1/2 bg-white/10 rounded"></div>
+      <div class="h-4 w-2/3 bg-white/10 rounded"></div>
+      <div class="h-4 w-5/6 bg-white/10 rounded"></div>
+    </div>
+
+    {# Real Content #}
+    <div id="rules-content" class="hidden">
+
+      {# PDF download button #}
+      <div id="rules-pdf-link" class="hidden mb-4">
+        <a id="rules-pdf-url" href="#" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#00F0FF]/10 border border-[#00F0FF]/20 text-[#00F0FF] text-sm font-bold hover:bg-[#00F0FF]/20 transition-all">
+          <i data-lucide="file-text" class="w-4 h-4"></i>
+          Download Rulebook (PDF)
+          <i data-lucide="download" class="w-3 h-3 opacity-60"></i>
+        </a>
+      </div>
+
+      {# Rules text (rendered as formatted text) #}
+      <div id="rules-text-content"
+           class="prose prose-invert prose-sm max-w-none p-6 rounded-xl bg-white/[0.02] border border-white/5 text-gray-300 leading-relaxed"
+           style="font-family:Inter,'Space Grotesk',sans-serif;">
+      </div>
+
+      {# Terms & Conditions #}
+      <div id="terms-section" class="hidden mt-6">
+        <details class="group">
+          <summary class="cursor-pointer flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-gray-300 transition">
+            <i data-lucide="shield-check" class="w-3 h-3"></i>
+            Terms &amp; Conditions
+            <i data-lucide="chevron-down" class="w-3 h-3 transition-transform group-open:rotate-180"></i>
+          </summary>
+          <div id="terms-text-content"
+               class="mt-3 p-4 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-gray-400 leading-relaxed whitespace-pre-line">
+          </div>
+        </details>
+      </div>
+    </div>
+
+    {# No rules fallback #}
+    <div id="rules-empty" class="hidden text-center py-8">
+      <i data-lucide="book-open" class="w-8 h-8 text-gray-700 mx-auto mb-2"></i>
+      <p class="text-xs text-gray-500">No rules document has been published yet</p>
+    </div>
+  </div>
+
+  {% comment %}── Social Links ────────────────────────────────{% endcomment %}
+  <div id="resources-social-section" class="hidden">
+    <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">
+      <i data-lucide="share-2" class="w-3 h-3 inline-block mr-1 align-text-bottom"></i>
+      Connect
+    </p>
+    <div id="social-links-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      {# JS injects social link cards here #}
+    </div>
+    <div id="contact-email-row" class="hidden mt-4">
+      <a id="contact-email-link" href="#"
+         class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/5 text-gray-300 text-sm hover:bg-white/5 hover:border-white/10 transition-all">
+        <i data-lucide="mail" class="w-4 h-4 text-[#7000FF]"></i>
+        <span id="contact-email-text" class="truncate"></span>
+      </a>
+    </div>
+  </div>
+
+  {% comment %}── Sponsors Showcase ────────────────────────────{% endcomment %}
+  <div id="resources-sponsors-section" class="hidden">
+    <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">
+      <i data-lucide="heart-handshake" class="w-3 h-3 inline-block mr-1 align-text-bottom"></i>
+      Powered By
+    </p>
+
+    {# Title sponsors (large banner) #}
+    <div id="sponsors-title" class="hidden mb-6 space-y-4">
+      {# JS injects title sponsor banners #}
+    </div>
+
+    {# Gold sponsors #}
+    <div id="sponsors-gold" class="hidden mb-4">
+      <p class="text-[10px] font-bold text-[#FFB800] uppercase tracking-wider mb-3">Gold Sponsors</p>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="sponsors-gold-grid"></div>
+    </div>
+
+    {# Silver sponsors #}
+    <div id="sponsors-silver" class="hidden mb-4">
+      <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Silver Sponsors</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="sponsors-silver-grid"></div>
+    </div>
+
+    {# Bronze sponsors #}
+    <div id="sponsors-bronze" class="hidden mb-4">
+      <p class="text-[10px] font-bold text-[#CD7F32] uppercase tracking-wider mb-3">Bronze Sponsors</p>
+      <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="sponsors-bronze-grid"></div>
+    </div>
+
+    {# Partner sponsors #}
+    <div id="sponsors-partner" class="hidden">
+      <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">Partners</p>
+      <div class="grid grid-cols-3 sm:grid-cols-5 gap-2" id="sponsors-partner-grid"></div>
+    </div>
+  </div>
+
+  {% comment %}── Empty State ──────────────────────────────────{% endcomment %}
+  <div id="resources-empty-state" class="hidden text-center py-16">
+    <i data-lucide="library" class="w-12 h-12 text-gray-700 mx-auto mb-4"></i>
+    <p class="text-sm font-bold text-gray-500">No resources available yet</p>
+    <p class="text-xs text-gray-600 mt-1">The organizer hasn't published any resources for this tournament</p>
+  </div>
+
+</div>

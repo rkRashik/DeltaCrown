@@ -15,6 +15,7 @@ import logging
 from datetime import timedelta
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import models
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -27,7 +28,13 @@ from apps.tournaments.models import (
     TournamentLobby,
     CheckIn,
     LobbyAnnouncement,
+    TournamentSponsor,
+    PrizeClaim,
 )
+from apps.tournaments.models.bracket import Bracket, BracketNode
+from apps.tournaments.models.group import Group, GroupStanding
+from apps.tournaments.models.match import Match
+from apps.tournaments.models.prize import PrizeTransaction
 from apps.tournaments.services.lobby_service import LobbyService
 
 logger = logging.getLogger(__name__)
@@ -115,49 +122,110 @@ def _build_hub_context(request, tournament, registration):
     # ── Roster / Squad ──────────────────────────────────
     squad = []
     squad_warnings = []
+    igl_user_id = None
     if is_team and registration.team_id:
+        # Prefer lineup_snapshot from registration (frozen at registration time)
+        lineup_snapshot = getattr(registration, 'lineup_snapshot', None) or []
+
+        # Build lookup of active team members for fresh avatar/passport data
         members = TeamMembership.objects.filter(
             team_id=registration.team_id,
             status=TeamMembership.Status.ACTIVE,
         ).select_related('user', 'user__profile')
+        member_by_user_id = {m.user_id: m for m in members}
 
-        for m in members:
-            has_passport = True
-            game_id = ''
-            try:
-                from apps.user_profile.services.game_passport_service import GamePassportService
-                passport = GamePassportService.get_passport(m.user, tournament.game.slug)
-                if passport and passport.ign:
-                    game_id = passport.ign
-                    if passport.discriminator:
-                        d = passport.discriminator
-                        if not d.startswith('#') and not d.startswith('-'):
-                            d = f'#{d}'
-                        game_id = f"{passport.ign}{d}"
-                else:
+        if lineup_snapshot and isinstance(lineup_snapshot, list) and len(lineup_snapshot) > 0:
+            # ── Use lineup_snapshot as source of truth ──
+            for entry in lineup_snapshot:
+                user_id = entry.get('user_id')
+                tm = member_by_user_id.get(user_id)
+                user_obj = tm.user if tm else None
+
+                # Fresh passport lookup
+                has_passport = True
+                game_id = entry.get('game_id', '')
+                if user_obj and tournament.game:
+                    try:
+                        from apps.user_profile.services.game_passport_service import GamePassportService
+                        passport = GamePassportService.get_passport(user_obj, tournament.game.slug)
+                        if passport and passport.ign:
+                            game_id = passport.ign
+                            if passport.discriminator:
+                                d = passport.discriminator
+                                if not d.startswith('#') and not d.startswith('-'):
+                                    d = f'#{d}'
+                                game_id = f"{passport.ign}{d}"
+                        else:
+                            has_passport = False
+                    except Exception:
+                        has_passport = bool(game_id)
+                elif not game_id:
                     has_passport = False
-            except Exception:
-                has_passport = False
 
-            member_data = {
-                'id': m.id,
-                'user_id': m.user_id,
-                'username': m.user.username,
-                'display_name': m.display_name or m.user.get_full_name() or m.user.username,
-                'role': m.role,
-                'player_role': m.player_role or '',
-                'roster_slot': m.roster_slot or 'STARTER',
-                'is_captain': m.is_tournament_captain,
-                'game_id': game_id,
-                'has_passport': has_passport,
-                'avatar_url': _get_avatar_url(m.user),
-            }
-            squad.append(member_data)
+                is_igl = entry.get('is_igl', False)
+                if is_igl:
+                    igl_user_id = user_id
 
-            if not has_passport and m.role in ['PLAYER', 'SUBSTITUTE']:
-                squad_warnings.append(
-                    f"{member_data['display_name']} is missing their Game ID"
-                )
+                member_data = {
+                    'id': tm.id if tm else 0,
+                    'user_id': user_id,
+                    'username': entry.get('username', ''),
+                    'display_name': entry.get('display_name', '') or entry.get('username', 'Unknown'),
+                    'role': entry.get('role', 'PLAYER'),
+                    'player_role': entry.get('player_role', ''),
+                    'roster_slot': entry.get('roster_slot', 'STARTER'),
+                    'is_captain': tm.is_tournament_captain if tm else False,
+                    'is_igl': is_igl,
+                    'game_id': game_id,
+                    'has_passport': has_passport,
+                    'avatar_url': _get_avatar_url(user_obj) if user_obj else entry.get('avatar', ''),
+                }
+                squad.append(member_data)
+
+                if not has_passport and member_data['roster_slot'] in ('STARTER', 'SUBSTITUTE'):
+                    squad_warnings.append(
+                        f"{member_data['display_name']} is missing their Game ID"
+                    )
+        else:
+            # ── Fallback: live TeamMembership (no snapshot) ──
+            for m in members:
+                has_passport = True
+                game_id = ''
+                try:
+                    from apps.user_profile.services.game_passport_service import GamePassportService
+                    passport = GamePassportService.get_passport(m.user, tournament.game.slug)
+                    if passport and passport.ign:
+                        game_id = passport.ign
+                        if passport.discriminator:
+                            d = passport.discriminator
+                            if not d.startswith('#') and not d.startswith('-'):
+                                d = f'#{d}'
+                            game_id = f"{passport.ign}{d}"
+                    else:
+                        has_passport = False
+                except Exception:
+                    has_passport = False
+
+                member_data = {
+                    'id': m.id,
+                    'user_id': m.user_id,
+                    'username': m.user.username,
+                    'display_name': m.display_name or m.user.get_full_name() or m.user.username,
+                    'role': m.role,
+                    'player_role': m.player_role or '',
+                    'roster_slot': m.roster_slot or 'STARTER',
+                    'is_captain': m.is_tournament_captain,
+                    'is_igl': False,
+                    'game_id': game_id,
+                    'has_passport': has_passport,
+                    'avatar_url': _get_avatar_url(m.user),
+                }
+                squad.append(member_data)
+
+                if not has_passport and m.role in ['PLAYER', 'SUBSTITUTE']:
+                    squad_warnings.append(
+                        f"{member_data['display_name']} is missing their Game ID"
+                    )
 
     # ── Game info ────────────────────────────────────────
     game_spec = None
@@ -179,6 +247,16 @@ def _build_hub_context(request, tournament, registration):
     starters = [s for s in squad if s['roster_slot'] in ('STARTER', None, '')]
     subs = [s for s in squad if s['roster_slot'] == 'SUBSTITUTE']
     coaches = [s for s in squad if s['roster_slot'] == 'COACH']
+
+    # IGL info
+    igl_info = None
+    if igl_user_id:
+        igl_member = next((m for m in squad if m['user_id'] == igl_user_id), None)
+        if igl_member:
+            igl_info = {
+                'name': igl_member['display_name'],
+                'user_id': igl_user_id,
+            }
 
     squad_ready = len(starters) >= min_roster and not squad_warnings
 
@@ -212,18 +290,55 @@ def _build_hub_context(request, tournament, registration):
     # ── User status label ────────────────────────────────
     user_status = _registration_status_label(registration, check_in)
 
+    # ── Status detail for modal ──────────────────────────
+    status_detail = _build_status_detail(registration, check_in, tournament, now)
+
     # ── Team info ────────────────────────────────────────
     team = None
     team_name = ''
     team_tag = ''
+    team_logo_url = ''
+    team_detail_url = ''
+    is_captain = False
+    roster_locked = False
     if is_team and registration.team_id:
         from apps.organizations.models import Team
         try:
             team = Team.objects.get(id=registration.team_id)
             team_name = team.name
             team_tag = team.tag or team.name[:3].upper()
+            if hasattr(team, 'logo') and team.logo:
+                team_logo_url = team.logo.url
+            roster_locked = getattr(team, 'roster_locked', False)
+            team_detail_url = f'/teams/{team.slug}/' if hasattr(team, 'slug') and team.slug else ''
         except Exception:
             pass
+
+        # Check if current user is captain
+        is_captain = any(m['user_id'] == user.id and m['is_captain'] for m in squad)
+
+    # ── Registration metadata (IGL / Coordinator) ─────
+    registered_by_name = ''
+    coordinator_info = {}
+    if registration:
+        # Who registered this entry
+        if registration.user:
+            registered_by_name = registration.user.get_full_name() or registration.user.username
+        # Coordinator / IGL from registration_data
+        reg_data = registration.registration_data or {}
+        coord_role = reg_data.get('coordinator_role', '')
+        coord_is_self = reg_data.get('coordinator_is_self', True)
+        coord_member_id = reg_data.get('coordinator_member_id')
+        if coord_role:
+            coord_name = registered_by_name
+            if not coord_is_self and coord_member_id:
+                coord_member = next((m for m in squad if m['id'] == coord_member_id), None)
+                if coord_member:
+                    coord_name = coord_member['display_name']
+            coordinator_info = {
+                'role': coord_role,
+                'name': coord_name,
+            }
 
     context = {
         'tournament': tournament,
@@ -233,6 +348,7 @@ def _build_hub_context(request, tournament, registration):
 
         # Status
         'user_status': user_status,
+        'status_detail': status_detail,
         'check_in': check_in,
         'check_in_status': check_in_status,
         'check_in_countdown': check_in_countdown,
@@ -245,6 +361,13 @@ def _build_hub_context(request, tournament, registration):
         'team': team,
         'team_name': team_name,
         'team_tag': team_tag,
+        'team_logo_url': team_logo_url,
+        'team_detail_url': team_detail_url,
+        'is_captain': is_captain,
+        'roster_locked': roster_locked,
+        'registered_by_name': registered_by_name,
+        'coordinator_info': coordinator_info,
+        'igl_info': igl_info,
         'squad': squad,
         'starters': starters,
         'subs': subs,
@@ -267,8 +390,85 @@ def _build_hub_context(request, tournament, registration):
         'api_checkin_url': f'/tournaments/{tournament.slug}/hub/api/check-in/',
         'api_announcements_url': f'/tournaments/{tournament.slug}/hub/api/announcements/',
         'api_roster_url': f'/tournaments/{tournament.slug}/hub/api/roster/',
+        'api_squad_url': f'/tournaments/{tournament.slug}/hub/api/squad/',
+        'api_resources_url': f'/tournaments/{tournament.slug}/hub/api/resources/',
+        'api_prize_claim_url': f'/tournaments/{tournament.slug}/hub/api/prize-claim/',
+        'api_bracket_url': f'/tournaments/{tournament.slug}/hub/api/bracket/',
+        'api_standings_url': f'/tournaments/{tournament.slug}/hub/api/standings/',
+        'api_matches_url': f'/tournaments/{tournament.slug}/hub/api/matches/',
+        'api_participants_url': f'/tournaments/{tournament.slug}/hub/api/participants/',
+
+        # Social / Contact
+        'discord_url': tournament.social_discord or (lobby.discord_server_url if lobby else ''),
+        'contact_email': tournament.contact_email or '',
+        'organizer_name': tournament.organizer.get_full_name() or tournament.organizer.username if tournament.organizer else 'Organizer',
+        'social_twitter': tournament.social_twitter or '',
+        'social_instagram': tournament.social_instagram or '',
+        'social_website': tournament.social_website or '',
     }
     return context
+
+
+def _build_status_detail(registration, check_in, tournament, now):
+    """Build detailed status info for the status modal."""
+    import json
+
+    status = registration.status
+    detail = {
+        'raw_status': status,
+        'label': _registration_status_label(registration, check_in),
+        'registered_at': registration.created_at.isoformat() if registration.created_at else '',
+        'registered_at_display': registration.created_at.strftime('%b %d, %Y at %I:%M %p') if registration.created_at else '',
+        'tournament_name': tournament.name,
+        'steps': [],
+    }
+
+    # Build status timeline steps
+    steps = [
+        {
+            'label': 'Registration Submitted',
+            'done': True,
+            'icon': 'check-circle',
+        },
+    ]
+
+    if status in ('confirmed', 'auto_approved'):
+        steps.append({'label': 'Registration Confirmed', 'done': True, 'icon': 'check-circle'})
+    elif status == 'pending':
+        steps.append({'label': 'Awaiting Organizer Approval', 'done': False, 'icon': 'clock', 'active': True})
+    elif status == 'payment_submitted':
+        steps.append({'label': 'Payment Under Review', 'done': False, 'icon': 'credit-card', 'active': True})
+    elif status == 'needs_review':
+        steps.append({'label': 'Under Manual Review', 'done': False, 'icon': 'eye', 'active': True})
+
+    # Check-in step
+    if check_in and check_in.is_checked_in:
+        steps.append({'label': 'Checked In', 'done': True, 'icon': 'check-circle'})
+    elif check_in and check_in.is_forfeited:
+        steps.append({'label': 'Eliminated', 'done': True, 'icon': 'x-circle', 'error': True})
+    else:
+        lobby = getattr(tournament, 'lobby', None)
+        if lobby and lobby.check_in_opens_at:
+            if now < lobby.check_in_opens_at:
+                steps.append({'label': 'Check-In Not Yet Open', 'done': False, 'icon': 'clock'})
+            elif lobby.check_in_closes_at and now < lobby.check_in_closes_at:
+                steps.append({'label': 'Check-In Open — Action Required', 'done': False, 'icon': 'alert-circle', 'active': True})
+            else:
+                steps.append({'label': 'Check-In Window Closed', 'done': False, 'icon': 'lock'})
+        else:
+            steps.append({'label': 'Check-In', 'done': False, 'icon': 'clock'})
+
+    # Tournament start
+    if tournament.status == 'live':
+        steps.append({'label': 'Tournament In Progress', 'done': True, 'icon': 'zap', 'active': True})
+    elif tournament.status == 'completed':
+        steps.append({'label': 'Tournament Completed', 'done': True, 'icon': 'flag'})
+    else:
+        steps.append({'label': 'Tournament Starts', 'done': False, 'icon': 'play'})
+
+    detail['steps'] = steps
+    detail['steps_json'] = json.dumps(steps)
+    return detail
 
 
 def _get_next_phase_event(tournament, lobby, now):
@@ -621,3 +821,563 @@ class HubSquadAPIView(LoginRequiredMixin, View):
             'new_slot': new_slot,
             'display_name': membership.display_name or membership.user.get_full_name() or membership.user.username,
         })
+
+
+# ────────────────────────────────────────────────────────────
+# Module 3: Resources Hub API
+# ────────────────────────────────────────────────────────────
+
+class HubResourcesAPIView(LoginRequiredMixin, View):
+    """
+    GET: Returns tournament resources — rules, social links,
+    sponsors (tiered), and contact info for the Hub Resources tab.
+    """
+
+    def get(self, request, slug):
+        tournament = get_object_or_404(
+            Tournament.objects.select_related('game'),
+            slug=slug,
+        )
+        registration = _get_user_registration(request.user, tournament)
+        if not registration:
+            return JsonResponse({'error': 'not_registered'}, status=403)
+
+        # ── Rules ──────────────────────────────────────
+        rules = {
+            'text': tournament.rules_text or '',
+            'pdf_url': tournament.rules_pdf.url if tournament.rules_pdf else '',
+            'terms': tournament.terms_and_conditions or '',
+        }
+
+        # ── Social Links ──────────────────────────────
+        social_links = []
+        _social_fields = [
+            ('discord', 'social_discord', 'Discord'),
+            ('twitter', 'social_twitter', 'Twitter / X'),
+            ('instagram', 'social_instagram', 'Instagram'),
+            ('youtube', 'social_youtube', 'YouTube'),
+            ('website', 'social_website', 'Website'),
+            ('twitch', 'stream_twitch_url', 'Twitch'),
+            ('youtube_stream', 'stream_youtube_url', 'YouTube Stream'),
+        ]
+        for key, field, label in _social_fields:
+            url = getattr(tournament, field, '') or ''
+            if url:
+                social_links.append({'key': key, 'label': label, 'url': url})
+
+        # ── Contact ────────────────────────────────────
+        contact_email = getattr(tournament, 'contact_email', '') or ''
+
+        # ── Sponsors (tiered) ──────────────────────────
+        sponsors_qs = TournamentSponsor.objects.filter(
+            tournament=tournament,
+            is_active=True,
+        ).order_by('tier', 'display_order', 'name')
+
+        sponsors = []
+        for s in sponsors_qs:
+            sponsors.append({
+                'id': s.id,
+                'name': s.name,
+                'tier': s.tier,
+                'tier_display': s.get_tier_display(),
+                'logo_url': s.logo.url if s.logo else '',
+                'banner_url': s.banner_image.url if s.banner_image else '',
+                'website_url': s.website_url or '',
+                'description': s.description or '',
+            })
+
+        return JsonResponse({
+            'rules': rules,
+            'social_links': social_links,
+            'contact_email': contact_email,
+            'sponsors': sponsors,
+            'support_url': f'/support/?tournament={tournament.slug}',
+            'tournament_page_url': f'/tournaments/{tournament.slug}/',
+            'tournament_info': {
+                'platform': tournament.get_platform_display() if tournament.platform else '',
+                'mode': tournament.get_mode_display() if tournament.mode else '',
+                'venue_name': tournament.venue_name or '',
+                'refund_policy': tournament.get_refund_policy_display() if tournament.refund_policy else '',
+                'refund_policy_text': tournament.refund_policy_text or '',
+                'promo_video_url': tournament.promo_video_url or '',
+                'description': tournament.description or '',
+            },
+        })
+
+
+# ────────────────────────────────────────────────────────────
+# Module 5: Bounty Board (Prize Claims) API
+# ────────────────────────────────────────────────────────────
+
+class HubPrizeClaimAPIView(LoginRequiredMixin, View):
+    """
+    GET:  Returns the user's prize transactions + claim status for this tournament.
+    POST: Creates a PrizeClaim for an unclaimed PrizeTransaction.
+    """
+
+    def get(self, request, slug):
+        tournament = get_object_or_404(Tournament, slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        if not registration:
+            return JsonResponse({'error': 'not_registered'}, status=403)
+
+        # ── Prize Pool Info ────────────────────────────
+        prize_pool = {
+            'total': str(tournament.prize_pool or 0),
+            'currency': tournament.prize_currency or 'BDT',
+            'distribution': tournament.prize_distribution or {},
+            'deltacoin': tournament.prize_deltacoin or 0,
+        }
+
+        # ── User's prize transactions ─────────────────
+        user_prizes = PrizeTransaction.objects.filter(
+            tournament=tournament,
+            participant=registration,
+        ).select_related('claim').order_by('-created_at')
+
+        prizes = []
+        for pt in user_prizes:
+            claim = getattr(pt, 'claim', None)
+            prizes.append({
+                'id': pt.id,
+                'placement': pt.placement,
+                'placement_display': pt.get_placement_display(),
+                'amount': str(pt.amount),
+                'status': pt.status,
+                'claimed': claim is not None,
+                'claim_status': claim.status if claim else None,
+                'claim_payout_method': claim.payout_method if claim else None,
+                'paid_at': claim.paid_at.isoformat() if claim and claim.paid_at else None,
+            })
+
+        # ── Tournament prizes overview (all placements) ──
+        all_prizes = PrizeTransaction.objects.filter(
+            tournament=tournament,
+        ).values('placement').annotate(
+            total=models.Sum('amount'),
+            count=models.Count('id'),
+        ).order_by('placement')
+
+        overview = []
+        for row in all_prizes:
+            overview.append({
+                'placement': row['placement'],
+                'total': str(row['total'] or 0),
+                'count': row['count'],
+            })
+
+        return JsonResponse({
+            'prize_pool': prize_pool,
+            'your_prizes': prizes,
+            'overview': overview,
+            'tournament_status': tournament.status,
+        })
+
+    def post(self, request, slug):
+        import json
+
+        tournament = get_object_or_404(Tournament, slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        if not registration:
+            return JsonResponse({'error': 'not_registered'}, status=403)
+
+        try:
+            body = json.loads(request.body)
+            transaction_id = body.get('transaction_id')
+            payout_method = body.get('payout_method', 'deltacoin')
+            payout_destination = body.get('payout_destination', '')
+        except (json.JSONDecodeError, AttributeError):
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        if not transaction_id:
+            return JsonResponse({'error': 'transaction_id is required'}, status=400)
+
+        # Validate payout method
+        valid_methods = [c[0] for c in PrizeClaim.PAYOUT_METHOD_CHOICES]
+        if payout_method not in valid_methods:
+            return JsonResponse({
+                'error': f'Invalid payout method. Must be one of: {", ".join(valid_methods)}'
+            }, status=400)
+
+        # Verify the PrizeTransaction belongs to this user and tournament
+        try:
+            pt = PrizeTransaction.objects.get(
+                id=transaction_id,
+                tournament=tournament,
+                participant=registration,
+            )
+        except PrizeTransaction.DoesNotExist:
+            return JsonResponse({'error': 'Prize transaction not found'}, status=404)
+
+        # Check not already claimed
+        if hasattr(pt, 'claim'):
+            return JsonResponse({
+                'error': 'This prize has already been claimed',
+                'claim_status': pt.claim.status,
+            }, status=409)
+
+        # Check transaction is in a claimable state
+        if pt.status not in ('pending', 'completed'):
+            return JsonResponse({
+                'error': f'Prize transaction is {pt.status} and cannot be claimed'
+            }, status=400)
+
+        # Create claim
+        claim = PrizeClaim.objects.create(
+            prize_transaction=pt,
+            claimed_by=request.user,
+            payout_method=payout_method,
+            payout_destination=payout_destination,
+        )
+
+        logger.info(
+            "Hub prize claim: user=%s tournament=%s tx=%d method=%s",
+            request.user.username, slug, transaction_id, payout_method,
+        )
+
+        return JsonResponse({
+            'success': True,
+            'claim_id': claim.id,
+            'status': claim.status,
+            'claimed_at': claim.claimed_at.isoformat() if claim.claimed_at else None,
+        }, status=201)
+
+
+# ────────────────────────────────────────────────────────────
+# Module 6: Bracket API
+# ────────────────────────────────────────────────────────────
+
+class HubBracketAPIView(LoginRequiredMixin, View):
+    """GET: Returns bracket structure and match data for visualization."""
+
+    def get(self, request, slug):
+        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        if not registration:
+            return JsonResponse({'error': 'not_registered'}, status=403)
+
+        try:
+            bracket = Bracket.objects.get(tournament=tournament)
+        except Bracket.DoesNotExist:
+            return JsonResponse({
+                'generated': False,
+                'format': tournament.format,
+                'format_display': tournament.get_format_display(),
+            })
+
+        # Build rounds data from matches
+        matches = Match.objects.filter(
+            tournament=tournament,
+            bracket=bracket,
+            is_deleted=False,
+        ).order_by('round_number', 'match_number')
+
+        rounds = {}
+        for m in matches:
+            rn = m.round_number
+            if rn not in rounds:
+                rounds[rn] = {
+                    'round_number': rn,
+                    'round_name': bracket.get_round_name(rn),
+                    'matches': [],
+                }
+            rounds[rn]['matches'].append({
+                'id': m.id,
+                'match_number': m.match_number,
+                'state': m.state,
+                'state_display': m.get_state_display(),
+                'participant1': {
+                    'id': m.participant1_id,
+                    'name': m.participant1_name or 'TBD',
+                    'score': m.participant1_score,
+                    'is_winner': m.winner_id == m.participant1_id if m.winner_id else False,
+                },
+                'participant2': {
+                    'id': m.participant2_id,
+                    'name': m.participant2_name or 'TBD',
+                    'score': m.participant2_score,
+                    'is_winner': m.winner_id == m.participant2_id if m.winner_id else False,
+                },
+                'scheduled_at': m.scheduled_at.isoformat() if hasattr(m, 'scheduled_at') and m.scheduled_at else None,
+            })
+
+        return JsonResponse({
+            'generated': True,
+            'format': bracket.format,
+            'format_display': bracket.get_format_display(),
+            'total_rounds': bracket.total_rounds,
+            'total_matches': bracket.total_matches,
+            'is_finalized': bracket.is_finalized,
+            'rounds': list(rounds.values()),
+        })
+
+
+# ────────────────────────────────────────────────────────────
+# Module 7: Standings API
+# ────────────────────────────────────────────────────────────
+
+class HubStandingsAPIView(LoginRequiredMixin, View):
+    """GET: Returns group standings for the tournament."""
+
+    def get(self, request, slug):
+        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        if not registration:
+            return JsonResponse({'error': 'not_registered'}, status=403)
+
+        is_team = tournament.participation_type == 'team'
+        groups = Group.objects.filter(
+            stage__tournament=tournament,
+        ).prefetch_related('standings').order_by('name')
+
+        if not groups.exists():
+            # Fallback: check overall tournament standings from match results
+            return JsonResponse({'has_standings': False, 'groups': []})
+
+        groups_data = []
+        for group in groups:
+            standings = GroupStanding.objects.filter(
+                group=group,
+            ).order_by('rank', '-points', '-goal_difference')
+
+            rows = []
+            for s in standings:
+                name = ''
+                is_you = False
+                if is_team and s.team_id:
+                    from apps.organizations.models import Team
+                    try:
+                        t = Team.objects.get(id=s.team_id)
+                        name = t.name
+                    except Team.DoesNotExist:
+                        name = f'Team #{s.team_id}'
+                    is_you = s.team_id == registration.team_id
+                elif s.user_id:
+                    name = s.user.get_full_name() or s.user.username if s.user else f'User #{s.user_id}'
+                    is_you = s.user_id == request.user.id
+
+                rows.append({
+                    'rank': s.rank,
+                    'name': name,
+                    'is_you': is_you,
+                    'matches_played': s.matches_played,
+                    'won': s.matches_won,
+                    'drawn': s.matches_drawn,
+                    'lost': s.matches_lost,
+                    'points': str(s.points),
+                    'goal_difference': s.goal_difference,
+                    'rounds_won': s.rounds_won,
+                    'rounds_lost': s.rounds_lost,
+                })
+
+            groups_data.append({
+                'name': group.name,
+                'standings': rows,
+            })
+
+        return JsonResponse({
+            'has_standings': True,
+            'groups': groups_data,
+        })
+
+
+# ────────────────────────────────────────────────────────────
+# Module 8: Matches API
+# ────────────────────────────────────────────────────────────
+
+class HubMatchesAPIView(LoginRequiredMixin, View):
+    """GET: Returns matches relevant to the current user/team."""
+
+    def get(self, request, slug):
+        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        if not registration:
+            return JsonResponse({'error': 'not_registered'}, status=403)
+
+        is_team = tournament.participation_type == 'team'
+        participant_id = registration.team_id if is_team else request.user.id
+
+        # Get user's matches
+        user_matches = Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+        ).filter(
+            models.Q(participant1_id=participant_id) | models.Q(participant2_id=participant_id)
+        ).order_by('round_number', 'match_number')
+
+        active = []
+        history = []
+        for m in user_matches:
+            is_p1 = m.participant1_id == participant_id
+            opponent_name = m.participant2_name if is_p1 else m.participant1_name
+            your_score = m.participant1_score if is_p1 else m.participant2_score
+            opponent_score = m.participant2_score if is_p1 else m.participant1_score
+            is_winner = m.winner_id == participant_id if m.winner_id else None
+
+            round_name = ''
+            try:
+                bracket = Bracket.objects.get(tournament=tournament)
+                round_name = bracket.get_round_name(m.round_number)
+            except Bracket.DoesNotExist:
+                round_name = f'Round {m.round_number}'
+
+            match_data = {
+                'id': m.id,
+                'round_number': m.round_number,
+                'round_name': round_name,
+                'match_number': m.match_number,
+                'state': m.state,
+                'state_display': m.get_state_display(),
+                'opponent_name': opponent_name or 'TBD',
+                'your_score': your_score,
+                'opponent_score': opponent_score,
+                'is_winner': is_winner,
+                'lobby_info': m.lobby_info or {},
+                'scheduled_at': m.scheduled_at.isoformat() if hasattr(m, 'scheduled_at') and m.scheduled_at else None,
+            }
+
+            if m.state in ('completed', 'forfeit'):
+                history.append(match_data)
+            else:
+                active.append(match_data)
+
+        return JsonResponse({
+            'active_matches': active,
+            'match_history': history,
+            'total': len(active) + len(history),
+        })
+
+
+# ────────────────────────────────────────────────────────────
+# Module 9: Participants Directory API
+# ────────────────────────────────────────────────────────────
+
+class HubParticipantsAPIView(LoginRequiredMixin, View):
+    """GET: Returns all confirmed participants/teams + user's own if pending."""
+
+    def get(self, request, slug):
+        tournament = get_object_or_404(Tournament.objects.select_related('game'), slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        if not registration:
+            return JsonResponse({'error': 'not_registered'}, status=403)
+
+        is_team = tournament.participation_type == 'team'
+
+        # Fetch confirmed registrations
+        confirmed_regs = Registration.objects.filter(
+            tournament=tournament,
+            is_deleted=False,
+            status__in=[Registration.CONFIRMED, Registration.AUTO_APPROVED],
+        ).select_related('user').order_by('created_at')
+
+        # Check if user's own registration is unverified (not in confirmed list)
+        user_reg_confirmed = registration.status in ('confirmed', 'auto_approved')
+        seen_ids = set()
+
+        participants = []
+
+        # If user's team is NOT confirmed, add it first with "pending" status
+        if not user_reg_confirmed:
+            user_entry = self._build_participant(
+                registration, is_team, registration, tournament, request.user,
+                verified=False,
+            )
+            if user_entry:
+                participants.append(user_entry)
+                seen_ids.add(registration.id)
+
+        for reg in confirmed_regs:
+            if reg.id in seen_ids:
+                continue
+            entry = self._build_participant(
+                reg, is_team, registration, tournament, request.user,
+                verified=True,
+            )
+            if entry:
+                participants.append(entry)
+
+        return JsonResponse({
+            'participants': participants,
+            'total': len(participants),
+            'max_participants': tournament.max_participants,
+            'is_team': is_team,
+        })
+
+    def _build_participant(self, reg, is_team, user_registration, tournament, current_user, verified=True):
+        """Build a single participant dict for the API response."""
+        status_label = ''
+        if not verified:
+            status_map = {
+                'pending': 'Pending',
+                'payment_submitted': 'Payment Review',
+                'needs_review': 'Under Review',
+            }
+            status_label = status_map.get(reg.status, 'Pending')
+
+        if is_team and reg.team_id:
+            from apps.organizations.models import Team, TeamMembership as TM
+            try:
+                team = Team.objects.get(id=reg.team_id)
+                logo_url = ''
+                if hasattr(team, 'logo') and team.logo:
+                    logo_url = team.logo.url
+                team_detail_url = f'/teams/{team.slug}/' if hasattr(team, 'slug') and team.slug else ''
+
+                members_qs = TM.objects.filter(
+                    team_id=reg.team_id,
+                    status=TM.Status.ACTIVE,
+                ).select_related('user')
+                member_avatars = []
+                for m in members_qs[:5]:
+                    avatar = ''
+                    if hasattr(m.user, 'profile') and hasattr(m.user.profile, 'avatar') and m.user.profile.avatar:
+                        avatar = m.user.profile.avatar.url
+                    member_avatars.append({
+                        'initial': (m.user.get_full_name() or m.user.username)[:1].upper(),
+                        'avatar_url': avatar,
+                    })
+
+                return {
+                    'id': reg.id,
+                    'type': 'team',
+                    'name': team.name,
+                    'tag': team.tag or team.name[:3].upper(),
+                    'logo_url': logo_url,
+                    'detail_url': team_detail_url,
+                    'is_you': reg.team_id == user_registration.team_id if user_registration.team_id else False,
+                    'seed': reg.seed_number if hasattr(reg, 'seed_number') else None,
+                    'member_count': members_qs.count(),
+                    'member_avatars': member_avatars,
+                    'verified': verified,
+                    'status_label': status_label,
+                    'checked_in': CheckIn.objects.filter(
+                        tournament=tournament,
+                        team_id=reg.team_id,
+                        is_checked_in=True,
+                        is_deleted=False,
+                    ).exists(),
+                }
+            except Team.DoesNotExist:
+                return None
+        else:
+            avatar_url = _get_avatar_url(reg.user)
+            user_slug = getattr(reg.user, 'username', '')
+            return {
+                'id': reg.id,
+                'type': 'solo',
+                'name': reg.user.get_full_name() or reg.user.username,
+                'tag': reg.user.username[:3].upper(),
+                'logo_url': avatar_url,
+                'detail_url': f'/profile/{user_slug}/' if user_slug else '',
+                'is_you': reg.user_id == current_user.id,
+                'seed': reg.seed_number if hasattr(reg, 'seed_number') else None,
+                'verified': verified,
+                'status_label': status_label,
+                'checked_in': CheckIn.objects.filter(
+                    tournament=tournament,
+                    user=reg.user,
+                    is_checked_in=True,
+                    is_deleted=False,
+                ).exists(),
+            }

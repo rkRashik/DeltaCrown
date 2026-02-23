@@ -1,0 +1,49 @@
+{% comment %}
+  Tab: Rulebook — Inline rules rendering (PDF embed or rich text)
+  Replaces external link behavior, keeps users in the Hub experience.
+{% endcomment %}
+
+<div class="p-4 md:p-8 lg:p-10 max-w-[1000px] mx-auto space-y-8">
+
+  {% comment %}── Header ──────────────────────────────────────────────────{% endcomment %}
+  <div class="flex items-center justify-between border-b border-white/5 pb-6">
+    <div>
+      <h2 class="font-black text-2xl lg:text-3xl text-white" style="font-family:Outfit,sans-serif;">Rulebook</h2>
+      <p class="text-sm text-gray-400 mt-1">Official tournament rules and guidelines.</p>
+    </div>
+    {% if tournament.rules_pdf %}
+    <a href="{{ tournament.rules_pdf.url }}" target="_blank" rel="noopener"
+       class="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-all">
+      <i data-lucide="download" class="w-4 h-4 text-[#00F0FF]"></i> Download PDF
+    </a>
+    {% endif %}
+  </div>
+
+  {% comment %}── Rules Content ───────────────────────────────────────────{% endcomment %}
+  {% if tournament.rules_pdf %}
+  <div class="hub-glass rounded-2xl border border-white/5 overflow-hidden">
+    <iframe src="{{ tournament.rules_pdf.url }}"
+            class="w-full border-0 bg-white/5"
+            style="min-height:70vh;"
+            title="Tournament Rules PDF">
+    </iframe>
+  </div>
+  {% elif tournament.rules_text %}
+  <div class="hub-glass rounded-2xl p-6 md:p-10 border border-white/5">
+    <div class="prose prose-invert prose-sm max-w-none hub-rich-text">
+      {{ tournament.rules_text|safe }}
+    </div>
+  </div>
+  {% else %}
+  <div class="hub-glass rounded-2xl p-10 flex flex-col items-center justify-center text-center">
+    <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+      <i data-lucide="book-open" class="w-8 h-8 text-gray-600"></i>
+    </div>
+    <h3 class="text-lg font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">No Rulebook Available</h3>
+    <p class="text-sm text-gray-500 max-w-md">
+      The organizer hasn't uploaded a rulebook for this tournament yet.
+    </p>
+  </div>
+  {% endif %}
+
+</div>

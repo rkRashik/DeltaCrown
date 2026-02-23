@@ -117,6 +117,12 @@ from .smart_registration import (
     RegistrationAnswer,  # Phase 5: Question answers
     RegistrationRule,  # Phase 5: Auto-approval rules
 )
+from .sponsor import (
+    TournamentSponsor,  # Hub Resources: Sponsor showcase
+)
+from .prize_claim import (
+    PrizeClaim,  # Hub Bounty Board: Prize claim workflow
+)
 
 __all__ = [
     'Game',
@@ -171,4 +177,7 @@ __all__ = [
     # Phase 7 Epic 7.4: Match Operations Command Center
     'MatchOperationLog',
     'MatchModeratorNote',
+    # Hub Expansion: Resources & Bounty Board
+    'TournamentSponsor',
+    'PrizeClaim',
 ]

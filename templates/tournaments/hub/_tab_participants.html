@@ -1,0 +1,69 @@
+{% comment %}
+  Tab: Participants — Directory of all confirmed participants/teams
+  Data loaded async via /hub/api/participants/ and rendered by hub-engine.js
+  Follows demo template style: 4-col grid, glass cards, stacked avatars
+{% endcomment %}
+
+<div class="p-4 md:p-8 lg:p-10 max-w-[1600px] mx-auto space-y-8">
+
+  {% comment %}── Header ──────────────────────────────────────────────────{% endcomment %}
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-white/5 pb-6 gap-4">
+    <div>
+      <h2 class="font-black text-2xl lg:text-3xl text-white" style="font-family:Outfit,sans-serif;">
+        {% if is_team %}Verified Roster{% else %}Participants{% endif %}
+      </h2>
+      <p class="text-sm text-gray-400 mt-1">
+        <span id="participants-count" class="font-bold text-white">{{ reg_count }}</span>
+        {% if is_team %}Teams{% else %}Players{% endif %} competing
+        {% if tournament.max_participants %}<span class="text-gray-600">&middot; {{ tournament.max_participants }} max</span>{% endif %}
+      </p>
+    </div>
+    <div class="relative w-full sm:w-64">
+      <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"></i>
+      <input type="text" id="participants-search"
+             class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/50 border border-white/10 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00F0FF]/30 transition-colors"
+             placeholder="Search {% if is_team %}teams{% else %}participants{% endif %}..." autocomplete="off"
+             oninput="HubEngine.filterParticipants(this.value)">
+    </div>
+  </div>
+
+  {% comment %}── Loading Skeleton ────────────────────────────────────────{% endcomment %}
+  <div id="participants-skeleton" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    {% for _ in "12345678" %}
+    <div class="hub-glass rounded-xl p-5 animate-pulse">
+      <div class="flex items-center gap-4 mb-4">
+        <div class="w-12 h-12 rounded-lg bg-white/10"></div>
+        <div class="flex-1 space-y-2">
+          <div class="h-4 bg-white/10 rounded w-3/4"></div>
+          <div class="h-2 bg-white/5 rounded w-1/2"></div>
+        </div>
+      </div>
+      <div class="flex -space-x-2">
+        {% for _ in "12345" %}
+        <div class="w-8 h-8 rounded-full bg-white/5 ring-2 ring-[#08080C]"></div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% comment %}── Participants Grid (4-col) ────────────────────────────────{% endcomment %}
+  <div id="participants-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 hidden"></div>
+
+  {% comment %}── Empty State ─────────────────────────────────────────────{% endcomment %}
+  <div id="participants-empty" class="hub-glass rounded-2xl p-10 flex flex-col items-center justify-center text-center hidden">
+    <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
+      <i data-lucide="users" class="w-8 h-8 text-gray-600"></i>
+    </div>
+    <h3 class="text-lg font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">No Participants Yet</h3>
+    <p class="text-sm text-gray-500 max-w-md">
+      Confirmed participants will appear here once registrations are approved.
+    </p>
+  </div>
+
+  {% comment %}── No Results (search filter) ──────────────────────────────{% endcomment %}
+  <div id="participants-no-results" class="text-center py-8 hidden">
+    <p class="text-sm text-gray-500">No participants matching your search.</p>
+  </div>
+
+</div>

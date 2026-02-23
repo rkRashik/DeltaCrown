@@ -1,6 +1,6 @@
 {% comment %}
   Tab: Match Lobby — Check-in action, live match cards, match history
-  Real match data will come from WebSocket in Phase 2; for now shows check-in state.
+  Data loaded async via /hub/api/matches/ and rendered by hub-engine.js
 {% endcomment %}
 
 <div class="p-4 md:p-8 lg:p-10 max-w-[1200px] mx-auto space-y-8">
@@ -12,6 +12,8 @@
       <p class="text-sm text-gray-400 mt-1">Check in, view your matchups, and manage active games.</p>
     </div>
   </div>
+
+  {% comment %}── Check-In Section ────────────────────────────────────────{% endcomment %}
   {% if check_in_status != 'not_configured' %}
   <div class="hub-glass rounded-2xl p-6 md:p-8 relative overflow-hidden
     {% if check_in_status == 'open' and not is_checked_in %}border-l-4 border-l-[#00F0FF]
@@ -70,25 +72,52 @@
     </div>
   </div>
   {% endif %}
-  <div id="hub-match-cards">
+
+  {% comment %}── Active Matches ──────────────────────────────────────────{% endcomment %}
+  <div>
+    <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+      <i data-lucide="zap" class="w-4 h-4 text-[#00F0FF]"></i>
+      Active Matches
+    </h3>
+
+    {% comment %}Loading skeleton{% endcomment %}
+    <div id="matches-skeleton" class="space-y-4">
+      {% for _ in "12" %}
+      <div class="hub-glass rounded-xl p-5 animate-pulse">
+        <div class="flex items-center justify-between">
+          <div class="space-y-2 flex-1">
+            <div class="h-3 bg-white/10 rounded w-1/4"></div>
+            <div class="h-4 bg-white/10 rounded w-1/2"></div>
+          </div>
+          <div class="w-16 h-8 bg-white/10 rounded"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div id="hub-match-cards" class="space-y-4 hidden"></div>
 
     {% comment %}No matches placeholder{% endcomment %}
-    <div class="hub-glass rounded-2xl p-10 flex flex-col items-center justify-center text-center">
+    <div id="matches-empty" class="hub-glass rounded-2xl p-10 flex flex-col items-center justify-center text-center hidden">
       <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
         <i data-lucide="crosshairs" class="w-8 h-8 text-gray-600"></i>
       </div>
       <h3 class="text-lg font-bold text-white mb-2" style="font-family:Outfit,sans-serif;">No Active Matches</h3>
       <p class="text-sm text-gray-500 max-w-md">
         When the tournament goes live and matches are scheduled, your matchups will appear here
-        with live lobby controls, veto options, and result submission.
+        with live lobby controls and result submission.
       </p>
     </div>
-
   </div>
+
+  {% comment %}── Match History ────────────────────────────────────────────{% endcomment %}
   <div>
-    <h3 class="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">Match History</h3>
+    <h3 class="text-xs font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+      <i data-lucide="history" class="w-4 h-4 text-gray-600"></i>
+      Match History
+    </h3>
     <div id="hub-match-history" class="space-y-4">
-      <div class="text-center py-8">
+      <div id="match-history-empty" class="text-center py-8 hidden">
         <p class="text-sm text-gray-600">No completed matches yet.</p>
       </div>
     </div>

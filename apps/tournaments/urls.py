@@ -135,6 +135,12 @@ from apps.tournaments.views.hub import (
     HubAnnouncementsAPIView,
     HubRosterAPIView,
     HubSquadAPIView,
+    HubResourcesAPIView,
+    HubPrizeClaimAPIView,
+    HubBracketAPIView,
+    HubStandingsAPIView,
+    HubMatchesAPIView,
+    HubParticipantsAPIView,
 )
 from apps.tournaments.views.organizer_results import (
     PendingResultsView,
@@ -404,6 +410,12 @@ urlpatterns = [
     path('<slug:slug>/hub/api/announcements/', HubAnnouncementsAPIView.as_view(), name='hub_announcements_api'),
     path('<slug:slug>/hub/api/roster/', HubRosterAPIView.as_view(), name='hub_roster_api'),
     path('<slug:slug>/hub/api/squad/', HubSquadAPIView.as_view(), name='hub_squad_api'),
+    path('<slug:slug>/hub/api/resources/', HubResourcesAPIView.as_view(), name='hub_resources_api'),
+    path('<slug:slug>/hub/api/prize-claim/', HubPrizeClaimAPIView.as_view(), name='hub_prize_claim_api'),
+    path('<slug:slug>/hub/api/bracket/', HubBracketAPIView.as_view(), name='hub_bracket_api'),
+    path('<slug:slug>/hub/api/standings/', HubStandingsAPIView.as_view(), name='hub_standings_api'),
+    path('<slug:slug>/hub/api/matches/', HubMatchesAPIView.as_view(), name='hub_matches_api'),
+    path('<slug:slug>/hub/api/participants/', HubParticipantsAPIView.as_view(), name='hub_participants_api'),
 
     # Legacy URL compatibility
     path('hub/', RedirectView.as_view(pattern_name='tournaments:list', permanent=True), name='hub'),
