@@ -1,0 +1,2083 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth overflow-hidden antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeltaCrown TOC | Tournament Operations Center</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        theme: {
+                            DEFAULT: 'var(--color-primary)',
+                            muted: 'var(--color-primary-muted)',
+                            surface: 'var(--color-primary-surface)',
+                            border: 'var(--color-primary-border)',
+                            dark: 'var(--color-primary-dark)'
+                        },
+                        dc: {
+                            bg: '#050507',
+                            surface: '#0B0B0F',
+                            panel: '#121218',
+                            border: '#22222E',
+                            borderLight: '#333344',
+                            text: '#8F8F9D',
+                            textBright: '#E2E2E8',
+                            danger: '#FF2A55',
+                            dangerBg: 'rgba(255, 42, 85, 0.1)',
+                            warning: '#FFB800',
+                            warningBg: 'rgba(255, 184, 0, 0.1)',
+                            success: '#00FF66',
+                            successBg: 'rgba(0, 255, 102, 0.1)',
+                            info: '#3B82F6',
+                            infoBg: 'rgba(59, 130, 246, 0.1)'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style type="text/tailwindcss">
+        :root {
+            --color-primary: #00F0FF;
+            --color-primary-muted: rgba(0, 240, 255, 0.15);
+            --color-primary-surface: rgba(0, 240, 255, 0.05);
+            --color-primary-border: rgba(0, 240, 255, 0.25);
+            --color-primary-dark: rgba(0, 240, 255, 0.5);
+        }
+
+        [data-game="pubg"] {
+            --color-primary: #FFB800;
+            --color-primary-muted: rgba(255, 184, 0, 0.15);
+            --color-primary-surface: rgba(255, 184, 0, 0.05);
+            --color-primary-border: rgba(255, 184, 0, 0.25);
+            --color-primary-dark: rgba(255, 184, 0, 0.5);
+        }
+
+        body {
+            @apply bg-dc-bg text-dc-textBright h-screen flex overflow-hidden text-[13px] antialiased;
+        }
+
+        .toc-grid-bg {
+            @apply absolute inset-0 z-0 opacity-[0.03] pointer-events-none;
+            background-image:
+                linear-gradient(to right, #ffffff 1px, transparent 1px),
+                linear-gradient(to bottom, #ffffff 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .glass-box {
+            @apply bg-dc-surface border border-dc-border shadow-[0_4px_20px_rgba(0,0,0,0.4)] relative overflow-hidden;
+        }
+        .glass-box-elevated {
+            @apply bg-dc-panel border border-dc-borderLight shadow-[0_10px_30px_rgba(0,0,0,0.6)];
+        }
+
+        .ghost-icon {
+            @apply absolute text-white opacity-[0.02] pointer-events-none z-0 -rotate-12;
+        }
+
+        .data-grid {
+            @apply w-full border-collapse border-spacing-0;
+        }
+        .data-grid th {
+            @apply sticky top-0 z-20 bg-dc-panel border-b border-dc-borderLight px-4 py-2.5 font-display text-[0.65rem] font-extrabold uppercase tracking-widest text-dc-text text-left backdrop-blur-md;
+        }
+        .data-grid td {
+            @apply px-4 py-3 border-b border-dc-border bg-dc-surface text-[0.8rem] transition-colors relative z-10;
+        }
+        .data-grid tbody tr:hover td {
+            @apply bg-dc-panel;
+        }
+        .data-grid tbody tr.selected td {
+            @apply bg-theme-surface;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { @apply bg-dc-bg; }
+        ::-webkit-scrollbar-thumb { @apply bg-dc-borderLight rounded-full; }
+        ::-webkit-scrollbar-thumb:hover { @apply bg-theme; }
+
+        .toc-input {
+            @apply bg-dc-bg border border-dc-border text-white text-[0.8rem] rounded-lg transition-all focus:outline-none focus:border-theme focus:ring-1 focus:ring-theme-muted;
+        }
+        .toc-checkbox {
+            @apply appearance-none w-[1.1rem] h-[1.1rem] border border-dc-borderLight rounded bg-dc-bg cursor-pointer relative transition-all checked:bg-theme checked:border-theme;
+        }
+        .toc-checkbox:checked::after {
+            content: '';
+            @apply absolute left-[4px] top-[1px] w-[5px] h-[10px] border-solid border-black border-0 border-r-2 border-b-2 rotate-45;
+        }
+
+        .hidden-view { @apply hidden !important; }
+    </style>
+</head>
+<body data-game="valorant">
+
+    <div class="toc-grid-bg"></div>
+
+    <aside class="w-[240px] xl:w-[260px] h-full glass-box border-r border-dc-border flex flex-col shrink-0 z-30">
+        <div class="h-[64px] flex items-center px-5 border-b border-dc-border bg-dc-bg/50">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-theme to-theme-dark text-black flex items-center justify-center font-display font-black text-lg mr-3 shadow-[0_0_15px_var(--color-primary-muted)]">D</div>
+            <div>
+                <h1 class="font-display font-black text-sm tracking-wide leading-tight text-white">DeltaCrown</h1>
+                <p class="text-[9px] text-theme font-mono uppercase tracking-[0.2em]">Ops Center</p>
+            </div>
+        </div>
+
+        <div class="p-4 border-b border-dc-border">
+            <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-2 block">Active Context</label>
+            <div class="flex items-center justify-between bg-dc-bg border border-dc-borderLight rounded-lg px-3 py-2.5 cursor-pointer hover:border-theme transition-colors group">
+                <div class="overflow-hidden">
+                    <p class="text-xs font-bold text-white truncate group-hover:text-theme transition-colors">Valorant Winter Major</p>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-dc-success animate-pulse-slow"></span>
+                        <p class="text-[9px] text-dc-text font-mono">ID: #VAL-8821</p>
+                    </div>
+                </div>
+                <i data-lucide="chevrons-up-down" class="w-4 h-4 text-dc-text"></i>
+            </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1 relative">
+            <i data-lucide="shield-half" class="ghost-icon w-48 h-48 -left-10 top-20"></i>
+
+            <p class="px-3 text-[9px] font-bold text-dc-text uppercase tracking-widest mb-3 mt-1">Management</p>
+
+            <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-theme-surface text-theme font-bold transition-all group" onclick="switchTocView('dashboard', this)">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4 text-theme"></i>
+                    <span class="text-xs">Command Center</span>
+                </div>
+            </button>
+
+            <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-dc-text hover:bg-dc-panel hover:text-white font-medium transition-all group" onclick="switchTocView('participants', this)">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    <span class="text-xs">Participant Control</span>
+                </div>
+                <span class="bg-dc-borderLight text-white text-[9px] px-2 py-0.5 rounded font-mono">64</span>
+            </button>
+
+            <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-dc-text hover:bg-dc-panel hover:text-white font-medium transition-all group" onclick="switchTocView('financials', this)">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="wallet" class="w-4 h-4"></i>
+                    <span class="text-xs">Financials & Queue</span>
+                </div>
+                <span class="w-1.5 h-1.5 rounded-full bg-theme shadow-[0_0_5px_var(--color-primary)]"></span>
+            </button>
+
+            <p class="px-3 text-[9px] font-bold text-dc-text uppercase tracking-widest mb-3 mt-6">Competition Engine</p>
+
+            <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-dc-text hover:bg-dc-panel hover:text-white font-medium transition-all group" onclick="switchTocView('bracket', this)">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="git-merge" class="w-4 h-4 transform rotate-90"></i>
+                    <span class="text-xs">Bracket & Draws</span>
+                </div>
+            </button>
+
+            <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-dc-text hover:bg-dc-panel hover:text-white font-medium transition-all group" onclick="switchTocView('matches', this)">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="crosshairs" class="w-4 h-4"></i>
+                    <span class="text-xs">Live Match Ops</span>
+                </div>
+                <span class="bg-dc-successBg text-dc-success border border-dc-success/20 text-[9px] px-2 py-0.5 rounded font-mono font-bold">8</span>
+            </button>
+
+            <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-dc-text hover:bg-dc-panel hover:text-white font-medium transition-all group" onclick="switchTocView('medic', this)">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="siren" class="w-4 h-4 group-hover:text-dc-danger transition-colors"></i>
+                    <span class="text-xs">Match Medic</span>
+                </div>
+                <span class="bg-dc-danger text-white text-[9px] px-2 py-0.5 rounded font-bold shadow-[0_0_10px_rgba(255,42,85,0.4)]">2</span>
+            </button>
+
+            <p class="px-3 text-[9px] font-bold text-dc-text uppercase tracking-widest mb-3 mt-6">Platform Tools</p>
+
+            <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-dc-text hover:bg-dc-panel hover:text-white font-medium transition-all group" onclick="switchTocView('broadcast', this)">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="radio" class="w-4 h-4"></i>
+                    <span class="text-xs">Broadcast Director</span>
+                </div>
+            </button>
+
+            <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-dc-text hover:bg-dc-panel hover:text-white font-medium transition-all group" onclick="switchTocView('config', this)">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                    <span class="text-xs">Tournament Config</span>
+                </div>
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-dc-border bg-dc-bg/80 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="relative">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=22222E&color=fff" class="w-9 h-9 rounded-lg border border-dc-borderLight" alt="User">
+                    <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-dc-bg rounded-full flex items-center justify-center"><div class="w-2 h-2 bg-dc-success rounded-full"></div></div>
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-xs font-bold text-white truncate">Global Admin</p>
+                    <p class="text-[9px] text-dc-text font-mono truncate">Lvl 4 Clearance</p>
+                </div>
+            </div>
+            <button class="text-dc-text hover:text-white"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full relative z-10">
+
+        <header class="h-[64px] glass-box border-b border-dc-border flex items-center justify-between px-6 shrink-0 z-20">
+            <div class="flex-1 max-w-lg relative group">
+                <i data-lucide="search" class="w-4 h-4 text-dc-text absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-theme transition-colors"></i>
+                <input type="text" class="w-full bg-dc-bg border border-dc-borderLight rounded-lg pl-10 pr-16 py-2 text-xs text-white focus:outline-none focus:border-theme focus:ring-1 focus:ring-theme transition-all placeholder-dc-text/50" placeholder="Search Teams, Game IDs, Match #'s or Settings...">
+                <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <span class="px-1.5 py-0.5 rounded bg-dc-panel text-dc-text text-[9px] font-mono border border-dc-borderLight">Cmd</span>
+                    <span class="px-1.5 py-0.5 rounded bg-dc-panel text-dc-text text-[9px] font-mono border border-dc-borderLight">K</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-5">
+                <div class="flex items-center gap-3">
+                    <span class="text-[9px] font-bold text-dc-text uppercase tracking-widest">Global Status</span>
+                    <div class="relative group">
+                        <select class="appearance-none bg-theme-surface border border-theme text-theme text-xs font-bold rounded-lg pl-8 pr-8 py-1.5 cursor-pointer outline-none shadow-[0_0_15px_var(--color-primary-muted)] hover:bg-theme hover:text-dc-bg transition-all">
+                            <option>Draft</option>
+                            <option>Registration Open</option>
+                            <option>Check-In Phase</option>
+                            <option selected>Tournament LIVE</option>
+                            <option>Completed</option>
+                        </select>
+                        <div class="w-2 h-2 rounded-full bg-theme absolute left-3 top-1/2 -translate-y-1/2 animate-pulse group-hover:bg-dc-bg"></div>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-theme absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-dc-bg"></i>
+                    </div>
+                </div>
+
+                <div class="h-6 w-px bg-dc-borderLight"></div>
+
+                <button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dc-dangerBg text-dc-danger border border-dc-danger/30 hover:bg-dc-danger hover:text-white transition-all text-[10px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(255,42,85,0.1)]" onclick="document.getElementById('modal-freeze').classList.remove('hidden')">
+                    <i data-lucide="power" class="w-3.5 h-3.5"></i> Freeze
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto relative" id="toc-viewport">
+
+            <div id="view-dashboard" class="p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
+                <div class="flex items-end justify-between mb-4">
+                    <div class="relative">
+                        <div class="absolute -left-4 top-1 w-1 h-8 bg-theme rounded-full"></div>
+                        <h2 class="font-display font-black text-2xl text-white tracking-tight">Command Center</h2>
+                        <p class="text-xs text-dc-text mt-1 font-mono">Server Time: 14:32:05 BST | Mode: God-Tier Oversight</p>
+                    </div>
+                    <button class="px-4 py-2 bg-dc-panel border border-dc-borderLight rounded-lg text-xs font-bold text-white hover:border-theme transition-colors flex items-center gap-2">
+                        <i data-lucide="download" class="w-4 h-4 text-theme"></i> Export Master Log
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="glass-box rounded-xl p-5 group hover:border-theme transition-colors">
+                        <i data-lucide="users" class="ghost-icon w-24 h-24 -right-4 -bottom-4 group-hover:text-theme group-hover:opacity-10 transition-all"></i>
+                        <div class="flex justify-between items-start mb-4 relative z-10">
+                            <span class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Active Roster</span>
+                            <div class="p-1.5 bg-theme-surface rounded-md border border-theme-border"><i data-lucide="users" class="w-3.5 h-3.5 text-theme"></i></div>
+                        </div>
+                        <div class="flex items-baseline gap-2 relative z-10">
+                            <span class="font-display font-black text-4xl text-white">64</span>
+                            <span class="text-xs text-dc-text font-mono">/ 64 Cap</span>
+                        </div>
+                        <div class="mt-4 w-full bg-dc-bg rounded-full h-1.5 border border-dc-borderLight relative z-10">
+                            <div class="bg-theme h-1.5 rounded-full shadow-[0_0_10px_var(--color-primary)]" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <div class="glass-box rounded-xl p-5 group hover:border-dc-success transition-colors">
+                        <i data-lucide="wallet" class="ghost-icon w-24 h-24 -right-4 -bottom-4 group-hover:text-dc-success group-hover:opacity-10 transition-all"></i>
+                        <div class="flex justify-between items-start mb-4 relative z-10">
+                            <span class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Prize Escrow (BDT)</span>
+                            <div class="p-1.5 bg-dc-successBg rounded-md border border-dc-success/30"><i data-lucide="coins" class="w-3.5 h-3.5 text-dc-success"></i></div>
+                        </div>
+                        <div class="flex items-baseline gap-2 relative z-10">
+                            <span class="font-display font-black text-4xl text-white">32.0<span class="text-xl">K</span></span>
+                        </div>
+                        <div class="mt-4 flex items-center justify-between text-xs relative z-10">
+                            <span class="text-dc-success font-mono font-bold flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i> Locked</span>
+                            <span class="text-dc-warning bg-dc-warningBg px-2 py-0.5 rounded font-mono text-[9px] border border-dc-warning/20">12 Pending MFS</span>
+                        </div>
+                    </div>
+
+                    <div class="glass-box-elevated rounded-xl p-5 border-theme-border shadow-[0_0_30px_var(--color-primary-surface)]">
+                        <i data-lucide="crosshairs" class="ghost-icon w-24 h-24 -right-4 -bottom-4 text-theme opacity-5"></i>
+                        <div class="flex justify-between items-start mb-4 relative z-10">
+                            <span class="text-[10px] font-bold text-theme uppercase tracking-widest">Live Matches</span>
+                            <div class="p-1.5 bg-theme rounded-md"><i data-lucide="server" class="w-3.5 h-3.5 text-dc-bg"></i></div>
+                        </div>
+                        <div class="flex items-baseline gap-2 relative z-10">
+                            <span class="font-display font-black text-4xl text-white">8</span>
+                            <span class="text-xs text-dc-text font-mono">/ 16 Scheduled</span>
+                        </div>
+                        <p class="text-[10px] text-dc-text mt-4 font-bold uppercase tracking-widest relative z-10">Round: <span class="text-white">Quarterfinals</span></p>
+                    </div>
+
+                    <div class="glass-box rounded-xl p-5 border-dc-danger/30 bg-gradient-to-br from-dc-dangerBg to-transparent group">
+                        <i data-lucide="siren" class="ghost-icon w-24 h-24 -right-4 -bottom-4 text-dc-danger opacity-10"></i>
+                        <div class="flex justify-between items-start mb-4 relative z-10">
+                            <span class="text-[10px] font-bold text-dc-danger uppercase tracking-widest">Active Disputes</span>
+                            <div class="p-1.5 bg-dc-danger rounded-md shadow-[0_0_10px_rgba(239,68,68,0.5)]"><i data-lucide="shield-alert" class="w-3.5 h-3.5 text-white"></i></div>
+                        </div>
+                        <div class="flex items-baseline gap-2 relative z-10">
+                            <span class="font-display font-black text-4xl text-dc-danger drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">2</span>
+                        </div>
+                        <div class="mt-4 relative z-10">
+                            <button class="w-full py-1.5 bg-dc-danger/20 border border-dc-danger/50 text-white text-[10px] font-bold uppercase tracking-widest rounded hover:bg-dc-danger transition-colors" onclick="switchTocView('medic', document.querySelectorAll('aside nav button')[5])">
+                                Resolve Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+                    <div class="lg:col-span-1 glass-box rounded-xl flex flex-col h-[400px]">
+                        <div class="p-4 border-b border-dc-borderLight flex items-center gap-2 bg-dc-panel/50">
+                            <i data-lucide="cpu" class="w-4 h-4 text-theme"></i>
+                            <h3 class="text-xs font-bold text-white uppercase tracking-widest">System Assistant</h3>
+                        </div>
+                        <div class="p-5 space-y-5 flex-1 overflow-y-auto">
+                            <div class="flex gap-3 opacity-40">
+                                <div class="w-6 h-6 rounded-full bg-dc-successBg border border-dc-success text-dc-success flex items-center justify-center shrink-0 mt-0.5">
+                                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-white line-through decoration-dc-borderLight">Roster Lock</p>
+                                    <p class="text-[10px] text-dc-text mt-0.5 leading-relaxed">Deadline passed. No emergency sub requests pending.</p>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-3 relative before:content-[''] before:absolute before:-left-5 before:top-2 before:bottom-2 before:w-1 before:bg-theme before:rounded-r-md">
+                                <div class="w-6 h-6 rounded-full bg-theme border border-theme text-dc-bg flex items-center justify-center shrink-0 mt-0.5 shadow-[0_0_15px_var(--color-primary-muted)]">
+                                    <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-white">Review MFS Payments</p>
+                                    <p class="text-[10px] text-dc-text mt-0.5 leading-relaxed">12 manual bKash/Nagad transactions require admin verification to finalize the team list.</p>
+                                    <button class="mt-2.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded text-[9px] font-bold uppercase tracking-widest text-theme hover:bg-white/10 transition-colors" onclick="switchTocView('financials')">Go to Queue →</button>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-3 opacity-50">
+                                <div class="w-6 h-6 rounded-full bg-dc-bg border border-dc-border text-dc-text flex items-center justify-center shrink-0 mt-0.5">
+                                    <i data-lucide="lock" class="w-3 h-3"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-white">Generate Bracket</p>
+                                    <p class="text-[10px] text-dc-text mt-0.5 leading-relaxed">Blocked until all pending payments are resolved and exactly 64 teams are confirmed.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-2 glass-box rounded-xl flex flex-col h-[400px]">
+                        <div class="p-4 border-b border-dc-borderLight flex justify-between items-center bg-dc-panel/50">
+                            <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="terminal" class="w-4 h-4 text-dc-text"></i> Live Event Stream
+                            </h3>
+                            <div class="flex gap-1.5">
+                                <button class="px-2.5 py-1 rounded bg-theme-surface text-theme text-[9px] font-bold border border-theme-border">ALL</button>
+                                <button class="px-2.5 py-1 rounded hover:bg-dc-panel text-[9px] font-bold text-dc-text border border-transparent">MATCHES</button>
+                                <button class="px-2.5 py-1 rounded hover:bg-dc-panel text-[9px] font-bold text-dc-text border border-transparent">FINANCE</button>
+                            </div>
+                        </div>
+
+                        <div class="p-5 overflow-hidden relative flex-1 bg-[#0A0A0C]">
+                            <div class="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none z-10"></div>
+
+                            <div class="space-y-3.5 font-mono text-[11px] relative z-20">
+                                <div class="flex gap-4 items-start hover:bg-white/[0.02] p-1 -mx-1 rounded transition-colors">
+                                    <span class="text-dc-text shrink-0 w-14">14:31:02</span>
+                                    <span class="text-dc-success w-16 shrink-0">[AUTO]</span>
+                                    <p class="text-gray-300">Match <span class="text-white font-bold">#VAL-8821</span> verified by Smart Engine. PS advances.</p>
+                                </div>
+                                <div class="flex gap-4 items-start hover:bg-white/[0.02] p-1 -mx-1 rounded transition-colors">
+                                    <span class="text-dc-text shrink-0 w-14">14:15:45</span>
+                                    <span class="text-dc-danger w-16 shrink-0">[ALERT]</span>
+                                    <p class="text-gray-300">Dispute created by Team 'Nova'. Reason: <span class="text-dc-danger">Score Mismatch</span>.</p>
+                                </div>
+                                <div class="flex gap-4 items-start hover:bg-white/[0.02] p-1 -mx-1 rounded transition-colors">
+                                    <span class="text-dc-text shrink-0 w-14">14:02:11</span>
+                                    <span class="text-theme w-16 shrink-0">[ADMIN]</span>
+                                    <p class="text-gray-300">Admin 'Global Admin' verified 5 TrxIDs via Bulk Action.</p>
+                                </div>
+                                <div class="flex gap-4 items-start hover:bg-white/[0.02] p-1 -mx-1 rounded transition-colors opacity-70">
+                                    <span class="text-dc-text shrink-0 w-14">13:45:00</span>
+                                    <span class="text-dc-info w-16 shrink-0">[INFO]</span>
+                                    <p class="text-gray-300">Registration closed via automated cron job.</p>
+                                </div>
+                                <div class="flex gap-4 items-start hover:bg-white/[0.02] p-1 -mx-1 rounded transition-colors opacity-50">
+                                    <span class="text-dc-text shrink-0 w-14">13:12:33</span>
+                                    <span class="text-theme w-16 shrink-0">[ADMIN]</span>
+                                    <p class="text-gray-300">Admin 'Global Admin' published Rulebook v2 (Material Change).</p>
+                                </div>
+                                <div class="flex gap-4 items-start hover:bg-white/[0.02] p-1 -mx-1 rounded transition-colors opacity-30">
+                                    <span class="text-dc-text shrink-0 w-14">13:12:33</span>
+                                    <span class="text-dc-info w-16 shrink-0">[SYS]</span>
+                                    <p class="text-gray-300">Pushed Re-Consent modal to 320 active players.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-participants" class="hidden-view p-6 lg:p-8 w-full h-full flex flex-col max-w-[1800px] mx-auto">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-5 shrink-0 gap-4">
+                    <div>
+                        <h2 class="font-display font-black text-2xl text-white tracking-tight">Participant Registry</h2>
+                        <p class="text-xs text-dc-text mt-1">Manage all 64 registered teams, waitlist, and free agents.</p>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <i data-lucide="search" class="w-4 h-4 text-dc-text absolute left-3 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" class="toc-input pl-9 pr-4 py-2 w-64 lg:w-80 bg-dc-panel border-dc-borderLight" placeholder="Search Team, Captain, or IGN...">
+                        </div>
+                        <button class="px-3 py-2 bg-dc-panel border border-dc-borderLight rounded-lg text-xs font-bold text-white hover:border-theme hover:bg-theme-surface transition-all flex items-center gap-2 shadow-sm">
+                            <i data-lucide="filter" class="w-4 h-4 text-gray-400"></i> Filters
+                        </button>
+                        <button class="px-3 py-2 bg-dc-bg border border-dc-border rounded-lg text-xs font-bold text-theme hover:bg-white/5 transition-all flex items-center gap-2">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i> Free Agents
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-theme-surface border border-theme-border rounded-t-xl p-3 flex items-center justify-between shrink-0 shadow-[0_-5px_20px_var(--color-primary-dark)]">
+                    <div class="flex items-center gap-4 px-2">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" class="toc-checkbox" checked>
+                            <span class="text-xs font-black text-theme uppercase tracking-widest">2 Selected</span>
+                        </div>
+                        <div class="h-4 w-px bg-theme-border"></div>
+                        <button class="text-[10px] font-bold uppercase tracking-widest text-white hover:text-theme transition-colors flex items-center gap-1.5"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i> Bulk WhatsApp</button>
+                        <button class="text-[10px] font-bold uppercase tracking-widest text-white hover:text-theme transition-colors flex items-center gap-1.5"><i data-lucide="mail" class="w-3.5 h-3.5"></i> Send Email</button>
+                        <button class="text-[10px] font-bold uppercase tracking-widest text-dc-warning hover:text-yellow-400 transition-colors ml-2"><i data-lucide="list-end" class="w-3.5 h-3.5"></i> To Waitlist</button>
+                        <button class="text-[10px] font-bold uppercase tracking-widest text-dc-danger hover:text-red-400 transition-colors"><i data-lucide="ban" class="w-3.5 h-3.5"></i> Disqualify</button>
+                    </div>
+                    <button class="text-dc-text hover:text-white p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
+                </div>
+
+                <div class="flex-1 bg-dc-surface border-x border-b border-dc-border rounded-b-xl overflow-auto shadow-2xl relative">
+                    <table class="data-grid min-w-[1200px]">
+                        <thead>
+                            <tr>
+                                <th class="w-12 text-center"><input type="checkbox" class="toc-checkbox"></th>
+                                <th class="w-20">Seed</th>
+                                <th class="w-64">Team Identity</th>
+                                <th class="w-56">Captain / Contact</th>
+                                <th>Roster Health</th>
+                                <th>Trust</th>
+                                <th>Entry Status</th>
+                                <th class="w-24 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-center"><input type="checkbox" class="toc-checkbox"></td>
+                                <td class="font-mono font-bold text-white text-sm">#01</td>
+                                <td>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-dc-panel border border-dc-border flex items-center justify-center text-[9px] font-black text-white shadow-sm">PRX</div>
+                                        <span class="font-bold text-white text-sm">Paper Rex</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="flex items-center justify-between group">
+                                        <div>
+                                            <div class="text-xs font-bold text-white">Jinggg</div>
+                                            <div class="text-[10px] text-dc-text font-mono mt-0.5">WKey#SEA</div>
+                                        </div>
+                                        <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button class="p-1.5 bg-[#25D366]/20 text-[#25D366] hover:bg-[#25D366] hover:text-white rounded transition-colors" title="WhatsApp Captain"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i></button>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="inline-flex items-center gap-2 px-2.5 py-1 bg-dc-panel rounded-md border border-dc-borderLight">
+                                        <div class="w-2 h-2 rounded-full bg-dc-success shadow-[0_0_5px_rgba(0,255,102,0.5)]"></div>
+                                        <span class="text-[10px] font-mono font-bold text-white">5/5 Verified</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-dc-success"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> 98</span>
+                                </td>
+                                <td><span class="px-2 py-1 rounded bg-white/10 text-white text-[9px] font-black uppercase tracking-widest border border-white/5">Confirmed</span></td>
+                                <td><button class="p-2 text-dc-text hover:text-theme hover:bg-theme-surface rounded-lg transition-colors"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button></td>
+                            </tr>
+
+                            <tr class="selected">
+                                <td class="text-center"><input type="checkbox" class="toc-checkbox" checked></td>
+                                <td class="font-mono font-bold text-theme text-sm">#04</td>
+                                <td>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-theme-surface border border-theme flex items-center justify-center text-[9px] font-black text-theme shadow-[0_0_10px_var(--color-primary-dark)]">PS</div>
+                                        <span class="font-bold text-white text-sm">PlaySphere</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="flex items-center justify-between group">
+                                        <div>
+                                            <div class="text-xs font-bold text-white">Rock</div>
+                                            <div class="text-[10px] text-dc-text font-mono mt-0.5">SIUU#BD1</div>
+                                        </div>
+                                        <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button class="p-1.5 bg-[#25D366]/20 text-[#25D366] hover:bg-[#25D366] hover:text-white rounded transition-colors"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i></button>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="inline-flex items-center gap-2 px-2.5 py-1 bg-dc-panel rounded-md border border-dc-borderLight">
+                                        <div class="w-2 h-2 rounded-full bg-dc-success shadow-[0_0_5px_rgba(0,255,102,0.5)]"></div>
+                                        <span class="text-[10px] font-mono font-bold text-white">5/5 Verified</span>
+                                    </div>
+                                </td>
+                                <td><span class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-dc-success"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> 95</span></td>
+                                <td><span class="px-2 py-1 rounded bg-white/10 text-white text-[9px] font-black uppercase tracking-widest border border-white/5">Confirmed</span></td>
+                                <td><button class="p-2 text-dc-text hover:text-theme hover:bg-theme-surface rounded-lg transition-colors"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button></td>
+                            </tr>
+
+                            <tr>
+                                <td class="text-center"><input type="checkbox" class="toc-checkbox"></td>
+                                <td class="font-mono font-bold text-dc-text text-sm">#12</td>
+                                <td>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-dc-panel border border-dc-border flex items-center justify-center text-[9px] font-black text-white">SEN</div>
+                                        <span class="font-bold text-white text-sm">Sentinels Acad</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="flex items-center justify-between group">
+                                        <div>
+                                            <div class="text-xs font-bold text-white">TenzClone</div>
+                                            <div class="text-[10px] text-dc-text font-mono mt-0.5">Aim#GOD</div>
+                                        </div>
+                                        <div class="flex gap-1.5 opacity-100 transition-opacity">
+                                            <button class="p-1.5 bg-[#25D366]/20 text-[#25D366] hover:bg-[#25D366] hover:text-white rounded transition-colors" title="Send WhatsApp Warning"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i></button>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="inline-flex items-center gap-2 px-2.5 py-1 bg-dc-dangerBg rounded-md border border-dc-danger/30">
+                                        <div class="w-2 h-2 rounded-full bg-dc-danger animate-pulse"></div>
+                                        <span class="text-[10px] font-mono font-bold text-dc-danger">4/5 (Sub Req Pending)</span>
+                                    </div>
+                                </td>
+                                <td><span class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-dc-warning"><i data-lucide="shield" class="w-3.5 h-3.5"></i> 68</span></td>
+                                <td><span class="px-2 py-1 rounded bg-dc-dangerBg text-dc-danger border border-dc-danger/30 text-[9px] font-black uppercase tracking-widest">Incomplete</span></td>
+                                <td><button class="p-2 text-dc-text hover:text-theme hover:bg-theme-surface rounded-lg transition-colors"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button></td>
+                            </tr>
+
+                            <tr class="selected">
+                                <td class="text-center"><input type="checkbox" class="toc-checkbox" checked></td>
+                                <td class="font-mono font-bold text-dc-text text-sm">#18</td>
+                                <td>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-dc-panel border border-dc-border flex items-center justify-center text-[9px] font-black text-white">NV</div>
+                                        <span class="font-bold text-white text-sm">Nova Esports</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="flex items-center justify-between group">
+                                        <div>
+                                            <div class="text-xs font-bold text-white">NovaCaptain</div>
+                                            <div class="text-[10px] text-dc-text font-mono mt-0.5">Lead#88</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="inline-flex items-center gap-2 px-2.5 py-1 bg-dc-panel rounded-md border border-dc-borderLight">
+                                        <div class="w-2 h-2 rounded-full bg-dc-success"></div>
+                                        <span class="text-[10px] font-mono font-bold text-white">5/5 Verified</span>
+                                    </div>
+                                </td>
+                                <td><span class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-dc-success"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> 82</span></td>
+                                <td>
+                                    <div class="group/badge relative inline-block cursor-help">
+                                        <span class="px-2 py-1 rounded bg-dc-warningBg text-dc-warning border border-dc-warning/30 text-[9px] font-black uppercase tracking-widest flex items-center gap-1">
+                                            <i data-lucide="alert-circle" class="w-3 h-3"></i> Partial Pay
+                                        </span>
+                                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-dc-panel border border-dc-border rounded text-[10px] text-white opacity-0 group-hover/badge:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                                            Paid ৳490 via bKash. Owes ৳10 (MFS fee). Shortfall will be deducted from any prize winnings.
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><button class="p-2 text-dc-text hover:text-theme hover:bg-theme-surface rounded-lg transition-colors"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-financials" class="hidden-view p-6 lg:p-8 w-full h-full flex flex-col max-w-[1800px] mx-auto">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-5 shrink-0 gap-4">
+                    <div>
+                        <h2 class="font-display font-black text-2xl text-white tracking-tight flex items-center gap-3">
+                            Financials & Verification Queue
+                            <span class="px-2 py-0.5 rounded bg-dc-warningBg text-dc-warning text-[10px] font-mono border border-dc-warning/30 uppercase tracking-widest">Action Required</span>
+                        </h2>
+                        <p class="text-xs text-dc-text mt-1">Manage MFS verifications, track revenue, handle partial payments, and calculate prize pool deductions.</p>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button class="px-3 py-2 bg-dc-panel border border-dc-borderLight rounded-lg text-xs font-bold text-white hover:border-theme hover:bg-theme-surface transition-all flex items-center gap-2 shadow-sm">
+                            <i data-lucide="download" class="w-4 h-4 text-theme"></i> Export Financial Report
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 shrink-0">
+                    <div class="glass-box rounded-xl p-4 border-t-2 border-t-dc-info">
+                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Gross Revenue (BDT)</p>
+                        <div class="flex items-end justify-between">
+                            <span class="font-display font-black text-2xl text-white">32,000</span>
+                            <span class="text-[10px] text-dc-success font-bold flex items-center"><i data-lucide="trending-up" class="w-3 h-3 mr-1"></i> 100% Target</span>
+                        </div>
+                        <div class="mt-3 flex gap-1 h-1 w-full rounded-full overflow-hidden">
+                            <div class="bg-dc-success w-[85%]" title="Verified"></div>
+                            <div class="bg-dc-warning w-[15%]" title="Pending"></div>
+                        </div>
+                    </div>
+
+                    <div class="glass-box rounded-xl p-4 border-t-2 border-t-theme">
+                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Net Distributable Prize</p>
+                        <div class="flex items-end justify-between">
+                            <span class="font-display font-black text-2xl text-theme">28,800</span>
+                            <span class="text-[10px] text-dc-text font-mono bg-dc-panel px-1.5 rounded">After Fees</span>
+                        </div>
+                        <div class="mt-3 flex justify-between text-[9px] font-bold text-dc-text">
+                            <span>Platform: 10% (3,200)</span>
+                            <span>Org: 0%</span>
+                        </div>
+                    </div>
+
+                    <div class="glass-box rounded-xl p-4 border-t-2 border-t-dc-success">
+                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-1">Collection Rate</p>
+                        <div class="flex items-end justify-between">
+                            <span class="font-display font-black text-2xl text-white">85.4%</span>
+                            <span class="text-[10px] text-white font-mono bg-dc-success/20 border border-dc-success/50 px-1.5 rounded">Healthy</span>
+                        </div>
+                        <p class="text-[10px] text-dc-text mt-3 truncate">54/64 Teams Fully Verified</p>
+                    </div>
+
+                    <div class="glass-box rounded-xl p-4 border-t-2 border-t-dc-danger bg-gradient-to-b from-dc-dangerBg/50 to-transparent">
+                        <p class="text-[10px] font-bold text-dc-danger uppercase tracking-widest mb-1">MFS Shortfalls</p>
+                        <div class="flex items-end justify-between">
+                            <span class="font-display font-black text-2xl text-dc-danger drop-shadow-[0_0_8px_rgba(255,42,85,0.5)]">৳120</span>
+                            <span class="text-[10px] text-dc-danger font-mono bg-dc-dangerBg px-1.5 rounded">4 Teams</span>
+                        </div>
+                        <p class="text-[10px] text-dc-text mt-3 truncate text-white">Flagged for Prize Deduction</p>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex gap-6 min-h-0">
+                    <div class="w-1/3 glass-box rounded-xl flex flex-col min-h-0 border-dc-borderLight">
+                        <div class="p-3 border-b border-dc-border flex justify-between items-center bg-dc-panel/50">
+                            <h3 class="text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="list-todo" class="w-4 h-4 text-theme"></i> Pending Verification (12)
+                            </h3>
+                            <button class="p-1 text-dc-text hover:text-white"><i data-lucide="filter" class="w-3.5 h-3.5"></i></button>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto p-2 space-y-2">
+                            <div class="p-3 rounded-lg bg-theme-surface border border-theme cursor-pointer relative shadow-[0_0_15px_var(--color-primary-surface)]">
+                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-theme rounded-l-lg"></div>
+                                <div class="flex justify-between items-start mb-2 pl-2">
+                                    <div>
+                                        <p class="text-xs font-bold text-white">Team Sentinels</p>
+                                        <p class="text-[10px] text-dc-text font-mono">T-48291</p>
+                                    </div>
+                                    <span class="px-1.5 py-0.5 rounded bg-[#E2136E]/20 text-[#E2136E] border border-[#E2136E]/30 text-[9px] font-black uppercase tracking-widest">bKash</span>
+                                </div>
+                                <div class="flex justify-between items-end pl-2">
+                                    <p class="text-[10px] text-dc-text">Expected: <span class="text-white font-mono">৳500</span></p>
+                                    <p class="text-[9px] text-dc-text">2 hrs ago</p>
+                                </div>
+                            </div>
+
+                            <div class="p-3 rounded-lg bg-dc-panel border border-dc-border hover:border-dc-borderLight cursor-pointer transition-colors group">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <p class="text-xs font-bold text-white group-hover:text-theme transition-colors">Nova Esports</p>
+                                        <p class="text-[10px] text-dc-text font-mono">T-99210</p>
+                                    </div>
+                                    <span class="px-1.5 py-0.5 rounded bg-[#ED1C24]/20 text-[#ED1C24] border border-[#ED1C24]/30 text-[9px] font-black uppercase tracking-widest">Nagad</span>
+                                </div>
+                                <div class="flex justify-between items-end">
+                                    <p class="text-[10px] text-dc-text">Expected: <span class="text-white font-mono">৳500</span></p>
+                                    <p class="text-[9px] text-dc-text">5 hrs ago</p>
+                                </div>
+                            </div>
+
+                            <div class="p-3 rounded-lg bg-dc-panel border border-dc-border hover:border-dc-borderLight cursor-pointer transition-colors group">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <p class="text-xs font-bold text-white group-hover:text-theme transition-colors">Cloud9 Amateurs</p>
+                                        <p class="text-[10px] text-dc-text font-mono">T-11029</p>
+                                    </div>
+                                    <span class="px-1.5 py-0.5 rounded bg-dc-successBg text-dc-success border border-dc-success/30 text-[9px] font-black uppercase tracking-widest">DeltaCoin</span>
+                                </div>
+                                <div class="flex justify-between items-end">
+                                    <p class="text-[10px] text-dc-text">Status: <span class="text-dc-warning font-mono">Disputed Sync</span></p>
+                                    <p class="text-[9px] text-dc-text">1 day ago</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="w-2/3 glass-box rounded-xl flex flex-col min-h-0 border-theme-border shadow-[0_0_30px_var(--color-primary-surface)]">
+                        <div class="p-4 border-b border-dc-border flex justify-between items-center bg-theme-surface">
+                            <div>
+                                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                    Verification Workspace <i data-lucide="chevron-right" class="w-4 h-4 text-dc-text"></i> Team Sentinels
+                                </h3>
+                                <p class="text-[10px] text-theme font-mono mt-1">TrxID: 9XJ2A4B8KL (bKash)</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="p-2 rounded bg-dc-panel border border-dc-border hover:text-white transition-colors" title="Contact via WhatsApp">
+                                    <i data-lucide="message-circle" class="w-4 h-4 text-[#25D366]"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto p-6 flex gap-6">
+                            <div class="w-1/2 flex flex-col">
+                                <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-2">Player Uploaded Proof</p>
+                                <div class="flex-1 bg-black rounded-lg border border-dc-border relative overflow-hidden group">
+                                    <img src="https://via.placeholder.com/400x800.png?text=bKash+Screenshot" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="Payment Proof">
+                                    <div class="absolute bottom-3 right-3 flex gap-2">
+                                        <button class="w-8 h-8 rounded bg-dc-panel/80 backdrop-blur border border-white/10 flex items-center justify-center text-white hover:bg-theme hover:border-theme transition-colors"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
+                                        <button class="w-8 h-8 rounded bg-dc-panel/80 backdrop-blur border border-white/10 flex items-center justify-center text-white hover:bg-theme hover:border-theme transition-colors"><i data-lucide="rotate-cw" class="w-4 h-4"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="w-1/2 flex flex-col">
+                                <div class="bg-dc-panel rounded-lg border border-dc-borderLight p-4 mb-4">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Transaction Details</p>
+                                        <span class="px-2 py-0.5 rounded bg-dc-warningBg text-dc-warning text-[9px] font-mono border border-dc-warning/30">MFS Shortfall Detected</span>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between border-b border-dc-border pb-2">
+                                            <span class="text-xs text-dc-text">Expected Entry Fee</span>
+                                            <span class="text-xs font-mono font-bold text-white">৳ 500.00</span>
+                                        </div>
+                                        <div class="flex justify-between border-b border-dc-border pb-2">
+                                            <span class="text-xs text-dc-text">Reported TrxID</span>
+                                            <span class="text-xs font-mono text-white">9XJ2A4B8KL</span>
+                                        </div>
+                                        <div class="flex justify-between border-b border-dc-border pb-2">
+                                            <span class="text-xs text-dc-text">Sender Account</span>
+                                            <span class="text-xs font-mono text-white">+880 1712-345678</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex-1">
+                                    <label class="text-[10px] font-bold text-theme uppercase tracking-widest mb-2 block">Actual Received Amount</label>
+                                    <div class="relative mb-4">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-dc-text font-mono">৳</span>
+                                        <input type="number" value="485" class="toc-input w-full pl-8 py-2.5 font-mono text-lg text-white border-dc-warning focus:border-dc-warning focus:ring-dc-warning/20">
+                                    </div>
+
+                                    <div class="bg-dc-dangerBg border border-dc-danger/30 rounded-lg p-3 mb-4">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-xs font-bold text-dc-danger">Shortfall (MFS Cash-out fee)</span>
+                                            <span class="text-sm font-mono font-bold text-dc-danger">-৳ 15.00</span>
+                                        </div>
+                                    </div>
+
+                                    <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-2 block">Shortfall Resolution Method</label>
+                                    <div class="space-y-2 mb-6">
+                                        <label class="flex items-center gap-3 p-2 rounded border border-theme bg-theme-surface cursor-pointer">
+                                            <input type="radio" name="resolution" class="toc-checkbox rounded-full" checked>
+                                            <span class="text-xs text-white font-medium">Deduct from Prize Winnings</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 p-2 rounded border border-dc-border bg-dc-bg cursor-pointer hover:border-dc-borderLight">
+                                            <input type="radio" name="resolution" class="toc-checkbox rounded-full">
+                                            <span class="text-xs text-white font-medium">Manual Collection at LAN</span>
+                                        </label>
+                                        <label class="flex items-center gap-3 p-2 rounded border border-dc-border bg-dc-bg cursor-pointer hover:border-dc-borderLight">
+                                            <input type="radio" name="resolution" class="toc-checkbox rounded-full">
+                                            <span class="text-xs text-white font-medium">Waive Difference</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-3 mt-auto">
+                                    <button class="flex-1 py-2.5 rounded-lg bg-dc-panel border border-dc-danger text-dc-danger text-xs font-bold hover:bg-dc-danger hover:text-white transition-colors">
+                                        Reject & Request Resubmit
+                                    </button>
+                                    <button class="flex-1 py-2.5 rounded-lg bg-dc-warning text-[#000] text-xs font-black uppercase tracking-widest hover:bg-yellow-400 transition-colors shadow-[0_0_15px_rgba(255,184,0,0.3)]">
+                                        Partially Verify
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-bracket" class="hidden-view p-6 lg:p-8 w-full h-full flex flex-col max-w-[1800px] mx-auto">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-5 shrink-0 gap-4">
+                    <div>
+                        <h2 class="font-display font-black text-2xl text-white tracking-tight">Bracket Engine & Live Draws</h2>
+                        <p class="text-xs text-dc-text mt-1">Manage tournament structure, seeding, and execute live broadcast draw ceremonies.</p>
+                    </div>
+
+                    <div class="flex items-center bg-dc-panel p-1 rounded-lg border border-dc-borderLight">
+                        <button class="px-4 py-1.5 rounded-md bg-dc-surface border border-dc-border text-xs font-bold text-white shadow-sm">Bracket Tree</button>
+                        <button class="px-4 py-1.5 rounded-md text-xs font-bold text-dc-text hover:text-white transition-colors flex items-center gap-2">
+                            <i data-lucide="monitor-play" class="w-3.5 h-3.5"></i> Live Draw Director
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-dc-panel border border-dc-borderLight rounded-xl p-4 mb-6 shrink-0 flex items-center justify-between shadow-lg">
+                    <div class="flex items-center gap-8">
+                        <div>
+                            <p class="text-[9px] text-dc-text font-bold uppercase tracking-widest mb-1">Format</p>
+                            <p class="text-sm font-bold text-white">Double Elimination</p>
+                        </div>
+                        <div class="h-8 w-px bg-dc-border"></div>
+                        <div>
+                            <p class="text-[9px] text-dc-text font-bold uppercase tracking-widest mb-1">Seed Advantage</p>
+                            <p class="text-sm font-bold text-theme">First Pick / Map Selection</p>
+                        </div>
+                        <div class="h-8 w-px bg-dc-border"></div>
+                        <div>
+                            <p class="text-[9px] text-dc-text font-bold uppercase tracking-widest mb-1">True Finals (Reset)</p>
+                            <p class="text-sm font-bold text-dc-success flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Enabled</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button class="px-4 py-2 bg-dc-bg border border-dc-border rounded-lg text-xs font-bold text-white hover:border-theme transition-colors">
+                            Reorder Seeds
+                        </button>
+                        <button class="px-4 py-2 bg-theme/10 border border-theme text-theme rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-theme hover:text-black transition-colors shadow-[0_0_10px_var(--color-primary-muted)]">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Generate Bracket
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 glass-box rounded-xl border-theme-border shadow-[0_0_30px_var(--color-primary-surface)] flex flex-col min-h-0 overflow-hidden relative">
+                    <div class="p-4 bg-gradient-to-r from-theme-surface to-transparent border-b border-dc-borderLight flex justify-between items-center shrink-0">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full bg-dc-danger animate-pulse shadow-[0_0_10px_rgba(255,42,85,0.8)]"></div>
+                            <h3 class="text-sm font-black text-white uppercase tracking-widest">Live Broadcast Director <span class="text-dc-text font-normal ml-2">| Group Stage Draw</span></h3>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2 text-xs font-mono text-dc-text bg-dc-bg px-3 py-1 rounded border border-dc-border">
+                                <i data-lucide="eye" class="w-3.5 h-3.5 text-theme"></i> 1,240 WebSocket Viewers
+                            </div>
+                            <button class="px-3 py-1.5 bg-dc-dangerBg text-dc-danger border border-dc-danger/50 text-[10px] font-bold uppercase tracking-widest rounded hover:bg-dc-danger hover:text-white transition-colors flex items-center gap-1.5">
+                                <i data-lucide="pause" class="w-3 h-3"></i> Pause Draw
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 flex min-h-0">
+                        <div class="w-1/3 border-r border-dc-border flex flex-col bg-dc-bg/50">
+                            <div class="p-4 border-b border-dc-border">
+                                <div class="flex justify-between items-end mb-4">
+                                    <div>
+                                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Draw Pool</p>
+                                        <p class="text-2xl font-black text-white font-display mt-1">42 <span class="text-sm text-dc-text font-normal">/ 64 Remaining</span></p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Next Assignment</p>
+                                        <p class="text-sm font-bold text-theme font-mono mt-1">Group C — Slot 3</p>
+                                    </div>
+                                </div>
+
+                                <button class="w-full py-4 bg-theme text-black rounded-lg font-black text-lg uppercase tracking-widest shadow-[0_0_20px_var(--color-primary)] hover:bg-white transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 relative overflow-hidden group">
+                                    <div class="absolute inset-0 bg-white/20 -translate-x-full group-hover:animate-[shimmer_1s_infinite]"></div>
+                                    <i data-lucide="dices" class="w-6 h-6"></i> Draw Next Team
+                                </button>
+
+                                <div class="flex gap-2 mt-3">
+                                    <button class="flex-1 py-2 bg-dc-panel border border-dc-border text-dc-text text-[10px] font-bold uppercase rounded hover:text-white transition-colors">Skip Slot</button>
+                                    <button class="flex-1 py-2 bg-dc-panel border border-dc-border text-dc-text text-[10px] font-bold uppercase rounded hover:text-white transition-colors">Manual Pick</button>
+                                </div>
+                            </div>
+
+                            <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                                <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest sticky top-0 bg-dc-bg/90 backdrop-blur pb-2">Draw History</p>
+
+                                <div class="flex gap-3 items-start opacity-100">
+                                    <span class="text-theme font-mono text-[10px] mt-0.5 shrink-0">14:30:12</span>
+                                    <p class="text-xs text-white">Team <span class="font-bold text-theme">Sentinels</span> drawn into <span class="font-bold">Group C (Slot 2)</span></p>
+                                </div>
+                                <div class="flex gap-3 items-start opacity-70">
+                                    <span class="text-dc-text font-mono text-[10px] mt-0.5 shrink-0">14:28:45</span>
+                                    <p class="text-xs text-white">Team <span class="font-bold text-theme">LOUD</span> drawn into <span class="font-bold">Group B (Slot 2)</span></p>
+                                </div>
+                                <div class="flex gap-3 items-start opacity-50">
+                                    <span class="text-dc-text font-mono text-[10px] mt-0.5 shrink-0">14:27:10</span>
+                                    <p class="text-xs text-white">Team <span class="font-bold text-theme">Paper Rex</span> drawn into <span class="font-bold">Group A (Slot 2)</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="w-2/3 p-6 overflow-y-auto bg-grid-pattern relative">
+                            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-theme/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+                            <div class="grid grid-cols-2 gap-6 relative z-10">
+                                <div class="bg-dc-panel border border-dc-border rounded-lg overflow-hidden">
+                                    <div class="bg-dc-surface px-4 py-2 border-b border-dc-border flex justify-between items-center">
+                                        <h4 class="font-bold text-white">Group A</h4>
+                                        <span class="text-[9px] text-dc-text font-mono">2/4 Filled</span>
+                                    </div>
+                                    <div class="p-2 space-y-1">
+                                        <div class="px-3 py-2 bg-dc-bg border border-dc-borderLight rounded flex items-center gap-3">
+                                            <span class="text-[10px] text-dc-text font-mono w-4">#1</span>
+                                            <div class="w-4 h-4 bg-white rounded-sm"></div>
+                                            <span class="text-xs font-bold text-white">Fnatic</span>
+                                        </div>
+                                        <div class="px-3 py-2 bg-dc-bg border border-dc-borderLight rounded flex items-center gap-3">
+                                            <span class="text-[10px] text-dc-text font-mono w-4">#2</span>
+                                            <div class="w-4 h-4 bg-theme rounded-sm"></div>
+                                            <span class="text-xs font-bold text-white">Paper Rex</span>
+                                        </div>
+                                        <div class="px-3 py-2 border border-dashed border-dc-borderLight rounded flex items-center gap-3 opacity-50">
+                                            <span class="text-[10px] text-dc-text font-mono w-4">#3</span>
+                                            <span class="text-xs text-dc-text italic">Empty Slot</span>
+                                        </div>
+                                        <div class="px-3 py-2 border border-dashed border-dc-borderLight rounded flex items-center gap-3 opacity-50">
+                                            <span class="text-[10px] text-dc-text font-mono w-4">#4</span>
+                                            <span class="text-xs text-dc-text italic">Empty Slot</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-dc-panel border border-dc-border rounded-lg overflow-hidden">
+                                    <div class="bg-dc-surface px-4 py-2 border-b border-dc-border flex justify-between items-center">
+                                        <h4 class="font-bold text-white">Group B</h4>
+                                        <span class="text-[9px] text-dc-text font-mono">2/4 Filled</span>
+                                    </div>
+                                    <div class="p-2 space-y-1">
+                                        <div class="px-3 py-2 bg-dc-bg border border-dc-borderLight rounded flex items-center gap-3">
+                                            <span class="text-[10px] text-dc-text font-mono w-4">#1</span>
+                                            <div class="w-4 h-4 bg-blue-500 rounded-sm"></div>
+                                            <span class="text-xs font-bold text-white">DRX</span>
+                                        </div>
+                                        <div class="px-3 py-2 bg-dc-bg border border-dc-borderLight rounded flex items-center gap-3">
+                                            <span class="text-[10px] text-dc-text font-mono w-4">#2</span>
+                                            <div class="w-4 h-4 bg-green-500 rounded-sm"></div>
+                                            <span class="text-xs font-bold text-white">LOUD</span>
+                                        </div>
+                                        <div class="px-3 py-2 border border-dashed border-dc-borderLight rounded flex items-center gap-3 opacity-50">
+                                            <span class="text-[10px] text-dc-text font-mono w-4">#3</span>
+                                            <span class="text-xs text-dc-text italic">Empty Slot</span>
+                                        </div>
+                                        <div class="px-3 py-2 border border-dashed border-dc-borderLight rounded flex items-center gap-3 opacity-50">
+                                            <span class="text-[10px] text-dc-text font-mono w-4">#4</span>
+                                            <span class="text-xs text-dc-text italic">Empty Slot</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-theme-surface border border-theme rounded-lg overflow-hidden shadow-[0_0_20px_var(--color-primary-surface)] transform scale-[1.02] transition-transform">
+                                    <div class="bg-theme text-black px-4 py-2 flex justify-between items-center">
+                                        <h4 class="font-black">Group C</h4>
+                                        <span class="text-[9px] font-mono bg-black/20 px-1.5 py-0.5 rounded">NEXT ASSIGNMENT</span>
+                                    </div>
+                                    <div class="p-2 space-y-1 bg-dc-panel">
+                                        <div class="px-3 py-2 bg-dc-bg border border-dc-borderLight rounded flex items-center gap-3">
+                                            <span class="text-[10px] text-dc-text font-mono w-4">#1</span>
+                                            <div class="w-4 h-4 bg-purple-500 rounded-sm"></div>
+                                            <span class="text-xs font-bold text-white">NRG</span>
+                                        </div>
+                                        <div class="px-3 py-2 bg-dc-bg border border-dc-borderLight rounded flex items-center gap-3">
+                                            <span class="text-[10px] text-dc-text font-mono w-4">#2</span>
+                                            <div class="w-4 h-4 bg-red-600 rounded-sm"></div>
+                                            <span class="text-xs font-bold text-white">Sentinels</span>
+                                        </div>
+                                        <div class="px-3 py-2 border-2 border-dashed border-theme bg-theme-surface rounded flex items-center gap-3 relative overflow-hidden">
+                                            <div class="absolute inset-0 bg-theme/10 animate-pulse"></div>
+                                            <span class="text-[10px] text-theme font-mono w-4 relative z-10">#3</span>
+                                            <span class="text-xs text-theme font-bold relative z-10 animate-pulse">Waiting for Draw...</span>
+                                        </div>
+                                        <div class="px-3 py-2 border border-dashed border-dc-borderLight rounded flex items-center gap-3 opacity-50">
+                                            <span class="text-[10px] text-dc-text font-mono w-4">#4</span>
+                                            <span class="text-xs text-dc-text italic">Empty Slot</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-matches" class="hidden-view p-0 w-full h-full flex flex-col mx-auto bg-dc-bg">
+                <div class="h-[60px] glass-box border-b border-dc-border px-6 flex items-center justify-between shrink-0 z-20">
+                    <div class="flex items-center gap-4">
+                        <h2 class="font-display font-black text-lg text-white tracking-tight">Data-Entry Verification UI</h2>
+                        <span class="px-2 py-0.5 rounded bg-theme-surface text-theme text-[9px] font-mono border border-theme-border uppercase tracking-widest">Split-Screen Mode</span>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <div class="text-right">
+                            <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest leading-none">Pending Queue</p>
+                            <p class="text-sm font-mono font-bold text-white leading-tight">12 <span class="text-dc-text">/ 32</span></p>
+                        </div>
+                        <div class="flex gap-1">
+                            <button class="w-8 h-8 rounded bg-dc-panel border border-dc-border flex items-center justify-center text-dc-text hover:text-white hover:border-theme transition-colors"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                            <button class="w-8 h-8 rounded bg-dc-panel border border-dc-border flex items-center justify-center text-dc-text hover:text-white hover:border-theme transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                        </div>
+                        <div class="h-6 w-px bg-dc-borderLight"></div>
+                        <button class="text-[10px] font-bold text-dc-text hover:text-white uppercase tracking-widest flex items-center gap-1.5 transition-colors">
+                            <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> Stream Dispatcher
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex overflow-hidden">
+                    <div class="w-1/2 flex flex-col border-r border-dc-border bg-[#0A0A0C]">
+                        <div class="p-3 bg-dc-panel/50 border-b border-dc-borderLight flex justify-between items-center shrink-0">
+                            <div class="flex items-center gap-3">
+                                <i data-lucide="image" class="w-4 h-4 text-theme"></i>
+                                <span class="text-[10px] font-bold text-white uppercase tracking-widest">Evidence Viewer</span>
+                            </div>
+                            <div class="flex bg-dc-bg rounded border border-dc-borderLight overflow-hidden">
+                                <button class="px-4 py-1.5 text-[10px] font-bold bg-theme text-black">Captain A</button>
+                                <button class="px-4 py-1.5 text-[10px] font-bold text-dc-text hover:bg-dc-surface transition-colors">Captain B</button>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 relative overflow-hidden group">
+                            <img src="https://via.placeholder.com/1280x720/1A1A24/00F0FF?text=Valorant+End+Game+Scoreboard+Screenshot+Placeholder" class="w-full h-full object-contain p-4 transition-transform duration-300 transform scale-100 group-hover:scale-105 cursor-zoom-in" alt="Scoreboard Proof">
+
+                            <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 bg-dc-panel/80 backdrop-blur-md border border-white/10 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-2xl">
+                                <button class="p-2 hover:bg-white/10 rounded text-white transition-colors"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
+                                <button class="p-2 hover:bg-white/10 rounded text-white transition-colors"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
+                                <div class="w-px bg-white/20 mx-1"></div>
+                                <button class="p-2 hover:bg-white/10 rounded text-white transition-colors" title="Rotate"><i data-lucide="rotate-cw" class="w-4 h-4"></i></button>
+                                <button class="p-2 hover:bg-white/10 rounded text-white transition-colors" title="Fullscreen"><i data-lucide="expand" class="w-4 h-4"></i></button>
+                            </div>
+
+                            <div class="absolute top-4 left-4 bg-black/60 backdrop-blur border border-white/10 rounded p-2 text-[9px] font-mono text-dc-text">
+                                Submitted by: <span class="text-white">@WKey_Jinggg</span><br>
+                                Time: <span class="text-white">14:28:02 BST</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="w-1/2 flex flex-col bg-dc-bg overflow-y-auto">
+                        <div class="bg-dc-warningBg border-b border-dc-warning/30 p-3 flex gap-3 items-center shrink-0">
+                            <i data-lucide="alert-triangle" class="w-4 h-4 text-dc-warning shrink-0"></i>
+                            <div>
+                                <p class="text-[11px] font-bold text-dc-warning uppercase tracking-widest">Mismatch Detected</p>
+                                <p class="text-xs text-white/80 mt-0.5">Captain A submitted 13-11. Captain B submitted 12-13. Review image carefully to override.</p>
+                            </div>
+                        </div>
+
+                        <div class="p-8 max-w-lg mx-auto w-full space-y-8">
+                            <div class="text-center space-y-2 border-b border-dc-border pb-6">
+                                <p class="text-[10px] text-theme font-bold uppercase tracking-widest">Quarterfinal — BO3</p>
+                                <div class="flex items-center justify-center gap-6">
+                                    <div class="text-right">
+                                        <p class="font-display font-black text-xl text-white">Paper Rex</p>
+                                        <p class="text-[10px] text-dc-text font-mono">Team A</p>
+                                    </div>
+                                    <span class="text-2xl font-black text-dc-borderLight">VS</span>
+                                    <div class="text-left">
+                                        <p class="font-display font-black text-xl text-white">DRX</p>
+                                        <p class="text-[10px] text-dc-text font-mono">Team B</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-6">
+                                <div class="bg-dc-surface border border-dc-border rounded-lg p-4 relative overflow-hidden">
+                                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-dc-success"></div>
+                                    <div class="flex justify-between items-center mb-4 pl-2">
+                                        <h4 class="text-xs font-bold text-white uppercase tracking-widest">Map 1: Ascent</h4>
+                                        <span class="text-[9px] font-mono bg-dc-success/20 text-dc-success px-1.5 py-0.5 rounded border border-dc-success/30">Verified</span>
+                                    </div>
+                                    <div class="flex items-center gap-4 pl-2">
+                                        <div class="flex-1">
+                                            <label class="text-[9px] text-dc-text uppercase tracking-widest mb-1 block">Team A</label>
+                                            <input type="number" value="13" disabled class="w-full bg-dc-bg border border-dc-border rounded py-2 text-center font-display font-black text-lg text-white opacity-50">
+                                        </div>
+                                        <span class="text-dc-text font-black mt-4">-</span>
+                                        <div class="flex-1">
+                                            <label class="text-[9px] text-dc-text uppercase tracking-widest mb-1 block">Team B</label>
+                                            <input type="number" value="9" disabled class="w-full bg-dc-bg border border-dc-border rounded py-2 text-center font-display font-black text-lg text-white opacity-50">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-theme-surface border border-theme rounded-lg p-4 relative overflow-hidden shadow-[0_0_20px_var(--color-primary-surface)] transform scale-[1.02]">
+                                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-theme"></div>
+                                    <div class="flex justify-between items-center mb-4 pl-2">
+                                        <h4 class="text-xs font-black text-theme uppercase tracking-widest">Map 2: Haven</h4>
+                                        <span class="text-[9px] font-mono bg-dc-warning/20 text-dc-warning px-1.5 py-0.5 rounded border border-dc-warning/30 animate-pulse">Needs Override</span>
+                                    </div>
+                                    <div class="flex items-center gap-4 pl-2">
+                                        <div class="flex-1 relative">
+                                            <label class="text-[9px] text-dc-text uppercase tracking-widest mb-1 block">Team A <span class="text-dc-danger lowercase">*(A claims 13)*</span></label>
+                                            <input type="number" value="13" class="w-full bg-dc-bg border border-theme focus:ring-1 focus:ring-theme rounded py-2 text-center font-display font-black text-2xl text-white outline-none">
+                                        </div>
+                                        <span class="text-dc-text font-black mt-4">-</span>
+                                        <div class="flex-1 relative">
+                                            <label class="text-[9px] text-dc-text uppercase tracking-widest mb-1 block">Team B <span class="text-theme lowercase">*(B claims 13)*</span></label>
+                                            <input type="number" value="11" class="w-full bg-dc-bg border border-theme focus:ring-1 focus:ring-theme rounded py-2 text-center font-display font-black text-2xl text-white outline-none">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-dc-border pt-6">
+                                <h4 class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-3">Custom Data Tracking</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-[9px] text-dc-text uppercase mb-1 block">Match MVP (IGN)</label>
+                                        <input type="text" value="Jinggg" class="toc-input w-full px-3 py-1.5">
+                                    </div>
+                                    <div>
+                                        <label class="text-[9px] text-dc-text uppercase mb-1 block">Total Kills (Team A)</label>
+                                        <input type="number" value="45" class="toc-input w-full px-3 py-1.5">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="pt-8 flex flex-col gap-3 mt-auto border-t border-dc-border">
+                                <button class="w-full py-3 bg-theme text-black font-black uppercase tracking-widest rounded-lg hover:bg-white transition-all shadow-[0_0_15px_var(--color-primary-muted)] flex items-center justify-center gap-2">
+                                    <i data-lucide="check-square" class="w-4 h-4"></i> Override & Confirm Result
+                                </button>
+                                <div class="flex gap-3">
+                                    <button class="flex-1 py-2 bg-dc-panel border border-dc-danger text-dc-danger text-xs font-bold rounded-lg hover:bg-dc-danger hover:text-white transition-colors flex justify-center items-center gap-2">
+                                        <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Open Dispute
+                                    </button>
+                                    <button class="flex-1 py-2 bg-dc-bg border border-dc-borderLight text-dc-text text-xs font-bold rounded-lg hover:text-white hover:border-white/30 transition-colors flex justify-center items-center gap-2">
+                                        <i data-lucide="skip-forward" class="w-3.5 h-3.5"></i> Skip for Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-medic" class="hidden-view p-6 lg:p-8 w-full h-full flex flex-col max-w-[1800px] mx-auto">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-5 shrink-0 gap-4">
+                    <div>
+                        <h2 class="font-display font-black text-2xl text-dc-danger tracking-tight drop-shadow-[0_0_10px_rgba(255,42,85,0.4)] flex items-center gap-3">
+                            <i data-lucide="siren" class="w-6 h-6 animate-pulse"></i> Match Medic
+                        </h2>
+                        <p class="text-xs text-dc-text mt-1">Resolve active disputes, manage technical timeouts, and handle emergency roster substitutions.</p>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button class="px-4 py-2 bg-dc-dangerBg border border-dc-danger text-dc-danger rounded-lg text-xs font-black uppercase tracking-widest hover:bg-dc-danger hover:text-white transition-all shadow-[0_0_15px_rgba(255,42,85,0.2)] flex items-center gap-2" onclick="document.getElementById('modal-freeze').classList.remove('hidden')">
+                            <i data-lucide="snowflake" class="w-4 h-4"></i> Execute Global Freeze
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+                    <div class="lg:col-span-2 glass-box rounded-xl flex flex-col border-dc-danger/20 min-h-0">
+                        <div class="p-4 border-b border-dc-border flex justify-between items-center bg-dc-dangerBg/10">
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i data-lucide="swords" class="w-4 h-4 text-dc-danger"></i> Active Disputes (2)
+                            </h3>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto p-5 space-y-4">
+                            <div class="bg-dc-panel border border-dc-border rounded-lg overflow-hidden flex flex-col">
+                                <div class="bg-dc-surface px-4 py-2.5 border-b border-dc-border flex justify-between items-center">
+                                    <div class="flex items-center gap-3">
+                                        <span class="px-2 py-0.5 rounded bg-dc-danger text-white text-[9px] font-black uppercase tracking-widest">High Priority</span>
+                                        <span class="text-xs text-dc-text font-mono">Match #SF-2</span>
+                                    </div>
+                                    <span class="text-[10px] text-dc-text font-mono">Opened 15m ago</span>
+                                </div>
+                                <div class="p-5 flex gap-6">
+                                    <div class="flex-1">
+                                        <h4 class="text-sm font-bold text-white mb-1">Cheating Suspicion (Aimbot)</h4>
+                                        <p class="text-[11px] text-dc-text mb-4 leading-relaxed">Team 'Omega' alleges that player 'xXxSniper' on Team 'Alpha' was using external assistance during Map 2. VOD timestamps provided in evidence link.</p>
+
+                                        <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-theme-surface border border-theme/30 rounded-md">
+                                            <i data-lucide="lock" class="w-3.5 h-3.5 text-theme"></i>
+                                            <span class="text-[10px] font-mono text-white">Protest Bond: <span class="text-theme font-bold">50 DeltaCoin Held</span></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="w-1/3 border-l border-dc-border pl-6 flex flex-col">
+                                        <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-2">Evidence Attached</p>
+                                        <div class="space-y-2 mb-4">
+                                            <a href="#" class="flex items-center gap-2 text-[10px] text-theme hover:underline truncate"><i data-lucide="video" class="w-3 h-3"></i> twitch.tv/omega_pov/clip_123</a>
+                                            <a href="#" class="flex items-center gap-2 text-[10px] text-theme hover:underline truncate"><i data-lucide="image" class="w-3 h-3"></i> scoreboard_screenshot.png</a>
+                                        </div>
+                                        <div class="mt-auto flex gap-2">
+                                            <button class="flex-1 py-1.5 bg-dc-surface border border-dc-success text-dc-success text-[10px] font-bold rounded hover:bg-dc-success hover:text-black transition-colors">Rule Valid (Refund)</button>
+                                            <button class="flex-1 py-1.5 bg-dc-surface border border-dc-danger text-dc-danger text-[10px] font-bold rounded hover:bg-dc-danger hover:text-white transition-colors">Reject (Burn Bond)</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-dc-panel border border-dc-border rounded-lg overflow-hidden flex flex-col opacity-80">
+                                <div class="bg-dc-surface px-4 py-2.5 border-b border-dc-border flex justify-between items-center">
+                                    <div class="flex items-center gap-3">
+                                        <span class="px-2 py-0.5 rounded bg-dc-warning text-black text-[9px] font-black uppercase tracking-widest">Standard</span>
+                                        <span class="text-xs text-dc-text font-mono">Match #QF-4</span>
+                                    </div>
+                                    <span class="text-[10px] text-dc-text font-mono">Opened 1h ago</span>
+                                </div>
+                                <div class="p-5 flex gap-6">
+                                    <div class="flex-1">
+                                        <h4 class="text-sm font-bold text-white mb-1">Wrong Map Played</h4>
+                                        <p class="text-[11px] text-dc-text mb-4 leading-relaxed">Teams played 'Bind' instead of 'Split' which was selected during the Map Veto phase. Requesting a rehost or organizer ruling.</p>
+
+                                        <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-theme-surface border border-theme/30 rounded-md">
+                                            <i data-lucide="lock" class="w-3.5 h-3.5 text-theme"></i>
+                                            <span class="text-[10px] font-mono text-white">Protest Bond: <span class="text-theme font-bold">50 DeltaCoin Held</span></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="w-1/3 border-l border-dc-border pl-6 flex flex-col justify-end">
+                                        <button class="w-full py-2 bg-theme text-black font-bold text-xs rounded hover:bg-white transition-colors flex justify-center items-center gap-2">
+                                            <i data-lucide="message-square" class="w-3.5 h-3.5"></i> Open Chat
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-1 flex flex-col gap-6 min-h-0">
+                        <div class="glass-box rounded-xl p-5 border-dc-warning/30 bg-gradient-to-b from-dc-warningBg/30 to-transparent">
+                            <h3 class="text-[10px] font-bold text-dc-warning uppercase tracking-widest flex items-center gap-2 mb-4">
+                                <i data-lucide="users-minus" class="w-4 h-4"></i> Man-Down Alerts
+                            </h3>
+
+                            <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-3">
+                                <div class="flex justify-between items-start mb-2">
+                                    <p class="text-xs font-bold text-white">Match #QF-1</p>
+                                    <span class="text-[10px] text-dc-warning font-mono animate-pulse">Grace Period: 04:12</span>
+                                </div>
+                                <p class="text-[11px] text-dc-text mb-3">Team <span class="text-white">Liquid</span> checked in with <span class="font-bold text-dc-danger">4/5</span> players. Minimum start allowed is 4.</p>
+                                <div class="flex gap-2">
+                                    <button class="flex-1 py-1.5 bg-dc-surface border border-dc-warning text-dc-warning text-[9px] font-bold rounded uppercase tracking-widest hover:bg-dc-warning hover:text-black transition-colors">Force Start (4v5)</button>
+                                    <button class="px-3 py-1.5 bg-dc-danger/20 border border-dc-danger text-dc-danger text-[9px] font-bold rounded hover:bg-dc-danger hover:text-white transition-colors">Forfeit</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-box rounded-xl p-5 border-dc-info/30 flex-1 overflow-y-auto">
+                            <h3 class="text-[10px] font-bold text-dc-info uppercase tracking-widest flex items-center gap-2 mb-4">
+                                <i data-lucide="calendar-clock" class="w-4 h-4"></i> Reschedule Requests
+                            </h3>
+
+                            <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-3">
+                                <p class="text-[10px] text-dc-text font-mono mb-1">Match #LB-R1</p>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xs font-bold text-white line-through opacity-50">16:00 BST</span>
+                                    <i data-lucide="arrow-right" class="w-3 h-3 text-dc-info"></i>
+                                    <span class="text-xs font-bold text-dc-info">18:30 BST</span>
+                                </div>
+                                <p class="text-[10px] text-dc-text mb-3 italic">"Both teams agree to delay due to school conflict."</p>
+                                <div class="bg-dc-successBg text-dc-success text-[9px] font-mono px-2 py-1 rounded mb-3 flex items-center gap-1">
+                                    <i data-lucide="check" class="w-3 h-3"></i> Auto-Approve Eligible
+                                </div>
+                                <button class="w-full py-1.5 bg-dc-info text-white text-[10px] font-bold uppercase tracking-widest rounded hover:bg-blue-400 transition-colors">
+                                    Approve Change
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-broadcast" class="hidden-view p-6 lg:p-8 w-full h-full flex flex-col max-w-[1800px] mx-auto">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-5 shrink-0 gap-4">
+                    <div>
+                        <h2 class="font-display font-black text-2xl text-white tracking-tight flex items-center gap-3">
+                            <i data-lucide="radio" class="w-6 h-6 text-theme"></i> Broadcast Director
+                        </h2>
+                        <p class="text-xs text-dc-text mt-1">Manage RTMP ingest, control live stream overlays, push data-driven lower thirds, and monitor caster feeds.</p>
+                    </div>
+
+                    <div class="flex items-center gap-4 bg-dc-panel p-1.5 rounded-lg border border-dc-borderLight shadow-sm">
+                        <div class="flex flex-col px-3">
+                            <span class="text-[9px] text-dc-text uppercase tracking-widest font-bold">Stream Status</span>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <div class="w-2 h-2 rounded-full bg-dc-danger animate-pulse"></div>
+                                <span class="text-xs font-bold text-white">LIVE</span>
+                            </div>
+                        </div>
+                        <div class="w-px h-8 bg-dc-border"></div>
+                        <div class="flex flex-col px-3">
+                            <span class="text-[9px] text-dc-text uppercase tracking-widest font-bold">Ingest Quality</span>
+                            <span class="text-xs font-mono text-dc-success mt-0.5">1080p60 / 8500kbps</span>
+                        </div>
+                        <div class="w-px h-8 bg-dc-border"></div>
+                        <button class="px-4 py-1.5 bg-dc-danger/20 border border-dc-danger/50 text-dc-danger text-xs font-bold rounded hover:bg-dc-danger hover:text-white transition-colors flex items-center gap-2">
+                            <i data-lucide="stop-circle" class="w-4 h-4"></i> Cut Feed
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col xl:flex-row gap-6 min-h-0">
+                    <div class="xl:w-7/12 flex flex-col gap-6 min-h-0">
+                        <div class="glass-box rounded-xl border-theme-border shadow-[0_0_30px_var(--color-primary-surface)] p-3 flex flex-col shrink-0">
+                            <div class="flex justify-between items-center mb-3 px-2">
+                                <p class="text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                    <i data-lucide="monitor" class="w-4 h-4 text-theme"></i> Program Out (Clean Feed)
+                                </p>
+                                <span class="text-[10px] text-dc-text font-mono">Delay: 3m 00s (Competitive)</span>
+                            </div>
+
+                            <div class="w-full aspect-video bg-black rounded-lg border border-dc-border relative overflow-hidden group">
+                                <img src="https://via.placeholder.com/1280x720/0B0B0F/00F0FF?text=RTMP+Stream+Source" class="w-full h-full object-cover opacity-60" alt="Stream Preview">
+
+                                <div class="absolute top-4 right-4 bg-dc-bg/80 backdrop-blur border border-dc-borderLight p-2 rounded flex gap-4 pointer-events-none">
+                                    <div class="text-center">
+                                        <p class="text-xs font-black text-white">PRX</p>
+                                        <p class="text-2xl font-display font-black text-theme leading-none">1</p>
+                                    </div>
+                                    <div class="w-px bg-dc-borderLight"></div>
+                                    <div class="text-center">
+                                        <p class="text-xs font-black text-white">DRX</p>
+                                        <p class="text-2xl font-display font-black text-dc-danger leading-none">0</p>
+                                    </div>
+                                </div>
+                                <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-gradient-to-r from-transparent via-black/80 to-transparent w-3/4 py-3 text-center pointer-events-none">
+                                    <p class="text-xs font-bold text-theme uppercase tracking-widest">MAP 2: HAVEN</p>
+                                </div>
+
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                                    <button class="w-12 h-12 rounded-full bg-theme text-black flex items-center justify-center hover:scale-110 transition-transform shadow-[0_0_20px_var(--color-primary)]">
+                                        <i data-lucide="play" class="w-5 h-5 ml-1"></i>
+                                    </button>
+                                    <button class="w-12 h-12 rounded-full bg-dc-panel border border-dc-border text-white flex items-center justify-center hover:bg-white/10 transition-colors">
+                                        <i data-lucide="maximize" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-box rounded-xl p-5 flex-1 overflow-y-auto">
+                            <h3 class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-4">Scene Director</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <button class="bg-dc-panel border border-dc-border rounded-lg p-3 text-left hover:border-theme transition-colors group relative overflow-hidden">
+                                    <div class="w-full aspect-video bg-black rounded mb-2 border border-dc-borderLight flex items-center justify-center">
+                                        <i data-lucide="clock" class="w-6 h-6 text-dc-text group-hover:text-theme"></i>
+                                    </div>
+                                    <p class="text-xs font-bold text-white group-hover:text-theme transition-colors">Starting Soon</p>
+                                    <p class="text-[9px] text-dc-text mt-0.5">Countdown Timer</p>
+                                </button>
+
+                                <button class="bg-theme-surface border-2 border-theme rounded-lg p-3 text-left relative overflow-hidden shadow-[0_0_15px_var(--color-primary-surface)]">
+                                    <div class="absolute top-2 right-2 w-2 h-2 rounded-full bg-dc-danger animate-pulse"></div>
+                                    <div class="w-full aspect-video bg-black rounded mb-2 border border-theme/30 flex items-center justify-center relative overflow-hidden">
+                                        <div class="absolute inset-0 bg-theme/20 opacity-50"></div>
+                                        <i data-lucide="gamepad-2" class="w-6 h-6 text-theme relative z-10"></i>
+                                    </div>
+                                    <p class="text-xs font-black text-theme">In-Game (Live)</p>
+                                    <p class="text-[9px] text-theme/70 mt-0.5">Clean Feed + Scorebug</p>
+                                </button>
+
+                                <button class="bg-dc-panel border border-dc-border rounded-lg p-3 text-left hover:border-theme transition-colors group">
+                                    <div class="w-full aspect-video bg-black rounded mb-2 border border-dc-borderLight flex items-center justify-center">
+                                        <i data-lucide="users" class="w-6 h-6 text-dc-text group-hover:text-theme"></i>
+                                    </div>
+                                    <p class="text-xs font-bold text-white group-hover:text-theme transition-colors">Caster Desk</p>
+                                    <p class="text-[9px] text-dc-text mt-0.5">Cam + Analysis</p>
+                                </button>
+
+                                <button class="bg-dc-panel border border-dc-border rounded-lg p-3 text-left hover:border-theme transition-colors group">
+                                    <div class="w-full aspect-video bg-black rounded mb-2 border border-dc-borderLight flex items-center justify-center">
+                                        <i data-lucide="bar-chart-2" class="w-6 h-6 text-dc-text group-hover:text-theme"></i>
+                                    </div>
+                                    <p class="text-xs font-bold text-white group-hover:text-theme transition-colors">Post-Match Stats</p>
+                                    <p class="text-[9px] text-dc-text mt-0.5">MVP & Bracket</p>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="xl:w-5/12 flex flex-col gap-6 min-h-0">
+                        <div class="glass-box rounded-xl border-t-2 border-t-theme flex flex-col min-h-0 flex-1">
+                            <div class="p-4 border-b border-dc-border bg-theme-surface">
+                                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                    <i data-lucide="layers" class="w-4 h-4 text-theme"></i> Graphics / Overlay Controller
+                                </h3>
+                            </div>
+
+                            <div class="flex-1 overflow-y-auto p-5 space-y-6">
+                                <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <div>
+                                            <p class="text-xs font-bold text-white">Scorebug Automation</p>
+                                            <p class="text-[10px] text-dc-text">Sync stream score overlay with Match Ops engine.</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" value="" class="sr-only peer" checked>
+                                            <div class="w-9 h-5 bg-dc-bg peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-theme border border-dc-border"></div>
+                                        </label>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <div class="flex-1 bg-dc-bg border border-dc-border rounded p-2 text-center">
+                                            <span class="text-[9px] text-dc-text uppercase block mb-1">Team A (PRX)</span>
+                                            <span class="text-lg font-black text-white">1</span>
+                                        </div>
+                                        <div class="flex-1 bg-dc-bg border border-dc-border rounded p-2 text-center">
+                                            <span class="text-[9px] text-dc-text uppercase block mb-1">Team B (DRX)</span>
+                                            <span class="text-lg font-black text-white">0</span>
+                                        </div>
+                                    </div>
+                                    <button class="w-full mt-3 py-1.5 bg-dc-surface border border-dc-border text-dc-text text-[10px] font-bold uppercase rounded hover:text-white hover:border-dc-borderLight transition-colors">Force Sync Overlay</button>
+                                </div>
+
+                                <div>
+                                    <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-3">Push Lower-Third</p>
+                                    <div class="space-y-3">
+                                        <input type="text" class="toc-input w-full px-3 py-2" placeholder="Headline (e.g., Match MVP)">
+                                        <input type="text" class="toc-input w-full px-3 py-2 text-theme" placeholder="Sub-text (e.g., Jinggg - 32 Kills)">
+
+                                        <div class="flex gap-2">
+                                            <button class="flex-1 py-2 bg-theme text-black text-xs font-black uppercase tracking-widest rounded shadow-[0_0_15px_var(--color-primary-muted)] hover:bg-white transition-colors">
+                                                Push to Live
+                                            </button>
+                                            <button class="px-4 py-2 bg-dc-danger/20 text-dc-danger border border-dc-danger/30 text-xs font-bold rounded hover:bg-dc-danger hover:text-white transition-colors">
+                                                Clear
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-3">Sponsor Carousel Status</p>
+                                    <div class="bg-dc-surface border border-dc-border rounded p-3">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <span class="text-xs text-white">Rotation Interval</span>
+                                            <span class="text-xs font-mono text-theme">30 sec</span>
+                                        </div>
+                                        <div class="w-full bg-dc-bg rounded-full h-1.5 border border-dc-border">
+                                            <div class="bg-theme h-1.5 rounded-full" style="width: 45%"></div>
+                                        </div>
+                                        <div class="flex justify-between mt-2">
+                                            <span class="text-[9px] text-dc-text">Current: RedBull</span>
+                                            <span class="text-[9px] text-dc-text">Next: Secretlab</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-box rounded-xl p-4 shrink-0">
+                            <h3 class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-4">Caster Audio Levels</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-[10px] mb-1">
+                                        <span class="text-white">Caster 1 (Pansy)</span>
+                                        <span class="text-dc-success font-mono">-6 dB</span>
+                                    </div>
+                                    <div class="w-full bg-dc-bg rounded overflow-hidden h-2 border border-dc-border flex">
+                                        <div class="bg-dc-success w-3/4"></div>
+                                        <div class="bg-dc-warning w-[15%]"></div>
+                                        <div class="bg-dc-danger w-[10%] opacity-20"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-[10px] mb-1">
+                                        <span class="text-white">Caster 2 (Hypoc)</span>
+                                        <span class="text-dc-success font-mono">-8 dB</span>
+                                    </div>
+                                    <div class="w-full bg-dc-bg rounded overflow-hidden h-2 border border-dc-border flex">
+                                        <div class="bg-dc-success w-[65%]"></div>
+                                        <div class="bg-dc-warning w-[35%] opacity-20"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-config" class="hidden-view p-6 lg:p-8 w-full h-full flex flex-col max-w-[1800px] mx-auto overflow-hidden">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-5 shrink-0 gap-4">
+                    <div>
+                        <h2 class="font-display font-black text-2xl text-white tracking-tight flex items-center gap-3">
+                            <i data-lucide="settings" class="w-6 h-6 text-dc-text"></i> Master Configuration
+                        </h2>
+                        <p class="text-xs text-dc-text mt-1">Core tournament parameters, game rulesets, API hooks, and prize matrix definitions.</p>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button class="px-4 py-2 bg-dc-panel border border-dc-border text-white rounded-lg text-xs font-bold hover:bg-white/5 transition-all">
+                            Discard Changes
+                        </button>
+                        <button class="px-6 py-2 bg-theme text-black rounded-lg text-xs font-black uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_var(--color-primary-muted)] flex items-center gap-2">
+                            <i data-lucide="save" class="w-4 h-4"></i> Save Configuration
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex gap-6 min-h-0 bg-dc-surface border border-dc-border rounded-xl shadow-2xl overflow-hidden">
+                    <div class="w-64 bg-dc-panel border-r border-dc-border flex flex-col shrink-0">
+                        <div class="p-4 border-b border-dc-borderLight">
+                            <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest">Settings Modules</p>
+                        </div>
+                        <nav class="flex-1 overflow-y-auto py-2">
+                            <button class="w-full px-4 py-3 text-left border-l-2 border-theme bg-theme-surface text-theme text-xs font-bold flex items-center gap-3 transition-colors">
+                                <i data-lucide="info" class="w-4 h-4"></i> Core Details
+                            </button>
+                            <button class="w-full px-4 py-3 text-left border-l-2 border-transparent text-dc-text hover:bg-dc-surface hover:text-white text-xs font-bold flex items-center gap-3 transition-colors">
+                                <i data-lucide="scroll-text" class="w-4 h-4"></i> Registration Rules
+                            </button>
+                            <button class="w-full px-4 py-3 text-left border-l-2 border-transparent text-dc-text hover:bg-dc-surface hover:text-white text-xs font-bold flex items-center gap-3 transition-colors">
+                                <i data-lucide="git-branch" class="w-4 h-4"></i> Bracket & Format
+                            </button>
+                            <button class="w-full px-4 py-3 text-left border-l-2 border-transparent text-dc-text hover:bg-dc-surface hover:text-white text-xs font-bold flex items-center gap-3 transition-colors">
+                                <i data-lucide="coins" class="w-4 h-4"></i> Prize Distribution
+                            </button>
+                            <button class="w-full px-4 py-3 text-left border-l-2 border-transparent text-dc-text hover:bg-dc-surface hover:text-white text-xs font-bold flex items-center gap-3 transition-colors">
+                                <i data-lucide="plug" class="w-4 h-4"></i> API & Webhooks
+                            </button>
+                        </nav>
+                        <div class="p-4 border-t border-dc-borderLight">
+                            <button class="w-full px-3 py-2 bg-dc-dangerBg border border-dc-danger/30 text-dc-danger rounded text-[10px] font-bold uppercase tracking-widest hover:bg-dc-danger hover:text-white transition-colors flex justify-center items-center gap-2">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete Event
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto p-8">
+                        <div class="max-w-3xl space-y-10">
+                            <section>
+                                <h3 class="text-lg font-display font-black text-white mb-4 flex items-center gap-2">
+                                    General Information
+                                </h3>
+
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div class="col-span-2">
+                                        <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-2 block">Tournament Name</label>
+                                        <input type="text" value="Valorant Winter Major 2026" class="toc-input w-full px-4 py-2.5 text-sm font-bold">
+                                    </div>
+
+                                    <div>
+                                        <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-2 block">Game Title</label>
+                                        <div class="relative">
+                                            <select class="toc-input w-full px-4 py-2.5 text-sm appearance-none cursor-pointer">
+                                                <option selected>Valorant</option>
+                                                <option>Counter-Strike 2</option>
+                                                <option>PUBG Mobile</option>
+                                                <option>Mobile Legends: Bang Bang</option>
+                                            </select>
+                                            <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-2 block">Region / Server</label>
+                                        <div class="relative">
+                                            <select class="toc-input w-full px-4 py-2.5 text-sm appearance-none cursor-pointer">
+                                                <option selected>Asia Pacific (AP)</option>
+                                                <option>Europe (EUW)</option>
+                                                <option>North America (NA)</option>
+                                            </select>
+                                            <i data-lucide="chevron-down" class="w-4 h-4 text-dc-text absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-2 block">Start Date</label>
+                                        <input type="date" value="2026-11-15" class="toc-input w-full px-4 py-2 text-sm text-dc-text">
+                                    </div>
+
+                                    <div>
+                                        <label class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-2 block">End Date</label>
+                                        <input type="date" value="2026-11-20" class="toc-input w-full px-4 py-2 text-sm text-dc-text">
+                                    </div>
+                                </div>
+                            </section>
+
+                            <hr class="border-dc-border">
+
+                            <section>
+                                <h3 class="text-lg font-display font-black text-white mb-4">Registration Limits</h3>
+
+                                <div class="bg-dc-panel border border-dc-border rounded-lg p-5 space-y-5">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm font-bold text-white">Team Cap</p>
+                                            <p class="text-[10px] text-dc-text">Maximum number of teams allowed to register.</p>
+                                        </div>
+                                        <input type="number" value="64" class="toc-input w-24 px-3 py-1.5 text-center font-mono font-bold text-theme border-theme">
+                                    </div>
+
+                                    <div class="flex items-center justify-between border-t border-dc-border pt-4">
+                                        <div>
+                                            <p class="text-sm font-bold text-white">Roster Size (Min/Max)</p>
+                                            <p class="text-[10px] text-dc-text">Includes core players and substitutes.</p>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" value="5" class="toc-input w-16 px-2 py-1.5 text-center">
+                                            <span class="text-dc-text">-</span>
+                                            <input type="number" value="7" class="toc-input w-16 px-2 py-1.5 text-center">
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between border-t border-dc-border pt-4">
+                                        <div>
+                                            <p class="text-sm font-bold text-white">Require Riot ID Verification</p>
+                                            <p class="text-[10px] text-dc-text">Forces users to authenticate via Riot Sign-On before joining a roster.</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" value="" class="sr-only peer" checked>
+                                            <div class="w-11 h-6 bg-dc-bg peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-theme border border-dc-border"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <hr class="border-dc-border">
+
+                            <section>
+                                <div class="flex justify-between items-end mb-4">
+                                    <div>
+                                        <h3 class="text-lg font-display font-black text-white">Prize Pool Matrix</h3>
+                                        <p class="text-[10px] text-dc-text">Auto-calculates distribution based on total escrow.</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Total Escrow</p>
+                                        <p class="text-xl font-mono font-black text-dc-success">৳ 32,000</p>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-4 bg-dc-bg border border-dc-border rounded p-3">
+                                        <div class="w-8 h-8 rounded bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 flex items-center justify-center font-black">1</div>
+                                        <div class="flex-1">
+                                            <p class="text-xs font-bold text-white">Champion</p>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <div class="relative">
+                                                <input type="number" value="50" class="toc-input w-20 pl-3 pr-6 py-1.5 text-right font-mono text-white">
+                                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-dc-text text-xs">%</span>
+                                            </div>
+                                            <span class="text-sm font-mono font-bold text-dc-success w-24 text-right">৳ 16,000</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4 bg-dc-bg border border-dc-border rounded p-3">
+                                        <div class="w-8 h-8 rounded bg-gray-400/20 text-gray-400 border border-gray-400/50 flex items-center justify-center font-black">2</div>
+                                        <div class="flex-1">
+                                            <p class="text-xs font-bold text-white">Runner-Up</p>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <div class="relative">
+                                                <input type="number" value="25" class="toc-input w-20 pl-3 pr-6 py-1.5 text-right font-mono text-white">
+                                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-dc-text text-xs">%</span>
+                                            </div>
+                                            <span class="text-sm font-mono font-bold text-dc-success w-24 text-right">৳ 8,000</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4 bg-dc-bg border border-dc-border rounded p-3">
+                                        <div class="w-8 h-8 rounded bg-orange-700/20 text-orange-500 border border-orange-700/50 flex items-center justify-center font-black">3</div>
+                                        <div class="flex-1">
+                                            <p class="text-xs font-bold text-white">Third Place</p>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <div class="relative">
+                                                <input type="number" value="15" class="toc-input w-20 pl-3 pr-6 py-1.5 text-right font-mono text-white">
+                                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-dc-text text-xs">%</span>
+                                            </div>
+                                            <span class="text-sm font-mono font-bold text-dc-success w-24 text-right">৳ 4,800</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-between items-center px-2 pt-2">
+                                        <span class="text-[10px] text-dc-text">Platform Fee: <span class="text-white">10% (৳ 3,200)</span></span>
+                                        <span class="text-[10px] font-bold text-dc-success">Sum: 100% (Valid)</span>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <hr class="border-dc-border">
+
+                            <section>
+                                <h3 class="text-lg font-display font-black text-white mb-4">API & Webhooks</h3>
+
+                                <div class="space-y-6">
+                                    <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-5">
+                                        <div class="flex items-center gap-3 mb-4">
+                                            <div class="w-8 h-8 rounded bg-[#5865F2]/20 text-[#5865F2] flex items-center justify-center">
+                                                <i data-lucide="message-square" class="w-4 h-4"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-bold text-white">Discord Integration</p>
+                                                <p class="text-[10px] text-dc-text">Auto-post match results, bracket updates, and announcements.</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-4">
+                                            <div>
+                                                <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1 block">Webhook URL</label>
+                                                <div class="flex gap-2">
+                                                    <input type="password" value="https://discord.com/api/webhooks/12345/abcdefg" class="toc-input flex-1 px-3 py-2 font-mono text-xs">
+                                                    <button class="px-3 py-2 bg-dc-surface border border-dc-border rounded hover:bg-white/5 transition-colors"><i data-lucide="eye" class="w-4 h-4 text-dc-text"></i></button>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <input type="checkbox" class="toc-checkbox" checked>
+                                                <span class="text-xs text-white font-medium">Post automatic result graphics to channel</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-5">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded bg-theme/20 text-theme flex items-center justify-center shadow-[0_0_10px_var(--color-primary-muted)]">
+                                                    <i data-lucide="key" class="w-4 h-4"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-bold text-white">External Overlay API Keys</p>
+                                                    <p class="text-[10px] text-dc-text">Keys for OBS/vMix custom data fetching.</p>
+                                                </div>
+                                            </div>
+                                            <button class="px-3 py-1.5 bg-theme-surface border border-theme/50 text-theme text-[9px] font-bold uppercase tracking-widest rounded hover:bg-theme hover:text-black transition-colors">
+                                                Generate New
+                                            </button>
+                                        </div>
+
+                                        <div class="bg-dc-bg border border-dc-border rounded p-3 flex justify-between items-center group">
+                                            <div>
+                                                <p class="text-[9px] text-dc-text font-mono mb-0.5">Key: Overlay_Main_A</p>
+                                                <p class="text-xs font-mono text-white select-all">dc_live_8f92ma81bna0028xn</p>
+                                            </div>
+                                            <button class="text-dc-text hover:text-white opacity-0 group-hover:opacity-100 transition-opacity p-2" title="Copy to clipboard">
+                                                <i data-lucide="copy" class="w-4 h-4"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div> <div id="cmd-palette" class="fixed inset-0 z-[100] hidden flex items-start justify-center pt-[10vh]">
+            <div class="absolute inset-0 bg-dc-bg/80 backdrop-blur-sm transition-opacity"></div>
+
+            <div class="bg-dc-panel border border-dc-borderLight rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] w-full max-w-2xl relative z-10 overflow-hidden flex flex-col transform transition-all scale-100 opacity-100">
+                <div class="relative flex items-center px-4 py-3 border-b border-dc-border">
+                    <i data-lucide="search" class="w-5 h-5 text-theme absolute left-4"></i>
+                    <input type="text" class="w-full bg-transparent border-none text-white text-sm pl-8 pr-4 py-2 focus:outline-none focus:ring-0 placeholder-dc-text" placeholder="Search teams, players, match IDs, or commands..." autofocus>
+                    <span class="px-2 py-0.5 rounded bg-dc-surface text-dc-text text-[9px] font-mono border border-dc-borderLight uppercase tracking-widest">ESC</span>
+                </div>
+
+                <div class="max-h-[60vh] overflow-y-auto p-2">
+                    <div class="mb-4">
+                        <p class="px-3 py-1 text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Quick Commands</p>
+                        <button class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-theme-surface hover:border-theme border border-transparent flex items-center gap-3 transition-colors group">
+                            <div class="w-6 h-6 rounded bg-dc-surface border border-dc-border flex items-center justify-center group-hover:bg-theme group-hover:border-theme">
+                                <i data-lucide="snowflake" class="w-3.5 h-3.5 text-dc-text group-hover:text-black"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-white group-hover:text-theme">Execute Global Freeze</p>
+                                <p class="text-[10px] text-dc-text">Pause all automated systems and lock registrations.</p>
+                            </div>
+                        </button>
+                        <button class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-theme-surface hover:border-theme border border-transparent flex items-center gap-3 transition-colors group">
+                            <div class="w-6 h-6 rounded bg-dc-surface border border-dc-border flex items-center justify-center group-hover:bg-theme group-hover:border-theme">
+                                <i data-lucide="git-merge" class="w-3.5 h-3.5 text-dc-text group-hover:text-black transform rotate-90"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-white group-hover:text-theme">Generate Quarterfinal Bracket</p>
+                                <p class="text-[10px] text-dc-text">Draft the next stage based on current standings.</p>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div>
+                        <p class="px-3 py-1 text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Recent Entities</p>
+                        <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-dc-surface flex items-center justify-between group transition-colors">
+                            <div class="flex items-center gap-3">
+                                <i data-lucide="shield" class="w-4 h-4 text-dc-text"></i>
+                                <span class="text-xs font-bold text-white">Paper Rex <span class="text-dc-text font-normal ml-2 font-mono">#VAL-T-01</span></span>
+                            </div>
+                            <span class="text-[9px] text-dc-text font-mono group-hover:text-theme">Jump to Team →</span>
+                        </button>
+                        <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-dc-surface flex items-center justify-between group transition-colors">
+                            <div class="flex items-center gap-3">
+                                <i data-lucide="crosshairs" class="w-4 h-4 text-dc-text"></i>
+                                <span class="text-xs font-bold text-white">Match #QF-4 <span class="text-dc-danger font-normal ml-2 font-mono">(Disputed)</span></span>
+                            </div>
+                            <span class="text-[9px] text-dc-text font-mono group-hover:text-theme">Open Match Ops →</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="slideover-team" class="fixed inset-0 z-[90] hidden">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+            <div class="absolute right-0 top-0 bottom-0 w-[500px] max-w-full bg-dc-surface border-l border-dc-border shadow-2xl flex flex-col transform translate-x-0 transition-transform duration-300">
+                <div class="h-[80px] p-6 border-b border-dc-borderLight bg-dc-panel flex items-center justify-between shrink-0 relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-20 pointer-events-none">
+                        <div class="absolute -right-10 -top-10 w-40 h-40 bg-theme blur-[50px] rounded-full"></div>
+                    </div>
+                    <div class="flex items-center gap-4 relative z-10">
+                        <div class="w-12 h-12 rounded-xl bg-theme-surface border border-theme flex items-center justify-center text-lg font-black text-theme shadow-[0_0_15px_var(--color-primary-dark)]">PRX</div>
+                        <div>
+                            <h2 class="font-display font-black text-xl text-white">Paper Rex</h2>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-[10px] text-dc-text font-mono">T-48291</span>
+                                <span class="w-1 h-1 rounded-full bg-dc-text"></span>
+                                <span class="text-[10px] font-bold text-dc-success uppercase tracking-widest"><i data-lucide="check-circle-2" class="w-3 h-3 inline pb-0.5"></i> Verified</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="p-2 text-dc-text hover:text-white rounded-lg hover:bg-white/5 transition-colors relative z-10">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-dc-bg">
+                    <div class="flex gap-2 border-b border-dc-border pb-1">
+                        <button class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-theme border-b-2 border-theme">Overview</button>
+                        <button class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-dc-text hover:text-white transition-colors">Roster (6)</button>
+                        <button class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-dc-text hover:text-white transition-colors">Financials</button>
+                        <button class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-dc-text hover:text-white transition-colors">History</button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-4">
+                            <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Current Standing</p>
+                            <p class="text-xl font-display font-black text-white">Quarterfinals</p>
+                            <p class="text-[10px] text-theme font-mono mt-1">Next: vs DRX</p>
+                        </div>
+                        <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-4">
+                            <p class="text-[9px] font-bold text-dc-text uppercase tracking-widest mb-1">Trust Score</p>
+                            <p class="text-xl font-display font-black text-dc-success">98<span class="text-sm text-dc-text">/100</span></p>
+                            <p class="text-[10px] text-dc-text font-mono mt-1">0 Violations</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-end mb-3">
+                            <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest">Active Roster</p>
+                            <button class="text-[9px] font-bold text-theme uppercase tracking-widest hover:underline">Edit Roster</button>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="bg-dc-surface border border-dc-border rounded p-2.5 flex justify-between items-center group hover:border-theme transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-6 h-6 rounded bg-theme/20 text-theme flex items-center justify-center text-[10px] font-black">C</div>
+                                    <div>
+                                        <p class="text-xs font-bold text-white group-hover:text-theme transition-colors">Jinggg</p>
+                                        <p class="text-[9px] text-dc-text font-mono">WKey#SEA</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                                    <button class="p-1.5 text-dc-text hover:text-[#25D366] transition-colors"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i></button>
+                                    <button class="p-1.5 text-dc-text hover:text-white transition-colors"><i data-lucide="more-horizontal" class="w-3.5 h-3.5"></i></button>
+                                </div>
+                            </div>
+                            <div class="bg-dc-surface border border-dc-border rounded p-2.5 flex justify-between items-center group hover:border-theme transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-6 h-6 rounded bg-dc-panel text-dc-text flex items-center justify-center text-[10px] font-black">P</div>
+                                    <div>
+                                        <p class="text-xs font-bold text-white group-hover:text-theme transition-colors">f0rsakeN</p>
+                                        <p class="text-[9px] text-dc-text font-mono">AIM#GOD</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-[10px] font-bold text-dc-text uppercase tracking-widest mb-3">Financial Status</p>
+                        <div class="bg-dc-successBg border border-dc-success/30 rounded-lg p-4 flex justify-between items-center">
+                            <div>
+                                <p class="text-xs font-bold text-dc-success">Fully Paid (৳500)</p>
+                                <p class="text-[10px] text-dc-success/70 font-mono mt-0.5">TrxID: 9XJ2A4B8KL via bKash</p>
+                            </div>
+                            <i data-lucide="shield-check" class="w-5 h-5 text-dc-success"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 border-t border-dc-border bg-dc-panel shrink-0 flex gap-3">
+                    <button class="flex-1 py-2.5 bg-dc-surface border border-dc-border rounded-lg text-xs font-bold text-white hover:bg-white/5 transition-colors">
+                        Message Team
+                    </button>
+                    <button class="flex-1 py-2.5 bg-theme/10 border border-theme text-theme rounded-lg text-xs font-bold hover:bg-theme hover:text-black transition-all shadow-[0_0_15px_var(--color-primary-muted)]">
+                        Manage Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-freeze" class="fixed inset-0 z-[110] hidden flex items-center justify-center">
+            <div class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
+
+            <div class="bg-dc-surface border border-dc-danger shadow-[0_0_50px_rgba(255,42,85,0.3)] rounded-xl w-full max-w-md relative z-10 overflow-hidden transform scale-100">
+                <div class="h-2 w-full bg-dc-danger animate-pulse"></div>
+                <div class="p-6 text-center">
+                    <div class="w-16 h-16 mx-auto bg-dc-dangerBg border-2 border-dc-danger rounded-full flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(255,42,85,0.5)]">
+                        <i data-lucide="snowflake" class="w-8 h-8 text-dc-danger"></i>
+                    </div>
+
+                    <h2 class="font-display font-black text-2xl text-white mb-2">Execute Global Freeze?</h2>
+                    <p class="text-sm text-dc-text mb-6">This will instantly halt all tournament automation, lock brackets, pause active match timers, and notify all participants of a technical pause.</p>
+
+                    <div class="bg-dc-panel border border-dc-borderLight rounded-lg p-3 text-left mb-6">
+                        <label class="text-[9px] font-bold text-dc-text uppercase tracking-widest block mb-2">Reason for Freeze (Required)</label>
+                        <input type="text" class="w-full bg-dc-bg border border-dc-border rounded px-3 py-2 text-white text-xs focus:border-dc-danger outline-none" placeholder="e.g. Server Outage, Broadcast Issue...">
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button class="flex-1 py-2.5 bg-dc-panel border border-dc-border text-white text-xs font-bold rounded-lg hover:bg-white/5 transition-colors" onclick="document.getElementById('modal-freeze').classList.add('hidden')">
+                            Cancel
+                        </button>
+                        <button class="flex-1 py-2.5 bg-dc-danger text-white text-xs font-black uppercase tracking-widest rounded-lg hover:bg-red-600 transition-colors shadow-[0_0_15px_rgba(255,42,85,0.5)]" onclick="document.getElementById('modal-freeze').classList.add('hidden')">
+                            Freeze System
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fixed bottom-6 right-6 z-[120] flex flex-col gap-3 pointer-events-none">
+            <div class="w-80 bg-dc-surface border border-dc-success/50 rounded-lg shadow-2xl p-4 flex items-start gap-3 transform transition-all translate-y-0 opacity-100 pointer-events-auto">
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-dc-success shrink-0 mt-0.5"></i>
+                <div class="flex-1">
+                    <p class="text-xs font-bold text-white">Match Verified</p>
+                    <p class="text-[10px] text-dc-text mt-0.5 leading-relaxed">Score successfully committed to the database. Bracket updated.</p>
+                </div>
+                <button class="text-dc-text hover:text-white" onclick="this.parentElement.style.display='none'"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+
+            <div class="w-80 bg-dc-surface border border-dc-warning/50 rounded-lg shadow-2xl p-4 flex items-start gap-3 transform transition-all translate-y-0 opacity-100 pointer-events-auto">
+                <i data-lucide="alert-triangle" class="w-5 h-5 text-dc-warning shrink-0 mt-0.5 animate-pulse"></i>
+                <div class="flex-1">
+                    <p class="text-xs font-bold text-white">Dispute Opened</p>
+                    <p class="text-[10px] text-dc-text mt-0.5 leading-relaxed">Nova Esports has flagged Match #QF-4 for review.</p>
+                    <button class="mt-2 text-[9px] font-bold uppercase tracking-widest text-theme hover:underline">View Dispute</button>
+                </div>
+                <button class="text-dc-text hover:text-white" onclick="this.parentElement.style.display='none'"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        function switchTocView(viewId, btnElement = null) {
+            const views = ['dashboard', 'participants', 'financials', 'bracket', 'matches', 'medic', 'broadcast', 'config'];
+            views.forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                if (el) el.classList.add('hidden-view');
+            });
+
+            const targetEl = document.getElementById(`view-${viewId}`);
+            if (targetEl) targetEl.classList.remove('hidden-view');
+
+            if (btnElement) {
+                const navButtons = document.querySelectorAll('aside nav button');
+                navButtons.forEach(btn => {
+                    btn.classList.remove('bg-theme-surface', 'text-theme');
+                    btn.classList.add('text-dc-text');
+
+                    const icon = btn.querySelector('.lucide');
+                    if(icon && !icon.classList.contains('group-hover:text-dc-danger')) {
+                        icon.classList.remove('text-theme');
+                    }
+                });
+
+                btnElement.classList.remove('text-dc-text');
+                btnElement.classList.add('bg-theme-surface', 'text-theme');
+
+                const activeIcon = btnElement.querySelector('.lucide');
+                if(activeIcon && !activeIcon.classList.contains('group-hover:text-dc-danger')) {
+                    activeIcon.classList.add('text-theme');
+                }
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                const palette = document.getElementById('cmd-palette');
+                if(palette) {
+                    palette.classList.toggle('hidden');
+                    if(!palette.classList.contains('hidden')) {
+                        const input = palette.querySelector('input');
+                        if(input) input.focus();
+                    }
+                }
+            }
+
+            if (e.key === 'Escape') {
+                const palette = document.getElementById('cmd-palette');
+                if(palette && !palette.classList.contains('hidden')) palette.classList.add('hidden');
+
+                const teamSlideover = document.getElementById('slideover-team');
+                if(teamSlideover && !teamSlideover.classList.contains('hidden')) teamSlideover.classList.add('hidden');
+
+                const freezeModal = document.getElementById('modal-freeze');
+                if(freezeModal && !freezeModal.classList.contains('hidden')) freezeModal.classList.add('hidden');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const teamRows = document.querySelectorAll('#view-participants tbody tr');
+            teamRows.forEach(row => {
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                row.addEventListener('click', (e) => {
+                    if(e.target !== checkbox && e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                        const slideover = document.getElementById('slideover-team');
+                        if(slideover) slideover.classList.remove('hidden');
+                    }
+                });
+            });
+
+            const closeSlideoverBtn = document.querySelector('#slideover-team button');
+            if(closeSlideoverBtn) {
+                closeSlideoverBtn.addEventListener('click', () => {
+                    document.getElementById('slideover-team').classList.add('hidden');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,3509 @@
+<!DOCTYPE html>
+<html lang="en" class="dark overflow-hidden">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Match Lobby V2 | DeltaCrown Esports</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], display: ['Outfit', 'sans-serif'], mono: ['Space Grotesk', 'monospace'] }, colors: { dc: { base: '#020203', surface: '#08080A', cyan: '#00F0FF', danger: '#FF2A55', warning: '#FFB800', success: '#00FF66' } }, animation: { 'slide-up': 'slideUp 0.5s cubic-bezier(0.16,1,0.3,1) forwards', 'coin-flip': 'coinFlip 3s cubic-bezier(0.4,0,0.2,1) forwards' }, keyframes: { slideUp: { '0%': { opacity: 0, transform: 'translateY(18px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } }, coinFlip: { '0%': { transform: 'rotateY(0) scale(1)' }, '50%': { transform: 'rotateY(1800deg) scale(1.4)' }, '100%': { transform: 'rotateY(3600deg) scale(1)' } } } } } }
+    </script>
+    <style>
+        /* ── Game Theme Vars ── */
+        :root,
+        [data-game=valorant] {
+            --ac: #00F0FF;
+            --ar: 0;
+            --ag: 240;
+            --ab: 255
+        }
+
+        [data-game=cs2] {
+            --ac: #FF7B00;
+            --ar: 255;
+            --ag: 123;
+            --ab: 0
+        }
+
+        [data-game=r6] {
+            --ac: #EFD81D;
+            --ar: 239;
+            --ag: 216;
+            --ab: 29
+        }
+
+        [data-game=dota2] {
+            --ac: #C84B31;
+            --ar: 200;
+            --ag: 75;
+            --ab: 49
+        }
+
+        [data-game=mlbb] {
+            --ac: #4D8BFF;
+            --ar: 77;
+            --ag: 139;
+            --ab: 255
+        }
+
+        [data-game=codm] {
+            --ac: #A8FF00;
+            --ar: 168;
+            --ag: 255;
+            --ab: 0
+        }
+
+        [data-game=pubgm] {
+            --ac: #FFC107;
+            --ar: 255;
+            --ag: 193;
+            --ab: 7
+        }
+
+        [data-game=freefire] {
+            --ac: #FF6B35;
+            --ar: 255;
+            --ag: 107;
+            --ab: 53
+        }
+
+        [data-game=fc26] {
+            --ac: #00C65E;
+            --ar: 0;
+            --ag: 198;
+            --ab: 94
+        }
+
+        [data-game=efootball] {
+            --ac: #3B82F6;
+            --ar: 59;
+            --ag: 130;
+            --ab: 246
+        }
+
+        [data-game=rl] {
+            --ac: #FF5722;
+            --ar: 255;
+            --ag: 87;
+            --ab: 34
+        }
+
+        /* ── Core ── */
+        body {
+            background: #020203;
+            color: #E2E8F0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden
+        }
+
+        .bg-cin {
+            position: absolute;
+            inset: 0;
+            z-index: -10;
+            background-size: cover;
+            background-position: center;
+            opacity: .1;
+            filter: grayscale(80%) contrast(1.2);
+            transition: background-image .8s
+        }
+
+        .bg-ov {
+            position: absolute;
+            inset: 0;
+            z-index: -9;
+            background: radial-gradient(circle at 0% 50%, rgba(var(--ar), var(--ag), var(--ab), .07) 0%, transparent 40%), radial-gradient(circle at 100% 50%, rgba(255, 42, 85, .05) 0%, transparent 40%), linear-gradient(180deg, rgba(2, 2, 3, .85) 0%, #020203 100%);
+            transition: all .7s
+        }
+
+        .glass {
+            background: rgba(12, 12, 16, .72);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, .05);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, .5)
+        }
+
+        /* ── Accent helpers ── */
+        .ac {
+            color: var(--ac)
+        }
+
+        .ac-bg {
+            background: rgba(var(--ar), var(--ag), var(--ab), .12)
+        }
+
+        .ac-bd {
+            border-color: rgba(var(--ar), var(--ag), var(--ab), .35)
+        }
+
+        .ac-glow {
+            box-shadow: 0 0 22px rgba(var(--ar), var(--ag), var(--ab), .25)
+        }
+
+        .ac-fill {
+            background: var(--ac);
+            color: #000
+        }
+
+        .phase-dot-active {
+            background: var(--ac);
+            color: #000;
+            border-color: var(--ac)
+        }
+
+        .phase-dot-done {
+            background: #00FF66;
+            color: #000;
+            border-color: #00FF66
+        }
+
+        /* ── Map Cards ── */
+        .map-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: .75rem;
+            border: 1px solid rgba(255, 255, 255, .1);
+            cursor: pointer;
+            transition: all .3s cubic-bezier(.4, 0, .2, 1);
+            height: 130px
+        }
+
+        .map-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform .4s ease, filter .3s;
+            filter: grayscale(50%)
+        }
+
+        .map-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, .88) 0%, rgba(0, 0, 0, .05) 100%)
+        }
+
+        .map-card:hover {
+            border-color: rgba(255, 255, 255, .28);
+            transform: translateY(-3px)
+        }
+
+        .map-card:hover img {
+            transform: scale(1.06);
+            filter: grayscale(0%)
+        }
+
+        .map-card.banned {
+            pointer-events: none;
+            border-color: rgba(255, 42, 85, .35)
+        }
+
+        .map-card.banned img {
+            filter: grayscale(100%) brightness(.3)
+        }
+
+        .map-card.banned .sb {
+            opacity: 1;
+            background: rgba(255, 42, 85, .9);
+            color: #fff
+        }
+
+        .map-card.picked {
+            pointer-events: none;
+            border-color: var(--ac);
+            box-shadow: 0 0 18px rgba(var(--ar), var(--ag), var(--ab), .3)
+        }
+
+        .map-card.picked img {
+            filter: grayscale(0%) brightness(1.1)
+        }
+
+        .map-card.picked .sb {
+            opacity: 1;
+            background: var(--ac);
+            color: #000
+        }
+
+        .sb {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: .2rem .9rem;
+            font-family: 'Space Grotesk';
+            font-weight: 900;
+            font-size: 1.1rem;
+            letter-spacing: .18em;
+            opacity: 0;
+            z-index: 10;
+            transition: opacity .25s;
+            border-radius: .25rem
+        }
+
+        /* ── Hero Cards ── */
+        .hero-card {
+            border-radius: .4rem;
+            border: 1px solid rgba(255, 255, 255, .08);
+            cursor: pointer;
+            padding: .5rem .3rem;
+            text-align: center;
+            background: rgba(255, 255, 255, .025);
+            transition: all .2s ease;
+            font-size: .6rem;
+            font-weight: 700;
+            font-family: 'Space Grotesk';
+            color: #888;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis
+        }
+
+        .hero-card:hover {
+            border-color: var(--ac);
+            color: var(--ac);
+            background: rgba(var(--ar), var(--ag), var(--ab), .1);
+            transform: translateY(-2px)
+        }
+
+        .hero-card.ha {
+            border-color: var(--ac);
+            background: rgba(var(--ar), var(--ag), var(--ab), .18);
+            color: var(--ac);
+            pointer-events: none
+        }
+
+        .hero-card.hb {
+            border-color: #FF2A55;
+            background: rgba(255, 42, 85, .18);
+            color: #FF2A55;
+            pointer-events: none
+        }
+
+        .hero-card.hban {
+            border-color: rgba(255, 255, 255, .06);
+            background: rgba(0, 0, 0, .6);
+            color: #2a2a2a;
+            pointer-events: none;
+            text-decoration: line-through
+        }
+
+        /* ── Coin ── */
+        .coin-wrap {
+            perspective: 800px;
+            width: 96px;
+            height: 96px;
+            margin: 0 auto
+        }
+
+        .coin {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d
+        }
+
+        .coin.flip {
+            animation: coin-flip 3s cubic-bezier(.4, 0, .2, 1) forwards
+        }
+
+        .coin-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Outfit';
+            font-weight: 900;
+            font-size: 1.4rem;
+            border: 3px solid;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, .5)
+        }
+
+        .coin-a {
+            background: linear-gradient(135deg, rgba(var(--ar), var(--ag), var(--ab), .15) 0%, #111 100%);
+            border-color: var(--ac);
+            color: var(--ac)
+        }
+
+        .coin-b {
+            background: linear-gradient(135deg, rgba(255, 42, 85, .15) 0%, #111 100%);
+            border-color: #FF2A55;
+            color: #FF2A55;
+            transform: rotateY(180deg)
+        }
+
+        /* ── Misc ── */
+        .clip-sl {
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)
+        }
+
+        .hidden-state {
+            display: none !important
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, .1);
+            border-radius: 4px
+        }
+
+        /* ── Dev Pill ── */
+        #dev-pill {
+            position: fixed;
+            bottom: 1.1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, .92);
+            border: 1px solid rgba(255, 255, 255, .1);
+            padding: .45rem .9rem;
+            border-radius: 3rem;
+            z-index: 999;
+            display: flex;
+            gap: .6rem;
+            align-items: center;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, .7);
+            white-space: nowrap
+        }
+
+        .dsel {
+            background: #0d0d0d;
+            color: #fff;
+            border: 1px solid #2a2a2a;
+            padding: .3rem .5rem;
+            border-radius: .35rem;
+            font-size: .7rem;
+            font-family: 'Space Grotesk';
+            outline: none;
+            cursor: pointer
+        }
+
+        .dpill-btn {
+            font-size: .6rem;
+            font-weight: 700;
+            font-family: 'Space Grotesk';
+            color: #aaa;
+            background: rgba(255, 255, 255, .07);
+            border: none;
+            padding: .3rem .6rem;
+            border-radius: 1rem;
+            cursor: pointer;
+            transition: all .2s;
+            text-transform: uppercase;
+            letter-spacing: .05em
+        }
+
+        .dpill-btn:hover {
+            background: rgba(255, 255, 255, .15);
+            color: #fff
+        }
+
+        /* ── 2026 Design Upgrades ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: -8;
+            opacity: .03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+            background-size: 200px 200px;
+            pointer-events: none
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #fff 0%, rgba(var(--ar), var(--ag), var(--ab), 1) 60%, #fff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        .border-shine {
+            position: relative;
+            overflow: hidden
+        }
+
+        .border-shine::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(transparent 0deg, rgba(var(--ar), var(--ag), var(--ab), .15) 60deg, transparent 120deg);
+            animation: borderSpin 6s linear infinite;
+            z-index: 0
+        }
+
+        .border-shine>* {
+            position: relative;
+            z-index: 1
+        }
+
+        @keyframes borderSpin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--ac);
+            box-shadow: 0 0 8px var(--ac);
+            animation: livePulse 2s ease-in-out infinite
+        }
+
+        @keyframes livePulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1
+            }
+
+            50% {
+                transform: scale(1.4);
+                opacity: .7
+            }
+        }
+
+        .voice-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: .72rem;
+            font-weight: 700;
+            font-family: 'Space Grotesk';
+            letter-spacing: .04em;
+            transition: all .2s;
+            cursor: pointer;
+            border: 1px solid
+        }
+
+        .voice-chip.active {
+            background: rgba(var(--ar), var(--ag), var(--ab), .1);
+            border-color: rgba(var(--ar), var(--ag), var(--ab), .35);
+            color: var(--ac)
+        }
+
+        .voice-chip.inactive {
+            background: rgba(255, 255, 255, .04);
+            border-color: rgba(255, 255, 255, .1);
+            color: #666
+        }
+
+        .voice-chip.admin-chip {
+            background: rgba(255, 184, 0, .08);
+            border-color: rgba(255, 184, 0, .3);
+            color: #FFB800
+        }
+
+        .voice-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%
+        }
+
+        .voice-dot.on {
+            background: var(--ac);
+            box-shadow: 0 0 5px var(--ac)
+        }
+
+        .voice-dot.off {
+            background: #444
+        }
+
+        .voice-dot.adm {
+            background: #FFB800;
+            box-shadow: 0 0 5px #FFB800
+        }
+
+        .ph-bar {
+            height: 3px;
+            background: rgba(255, 255, 255, .06);
+            border-radius: 2px;
+            flex: 1;
+            overflow: hidden
+        }
+
+        .ph-bar-fill {
+            height: 100%;
+            background: var(--ac);
+            border-radius: 2px;
+            transition: width .8s cubic-bezier(.4, 0, .2, 1);
+            box-shadow: 0 0 8px rgba(var(--ar), var(--ag), var(--ab), .6)
+        }
+
+        .result-team-card {
+            border-radius: 1rem;
+            border: 1px solid;
+            padding: 1.25rem;
+            transition: all .3s;
+            position: relative;
+            overflow: hidden
+        }
+
+        .result-team-card.team-a {
+            border-color: rgba(var(--ar), var(--ag), var(--ab), .3);
+            background: linear-gradient(135deg, rgba(var(--ar), var(--ag), var(--ab), .06) 0%, transparent 100%)
+        }
+
+        .result-team-card.team-b {
+            border-color: rgba(255, 42, 85, .3);
+            background: linear-gradient(135deg, rgba(255, 42, 85, .06) 0%, transparent 100%)
+        }
+
+        .result-team-card.submitted-ok {
+            border-color: rgba(0, 255, 102, .5) !important;
+            box-shadow: 0 0 20px rgba(0, 255, 102, .1)
+        }
+
+        .score-input-big {
+            width: 90px;
+            text-align: center;
+            background: rgba(0, 0, 0, .6);
+            border: 2px solid rgba(255, 255, 255, .12);
+            border-radius: .75rem;
+            padding: 1rem .5rem;
+            font-family: 'Outfit';
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #fff;
+            outline: none;
+            transition: all .25s
+        }
+
+        .score-input-big:focus {
+            border-color: var(--ac);
+            box-shadow: 0 0 15px rgba(var(--ar), var(--ag), var(--ab), .2)
+        }
+
+        .score-input-big.team-b {
+            border-color: rgba(255, 42, 85, .25)
+        }
+
+        .score-input-big.team-b:focus {
+            border-color: #FF2A55;
+            box-shadow: 0 0 15px rgba(255, 42, 85, .2)
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(255, 255, 255, .1);
+            border-radius: .75rem;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all .3s
+        }
+
+        .upload-zone:hover {
+            border-color: rgba(var(--ar), var(--ag), var(--ab), .4);
+            background: rgba(var(--ar), var(--ag), var(--ab), .04)
+        }
+
+        .upload-zone.done {
+            border-color: rgba(0, 255, 102, .5);
+            background: rgba(0, 255, 102, .04)
+        }
+
+        .sub-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: .72rem;
+            font-weight: 700;
+            font-family: 'Space Grotesk';
+            letter-spacing: .05em;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase
+        }
+
+        .sub-status.pending {
+            background: rgba(255, 184, 0, .1);
+            color: #FFB800;
+            border: 1px solid rgba(255, 184, 0, .3)
+        }
+
+        .sub-status.done {
+            background: rgba(0, 255, 102, .1);
+            color: #00FF66;
+            border: 1px solid rgba(0, 255, 102, .3)
+        }
+
+        .sub-status.mismatch {
+            background: rgba(255, 42, 85, .1);
+            color: #FF2A55;
+            border: 1px solid rgba(255, 42, 85, .3)
+        }
+
+        .admin-panel {
+            background: rgba(255, 184, 0, .04);
+            border: 1px solid rgba(255, 184, 0, .15);
+            border-radius: .75rem;
+            padding: 1rem
+        }
+
+        .admin-btn {
+            font-size: .72rem;
+            font-weight: 700;
+            font-family: 'Space Grotesk';
+            padding: .5rem 1rem;
+            border-radius: .5rem;
+            border: 1px solid;
+            cursor: pointer;
+            transition: all .2s;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            white-space: nowrap
+        }
+
+        .admin-btn-warn {
+            background: rgba(255, 184, 0, .1);
+            color: #FFB800;
+            border-color: rgba(255, 184, 0, .3)
+        }
+
+        .admin-btn-warn:hover {
+            background: rgba(255, 184, 0, .2)
+        }
+
+        .admin-btn-danger {
+            background: rgba(255, 42, 85, .1);
+            color: #FF2A55;
+            border-color: rgba(255, 42, 85, .3)
+        }
+
+        .admin-btn-danger:hover {
+            background: rgba(255, 42, 85, .2)
+        }
+
+        .admin-btn-ok {
+            background: rgba(0, 255, 102, .1);
+            color: #00FF66;
+            border-color: rgba(0, 255, 102, .3)
+        }
+
+        .admin-btn-ok:hover {
+            background: rgba(0, 255, 102, .2)
+        }
+
+        .admin-btn-ghost {
+            background: rgba(255, 255, 255, .05);
+            color: #aaa;
+            border-color: rgba(255, 255, 255, .12)
+        }
+
+        .admin-btn-ghost:hover {
+            background: rgba(255, 255, 255, .1);
+            color: #fff
+        }
+
+        .section-label {
+            font-size: .72rem;
+            font-weight: 800;
+            font-family: 'Space Grotesk';
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: #555;
+            margin-bottom: .35rem
+        }
+
+        .compact-input {
+            background: rgba(0, 0, 0, .5);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: .5rem;
+            padding: .5rem .75rem;
+            font-size: .75rem;
+            color: #fff;
+            outline: none;
+            width: 100%;
+            transition: all .2s
+        }
+
+        .compact-input:focus {
+            border-color: rgba(var(--ar), var(--ag), var(--ab), .5)
+        }
+
+        .glow-accent {
+            box-shadow: 0 0 30px rgba(var(--ar), var(--ag), var(--ab), .3), 0 0 60px rgba(var(--ar), var(--ag), var(--ab), .1)
+        }
+
+        .map-card {
+            height: 110px
+        }
+
+        .hero-grid-inner {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 6px
+        }
+
+        /* ── Intel Panel ── */
+        .intel-scroll {
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0
+        }
+
+        .intel-player-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: .45rem .6rem;
+            border-radius: .5rem;
+            border: 1px solid rgba(255, 255, 255, .05);
+            background: rgba(255, 255, 255, .02);
+            transition: background .15s
+        }
+
+        .intel-player-row:hover {
+            background: rgba(255, 255, 255, .045)
+        }
+
+        .intel-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Outfit';
+            font-weight: 900;
+            font-size: .75rem;
+            flex-shrink: 0
+        }
+
+        .organizer-card {
+            background: linear-gradient(135deg, rgba(255, 184, 0, .07) 0%, rgba(255, 184, 0, .02) 100%);
+            border: 1px solid rgba(255, 184, 0, .2);
+            border-radius: .75rem;
+            padding: .85rem 1rem
+        }
+
+        .voice-channel-card {
+            background: rgba(88, 101, 242, .08);
+            border: 1px solid rgba(88, 101, 242, .2);
+            border-radius: .65rem;
+            padding: .75rem .85rem;
+            transition: all .2s;
+            cursor: pointer
+        }
+
+        .voice-channel-card:hover {
+            background: rgba(88, 101, 242, .14);
+            border-color: rgba(88, 101, 242, .4)
+        }
+
+        .voice-channel-card.connected {
+            border-color: rgba(var(--ar), var(--ag), var(--ab), .5);
+            background: rgba(var(--ar), var(--ag), var(--ab), .08)
+        }
+
+        /* ── Proxy Mode ── */
+        .proxy-banner {
+            background: linear-gradient(90deg, rgba(255, 184, 0, .12) 0%, rgba(255, 184, 0, .06) 50%, transparent 100%);
+            border-left: 3px solid #FFB800;
+            border-radius: .5rem;
+            padding: .75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            animation: slideUp .4s cubic-bezier(.16, 1, .3, 1) forwards
+        }
+
+        .proxy-acting-btn {
+            padding: .35rem .9rem;
+            border-radius: .4rem;
+            font-size: .72rem;
+            font-weight: 700;
+            font-family: 'Space Grotesk';
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            border: 1.5px solid;
+            cursor: pointer;
+            transition: all .2s
+        }
+
+        .proxy-acting-btn.active-a {
+            background: rgba(var(--ar), var(--ag), var(--ab), .2);
+            color: var(--ac);
+            border-color: var(--ac)
+        }
+
+        .proxy-acting-btn.active-b {
+            background: rgba(255, 42, 85, .2);
+            color: #FF2A55;
+            border-color: #FF2A55
+        }
+
+        .proxy-acting-btn.inactive {
+            background: rgba(255, 255, 255, .05);
+            color: #666;
+            border-color: rgba(255, 255, 255, .1)
+        }
+    </style>
+</head>
+
+<body class="relative" data-game="valorant">
+    <div class="bg-cin" id="bg-layer"></div>
+    <div class="bg-ov" id="bg-ov"></div><!-- NAV -->
+    <nav class="w-full h-14 flex items-center justify-between px-5 border-b border-white/5 z-50 shrink-0"
+        style="background:rgba(2,2,3,.8);backdrop-filter:blur(16px)">
+        <div class="flex items-center gap-3"><a href="#"
+                class="text-gray-400 hover:text-white flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-colors"><i
+                    data-lucide="arrow-left" class="w-4 h-4"></i><span class="hidden sm:inline">Back to Hub</span></a>
+            <div class="h-4 w-px bg-white/10"></div><span id="nav-match-id"
+                class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Match #VAL-8821</span>
+            <div class="h-4 w-px bg-white/10 hidden md:block"></div><span id="nav-tournament"
+                class="text-[10px] font-mono text-gray-600 uppercase tracking-widest hidden md:block">Winter Major —
+                Playoffs R32</span>
+        </div>
+        <div class="flex items-center gap-2.5">
+            <div
+                class="hidden sm:flex items-center gap-2 text-xs font-mono text-white bg-white/5 px-3 py-1.5 rounded border border-white/8">
+                <i data-lucide="clock" class="w-3 h-3 text-gray-400"></i><span id="match-clock">--:--</span>
+            </div>
+            <button onclick="openDisputeModal()"
+                class="px-3 py-1.5 rounded bg-dc-danger/10 text-dc-danger border border-dc-danger/30 hover:bg-dc-danger hover:text-white transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5"><i
+                    data-lucide="siren" class="w-3 h-3"></i><span class="hidden sm:inline">Call</span>Match
+                Medic</button>
+        </div>
+    </nav><!-- HERO HEADER -->
+    <header class="w-full border-b border-white/5 shrink-0 relative overflow-hidden"
+        style="background:rgba(0,0,0,.5);backdrop-filter:blur(12px)">
+        <div class="absolute left-0 inset-y-0 w-2/5 pointer-events-none"
+            style="background:linear-gradient(to right,rgba(var(--ar),var(--ag),var(--ab),.09),transparent)"></div>
+        <div class="absolute right-0 inset-y-0 w-2/5 pointer-events-none"
+            style="background:linear-gradient(to left,rgba(255,42,85,.09),transparent)"></div>
+        <div class="px-5 py-2.5 flex items-center justify-between relative z-10"><!-- Team A -->
+            <div class="flex items-center gap-3 flex-1">
+                <div id="team-a-logo"
+                    class="w-11 h-11 rounded-xl flex items-center justify-center font-display font-black text-base shrink-0 transition-all duration-700 glow-accent"
+                    style="background:rgba(var(--ar),var(--ag),var(--ab),.15);border:1.5px solid rgba(var(--ar),var(--ag),var(--ab),.45);color:var(--ac)">
+                    PS</div>
+                <div>
+                    <h2 id="team-a-name"
+                        class="font-display font-bold text-lg text-white tracking-wide leading-none gradient-text">
+                        PlaySphere</h2>
+                    <p id="team-a-sub" class="text-[9px] font-mono tracking-widest uppercase mt-0.5 transition-colors"
+                        style="color:var(--ac)">Your Squad · Seed #4</p>
+                </div>
+            </div><!-- VS -->
+            <div class="flex flex-col items-center px-3 shrink-0"><span id="match-format"
+                    class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-1">Bo1 · Map Veto</span>
+                <div class="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center font-display font-black text-gray-600 italic text-sm"
+                    style="background:#020203">VS</div>
+            </div><!-- Team B -->
+            <div class="flex items-center gap-3 flex-1 justify-end text-right">
+                <div>
+                    <h2 id="team-b-name" class="font-display font-bold text-lg text-white tracking-wide leading-none">
+                        Sentinels Acad</h2>
+                    <p id="team-b-sub" class="text-[9px] text-dc-danger font-mono tracking-widest uppercase mt-0.5">
+                        Opponent · Seed #12</p>
+                </div>
+                <div id="team-b-logo"
+                    class="w-11 h-11 rounded-xl bg-dc-danger/20 border border-dc-danger/40 flex items-center justify-center text-dc-danger font-display font-black text-base shadow-[0_0_16px_rgba(255,42,85,.25)] shrink-0">
+                    SEN</div>
+            </div>
+        </div>
+    </header><!-- MAIN GRID -->
+    <main class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10" style="min-height:0">
+        <!-- CONTENT AREA -->
+        <section
+            class="col-span-1 lg:col-span-8 h-full overflow-y-auto flex flex-col gap-5 p-5 lg:p-8 pb-24 border-r border-white/5"
+            id="main-scroll"><!-- PHASE TRACKER -->
+            <div class="glass flex items-center px-4 py-2.5 rounded-xl shrink-0 gap-2.5">
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <div id="ph-dot-1"
+                        class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black border transition-all phase-dot-active">
+                        <i data-lucide="settings-2" class="w-2.5 h-2.5" id="ph-icon-1-inner"></i>
+                    </div><span id="ph-label-1"
+                        class="text-[10px] font-bold text-white uppercase tracking-widest whitespace-nowrap">Match
+                        Setup</span>
+                </div>
+                <div class="ph-bar">
+                    <div class="ph-bar-fill" id="ph-bar-1" style="width:100%"></div>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0 opacity-40 transition-opacity duration-500"
+                    id="ph2-wrap">
+                    <div id="ph-dot-2"
+                        class="w-5 h-5 rounded-full bg-gray-800 border border-gray-600 text-gray-500 flex items-center justify-center text-[9px]">
+                        <i data-lucide="server" class="w-2.5 h-2.5"></i>
+                    </div><span id="ph-label-2"
+                        class="text-[10px] font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">Lobby
+                        Setup</span>
+                </div>
+                <div class="ph-bar">
+                    <div class="ph-bar-fill" id="ph-bar-2" style="width:0%"></div>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0 opacity-40 transition-opacity duration-500"
+                    id="ph3-wrap">
+                    <div id="ph-dot-3"
+                        class="w-5 h-5 rounded-full bg-gray-800 border border-gray-600 text-gray-500 flex items-center justify-center text-[9px]">
+                        <i data-lucide="flag" class="w-2.5 h-2.5"></i>
+                    </div><span id="ph-label-3"
+                        class="text-[10px] font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">Submit
+                        Result</span>
+                </div>
+            </div><!-- PH0: COIN TOSS -->
+            <div id="ph-discord" class="flex flex-col gap-3 animate-slide-up"><!-- Proxy Mode Banner -->
+                <div id="proxy-banner" class="proxy-banner hidden-state">
+                    <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                        style="background:rgba(255,184,0,.15);border:1px solid rgba(255,184,0,.3)"><i
+                            data-lucide="user-cog" class="w-3.5 h-3.5" style="color:#FFB800"></i></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[10px] font-bold uppercase tracking-widest" style="color:#FFB800">Proxy Mode
+                            Active</p>
+                        <p class="text-[9px] text-gray-400">Organizer acting on behalf of absent captain &mdash; all
+                            actions logged</p>
+                    </div>
+                    <div class="flex items-center gap-1.5"><button class="proxy-acting-btn active-a" id="proxy-btn-a"
+                            onclick="proxyActAs('a')">Act as Team A</button><button class="proxy-acting-btn inactive"
+                            id="proxy-btn-b" onclick="proxyActAs('b')">Act as Team B</button></div>
+                </div><!-- Coin Toss -->
+                <div class="glass rounded-2xl p-8 text-center relative overflow-hidden"
+                    style="border-top:2px solid var(--ac)">
+                    <div class="absolute inset-0 pointer-events-none"
+                        style="background:radial-gradient(ellipse at center,rgba(var(--ar),var(--ag),var(--ab),.06) 0%,transparent 65%)">
+                    </div>
+                    <div class="live-dot mx-auto mb-4"></div>
+                    <h3 id="toss-headline" class="font-display font-black text-2xl text-white mb-1 relative z-10">
+                        Official Coin Toss</h3>
+                    <p id="toss-sub" class="text-sm text-gray-400 mb-6 relative z-10">Fair cryptographic toss determines
+                        first pick/ban priority.</p>
+                    <div class="coin-wrap mb-6 relative z-10">
+                        <div class="coin" id="the-coin">
+                            <div class="coin-face coin-a" id="coin-a-face">PS</div>
+                            <div class="coin-face coin-b" id="coin-b-face">SEN</div>
+                        </div>
+                    </div>
+                    <div id="toss-actions" class="relative z-10"><button onclick="executeCoinToss()"
+                            class="px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-sm hover:bg-gray-200 transition-all rounded-xl clip-sl">Initiate
+                            Coin Toss</button></div>
+                    <div id="toss-result" class="hidden-state relative z-10 flex-col items-center">
+                        <div
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl mb-4 text-sm font-bold uppercase tracking-widest border ac-bg ac-bd ac">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i><span id="toss-winner-text">PlaySphere
+                                Wins The Toss</span>
+                        </div><button onclick="proceedAfterToss()"
+                            class="clip-sl px-8 py-3.5 font-black uppercase tracking-widest text-sm transition-all"
+                            style="background:var(--ac);color:#000">Proceed to Match Setup <i data-lucide="arrow-right"
+                                class="inline-block w-4 h-4 ml-1"></i></button>
+                    </div>
+                </div>
+            </div><!-- PH1a: MAP VETO -->
+            <div id="ph-veto" class="hidden-state flex flex-col gap-4 animate-slide-up">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 id="veto-title" class="font-display font-black text-2xl text-white">Map Pool (BO1)</h3>
+                        <p id="veto-instr" class="text-sm font-bold mt-1 animate-pulse ac">Your turn: BAN a map.</p>
+                    </div>
+                    <div class="glass px-4 py-2.5 rounded-xl text-right">
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Turn Timer</p>
+                        <p id="veto-timer" class="font-mono text-lg text-white font-bold">01:45</p>
+                    </div>
+                </div>
+                <div id="map-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+                <div class="glass p-4 rounded-xl">
+                    <h4
+                        class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 border-b border-white/5 pb-2">
+                        Veto Audit Log</h4>
+                    <ul id="veto-log" class="space-y-1.5 text-xs font-mono text-gray-400">
+                        <li><span class="text-white">System:</span>Coin toss complete. First ban assigned.</li>
+                    </ul>
+                </div>
+            </div><!-- PH1b: HERO DRAFT -->
+            <div id="ph-draft" class="hidden-state flex flex-col gap-4 animate-slide-up">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-display font-black text-2xl text-white">Hero Draft</h3>
+                        <p id="draft-instr" class="text-sm font-bold mt-1 animate-pulse ac">Your turn: BAN a hero.</p>
+                    </div>
+                    <div class="glass px-4 py-2.5 rounded-xl text-right">
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Draft Step</p>
+                        <p id="draft-step" class="font-mono text-lg text-white font-bold">1/10</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="glass rounded-xl p-3">
+                        <p class="text-[10px] font-bold uppercase tracking-widest mb-2 ac">PlaySphere Picks</p>
+                        <div id="picks-a" class="flex flex-wrap gap-1 min-h-[22px]"></div>
+                    </div>
+                    <div class="glass rounded-xl p-3">
+                        <p class="text-[10px] font-bold text-dc-danger uppercase tracking-widest mb-2">Sentinels Picks
+                        </p>
+                        <div id="picks-b" class="flex flex-wrap gap-1 min-h-[22px]"></div>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-3">
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Banned</p>
+                    <div id="bans-display" class="flex flex-wrap gap-1 min-h-[20px]"></div>
+                </div>
+                <div id="hero-grid"
+                    class="grid grid-cols-5 sm:grid-cols-7 lg:grid-cols-9 gap-1.5 max-h-72 overflow-y-auto"></div>
+                <div class="glass p-3 rounded-xl">
+                    <h4
+                        class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 border-b border-white/5 pb-1.5">
+                        Draft Log</h4>
+                    <ul id="draft-log" class="space-y-1 text-xs font-mono text-gray-400"></ul>
+                </div>
+            </div><!-- PH1c: DIRECT READY CHECK -->
+            <div id="ph-direct" class="hidden-state animate-slide-up">
+                <div class="glass rounded-2xl p-10 text-center relative overflow-hidden"
+                    style="border-top:2px solid var(--ac)">
+                    <div class="absolute inset-0 pointer-events-none"
+                        style="background:radial-gradient(ellipse at top,rgba(var(--ar),var(--ag),var(--ab),.05) 0%,transparent 60%)">
+                    </div>
+                    <div class="relative z-10">
+                        <div
+                            class="w-14 h-14 rounded-full ac-bg border ac-bd flex items-center justify-center mx-auto mb-4 ac-glow">
+                            <i data-lucide="check-circle" class="w-7 h-7 ac"></i>
+                        </div>
+                        <h3 id="direct-title" class="font-display font-black text-2xl text-white mb-2">Ready Check</h3>
+                        <p id="direct-desc" class="text-sm text-gray-400 mb-7 max-w-md mx-auto">Confirm both teams are
+                            ready. Host will then create the custom lobby.</p>
+                        <div class="flex items-center justify-center gap-8 mb-8">
+                            <div class="flex flex-col items-center gap-2">
+                                <div
+                                    class="w-12 h-12 rounded-xl ac-bg border ac-bd flex items-center justify-center ac text-xl font-bold">
+                                    ✓</div>
+                                <p class="text-[10px] font-bold text-white">PlaySphere</p>
+                                <p class="text-[10px] font-mono ac uppercase tracking-widest">Ready</p>
+                            </div>
+                            <div class="h-px w-10 bg-white/10"></div>
+                            <div id="ready-b-wrap" class="flex flex-col items-center gap-2">
+                                <div
+                                    class="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 text-xl font-bold animate-pulse">
+                                    ?</div>
+                                <p class="text-[10px] font-bold text-white" id="team-b-ready-name">Sentinels Acad</p>
+                                <p class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Waiting...</p>
+                            </div>
+                        </div><button onclick="simulateReady()"
+                            class="clip-sl px-8 py-3.5 font-black uppercase tracking-widest text-sm"
+                            style="background:var(--ac);color:#000">Both Teams Ready → Continue</button>
+                    </div>
+                </div>
+            </div><!-- PH2: LOBBY SETUP -->
+            <div id="ph-lobby" class="hidden-state animate-slide-up">
+                <div class="rounded-2xl p-7 relative overflow-hidden border transition-all duration-700 ac-bd"
+                    style="background:linear-gradient(135deg,rgba(var(--ar),var(--ag),var(--ab),.08),transparent)">
+                    <div class="absolute right-0 top-0 w-52 h-52 rounded-full pointer-events-none"
+                        style="background:rgba(var(--ar),var(--ag),var(--ab),.12);filter:blur(60px)"></div>
+                    <!-- Host View -->
+                    <div id="lobby-host-view" class="relative z-10 flex flex-col lg:flex-row gap-8">
+                        <div class="flex-1">
+                            <div
+                                class="inline-flex items-center gap-2 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest mb-4 ac ac-bg border ac-bd">
+                                <i data-lucide="shield" class="w-3 h-3"></i>Host — Create Lobby
+                            </div>
+                            <h3 class="font-display font-black text-2xl text-white mb-3">Create the Custom Room</h3>
+                            <p class="text-sm text-gray-400 mb-5 leading-relaxed max-w-sm">Launch the game,
+                                create a custom lobby with the tournament settings below,
+                                then broadcast credentials to your opponent.</p>
+                            <div id="host-steps" class="space-y-2 text-xs text-gray-400 font-mono"></div>
+                        </div>
+                        <div class="w-full lg:w-[360px] rounded-2xl p-6 shadow-2xl"
+                            style="background:rgba(0,0,0,.7);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1)">
+                            <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Broadcast
+                                Lobby Credentials</h4>
+                            <form id="cred-form" onsubmit="event.preventDefault();broadcastCredentials()"
+                                class="space-y-4"></form>
+                        </div>
+                    </div><!-- Guest View -->
+                    <div id="lobby-guest-view"
+                        class="hidden-state relative z-10 flex flex-col items-center justify-center text-center py-14">
+                        <div class="relative w-14 h-14 mb-5">
+                            <div class="absolute inset-0 rounded-full border-4"
+                                style="border-color:rgba(var(--ar),var(--ag),var(--ab),.2)"></div>
+                            <div class="absolute inset-0 rounded-full border-4 border-t-transparent animate-spin"
+                                style="border-color:var(--ac);border-top-color:transparent"></div>
+                            <div class="absolute inset-2 rounded-full ac-bg flex items-center justify-center"><i
+                                    data-lucide="shield" class="w-4 h-4 ac"></i></div>
+                        </div>
+                        <h3 class="font-display font-black text-2xl text-white mb-2">Awaiting Host Setup</h3>
+                        <p class="text-sm text-gray-400 max-w-sm">The host is configuring the lobby. Credentials appear
+                            here automatically once broadcast.</p>
+                    </div>
+                </div>
+            </div><!-- PH2b: SERVER CREDS -->
+            <div id="ph-server" class="hidden-state animate-slide-up">
+                <div class="rounded-2xl p-7 relative overflow-hidden border"
+                    style="background:linear-gradient(135deg,rgba(var(--ar),var(--ag),var(--ab),.08),transparent);border-color:rgba(var(--ar),var(--ag),var(--ab),.28)">
+                    <div class="absolute right-0 top-0 w-56 h-56 rounded-full pointer-events-none"
+                        style="background:rgba(var(--ar),var(--ag),var(--ab),.1);filter:blur(70px)"></div>
+                    <div class="flex flex-col md:flex-row items-start justify-between gap-8 relative z-10">
+                        <div class="flex-1">
+                            <div
+                                class="inline-flex items-center gap-2 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest mb-3 ac ac-bg">
+                                <span class="w-1.5 h-1.5 rounded-full animate-pulse"
+                                    style="background:var(--ac)"></span>Match Is Live
+                            </div>
+                            <h3 id="server-map-name" class="font-display font-black text-4xl text-white mb-2">Custom
+                                Lobby</h3>
+                            <p class="text-sm text-gray-400 mb-4">Join within <strong class="text-white">10
+                                    minutes</strong>to avoid an auto-forfeit.</p>
+                            <div id="server-steps" class="space-y-1.5 text-xs text-gray-400 font-mono"></div>
+                        </div>
+                        <div class="w-full md:w-auto flex flex-col gap-3 min-w-[200px]">
+                            <div id="server-creds" class="glass rounded-xl p-4 flex flex-col gap-3"></div><button
+                                onclick="unlockResultPhase()"
+                                class="text-xs text-gray-500 hover:text-white border-b border-dashed border-gray-700 pb-1 transition-colors font-bold uppercase tracking-widest">Match
+                                Done → Submit Result</button>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- PH3: RESULT (Dual-Team Submission) -->
+            <div id="ph-result" class="hidden-state animate-slide-up flex flex-col gap-4">
+                <div>
+                    <h3 class="font-display font-black text-xl text-white mb-0.5">Match Result Submission</h3>
+                    <p class="text-xs text-gray-500">Both captains must submit independently. Matching scores lock the
+                        result automatically. Falsifying results causes a permanent ban.</p>
+                </div><!-- Dual team cards -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="result-cards"><!-- Team A card -->
+                    <div class="result-team-card team-a" id="result-card-a">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center font-display font-black text-sm"
+                                    style="background:rgba(var(--ar),var(--ag),var(--ab),.2);color:var(--ac)"
+                                    id="result-logo-a">PS</div>
+                                <div>
+                                    <p class="text-xs font-bold text-white" id="result-name-a">PlaySphere</p>
+                                    <p class="text-[9px] font-mono uppercase tracking-widest" style="color:var(--ac)">
+                                        Your Submission</p>
+                                </div>
+                            </div><span class="sub-status pending" id="sub-status-a"><span>●</span>Pending</span>
+                        </div><!-- Score input -->
+                        <div class="flex items-center justify-center gap-3 py-3 mb-3">
+                            <div class="text-center">
+                                <p class="section-label mb-1" id="score-label-a-txt">Rounds Won</p><input type="number"
+                                    id="score-a" min="0" max="99" placeholder="0" class="score-input-big">
+                            </div><span class="text-2xl font-black text-gray-700 mt-4">–</span>
+                            <div class="text-center">
+                                <p class="section-label mb-1">Opponent</p><input type="number" id="score-a-opp" min="0"
+                                    max="99" placeholder="0" class="score-input-big"
+                                    style="border-color:rgba(255,42,85,.25);"
+                                    onfocus="this.style.borderColor='#FF2A55';this.style.boxShadow='0 0 15px rgba(255,42,85,.2)'"
+                                    onblur="this.style.borderColor='rgba(255,42,85,.25)';this.style.boxShadow=''">
+                            </div>
+                        </div><!-- Extra fields -->
+                        <div id="extra-fields-a" class="space-y-2 mb-3"></div><!-- Upload -->
+                        <div class="upload-zone mb-3" id="upload-a" onclick="handleUpload('a',this)"><i
+                                data-lucide="image-plus" class="w-5 h-5 mx-auto text-gray-500 mb-1"></i>
+                            <p class="text-xs font-bold text-gray-400">Upload Screenshot / Proof</p>
+                            <p class="text-[9px] text-gray-600 mt-0.5">PNG,
+                                JPG up to 5MB</p>
+                        </div><!-- Submit --><button onclick="submitTeamResult('a')" id="submit-btn-a"
+                            class="w-full clip-sl py-2.5 text-black font-black uppercase tracking-widest text-xs transition-all"
+                            style="background:var(--ac)">Submit My Result</button>
+                    </div><!-- Team B card -->
+                    <div class="result-team-card team-b" id="result-card-b">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-dc-danger/20 border border-dc-danger/30 flex items-center justify-center font-display font-black text-sm text-dc-danger"
+                                    id="result-logo-b">SEN</div>
+                                <div>
+                                    <p class="text-xs font-bold text-white" id="result-name-b">Sentinels Acad</p>
+                                    <p class="text-[9px] font-mono uppercase tracking-widest text-dc-danger">Opponent
+                                        Submission</p>
+                                </div>
+                            </div><span class="sub-status pending" id="sub-status-b"><span>●</span>Pending</span>
+                        </div><!-- Score input -->
+                        <div class="flex items-center justify-center gap-3 py-3 mb-3">
+                            <div class="text-center">
+                                <p class="section-label mb-1">Their Score</p><input type="number" id="score-b" min="0"
+                                    max="99" placeholder="0" class="score-input-big team-b"
+                                    onfocus="this.style.borderColor='#FF2A55';this.style.boxShadow='0 0 15px rgba(255,42,85,.2)'"
+                                    onblur="this.style.borderColor='rgba(255,42,85,.25)';this.style.boxShadow=''">
+                            </div><span class="text-2xl font-black text-gray-700 mt-4">–</span>
+                            <div class="text-center">
+                                <p class="section-label mb-1">Opponent</p><input type="number" id="score-b-opp" min="0"
+                                    max="99" placeholder="0" class="score-input-big"
+                                    style="border-color:rgba(255,42,85,.25);">
+                            </div>
+                        </div><!-- Extra fields -->
+                        <div id="extra-fields-b" class="space-y-2 mb-3"></div><!-- Upload -->
+                        <div class="upload-zone mb-3" id="upload-b" onclick="handleUpload('b',this)"><i
+                                data-lucide="image-plus" class="w-5 h-5 mx-auto text-gray-500 mb-1"></i>
+                            <p class="text-xs font-bold text-gray-400">Upload Screenshot / Proof</p>
+                            <p class="text-[9px] text-gray-600 mt-0.5">PNG,
+                                JPG up to 5MB</p>
+                        </div><!-- Submit --><button onclick="submitTeamResult('b')" id="submit-btn-b"
+                            class="w-full clip-sl py-2.5 bg-dc-danger text-white font-black uppercase tracking-widest text-xs transition-all hover:bg-red-600">Opponent
+                            Submits Here</button>
+                    </div>
+                </div><!-- Verification states -->
+                <div id="result-verify" class="hidden-state glass rounded-xl p-5 text-center animate-slide-up">
+                    <div class="relative w-10 h-10 mx-auto mb-3">
+                        <div class="absolute inset-0 rounded-full border-4" style="border-color:rgba(255,184,0,.2)">
+                        </div>
+                        <div class="absolute inset-0 rounded-full border-4 border-t-transparent animate-spin"
+                            style="border-color:#FFB800;border-top-color:transparent"></div>
+                    </div>
+                    <h4 class="font-display font-bold text-base text-white mb-1">Awaiting Opponent Confirmation</h4>
+                    <p class="text-xs text-gray-400" id="verify-status-text">Waiting for the other team to submit their
+                        result.</p>
+                </div>
+                <div id="result-success"
+                    class="hidden-state bg-dc-success/10 border border-dc-success/30 rounded-xl p-6 text-center animate-slide-up">
+                    <div
+                        class="w-12 h-12 rounded-full bg-dc-success/20 border border-dc-success flex items-center justify-center mx-auto mb-3 shadow-[0_0_20px_rgba(0,255,102,.3)]">
+                        <i data-lucide="check-check" class="w-6 h-6 text-dc-success"></i>
+                    </div>
+                    <h4 class="font-display font-black text-xl text-white mb-1">Result Verified !</h4>
+                    <p class="text-xs text-gray-400 mb-4">Both captains submitted matching scores. Bracket updated.</p>
+                    <div class="flex items-center justify-center gap-4 font-display font-black text-4xl py-4 px-6 rounded-xl border border-white/5 mb-4"
+                        style="background:rgba(0,0,0,.5)" id="final-score-display"></div><a href="#"
+                        class="px-6 py-2.5 bg-white text-black font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-colors">Return
+                        to Hub</a>
+                </div>
+        </section><!-- SIDEBAR -->
+        <aside class="col-span-1 lg:col-span-4 h-full flex flex-col border-l border-white/5" style="background:#08080A">
+            <div class="flex border-b border-white/5 shrink-0" style="background:rgba(2,2,3,.5)"><button
+                    id="tab-chat-btn"
+                    class="flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ac border-b-2"
+                    style="border-bottom-color:var(--ac)" onclick="switchTab('chat',this)">Chat</button><button
+                    id="tab-intel-btn"
+                    class="flex-1 py-3 text-[10px] font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors"
+                    onclick="switchTab('intel',this)">Squad Intel</button><button id="tab-voice-btn"
+                    class="flex-1 py-3 text-[10px] font-bold text-gray-500 border-b-2 border-transparent hover:text-white transition-colors"
+                    onclick="switchTab('voice',this)"> Voice</button><button id="tab-admin-btn"
+                    class="hidden flex-1 py-3 text-[10px] font-bold text-dc-warning border-b-2 border-transparent hover:text-dc-warning/80 transition-colors"
+                    onclick="switchTab('admin',this)">⚡ Admin</button></div><!-- Chat -->
+            <div id="view-chat" class="flex-1 flex flex-col overflow-hidden">
+                <div id="chat-window" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm">
+                    <div class="flex justify-center"><span
+                            class="px-3 py-1 bg-white/5 border border-white/8 rounded-full text-[10px] font-bold uppercase tracking-widest text-gray-400">Secure
+                            lobby channel open</span></div>
+                </div>
+                <div class="p-3 border-t border-white/5 shrink-0" style="background:rgba(0,0,0,.4)">
+                    <form class="relative flex items-center" id="chat-form"><input type="text" id="chat-input"
+                            placeholder="Coordinate with opponent..."
+                            class="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-4 pr-10 text-sm text-white focus:outline-none transition-all"
+                            style="focus:border-color:var(--ac)"><button type="submit"
+                            class="absolute right-2 p-1.5 text-gray-400 hover:text-dc-cyan transition-colors"><i
+                                data-lucide="send" class="w-4 h-4"></i></button></form>
+                </div>
+            </div><!-- Intel -->
+            <div id="view-intel" class="hidden-state flex flex-col" style="flex:1;min-height:0"><!-- Organizer Card -->
+                <div class="organizer-card mx-4 mt-4 mb-0 shrink-0">
+                    <div class="flex items-center gap-2 mb-2.5">
+                        <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                            style="background:rgba(255,184,0,.15)"><i data-lucide="shield-check" class="w-3.5 h-3.5"
+                                style="color:#FFB800"></i></div>
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-widest" style="color:#FFB800">Match
+                                Organizer</p>
+                            <p class="text-[9px] text-gray-500" id="org-name">DeltaCrown Staff — Referee</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-wrap"><a href="https://discord.gg/deltacrown"
+                            target="_blank"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all"
+                            style="background:#5865F2;color:#fff" onmouseover="this.style.opacity='.8'"
+                            onmouseout="this.style.opacity='1'"><i data-lucide="message-circle"
+                                class="w-3 h-3"></i>Discord</a><a href="mailto:support@deltacrown.gg"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/10 text-[10px] font-bold text-gray-400 hover:text-white hover:border-white/25 uppercase tracking-widest transition-all"><i
+                                data-lucide="mail" class="w-3 h-3"></i>Email</a><button onclick="activateProxyMode()"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-500/30 text-[10px] font-bold text-amber-400 hover:bg-amber-500/10 uppercase tracking-widest transition-all"><i
+                                data-lucide="user-cog" class="w-3 h-3"></i>Proxy Mode</button></div>
+                </div><!-- Scrollable player list -->
+                <div class="intel-scroll px-4 py-3 space-y-4">
+                    <div>
+                        <p class="section-label mb-2">Your Squad</p>
+                        <div id="intel-a" class="space-y-1.5"></div>
+                    </div>
+                    <div>
+                        <p class="section-label mb-2">Opponent</p>
+                        <div id="intel-b" class="space-y-1.5"></div>
+                    </div>
+                    <div class="glass p-3 rounded-xl">
+                        <p class="section-label mb-2">Match Rules</p>
+                        <div id="match-rules" class="space-y-1 text-[10px] text-gray-400 font-mono"></div>
+                    </div>
+                </div>
+            </div><!-- Voice Panel -->
+            <div id="view-voice" class="hidden-state flex-1 overflow-y-auto p-4 space-y-4">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                        style="background:#5865F2"><i data-lucide="headset" class="w-3.5 h-3.5 text-white"></i></div>
+                    <div>
+                        <p class="text-[10px] font-black text-white uppercase tracking-widest">Discord Voice Channels
+                        </p>
+                        <p class="text-[9px] text-gray-500">Stay connected — join your team channel</p>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <div class="voice-channel-card" onclick="joinVoice('a',this)">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="voice-dot on"></div>
+                                <div>
+                                    <p class="text-xs font-bold text-white">🎮 Team A — PlaySphere</p>
+                                    <p class="text-[9px] text-gray-500 font-mono">3 members active</p>
+                                </div>
+                            </div><button class="voice-chip active text-[9px] py-1 px-2.5">Join</button>
+                        </div>
+                    </div>
+                    <div class="voice-channel-card opacity-60 cursor-not-allowed">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="voice-dot off"></div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400">🔒 Team B — Sentinels</p>
+                                    <p class="text-[9px] text-gray-600 font-mono">Locked to opponents</p>
+                                </div>
+                            </div><span
+                                class="text-[9px] text-gray-600 uppercase tracking-widest font-bold">Locked</span>
+                        </div>
+                    </div>
+                    <div class="voice-channel-card" onclick="joinVoice('admin',this)">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="voice-dot adm"></div>
+                                <div>
+                                    <p class="text-xs font-bold text-white">🛡️ Admin / Referee Room</p>
+                                    <p class="text-[9px] text-gray-500 font-mono">Staff only</p>
+                                </div>
+                            </div><button class="voice-chip admin-chip text-[9px] py-1 px-2.5">Join</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-white/5">
+                    <p class="section-label mb-2">Connection Status</p>
+                    <div class="flex items-center gap-2.5 p-3 rounded-xl"
+                        style="background:rgba(88,101,242,.08);border:1px solid rgba(88,101,242,.15)">
+                        <div class="voice-dot on"></div>
+                        <p class="text-xs text-gray-300">Connected to <span class="font-bold text-white">Team
+                                A</span>channel</p>
+                    </div>
+                </div>
+            </div><!-- Admin Panel -->
+            <div id="view-admin" class="hidden-state flex-1 overflow-y-auto p-4 space-y-4">
+                <div class="admin-panel">
+                    <div class="flex items-center gap-2 mb-3"><i data-lucide="shield-check"
+                            class="w-3.5 h-3.5 text-dc-warning"></i><span
+                            class="text-[10px] font-black text-dc-warning uppercase tracking-widest">Organizer
+                            Tools</span></div>
+                    <div class="space-y-1.5">
+                        <p class="section-label">Match Controls</p>
+                        <div class="flex flex-wrap gap-1.5"><button class="admin-btn admin-btn-warn"
+                                onclick="adminForcePhase()">Force Next Phase</button><button
+                                class="admin-btn admin-btn-ghost" onclick="adminFreezeTimer()">Freeze
+                                Timer</button><button class="admin-btn admin-btn-danger" onclick="adminFlagMatch()">Flag
+                                Match</button><button class="admin-btn admin-btn-danger"
+                                onclick="adminCloseMatch()">Close Match</button></div>
+                    </div>
+                </div>
+                <div class="glass p-3 rounded-xl">
+                    <p class="section-label mb-2">Send Announcement</p>
+                    <div class="flex gap-1.5"><input type="text" id="admin-msg"
+                            placeholder="System message to both teams..." class="compact-input flex-1"><button
+                            class="admin-btn admin-btn-ok shrink-0" onclick="adminSendMsg()">Send</button></div>
+                </div>
+                <div class="glass p-3 rounded-xl">
+                    <p class="section-label mb-2">Score Override</p>
+                    <div class="flex items-center gap-2 mb-2"><input type="number" id="admin-score-a" placeholder="A"
+                            class="compact-input text-center" style="width:60px"><span
+                            class="text-gray-600 font-bold">–</span><input type="number" id="admin-score-b"
+                            placeholder="B" class="compact-input text-center" style="width:60px"><button
+                            class="admin-btn admin-btn-warn flex-1" onclick="adminOverrideScore()">Override</button>
+                    </div>
+                    <p class="text-[9px] text-gray-600">Manually set final score. Triggers bracket update.</p>
+                </div>
+                <div class="glass p-3 rounded-xl" id="admin-creds-view">
+                    <p class="section-label mb-2">Lobby Credentials (All Teams)</p>
+                    <p class="text-[9px] text-gray-500">Credentials appear here after host broadcasts.</p>
+                </div>
+            </div>
+        </aside>
+    </main><!-- DEV PILL -->
+    <div id="dev-pill"><i data-lucide="gamepad-2" class="w-3.5 h-3.5 text-gray-500"></i><select id="dev-game"
+            class="dsel" onchange="switchGame(this.value)">
+            <option value="valorant">Valorant</option>
+            <option value="cs2">CS2</option>
+            <option value="r6">Rainbow Six</option>
+            <option value="dota2">Dota 2</option>
+            <option value="mlbb">MLBB</option>
+            <option value="codm">COD Mobile</option>
+            <option value="pubgm">PUBG Mobile</option>
+            <option value="freefire">Free Fire</option>
+            <option value="fc26">EA FC 26</option>
+            <option value="efootball">eFootball</option>
+            <option value="rl">Rocket League</option>
+        </select>
+        <div class="w-px h-4 bg-white/15"></div><i data-lucide="user" class="w-3.5 h-3.5 text-gray-500"></i><select
+            id="dev-role" class="dsel" onchange="setRole(this.value)">
+            <option value="host">Host (A)</option>
+            <option value="guest">Guest (B)</option>
+            <option value="admin">Admin/Staff</option>
+        </select>
+        <div class="w-px h-4 bg-white/15"></div><button class="dpill-btn" onclick="skipPhase()">Skip →</button><button
+            class="dpill-btn" onclick="resetAll()" style="color:#555">Reset</button>
+    </div><!-- DISPUTE MODAL -->
+    <div id="dispute-modal" class="fixed inset-0 z-[100] hidden items-center justify-center">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeDisputeModal()"></div>
+        <div
+            class="bg-dc-surface border border-white/10 rounded-2xl w-full max-w-lg relative z-10 shadow-2xl overflow-hidden mx-4 animate-slide-up">
+            <div class="border-b border-dc-danger/20 p-6 flex justify-between items-center"
+                style="background:rgba(255,42,85,.08)">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-full bg-dc-danger/20 border border-dc-danger/40 flex items-center justify-center text-dc-danger">
+                        <i data-lucide="siren" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-black text-xl text-white">Match Medic</h3>
+                        <p class="text-[10px] text-dc-danger font-bold uppercase tracking-widest">Official Dispute Form
+                        </p>
+                    </div>
+                </div><button onclick="closeDisputeModal()"
+                    class="text-gray-400 hover:text-white bg-white/5 p-2 rounded-lg transition-colors"><i
+                        data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="bg-dc-warning/10 border border-dc-warning/25 rounded-xl p-4 flex gap-3"><i
+                        data-lucide="alert-triangle" class="w-4 h-4 text-dc-warning shrink-0 mt-0.5"></i>
+                    <p class="text-xs text-gray-300">False reports result in an immediate platform ban. Only file if the
+                        issue cannot be resolved between captains.</p>
+                </div>
+                <div><label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Reason
+                        <span class="text-dc-danger">*</span></label><select
+                        class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-dc-danger focus:outline-none appearance-none">
+                        <option>Opponent No-Show</option>
+                        <option>Wrong Match Settings</option>
+                        <option>Toxic Behaviour</option>
+                        <option>Suspected Cheating</option>
+                        <option>Roster Violation</option>
+                        <option>Score Mismatch</option>
+                    </select></div>
+                <div><label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Explanation
+                        <span class="text-dc-danger">*</span></label><textarea rows="3"
+                        class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-dc-danger focus:outline-none resize-none placeholder-gray-600"
+                        placeholder="Describe the situation with timestamps..."></textarea></div>
+                <div><label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Evidence
+                        URL <span class="text-gray-600 font-normal normal-case">(optional)</span></label><input
+                        type="text"
+                        class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-dc-danger focus:outline-none placeholder-gray-600"
+                        placeholder="YouTube / Imgur / Streamable..."></div>
+            </div>
+            <div class="p-4 border-t border-white/5 flex justify-end gap-3" style="background:rgba(0,0,0,.4)"><button
+                    onclick="closeDisputeModal()"
+                    class="px-5 py-2.5 text-xs text-gray-400 hover:text-white font-bold uppercase tracking-widest hover:bg-white/5 rounded-lg transition-colors">Cancel</button><button
+                    class="px-5 py-2.5 text-xs font-black text-white bg-dc-danger hover:bg-red-600 rounded-lg transition-colors shadow-[0_5px_20px_rgba(255,42,85,.3)] uppercase tracking-widest flex items-center gap-2"><i
+                        data-lucide="shield-alert" class="w-3.5 h-3.5"></i>Submit Ticket</button></div>
+        </div>
+    </div>
+    <script>lucide.createIcons();
+
+        // ═══════════════════════════════════════════════════
+        // GAME DATA
+        // ═══════════════════════════════════════════════════
+        const GAMES = {
+            valorant: {
+
+                name: 'Valorant',
+                phase1: 'veto',
+                matchType: 'team',
+                teamSize: 5,
+                matchId: '#VAL-8821-X',
+                tournament: 'Winter Major — Playoffs R32',
+                format: 'Bo1 • Map Veto',
+                bg: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2850&auto=format&fit=crop',
+                maps: [{
+                    n: 'Ascent', img: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Bind', img: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Haven', img: 'https://images.unsplash.com/photo-1560419015-7c427e8ae5ba?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Split', img: 'https://images.unsplash.com/photo-1534423861386-85a16f5d13fd?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Icebox', img: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Breeze', img: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Fracture', img: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=400&auto=format&fit=crop'
+                }
+
+                ],
+                vetoSeq: [['PS',
+                    'ban'],
+                ['SEN',
+                    'ban'],
+                ['PS',
+                    'ban'],
+                ['SEN',
+                    'ban'],
+                ['PS',
+                    'pick']],
+                lobby: {
+
+                    type: 'Party Code',
+                    createSteps: ['Valorant → Play → Custom Game',
+                        'Set Party Status: Closed',
+                        'Options → Tournament Mode ON, Overtime Win By Two ON',
+                        'Select agreed map',
+                        'Share Party Code below'],
+                    joinSteps: ['Valorant → Play → Custom → Join',
+                        'Enter Party Code from host',
+                        'Select Attacker/Defender',
+                        'Wait for host to start'],
+                    credFields: [{
+                        id: 'partyCode', label: 'Party Code', ph: 'AB3X9K', mono: true
+                    }
+
+                    ]
+                }
+
+                ,
+                result: {
+
+                    scoreLabel: 'Rounds Won',
+                    extra: [{
+                        id: 'ot', label: 'Overtime Rounds', ph: '0'
+                    }
+
+                    ],
+                    mvp: true
+                }
+            }
+
+            ,
+            cs2: {
+
+                name: 'CS2',
+                phase1: 'veto',
+                matchType: 'team',
+                teamSize: 5,
+                matchId: '#CS2-9912-A',
+                tournament: 'CS2 Pro League — Group Stage',
+                format: 'Bo1 • Map Veto',
+                bg: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2850&auto=format&fit=crop',
+                maps: [{
+                    n: 'Mirage', img: 'https://images.unsplash.com/photo-1566438480900-0609be27a4be?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Inferno', img: 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Dust II', img: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Nuke', img: 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Overpass', img: 'https://images.unsplash.com/photo-1485470646-ffe4a79e7f93?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Vertigo', img: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Ancient', img: 'https://images.unsplash.com/photo-1515634928627-2a4e0dae3ddf?q=80&w=400&auto=format&fit=crop'
+                }
+
+                ],
+                vetoSeq: [['PS',
+                    'ban'],
+                ['SEN',
+                    'ban'],
+                ['PS',
+                    'ban'],
+                ['SEN',
+                    'ban'],
+                ['PS',
+                    'pick']],
+                lobby: {
+
+                    type: 'Pool Code',
+                    createSteps: ['CS2 → Play → Private Matchmaking',
+                        'Create Private Pool',
+                        'Select Competitive + your region',
+                        'Set map to agreed map',
+                        'Share Pool Code below'],
+                    joinSteps: ['CS2 → Private Matchmaking → Join with Code',
+                        'Enter Pool Code',
+                        'Ready up and wait'],
+                    credFields: [{
+                        id: 'poolCode', label: 'Pool Code', ph: '482951', mono: true
+                    }
+
+                    ]
+                }
+
+                ,
+                result: {
+
+                    scoreLabel: 'Rounds Won',
+                    extra: [{
+                        id: 'ot', label: 'Overtime?', ph: 'No'
+                    }
+
+                    ],
+                    mvp: true
+                }
+            }
+
+            ,
+            r6: {
+
+                name: 'Rainbow Six Siege',
+                phase1: 'veto',
+                matchType: 'team',
+                teamSize: 5,
+                matchId: '#R6S-7741-R',
+                tournament: 'R6 Siege Cup — Group B',
+                format: 'Bo1 • Map Veto',
+                bg: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?q=80&w=2850&auto=format&fit=crop',
+                maps: [{
+                    n: 'Clubhouse', img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Coastline', img: 'https://images.unsplash.com/photo-1506929562872-bb421503ef21?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Border', img: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Kafe', img: 'https://images.unsplash.com/photo-1445116572660-236099ec97a0?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Villa', img: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Chalet', img: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=400&auto=format&fit=crop'
+                }
+
+                ],
+                vetoSeq: [['PS',
+                    'ban'],
+                ['SEN',
+                    'ban'],
+                ['PS',
+                    'ban'],
+                ['SEN',
+                    'ban'],
+                ['PS',
+                    'pick']],
+                lobby: {
+
+                    type: 'Lobby Name/Pass',
+                    createSteps: ['R6 → Multiplayer → Custom Match',
+                        'Set Match Type: Ranked',
+                        'Enter Lobby Name + Password',
+                        'Share below'],
+                    joinSteps: ['R6 → Multiplayer → Custom Match',
+                        'Search Lobby Name → Enter Password',
+                        'Select team side'],
+                    credFields: [{
+                        id: 'lobbyName', label: 'Lobby Name', ph: 'DCMatch8821'
+                    }
+
+                        ,
+                    {
+                        id: 'lobbyPass', label: 'Password', ph: 'DeltaCrown'
+                    }
+
+                    ]
+                }
+
+                ,
+                result: {
+
+                    scoreLabel: 'Rounds Won',
+                    extra: [{
+                        id: 'ot', label: 'Overtime Rounds', ph: '0'
+                    }
+
+                    ],
+                    mvp: true
+                }
+            }
+
+            ,
+            dota2: {
+
+                name: 'Dota 2',
+                phase1: 'draft',
+                matchType: 'team',
+                teamSize: 5,
+                matchId: '#DT2-5512-D',
+                tournament: 'Dota 2 Crown Cup — Upper Bracket',
+                format: 'Bo1 • CM Draft',
+                bg: 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2850&auto=format&fit=crop',
+                heroes: ['Anti-Mage',
+                    'Axe',
+                    'Bane',
+                    'Bloodseeker',
+                    'Crystal Maiden',
+                    'Drow Ranger',
+                    'Earthshaker',
+                    'Juggernaut',
+                    'Mirana',
+                    'Morphling',
+                    'Nevermore',
+                    'Phantom Lancer',
+                    'Puck',
+                    'Pudge',
+                    'Razor',
+                    'Sand King',
+                    'Storm Spirit',
+                    'Sven',
+                    'Tiny',
+                    'Vengeful Spirit',
+                    'Windranger',
+                    'Zeus',
+                    'Kunkka',
+                    'Lina',
+                    'Lion',
+                    'Shadow Shaman',
+                    'Witch Doctor',
+                    'Lich',
+                    'Riki',
+                    'Enigma'],
+                draftSeq: [['PS',
+                    'ban'],
+                ['SEN',
+                    'ban'],
+                ['PS',
+                    'ban'],
+                ['SEN',
+                    'ban'],
+                ['PS',
+                    'pick'],
+                ['SEN',
+                    'pick'],
+                ['SEN',
+                    'pick'],
+                ['PS',
+                    'pick'],
+                ['PS',
+                    'pick'],
+                ['SEN',
+                    'pick']],
+                lobby: {
+
+                    type: 'Lobby Name/Pass',
+                    createSteps: ['Dota 2 → Play → Create Lobby',
+                        'Set Lobby Name + Password',
+                        'Game Mode: Captains Mode',
+                        'Share credentials below'],
+                    joinSteps: ['Dota 2 → Play → Find Lobby',
+                        'Search Lobby Name → Enter Password',
+                        'Select Radiant or Dire'],
+                    credFields: [{
+                        id: 'lobbyName', label: 'Lobby Name', ph: 'DeltaCrown8821'
+                    }
+
+                        ,
+                    {
+                        id: 'lobbyPass', label: 'Password', ph: 'dc2026'
+                    }
+
+                    ]
+                }
+
+                ,
+                result: {
+
+                    scoreLabel: 'N/A (Win/Loss)',
+                    extra: [{
+                        id: 'dur', label: 'Duration (MM:SS)', ph: '42:17'
+                    }
+
+                        ,
+                    {
+                        id: 'killsA', label: 'Team A Kills', ph: '32'
+                    }
+
+                        ,
+                    {
+                        id: 'killsB', label: 'Team B Kills', ph: '18'
+                    }
+
+                    ],
+                    mvp: true
+                }
+            }
+
+            ,
+            mlbb: {
+
+                name: 'Mobile Legends: Bang Bang',
+                phase1: 'draft',
+                matchType: 'team',
+                teamSize: 5,
+                matchId: '#MLB-3341-M',
+                tournament: 'MLBB Champions — Playoffs',
+                format: 'Bo1 • Hero Draft',
+                bg: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2850&auto=format&fit=crop',
+                heroes: ['Aldous',
+                    'Angela',
+                    'Alucard',
+                    'Aurora',
+                    'Balmond',
+                    'Bruno',
+                    'Chou',
+                    'Claude',
+                    'Cyclops',
+                    'Diggie',
+                    'Dyrroth',
+                    'Esmeralda',
+                    'Fanny',
+                    'Franco',
+                    'Freya',
+                    'Gloo',
+                    'Granger',
+                    'Guinevere',
+                    'Gusion',
+                    'Harith',
+                    'Hayabusa',
+                    'Helcurt',
+                    'Hylos',
+                    'Irithel',
+                    'Johnson',
+                    'Kagura',
+                    'Karrie',
+                    'Khufra',
+                    'Kimmy',
+                    'Layla'],
+                draftSeq: [['PS',
+                    'ban'],
+                ['SEN',
+                    'ban'],
+                ['PS',
+                    'ban'],
+                ['SEN',
+                    'ban'],
+                ['PS',
+                    'pick'],
+                ['SEN',
+                    'pick'],
+                ['SEN',
+                    'pick'],
+                ['PS',
+                    'pick'],
+                ['PS',
+                    'pick'],
+                ['SEN',
+                    'pick']],
+                lobby: {
+
+                    type: 'Room Code/Pass',
+                    createSteps: ['MLBB → Mode → Custom → Create Room',
+                        'Set 5v5 Classic',
+                        'Set Room Password',
+                        'Share Room ID + Password below'],
+                    joinSteps: ['MLBB → Mode → Custom → Join Room',
+                        'Enter Room ID + Password',
+                        'Select lane/hero per draft'],
+                    credFields: [{
+                        id: 'roomId', label: 'Room ID', ph: '783421', mono: true
+                    }
+
+                        ,
+                    {
+                        id: 'roomPass', label: 'Password', ph: 'DC2026'
+                    }
+
+                    ]
+                }
+
+                ,
+                result: {
+
+                    scoreLabel: 'N/A (Win/Loss)',
+                    extra: [{
+                        id: 'dur', label: 'Duration', ph: '18:44'
+                    }
+
+                        ,
+                    {
+                        id: 'killsA', label: 'Team A Kills', ph: '22'
+                    }
+
+                        ,
+                    {
+                        id: 'killsB', label: 'Team B Kills', ph: '14'
+                    }
+
+                    ],
+                    mvp: true
+                }
+            }
+
+            ,
+            codm: {
+
+                name: 'Call of Duty: Mobile',
+                phase1: 'veto',
+                matchType: 'team',
+                teamSize: 5,
+                matchId: '#CDM-8812-C',
+                tournament: 'CODM Open Series — Finals',
+                format: 'Bo3 • Map Veto',
+                bg: 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?q=80&w=2850&auto=format&fit=crop',
+                maps: [{
+                    n: 'Hijacked', img: 'https://images.unsplash.com/photo-1529775787737-abe7ad7ffe41?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Standoff', img: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Nuketown', img: 'https://images.unsplash.com/photo-1523978591478-c753949ff840?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Scrapyard', img: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=400&auto=format&fit=crop'
+                }
+
+                    ,
+                {
+                    n: 'Crash', img: 'https://images.unsplash.com/photo-1519681393784-d1b1e7575703?q=80&w=400&auto=format&fit=crop'
+                }
+
+                ],
+                vetoSeq: [['PS',
+                    'ban'],
+                ['SEN',
+                    'ban'],
+                ['PS',
+                    'ban'],
+                ['SEN',
+                    'ban'],
+                ['PS',
+                    'pick']],
+                lobby: {
+
+                    type: 'Room Code',
+                    createSteps: ['CODM → Multiplayer → Private → Create Match',
+                        'Select Mode + agreed map',
+                        'Set Room Code',
+                        'Share below'],
+                    joinSteps: ['CODM → Multiplayer → Private → Join',
+                        'Enter Room Code → Select team side → Ready up'],
+                    credFields: [{
+                        id: 'roomCode', label: 'Room Code', ph: 'CODM8821', mono: true
+                    }
+
+                    ]
+                }
+
+                ,
+                result: {
+
+                    scoreLabel: 'Maps Won',
+                    extra: [{
+                        id: 'mode', label: 'Mode Played', ph: 'Hardpoint'
+                    }
+
+                    ],
+                    mvp: true
+                }
+            }
+
+            ,
+            pubgm: {
+
+                name: 'PUBG Mobile',
+                phase1: 'direct',
+                matchType: 'br',
+                teamSize: 4,
+                matchId: '#PBG-1102-S',
+                tournament: 'PUBG Mobile Scrims — Lobby A',
+                format: 'BR • Squad',
+                bg: 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?q=80&w=2850&auto=format&fit=crop',
+                lobby: {
+
+                    type: 'Room ID/Pass',
+                    createSteps: ['PUBG Mobile → Mode → Room → Create',
+                        'Choose Map, Squad Mode, Password',
+                        'Room Name: DeltaCrown #8821',
+                        'Share Room ID + Password below'],
+                    joinSteps: ['PUBG Mobile → Mode → Room → Join',
+                        'Enter Room ID + Password',
+                        'Select your squad'],
+                    credFields: [{
+                        id: 'roomId', label: 'Room ID', ph: '4729183', mono: true
+                    }
+
+                        ,
+                    {
+                        id: 'roomPass', label: 'Password', ph: 'DC2026'
+                    }
+
+                    ]
+                }
+
+                ,
+                result: {
+
+                    scoreLabel: 'Placement',
+                    extra: [{
+                        id: 'place', label: 'Placement', ph: '1'
+                    }
+
+                        ,
+                    {
+                        id: 'kills', label: 'Total Kills', ph: '12'
+                    }
+
+                        ,
+                    {
+                        id: 'dmg', label: 'Total Damage', ph: '3800'
+                    }
+
+                    ],
+                    mvp: false
+                }
+            }
+
+            ,
+            freefire: {
+
+                name: 'Free Fire',
+                phase1: 'direct',
+                matchType: 'br',
+                teamSize: 4,
+                matchId: '#FFR-5513-F',
+                tournament: 'Free Fire Crown League',
+                format: 'BR • Squad',
+                bg: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2850&auto=format&fit=crop',
+                lobby: {
+
+                    type: 'Room ID/Pass',
+                    createSteps: ['Free Fire → Mode → Custom → Create Room',
+                        'Room Type: Advance',
+                        'Choose Mode + Map, set Password',
+                        'Share Room ID + Password below'],
+                    joinSteps: ['Free Fire → Mode → Custom → Join Room',
+                        'Enter Room ID + Password',
+                        'Select squad slot'],
+                    credFields: [{
+                        id: 'roomId', label: 'Room ID', ph: 'FF-482910', mono: true
+                    }
+
+                        ,
+                    {
+                        id: 'roomPass', label: 'Password', ph: 'dc2026'
+                    }
+
+                    ]
+                }
+
+                ,
+                result: {
+
+                    scoreLabel: 'Placement',
+                    extra: [{
+                        id: 'place', label: 'Placement', ph: '1'
+                    }
+
+                        ,
+                    {
+                        id: 'kills', label: 'Kills', ph: '15'
+                    }
+
+                        ,
+                    {
+                        id: 'booyah', label: 'Booyah?', ph: 'Yes/No'
+                    }
+
+                    ],
+                    mvp: false
+                }
+            }
+
+            ,
+            fc26: {
+
+                name: 'EA Sports FC 26',
+                phase1: 'direct',
+                matchType: '1v1',
+                teamSize: 1,
+                matchId: '#FC26-4411-B',
+                tournament: 'FC 26 Division Cup',
+                format: '1v1 • Ranked',
+                bg: 'https://images.unsplash.com/photo-1518605368461-1e1e38ce7058?q=80&w=2850&auto=format&fit=crop',
+                lobby: {
+
+                    type: 'Friend Request',
+                    createSteps: ['EA FC 26 → Online → Play a Friend',
+                        'Send Friend Request to opponent',
+                        'Once accepted, send match invite',
+                        'Match settings: Default competitive rules'],
+                    joinSteps: ['Accept Friend Request from host',
+                        'Accept match invite from friends list'],
+                    credFields: [{
+                        id: 'gameId', label: 'Your EA Game ID', ph: 'YourEA_Username'
+                    }
+
+                    ]
+                }
+
+                ,
+                result: {
+
+                    scoreLabel: 'Goals',
+                    extra: [{
+                        id: 'pens', label: 'Penalties?', ph: 'No'
+                    }
+
+                        ,
+                    {
+                        id: 'penScore', label: 'Penalty Score', ph: '5–4'
+                    }
+
+                    ],
+                    mvp: false
+                }
+            }
+
+            ,
+            efootball: {
+
+                name: 'eFootball',
+                phase1: 'direct',
+                matchType: '1v1',
+                teamSize: 1,
+                matchId: '#EFO-3312-E',
+                tournament: 'eFootball Champions Cup',
+                format: '1v1 • Friendly',
+                bg: 'https://images.unsplash.com/photo-1518605368461-1e1e38ce7058?q=80&w=2850&auto=format&fit=crop',
+                lobby: {
+
+                    type: 'Match Room',
+                    createSteps: ['eFootball → Online → Friendly Match → Create Room',
+                        'Set Numeric Password',
+                        'Configure Match Settings',
+                        'Share Room Number + Password below'],
+                    joinSteps: ['eFootball → Friendly Match → Join Room',
+                        'Enter Room Number + Password',
+                        'Wait for host to start'],
+                    credFields: [{
+                        id: 'roomNum', label: 'Room Number', ph: '4819204', mono: true
+                    }
+
+                        ,
+                    {
+                        id: 'roomPass', label: 'Password', ph: '2026'
+                    }
+
+                    ]
+                }
+
+                ,
+                result: {
+
+                    scoreLabel: 'Goals',
+                    extra: [{
+                        id: 'et', label: 'Extra Time?', ph: 'No'
+                    }
+
+                    ],
+                    mvp: false
+                }
+            }
+
+            ,
+            rl: {
+
+                name: 'Rocket League',
+                phase1: 'direct',
+                matchType: 'team',
+                teamSize: 3,
+                matchId: '#RKL-9921-R',
+                tournament: 'RL Speed Ladder — S3',
+                format: 'Bo5 • Private Match',
+                bg: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2850&auto=format&fit=crop',
+                lobby: {
+
+                    type: 'Private Match',
+                    createSteps: ['Rocket League → Play → Private Match',
+                        'Create → Set Password',
+                        'Set Match Length: 5 min',
+                        'Share Lobby Name + Password below'],
+                    joinSteps: ['Rocket League → Play → Private Match → Join',
+                        'Search Lobby Name → Enter Password',
+                        'Ready up'],
+                    credFields: [{
+                        id: 'lobbyName', label: 'Lobby Name', ph: 'DeltaCrown'
+                    }
+
+                        ,
+                    {
+                        id: 'lobbyPass', label: 'Password', ph: 'RL2026'
+                    }
+
+                    ]
+                }
+
+                ,
+                result: {
+
+                    scoreLabel: 'Goals',
+                    extra: [{
+                        id: 'ot', label: 'Overtime Goals', ph: '0'
+                    }
+
+                    ],
+                    mvp: true
+                }
+            }
+        }
+
+            ;
+
+        // ═══════════════════════════════════════════════════
+        // STATE
+        // ═══════════════════════════════════════════════════
+        const S = {
+            game: 'valorant', role: 'host', phase: 0,
+            vetoStep: 0, vetoTurn: 'PS', vetoMyTurn: true,
+            draftStep: 0, draftMyTurn: true,
+            teamA: 'PlaySphere', teamB: 'Sentinels Acad', logoA: 'PS', logoB: 'SEN',
+            scoreA: 0, scoreB: 0
+        }
+
+            ;
+
+        // ═══════════════════════════════════════════════════
+        // UI HELPERS
+        // ═══════════════════════════════════════════════════
+        const $ = id => document.getElementById(id);
+
+        function showOnly(...ids) {
+
+            ['ph-discord',
+                'ph-veto',
+                'ph-draft',
+                'ph-direct',
+                'ph-lobby',
+                'ph-server',
+                'ph-result'].forEach(id => {
+                    const el = $(id); if (el) el.classList.add('hidden-state');
+                });
+
+            ids.forEach(id => {
+                const el = $(id); if (el) el.classList.remove('hidden-state');
+            });
+        }
+
+        function logEntry(listId, text, color) {
+            const ul = $(listId);
+            if (!ul) return;
+            const li = document.createElement('li');
+
+            li.innerHTML = `<span style="color:${color || 'var(--ac)'};font-weight:700;margin-right:4px">›</span>${text}            `;
+            li.style.animation = 'slideUp .3s ease';
+            ul.appendChild(li);
+        }
+
+        function phaseActivate(n) {
+            for (let i = 1; i <= 3; i++) {
+                const dot = $(`ph-dot-${i}                    `),
+                    wrap = $(`ph${i > 1 ? i : '1'}
+
+                    -wrap`);
+
+                const label = $(`ph-label-${i}                    `);
+
+                if (i < n) {
+                    dot.className = 'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border phase-dot-done';
+                    dot.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i>';
+                    label.style.color = '#00FF66';
+                    if (wrap) wrap.style.opacity = '1';
+                }
+
+                else if (i === n) {
+                    dot.className = 'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border phase-dot-active';
+                    if (wrap) wrap.style.opacity = '1';
+                    label.style.color = '#fff';
+                }
+
+                else {
+                    dot.className = 'w-6 h-6 rounded-full bg-gray-800 border border-gray-600 text-gray-500 flex items-center justify-center text-[10px]';
+                    if (wrap) wrap.style.opacity = '0.4';
+                    label.style.color = '';
+                }
+            }
+
+            lucide.createIcons();
+        }
+
+        // ═══════════════════════════════════════════════════
+        // GAME SWITCH
+        // ═══════════════════════════════════════════════════
+        function switchGame(key) {
+            S.game = key;
+            S.phase = 0;
+            document.body.setAttribute('data-game', key);
+            const g = GAMES[key];
+            // BG
+            $('bg-layer').style.backgroundImage = `url('${g.bg}')`;
+            // Nav
+            $('nav-match-id').textContent = 'Match ' + g.matchId;
+            $('nav-tournament').textContent = g.tournament;
+            // Header
+            $('match-format').textContent = g.format;
+            // Determine phase1 label
+            const p1Label = g.phase1 === 'veto' ? 'Map Veto' : g.phase1 === 'draft' ? 'Hero Draft' : 'Ready Check';
+            $('ph-label-1').textContent = p1Label;
+            const p1Icon = g.phase1 === 'veto' ? 'map' : g.phase1 === 'draft' ? 'users' : 'check-circle';
+            $('ph-dot-1').innerHTML = `<i data-lucide="${p1Icon}" class="w-3 h-3"></i>`;
+            // Reset state
+            S.vetoStep = 0;
+            S.vetoTurn = 'PS';
+            S.vetoMyTurn = true;
+            S.draftStep = 0;
+            S.draftMyTurn = true;
+            // Reset coin toss
+            $('toss-headline').textContent = 'Official Coin Toss';
+            $('toss-sub').textContent = 'Fair cryptographic toss determines first pick/ban priority.';
+            $('toss-actions').classList.remove('hidden-state');
+            $('toss-result').classList.add('hidden-state');
+            $('the-coin').classList.remove('flip');
+            // Phase dots reset
+            phaseActivate(1);
+            // Show discord/toss
+            showOnly('ph-discord');
+            // Update role if applicable
+            setRole(S.role);
+            // Intel
+            renderIntel();
+            // Match rules
+            renderRules();
+            lucide.createIcons();
+
+            $('main-scroll').scrollTo({
+                top: 0, behavior: 'smooth'
+            });
+        }
+
+        function setRole(r) {
+            S.role = r;
+
+            // Only affects team labels in 1v1 or br direct
+            if (['fc26', 'efootball', 'rl'].includes(S.game)) {
+                $('team-a-sub').textContent = r === 'host' ? 'You • Host' : 'You • Guest';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        // COIN TOSS
+        // ═══════════════════════════════════════════════════
+        function executeCoinToss() {
+            const coin = $('the-coin');
+            $('toss-actions').classList.add('hidden-state');
+            $('toss-headline').textContent = 'Tossing Coin...';
+            $('toss-sub').textContent = 'Cryptographic sequence initiated.';
+            coin.classList.add('flip');
+
+            setTimeout(() => {
+                $('toss-headline').textContent = 'Toss Resolved';
+                $('toss-sub').textContent = 'First priority has been awarded.';
+
+                $('toss-winner-text').textContent = `${S.teamA}
+
+                    Wins The Toss`;
+                const res = $('toss-result');
+                res.classList.remove('hidden-state');
+                res.classList.add('flex', 'flex-col', 'items-center');
+            }
+
+                , 3000);
+        }
+
+        function proceedAfterToss() {
+            S.phase = 1;
+            phaseActivate(1);
+            const g = GAMES[S.game];
+
+            if (g.phase1 === 'veto') {
+                renderMapGrid();
+                showOnly('ph-veto');
+                $('veto-instr').textContent = 'Your turn: BAN a map.';
+                $('veto-instr').style.color = 'var(--ac)';
+            }
+
+            else if (g.phase1 === 'draft') {
+                renderHeroGrid();
+                showOnly('ph-draft');
+                $('draft-instr').textContent = 'Your turn: BAN a hero.';
+                $('draft-instr').style.color = 'var(--ac)';
+            }
+
+            else {
+                const g2 = GAMES[S.game];
+                $('direct-title').textContent = g2.matchType === 'br' ? 'Confirm Teams Present' : 'Ready Check';
+                $('direct-desc').textContent = g2.matchType === 'br' ? 'Captains confirm all squads are in the lobby before start.' : 'Both teams confirm readiness. Host will then create the custom room.';
+                $('team-b-ready-name').textContent = S.teamB;
+                showOnly('ph-direct');
+            }
+
+            $('main-scroll').scrollTo({
+                top: 0, behavior: 'smooth'
+            });
+        }
+
+        // ═══════════════════════════════════════════════════
+        // MAP VETO ENGINE
+        // ═══════════════════════════════════════════════════
+        function renderMapGrid() {
+            const grid = $('map-grid');
+            grid.innerHTML = '';
+            const maps = GAMES[S.game].maps || [];
+
+            maps.forEach(m => {
+                const d = document.createElement('div');
+                d.className = 'map-card'; d.onclick = () => processVeto(d, m.n);
+
+                d.innerHTML = `<img src="${m.img}" alt="${m.n}" loading="lazy" ><span class="absolute bottom-3 left-3 font-display font-bold text-white text-lg z-10 drop-shadow-lg" >${m.n}                    </span><div class="sb" ></div>`;
+                grid.appendChild(d);
+            });
+        }
+
+        function processVeto(card, mapName) {
+            if (card.classList.contains('banned') || card.classList.contains('picked') || !S.vetoMyTurn) return;
+            const g = GAMES[S.game];
+            const seq = g.vetoSeq || [['PS',
+                'ban'],
+            ['SEN',
+                'ban'],
+            ['PS',
+                'ban'],
+            ['SEN',
+                'ban'],
+            ['PS',
+                'pick']];
+            if (S.vetoStep >= seq.length) return;
+            const [team,
+                action] = seq[S.vetoStep];
+            if (team !== 'PS') return;
+            S.vetoStep++;
+            S.vetoMyTurn = false;
+
+            if (action === 'ban') {
+                card.classList.add('banned');
+                card.querySelector('.sb').textContent = 'BANNED';
+
+                logEntry('veto-log', `<strong>${S.teamA}                    </strong> BANNED <strong>${mapName}                    </strong>`, '#FF2A55');
+                const instr = $('veto-instr');
+                instr.textContent = 'Opponent is choosing...';
+                instr.style.color = '#FF2A55';
+                if (S.vetoStep < seq.length) setTimeout(autoVeto, 1500);
+
+                else {
+                    S.vetoMyTurn = true;
+                    instr.textContent = 'Your turn: PICK the final map.';
+                    instr.style.color = '#00FF66';
+                }
+            }
+
+            else {
+                card.classList.add('picked');
+                card.querySelector('.sb').textContent = 'PICKED';
+
+                logEntry('veto-log', `<strong>${S.teamA}                    </strong> PICKED <strong>${mapName}                    </strong>. Generating lobby...`, '#00FF66');
+                $('veto-instr').textContent = 'Veto complete!';
+                $('veto-instr').style.color = '#00FF66';
+                $('server-map-name').textContent = mapName;
+                setTimeout(() => toPhase2(mapName), 1200);
+            }
+        }
+
+        function autoVeto() {
+            const g = GAMES[S.game];
+            const seq = g.vetoSeq || [['PS',
+                'ban'],
+            ['SEN',
+                'ban'],
+            ['PS',
+                'ban'],
+            ['SEN',
+                'ban'],
+            ['PS',
+                'pick']];
+            if (S.vetoStep >= seq.length) return;
+            const [team,
+                action] = seq[S.vetoStep];
+
+            if (team === 'PS') {
+                S.vetoMyTurn = true;
+                $('veto-instr').textContent = action === 'pick' ? 'Your turn: PICK the final map.' : 'Your turn: BAN a map.';
+                $('veto-instr').style.color = action === 'pick' ? '#00FF66' : 'var(--ac)';
+                return;
+            }
+
+            const cards = Array.from(document.querySelectorAll('.map-card:not(.banned):not(.picked)'));
+            if (!cards.length) return;
+            const pick = cards[Math.floor(Math.random() * cards.length)];
+            const mapName = pick.querySelector('span').textContent;
+            S.vetoStep++;
+
+            if (action === 'ban') {
+                pick.classList.add('banned');
+                pick.querySelector('.sb').textContent = 'BANNED';
+
+                logEntry('veto-log', `<strong>${S.teamB}                    </strong> BANNED <strong>${mapName}                    </strong>`, '#FF2A55');
+                const remaining = seq.slice(S.vetoStep);
+                const nextOwn = remaining.find(([t]) => t === 'PS');
+
+                if (nextOwn) {
+                    S.vetoMyTurn = true;
+                    $('veto-instr').textContent = nextOwn[1] === 'pick' ? 'Your turn: PICK the final map.' : 'Your turn: BAN a map.';
+                    $('veto-instr').style.color = nextOwn[1] === 'pick' ? '#00FF66' : 'var(--ac)';
+                }
+
+                if (S.vetoStep < seq.length) {
+                    const next = seq[S.vetoStep];
+                    if (next[0] === 'SEN') setTimeout(autoVeto, 1500);
+                }
+            }
+
+            else {
+                pick.classList.add('picked');
+                pick.querySelector('.sb').textContent = 'PICKED';
+
+                logEntry('veto-log', `<strong>${S.teamB}                    </strong> PICKED <strong>${mapName}                    </strong>.`, '#00FF66');
+                $('server-map-name').textContent = mapName;
+                setTimeout(() => toPhase2(mapName), 1200);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        // HERO DRAFT ENGINE
+        // ═══════════════════════════════════════════════════
+        function renderHeroGrid() {
+            const grid = $('hero-grid');
+            grid.innerHTML = '';
+            const heroes = GAMES[S.game].heroes || [];
+
+            heroes.forEach(h => {
+                const d = document.createElement('div');
+                d.className = 'hero-card'; d.textContent = h; d.title = h;
+                d.onclick = () => processDraft(d, h);
+                grid.appendChild(d);
+            });
+        }
+
+        function processDraft(card, heroName) {
+            if (card.classList.contains('ha') || card.classList.contains('hb') || card.classList.contains('hban') || !S.draftMyTurn) return;
+            const seq = GAMES[S.game].draftSeq || [];
+            if (S.draftStep >= seq.length) return;
+            const [team,
+                action] = seq[S.draftStep];
+            if (team !== 'PS') return;
+            S.draftStep++;
+            S.draftMyTurn = false;
+            applyDraftAction(card, heroName, 'PS', action);
+            updateDraftUI();
+            if (S.draftStep < seq.length) setTimeout(autoDraft, 1600);
+
+            else {
+                logEntry('draft-log', 'Draft complete. Generating lobby...', '#00FF66');
+                setTimeout(() => toPhase2('Captains Mode'), 1200);
+            }
+        }
+
+        function autoDraft() {
+            const seq = GAMES[S.game].draftSeq || [];
+
+            if (S.draftStep >= seq.length) {
+                logEntry('draft-log', 'Draft complete! Generating lobby...', '#00FF66');
+                setTimeout(() => toPhase2('Captains Mode'), 1200);
+                return;
+            }
+
+            const [team,
+                action] = seq[S.draftStep];
+
+            if (team === 'PS') {
+                S.draftMyTurn = true;
+                const instr = $('draft-instr');
+
+                instr.textContent = `Your turn: ${action.toUpperCase()}
+
+                a hero.`;
+                instr.style.color = action === 'ban' ? '#FF2A55' : 'var(--ac)';
+                return;
+            }
+
+            const available = Array.from(document.querySelectorAll('.hero-card:not(.ha):not(.hb):not(.hban)'));
+            if (!available.length) return;
+            const pick = available[Math.floor(Math.random() * available.length)];
+            S.draftStep++;
+            applyDraftAction(pick, pick.textContent, 'SEN', action);
+            updateDraftUI();
+
+            if (S.draftStep < seq.length) {
+                const next = seq[S.draftStep];
+                if (next[0] === 'SEN') setTimeout(autoDraft, 1500);
+
+                else {
+                    S.draftMyTurn = true;
+                    const instr = $('draft-instr');
+
+                    instr.textContent = `Your turn: ${next[1].toUpperCase()}
+
+                    a hero.`;
+                    instr.style.color = next[1] === 'ban' ? '#FF2A55' : 'var(--ac)';
+                }
+            }
+
+            else {
+                setTimeout(() => toPhase2('Captains Mode'), 1200);
+            }
+        }
+
+        function applyDraftAction(card, hero, team, action) {
+            const color = team === 'PS' ? 'var(--ac)' : '#FF2A55';
+            const teamLabel = team === 'PS' ? S.teamA : S.teamB;
+
+            if (action === 'ban') {
+                card.classList.add('hban');
+                const bansEl = $('bans-display');
+                const span = document.createElement('span');
+                span.className = 'text-[9px] font-bold font-mono bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-gray-500';
+                span.textContent = hero;
+                bansEl.appendChild(span);
+
+                logEntry('draft-log', `<span style="color:${color}" >${teamLabel}                    </span> BANNED <strong>${hero}                    </strong>`, color);
+            }
+
+            else {
+                card.classList.add(team === 'PS' ? 'ha' : 'hb');
+                const picksEl = $(team === 'PS' ? 'picks-a' : 'picks-b');
+                const span = document.createElement('span');
+                span.className = 'text-[9px] font-bold font-mono px-1.5 py-0.5 rounded border';
+                span.textContent = hero;
+                span.style.color = color;
+                span.style.borderColor = color;
+
+                span.style.background = `rgba(${team === 'PS' ? 'var(--ar),var(--ag),var(--ab)' : '255,42,85'}
+
+                    , .12)`;
+                picksEl.appendChild(span);
+
+                logEntry('draft-log', `<span style="color:${color}" >${teamLabel}                    </span> PICKED <strong>${hero}                    </strong>`, color);
+            }
+        }
+
+        function updateDraftUI() {
+            const seq = GAMES[S.game].draftSeq || [];
+
+            $('draft-step').textContent = `${Math.min(S.draftStep + 1, seq.length)}
+
+            /${seq.length}            `;
+        }
+
+        // ═══════════════════════════════════════════════════
+        // DIRECT READY CHECK
+        // ═══════════════════════════════════════════════════
+        function simulateReady() {
+            const wrap = $('ready-b-wrap');
+
+            wrap.innerHTML = `<div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold" style="background:rgba(0,255,102,.15);border:1px solid #00FF66;color:#00FF66">✓</div><p class="text-[10px] font-bold text-white">${S.teamB}            </p><p class="text-[10px] font-mono text-dc-success uppercase tracking-widest">Ready !</p>`;
+
+            appendChatMsg(`${S.teamB}
+
+                confirmed ready.`, 'system');
+            setTimeout(() => toPhase2('Custom Match'), 1500);
+        }
+
+        // ═══════════════════════════════════════════════════
+        // PHASE 2: LOBBY
+        // ═══════════════════════════════════════════════════
+        function toPhase2(mapName) {
+            S.phase = 2;
+            phaseActivate(2);
+            $('server-map-name').textContent = mapName;
+            showOnly('ph-lobby');
+            // Render steps
+            const g = GAMES[S.game];
+            const steps = S.role === 'host' ? g.lobby.createSteps : g.lobby.joinSteps;
+
+            $('host-steps').innerHTML = steps.map((s, i) => `<div class="flex items-start gap-2" ><span class="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black mt-0.5" style="background:rgba(var(--ar),var(--ag),var(--ab),.15);color:var(--ac);border:1px solid rgba(var(--ar),var(--ag),var(--ab),.3)" >${i + 1}                </span><span>${s}                </span></div>`).join('');
+            // Render cred form
+            const form = $('cred-form');
+            form.innerHTML = '';
+
+            g.lobby.credFields.forEach(f => {
+                form.innerHTML += `<div><label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5" >${f.label}
+
+                    <span style="color:#FF2A55" >*</span></label><input type="text" id="cred-${f.id}" placeholder="${f.ph}" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none transition-all font-mono text-sm" style="focus:border-color:var(--ac)" required></div>`;
+            });
+            form.innerHTML += `<button type="submit" class="w-full clip-sl py-4 font-black uppercase tracking-widest text-sm transition-all mt-2" style="background:var(--ac);color:#000"><i data-lucide="radio" class="inline-block w-3.5 h-3.5 mr-2"></i>Broadcast Credentials</button>`;
+            lucide.createIcons();
+
+            // Role view
+            if (S.role === 'host') {
+                $('lobby-host-view').classList.remove('hidden-state');
+                $('lobby-guest-view').classList.add('hidden-state');
+            }
+
+            else {
+                $('lobby-host-view').classList.add('hidden-state');
+                $('lobby-guest-view').classList.remove('hidden-state');
+                appendChatMsg('Awaiting host lobby credentials...', 'system');
+                setTimeout(() => broadcastCredentials(), 5000);
+            }
+
+            // Match rules
+            renderRules();
+
+            $('main-scroll').scrollTo({
+                top: 0, behavior: 'smooth'
+            });
+        }
+
+        function broadcastCredentials() {
+            const g = GAMES[S.game];
+
+            const creds = {}
+
+                ;
+
+            g.lobby.credFields.forEach(f => {
+                const el = $(`cred-${f.id}                        `);
+                creds[f.label] = el ? el.value || f.ph : f.ph;
+            });
+            // Build server creds display
+            const div = $('server-creds');
+            div.innerHTML = '';
+
+            Object.entries(creds).forEach(([label, val]) => {
+                div.innerHTML += `<div><p class="text-[10px] text-gray-500 uppercase mb-0.5" >${label}                    </p><div class="flex items-center justify-between gap-3" ><span class="font-mono text-sm font-bold text-white" >${val}                    </span><button onclick="copyText('${val}',this)" class="text-gray-500 hover:text-white transition-colors" ><i data-lucide="copy" class="w-3.5 h-3.5" ></i></button></div></div>`;
+            });
+            // Build join steps display
+            const joinSteps = g.lobby.joinSteps || [];
+
+            $('server-steps').innerHTML = joinSteps.map((s, i) => `<div class="flex items-start gap-2" ><span class="shrink-0 text-[10px] font-black w-4" style="color:var(--ac)" >${i + 1}
+
+                .</span><span>${s}                </span></div>`).join('');
+            showOnly('ph-server');
+            appendChatMsg('Lobby credentials have been broadcast securely.', 'system');
+            lucide.createIcons();
+
+            $('main-scroll').scrollTo({
+                top: 0, behavior: 'smooth'
+            });
+        }
+
+        function copyText(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5" style="color:#00FF66"></i>';
+                lucide.createIcons();
+
+                setTimeout(() => {
+                    btn.innerHTML = '<i data-lucide="copy" class="w-3.5 h-3.5"></i>'; lucide.createIcons();
+                }
+
+                    , 2000);
+            });
+        }
+
+        // ═══════════════════════════════════════════════════
+        // PHASE 3: RESULT
+        // ═══════════════════════════════════════════════════
+        function unlockResultPhase() {
+            S.phase = 3;
+            phaseActivate(3);
+            const g = GAMES[S.game];
+            $('result-label-a').textContent = S.teamA;
+            $('result-label-b').textContent = S.teamB;
+            // Extra fields
+            const ef = $('extra-result-fields');
+            ef.innerHTML = '';
+
+            if (g.result && g.result.extra) {
+                g.result.extra.forEach(f => {
+                    ef.innerHTML += `<div><label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5" >${f.label}                        </label><input type="text" id="extra-${f.id}" placeholder="${f.ph}" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none" ></div>`;
+                });
+            }
+
+            showOnly('ph-result');
+            appendChatMsg('Match concluded. Both captains must submit their results.', 'system');
+
+            $('main-scroll').scrollTo({
+                top: 9999, behavior: 'smooth'
+            });
+        }
+
+        function submitResults() {
+            const a = $('score-a').value,
+                b = $('score-b').value;
+
+            if (a === '' || b === '') {
+                $('score-a').style.borderColor = '#FF2A55';
+                $('score-b').style.borderColor = '#FF2A55';
+                return;
+            }
+
+            S.scoreA = parseInt(a);
+            S.scoreB = parseInt(b);
+            $('result-form').style.display = 'none';
+            $('result-verify').classList.remove('hidden-state');
+            appendChatMsg('Score submitted. Awaiting opponent confirmation...', 'system');
+
+            // Simulate opponent submitting same score
+            setTimeout(() => {
+                $('result-verify').classList.add('hidden-state');
+                $('result-success').classList.remove('hidden-state');
+                const winner = S.scoreA > S.scoreB ? S.teamA : S.scoreB > S.scoreA ? S.teamB : 'Draw';
+
+                $('final-score-display').innerHTML = `<span style="color:var(--ac)" >${S.scoreA}                    </span><span class="text-gray-600 text-3xl mx-4" >–</span><span class="text-dc-danger" >${S.scoreB}                    </span>`;
+
+                appendChatMsg(`Result verified ! ${winner !== 'Draw' ? winner + ' wins.' : 'Match drawn.'}
+
+                        Bracket updated.`, 'system');
+                phaseActivate(4);
+            }
+
+                , 4000);
+        }
+
+        function simulateUpload(el) {
+            el.innerHTML = `<i data-lucide="check" class="w-7 h-7 mx-auto mb-2.5" style="color:#00FF66"></i><p class="text-sm font-bold text-white">match_proof.jpg uploaded</p><p class="text-xs mt-1" style="color:#00FF66">Evidence secured ✓</p>`;
+            el.style.borderColor = '#00FF66';
+            el.style.background = 'rgba(0,255,102,.05)';
+            el.onclick = null;
+            lucide.createIcons();
+        }
+
+        // ═══════════════════════════════════════════════════
+        // CHAT
+        // ═══════════════════════════════════════════════════
+        function appendChatMsg(text, type) {
+            const win = $('chat-window');
+            const d = document.createElement('div');
+
+            if (type === 'system') {
+                d.className = 'flex justify-center my-2';
+
+                d.innerHTML = `<span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest" style="background:rgba(var(--ar),var(--ag),var(--ab),.1);border:1px solid rgba(var(--ar),var(--ag),var(--ab),.25);color:var(--ac)">${text}</span>`;
+            }
+
+            else if (type === 'opponent') {
+                d.className = 'flex gap-2.5 animate-slide-up';
+
+                d.innerHTML = `<div class="w-7 h-7 rounded bg-dc-danger/20 border border-dc-danger/40 flex items-center justify-center text-dc-danger text-xs font-bold shrink-0">${S.logoB[0]}</div><div><div class="flex items-baseline gap-2 mb-0.5"><span class="font-bold text-dc-danger text-xs">${S.teamB}</span><span class="text-[9px] text-gray-500">Just now</span></div><p class="text-white text-sm bg-white/5 border border-white/8 p-2.5 rounded-xl rounded-tl-none inline-block">${text}</p></div>`;
+            }
+
+            else {
+                d.className = 'flex gap-2.5 flex-row-reverse text-right animate-slide-up';
+
+                d.innerHTML = `<div class="w-7 h-7 rounded flex items-center justify-center text-xs font-bold shrink-0 ac-bg ac-bd" style="color:var(--ac)">${S.logoA[0]}</div><div class="flex flex-col items-end"><div class="flex items-baseline gap-2 mb-0.5 flex-row-reverse"><span class="font-bold text-xs ac">${S.teamA} [You]</span><span class="text-[9px] text-gray-500">Just now</span></div><p class="text-white text-sm p-2.5 rounded-xl rounded-tr-none inline-block text-left" style="background:rgba(var(--ar),var(--ag),var(--ab),.12);border:1px solid rgba(var(--ar),var(--ag),var(--ab),.2)">${text}</p></div>`;
+            }
+
+            win.appendChild(d);
+            win.scrollTop = win.scrollHeight;
+        }
+
+        // Sidebar tab toggle
+        function switchTab(view, btn) {
+            btn.parentElement.querySelectorAll('button').forEach(b => {
+                b.style.color = '';
+                b.style.borderBottomColor = 'transparent';
+            });
+            btn.style.color = 'var(--ac)';
+            btn.style.borderBottomColor = 'var(--ac)';
+            ['view-chat', 'view-intel', 'view-voice', 'view-admin'].forEach(id => {
+                const el = $(id);
+                if (el) el.classList.add('hidden-state');
+            });
+            const target = $('view-' + view);
+            if (target) target.classList.remove('hidden-state');
+        }
+
+        // Chat form
+        document.getElementById('chat-form').addEventListener('submit', e => {
+            e.preventDefault();
+            const inp = $('chat-input'), msg = inp.value.trim();
+            if (!msg) return;
+            appendChatMsg(msg, 'user');
+            inp.value = '';
+            // Simulated opponent reply
+            setTimeout(() => {
+                const replies = ['GL HF!', 'Sure, we are ready.', "Let's go!", 'Good luck to you too.', 'Understood.'];
+                appendChatMsg(replies[Math.floor(Math.random() * replies.length)], 'opponent');
+            }, 1500 + Math.random() * 2000);
+        });
+
+        // ═══════════════════════════════════════════════════
+        // INTEL + RULES
+        // ═══════════════════════════════════════════════════
+        function renderIntel() {
+            const playersA = [{
+                n: 'Rock', id: 'SIUU#BD1', rank: 'Ascendant', capt: true
+            }
+
+                ,
+            {
+                n: 'ViperMain', id: 'Toxic#888', rank: 'Immortal'
+            }
+
+                ,
+            {
+                n: 'PhaseX', id: 'PX#007', rank: 'Diamond'
+            }
+
+                ,
+            {
+                n: 'NightOwl', id: 'OWL#42', rank: 'Diamond'
+            }
+
+                ,
+            {
+                n: 'CipherAce', id: 'CIP#11', rank: 'Platinum'
+            }
+
+            ];
+
+            const playersB = [{
+                n: 'TenzClone', id: 'Aim#GOD', rank: 'Radiant', capt: true
+            }
+
+                ,
+            {
+                n: 'OmenGod', id: 'TP#WIN', rank: 'Immortal 3'
+            }
+
+                ,
+            {
+                n: 'SkyWalker', id: 'SKY#88', rank: 'Immortal 1'
+            }
+
+                ,
+            {
+                n: 'DarkAgent', id: 'DA#55', rank: 'Diamond'
+            }
+
+                ,
+            {
+                n: 'IceBreaker', id: 'ICE#22', rank: 'Platinum'
+            }
+
+            ];
+            const g = GAMES[S.game];
+            const size = g.teamSize;
+            const listA = $('intel-a');
+            listA.innerHTML = '';
+            const listB = $('intel-b');
+            listB.innerHTML = '';
+
+            playersA.slice(0, size).forEach(p => {
+                listA.innerHTML += `<div class="flex items-center justify-between p-2.5 rounded-lg" style="background:rgba(var(--ar),var(--ag),var(--ab),.05);border:1px solid rgba(var(--ar),var(--ag),var(--ab),.18)" ><div class="flex items-center gap-2.5" ><div class="w-7 h-7 rounded border border-gray-700 bg-black/40 flex items-center justify-center text-xs font-bold" style="color:var(--ac)" >${p.n[0]}                </div><div><p class="text-xs font-bold text-white" >${p.n}
+
+                ${p.capt ? ' <span style="color:var(--ac);font-size:9px">(C)</span>' : ''}                </p><p class="text-[10px] text-gray-500 font-mono" >${p.id}                </p></div></div><span class="text-[10px] font-mono text-white bg-white/8 px-1.5 py-0.5 rounded" >${p.rank}                </span></div>`;
+            });
+
+            playersB.slice(0, size).forEach(p => {
+                listB.innerHTML += `<div class="flex items-center justify-between p-2.5 rounded-lg bg-dc-danger/5 border border-dc-danger/15" ><div class="flex items-center gap-2.5" ><div class="w-7 h-7 rounded bg-dc-danger/15 border border-dc-danger/35 flex items-center justify-center text-xs font-bold text-dc-danger" >${p.n[0]}                </div><div><p class="text-xs font-bold text-white" >${p.n}
+
+                ${p.capt ? ' <span class="text-dc-danger" style="font-size:9px">(C)</span>' : ''}                </p><p class="text-[10px] text-gray-500 font-mono" >${p.id}                </p></div></div><span class="text-[10px] font-mono text-white bg-white/8 px-1.5 py-0.5 rounded" >${p.rank}                </span></div>`;
+            });
+        }
+
+        function renderRules() {
+            const g = GAMES[S.game];
+
+            const rules = [
+                `Game: ${g.name}`,
+                `Format: ${g.format}`,
+                `Team Size: ${g.teamSize}v${g.teamSize}`,
+                'No-show window: 10 minutes',
+                'Result screenshot: Required',
+                'Disputes: Call Match Medic'
+            ];
+            $('match-rules').innerHTML = rules.map(r =>
+                `<div class="flex items-center gap-2"><span style="color:var(--ac)">›</span> ${r}</div>`
+            ).join('');
+        }
+
+        // ═══════════════════════════════════════════════════
+        // DEV CONTROLLER
+        // ═══════════════════════════════════════════════════
+        // ═══ NEW FUNCTIONS ═══
+        function joinVoice(ch, btn) {
+            if (!btn) return;
+            if (ch === 'a') btn.innerHTML = '<div class="voice-dot on"></div>Team A — ✓ Joined';
+            else if (ch === 'admin') btn.innerHTML = '<div class="voice-dot adm"></div>Admin Room — ✓ Joined';
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
+        }
+
+        function handleUpload(team, el) {
+            el.classList.add('done');
+            el.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5 mx-auto text-dc-success mb-1"></i><p class="text-xs font-bold text-dc-success">Screenshot uploaded!</p><p class="text-[9px] text-gray-500 mt-0.5">1 file attached</p>';
+            lucide.createIcons();
+        }
+
+        const submitted = {
+            a: false, b: false
+        }
+
+            ;
+
+        function submitTeamResult(team) {
+            submitted[team] = true;
+            const card = $('result-card-' + team);
+            const btn = $('submit-btn-' + team);
+            const status = $('sub-status-' + team);
+            card.classList.add('submitted-ok');
+            status.className = 'sub-status done';
+            status.innerHTML = '<span>●</span> Submitted';
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            addChatMsg('SYSTEM', team === 'a' ? S.teamA + ' locked their result.' : S.teamB + ' locked their result.', true);
+
+            if (submitted.a && submitted.b) {
+                // Both submitted — check match
+                const sA = parseInt($('score-a').value) || 0;
+                const sAOpp = parseInt($('score-a-opp').value) || 0;
+                const sB = parseInt($('score-b').value) || 0;
+                const sBOpp = parseInt($('score-b-opp').value) || 0;
+                $('result-verify').classList.remove('hidden-state');
+
+                // Scores match if A's score == B's opponent and vice versa
+                if (sA === sBOpp && sAOpp === sB) {
+                    $('verify-status-text').textContent = 'Scores match! Verifying with system...';
+
+                    setTimeout(() => {
+                        S.scoreA = sA; S.scoreB = sB;
+                        $('result-verify').classList.add('hidden-state');
+                        const succ = $('result-success');
+                        succ.classList.remove('hidden-state');
+                        const winnerColor = sA > sB ? 'var(--ac)' : '#FF2A55';
+                        const loserColor = sA > sB ? '#FF2A55' : 'var(--ac)';
+
+                        $('final-score-display').innerHTML = `<span style="color:var(--ac)" >${sA}                            </span><span class="text-gray-700 text-2xl" >–</span><span style="color:#FF2A55" >${sB}                            </span>`;
+                        lucide.createIcons();
+                        addChatMsg('SYSTEM', '✅ Result verified! Match closed.', true);
+                    }
+
+                        , 2500);
+                }
+
+                else {
+                    $('verify-status-text').textContent = '⚠️ Score mismatch detected! Admin review required.';
+                    const st = document.querySelectorAll('.sub-status');
+
+                    st.forEach(s => {
+                        s.className = 'sub-status mismatch'; s.innerHTML = '<span>●</span> Mismatch';
+                    });
+                    addChatMsg('SYSTEM', '⚠️ Score mismatch — admin has been notified.', true);
+                }
+            }
+
+            else {
+                $('result-verify').classList.remove('hidden-state');
+            }
+        }
+
+        function renderExtraFields() {
+            const g = GAMES[S.game];
+            const extras = g.result?.extra || [];
+
+            ['extra-fields-a',
+                'extra-fields-b'].forEach(id => {
+                    const el = $(id); if (!el) return; el.innerHTML = '';
+
+                    extras.forEach(f => {
+                        const suffix = id.includes('-a') ? '-a' : '-b';
+
+                        el.innerHTML += `<div><label class="section-label" >${f.label}                            </label><input type="text" id="ef-${f.id}${suffix}" placeholder="${f.ph}" class="compact-input" ></div>`;
+                    });
+
+                    if (g.result?.mvp) {
+                        const suffix = id.includes('-a') ? '-a' : '-b';
+                        el.innerHTML += `<div><label class="section-label" >MVP (optional)</label><input type="text" id="ef-mvp${suffix}" placeholder="Player Name" class="compact-input" ></div>`;
+                    }
+                });
+            // Update score label
+            const lbl = $('score-label-a-txt');
+            if (lbl) lbl.textContent = g.result?.scoreLabel || 'Score';
+        }
+
+
+        // Wrap unlockResultPhase to also populate extra fields
+        const _origUnlock = typeof unlockResultPhase === 'function' ? unlockResultPhase : null;
+
+        function unlockResultPhase() {
+            submitted.a = false;
+            submitted.b = false;
+            if (_origUnlock) _origUnlock();
+            renderExtraFields();
+
+            // reset status badges
+            ['a',
+                'b'].forEach(t => {
+                    const s = $('sub-status-' + t); if (s) {
+                        s.className = 'sub-status pending'; s.innerHTML = '<span>●</span> Pending';
+                    }
+
+                    const c = $('result-card-' + t); if (c) c.classList.remove('submitted-ok');
+
+                    const b = $('submit-btn-' + t); if (b) {
+                        b.disabled = false; b.style.opacity = '1'; b.style.cursor = 'pointer';
+                    }
+
+                    const u = $('upload-' + t); if (u) {
+                        u.classList.remove('done'); lucide.createIcons();
+                    }
+                });
+            const rv = $('result-verify');
+            if (rv) rv.classList.add('hidden-state');
+            const rs = $('result-success');
+            if (rs) rs.classList.add('hidden-state');
+        }
+
+        function skipPhase() {
+            if (S.phase === 0) {
+                executeCoinToss();
+                setTimeout(proceedAfterToss, 3100);
+            }
+
+            else if (S.phase === 1) {
+                toPhase2('Ascent');
+            }
+
+            else if (S.phase === 2) {
+                broadcastCredentials();
+                setTimeout(unlockResultPhase, 500);
+            }
+
+            else if (S.phase === 3) {
+                $('score-a').value = '13';
+                $('score-a-opp').value = '7';
+                $('score-b').value = '7';
+                $('score-b-opp').value = '13';
+                submitTeamResult('a');
+                setTimeout(() => submitTeamResult('b'), 800);
+            }
+        }
+
+
+        function resetAll() {
+            const key = $('dev-game').value;
+            $('dev-role').value = 'host';
+            switchGame(key);
+        }
+
+        // ═══════════════════════════════════════════════════
+        // DISPUTE MODAL
+        // ═══════════════════════════════════════════════════
+        function openDisputeModal() {
+            const m = $('dispute-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeDisputeModal() {
+            const m = $('dispute-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        // ═══════════════════════════════════════════════════
+        // MATCH CLOCK
+        // ═══════════════════════════════════════════════════
+        const clockStart = Date.now();
+
+        setInterval(() => {
+            const elapsed = Math.floor((Date.now() - clockStart) / 1000);
+            const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            const s = String(elapsed % 60).padStart(2, '0');
+
+            $('match-clock').textContent = `${m}
+
+                :${s}                `;
+        }
+
+            , 1000);
+
+        // ═══════════════════════════════════════════════════
+        // INIT
+        // ═══════════════════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', () => {
+            renderIntel();
+            renderRules();
+            // Default to Valorant background
+            $('bg-layer').style.backgroundImage = `url('${GAMES.valorant.bg}')`;
+        });
+
+        // ═══════════════════════════════════════════════════
+        // SIDEBAR TABS
+        // ═══════════════════════════════════════════════════
+        function switchTab(t, btn) {
+
+            ['chat',
+                'intel',
+                'admin'].forEach(v => {
+                    const el = document.getElementById('view-' + v);
+                    if (el) el.classList.add('hidden-state');
+                });
+
+            ['tab-chat-btn',
+                'tab-intel-btn',
+                'tab-admin-btn'].forEach(id => {
+                    const b = document.getElementById(id);
+                    if (!b) return;
+                    b.classList.remove('ac');
+                    b.style.borderBottomColor = 'transparent';
+                });
+            const view = document.getElementById('view-' + t);
+            if (view) view.classList.remove('hidden-state');
+
+            if (btn) {
+                btn.classList.add('ac');
+                btn.style.borderBottomColor = 'var(--ac)';
+            }
+
+            lucide.createIcons();
+        }
+
+        // ═══════════════════════════════════════════════════
+        // ROLE SWITCHING
+        // ═══════════════════════════════════════════════════
+        function setRole(role) {
+            S.role = role;
+            const adminBtn = document.getElementById('tab-admin-btn');
+
+            if (role === 'admin') {
+                if (adminBtn) adminBtn.classList.remove('hidden');
+                switchTab('admin', adminBtn);
+            }
+
+            else {
+                if (adminBtn) adminBtn.classList.add('hidden');
+                switchTab('chat', document.getElementById('tab-chat-btn'));
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        // CHAT ENGINE
+        // ═══════════════════════════════════════════════════
+        function addChatMsg(sender, text, isSystem) {
+            const win = document.getElementById('chat-window');
+            if (!win) return;
+
+            const ts = new Date().toLocaleTimeString([], {
+                hour: '2-digit', minute: '2-digit'
+            });
+            let html = '';
+
+            if (isSystem) {
+                const isAdmin = sender === 'ADMIN';
+                const cls = isAdmin ? 'bg-dc-warning/10 text-dc-warning border border-dc-warning/30'
+                    : 'bg-white/5 border border-white/8 text-gray-400';
+
+                html = `<div class="flex justify-center"><span class="px-3 py-1 rounded-full text-[10px] font-bold ${cls}">${text}            </span></div>`;
+            }
+
+            else {
+                const isA = sender === (S.teamA || 'Team A');
+
+                html = `<div class="flex items-start gap-2"><div class="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[9px] font-black ${isA ? 'ac-bg ac' : 'bg-dc-danger/20 text-dc-danger'}">${sender.charAt(0)}            </div><div class="flex-1 min-w-0"><p class="text-[10px] font-bold ${isA ? 'ac' : 'text-dc-danger'}">${sender}
+
+            <span class="text-gray-600 font-normal">${ts}            </span></p><p class="text-xs text-gray-300 mt-0.5 break-words">${text}            </p></div></div>`;
+            }
+
+            win.innerHTML += html;
+            win.scrollTop = win.scrollHeight;
+        }
+
+        // Wire chat form submit
+        (function () {
+            const chatForm = document.getElementById('chat-form');
+
+            if (chatForm) {
+                chatForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    const inp = document.getElementById('chat-input');
+                    if (!inp || !inp.value.trim()) return;
+                    addChatMsg(S.teamA || 'You', inp.value.trim(), false);
+                    inp.value = '';
+                });
+            }
+        })();
+
+        // ═══════════════════════════════════════════════════
+        // TAB SWITCHING
+        // ═══════════════════════════════════════════════════
+        function switchTab(tab, btnEl) {
+            const views = ['view-chat',
+                'view-intel',
+                'view-voice',
+                'view-admin'];
+
+            views.forEach(id => {
+                const el = document.getElementById(id); if (el) el.classList.add('hidden-state');
+            });
+            const target = document.getElementById('view-' + tab);
+            if (target) target.classList.remove('hidden-state');
+
+            // Update tab button styles
+            document.querySelectorAll('[id^="tab-"][id$="-btn"]').forEach(b => {
+                b.style.borderBottomColor = 'transparent';
+                b.classList.remove('ac');
+                b.classList.add('text-gray-500');
+            });
+
+            if (btnEl) {
+                btnEl.style.borderBottomColor = 'var(--ac)';
+                btnEl.classList.add('ac');
+                btnEl.classList.remove('text-gray-500');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        // PROXY MODE
+        // ═══════════════════════════════════════════════════
+        function activateProxyMode() {
+            const banner = document.getElementById('proxy-banner');
+
+            if (banner) {
+                banner.classList.toggle('hidden-state');
+
+                if (!banner.classList.contains('hidden-state')) {
+                    addChatMsg('ADMIN', '🛡️ Proxy Mode activated — organizer can now act on behalf of absent captain.', true);
+                }
+            }
+        }
+
+        function proxyActAs(team) {
+            const btnA = document.getElementById('proxy-btn-a');
+            const btnB = document.getElementById('proxy-btn-b');
+            if (!btnA || !btnB) return;
+
+            if (team === 'a') {
+                btnA.className = 'proxy-acting-btn active-a';
+                btnB.className = 'proxy-acting-btn inactive';
+                addChatMsg('ADMIN', '🎮 Organizer now acting as Team A captain.', true);
+            }
+
+            else {
+                btnA.className = 'proxy-acting-btn inactive';
+                btnB.className = 'proxy-acting-btn active-b';
+                addChatMsg('ADMIN', '🎮 Organizer now acting as Team B captain.', true);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        // ADMIN ACTION HELPERS
+        // ═══════════════════════════════════════════════════
+        function adminForcePhase() {
+            skipPhase();
+            addChatMsg('ADMIN', '⚡ Admin forced phase advance.', true);
+        }
+
+        function adminFreezeTimer() {
+            addChatMsg('ADMIN', '⏸ Timer frozen by admin.', true);
+        }
+
+        function adminFlagMatch() {
+            addChatMsg('ADMIN', '🚩 Match flagged for review.', true);
+            document.querySelectorAll('.result-team-card').forEach(c => c.style.outline = '2px solid rgba(255,184,0,.5)');
+        }
+
+        function adminCloseMatch() {
+            addChatMsg('ADMIN', '🔒 Match closed by organizer.', true);
+        }
+
+        function adminSendMsg() {
+            const inp = document.getElementById('admin-msg');
+            if (!inp || !inp.value.trim()) return;
+            addChatMsg('ADMIN', '[Announcement] ' + inp.value.trim(), true);
+            inp.value = '';
+        }
+
+        function adminOverrideScore() {
+            const sA = parseInt(document.getElementById('admin-score-a')?.value) || 0;
+            const sB = parseInt(document.getElementById('admin-score-b')?.value) || 0;
+            const disp = document.getElementById('final-score-display');
+
+            if (disp) disp.innerHTML = `<span style="color:var(--ac)">${sA}</span><span class="text-gray-700 text-2xl">–</span><span style="color:#FF2A55">${sB}</span>`;
+            const succ = document.getElementById('result-success');
+            if (succ) succ.classList.remove('hidden-state');
+
+            addChatMsg('ADMIN', `🔧 Score override: ${sA} – ${sB}`, true);
+            lucide.createIcons();
+        }
+
+        // Backward-compat stub for old button references
+        function submitResults() {
+            submitTeamResult('a');
+            setTimeout(() => submitTeamResult('b'), 600);
+        }    </script>
+</body>
+
+</html>
