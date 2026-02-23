@@ -1,7 +1,15 @@
 /* ═══════════════════════════════════════════════════════════
    THE HUB — Tournament Mission Control
    DeltaCrown Design System 2026
+   Game-aware theming via CSS Custom Properties
    ═══════════════════════════════════════════════════════════ */
+
+/* ── CSS Custom Property Defaults ─────────────────────────── */
+:root {
+  --game-primary: #00F0FF;
+  --game-secondary: #0C0C10;
+  --game-accent: #FFFFFF;
+}
 
 /* ── Full-Screen Lock ─────────────────────────────────────── */
 .hub-shell {
@@ -27,7 +35,7 @@
 .hub-bg-gradient {
   position: absolute; inset: 0; z-index: 1;
   background:
-    radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.07) 0%, transparent 50%),
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--game-primary) 7%, transparent) 0%, transparent 50%),
     radial-gradient(circle at 100% 100%, rgba(112, 0, 255, 0.04) 0%, transparent 40%),
     linear-gradient(180deg, rgba(2,2,3,0.85) 0%, #020203 100%);
   pointer-events: none;
@@ -65,9 +73,9 @@
 }
 .hub-glass-hover:hover {
   background: rgba(20, 20, 28, 0.9);
-  border-color: rgba(0, 240, 255, 0.2);
+  border-color: color-mix(in srgb, var(--game-primary) 20%, transparent);
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px -10px rgba(0, 240, 255, 0.15);
+  box-shadow: 0 10px 30px -10px color-mix(in srgb, var(--game-primary) 15%, transparent);
 }
 
 /* ── UI Micro-elements ────────────────────────────────────── */
@@ -79,22 +87,22 @@
 .hub-shell ::-webkit-scrollbar { width: 6px; height: 6px; }
 .hub-shell ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 8px; }
 .hub-shell ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 8px; }
-.hub-shell ::-webkit-scrollbar-thumb:hover { background: #00F0FF; }
+.hub-shell ::-webkit-scrollbar-thumb:hover { background: var(--game-primary); }
 
 /* ── Hub Navbar (replaces primary navigation) ─────────────── */
 .hub-navbar {
   width: 100%;
-  height: 56px;
+  height: 64px;
   display: flex;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(2, 2, 3, 0.8);
+  background: rgba(2, 2, 3, 0.85);
   backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
   position: relative;
   z-index: 50;
   shrink: 0;
   flex-shrink: 0;
-  box-shadow: 0 1px 0 rgba(0, 240, 255, 0.03), 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--game-primary) 5%, transparent), 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 .hub-navbar-inner {
   width: 100%;
@@ -190,11 +198,11 @@
   background: rgba(255, 255, 255, 0.05);
 }
 .hub-nav-btn.active {
-  background: rgba(0, 240, 255, 0.1);
-  color: #00F0FF;
+  background: color-mix(in srgb, var(--game-primary) 12%, transparent);
+  color: var(--game-primary);
   font-weight: 600;
 }
-.hub-nav-btn.active svg { color: #00F0FF; }
+.hub-nav-btn.active svg { color: var(--game-primary); }
 
 /* ── Status Badges ────────────────────────────────────────── */
 .hub-badge {
@@ -839,4 +847,146 @@
 #hub-status-modal.hidden {
   pointer-events: none;
   opacity: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SUPPORT & DISPUTES TAB
+   ═══════════════════════════════════════════════════════════════ */
+.support-action-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  text-decoration: none;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+.support-action-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.support-action-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.support-category-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  color: #9CA3AF;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.support-category-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.support-category-btn.active {
+  background: color-mix(in srgb, var(--game-primary) 12%, transparent);
+  border-color: color-mix(in srgb, var(--game-primary) 25%, transparent);
+  color: var(--game-primary);
+}
+.support-input {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.625rem;
+  padding: 0.65rem 0.875rem;
+  font-size: 0.8125rem;
+  color: #E2E8F0;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: Inter, 'Space Grotesk', sans-serif;
+}
+.support-input::placeholder { color: #4B5563; }
+.support-input:focus {
+  border-color: color-mix(in srgb, var(--game-primary) 40%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--game-primary) 6%, transparent);
+}
+.support-faq-item {
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.support-faq-item[open] {
+  border-color: color-mix(in srgb, var(--game-primary) 15%, transparent);
+  background: color-mix(in srgb, var(--game-primary) 3%, transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OFFICIAL CHANNELS (Resources Tab)
+   ═══════════════════════════════════════════════════════════════ */
+.official-channel-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  text-decoration: none;
+  transition: all 0.3s;
+}
+.official-channel-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ENGAGEMENT WIDGETS (Overview Tab)
+   ═══════════════════════════════════════════════════════════════ */
+.hub-widget-card {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 1.25rem;
+  transition: all 0.3s;
+}
+.hub-widget-card:hover {
+  border-color: color-mix(in srgb, var(--game-primary) 15%, transparent);
+  background: color-mix(in srgb, var(--game-primary) 3%, transparent);
+}
+.widget-stat-value {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 900;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--game-primary);
+}
+.widget-stat-label {
+  font-size: 0.625rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4B5563;
+  margin-top: 0.25rem;
+}
+.widget-progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.widget-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--game-primary);
+  transition: width 0.6s ease-out;
 }

@@ -9,11 +9,106 @@
   {% comment %}── Section Header ─────────────────────────────{% endcomment %}
   <div>
     <h2 class="text-2xl font-black text-white tracking-tight" style="font-family:Outfit,sans-serif;">
-      <i data-lucide="library" class="w-6 h-6 inline-block text-[#00F0FF] mr-2 align-text-bottom"></i>
+      <i data-lucide="library" class="w-6 h-6 inline-block text-[var(--game-primary)] mr-2 align-text-bottom"></i>
       Resources
     </h2>
-    <p class="text-xs text-gray-500 mt-1" style="font-family:'Space Grotesk',monospace;">Rules, links &amp; sponsor showcase</p>
+    <p class="text-xs text-gray-500 mt-1" style="font-family:'Space Grotesk',monospace;">Rules, official channels, links &amp; sponsor showcase</p>
   </div>
+
+  {% comment %}── Official Channels (server-rendered, prominent) ──{% endcomment %}
+  {% if discord_url or social_twitter or social_instagram or social_youtube or social_website or contact_email %}
+  <div>
+    <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">
+      <i data-lucide="radio" class="w-3 h-3 inline-block mr-1 align-text-bottom"></i>
+      Official Channels
+    </p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {% if discord_url %}
+      <a href="{{ discord_url }}" target="_blank" rel="noopener"
+         class="official-channel-card group border-[#5865F2]/20 hover:border-[#5865F2]/40">
+        <div class="w-10 h-10 rounded-xl bg-[#5865F2]/15 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+          <i data-lucide="message-circle" class="w-5 h-5 text-[#5865F2]"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-white group-hover:text-[#5865F2] transition-colors">Discord Server</p>
+          <p class="text-[10px] text-gray-500">Join the community &amp; get live updates</p>
+        </div>
+        <i data-lucide="external-link" class="w-3 h-3 text-gray-600"></i>
+      </a>
+      {% endif %}
+
+      {% if social_twitter %}
+      <a href="{{ social_twitter }}" target="_blank" rel="noopener"
+         class="official-channel-card group border-[#1DA1F2]/20 hover:border-[#1DA1F2]/40">
+        <div class="w-10 h-10 rounded-xl bg-[#1DA1F2]/15 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+          <i data-lucide="twitter" class="w-5 h-5 text-[#1DA1F2]"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-white group-hover:text-[#1DA1F2] transition-colors">X / Twitter</p>
+          <p class="text-[10px] text-gray-500">Follow for announcements</p>
+        </div>
+        <i data-lucide="external-link" class="w-3 h-3 text-gray-600"></i>
+      </a>
+      {% endif %}
+
+      {% if social_instagram %}
+      <a href="{{ social_instagram }}" target="_blank" rel="noopener"
+         class="official-channel-card group border-[#E1306C]/20 hover:border-[#E1306C]/40">
+        <div class="w-10 h-10 rounded-xl bg-[#E1306C]/15 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+          <i data-lucide="instagram" class="w-5 h-5 text-[#E1306C]"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-white group-hover:text-[#E1306C] transition-colors">Instagram</p>
+          <p class="text-[10px] text-gray-500">Highlights &amp; media</p>
+        </div>
+        <i data-lucide="external-link" class="w-3 h-3 text-gray-600"></i>
+      </a>
+      {% endif %}
+
+      {% if social_youtube %}
+      <a href="{{ social_youtube }}" target="_blank" rel="noopener"
+         class="official-channel-card group border-[#FF0000]/20 hover:border-[#FF0000]/40">
+        <div class="w-10 h-10 rounded-xl bg-[#FF0000]/15 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+          <i data-lucide="youtube" class="w-5 h-5 text-[#FF0000]"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-white group-hover:text-[#FF0000] transition-colors">YouTube</p>
+          <p class="text-[10px] text-gray-500">VODs &amp; stream replays</p>
+        </div>
+        <i data-lucide="external-link" class="w-3 h-3 text-gray-600"></i>
+      </a>
+      {% endif %}
+
+      {% if social_website %}
+      <a href="{{ social_website }}" target="_blank" rel="noopener"
+         class="official-channel-card group border-[var(--game-primary)]/20 hover:border-[var(--game-primary)]/40">
+        <div class="w-10 h-10 rounded-xl bg-[var(--game-primary)]/15 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+          <i data-lucide="globe" class="w-5 h-5 text-[var(--game-primary)]"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-white group-hover:text-[var(--game-primary)] transition-colors">Official Website</p>
+          <p class="text-[10px] text-gray-500">Tournament home</p>
+        </div>
+        <i data-lucide="external-link" class="w-3 h-3 text-gray-600"></i>
+      </a>
+      {% endif %}
+
+      {% if contact_email %}
+      <a href="mailto:{{ contact_email }}?subject=Tournament%20Inquiry%20-%20{{ tournament.name|urlencode }}"
+         class="official-channel-card group border-[#7000FF]/20 hover:border-[#7000FF]/40">
+        <div class="w-10 h-10 rounded-xl bg-[#7000FF]/15 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+          <i data-lucide="mail" class="w-5 h-5 text-[#7000FF]"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-white group-hover:text-[#7000FF] transition-colors">Email</p>
+          <p class="text-[10px] text-gray-500 truncate">{{ contact_email }}</p>
+        </div>
+        <i data-lucide="external-link" class="w-3 h-3 text-gray-600"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 
   {% comment %}── Rules & Regulations ─────────────────────────{% endcomment %}
   <div id="resources-rules-section">

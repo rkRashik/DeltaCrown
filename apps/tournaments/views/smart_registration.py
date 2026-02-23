@@ -856,46 +856,73 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                     )
 
                 # Collect per-member form overrides (roster_slot, player_role)
-                submitted_member_ids = form_data.getlist('roster_member_ids')
+                # roster_member_ids may be comma-separated string or multiple values
+                raw_member_ids = form_data.getlist('roster_member_ids')
+                submitted_member_ids = set()
+                for raw_val in raw_member_ids:
+                    for part in str(raw_val).split(','):
+                        part = part.strip()
+                        if part.isdigit():
+                            submitted_member_ids.add(int(part))
                 igl_member_id = form_data.get('igl_member_id', '').strip()
 
                 snapshot = []
                 for member in roster_qs:
+                    mid = str(member.id)
+
+                    # ── Determine roster_slot ──
+                    # Priority: form field > member model field > role-based default
+                    roster_slot = form_data.get(f'member_{mid}_roster_slot', '').strip()
+                    if not roster_slot:
+                        # Use TeamMembership data as fallback
+                        if member.role in ('HEAD_COACH', 'COACH'):
+                            roster_slot = 'COACH'
+                        elif member.role == 'MANAGER':
+                            roster_slot = member.roster_slot or 'SUBSTITUTE'
+                        else:
+                            roster_slot = member.roster_slot or 'STARTER'
+
+                    # ── Determine player_role ──
+                    player_role = form_data.get(f'member_{mid}_player_role', '').strip()
+                    if not player_role:
+                        player_role = member.player_role or ''
+
                     member_entry = {
                         'user_id': member.user_id,
                         'username': member.user.username,
                         'role': member.role,
-                        'display_name': member.display_name or member.user.username,
+                        'display_name': member.display_name or member.user.get_full_name() or member.user.username,
+                        'roster_slot': roster_slot,
+                        'player_role': player_role,
                     }
-                    # Capture per-member form data if submitted
-                    mid = str(member.id)
-                    roster_slot = form_data.get(f'member_{mid}_roster_slot', '').strip()
-                    player_role = form_data.get(f'member_{mid}_player_role', '').strip()
-                    if roster_slot:
-                        member_entry['roster_slot'] = roster_slot
-                    if player_role:
-                        member_entry['player_role'] = player_role
+
                     # IGL designation
                     if igl_member_id == mid:
                         member_entry['is_igl'] = True
+
                     # Capture per-member game_id override from form
                     member_game_id = form_data.get(f'member_{mid}_game_id', '').strip()
                     if member_game_id:
                         member_entry['game_id'] = member_game_id
-                    # Capture game_id if available from profile
-                    if hasattr(member.user, 'profile') and member.user.profile:
-                        profile = member.user.profile
-                        member_entry['avatar'] = (profile.avatar.url if getattr(profile, 'avatar', None) else '')
+
+                    # Capture avatar if available from profile
+                    try:
+                        if hasattr(member.user, 'profile') and member.user.profile:
+                            profile = member.user.profile
+                            member_entry['avatar'] = (profile.avatar.url if getattr(profile, 'avatar', None) else '')
+                    except Exception:
+                        member_entry['avatar'] = ''
 
                     snapshot.append(member_entry)
 
                 registration.lineup_snapshot = snapshot
                 registration.save(update_fields=['lineup_snapshot'])
+                logger.info(f"Lineup snapshot saved for registration {registration.id}: {len(snapshot)} members")
             except ValidationError:
                 # Re-raise validation errors (roster size issues)
                 raise
             except Exception as e:
-                logger.warning(f"Failed to capture lineup snapshot: {e}")
+                logger.error(f"Failed to capture lineup snapshot for reg {registration.id if registration else '?'}: {e}", exc_info=True)
 
         # Handle payment
         if tournament.has_entry_fee:

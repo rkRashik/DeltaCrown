@@ -11,6 +11,12 @@
 <link rel="stylesheet" href="{% static 'tournaments/css/hub.css' %}">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+  /* Game Theme CSS Custom Properties */
+  :root {
+    --game-primary: {{ game_primary_color|default:"#00F0FF" }};
+    --game-secondary: {{ game_secondary_color|default:"#0C0C10" }};
+    --game-accent: {{ game_accent_color|default:"#FFFFFF" }};
+  }
   /* Hide primary navigation on Hub page — replaced with hub-specific navbar */
   #dc-navbar, #dc-bottom-nav, #dc-mobile-header { display: none !important; }
   /* Override body padding from primary_navigation.css (nav is hidden) */
@@ -41,6 +47,7 @@
      data-api-standings="{{ api_standings_url }}"
      data-api-matches="{{ api_matches_url }}"
      data-api-participants="{{ api_participants_url }}"
+     data-api-support="{{ api_support_url }}"
      data-tournament-status="{{ tournament.status }}"
      data-check-in-status="{{ check_in_status }}"
      data-is-checked-in="{{ is_checked_in|yesno:'true,false' }}"
@@ -66,12 +73,12 @@
         <div class="h-6 w-px bg-white/8 hidden sm:block"></div>
         {% comment %}DeltaCrown Logo{% endcomment %}
         <a href="/" class="hub-logo-link shrink-0" title="DeltaCrown Home">
-          <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" class="w-8 h-8">
+          <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" class="w-9 h-9">
         </a>
         <div class="h-6 w-px bg-white/8 hidden sm:block"></div>
         {% comment %}Tournament Identity{% endcomment %}
         <div class="flex flex-col min-w-0">
-          <span class="text-sm font-bold text-white truncate leading-tight" style="font-family:Outfit,sans-serif;">
+          <span class="text-base font-bold text-white truncate leading-tight" style="font-family:Outfit,sans-serif;">
             {{ tournament.name|truncatechars:40 }}
           </span>
           <div class="flex items-center gap-2 mt-0.5">
@@ -80,7 +87,7 @@
               {{ tournament.get_status_display|default:tournament.status }}
             </span>
             {% if game_name %}
-              <span class="text-[9px] text-gray-500 hidden md:inline" style="font-family:'Space Grotesk',monospace;">{{ game_name }}</span>
+              <span class="text-[10px] text-gray-500 hidden md:inline" style="font-family:'Space Grotesk',monospace;">{{ game_name }}</span>
             {% endif %}
           </div>
         </div>
@@ -110,16 +117,16 @@
         {% comment %}User Avatar + Info{% endcomment %}
         <a href="/dashboard/" class="flex items-center gap-2 group cursor-pointer" title="{{ request.user.username }} — Dashboard">
           <div class="text-right hidden md:block">
-            <p class="text-xs font-bold text-white group-hover:text-[#00F0FF] transition-colors leading-none">{{ request.user.get_full_name|default:request.user.username }}</p>
+            <p class="text-sm font-bold text-white group-hover:text-[var(--game-primary)] transition-colors leading-none">{{ request.user.get_full_name|default:request.user.username }}</p>
             {% if is_team and team_name %}
-              <p class="text-[9px] text-gray-500 group-hover:text-gray-400 transition-colors" style="font-family:'Space Grotesk',monospace;">{{ team_tag }}{% if is_captain %} (C){% endif %}</p>
+              <p class="text-[10px] text-gray-500 group-hover:text-gray-400 transition-colors" style="font-family:'Space Grotesk',monospace;">{{ team_tag }}{% if is_captain %} (C){% endif %}</p>
             {% endif %}
           </div>
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00F0FF]/20 to-[#7000FF]/20 border border-white/10 overflow-hidden">
+          <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-[var(--game-primary)]/20 to-[#7000FF]/20 border border-white/10 overflow-hidden">
             {% if request.user.profile.avatar %}
               <img src="{{ request.user.profile.avatar.url }}" class="w-full h-full object-cover" alt="{{ request.user.username }}">
             {% else %}
-              <div class="w-full h-full flex items-center justify-center text-[10px] font-bold text-white">{{ request.user.username|truncatechars:2 }}</div>
+              <div class="w-full h-full flex items-center justify-center text-[11px] font-bold text-white">{{ request.user.username|truncatechars:2 }}</div>
             {% endif %}
           </div>
         </a>
@@ -192,6 +199,11 @@
       {% comment %}Tab: Rulebook (Inline){% endcomment %}
       <div id="hub-tab-rulebook" class="hub-tab-content">
         {% include "tournaments/hub/_tab_rulebook.html" %}
+      </div>
+
+      {% comment %}Tab: Support & Disputes{% endcomment %}
+      <div id="hub-tab-support" class="hub-tab-content">
+        {% include "tournaments/hub/_tab_support.html" %}
       </div>
 
     </main>

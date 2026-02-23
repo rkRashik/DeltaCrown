@@ -119,6 +119,9 @@ const HubEngine = (() => {
     if (tabId === 'participants' && !_participantsCache) {
       _fetchParticipants();
     }
+    if (tabId === 'support') {
+      _initSupportForm();
+    }
 
     // Re-init lucide icons for dynamic content
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -1334,6 +1337,117 @@ const HubEngine = (() => {
     if (guide) guide.classList.add('hidden');
   }
 
+  // ──────────────────────────────────────────────────────────
+  // Support Tab — Category Selection & Form Submission
+  // ──────────────────────────────────────────────────────────
+  let _supportCategory = 'general';
+
+  function selectSupportCategory(category) {
+    _supportCategory = category;
+
+    // Update active state
+    document.querySelectorAll('.support-category-btn').forEach(btn => {
+      if (btn.dataset.category === category) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // Show/hide dispute-specific fields
+    const disputeFields = document.getElementById('support-dispute-fields');
+    if (disputeFields) {
+      disputeFields.classList.toggle('hidden', category !== 'dispute');
+    }
+  }
+
+  function _updateCharCount() {
+    const msg = document.getElementById('support-message');
+    const counter = document.getElementById('support-char-count');
+    if (msg && counter) {
+      counter.textContent = `${msg.value.length} / 2000`;
+    }
+  }
+
+  // Attach char count listener on first support tab visit
+  function _initSupportForm() {
+    const msg = document.getElementById('support-message');
+    if (msg && !msg._charCountBound) {
+      msg.addEventListener('input', _updateCharCount);
+      msg._charCountBound = true;
+    }
+  }
+
+  async function submitSupportRequest() {
+    const url = _shell?.dataset.apiSupport;
+    const subject = document.getElementById('support-subject')?.value?.trim();
+    const message = document.getElementById('support-message')?.value?.trim();
+    const matchRef = document.getElementById('support-match-ref')?.value?.trim() || '';
+    const errEl = document.getElementById('support-error');
+    const okEl = document.getElementById('support-success');
+    const btn = document.getElementById('support-submit-btn');
+
+    // Reset states
+    if (errEl) errEl.classList.add('hidden');
+    if (okEl) okEl.classList.add('hidden');
+
+    // Validate
+    if (!subject) {
+      if (errEl) { errEl.textContent = 'Please enter a subject.'; errEl.classList.remove('hidden'); }
+      return;
+    }
+    if (!message || message.length < 10) {
+      if (errEl) { errEl.textContent = 'Please write a more detailed message (at least 10 characters).'; errEl.classList.remove('hidden'); }
+      return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+
+    try {
+      if (!url) throw new Error('Support endpoint not available');
+
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': _csrfToken,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          category: _supportCategory,
+          subject: subject,
+          message: message,
+          match_ref: matchRef,
+        }),
+      });
+
+      const data = await resp.json();
+
+      if (data.success) {
+        if (okEl) { okEl.textContent = data.message || 'Your message has been sent to the organizer.'; okEl.classList.remove('hidden'); }
+        // Clear form
+        const subj = document.getElementById('support-subject');
+        const msg = document.getElementById('support-message');
+        const ref = document.getElementById('support-match-ref');
+        if (subj) subj.value = '';
+        if (msg) msg.value = '';
+        if (ref) ref.value = '';
+        _updateCharCount();
+      } else {
+        if (errEl) { errEl.textContent = data.error || 'Failed to send message.'; errEl.classList.remove('hidden'); }
+      }
+    } catch (err) {
+      console.error('[HubEngine] Support submit error:', err);
+      if (errEl) { errEl.textContent = 'Network error. Please try again or contact the organizer directly.'; errEl.classList.remove('hidden'); }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Send Message';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+    }
+  }
+
   // ── Public API ──────────────────────────────────────────
   return {
     init,
@@ -1359,5 +1473,8 @@ const HubEngine = (() => {
     showStatusModal,
     closeStatusModal,
     dismissGuide,
+    // Module 12: Support & Disputes
+    selectSupportCategory,
+    submitSupportRequest,
   };
 })();

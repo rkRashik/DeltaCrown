@@ -206,6 +206,14 @@ def _build_hub_context(request, tournament, registration):
                 except Exception:
                     has_passport = False
 
+                # Properly determine roster_slot from TeamMembership role
+                if m.role in ('HEAD_COACH', 'COACH'):
+                    effective_roster_slot = 'COACH'
+                elif m.role == 'MANAGER':
+                    effective_roster_slot = m.roster_slot or 'SUBSTITUTE'
+                else:
+                    effective_roster_slot = m.roster_slot or 'STARTER'
+
                 member_data = {
                     'id': m.id,
                     'user_id': m.user_id,
@@ -213,7 +221,7 @@ def _build_hub_context(request, tournament, registration):
                     'display_name': m.display_name or m.user.get_full_name() or m.user.username,
                     'role': m.role,
                     'player_role': m.player_role or '',
-                    'roster_slot': m.roster_slot or 'STARTER',
+                    'roster_slot': effective_roster_slot,
                     'is_captain': m.is_tournament_captain,
                     'is_igl': False,
                     'game_id': game_id,
@@ -222,7 +230,7 @@ def _build_hub_context(request, tournament, registration):
                 }
                 squad.append(member_data)
 
-                if not has_passport and m.role in ['PLAYER', 'SUBSTITUTE']:
+                if not has_passport and effective_roster_slot in ('STARTER', 'SUBSTITUTE'):
                     squad_warnings.append(
                         f"{member_data['display_name']} is missing their Game ID"
                     )
@@ -257,6 +265,17 @@ def _build_hub_context(request, tournament, registration):
                 'name': igl_member['display_name'],
                 'user_id': igl_user_id,
             }
+    # Fallback: detect IGL from registration_data coordinator_role
+    if not igl_info and registration:
+        reg_data = registration.registration_data or {}
+        coord_role = reg_data.get('coordinator_role', '')
+        if 'igl' in coord_role.lower():
+            coord_is_self = reg_data.get('coordinator_is_self', True)
+            if coord_is_self and user:
+                igl_member = next((m for m in squad if m['user_id'] == user.id), None)
+                if igl_member:
+                    igl_info = {'name': igl_member['display_name'], 'user_id': user.id}
+                    igl_member['is_igl'] = True
 
     squad_ready = len(starters) >= min_roster and not squad_warnings
 
@@ -385,6 +404,15 @@ def _build_hub_context(request, tournament, registration):
         'game_name': tournament.game.name if tournament.game else '',
         'game_spec': game_spec,
 
+        # Game theme (for per-game visual styling)
+        'game_slug': tournament.game.slug if tournament.game else '',
+        'game_primary_color': tournament.game.primary_color if tournament.game else '#00F0FF',
+        'game_secondary_color': tournament.game.secondary_color if tournament.game else '#0C0C10',
+        'game_accent_color': (tournament.game.accent_color or '#FFFFFF') if tournament.game else '#FFFFFF',
+        'game_icon_url': tournament.game.icon.url if tournament.game and tournament.game.icon else '',
+        'game_logo_url': tournament.game.logo.url if tournament.game and hasattr(tournament.game, 'logo') and tournament.game.logo else '',
+        'game_card_url': tournament.game.card_image.url if tournament.game and hasattr(tournament.game, 'card_image') and tournament.game.card_image else '',
+
         # API endpoints (JS will poll these)
         'api_state_url': f'/tournaments/{tournament.slug}/hub/api/state/',
         'api_checkin_url': f'/tournaments/{tournament.slug}/hub/api/check-in/',
@@ -404,7 +432,11 @@ def _build_hub_context(request, tournament, registration):
         'organizer_name': tournament.organizer.get_full_name() or tournament.organizer.username if tournament.organizer else 'Organizer',
         'social_twitter': tournament.social_twitter or '',
         'social_instagram': tournament.social_instagram or '',
+        'social_youtube': tournament.social_youtube or '',
         'social_website': tournament.social_website or '',
+
+        # Support system API
+        'api_support_url': f'/tournaments/{tournament.slug}/hub/api/support/',
     }
     return context
 
@@ -1381,3 +1413,77 @@ class HubParticipantsAPIView(LoginRequiredMixin, View):
                     is_deleted=False,
                 ).exists(),
             }
+
+
+class HubSupportAPIView(LoginRequiredMixin, View):
+    """POST: Submit a support request / dispute to the tournament organizer."""
+
+    def post(self, request, slug):
+        tournament = get_object_or_404(Tournament.objects.select_related('organizer'), slug=slug)
+        registration = _get_user_registration(request.user, tournament)
+        if not registration:
+            return JsonResponse({'error': 'not_registered'}, status=403)
+
+        try:
+            body = json.loads(request.body)
+        except (json.JSONDecodeError, ValueError):
+            return JsonResponse({'error': 'Invalid request body.'}, status=400)
+
+        category = body.get('category', 'general')
+        subject = (body.get('subject') or '').strip()
+        message = (body.get('message') or '').strip()
+        match_ref = (body.get('match_ref') or '').strip()
+
+        if not subject or len(subject) < 3:
+            return JsonResponse({'error': 'Subject is required (at least 3 characters).'}, status=400)
+        if not message or len(message) < 10:
+            return JsonResponse({'error': 'Message must be at least 10 characters.'}, status=400)
+
+        valid_categories = ['general', 'dispute', 'technical', 'payment']
+        if category not in valid_categories:
+            category = 'general'
+
+        # Log the support request
+        logger.info(
+            '[Hub Support] %s | Tournament: %s | User: %s | Category: %s | Subject: %s',
+            tournament.slug, tournament.name, request.user.username, category, subject,
+        )
+
+        # Send email notification to organizer (if contact_email exists)
+        organizer_email = tournament.contact_email
+        if organizer_email:
+            try:
+                from django.core.mail import send_mail
+                from django.conf import settings
+
+                team_name = ''
+                if registration.team:
+                    team_name = f' (Team: {registration.team.name})'
+
+                email_body = (
+                    f"Support Request from {request.user.get_full_name() or request.user.username}{team_name}\n"
+                    f"Tournament: {tournament.name}\n"
+                    f"Category: {category.replace('_', ' ').title()}\n"
+                    f"{'Match Reference: ' + match_ref + chr(10) if match_ref else ''}"
+                    f"\n---\n\n"
+                    f"Subject: {subject}\n\n"
+                    f"{message}\n"
+                    f"\n---\n"
+                    f"Reply to: {request.user.email or 'N/A'}\n"
+                    f"User: {request.user.username} (ID: {request.user.id})\n"
+                )
+
+                send_mail(
+                    subject=f'[{tournament.name}] Support: {subject}',
+                    message=email_body,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[organizer_email],
+                    fail_silently=True,
+                )
+            except Exception:
+                logger.warning('[Hub Support] Failed to send email notification', exc_info=True)
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Your message has been sent to the tournament organizer. You should receive a response within 24-48 hours.',
+        })

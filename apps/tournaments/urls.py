@@ -141,6 +141,7 @@ from apps.tournaments.views.hub import (
     HubStandingsAPIView,
     HubMatchesAPIView,
     HubParticipantsAPIView,
+    HubSupportAPIView,
 )
 from apps.tournaments.views.organizer_results import (
     PendingResultsView,
@@ -416,6 +417,7 @@ urlpatterns = [
     path('<slug:slug>/hub/api/standings/', HubStandingsAPIView.as_view(), name='hub_standings_api'),
     path('<slug:slug>/hub/api/matches/', HubMatchesAPIView.as_view(), name='hub_matches_api'),
     path('<slug:slug>/hub/api/participants/', HubParticipantsAPIView.as_view(), name='hub_participants_api'),
+    path('<slug:slug>/hub/api/support/', HubSupportAPIView.as_view(), name='hub_support_api'),
 
     # Legacy URL compatibility
     path('hub/', RedirectView.as_view(pattern_name='tournaments:list', permanent=True), name='hub'),
