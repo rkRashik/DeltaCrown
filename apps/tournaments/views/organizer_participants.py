@@ -498,3 +498,182 @@ def close_drop_noshows(request, slug):
 
     messages.warning(request, f"Check-in closed. {count} no-show(s) dropped.")
     return JsonResponse({'success': True, 'dropped_count': count})
+
+
+# ============================================================================
+# Registration Detail API  (view registration form data)
+# ============================================================================
+
+@login_required
+def registration_detail_api(request, slug, registration_id):
+    """
+    Return registration detail JSON for the organizer's expand/drawer view.
+    Includes: registration_data, lineup_snapshot, verification flags, team info.
+    """
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+
+    if not checker.has_any(['manage_registrations', 'view_all']):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    reg = get_object_or_404(
+        Registration, id=registration_id, tournament=tournament, is_deleted=False
+    )
+
+    # ── Build registration detail ──
+    rd = reg.registration_data or {}
+    snapshot = reg.lineup_snapshot or []
+
+    # Enrich snapshot with fresh game passport data
+    enriched_roster = []
+    for entry in snapshot:
+        uid = entry.get('user_id')
+        member = {
+            'user_id': uid,
+            'display_name': entry.get('display_name', entry.get('username', 'Unknown')),
+            'username': entry.get('username', ''),
+            'role': entry.get('role', 'PLAYER'),
+            'roster_slot': entry.get('roster_slot', 'STARTER'),
+            'player_role': entry.get('player_role', ''),
+            'is_igl': entry.get('is_igl', False),
+            'game_id': entry.get('game_id', ''),
+            'avatar': entry.get('avatar', ''),
+        }
+
+        # Fresh game ID from passport
+        if uid and tournament.game:
+            try:
+                from apps.user_profile.services.game_passport_service import GamePassportService
+                passport = GamePassportService.get_passport_by_user_id(uid, tournament.game.slug)
+                if passport and passport.ign:
+                    gid = passport.ign
+                    if passport.discriminator:
+                        d = passport.discriminator
+                        if not d.startswith('#') and not d.startswith('-'):
+                            d = f'#{d}'
+                        gid = f'{passport.ign}{d}'
+                    member['game_id'] = gid
+                    member['game_id_verified'] = getattr(passport, 'is_verified', False)
+                else:
+                    member['game_id_verified'] = False
+            except Exception:
+                member['game_id_verified'] = False
+        else:
+            member['game_id_verified'] = False
+
+        enriched_roster.append(member)
+
+    # Team info
+    team_info = None
+    if reg.team_id:
+        try:
+            from apps.organizations.models.team import Team
+            from apps.organizations.models.membership import TeamMembership
+            team = Team.objects.get(id=reg.team_id)
+            team_info = {
+                'id': team.id,
+                'name': team.name,
+                'tag': team.tag or '',
+                'slug': team.slug or '',
+                'logo_url': team.logo.url if team.logo else '',
+                'member_count': TeamMembership.objects.filter(
+                    team=team, status=TeamMembership.Status.ACTIVE
+                ).count(),
+            }
+        except Exception:
+            pass
+
+    # Verification flags for this registration
+    reg_flags = []
+    try:
+        from apps.tournaments.services.registration_verification import RegistrationVerificationService
+        result = RegistrationVerificationService.verify_tournament(tournament)
+        reg_flags = result['per_registration'].get(reg.id, [])
+    except Exception:
+        pass
+
+    # Custom question answers
+    answers = []
+    try:
+        from apps.tournaments.models import RegistrationAnswer
+        for ans in RegistrationAnswer.objects.filter(registration=reg).select_related('question'):
+            answers.append({
+                'question': ans.question.label if ans.question else 'Unknown',
+                'answer': ans.answer_text or ans.answer_data or '',
+            })
+    except Exception:
+        pass
+
+    # Payment info
+    payment_info = None
+    try:
+        from apps.tournaments.models import Payment
+        payment = Payment.objects.filter(registration=reg).order_by('-submitted_at').first()
+        if payment:
+            payment_info = {
+                'id': payment.id,
+                'amount': str(payment.amount) if payment.amount else '0',
+                'method': payment.payment_method or '',
+                'transaction_id': payment.transaction_id or '',
+                'status': payment.status,
+                'proof_url': payment.proof_image.url if getattr(payment, 'proof_image', None) and payment.proof_image else '',
+                'submitted_at': payment.submitted_at.isoformat() if payment.submitted_at else '',
+            }
+    except Exception:
+        pass
+
+    return JsonResponse({
+        'id': reg.id,
+        'registration_number': reg.registration_number or '',
+        'status': reg.status,
+        'checked_in': reg.checked_in,
+        'created_at': reg.created_at.isoformat() if reg.created_at else '',
+        'is_team': bool(reg.team_id),
+        'is_guest_team': reg.is_guest_team,
+        'registration_data': {
+            'display_name': rd.get('display_name', ''),
+            'full_name': rd.get('full_name', ''),
+            'email': rd.get('email', ''),
+            'phone': rd.get('phone', ''),
+            'discord': rd.get('discord', ''),
+            'game_id': rd.get('game_id', ''),
+            'rank': rd.get('rank', ''),
+            'country': rd.get('country', ''),
+            'coordinator_role': rd.get('coordinator_role', ''),
+            'coordinator_is_self': rd.get('coordinator_is_self', True),
+            'captain_display_name': rd.get('captain_display_name', ''),
+            'captain_whatsapp': rd.get('captain_whatsapp', ''),
+            'captain_discord': rd.get('captain_discord', ''),
+            'captain_phone': rd.get('captain_phone', ''),
+        },
+        'roster': enriched_roster,
+        'team': team_info,
+        'flags': reg_flags,
+        'custom_answers': answers,
+        'payment': payment_info,
+    })
+
+
+# ============================================================================
+# Tournament Verification API  (run all automated checks)
+# ============================================================================
+
+@login_required
+def tournament_verification_api(request, slug):
+    """
+    Run automated verification checks across all registrations.
+    Returns summary + per-registration flags.
+    """
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+
+    if not checker.has_any(['manage_registrations', 'view_all']):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    from apps.tournaments.services.registration_verification import RegistrationVerificationService
+    result = RegistrationVerificationService.verify_tournament(tournament)
+
+    return JsonResponse({
+        'summary': result['summary'],
+        'flags': result['flags'],
+    })

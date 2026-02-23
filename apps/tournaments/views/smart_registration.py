@@ -918,6 +918,50 @@ class SmartRegistrationView(LoginRequiredMixin, View):
                 registration.lineup_snapshot = snapshot
                 registration.save(update_fields=['lineup_snapshot'])
                 logger.info(f"Lineup snapshot saved for registration {registration.id}: {len(snapshot)} members")
+
+                # ── Sync Captain/IGL to TeamMembership ──
+                # On this platform, Captain and IGL are the SAME unified role.
+                # When the registrant designates a captain/IGL during registration,
+                # update the team's is_tournament_captain accordingly.
+                try:
+                    new_captain_user_id = None
+
+                    # 1) Explicit IGL from roster form
+                    if igl_member_id:
+                        igl_tm = roster_qs.filter(id=int(igl_member_id)).first()
+                        if igl_tm:
+                            new_captain_user_id = igl_tm.user_id
+
+                    # 2) Coordinator role from registration data (captain_igl, captain, igl)
+                    if not new_captain_user_id:
+                        coord_role = registration_data.get('coordinator_role', '')
+                        if 'captain' in coord_role.lower() or 'igl' in coord_role.lower():
+                            coord_is_self = registration_data.get('coordinator_is_self', True)
+                            coord_member_id = registration_data.get('coordinator_member_id')
+                            if coord_is_self:
+                                new_captain_user_id = request.user.id
+                            elif coord_member_id:
+                                coord_tm = roster_qs.filter(id=int(coord_member_id)).first()
+                                if coord_tm:
+                                    new_captain_user_id = coord_tm.user_id
+
+                    if new_captain_user_id:
+                        # Check if the captain actually changed
+                        current_captain = roster_qs.filter(is_tournament_captain=True).first()
+                        if not current_captain or current_captain.user_id != new_captain_user_id:
+                            from django.db import transaction as db_transaction
+                            with db_transaction.atomic():
+                                # Clear old captain(s)
+                                roster_qs.filter(is_tournament_captain=True).update(is_tournament_captain=False)
+                                # Set new captain
+                                updated = roster_qs.filter(user_id=new_captain_user_id).update(is_tournament_captain=True)
+                                if updated:
+                                    logger.info(
+                                        f"Captain/IGL synced for team {registration.team_id}: "
+                                        f"user {new_captain_user_id} is now tournament captain"
+                                    )
+                except Exception as e:
+                    logger.warning(f"Failed to sync captain/IGL for reg {registration.id}: {e}", exc_info=True)
             except ValidationError:
                 # Re-raise validation errors (roster size issues)
                 raise

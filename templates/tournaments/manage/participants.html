@@ -14,7 +14,13 @@
       {% if reg_stats.waitlisted %} · <span class="text-purple-400">{{ reg_stats.waitlisted }} waitlist</span>{% endif %}
     </p>
   </div>
-  <div class="flex items-center gap-2">
+  <div class="flex items-center gap-2 flex-wrap">
+    {% if can_manage %}
+      <button onclick="runVerification()" id="verify-all-btn"
+              class="btn-secondary text-xs !py-2 text-amber-400 border-amber-500/20 hover:bg-amber-500/10">
+        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Verify All
+      </button>
+    {% endif %}
     <a href="{% url 'tournaments:export_roster_csv' tournament.slug %}"
        class="btn-secondary text-xs !py-2">
       <i data-lucide="download" class="w-3.5 h-3.5"></i> Export CSV
@@ -43,6 +49,34 @@
     {% endif %}
   </div>
 </div>
+
+{# ── Verification Summary Banner ── #}
+{% if verification_summary %}
+{% with vs=verification_summary %}
+{% if vs.critical > 0 or vs.warning > 0 %}
+<div class="liquid-glass rounded-2xl p-4 mb-5 border {% if vs.critical %}border-red-500/30{% else %}border-amber-500/20{% endif %}">
+  <div class="flex items-center gap-3 mb-2">
+    <div class="w-8 h-8 rounded-lg flex items-center justify-center {% if vs.critical %}bg-red-500/15 text-red-400{% else %}bg-amber-500/15 text-amber-400{% endif %}">
+      <i data-lucide="{% if vs.critical %}alert-triangle{% else %}alert-circle{% endif %}" class="w-4 h-4"></i>
+    </div>
+    <div>
+      <h3 class="text-sm font-semibold text-white">Verification Issues Detected</h3>
+      <p class="text-xs text-white/40">
+        {% if vs.critical %}<span class="text-red-400 font-semibold">{{ vs.critical }} critical</span>{% endif %}
+        {% if vs.critical and vs.warning %} · {% endif %}
+        {% if vs.warning %}<span class="text-amber-400 font-semibold">{{ vs.warning }} warning{{ vs.warning|pluralize }}</span>{% endif %}
+        {% if vs.info %} · <span class="text-blue-400">{{ vs.info }} info</span>{% endif %}
+        &mdash; {{ vs.flagged_registrations }} registration{{ vs.flagged_registrations|pluralize }} affected
+      </p>
+    </div>
+    <button onclick="runVerification()" class="ml-auto btn-secondary text-xs !py-1.5 text-white/40">
+      <i data-lucide="refresh-cw" class="w-3 h-3"></i> Re-check
+    </button>
+  </div>
+</div>
+{% endif %}
+{% endwith %}
+{% endif %}
 
 {# Status tabs #}
 <div class="flex items-center gap-1 mb-4 overflow-x-auto pb-1">
@@ -99,15 +133,31 @@
       </thead>
       <tbody>
         {% for reg in registrations %}
-          <tr class="group">
+          <tr class="group hover:bg-white/[0.03] cursor-pointer transition" onclick="openRegDetail({{ reg.id }}, event)">
             {% if can_manage %}
-              <td>
+              <td onclick="event.stopPropagation()">
                 <input type="checkbox" name="reg_ids" value="{{ reg.id }}"
                        class="reg-checkbox rounded accent-cyan-500 cursor-pointer">
               </td>
             {% endif %}
             <td>
-              <span class="text-xs font-mono text-cyan-400/70">{{ reg.registration_number|default:"—" }}</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-mono text-cyan-400/70">{{ reg.registration_number|default:"—" }}</span>
+                {# Verification flag dot #}
+                {% with flag_sev=verification_flag_map|default:"" %}
+                {% if flag_sev %}
+                  {% for reg_id, sev in verification_flag_map.items %}
+                    {% if reg_id == reg.id %}
+                      {% if sev == 'CRITICAL' %}
+                        <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" title="Critical verification issue"></span>
+                      {% elif sev == 'WARNING' %}
+                        <span class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" title="Verification warning"></span>
+                      {% endif %}
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+                {% endwith %}
+              </div>
             </td>
             <td>
               <div class="flex items-center gap-3">
@@ -116,7 +166,7 @@
                 </div>
                 <div class="min-w-0">
                   <p class="text-sm text-white/80 font-medium truncate">
-                    {% if reg.user %}{{ reg.user.username }}{% else %}Team {{ reg.team_id }}{% endif %}
+                    {% if reg.user %}{{ reg.user.username }}{% else %}{{ reg.registration_data.display_name|default:"Unknown" }}{% endif %}
                   </p>
                   <p class="text-xs text-white/35">
                     {% if reg.user %}{{ reg.user.email|default:"" }}{% endif %}
@@ -134,10 +184,14 @@
                   Guest: {{ reg.registration_data.guest_team.team_name|default:"Guest" }}
                 </span>
               {% elif reg.team_id %}
+                {% with team_info=team_name_map|default:"" %}
                 <span class="badge badge-purple text-[10px]">
                   <i data-lucide="shield" class="w-2.5 h-2.5 inline -mt-px"></i>
-                  Team {{ reg.team_id }}
+                  {% for tid, tdata in team_name_map.items %}
+                    {% if tid == reg.team_id %}{{ tdata.tag|default:"" }}{% if tdata.tag %} {% endif %}{{ tdata.name }}{% endif %}
+                  {% endfor %}
                 </span>
+                {% endwith %}
               {% else %}
                 <span class="text-xs text-white/25 italic">Solo</span>
               {% endif %}
@@ -157,47 +211,54 @@
               </span>
             </td>
             <td class="text-white/40 text-xs font-mono">{{ reg.created_at|timesince }} ago</td>
-            <td class="text-right">
-              <div class="relative" data-dropdown>
-                <button class="p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-white/60 transition"
-                        data-dropdown-toggle>
-                  <i data-lucide="more-vertical" class="w-4 h-4"></i>
+            <td class="text-right" onclick="event.stopPropagation()">
+              <div class="flex items-center justify-end gap-1">
+                <button onclick="openRegDetail({{ reg.id }})"
+                        class="p-1.5 rounded-lg hover:bg-cyan-500/10 text-cyan-400/50 hover:text-cyan-400 transition"
+                        title="View Details">
+                  <i data-lucide="eye" class="w-4 h-4"></i>
                 </button>
-                <div class="absolute right-0 top-full mt-1 w-44 rounded-xl bg-[#1a1a24] border border-white/10 shadow-xl z-20 hidden"
-                     data-dropdown-menu>
-                  {% if reg.status == 'pending' and can_manage %}
-                    <a href="{% url 'tournaments:approve_registration' tournament.slug reg.id %}"
-                       class="flex items-center gap-2 px-3 py-2 text-xs text-emerald-400 hover:bg-white/5 transition rounded-t-xl">
-                      <i data-lucide="check" class="w-3.5 h-3.5"></i> Approve
-                    </a>
-                    <a href="{% url 'tournaments:reject_registration' tournament.slug reg.id %}"
-                       class="flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-white/5 transition">
-                      <i data-lucide="x" class="w-3.5 h-3.5"></i> Reject
-                    </a>
-                  {% endif %}
-                  {% if reg.status == 'confirmed' and can_manage %}
-                    <a href="{% url 'tournaments:toggle_checkin' tournament.slug reg.id %}"
-                       class="flex items-center gap-2 px-3 py-2 text-xs text-cyan-400 hover:bg-white/5 transition rounded-t-xl">
-                      <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
-                      {% if reg.checked_in %}Undo Check-In{% else %}Check In{% endif %}
-                    </a>
-                  {% endif %}
-                  {% if can_manage and reg.status != 'rejected' and reg.status != 'cancelled' %}
-                    <a href="{% url 'tournaments:disqualify_participant' tournament.slug reg.id %}"
-                       class="flex items-center gap-2 px-3 py-2 text-xs text-orange-400 hover:bg-white/5 transition">
-                      <i data-lucide="ban" class="w-3.5 h-3.5"></i> Disqualify
-                    </a>
-                    <button onclick="dqCascade('{{ tournament.slug }}', {{ reg.id }}, '{{ reg.user.username|default:"this participant" }}')"
-                       class="flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-white/5 transition w-full text-left">
-                      <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> DQ + Forfeit Matches
-                    </button>
-                  {% endif %}
-                  {% if reg.status == 'waitlisted' and can_manage %}
-                    <button data-promote-id="{{ reg.id }}"
-                       class="flex items-center gap-2 px-3 py-2 text-xs text-purple-400 hover:bg-white/5 transition w-full text-left rounded-b-xl promote-btn">
-                      <i data-lucide="arrow-up-circle" class="w-3.5 h-3.5"></i> Promote from Waitlist
-                    </button>
-                  {% endif %}
+                <div class="relative" data-dropdown>
+                  <button class="p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-white/60 transition"
+                          data-dropdown-toggle>
+                    <i data-lucide="more-vertical" class="w-4 h-4"></i>
+                  </button>
+                  <div class="absolute right-0 top-full mt-1 w-44 rounded-xl bg-[#1a1a24] border border-white/10 shadow-xl z-20 hidden"
+                       data-dropdown-menu>
+                    {% if reg.status == 'pending' and can_manage %}
+                      <a href="{% url 'tournaments:approve_registration' tournament.slug reg.id %}"
+                         class="flex items-center gap-2 px-3 py-2 text-xs text-emerald-400 hover:bg-white/5 transition rounded-t-xl">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i> Approve
+                      </a>
+                      <a href="{% url 'tournaments:reject_registration' tournament.slug reg.id %}"
+                         class="flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-white/5 transition">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i> Reject
+                      </a>
+                    {% endif %}
+                    {% if reg.status == 'confirmed' and can_manage %}
+                      <a href="{% url 'tournaments:toggle_checkin' tournament.slug reg.id %}"
+                         class="flex items-center gap-2 px-3 py-2 text-xs text-cyan-400 hover:bg-white/5 transition rounded-t-xl">
+                        <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
+                        {% if reg.checked_in %}Undo Check-In{% else %}Check In{% endif %}
+                      </a>
+                    {% endif %}
+                    {% if can_manage and reg.status != 'rejected' and reg.status != 'cancelled' %}
+                      <a href="{% url 'tournaments:disqualify_participant' tournament.slug reg.id %}"
+                         class="flex items-center gap-2 px-3 py-2 text-xs text-orange-400 hover:bg-white/5 transition">
+                        <i data-lucide="ban" class="w-3.5 h-3.5"></i> Disqualify
+                      </a>
+                      <button onclick="dqCascade('{{ tournament.slug }}', {{ reg.id }}, '{{ reg.user.username|default:"this participant" }}')"
+                         class="flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-white/5 transition w-full text-left">
+                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> DQ + Forfeit Matches
+                      </button>
+                    {% endif %}
+                    {% if reg.status == 'waitlisted' and can_manage %}
+                      <button data-promote-id="{{ reg.id }}"
+                         class="flex items-center gap-2 px-3 py-2 text-xs text-purple-400 hover:bg-white/5 transition w-full text-left rounded-b-xl promote-btn">
+                        <i data-lucide="arrow-up-circle" class="w-3.5 h-3.5"></i> Promote from Waitlist
+                      </button>
+                    {% endif %}
+                  </div>
                 </div>
               </div>
             </td>
@@ -250,6 +311,46 @@
 </div>
 {% endif %}
 
+{# ── Registration Detail Drawer (slide-out panel) ── #}
+<div id="reg-detail-overlay" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity" onclick="closeRegDetail()"></div>
+<div id="reg-detail-drawer" class="fixed top-0 right-0 h-full w-full max-w-xl z-50 transform translate-x-full transition-transform duration-300 ease-out overflow-hidden">
+  <div class="h-full flex flex-col bg-[#0e0e16] border-l border-white/10">
+    {# Drawer header #}
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+      <div>
+        <h3 class="text-base font-display font-bold text-white" id="drawer-title">Registration Detail</h3>
+        <p class="text-xs text-white/40" id="drawer-subtitle">Loading…</p>
+      </div>
+      <button onclick="closeRegDetail()" class="p-2 rounded-lg hover:bg-white/5 text-white/30 hover:text-white transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    {# Drawer body (scrollable) #}
+    <div id="drawer-body" class="flex-1 overflow-y-auto p-5 custom-scrollbar">
+      <div class="flex items-center justify-center py-16 text-white/20">
+        <i data-lucide="loader-2" class="w-6 h-6 animate-spin"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Verification Results Modal ── #}
+<div id="verification-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+  <div class="liquid-glass rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-white/10">
+      <h3 class="text-lg font-display font-bold text-white">Verification Results</h3>
+      <button onclick="document.getElementById('verification-modal').classList.add('hidden')" class="text-white/30 hover:text-white transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    <div id="verification-body" class="flex-1 overflow-y-auto p-6 custom-scrollbar">
+      <div class="flex items-center justify-center py-12 text-white/20">
+        <i data-lucide="loader-2" class="w-6 h-6 animate-spin"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
 {# ── Add Participant Modal ── #}
 <div id="add-participant-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60">
   <div class="liquid-glass rounded-2xl p-6 w-full max-w-md">
@@ -280,7 +381,294 @@
 {% block extra_js %}
 <script>
 (function() {
+  var SLUG = '{{ tournament.slug }}';
+  var CSRF = '{{ csrf_token }}';
+
+  // ═══════════════════════════════════════════════
+  // Registration Detail Drawer
+  // ═══════════════════════════════════════════════
+
+  window.openRegDetail = function(regId, event) {
+    if (event && (event.target.closest('[data-dropdown]') || event.target.closest('input[type="checkbox"]'))) return;
+
+    var overlay = document.getElementById('reg-detail-overlay');
+    var drawer = document.getElementById('reg-detail-drawer');
+    overlay.classList.remove('hidden');
+    requestAnimationFrame(function() {
+      drawer.classList.remove('translate-x-full');
+    });
+
+    document.getElementById('drawer-subtitle').textContent = 'Loading registration #' + regId + '…';
+    document.getElementById('drawer-body').innerHTML =
+      '<div class="flex items-center justify-center py-16 text-white/20"><i data-lucide="loader-2" class="w-6 h-6 animate-spin"></i></div>';
+    if (window.lucide) lucide.createIcons();
+
+    fetch('/tournaments/organizer/' + SLUG + '/api/registration/' + regId + '/')
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(d) { renderRegDetail(d); })
+      .catch(function(err) {
+        document.getElementById('drawer-body').innerHTML =
+          '<div class="text-center py-12 text-red-400/60"><p>Failed to load registration detail.</p><p class="text-xs text-white/30 mt-1">' + err.message + '</p></div>';
+      });
+  };
+
+  window.closeRegDetail = function() {
+    document.getElementById('reg-detail-drawer').classList.add('translate-x-full');
+    document.getElementById('reg-detail-overlay').classList.add('hidden');
+  };
+
+  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  function severityBadge(sev) {
+    if (sev === 'CRITICAL') return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/15 text-red-400 border border-red-500/20"><i data-lucide="alert-triangle" class="w-2.5 h-2.5"></i> Critical</span>';
+    if (sev === 'WARNING') return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/20"><i data-lucide="alert-circle" class="w-2.5 h-2.5"></i> Warning</span>';
+    return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/20"><i data-lucide="info" class="w-2.5 h-2.5"></i> Info</span>';
+  }
+
+  function statusBadge(status) {
+    var colors = {
+      confirmed: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+      pending: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
+      payment_submitted: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
+      waitlisted: 'bg-purple-500/15 text-purple-400 border-purple-500/20',
+      rejected: 'bg-red-500/15 text-red-400 border-red-500/20',
+      cancelled: 'bg-gray-500/15 text-gray-400 border-gray-500/20',
+      no_show: 'bg-gray-500/15 text-gray-400 border-gray-500/20',
+    };
+    var cls = colors[status] || 'bg-gray-500/15 text-gray-400 border-gray-500/20';
+    return '<span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold border ' + cls + '">' + esc(status) + '</span>';
+  }
+
+  function renderRegDetail(d) {
+    var rd = d.registration_data || {};
+    var title = 'REG#' + (d.registration_number || d.id);
+    document.getElementById('drawer-title').textContent = title;
+    document.getElementById('drawer-subtitle').innerHTML = statusBadge(d.status) + (d.checked_in ? ' <span class="text-cyan-400 text-xs font-semibold ml-1">✓ Checked In</span>' : '');
+
+    var html = '';
+
+    // ── Verification Flags ──
+    if (d.flags && d.flags.length) {
+      html += '<div class="mb-5">';
+      html += '<h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Verification Flags</h4>';
+      html += '<div class="space-y-2">';
+      d.flags.forEach(function(f) {
+        html += '<div class="flex items-start gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5">';
+        html += severityBadge(f.severity);
+        html += '<div class="min-w-0"><p class="text-xs text-white/70">' + esc(f.message) + '</p>';
+        if (f.details) {
+          for (var dk in f.details) {
+            html += '<p class="text-[10px] text-white/30 mt-0.5">' + esc(dk) + ': ' + esc(String(f.details[dk])) + '</p>';
+          }
+        }
+        html += '</div></div>';
+      });
+      html += '</div></div>';
+    }
+
+    // ── Registration Info ──
+    html += '<div class="mb-5">';
+    html += '<h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Registration Info</h4>';
+    html += '<div class="grid grid-cols-2 gap-x-4 gap-y-2 p-4 rounded-xl bg-white/[0.02] border border-white/5">';
+    var fields = [
+      ['Display Name', rd.display_name], ['Full Name', rd.full_name],
+      ['Email', rd.email], ['Phone', rd.phone],
+      ['Discord', rd.discord], ['Game ID', rd.game_id],
+      ['Rank', rd.rank], ['Country', rd.country],
+      ['Coordinator Role', rd.coordinator_role],
+    ];
+    fields.forEach(function(f) {
+      if (f[1]) {
+        html += '<div><p class="text-[10px] text-white/30 uppercase">' + esc(f[0]) + '</p><p class="text-xs text-white/70 font-medium">' + esc(f[1]) + '</p></div>';
+      }
+    });
+    html += '</div></div>';
+
+    // ── Captain / Contact Info ──
+    if (rd.captain_display_name || rd.captain_whatsapp || rd.captain_discord || rd.captain_phone) {
+      html += '<div class="mb-5">';
+      html += '<h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Captain / Coordinator Contact</h4>';
+      html += '<div class="grid grid-cols-2 gap-x-4 gap-y-2 p-4 rounded-xl bg-white/[0.02] border border-white/5">';
+      var cFields = [
+        ['Captain Name', rd.captain_display_name], ['WhatsApp', rd.captain_whatsapp],
+        ['Discord', rd.captain_discord], ['Phone', rd.captain_phone],
+      ];
+      cFields.forEach(function(f) {
+        if (f[1]) {
+          html += '<div><p class="text-[10px] text-white/30 uppercase">' + esc(f[0]) + '</p><p class="text-xs text-white/70 font-medium">' + esc(f[1]) + '</p></div>';
+        }
+      });
+      html += '</div></div>';
+    }
+
+    // ── Team Info ──
+    if (d.team) {
+      html += '<div class="mb-5">';
+      html += '<h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Team</h4>';
+      html += '<div class="flex items-center gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">';
+      if (d.team.logo_url) {
+        html += '<img src="' + esc(d.team.logo_url) + '" class="w-10 h-10 rounded-lg object-cover" alt="">';
+      } else {
+        html += '<div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center text-sm font-bold text-white/50">' + esc((d.team.tag || d.team.name || '?').charAt(0).toUpperCase()) + '</div>';
+      }
+      html += '<div><p class="text-sm font-semibold text-white/80">' + (d.team.tag ? '<span class="text-purple-400">[' + esc(d.team.tag) + ']</span> ' : '') + esc(d.team.name) + '</p>';
+      html += '<p class="text-[10px] text-white/35">' + d.team.member_count + ' members · ID#' + d.team.id + '</p></div>';
+      html += '</div></div>';
+    }
+
+    // ── Roster / Lineup ──
+    if (d.roster && d.roster.length) {
+      html += '<div class="mb-5">';
+      html += '<h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Roster (' + d.roster.length + ' players)</h4>';
+      html += '<div class="space-y-1">';
+      d.roster.forEach(function(m, i) {
+        var isSub = m.roster_slot === 'SUBSTITUTE';
+        html += '<div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 ' + (isSub ? 'opacity-60' : '') + '">';
+        // Avatar
+        if (m.avatar) {
+          html += '<img src="' + esc(m.avatar) + '" class="w-7 h-7 rounded-full object-cover">';
+        } else {
+          html += '<div class="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center text-[10px] font-bold text-white/50">' + esc((m.display_name || m.username || '?').charAt(0).toUpperCase()) + '</div>';
+        }
+        // Info
+        html += '<div class="flex-1 min-w-0">';
+        html += '<div class="flex items-center gap-1.5">';
+        html += '<p class="text-xs text-white/80 font-semibold truncate">' + esc(m.display_name || m.username) + '</p>';
+        if (m.is_igl) {
+          html += '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-gradient-to-r from-amber-500/20 to-red-500/20 text-amber-400 border border-amber-500/20">IGL</span>';
+        }
+        if (isSub) {
+          html += '<span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-white/5 text-white/30 border border-white/5">SUB</span>';
+        }
+        html += '</div>';
+        html += '<div class="flex items-center gap-2 mt-0.5">';
+        if (m.game_id) {
+          html += '<span class="text-[10px] text-cyan-400/60 font-mono">' + esc(m.game_id) + '</span>';
+          if (m.game_id_verified) {
+            html += '<span class="text-[10px] text-emerald-400" title="Verified">✓</span>';
+          }
+        } else {
+          html += '<span class="text-[10px] text-red-400/50 italic">No game ID</span>';
+        }
+        if (m.player_role) {
+          html += '<span class="text-[10px] text-white/25">· ' + esc(m.player_role) + '</span>';
+        }
+        html += '</div></div>';
+        html += '</div>';
+      });
+      html += '</div></div>';
+    }
+
+    // ── Custom Question Answers ──
+    if (d.custom_answers && d.custom_answers.length) {
+      html += '<div class="mb-5">';
+      html += '<h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Custom Form Answers</h4>';
+      html += '<div class="space-y-2 p-4 rounded-xl bg-white/[0.02] border border-white/5">';
+      d.custom_answers.forEach(function(a) {
+        html += '<div><p class="text-[10px] text-white/30 uppercase">' + esc(a.question) + '</p><p class="text-xs text-white/70">' + esc(String(a.answer)) + '</p></div>';
+      });
+      html += '</div></div>';
+    }
+
+    // ── Payment Info ──
+    if (d.payment) {
+      html += '<div class="mb-5">';
+      html += '<h4 class="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Payment</h4>';
+      html += '<div class="p-4 rounded-xl bg-white/[0.02] border border-white/5">';
+      html += '<div class="grid grid-cols-2 gap-x-4 gap-y-2">';
+      html += '<div><p class="text-[10px] text-white/30 uppercase">Amount</p><p class="text-xs text-white/70 font-semibold">₹' + esc(d.payment.amount) + '</p></div>';
+      html += '<div><p class="text-[10px] text-white/30 uppercase">Method</p><p class="text-xs text-white/70">' + esc(d.payment.method) + '</p></div>';
+      if (d.payment.transaction_id) {
+        html += '<div><p class="text-[10px] text-white/30 uppercase">Transaction ID</p><p class="text-xs text-cyan-400/70 font-mono">' + esc(d.payment.transaction_id) + '</p></div>';
+      }
+      html += '<div><p class="text-[10px] text-white/30 uppercase">Status</p>' + statusBadge(d.payment.status) + '</div>';
+      html += '</div>';
+      if (d.payment.proof_url) {
+        html += '<div class="mt-3 pt-3 border-t border-white/5"><p class="text-[10px] text-white/30 uppercase mb-2">Payment Proof</p>';
+        html += '<a href="' + esc(d.payment.proof_url) + '" target="_blank" class="block"><img src="' + esc(d.payment.proof_url) + '" class="rounded-lg max-h-48 object-contain border border-white/5" alt="Payment proof"></a>';
+        html += '</div>';
+      }
+      html += '</div></div>';
+    }
+
+    // ── Metadata ──
+    html += '<div class="pt-3 border-t border-white/5">';
+    html += '<div class="grid grid-cols-2 gap-x-4 gap-y-1">';
+    html += '<p class="text-[10px] text-white/20">Registered</p><p class="text-[10px] text-white/30">' + (d.created_at ? new Date(d.created_at).toLocaleString() : '—') + '</p>';
+    html += '<p class="text-[10px] text-white/20">Type</p><p class="text-[10px] text-white/30">' + (d.is_team ? (d.is_guest_team ? 'Guest Team' : 'Team') : 'Solo') + '</p>';
+    html += '</div></div>';
+
+    document.getElementById('drawer-body').innerHTML = html;
+    if (window.lucide) lucide.createIcons();
+  }
+
+  // ═══════════════════════════════════════════════
+  // Tournament-wide Verification
+  // ═══════════════════════════════════════════════
+
+  window.runVerification = function() {
+    var modal = document.getElementById('verification-modal');
+    var body = document.getElementById('verification-body');
+    modal.classList.remove('hidden');
+    body.innerHTML = '<div class="flex items-center justify-center py-12 text-white/20"><i data-lucide="loader-2" class="w-6 h-6 animate-spin"></i><span class="ml-2 text-xs">Running checks…</span></div>';
+    if (window.lucide) lucide.createIcons();
+
+    fetch('/tournaments/organizer/' + SLUG + '/api/verify/')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var html = '';
+        var s = data.summary || {};
+
+        // Summary bar
+        html += '<div class="flex items-center gap-4 mb-5 p-4 rounded-xl bg-white/[0.02] border border-white/5">';
+        html += '<div class="text-center"><p class="text-2xl font-bold text-white">' + (s.total_flags || 0) + '</p><p class="text-[10px] text-white/30">Total Issues</p></div>';
+        html += '<div class="text-center"><p class="text-2xl font-bold text-red-400">' + (s.critical || 0) + '</p><p class="text-[10px] text-red-400/50">Critical</p></div>';
+        html += '<div class="text-center"><p class="text-2xl font-bold text-amber-400">' + (s.warning || 0) + '</p><p class="text-[10px] text-amber-400/50">Warnings</p></div>';
+        html += '<div class="text-center"><p class="text-2xl font-bold text-blue-400">' + (s.info || 0) + '</p><p class="text-[10px] text-blue-400/50">Info</p></div>';
+        html += '<div class="text-center ml-auto"><p class="text-2xl font-bold text-white/40">' + (s.flagged_registrations || 0) + '</p><p class="text-[10px] text-white/25">Affected</p></div>';
+        html += '</div>';
+
+        // Flags list
+        var flags = data.flags || [];
+        if (flags.length === 0) {
+          html += '<div class="text-center py-8"><i data-lucide="check-circle" class="w-10 h-10 mx-auto text-emerald-400/30 mb-2"></i><p class="text-sm text-emerald-400/60 font-semibold">All checks passed!</p><p class="text-xs text-white/25 mt-1">No issues detected across all registrations.</p></div>';
+        } else {
+          html += '<div class="space-y-2">';
+          flags.forEach(function(f) {
+            html += '<div class="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">';
+            html += severityBadge(f.severity);
+            html += '<div class="min-w-0 flex-1">';
+            html += '<p class="text-xs text-white/70">' + esc(f.message) + '</p>';
+            if (f.registration_id) {
+              html += '<p class="text-[10px] text-white/25 mt-0.5">Registration #' + f.registration_id + '</p>';
+            }
+            if (f.details) {
+              html += '<div class="mt-1 flex flex-wrap gap-1">';
+              for (var dk in f.details) {
+                html += '<span class="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/25">' + esc(dk) + ': ' + esc(String(f.details[dk])) + '</span>';
+              }
+              html += '</div>';
+            }
+            html += '</div></div>';
+          });
+          html += '</div>';
+        }
+
+        body.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+      })
+      .catch(function(err) {
+        body.innerHTML = '<div class="text-center py-12 text-red-400/60"><p>Verification failed.</p><p class="text-xs text-white/30 mt-1">' + err.message + '</p></div>';
+      });
+  };
+
+  // ═══════════════════════════════════════════════
   // Bulk selection
+  // ═══════════════════════════════════════════════
+
   var selectAll = document.getElementById('select-all');
   var bulkBtn = document.getElementById('bulk-approve-btn');
   var bulkContainer = document.getElementById('bulk-ids-container');
@@ -298,7 +686,6 @@
       bulkBtn.classList.add('opacity-50', 'cursor-not-allowed');
       bulkBtn.textContent = 'Approve Selected';
     }
-    // Sync hidden inputs
     if (bulkContainer) {
       bulkContainer.innerHTML = '';
       checked.forEach(function(cb) {
@@ -317,15 +704,16 @@
   }
   checkboxes.forEach(function(cb) { cb.addEventListener('change', updateBulkBtn); });
 
+  // ═══════════════════════════════════════════════
   // Dropdown menus
+  // ═══════════════════════════════════════════════
+
   document.querySelectorAll('[data-dropdown]').forEach(function(el) {
     var toggle = el.querySelector('[data-dropdown-toggle]');
     var menu = el.querySelector('[data-dropdown-menu]');
     if (!toggle || !menu) return;
-
     toggle.addEventListener('click', function(e) {
       e.stopPropagation();
-      // Close all other dropdowns
       document.querySelectorAll('[data-dropdown-menu]').forEach(function(m) {
         if (m !== menu) m.classList.add('hidden');
       });
@@ -334,12 +722,21 @@
   });
 
   document.addEventListener('click', function() {
-    document.querySelectorAll('[data-dropdown-menu]').forEach(function(m) {
-      m.classList.add('hidden');
-    });
+    document.querySelectorAll('[data-dropdown-menu]').forEach(function(m) { m.classList.add('hidden'); });
   });
 
+  // Escape key closes drawer
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeRegDetail();
+      document.getElementById('verification-modal').classList.add('hidden');
+    }
+  });
+
+  // ═══════════════════════════════════════════════
   // Promote from waitlist
+  // ═══════════════════════════════════════════════
+
   document.querySelectorAll('.promote-btn').forEach(function(btn) {
     btn.addEventListener('click', function(e) {
       e.stopPropagation();
@@ -347,7 +744,7 @@
       if (!confirm('Promote this registration from the waitlist?')) return;
       fetch('{% url "tournaments:promote_registration" tournament.slug 0 %}'.replace('/0/', '/' + regId + '/'), {
         method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
       })
       .then(function(r) { return r.json(); })
       .then(function(data) {
@@ -365,7 +762,7 @@
       if (!confirm('Promote the next waitlisted participant?')) return;
       fetch('{% url "tournaments:auto_promote_next" tournament.slug %}', {
         method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
       })
       .then(function(r) { return r.json(); })
       .then(function(data) {
@@ -377,7 +774,7 @@
   }
 })();
 
-/* P3-T06: Add Participant Manually */
+/* Add Participant Manually */
 function submitAddParticipant(slug) {
   var username = document.getElementById('ap-username').value.trim();
   var teamId = document.getElementById('ap-team-id').value.trim();
@@ -398,7 +795,7 @@ function submitAddParticipant(slug) {
   .catch(function() { alert('Network error'); });
 }
 
-/* P3-T06: DQ with Cascade */
+/* DQ with Cascade */
 function dqCascade(slug, regId, name) {
   var reason = prompt('Disqualification reason for ' + name + ':');
   if (!reason) return;

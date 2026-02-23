@@ -174,8 +174,7 @@ def _build_hub_context(request, tournament, registration):
                     'role': entry.get('role', 'PLAYER'),
                     'player_role': entry.get('player_role', ''),
                     'roster_slot': entry.get('roster_slot', 'STARTER'),
-                    'is_captain': tm.is_tournament_captain if tm else False,
-                    'is_igl': is_igl,
+                    'is_captain_igl': is_igl,  # Unified: set from snapshot first, refined below
                     'game_id': game_id,
                     'has_passport': has_passport,
                     'avatar_url': _get_avatar_url(user_obj) if user_obj else entry.get('avatar', ''),
@@ -222,8 +221,7 @@ def _build_hub_context(request, tournament, registration):
                     'role': m.role,
                     'player_role': m.player_role or '',
                     'roster_slot': effective_roster_slot,
-                    'is_captain': m.is_tournament_captain,
-                    'is_igl': False,
+                    'is_captain_igl': m.is_tournament_captain,  # Unified flag
                     'game_id': game_id,
                     'has_passport': has_passport,
                     'avatar_url': _get_avatar_url(m.user),
@@ -256,26 +254,40 @@ def _build_hub_context(request, tournament, registration):
     subs = [s for s in squad if s['roster_slot'] == 'SUBSTITUTE']
     coaches = [s for s in squad if s['roster_slot'] == 'COACH']
 
-    # IGL info
+    # ── Unified Captain/IGL resolution ────────────────────
+    # Captain and IGL are the SAME role on this platform.
+    # Priority: 1) lineup_snapshot is_igl, 2) registration coordinator_role, 3) TeamMembership is_tournament_captain
     igl_info = None
-    if igl_user_id:
-        igl_member = next((m for m in squad if m['user_id'] == igl_user_id), None)
-        if igl_member:
-            igl_info = {
-                'name': igl_member['display_name'],
-                'user_id': igl_user_id,
-            }
-    # Fallback: detect IGL from registration_data coordinator_role
-    if not igl_info and registration:
+    captain_igl_user_id = igl_user_id  # From lineup_snapshot is_igl
+
+    # Fallback: detect from registration_data coordinator_role
+    if not captain_igl_user_id and registration:
         reg_data = registration.registration_data or {}
         coord_role = reg_data.get('coordinator_role', '')
-        if 'igl' in coord_role.lower():
+        if 'captain' in coord_role.lower() or 'igl' in coord_role.lower():
             coord_is_self = reg_data.get('coordinator_is_self', True)
+            coord_member_id = reg_data.get('coordinator_member_id')
             if coord_is_self and user:
-                igl_member = next((m for m in squad if m['user_id'] == user.id), None)
-                if igl_member:
-                    igl_info = {'name': igl_member['display_name'], 'user_id': user.id}
-                    igl_member['is_igl'] = True
+                captain_igl_user_id = user.id
+            elif not coord_is_self and coord_member_id:
+                coord_m = next((m for m in squad if m['id'] == coord_member_id), None)
+                if coord_m:
+                    captain_igl_user_id = coord_m['user_id']
+
+    # Fallback: TeamMembership is_tournament_captain (only if nothing from registration)
+    if not captain_igl_user_id:
+        tc_member = next((m for m in squad if m.get('_tm_is_captain')), None)
+        if tc_member:
+            captain_igl_user_id = tc_member['user_id']
+
+    # Apply unified flag: clear all first, then set the one true captain/IGL
+    for m in squad:
+        m['is_captain_igl'] = (m['user_id'] == captain_igl_user_id) if captain_igl_user_id else False
+
+    if captain_igl_user_id:
+        captain_member = next((m for m in squad if m['user_id'] == captain_igl_user_id), None)
+        if captain_member:
+            igl_info = {'name': captain_member['display_name'], 'user_id': captain_igl_user_id}
 
     squad_ready = len(starters) >= min_roster and not squad_warnings
 
@@ -333,8 +345,8 @@ def _build_hub_context(request, tournament, registration):
         except Exception:
             pass
 
-        # Check if current user is captain
-        is_captain = any(m['user_id'] == user.id and m['is_captain'] for m in squad)
+        # Check if current user is captain/IGL
+        is_captain = any(m['user_id'] == user.id and m['is_captain_igl'] for m in squad)
 
     # ── Registration metadata (IGL / Coordinator) ─────
     registered_by_name = ''

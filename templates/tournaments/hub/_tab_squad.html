@@ -44,25 +44,24 @@
         </div>
       </div>
       {% endif %}
-      {% if coordinator_info.role %}
+      {% if igl_info %}
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FFB800]/15 to-[#FF2A55]/15 flex items-center justify-center border border-[#FFB800]/20">
+          <i data-lucide="crown" class="w-4 h-4 text-[#FFB800]"></i>
+        </div>
+        <div>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Captain / IGL</p>
+          <p class="text-sm text-white font-medium">{{ igl_info.name }}</p>
+        </div>
+      </div>
+      {% elif coordinator_info.role %}
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 rounded-lg bg-[#FFB800]/10 flex items-center justify-center">
           <i data-lucide="crown" class="w-4 h-4 text-[#FFB800]"></i>
         </div>
         <div>
-          <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">{{ coordinator_info.role|title }}</p>
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Captain / IGL</p>
           <p class="text-sm text-white font-medium">{{ coordinator_info.name }}</p>
-        </div>
-      </div>
-      {% endif %}
-      {% if igl_info %}
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-[#FF2A55]/10 flex items-center justify-center">
-          <i data-lucide="target" class="w-4 h-4 text-[#FF2A55]"></i>
-        </div>
-        <div>
-          <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">In-Game Leader</p>
-          <p class="text-sm text-white font-medium">{{ igl_info.name }}</p>
         </div>
       </div>
       {% endif %}
@@ -113,11 +112,8 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-0.5">
             <span class="text-sm font-bold text-white truncate">{{ member.display_name }}</span>
-            {% if member.is_igl %}
-              <span class="px-1.5 py-0.5 rounded bg-[#FF2A55]/20 text-[#FF2A55] text-[8px] font-black uppercase">IGL</span>
-            {% endif %}
-            {% if member.is_captain %}
-              <span class="px-1.5 py-0.5 rounded bg-[#FFB800]/20 text-[#FFB800] text-[8px] font-black uppercase">Captain</span>
+            {% if member.is_captain_igl %}
+              <span class="px-1.5 py-0.5 rounded bg-gradient-to-r from-[#FFB800]/20 to-[#FF2A55]/20 text-[#FFB800] text-[8px] font-black uppercase border border-[#FFB800]/30">IGL</span>
             {% endif %}
           </div>
 
@@ -143,7 +139,7 @@
           {% else %}
             <span class="w-2 h-2 bg-[#FF2A55] rounded-full inline-block shadow-[0_0_5px_#FF2A55]"></span>
           {% endif %}
-          {% if is_captain and not member.is_captain and not roster_locked %}
+          {% if is_captain and not member.is_captain_igl and not roster_locked %}
             <button class="squad-swap-btn text-[9px] px-2 py-1 rounded bg-white/5 hover:bg-[#FFB800]/20 text-gray-400 hover:text-[#FFB800] border border-white/10 hover:border-[#FFB800]/30 transition-all"
                     onclick="HubEngine.swapToSub({{ member.id }})">
               <i data-lucide="arrow-down" class="w-3 h-3 inline"></i> To Sub

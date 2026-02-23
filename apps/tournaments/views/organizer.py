@@ -479,6 +479,40 @@ class OrganizerHubView(LoginRequiredMixin, View):
             ('checked_in', 'Checked In', reg_stats['checked_in_count']),
         ]
         
+        # ── Team name resolution ──
+        team_ids = set()
+        for r in page_obj:
+            if r.team_id:
+                team_ids.add(r.team_id)
+        team_name_map = {}
+        if team_ids:
+            try:
+                from apps.organizations.models.team import Team
+                for t in Team.objects.filter(id__in=team_ids).only('id', 'name', 'tag'):
+                    team_name_map[t.id] = {'name': t.name, 'tag': t.tag or ''}
+            except Exception:
+                pass
+
+        # ── Verification summary (lightweight) ──
+        verification_summary = None
+        try:
+            from apps.tournaments.services.registration_verification import RegistrationVerificationService
+            vresult = RegistrationVerificationService.verify_tournament(tournament)
+            verification_summary = vresult['summary']
+            # Build a quick map: reg_id -> highest severity flag
+            verification_flag_map = {}
+            for reg_id, flags in vresult['per_registration'].items():
+                max_sev = 'INFO'
+                for f in flags:
+                    if f['severity'] == 'CRITICAL':
+                        max_sev = 'CRITICAL'
+                        break
+                    elif f['severity'] == 'WARNING':
+                        max_sev = 'WARNING'
+                verification_flag_map[reg_id] = max_sev
+        except Exception:
+            verification_flag_map = {}
+
         context = {
             'tournament': tournament,
             'checker': checker,
@@ -489,6 +523,9 @@ class OrganizerHubView(LoginRequiredMixin, View):
             'status_tabs': status_tabs,
             'max_participants': tournament.max_participants,
             'can_manage': checker.can_manage_registrations(),
+            'team_name_map': team_name_map,
+            'verification_summary': verification_summary,
+            'verification_flag_map': verification_flag_map,
         }
         context.update(self.get_common_context(tournament))
         
@@ -547,6 +584,20 @@ class OrganizerHubView(LoginRequiredMixin, View):
             'rejected': all_payment_stats['rejected'] or 0,
             'total_amount': all_payment_stats['total_amount'] or 0,
         }
+
+        # Per-method breakdown for verified payments
+        method_breakdown = []
+        try:
+            from django.db.models.functions import Coalesce
+            methods_qs = Payment.objects.filter(
+                registration__tournament=tournament, status='verified'
+            ).values('payment_method').annotate(
+                method_count=Count('id'),
+                method_total=Coalesce(Sum('amount'), 0),
+            ).order_by('-method_total')
+            method_breakdown = list(methods_qs)
+        except Exception:
+            pass
         
         context = {
             'tournament': tournament,
@@ -555,6 +606,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
             'payments': page_obj,
             'page_obj': page_obj,
             'payment_stats': payment_stats,
+            'method_breakdown': method_breakdown,
             'can_approve': checker.can_approve_payments(),
         }
         context.update(self.get_common_context(tournament))

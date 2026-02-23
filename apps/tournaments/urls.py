@@ -195,6 +195,8 @@ from apps.tournaments.views.organizer_participants import (
     close_drop_noshows,
     add_participant_manually,
     disqualify_with_cascade,
+    registration_detail_api,
+    tournament_verification_api,
 )
 from apps.tournaments.views.organizer_payments import (
     verify_payment,
@@ -282,6 +284,10 @@ urlpatterns = [
     path('organizer/<slug:slug>/force-checkin/<int:registration_id>/', force_checkin, name='force_checkin'),
     path('organizer/<slug:slug>/drop-noshow/<int:registration_id>/', drop_noshow, name='drop_noshow'),
     path('organizer/<slug:slug>/close-drop-noshows/', close_drop_noshows, name='close_drop_noshows'),
+
+    # Registration Detail & Verification API
+    path('organizer/<slug:slug>/api/registration/<int:registration_id>/', registration_detail_api, name='registration_detail_api'),
+    path('organizer/<slug:slug>/api/verify/', tournament_verification_api, name='tournament_verification_api'),
     
     # FE-T-023: Payment Management Actions
     path('organizer/<slug:slug>/bulk-verify-payments/', bulk_verify_payments, name='bulk_verify_payments'),
