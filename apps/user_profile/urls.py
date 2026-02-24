@@ -234,6 +234,7 @@ urlpatterns = [
     path("@<str:username>/", public_profile_view, name="public_profile"),
     path("@<str:username>/", public_profile_view, name="profile"),  # Alias for backward compatibility
     path("@<str:username>/", public_profile_view, name="profile_public_v2"),  # Legacy v2 alias
+    path("@<str:username>/", public_profile_view, name="profile_public"),  # Legacy alias
     path("@<str:username>/activity/", profile_activity_view, name="profile_activity"),
     path("@<str:username>/activity/", profile_activity_view, name="profile_activity_v2"),  # Legacy v2 alias
     path("@<str:username>/followers/", followers_page, name="followers_page"),

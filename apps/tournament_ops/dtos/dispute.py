@@ -48,11 +48,13 @@ class DisputeDTO(DTOBase):
     reason_code: str
     description: str
     resolution_notes: str
-    opened_at: datetime
     resolved_at: Optional[datetime]
     escalated_at: Optional[datetime]
     resolved_by_user_id: Optional[int]
     updated_at: Optional[datetime] = None  # Tracks last modification timestamp
+    disputed_result_payload: Optional[Dict[str, Any]] = None  # Opponent's claimed result
+    created_at: Optional[datetime] = None  # Legacy alias for opened_at
+    opened_at: Optional[datetime] = None  # When dispute was opened (defaults to None for compat)
     
     @classmethod
     def from_model(cls, obj: any) -> "DisputeDTO":

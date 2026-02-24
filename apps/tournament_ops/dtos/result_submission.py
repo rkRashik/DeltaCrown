@@ -45,6 +45,7 @@ class MatchResultSubmissionDTO(DTOBase):
     stage_id: Optional[int] = None  # Phase 7, Epic 7.1: For stage-specific queries
     auto_confirmed: bool = False  # Whether result was auto-confirmed after 24h deadline
     created_at: Optional[datetime] = None  # Legacy compat alias for submitted_at
+    updated_at: Optional[datetime] = None  # Legacy compat field
     
     @classmethod
     def from_model(cls, model: Any) -> "MatchResultSubmissionDTO":
