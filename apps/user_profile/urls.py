@@ -274,8 +274,7 @@ urlpatterns = [
     path("admin/game-passports/<int:passport_id>/unlock/", game_passport_unlock, name="game_passport_unlock"),
     path("admin/game-passports/<int:passport_id>/override-cooldown/", game_passport_override_cooldown, name="game_passport_override_cooldown"),
     
-    # UP-PHASE2E-HOTFIX: Backward compatibility alias for old route name
-    path("me/privacy-v2/", profile_privacy_view, name="profile_privacy_v2"),
+    # UP-PHASE2E-HOTFIX: (Removed) Backward compatibility alias - merged into main privacy pattern above
     
     # UP-FE-MVP-02: Settings mutation endpoints
     path("me/settings/basic/", update_basic_info, name="update_basic_info"),

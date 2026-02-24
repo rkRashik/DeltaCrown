@@ -146,7 +146,7 @@ class TestBracketGenerationAPI:
         tournament, registrations = tournament_with_registrations
         api_client.force_authenticate(user=organizer_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {}, format='json')
         
         assert response.status_code == status.HTTP_201_CREATED
@@ -168,7 +168,7 @@ class TestBracketGenerationAPI:
         tournament, registrations = tournament_with_registrations
         api_client.force_authenticate(user=organizer_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {
             'seeding_method': 'random'
         }, format='json')
@@ -183,7 +183,7 @@ class TestBracketGenerationAPI:
         tournament, registrations = tournament_with_registrations
         api_client.force_authenticate(user=participant_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {}, format='json')
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -196,7 +196,7 @@ class TestBracketGenerationAPI:
         tournament, registrations = tournament_with_registrations
         api_client.force_authenticate(user=admin_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {}, format='json')
         
         assert response.status_code == status.HTTP_201_CREATED
@@ -207,7 +207,7 @@ class TestBracketGenerationAPI:
         """Test bracket generation with invalid tournament ID."""
         api_client.force_authenticate(user=organizer_user)
         
-        url = '/api/tournaments/brackets/tournaments/99999/generate/'
+        url = '/api/tournaments/brackets/99999/generate/'
         response = api_client.post(url, {}, format='json')
         
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -223,7 +223,7 @@ class TestBracketGenerationAPI:
         
         api_client.force_authenticate(user=organizer_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {}, format='json')
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -236,7 +236,7 @@ class TestBracketGenerationAPI:
         tournament, registrations = tournament_with_registrations
         api_client.force_authenticate(user=organizer_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {
             'seeding_method': 'invalid-method'
         }, format='json')
@@ -250,7 +250,7 @@ class TestBracketGenerationAPI:
         tournament, registrations = tournament_with_registrations
         api_client.force_authenticate(user=organizer_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {
             'bracket_format': 'invalid-format'
         }, format='json')
@@ -264,7 +264,7 @@ class TestBracketGenerationAPI:
         tournament, registrations = tournament_with_registrations
         api_client.force_authenticate(user=organizer_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {
             'bracket_format': 'double-elimination'
         }, format='json')
@@ -286,7 +286,7 @@ class TestBracketGenerationAPI:
         
         api_client.force_authenticate(user=organizer_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {}, format='json')
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -309,7 +309,7 @@ class TestBracketGenerationIntegration:
         tournament, registrations = tournament_with_registrations
         api_client.force_authenticate(user=organizer_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {}, format='json')
         
         assert response.status_code == status.HTTP_201_CREATED
@@ -357,7 +357,7 @@ class TestBracketGenerationIntegration:
         
         api_client.force_authenticate(user=organizer_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {}, format='json')
         
         assert response.status_code == status.HTTP_201_CREATED
@@ -379,7 +379,7 @@ class TestBracketGenerationIntegration:
         mock_async_to_sync.return_value = mock_channel_layer
         
         with patch('apps.tournaments.realtime.utils.get_channel_layer', return_value=mock_channel_layer):
-            url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+            url = f'/api/tournaments/brackets/{tournament.id}/generate/'
             response = api_client.post(url, {}, format='json')
             
             assert response.status_code == status.HTTP_201_CREATED
@@ -395,7 +395,7 @@ class TestBracketGenerationIntegration:
         api_client.force_authenticate(user=organizer_user)
         
         # Generate initial bracket
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response1 = api_client.post(url, {
             'seeding_method': 'slot-order'
         }, format='json')
@@ -421,7 +421,7 @@ class TestBracketGenerationIntegration:
         api_client.force_authenticate(user=organizer_user)
         
         # Generate bracket
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {}, format='json')
         bracket_id = response.data['id']
         
@@ -449,7 +449,7 @@ class TestBracketGenerationIntegration:
         api_client.force_authenticate(user=organizer_user)
         
         # Generate initial bracket
-        gen_url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        gen_url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         gen_response = api_client.post(gen_url, {}, format='json')
         bracket_id = gen_response.data['id']
         
@@ -472,7 +472,7 @@ class TestBracketGenerationIntegration:
         
         # Generate as organizer
         api_client.force_authenticate(user=organizer_user)
-        gen_url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        gen_url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         gen_response = api_client.post(gen_url, {}, format='json')
         bracket_id = gen_response.data['id']
         
@@ -491,7 +491,7 @@ class TestBracketGenerationIntegration:
         api_client.force_authenticate(user=organizer_user)
         
         # Generate bracket
-        gen_url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        gen_url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         gen_response = api_client.post(gen_url, {}, format='json')
         bracket_id = gen_response.data['id']
         
@@ -514,7 +514,7 @@ class TestBracketGenerationIntegration:
         # Get participant IDs
         participant_ids = [reg.user_id for reg in registrations]
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {
             'seeding_method': 'slot-order',
             'participant_ids': participant_ids
@@ -529,7 +529,7 @@ class TestBracketGenerationIntegration:
         """Test validation fails with <2 participants."""
         api_client.force_authenticate(user=organizer_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {
             'participant_ids': [1]  # Only 1 participant
         }, format='json')
@@ -545,7 +545,7 @@ class TestBracketGenerationIntegration:
         api_client.force_authenticate(user=organizer_user)
         
         # Generate bracket
-        gen_url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        gen_url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         api_client.post(gen_url, {}, format='json')
         
         # List brackets with filter
@@ -561,7 +561,7 @@ class TestBracketGenerationIntegration:
         """Test unauthenticated users blocked."""
         tournament, _ = tournament_with_registrations
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {}, format='json')
         
         assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
@@ -573,7 +573,7 @@ class TestBracketGenerationIntegration:
         tournament, _ = tournament_with_registrations
         api_client.force_authenticate(user=organizer_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {
             'bracket_format': 'invalid-format'
         }, format='json')
@@ -588,7 +588,7 @@ class TestBracketGenerationIntegration:
         tournament, _ = tournament_with_registrations
         api_client.force_authenticate(user=organizer_user)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {
             'seeding_method': 'invalid-seeding'
         }, format='json')
@@ -700,7 +700,7 @@ class TestBracketSerializerCoverageUplift:
         api_client = APIClient()
         api_client.force_authenticate(user=organizer)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {}, format='json')
         
         # Should fail because tournament is live
@@ -757,7 +757,7 @@ class TestBracketPermissionsCoverageUplift:
         api_client = APIClient()
         api_client.force_authenticate(user=non_organizer)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {}, format='json')
         
         # Non-organizer should be denied
@@ -809,7 +809,7 @@ class TestBracketPermissionsCoverageUplift:
         api_client = APIClient()
         api_client.force_authenticate(user=superuser)
         
-        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        url = f'/api/tournaments/brackets/{tournament.id}/generate/'
         response = api_client.post(url, {}, format='json')
         
         # Superuser should succeed

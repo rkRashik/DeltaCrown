@@ -247,6 +247,19 @@ def _patch_tournament_model():
                 kwargs['organizer'] = default_org
             except Exception:
                 pass  # DB not available (unit tests, collection phase, etc.)
+        # Ensure organizer_id points to an existing user (create if missing)
+        elif not args and 'organizer_id' in kwargs and 'organizer' not in kwargs:
+            try:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                if not User.objects.filter(pk=kwargs['organizer_id']).exists():
+                    default_org, _ = User.objects.get_or_create(
+                        username='_test_organizer_',
+                        defaults={'email': '_test_organizer_@test.deltacrown.local'}
+                    )
+                    kwargs['organizer_id'] = default_org.pk
+            except Exception:
+                pass  # DB not available
         result = _orig_tourney_init(self, *args, **kwargs)
         for key, val in stale_values.items():
             setattr(self, key, val)
@@ -453,6 +466,33 @@ def _patch_global_ranking_snapshot():
 
 
 # ---------------------------------------------------------------------------
+# GameScoringRule model compatibility shim
+# ---------------------------------------------------------------------------
+_SCORING_RULE_PATCHED = False
+
+
+def _patch_game_scoring_rule():
+    global _SCORING_RULE_PATCHED
+    if _SCORING_RULE_PATCHED:
+        return
+    _SCORING_RULE_PATCHED = True
+
+    try:
+        from apps.games.models.rules import GameScoringRule
+    except (ImportError, Exception):
+        return
+
+    _orig_scoring_init = GameScoringRule.__init__
+
+    def _compat_scoring_init(self, *args, **kwargs):
+        if not args and 'description' not in kwargs:
+            kwargs['description'] = 'Auto-generated test scoring rule'
+        return _orig_scoring_init(self, *args, **kwargs)
+
+    GameScoringRule.__init__ = _compat_scoring_init
+
+
+# ---------------------------------------------------------------------------
 # User.userprofile alias
 # ---------------------------------------------------------------------------
 def _patch_user_profile_alias():
@@ -478,3 +518,4 @@ def apply_all_patches():
     _patch_user_profile_alias()
     _patch_user_init()
     _patch_global_ranking_snapshot()
+    _patch_game_scoring_rule()

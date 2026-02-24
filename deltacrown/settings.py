@@ -146,7 +146,20 @@ ALLOWED_HOSTS = [
     "766cd7c77fe7.ngrok-free.app",
     # For tests and qa_smoke:
     "testserver",
+    # Production (Render + Cloudflare)
+    "deltacrown.xyz",
+    ".deltacrown.xyz",
+    ".onrender.com",
 ]
+
+# Merge extra hosts from env (Render sets ALLOWED_HOSTS or RENDER_EXTERNAL_HOSTNAME)
+_extra_hosts = os.getenv("ALLOWED_HOSTS", "")
+if _extra_hosts:
+    ALLOWED_HOSTS += [h.strip() for h in _extra_hosts.split(",") if h.strip()]
+_render_host = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+if _render_host:
+    ALLOWED_HOSTS.append(_render_host)
+
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
@@ -156,6 +169,9 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.ngrok-free.app",
     # optional: (not required if using wildcard)
     "https://766cd7c77fe7.ngrok-free.app",
+    # Production (Cloudflare)
+    "https://deltacrown.xyz",
+    "https://www.deltacrown.xyz",
 ]
 
 # -----------------------------------------------------------------------------
@@ -245,6 +261,8 @@ INSTALLED_APPS = [
     "django_ckeditor_5",
     "django_countries",  # UP.3 Extension: Country field with flags
     "corsheaders",  # CORS headers for frontend integration
+    "cloudinary",  # Cloudinary SDK
+    "cloudinary_storage",  # django-cloudinary-storage for media files
     # allauth is optional; enabled via ENABLE_ALLAUTH=1. See conditional block below.
 
     # Core infrastructure (MUST be first)
@@ -288,6 +306,7 @@ MIDDLEWARE = [
     "deltacrown.middleware.logging.RequestLoggingMiddleware",  # Module 9.5: Request logging
     "deltacrown.metrics.MetricsMiddleware",  # Module 9.5: Metrics collection
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # Serve static files on Render/production
     "corsheaders.middleware.CorsMiddleware",  # CORS (must be before CommonMiddleware)
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -427,9 +446,20 @@ LOGOUT_REDIRECT_URL = "home"
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# -----------------------------------------------------------------------------
+# Cloudinary Media Storage (Production)
+# -----------------------------------------------------------------------------
+# When CLOUDINARY_URL is set (Render production), use Cloudinary for all media.
+# Locally, media files stay on disk as usual.
+if os.getenv("CLOUDINARY_URL"):
+    DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+    # django-cloudinary-storage reads CLOUDINARY_URL automatically.
+    # Explicit config is only needed to override the env-var convention.
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
@@ -616,17 +646,28 @@ DEFAULT_FROM_EMAIL = "no-reply@deltacrown.local"
 
 
 # Where your site runs
-# SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
-SITE_URL = os.getenv("SITE_URL", "http://192.168.68.100:8000")
+_default_site = "https://deltacrown.xyz" if not DEBUG else "http://192.168.68.100:8000"
+SITE_URL = os.getenv("SITE_URL", _default_site)
 
 # Google OAuth Client
 GOOGLE_OAUTH_CLIENT_ID = os.getenv("DeltaCrown_OAUTH_CLIENT_ID", "")
 GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("DeltaCrown_OAUTH_CLIENT_SECRET", "")
 
 
-# --- Email (Gmail SMTP) ---
-# Use console backend in tests, SMTP in dev/lan when creds present.
-if os.getenv("DeltaCrownEmailAppPassword"):
+# --- Email ---
+# Priority: Resend (production) > Gmail SMTP (dev/LAN) > console (CI/tests)
+if os.getenv("RESEND_API_KEY"):
+    # Production: Resend transactional email via SMTP relay
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = "smtp.resend.com"
+    EMAIL_PORT = 465
+    EMAIL_USE_SSL = True
+    EMAIL_USE_TLS = False
+    EMAIL_HOST_USER = "resend"  # Resend uses literal "resend" as username
+    EMAIL_HOST_PASSWORD = os.getenv("RESEND_API_KEY")
+    DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "DeltaCrown <noreply@deltacrown.xyz>")
+elif os.getenv("DeltaCrownEmailAppPassword"):
+    # Dev/LAN: Gmail SMTP
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "smtp.gmail.com"
     EMAIL_PORT = 587
@@ -635,7 +676,7 @@ if os.getenv("DeltaCrownEmailAppPassword"):
     EMAIL_HOST_PASSWORD = os.getenv("DeltaCrownEmailAppPassword")
     DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 else:
-    # fallback (CI/tests)
+    # Fallback (CI/tests)
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
     DEFAULT_FROM_EMAIL = "no-reply@deltacrown.local"
 
