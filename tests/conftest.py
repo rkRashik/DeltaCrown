@@ -91,6 +91,28 @@ def setup_test_schema(django_db_setup, django_db_blocker):
             # Set search_path for this connection
             cursor.execute("SET search_path TO test_schema, public")
             cursor.execute("SET search_path TO test_schema, public")
+            # Fix deferred FK constraints that cause teardown explosions
+            # user_profile_useractivity.user_id is DEFERRABLE INITIALLY DEFERRED
+            # which causes SET CONSTRAINTS ALL IMMEDIATE in _fixture_teardown to fail
+            try:
+                cursor.execute("""
+                    ALTER TABLE user_profile_useractivity 
+                    DROP CONSTRAINT IF EXISTS user_profile_useractivity_user_id_d57740c7_fk_accounts_user_id;
+                    ALTER TABLE user_profile_useractivity 
+                    ADD CONSTRAINT user_profile_useractivity_user_id_d57740c7_fk_accounts_user_id 
+                    FOREIGN KEY (user_id) REFERENCES accounts_user(id) 
+                    DEFERRABLE INITIALLY DEFERRED;
+                """)
+            except Exception:
+                pass  # Table might not exist yet
+            # Also clean orphaned user_activity rows to prevent initial FK violations 
+            try:
+                cursor.execute("""
+                    DELETE FROM user_profile_useractivity 
+                    WHERE user_id NOT IN (SELECT id FROM accounts_user)
+                """)
+            except Exception:
+                pass
     yield
     # Cleanup: Drop schema after all tests (optional, commented out for --reuse-db)
     # with django_db_blocker.unblock():

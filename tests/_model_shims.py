@@ -172,6 +172,20 @@ def _patch_registration_model():
         for key in _STALE_REG_KWARGS:
             if key in kwargs:
                 stale_values[key] = kwargs.pop(key)
+        # If legacy participant_* was provided but no user/team FK, create a default user
+        if not args and stale_values and 'user' not in kwargs and 'user_id' not in kwargs and 'team_id' not in kwargs:
+            try:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                part_id = stale_values.get('participant_id', '')
+                username = f'_reg_participant_{part_id or "default"}'[:150]
+                default_user, _ = User.objects.get_or_create(
+                    username=username,
+                    defaults={'email': f'{username}@test.deltacrown.local'}
+                )
+                kwargs['user'] = default_user
+            except Exception:
+                pass  # DB not available
         result = _orig_reg_init(self, *args, **kwargs)
         for key, val in stale_values.items():
             setattr(self, key, val)
@@ -224,7 +238,25 @@ def _patch_tournament_model():
         reg_close = stale_values.pop('registration_closes_at', None) or stale_values.pop('registration_close', None)
         if reg_close and 'registration_end' not in kwargs:
             kwargs['registration_end'] = reg_close
-        # Default registration_start/end when not provided (now NOT NULL)
+        # Handle game='string' → create/get Game FK
+        if not args and 'game' in kwargs and isinstance(kwargs['game'], str):
+            try:
+                from apps.games.models import Game
+                game_name = kwargs.pop('game')
+                game_obj, _ = Game.objects.get_or_create(
+                    slug=game_name.lower().replace(' ', '-'),
+                    defaults={
+                        'name': game_name.title(),
+                        'display_name': game_name.title(),
+                        'short_code': game_name[:4].upper(),
+                        'category': 'FPS',
+                        'is_active': True,
+                    }
+                )
+                kwargs['game'] = game_obj
+            except Exception:
+                kwargs.pop('game', None)  # Remove invalid string
+        # Default registration_start/end/tournament_start when not provided (now NOT NULL)
         if not args:
             from django.utils import timezone
             import datetime
@@ -233,6 +265,8 @@ def _patch_tournament_model():
                 kwargs['registration_start'] = _now
             if 'registration_end' not in kwargs:
                 kwargs['registration_end'] = _now + datetime.timedelta(days=7)
+            if 'tournament_start' not in kwargs:
+                kwargs['tournament_start'] = _now + datetime.timedelta(hours=1)
             if 'description' not in kwargs:
                 kwargs.setdefault('description', 'Auto-generated test tournament')
         # Default organizer when not provided (required FK since schema refactor)
@@ -295,6 +329,18 @@ def _patch_organization_model():
                 stale_values[key] = kwargs.pop(key)
         if 'owner' in stale_values and 'ceo' not in kwargs:
             kwargs['ceo'] = stale_values.pop('owner')
+        # Default ceo when not provided (required FK)
+        if not args and 'ceo' not in kwargs and 'ceo_id' not in kwargs:
+            try:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                default_ceo, _ = User.objects.get_or_create(
+                    username='_test_org_ceo_',
+                    defaults={'email': '_test_org_ceo_@test.deltacrown.local'}
+                )
+                kwargs['ceo'] = default_ceo
+            except Exception:
+                pass  # DB not available
         result = _orig_org_init(self, *args, **kwargs)
         for key, val in stale_values.items():
             setattr(self, key, val)
@@ -373,8 +419,26 @@ def _patch_org_team_model():
             kwargs['created_by'] = stale_values.pop('owner')
         if not args and 'region' not in kwargs:
             kwargs['region'] = 'BD'
+        # Handle game='string' → create/get Game FK
+        if not args and 'game' in kwargs and isinstance(kwargs['game'], str):
+            try:
+                from apps.games.models import Game
+                game_name = kwargs.pop('game')
+                game_obj, _ = Game.objects.get_or_create(
+                    slug=game_name.lower().replace(' ', '-'),
+                    defaults={
+                        'name': game_name.title(),
+                        'display_name': game_name.title(),
+                        'short_code': game_name[:4].upper(),
+                        'category': 'FPS',
+                        'is_active': True,
+                    }
+                )
+                kwargs['game_id'] = game_obj.pk
+            except Exception:
+                kwargs.pop('game', None)
         # Default game_id when not provided (required IntegerField)
-        if not args and 'game_id' not in kwargs and 'game' not in kwargs:
+        elif not args and 'game_id' not in kwargs and 'game' not in kwargs:
             try:
                 from apps.games.models import Game
                 default_game, _ = Game.objects.get_or_create(
@@ -466,6 +530,40 @@ def _patch_global_ranking_snapshot():
 
 
 # ---------------------------------------------------------------------------
+# TeamMembership model compatibility shim
+# ---------------------------------------------------------------------------
+_MEMBERSHIP_PATCHED = False
+
+
+def _patch_team_membership_model():
+    global _MEMBERSHIP_PATCHED
+    if _MEMBERSHIP_PATCHED:
+        return
+    _MEMBERSHIP_PATCHED = True
+
+    try:
+        from apps.organizations.models.membership import TeamMembership
+    except (ImportError, Exception):
+        return
+
+    _orig_membership_init = TeamMembership.__init__
+
+    def _compat_membership_init(self, *args, **kwargs):
+        # 'profile' was renamed to 'user' FK
+        if 'profile' in kwargs:
+            profile = kwargs.pop('profile')
+            if 'user' not in kwargs and 'user_id' not in kwargs:
+                # profile might be a UserProfile or a User
+                if hasattr(profile, 'user'):
+                    kwargs['user'] = profile.user
+                else:
+                    kwargs['user'] = profile
+        return _orig_membership_init(self, *args, **kwargs)
+
+    TeamMembership.__init__ = _compat_membership_init
+
+
+# ---------------------------------------------------------------------------
 # GameScoringRule model compatibility shim
 # ---------------------------------------------------------------------------
 _SCORING_RULE_PATCHED = False
@@ -518,4 +616,5 @@ def apply_all_patches():
     _patch_user_profile_alias()
     _patch_user_init()
     _patch_global_ranking_snapshot()
+    _patch_team_membership_model()
     _patch_game_scoring_rule()

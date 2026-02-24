@@ -30,17 +30,17 @@ class MatchResultSubmissionDTO(DTOBase):
     id: int
     match_id: int
     submitted_by_user_id: int
-    submitted_by_team_id: Optional[int]
-    raw_result_payload: Dict[str, Any]
-    proof_screenshot_url: Optional[str]
-    status: str  # pending, confirmed, disputed, auto_confirmed, finalized, rejected
-    submitted_at: datetime
-    confirmed_at: Optional[datetime]
-    finalized_at: Optional[datetime]
-    auto_confirm_deadline: datetime
-    confirmed_by_user_id: Optional[int]
-    submitter_notes: str
-    organizer_notes: str
+    submitted_by_team_id: Optional[int] = None
+    raw_result_payload: Dict[str, Any] = field(default_factory=dict)
+    proof_screenshot_url: Optional[str] = None
+    status: str = 'pending'  # pending, confirmed, disputed, auto_confirmed, finalized, rejected
+    submitted_at: Optional[datetime] = None
+    confirmed_at: Optional[datetime] = None
+    finalized_at: Optional[datetime] = None
+    auto_confirm_deadline: Optional[datetime] = None
+    confirmed_by_user_id: Optional[int] = None
+    submitter_notes: str = ''
+    organizer_notes: str = ''
     tournament_id: int = 0  # Phase 7, Epic 7.1: For multi-tournament filtering (default 0 for legacy compat)
     stage_id: Optional[int] = None  # Phase 7, Epic 7.1: For stage-specific queries
     auto_confirmed: bool = False  # Whether result was auto-confirmed after 24h deadline
