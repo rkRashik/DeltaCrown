@@ -261,8 +261,6 @@ INSTALLED_APPS = [
     "django_ckeditor_5",
     "django_countries",  # UP.3 Extension: Country field with flags
     "corsheaders",  # CORS headers for frontend integration
-    "cloudinary",  # Cloudinary SDK
-    "cloudinary_storage",  # django-cloudinary-storage for media files
     # allauth is optional; enabled via ENABLE_ALLAUTH=1. See conditional block below.
 
     # Core infrastructure (MUST be first)
@@ -446,20 +444,23 @@ LOGOUT_REDIRECT_URL = "home"
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # -----------------------------------------------------------------------------
-# Cloudinary Media Storage (Production)
+# Storage Backends (Django 5.x STORAGES dict)
 # -----------------------------------------------------------------------------
-# When CLOUDINARY_URL is set (Render production), use Cloudinary for all media.
-# Locally, media files stay on disk as usual.
-if os.getenv("CLOUDINARY_URL"):
-    DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
-    # django-cloudinary-storage reads CLOUDINARY_URL automatically.
-    # Explicit config is only needed to override the env-var convention.
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage"
+        if os.getenv("CLOUDINARY_URL")
+        else "django.core.files.storage.FileSystemStorage",
+    },
+}
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
@@ -721,6 +722,17 @@ CKEDITOR_5_CUSTOM_CSS = None
 CKEDITOR_5_FILE_UPLOAD_PERMISSION = "staff"
 # Sites framework (required for allauth)
 SITE_ID = int(os.getenv("SITE_ID", "1"))
+
+# Optional: Cloudinary media storage (only when deployed with CLOUDINARY_URL)
+try:
+    import cloudinary  # noqa: F401
+    import cloudinary_storage  # noqa: F401
+    INSTALLED_APPS += [
+        "cloudinary",
+        "cloudinary_storage",
+    ]
+except ImportError:
+    pass
 
 # Allauth authentication backends
 AUTHENTICATION_BACKENDS = (

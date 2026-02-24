@@ -44,9 +44,10 @@ node_modules/
 npm-debug.log
 yarn-error.log
 
-# Build
-dist/
+# Build (keep static/dist/ for compiled Tailwind CSS)
+**/dist/
 !static/dist/
+!static/dist/**
 build/
 *.egg-info/
 

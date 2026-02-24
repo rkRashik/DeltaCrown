@@ -5,7 +5,7 @@
 set -o errexit  # exit on error
 
 echo "🔧 Installing Node.js dependencies..."
-npm install
+npm install --include=dev
 
 echo "🎨 Building Tailwind CSS..."
 npm run build-css

@@ -1,12 +1,12 @@
+/* Custom CSS — imported BEFORE Tailwind so utilities can override */
+@import '../siteui/css/tokens.css';
+@import '../siteui/css/base.css';
+@import '../siteui/css/components.css';
+@import '../siteui/css/effects.css';
+@import '../siteui/css/primary_navigation.css';
+@import '../siteui/css/footer.css';
+@import '../siteui/css/auth.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import existing custom CSS files */
-@import url('../siteui/css/tokens.css');
-@import url('../siteui/css/base.css');
-@import url('../siteui/css/components.css');
-@import url('../siteui/css/effects.css');
-@import url('../siteui/css/primary_navigation.css');
-@import url('../siteui/css/footer.css');
-@import url('../siteui/css/auth.css');

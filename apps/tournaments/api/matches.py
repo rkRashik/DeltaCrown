@@ -54,7 +54,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
     
     queryset = Match.objects.select_related('tournament').all()
     serializer_class = MatchSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
     def get_queryset(self):
         """Filter matches by tournament/round if provided."""
