@@ -84,6 +84,10 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         (GROUP_PLAYOFF, 'Group Stage + Playoff'),
     ]
     
+    # Backward-compatible aliases (legacy test references)
+    SINGLE_ELIMINATION = SINGLE_ELIM
+    DOUBLE_ELIMINATION = DOUBLE_ELIM
+    
     # Participation type choices
     TEAM = 'team'
     SOLO = 'solo'
@@ -223,6 +227,7 @@ class Tournament(SoftDeleteModel, TimestampedModel):
     
     # Capacity
     max_participants = models.PositiveIntegerField(
+        default=16,
         validators=[MinValueValidator(2), MaxValueValidator(256)],
         help_text='Maximum number of participants/teams'
     )
@@ -237,6 +242,7 @@ class Tournament(SoftDeleteModel, TimestampedModel):
     registration_end = models.DateTimeField(help_text='When registration closes')
     registration_form_overrides = models.JSONField(
         default=dict,
+        blank=True,
         help_text='Form configuration overrides for this tournament (JSONB)'
     )
     tournament_start = models.DateTimeField(help_text='When tournament begins')

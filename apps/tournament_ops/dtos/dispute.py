@@ -52,6 +52,7 @@ class DisputeDTO(DTOBase):
     resolved_at: Optional[datetime]
     escalated_at: Optional[datetime]
     resolved_by_user_id: Optional[int]
+    updated_at: Optional[datetime] = None  # Tracks last modification timestamp
     
     @classmethod
     def from_model(cls, obj: any) -> "DisputeDTO":

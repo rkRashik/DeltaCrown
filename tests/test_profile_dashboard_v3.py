@@ -26,7 +26,7 @@ class ProfileDashboardTests(TestCase):
             email='other@example.com',
             password='testpass123'
         )
-        self.profile_url = reverse('user_profile:profile_public_v2', kwargs={'username': 'testplayer'})
+        self.profile_url = reverse('user_profile:public_profile', kwargs={'username': 'testplayer'})
     
     def test_dashboard_nav_renders(self):
         """Test that dashboard navigation renders with all sections"""
@@ -223,7 +223,7 @@ class EmptyStateTests(TestCase):
             email='new@example.com',
             password='testpass123'
         )
-        self.profile_url = reverse('user_profile:profile_public_v2', kwargs={'username': 'newuser'})
+        self.profile_url = reverse('user_profile:public_profile', kwargs={'username': 'newuser'})
     
     def test_empty_game_passports_cta(self):
         """Test that empty game passports shows CTA"""
@@ -281,7 +281,7 @@ class RoleBasedVisibilityTests(TestCase):
             email='spectator@example.com',
             password='testpass123'
         )
-        self.profile_url = reverse('user_profile:profile_public_v2', kwargs={'username': 'owner'})
+        self.profile_url = reverse('user_profile:public_profile', kwargs={'username': 'owner'})
     
     def test_owner_sees_all_modules(self):
         """Test that owner sees all modules including Economy and Shop"""

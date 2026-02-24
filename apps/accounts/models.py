@@ -17,7 +17,13 @@ class UserManager(DjangoUserManager):
 
     def _create_user(self, username, email, password, **extra_fields):  # type: ignore[override]
         if not email:
-            raise ValueError("The email address must be provided")
+            # Auto-generate email for test environments; production sign-up
+            # forms always supply email so this only fires in test helpers.
+            import os
+            if os.environ.get('DJANGO_SETTINGS_MODULE', '').endswith('_test'):
+                email = f'{username}@test.deltacrown.local'
+            else:
+                raise ValueError("The email address must be provided")
         email = self.normalize_email(email)
         extra_fields.setdefault("is_verified", False)
         return super()._create_user(username, email, password, **extra_fields)

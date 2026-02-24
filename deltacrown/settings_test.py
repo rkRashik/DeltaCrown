@@ -139,6 +139,10 @@ ORG_APP_ENABLED = True
 LEGACY_TEAMS_ENABLED = True  # Keep both available
 COMPETITION_APP_ENABLED = True
 
+# Disable legacy Team write blocking in tests so fixture setup works
+TEAM_LEGACY_WRITE_BLOCKED = False
+TEAM_LEGACY_WRITE_BYPASS_ENABLED = True
+
 # Print confirmation (helps catch accidental production DB usage)
 print(f"\n{'=' * 70}")
 print(f"TEST DATABASE: {DATABASES['default']['NAME']} @ {DATABASES['default']['HOST']}")

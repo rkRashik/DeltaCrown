@@ -42,7 +42,7 @@ def alice_fe_v2(db):
     profile.display_name = 'Alice Frontend'
     profile.bio = 'Test bio for Alice'
     profile.public_id = 'DC-25-000001'
-    profile.country = 'Bangladesh'
+    profile.country = 'BD'
     profile.game_profiles = {'valorant': {'ign': 'AliceVAL', 'role': 'Duelist', 'rank': 'Platinum'}}
     profile.save()
     

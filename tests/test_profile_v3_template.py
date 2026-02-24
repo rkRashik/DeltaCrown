@@ -96,7 +96,8 @@ class ProfileV3TemplateTests(TestCase):
         content = response.content.decode('utf-8')
         
         self.assertIn('Edit Profile', content)
-        self.assertIn('profile_settings_v2', content)
+        # Settings button should link to settings page (URL rendered as /me/settings/)
+        self.assertIn('/me/settings/', content)
     
     def test_non_owner_sees_follow_button(self):
         """Test that spectators see Follow button instead of Edit."""

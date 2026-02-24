@@ -586,7 +586,7 @@ class NotificationService:
         
         title = f"Registered for {tournament.name}"
         body = f"Your team {team.name} has been registered for {tournament.name}"
-        url = reverse('tournaments:tournament_detail', kwargs={'slug': tournament.slug})
+        url = reverse('tournaments:detail', kwargs={'slug': tournament.slug})
         
         # Get all team members
         team_members = [member.user for member in team.members.all() if member.user]
@@ -617,7 +617,7 @@ class NotificationService:
         else:
             body = f"Match result has been posted"
         
-        url = reverse('tournaments:match_detail', kwargs={'pk': match.id})
+        url = reverse('tournaments:match_detail', kwargs={'slug': match.tournament.slug, 'match_id': match.id})
         
         # Get all members from both teams
         team1_members = [member.user for member in match.team1.members.all() if member.user]
@@ -650,7 +650,7 @@ class NotificationService:
         if match.scheduled_at:
             body += f" for {match.scheduled_at.strftime('%B %d, %Y at %H:%M UTC')}"
         
-        url = reverse('tournaments:match_detail', kwargs={'pk': match.id})
+        url = reverse('tournaments:match_detail', kwargs={'slug': match.tournament.slug, 'match_id': match.id})
         
         # Get all members from both teams
         team1_members = [member.user for member in match.team1.members.all() if member.user]
@@ -840,7 +840,7 @@ class NotificationService:
         
         title = f"Bracket Ready: {tournament.name}"
         body = f"The tournament bracket has been generated. Check your matches!"
-        url = reverse('tournaments:tournament_detail', kwargs={'slug': tournament.slug})
+        url = reverse('tournaments:detail', kwargs={'slug': tournament.slug})
         
         # Get all registered teams' members
         registrations = Registration.objects.filter(

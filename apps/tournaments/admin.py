@@ -503,26 +503,26 @@ class TournamentAdmin(ModelAdmin):
     match_count.short_description = 'Matches'
     
     def organizer_console_link(self, obj):
-        """Quick link to organizer console"""
-        url = reverse('tournaments:organizer_tournament_detail', args=[obj.slug])
+        """Quick link to Tournament Operations Center (TOC)"""
+        url = reverse('toc:hub', kwargs={'slug': obj.slug})
         return format_html(
-            '<a href="{}" target="_blank" style="color: #F57C00; font-weight: bold;">⚙️ Manage</a>',
+            '<a href="{}" target="_blank" style="color: #F57C00; font-weight: bold;">⚙️ TOC</a>',
             url
         )
     organizer_console_link.short_description = 'Console'
     
     def organizer_console_button(self, obj):
-        """Button to open organizer console for this tournament"""
+        """Button to open Tournament Operations Center (TOC)"""
         if not obj.pk:
             return '—'
-        url = reverse('tournaments:organizer_tournament_detail', args=[obj.slug])
+        url = reverse('toc:hub', kwargs={'slug': obj.slug})
         return format_html(
             '<a href="{}" target="_blank" class="button" style="background: #F57C00; '
             'color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">'
-            '⚙️ Open Organizer Console</a>',
+            '⚙️ Open TOC</a>',
             url
         )
-    organizer_console_button.short_description = 'Organizer Tools'
+    organizer_console_button.short_description = 'Operations Center'
     
     def save_model(self, request, obj, form, change):
         """Set organizer to current user if creating new tournament, handle official tournaments"""

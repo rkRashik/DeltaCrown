@@ -61,7 +61,7 @@ class TestAnalyticsAPI:
         """Test GET /api/stats/v2/users/<id>/analytics/ success."""
         UserAnalyticsSnapshot.objects.create(
             user=user,
-            game=game,
+            game_slug=game.slug,
             elo_snapshot=1600,
             win_rate=Decimal("65.0"),
             kda_ratio=Decimal("1.5"),
@@ -95,7 +95,7 @@ class TestAnalyticsAPI:
         """Test GET /api/stats/v2/teams/<id>/analytics/ success."""
         TeamAnalyticsSnapshot.objects.create(
             team=team,
-            game=team.game,
+            game_slug=team.game.slug,
             elo_snapshot=1800,
             win_rate=Decimal("60.0"),
             synergy_score=Decimal("75.0"),

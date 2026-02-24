@@ -65,7 +65,7 @@ def profile_a(user_a):
     profile.phone = '01712345678'
     profile.email = user_a.email
     profile.gender = 'male'
-    profile.country = 'Bangladesh'
+    profile.country = 'BD'
     profile.city = 'Dhaka'
     profile.save()
     return profile

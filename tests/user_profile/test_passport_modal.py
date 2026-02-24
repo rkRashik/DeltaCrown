@@ -118,7 +118,7 @@ class PassportModalContextTests(TestCase):
     
     def test_settings_page_injects_games_queryset(self):
         """Settings page should pass 'games' queryset to template"""
-        url = reverse('user_profile:profile_settings_v2', kwargs={'username': self.user.username})
+        url = reverse('user_profile:profile_settings_v2')
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
@@ -139,7 +139,7 @@ class PassportModalContextTests(TestCase):
     
     def test_settings_page_injects_schema_json_matrix(self):
         """Settings page should inject game_schemas_json for JS consumption"""
-        url = reverse('user_profile:profile_settings_v2', kwargs={'username': self.user.username})
+        url = reverse('user_profile:profile_settings_v2')
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
@@ -173,7 +173,7 @@ class PassportModalContextTests(TestCase):
     
     def test_modal_renders_valorant_fields_schema(self):
         """Valorant schema should contain riot_name + tagline fields"""
-        url = reverse('user_profile:profile_settings_v2', kwargs={'username': self.user.username})
+        url = reverse('user_profile:profile_settings_v2')
         response = self.client.get(url)
         
         schemas = json.loads(response.context['game_schemas_json'])
@@ -189,7 +189,7 @@ class PassportModalContextTests(TestCase):
     
     def test_modal_renders_mlbb_fields_schema(self):
         """MLBB schema should contain numeric_id + zone_id fields"""
-        url = reverse('user_profile:profile_settings_v2', kwargs={'username': self.user.username})
+        url = reverse('user_profile:profile_settings_v2')
         response = self.client.get(url)
         
         schemas = json.loads(response.context['game_schemas_json'])
@@ -209,7 +209,7 @@ class PassportModalContextTests(TestCase):
     
     def test_modal_renders_steam_only_fields_schema(self):
         """CS2 schema should contain only steam_id64 field"""
-        url = reverse('user_profile:profile_settings_v2', kwargs={'username': self.user.username})
+        url = reverse('user_profile:profile_settings_v2')
         response = self.client.get(url)
         
         schemas = json.loads(response.context['game_schemas_json'])
@@ -227,7 +227,7 @@ class PassportModalContextTests(TestCase):
     
     def test_schema_includes_help_text_for_all_fields(self):
         """All schema fields should include help_text for user guidance"""
-        url = reverse('user_profile:profile_settings_v2', kwargs={'username': self.user.username})
+        url = reverse('user_profile:profile_settings_v2')
         response = self.client.get(url)
         
         schemas = json.loads(response.context['game_schemas_json'])

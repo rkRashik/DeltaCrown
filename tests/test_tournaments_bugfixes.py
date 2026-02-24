@@ -2,6 +2,7 @@
 Tests for tournament subsystem stabilization.
 Tests all public views, admin pages, and organizer hub functionality.
 """
+import unittest
 from django.test import Client, TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -256,6 +257,7 @@ class BracketAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
+@unittest.skip("Legacy organizer views replaced by TOC (Sprint 0 purge)")
 class OrganizerHubTests(TestCase):
     """Test organizer hub shows real data with proper permissions"""
     

@@ -257,8 +257,9 @@ class TestRegistrationModel:
         # Should not appear in default queryset
         assert not Registration.objects.filter(id=registration.id).exists()
         
-        # Should appear in all_objects
-        assert Registration.all_objects.filter(id=registration.id).exists()
+        # Should appear in all_objects (or objects if soft-delete not using separate manager)
+        all_mgr = getattr(Registration, 'all_objects', Registration.objects)
+        assert all_mgr.filter(id=registration.id).exists()
     
     def test_registration_restore(self, tournament, user):
         """Should restore soft-deleted registration"""

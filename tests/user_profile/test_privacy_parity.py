@@ -29,7 +29,7 @@ def test_user(db):
         user=user,
         display_name='Privacy Test User',
         bio='Testing privacy controls',
-        country='United States'
+        country='US'
     )
     privacy = PrivacySettings.objects.create(user_profile=profile)
     return user

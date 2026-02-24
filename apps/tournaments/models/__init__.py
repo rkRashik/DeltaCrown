@@ -123,6 +123,45 @@ from .sponsor import (
 from .prize_claim import (
     PrizeClaim,  # Hub Bounty Board: Prize claim workflow
 )
+from .emergency_sub import (
+    EmergencySubRequest,  # TOC Sprint 3: Emergency substitution requests
+)
+from .free_agent import (
+    FreeAgentRegistration,  # TOC Sprint 3: Free Agent / LFG pool
+)
+from .bounty import (
+    TournamentBounty,  # TOC Sprint 4: Custom bounties & special prizes
+)
+from .kyc import (
+    KYCSubmission,  # TOC Sprint 4: KYC identity verification
+)
+from .qualifier_pipeline import (
+    QualifierPipeline,  # TOC Sprint 5: Multi-wave qualifier pipelines
+    PipelineStage,      # TOC Sprint 5: Pipeline stage definition
+    PromotionRule,       # TOC Sprint 5: Stage-to-stage promotion rules
+)
+from .match_operations import (
+    RescheduleRequest,      # TOC Sprint 6: Match reschedule requests
+    MatchMedia,             # TOC Sprint 6: Match media/evidence uploads
+    BroadcastStation,       # TOC Sprint 6: Broadcast station assignment
+    MatchServerSelection,   # TOC Sprint 6: Server selection for matches
+)
+from .game_config import (
+    GameMatchConfig,    # TOC Sprint 8: Game match format & scoring config
+    MapPoolEntry,       # TOC Sprint 8: Map pool entries with ordering
+    MatchVetoSession,   # TOC Sprint 8: Ban/pick veto sessions
+    ServerRegion,       # TOC Sprint 8: Server region management
+    RulebookVersion,    # TOC Sprint 8: Versioned rulebook with publish flow
+    RulebookConsent,    # TOC Sprint 8: User consent to rulebook versions
+    BRScoringMatrix,    # TOC Sprint 8: Battle Royale scoring matrix
+)
+from .stats_certs import (
+    CertificateTemplate,  # TOC Sprint 9: Certificate HTML template
+    CertificateRecord,    # TOC Sprint 9: Issued certificate records
+    ProfileTrophy,        # TOC Sprint 9: Trophy/achievement definitions
+    UserTrophy,           # TOC Sprint 9: Awarded user trophies
+    TrustEvent,           # TOC Sprint 9: Player Trust Index events
+)
 
 __all__ = [
     'Game',
@@ -180,4 +219,33 @@ __all__ = [
     # Hub Expansion: Resources & Bounty Board
     'TournamentSponsor',
     'PrizeClaim',
+    # TOC Sprint 3: Advanced Participant Features
+    'EmergencySubRequest',
+    'FreeAgentRegistration',
+    # TOC Sprint 4: Financial Operations
+    'TournamentBounty',
+    'KYCSubmission',
+    # TOC Sprint 5: Competition Engine — Qualifier Pipelines
+    'QualifierPipeline',
+    'PipelineStage',
+    'PromotionRule',
+    # TOC Sprint 6: Match Operations
+    'RescheduleRequest',
+    'MatchMedia',
+    'BroadcastStation',
+    'MatchServerSelection',
+    # TOC Sprint 8: Configuration & Communications
+    'GameMatchConfig',
+    'MapPoolEntry',
+    'MatchVetoSession',
+    'ServerRegion',
+    'RulebookVersion',
+    'RulebookConsent',
+    'BRScoringMatrix',
+    # TOC Sprint 9: Stats, Certificates & Trust Index
+    'CertificateTemplate',
+    'CertificateRecord',
+    'ProfileTrophy',
+    'UserTrophy',
+    'TrustEvent',
 ]

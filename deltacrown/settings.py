@@ -297,6 +297,7 @@ MIDDLEWARE = [
     "apps.accounts.deletion_middleware.BlockScheduledDeletionMiddleware",  # Phase 3B: Block scheduled deletions
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.tournaments.api.toc.audit_middleware.TOCAuditMiddleware",  # TOC Sprint 11: Audit trail for TOC write ops
     "django_prometheus.middleware.PrometheusAfterMiddleware",  # Prometheus timing (LAST)
 ]
 

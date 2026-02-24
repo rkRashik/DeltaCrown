@@ -186,6 +186,7 @@ class TestAuthenticatedViews:
         response = client.get(url)
         assert response.status_code == 200
 
+    @pytest.mark.skip(reason="Legacy create_tournament URL purged in TOC Sprint 0")
     def test_create_tournament_requires_auth(self, client):
         url = reverse('tournaments:create_tournament')
         response = client.get(url)

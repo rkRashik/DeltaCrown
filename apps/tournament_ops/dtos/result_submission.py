@@ -9,7 +9,7 @@ Architecture:
 - Validation methods for business rules
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -29,8 +29,6 @@ class MatchResultSubmissionDTO(DTOBase):
     
     id: int
     match_id: int
-    tournament_id: int  # Phase 7, Epic 7.1: For multi-tournament filtering
-    stage_id: Optional[int]  # Phase 7, Epic 7.1: For stage-specific queries
     submitted_by_user_id: int
     submitted_by_team_id: Optional[int]
     raw_result_payload: Dict[str, Any]
@@ -43,6 +41,10 @@ class MatchResultSubmissionDTO(DTOBase):
     confirmed_by_user_id: Optional[int]
     submitter_notes: str
     organizer_notes: str
+    tournament_id: int = 0  # Phase 7, Epic 7.1: For multi-tournament filtering (default 0 for legacy compat)
+    stage_id: Optional[int] = None  # Phase 7, Epic 7.1: For stage-specific queries
+    auto_confirmed: bool = False  # Whether result was auto-confirmed after 24h deadline
+    created_at: Optional[datetime] = None  # Legacy compat alias for submitted_at
     
     @classmethod
     def from_model(cls, model: Any) -> "MatchResultSubmissionDTO":

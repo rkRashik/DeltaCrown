@@ -24,9 +24,20 @@ class TestAnalyticsEngineService:
     
     @pytest.fixture
     def service(self):
-        """Create service instance with mocked adapter."""
-        with patch("apps.tournament_ops.services.analytics_engine_service.AnalyticsAdapter") as mock_adapter:
-            yield AnalyticsEngineService(), mock_adapter.return_value
+        """Create service instance with mocked adapters."""
+        mock_analytics = Mock()
+        mock_user_stats = Mock()
+        mock_team_stats = Mock()
+        mock_team_ranking = Mock()
+        mock_match_history = Mock()
+        svc = AnalyticsEngineService(
+            analytics_adapter=mock_analytics,
+            user_stats_adapter=mock_user_stats,
+            team_stats_adapter=mock_team_stats,
+            team_ranking_adapter=mock_team_ranking,
+            match_history_adapter=mock_match_history,
+        )
+        yield svc, mock_analytics
     
     def test_calculate_win_rate_normal(self, service):
         """Test win rate calculation with normal data."""

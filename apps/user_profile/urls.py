@@ -233,7 +233,9 @@ urlpatterns = [
     # Public Profile Routes (@ prefix)
     path("@<str:username>/", public_profile_view, name="public_profile"),
     path("@<str:username>/", public_profile_view, name="profile"),  # Alias for backward compatibility
+    path("@<str:username>/", public_profile_view, name="profile_public_v2"),  # Legacy v2 alias
     path("@<str:username>/activity/", profile_activity_view, name="profile_activity"),
+    path("@<str:username>/activity/", profile_activity_view, name="profile_activity_v2"),  # Legacy v2 alias
     path("@<str:username>/followers/", followers_page, name="followers_page"),
     path("@<str:username>/following/", following_page, name="following_page"),
     path("@<str:username>/follow-requests/", follow_requests_page, name="follow_requests_page"),
@@ -256,7 +258,9 @@ urlpatterns = [
     # Owner Pages (/me/ prefix)
     path("me/settings/", profile_settings_view, name="profile_settings"),
     path("me/settings/", profile_settings_view, name="settings"),  # Alias for template compatibility
+    path("me/settings/", profile_settings_view, name="profile_settings_v2"),  # Legacy v2 alias
     path("me/privacy/", profile_privacy_view, name="profile_privacy"),
+    path("me/privacy/", profile_privacy_view, name="profile_privacy_v2"),  # Legacy v2 alias
     
     # Phase 9A-24: Game Passport Rules & Policy page
     path("game-passport-rules/", game_passport_rules_view, name="game_passport_rules"),
@@ -518,6 +522,6 @@ urlpatterns = [
     # ============================================
     
     # Phase B: Legacy profile URLs redirect to canonical @username format
-    path("u/<str:username>/", redirect_to_modern_profile, name="public_profile"),
+    path("u/<str:username>/", redirect_to_modern_profile, name="public_profile_legacy"),
     path("<str:username>/", redirect_to_modern_profile, name="profile_legacy"),
 ]

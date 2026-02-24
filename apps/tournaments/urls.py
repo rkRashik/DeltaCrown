@@ -54,51 +54,32 @@ from apps.tournaments.views.registration import (
 from apps.tournaments.views.dynamic_registration import (
     RegistrationDashboardView,
 )
-# Permission Requests (Team Registration Permission Workflow)
-from apps.tournaments.views.permission_requests import (
-    request_permission,
-    approve_permission,
-    reject_permission,
-    cancel_permission,
-    my_permission_requests,
-    team_permission_requests,
-)
-# Marketplace removed - admin-only feature now
-# from apps.tournaments.views.template_marketplace import (
-#     TemplateMarketplaceView,
-#     TemplateDetailView,
-#     CloneTemplateView,
-#     RateTemplateView,
-#     MarkRatingHelpfulView,
+# ──────────────────────────────────────────────────────────────────
+# TOC Great Purge (Sprint 0) — Legacy organizer/management imports
+# commented out. Files archived to backups/toc_legacy_feb2026/.
+# ──────────────────────────────────────────────────────────────────
+# from apps.tournaments.views.permission_requests import (
+#     request_permission, approve_permission, reject_permission,
+#     cancel_permission, my_permission_requests, team_permission_requests,
 # )
-from apps.tournaments.views.form_analytics_view import (
-    FormAnalyticsDashboardView,
-    FormAnalyticsAPIView,
-)
-from apps.tournaments.views.response_export_view import (
-    ExportResponsesView,
-    ExportPreviewView,
-)
-from apps.tournaments.views.bulk_operations_view import (
-    BulkActionView,
-    BulkActionPreviewView,
-)
-from apps.tournaments.views.webhook_views import (
-    WebhookListView,
-    WebhookDeliveryHistoryView,
-    TestWebhookView,
-)
-from apps.tournaments.views.registration_ux_api import (
-    SaveDraftAPIView,
-    GetDraftAPIView,
-    GetProgressAPIView,
-    ValidateFieldAPIView,
-)
-from apps.tournaments.views.registration_dashboard import (
-    RegistrationManagementDashboardView,
-    ResponseDetailAPIView,
-    QuickActionAPIView,
-)
+# from apps.tournaments.views.form_analytics_view import (
+#     FormAnalyticsDashboardView, FormAnalyticsAPIView,
+# )
+# from apps.tournaments.views.response_export_view import (
+#     ExportResponsesView, ExportPreviewView,
+# )
+# from apps.tournaments.views.bulk_operations_view import (
+#     BulkActionView, BulkActionPreviewView,
+# )
+# from apps.tournaments.views.webhook_views import (
+#     WebhookListView, WebhookDeliveryHistoryView, TestWebhookView,
+# )
+# from apps.tournaments.views.registration_ux_api import (
+#     SaveDraftAPIView, GetDraftAPIView, GetProgressAPIView, ValidateFieldAPIView,
+# )
+# from apps.tournaments.views.registration_dashboard import (
+#     RegistrationManagementDashboardView, ResponseDetailAPIView, QuickActionAPIView,
+# )
 from apps.tournaments.views.player import (
     TournamentPlayerDashboardView,
     TournamentPlayerMatchesView,
@@ -143,12 +124,9 @@ from apps.tournaments.views.hub import (
     HubParticipantsAPIView,
     HubSupportAPIView,
 )
-from apps.tournaments.views.organizer_results import (
-    PendingResultsView,
-    confirm_match_result,
-    reject_match_result,
-    override_match_result,
-)
+# [TOC Purge] from apps.tournaments.views.organizer_results import (
+#     PendingResultsView, confirm_match_result, reject_match_result, override_match_result,
+# )
 
 from apps.tournaments.views.smart_registration import (
     SmartRegistrationView,
@@ -159,79 +137,42 @@ from apps.tournaments.views.smart_registration import (
 from apps.tournaments.views.withdrawal import (
     withdraw_registration_view,
 )
-from apps.tournaments.views.payment_status import (
-    RegistrationStatusView,
-    PaymentResubmitView,
-    DownloadPaymentProofView,
-)
-from apps.tournaments.views.permission_request import RequestRegistrationPermissionView
-from apps.tournaments.views.dispute_resolution import (
-    resolve_dispute as resolve_dispute_view,
-    update_dispute_status as update_dispute_status_view,
-)
-from apps.tournaments.views.disputes_management import (
-    DisputeManagementView,
-)
-from apps.tournaments.views.health_metrics import (
-    TournamentHealthMetricsView,
-)
-from apps.tournaments.views.organizer import (
-    OrganizerDashboardView,
-    OrganizerHubView,
-    create_tournament,
-)
-from apps.tournaments.views.organizer_participants import (
-    approve_registration,
-    reject_registration,
-    toggle_checkin,
-    bulk_approve_registrations,
-    bulk_reject_registrations,
-    disqualify_participant,
-    export_roster_csv,
-    promote_registration,
-    auto_promote_next,
-    force_checkin,
-    drop_noshow,
-    close_drop_noshows,
-    add_participant_manually,
-    disqualify_with_cascade,
-    registration_detail_api,
-    tournament_verification_api,
-)
-from apps.tournaments.views.organizer_payments import (
-    verify_payment,
-    reject_payment,
-    bulk_verify_payments,
-    process_refund,
-    export_payments_csv,
-    payment_history,
-)
-from apps.tournaments.views.organizer_matches import (
-    submit_match_score,
-    reschedule_match,
-    forfeit_match,
-    override_match_score,
-    cancel_match,
-)
-from apps.tournaments.views.organizer_brackets import (
-    generate_bracket,
-    reset_bracket,
-    reorder_seeds,
-    publish_bracket,
-)
-from apps.tournaments.views.organizer_match_ops import (
-    match_mark_live,
-    match_pause,
-    match_resume,
-    match_force_complete,
-    match_add_note,
-    match_force_start,
-)
-from apps.tournaments.views.organizer_scheduling import (
-    auto_schedule_round,
-    bulk_shift_matches,
-    add_schedule_break,
-)
+# [TOC Purge] from apps.tournaments.views.payment_status import (
+#     RegistrationStatusView, PaymentResubmitView, DownloadPaymentProofView,
+# )
+# [TOC Purge] from apps.tournaments.views.permission_request import RequestRegistrationPermissionView
+# [TOC Purge] from apps.tournaments.views.dispute_resolution import (
+#     resolve_dispute as resolve_dispute_view, update_dispute_status as update_dispute_status_view,
+# )
+# [TOC Purge] from apps.tournaments.views.disputes_management import DisputeManagementView
+# [TOC Purge] from apps.tournaments.views.health_metrics import TournamentHealthMetricsView
+# [TOC Purge] from apps.tournaments.views.organizer import (
+#     OrganizerDashboardView, OrganizerHubView, create_tournament,
+# )
+# [TOC Purge] from apps.tournaments.views.organizer_participants import (
+#     approve_registration, reject_registration, toggle_checkin,
+#     bulk_approve_registrations, bulk_reject_registrations, disqualify_participant,
+#     export_roster_csv, promote_registration, auto_promote_next, force_checkin,
+#     drop_noshow, close_drop_noshows, add_participant_manually,
+#     disqualify_with_cascade, registration_detail_api, tournament_verification_api,
+# )
+# [TOC Purge] from apps.tournaments.views.organizer_payments import (
+#     verify_payment, reject_payment, bulk_verify_payments, process_refund,
+#     export_payments_csv, payment_history,
+# )
+# [TOC Purge] from apps.tournaments.views.organizer_matches import (
+#     submit_match_score, reschedule_match, forfeit_match, override_match_score, cancel_match,
+# )
+# [TOC Purge] from apps.tournaments.views.organizer_brackets import (
+#     generate_bracket, reset_bracket, reorder_seeds, publish_bracket,
+# )
+# [TOC Purge] from apps.tournaments.views.organizer_match_ops import (
+#     match_mark_live, match_pause, match_resume, match_force_complete,
+#     match_add_note, match_force_start,
+# )
+# [TOC Purge] from apps.tournaments.views.organizer_scheduling import (
+#     auto_schedule_round, bulk_shift_matches, add_schedule_break,
+# )
 
 app_name = 'tournaments'
 
@@ -241,100 +182,22 @@ urlpatterns = [
     # Backwards-compatibility alias used in templates: "tournaments:browse"
     path('browse/', views.TournamentListView.as_view(), name='browse'),
     
-    # Organizer Console URLs (must be before <slug> pattern)
-    path('organizer/', OrganizerDashboardView.as_view(), name='organizer_dashboard'),
-    path('organizer/create/', create_tournament, name='create_tournament'),
-    path('organizer/<slug:slug>/', OrganizerHubView.as_view(), {'tab': 'overview'}, name='organizer_tournament_detail'),
-    
-    # Organizer Result Management (FE-T-015)
-    path('organizer/<slug:slug>/pending-results/', PendingResultsView.as_view(), name='pending_results'),
-    path('organizer/<slug:slug>/confirm-result/<int:match_id>/', confirm_match_result, name='confirm_result'),
-    path('organizer/<slug:slug>/reject-result/<int:match_id>/', reject_match_result, name='reject_result'),
-    path('organizer/<slug:slug>/override-result/<int:match_id>/', override_match_result, name='override_result'),
-    
-    # Organizer Hub Actions
-    path('organizer/<slug:slug>/approve-registration/<int:registration_id>/', approve_registration, name='approve_registration'),
-    path('organizer/<slug:slug>/reject-registration/<int:registration_id>/', reject_registration, name='reject_registration'),
-    path('organizer/<slug:slug>/verify-payment/<int:payment_id>/', verify_payment, name='verify_payment'),
-    path('organizer/<slug:slug>/reject-payment/<int:payment_id>/', reject_payment, name='reject_payment'),
-    path('organizer/<slug:slug>/toggle-checkin/<int:registration_id>/', toggle_checkin, name='toggle_checkin'),
-    
-    # Organizer Dispute Resolution (FE-T-017 + FE-T-025)
-    path('organizer/<slug:slug>/disputes/manage/', DisputeManagementView.as_view(), name='disputes_manage'),
-    path('organizer/<slug:slug>/resolve-dispute/<int:dispute_id>/', resolve_dispute_view, name='resolve_dispute'),
-    path('organizer/<slug:slug>/update-dispute-status/<int:dispute_id>/', update_dispute_status_view, name='update_dispute_status'),
-    path('organizer/<slug:slug>/submit-score/<int:match_id>/', submit_match_score, name='submit_match_score'),
-    
-    # Organizer Health Metrics (FE-T-026)
-    path('organizer/<slug:slug>/health/', TournamentHealthMetricsView.as_view(), name='health_metrics'),
-    
-    # FE-T-022: Participant Management Actions
-    path('organizer/<slug:slug>/bulk-approve-registrations/', bulk_approve_registrations, name='bulk_approve_registrations'),
-    path('organizer/<slug:slug>/bulk-reject-registrations/', bulk_reject_registrations, name='bulk_reject_registrations'),
-    path('organizer/<slug:slug>/disqualify/<int:registration_id>/', disqualify_participant, name='disqualify_participant'),
-    path('organizer/<slug:slug>/promote-waitlist/<int:registration_id>/', promote_registration, name='promote_registration'),
-    path('organizer/<slug:slug>/auto-promote-waitlist/', auto_promote_next, name='auto_promote_next'),
-    path('organizer/<slug:slug>/export-roster/', export_roster_csv, name='export_roster_csv'),
-    
-    # P3-T06: Participant Data Control
-    path('organizer/<slug:slug>/add-participant/', add_participant_manually, name='add_participant_manually'),
-    path('organizer/<slug:slug>/dq-cascade/<int:registration_id>/', disqualify_with_cascade, name='disqualify_with_cascade'),
-    
-    # P2-T05: Check-In Control Panel Actions
-    path('organizer/<slug:slug>/force-checkin/<int:registration_id>/', force_checkin, name='force_checkin'),
-    path('organizer/<slug:slug>/drop-noshow/<int:registration_id>/', drop_noshow, name='drop_noshow'),
-    path('organizer/<slug:slug>/close-drop-noshows/', close_drop_noshows, name='close_drop_noshows'),
-
-    # Registration Detail & Verification API
-    path('organizer/<slug:slug>/api/registration/<int:registration_id>/', registration_detail_api, name='registration_detail_api'),
-    path('organizer/<slug:slug>/api/verify/', tournament_verification_api, name='tournament_verification_api'),
-    
-    # FE-T-023: Payment Management Actions
-    path('organizer/<slug:slug>/bulk-verify-payments/', bulk_verify_payments, name='bulk_verify_payments'),
-    path('organizer/<slug:slug>/refund-payment/<int:payment_id>/', process_refund, name='process_refund'),
-    path('organizer/<slug:slug>/export-payments/', export_payments_csv, name='export_payments_csv'),
-    path('organizer/<slug:slug>/registrations/<int:registration_id>/payment-history/', payment_history, name='payment_history'),
-    
-    # FE-T-024: Match Management Actions
-    path('organizer/<slug:slug>/reschedule-match/<int:match_id>/', reschedule_match, name='reschedule_match'),
-    path('organizer/<slug:slug>/forfeit-match/<int:match_id>/', forfeit_match, name='forfeit_match'),
-    path('organizer/<slug:slug>/override-score/<int:match_id>/', override_match_score, name='override_match_score'),
-    path('organizer/<slug:slug>/cancel-match/<int:match_id>/', cancel_match, name='cancel_match'),
-    
-    # P3-T01: Bracket Generation & Reset
-    path('organizer/<slug:slug>/generate-bracket/', generate_bracket, name='generate_bracket'),
-    path('organizer/<slug:slug>/reset-bracket/', reset_bracket, name='reset_bracket'),
-    
-    # P3-T02: Seeding Reorder & Publish
-    path('organizer/<slug:slug>/reorder-seeds/', reorder_seeds, name='reorder_seeds'),
-    path('organizer/<slug:slug>/publish-bracket/', publish_bracket, name='publish_bracket'),
-    
-    # P3-T03: Match Operations (Match Medic)
-    path('organizer/<slug:slug>/match-ops/<int:match_id>/mark-live/', match_mark_live, name='match_mark_live'),
-    path('organizer/<slug:slug>/match-ops/<int:match_id>/pause/', match_pause, name='match_pause'),
-    path('organizer/<slug:slug>/match-ops/<int:match_id>/resume/', match_resume, name='match_resume'),
-    path('organizer/<slug:slug>/match-ops/<int:match_id>/force-complete/', match_force_complete, name='match_force_complete'),
-    path('organizer/<slug:slug>/match-ops/<int:match_id>/add-note/', match_add_note, name='match_add_note'),
-    path('organizer/<slug:slug>/match-ops/<int:match_id>/force-start/', match_force_start, name='match_force_start'),
-    
-    # P3-T04: Scheduling Panel
-    path('organizer/<slug:slug>/auto-schedule-round/', auto_schedule_round, name='auto_schedule_round'),
-    path('organizer/<slug:slug>/bulk-shift-matches/', bulk_shift_matches, name='bulk_shift_matches'),
-    path('organizer/<slug:slug>/add-schedule-break/', add_schedule_break, name='add_schedule_break'),
-    
-    # Organizer Hub Tab (catch-all for tabs — MUST be after all specific organizer/ URLs)
-    path('organizer/<slug:slug>/<str:tab>/', OrganizerHubView.as_view(), name='organizer_hub'),
+    # ──────────────────────────────────────────────────────────────────
+    # [TOC Purge] All organizer/ URL patterns removed.
+    # Organizer management is replaced by TOC at /toc/<slug>/.
+    # Legacy URL patterns archived to backups/toc_legacy_feb2026/urls.py.bak
+    # ──────────────────────────────────────────────────────────────────
     
     # Sprint 2: Player Dashboard URLs (must be before <slug> pattern)
     path('my/', TournamentPlayerDashboardView.as_view(), name='my_tournaments'),
     path('my/matches/', TournamentPlayerMatchesView.as_view(), name='my_matches'),
     path('my/registrations/', RegistrationDashboardView.as_view(), name='registration_dashboard'),
-    path('my/permissions/', my_permission_requests, name='my_permissions'),
+    # [TOC Purge] path('my/permissions/', my_permission_requests, name='my_permissions'),
     
-    # Permission Request Workflows (Team Registration)
-    path('permissions/<int:request_id>/approve/', approve_permission, name='approve_permission'),
-    path('permissions/<int:request_id>/reject/', reject_permission, name='reject_permission'),
-    path('permissions/<int:request_id>/cancel/', cancel_permission, name='cancel_permission'),
+    # [TOC Purge] Permission Request Workflows (archived)
+    # path('permissions/<int:request_id>/approve/', approve_permission, name='approve_permission'),
+    # path('permissions/<int:request_id>/reject/', reject_permission, name='reject_permission'),
+    # path('permissions/<int:request_id>/cancel/', cancel_permission, name='cancel_permission'),
     
     # FE-T-002: Tournament Detail Page (includes FE-T-003: CTA states)
     path('<slug:slug>/', views.TournamentDetailView.as_view(), name='detail'),
@@ -352,13 +215,13 @@ urlpatterns = [
     path('<slug:slug>/api/smart-draft/save/', SmartDraftSaveAPIView.as_view(), name='smart_draft_save'),
     path('<slug:slug>/api/smart-draft/get/', SmartDraftGetAPIView.as_view(), name='smart_draft_get'),
     
-    # Registration Permission Request (Team Members)
-    path('<slug:slug>/request-permission/', request_permission, name='request_permission'),
+    # [TOC Purge] Registration Permission Request (archived)
+    # path('<slug:slug>/request-permission/', request_permission, name='request_permission'),
     
-    # Payment Status & Management
-    path('<slug:slug>/registration/<int:registration_id>/status/', RegistrationStatusView.as_view(), name='registration_status'),
-    path('<slug:slug>/registration/<int:registration_id>/resubmit/', PaymentResubmitView.as_view(), name='payment_resubmit'),
-    path('<slug:slug>/payment/<int:payment_id>/download/', DownloadPaymentProofView.as_view(), name='download_payment_proof'),
+    # [TOC Purge] Payment Status & Management (archived)
+    # path('<slug:slug>/registration/<int:registration_id>/status/', RegistrationStatusView.as_view(), name='registration_status'),
+    # path('<slug:slug>/registration/<int:registration_id>/resubmit/', PaymentResubmitView.as_view(), name='payment_resubmit'),
+    # path('<slug:slug>/payment/<int:payment_id>/download/', DownloadPaymentProofView.as_view(), name='download_payment_proof'),
     
     # Registration Withdrawal
     path('<slug:slug>/withdraw/', withdraw_registration_view, name='withdraw_registration'),
@@ -403,8 +266,9 @@ urlpatterns = [
     path('<slug:slug>/check-in/', checkin.CheckInActionView.as_view(), name='check_in'),
     
     # Sprint 10: Group Stage Management (FE-T-011, FE-T-012, FE-T-013)
-    path('organizer/<slug:slug>/groups/configure/', GroupConfigurationView.as_view(), name='group_configure'),
-    path('organizer/<slug:slug>/groups/draw/', GroupDrawView.as_view(), name='group_draw'),
+    # [TOC Purge] Group stage organizer URLs (archived)
+    # path('organizer/<slug:slug>/groups/configure/', GroupConfigurationView.as_view(), name='group_configure'),
+    # path('organizer/<slug:slug>/groups/draw/', GroupDrawView.as_view(), name='group_draw'),
     path('<slug:slug>/groups/standings/', GroupStandingsView.as_view(), name='group_standings'),
     
     # Sprint 11: Public Spectator View (FE-T-006)
@@ -428,33 +292,27 @@ urlpatterns = [
     # Legacy URL compatibility
     path('hub/', RedirectView.as_view(pattern_name='tournaments:list', permanent=True), name='hub'),
     
-    # === Form Analytics ===
-    path('<slug:tournament_slug>/analytics/', FormAnalyticsDashboardView.as_view(), name='form_analytics'),
-    path('<slug:tournament_slug>/analytics/api/', FormAnalyticsAPIView.as_view(), name='form_analytics_api'),
-    
-    # === Response Export ===
-    path('<slug:tournament_slug>/export/', ExportResponsesView.as_view(), name='export_responses'),
-    path('<slug:tournament_slug>/export/preview/', ExportPreviewView.as_view(), name='export_preview'),
-    
-    # === Bulk Operations ===
-    path('<slug:tournament_slug>/bulk-action/', BulkActionView.as_view(), name='bulk_action'),
-    path('<slug:tournament_slug>/bulk-action/preview/', BulkActionPreviewView.as_view(), name='bulk_action_preview'),
-    
-    # === Webhooks ===
-    path('<slug:tournament_slug>/webhooks/', WebhookListView.as_view(), name='webhooks'),
-    path('webhooks/<int:webhook_id>/history/', WebhookDeliveryHistoryView.as_view(), name='webhook_history'),
-    path('webhooks/<int:webhook_id>/test/', TestWebhookView.as_view(), name='webhook_test'),
-    
-    # === Registration UX APIs ===
-    path('<slug:tournament_slug>/api/draft/save/', SaveDraftAPIView.as_view(), name='save_draft'),
-    path('<slug:tournament_slug>/api/draft/get/', GetDraftAPIView.as_view(), name='get_draft'),
-    path('<slug:tournament_slug>/api/progress/', GetProgressAPIView.as_view(), name='get_progress'),
-    path('<slug:tournament_slug>/api/validate-field/', ValidateFieldAPIView.as_view(), name='validate_field'),
-    
-    # === Registration Management Dashboard ===
-    path('<slug:tournament_slug>/manage/', RegistrationManagementDashboardView.as_view(), name='registration_management'),
-    path('responses/<int:response_id>/detail/', ResponseDetailAPIView.as_view(), name='response_detail'),
-    path('responses/<int:response_id>/quick-action/', QuickActionAPIView.as_view(), name='quick_action'),
+    # ──────────────────────────────────────────────────────────────────
+    # [TOC Purge] Legacy organizer management tools (archived)
+    # Analytics, Export, Bulk Ops, Webhooks, Reg UX APIs, Reg Dashboard
+    # Replaced by TOC API endpoints in future sprints.
+    # ──────────────────────────────────────────────────────────────────
+    # path('<slug:tournament_slug>/analytics/', FormAnalyticsDashboardView.as_view(), name='form_analytics'),
+    # path('<slug:tournament_slug>/analytics/api/', FormAnalyticsAPIView.as_view(), name='form_analytics_api'),
+    # path('<slug:tournament_slug>/export/', ExportResponsesView.as_view(), name='export_responses'),
+    # path('<slug:tournament_slug>/export/preview/', ExportPreviewView.as_view(), name='export_preview'),
+    # path('<slug:tournament_slug>/bulk-action/', BulkActionView.as_view(), name='bulk_action'),
+    # path('<slug:tournament_slug>/bulk-action/preview/', BulkActionPreviewView.as_view(), name='bulk_action_preview'),
+    # path('<slug:tournament_slug>/webhooks/', WebhookListView.as_view(), name='webhooks'),
+    # path('webhooks/<int:webhook_id>/history/', WebhookDeliveryHistoryView.as_view(), name='webhook_history'),
+    # path('webhooks/<int:webhook_id>/test/', TestWebhookView.as_view(), name='webhook_test'),
+    # path('<slug:tournament_slug>/api/draft/save/', SaveDraftAPIView.as_view(), name='save_draft'),
+    # path('<slug:tournament_slug>/api/draft/get/', GetDraftAPIView.as_view(), name='get_draft'),
+    # path('<slug:tournament_slug>/api/progress/', GetProgressAPIView.as_view(), name='get_progress'),
+    # path('<slug:tournament_slug>/api/validate-field/', ValidateFieldAPIView.as_view(), name='validate_field'),
+    # path('<slug:tournament_slug>/manage/', RegistrationManagementDashboardView.as_view(), name='registration_management'),
+    # path('responses/<int:response_id>/detail/', ResponseDetailAPIView.as_view(), name='response_detail'),
+    # path('responses/<int:response_id>/quick-action/', QuickActionAPIView.as_view(), name='quick_action'),
 ]
 
 # Note: Actual tournament management is done through:

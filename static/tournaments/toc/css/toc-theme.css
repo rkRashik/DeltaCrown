@@ -1,0 +1,233 @@
+/*
+ * TOC Theme — CSS Custom Properties & Tailwind-Inexpressible Styles
+ *
+ * This file contains ONLY:
+ * 1. Game-specific accent CSS variables (via [data-game] selectors)
+ * 2. Custom scrollbar styles
+ * 3. Animated keyframes (live pulse dot)
+ * 4. Ghost icon base positioning
+ *
+ * Everything else uses Tailwind CSS utility classes in templates.
+ * See: templates/tournaments/toc/base.html
+ *
+ * Sprint 0 — Foundation Shell
+ * Tracker: S0-C1 through S0-C5
+ */
+
+/* ═══════════════════════════════════════════════════════
+   S0-C2: Game-Specific Accent Themes
+   Each game slug maps to a --color-primary family.
+   The template sets [data-game] on <body>.
+   RGB component vars enable rgba() usage.
+   ═══════════════════════════════════════════════════════ */
+
+:root,
+[data-game="default"] {
+  --color-primary: #3B82F6;
+  --color-primary-muted: rgba(59, 130, 246, 0.15);
+  --color-primary-surface: rgba(59, 130, 246, 0.05);
+  --color-primary-border: rgba(59, 130, 246, 0.25);
+  --color-primary-dark: rgba(59, 130, 246, 0.5);
+  --color-primary-r: 59;
+  --color-primary-g: 130;
+  --color-primary-b: 246;
+}
+
+[data-game="valorant"] {
+  --color-primary: #00F0FF;
+  --color-primary-muted: rgba(0, 240, 255, 0.15);
+  --color-primary-surface: rgba(0, 240, 255, 0.05);
+  --color-primary-border: rgba(0, 240, 255, 0.25);
+  --color-primary-dark: rgba(0, 240, 255, 0.5);
+  --color-primary-r: 0;
+  --color-primary-g: 240;
+  --color-primary-b: 255;
+}
+
+[data-game="efootball"],
+[data-game="fc26"],
+[data-game="fc25"] {
+  --color-primary: #EF4444;
+  --color-primary-muted: rgba(239, 68, 68, 0.15);
+  --color-primary-surface: rgba(239, 68, 68, 0.05);
+  --color-primary-border: rgba(239, 68, 68, 0.25);
+  --color-primary-dark: rgba(239, 68, 68, 0.5);
+  --color-primary-r: 239;
+  --color-primary-g: 68;
+  --color-primary-b: 68;
+}
+
+[data-game="pubgm"],
+[data-game="pubg-mobile"],
+[data-game="pubg"] {
+  --color-primary: #F59E0B;
+  --color-primary-muted: rgba(245, 158, 11, 0.15);
+  --color-primary-surface: rgba(245, 158, 11, 0.05);
+  --color-primary-border: rgba(245, 158, 11, 0.25);
+  --color-primary-dark: rgba(245, 158, 11, 0.5);
+  --color-primary-r: 245;
+  --color-primary-g: 158;
+  --color-primary-b: 11;
+}
+
+[data-game="codm"],
+[data-game="cod-mobile"] {
+  --color-primary: #10B981;
+  --color-primary-muted: rgba(16, 185, 129, 0.15);
+  --color-primary-surface: rgba(16, 185, 129, 0.05);
+  --color-primary-border: rgba(16, 185, 129, 0.25);
+  --color-primary-dark: rgba(16, 185, 129, 0.5);
+  --color-primary-r: 16;
+  --color-primary-g: 185;
+  --color-primary-b: 129;
+}
+
+[data-game="freefire"],
+[data-game="free-fire"] {
+  --color-primary: #F97316;
+  --color-primary-muted: rgba(249, 115, 22, 0.15);
+  --color-primary-surface: rgba(249, 115, 22, 0.05);
+  --color-primary-border: rgba(249, 115, 22, 0.25);
+  --color-primary-dark: rgba(249, 115, 22, 0.5);
+  --color-primary-r: 249;
+  --color-primary-g: 115;
+  --color-primary-b: 22;
+}
+
+[data-game="mlbb"],
+[data-game="mobile-legends"] {
+  --color-primary: #8B5CF6;
+  --color-primary-muted: rgba(139, 92, 246, 0.15);
+  --color-primary-surface: rgba(139, 92, 246, 0.05);
+  --color-primary-border: rgba(139, 92, 246, 0.25);
+  --color-primary-dark: rgba(139, 92, 246, 0.5);
+  --color-primary-r: 139;
+  --color-primary-g: 92;
+  --color-primary-b: 246;
+}
+
+[data-game="cs2"],
+[data-game="counter-strike-2"] {
+  --color-primary: #FF7B00;
+  --color-primary-muted: rgba(255, 123, 0, 0.15);
+  --color-primary-surface: rgba(255, 123, 0, 0.05);
+  --color-primary-border: rgba(255, 123, 0, 0.25);
+  --color-primary-dark: rgba(255, 123, 0, 0.5);
+  --color-primary-r: 255;
+  --color-primary-g: 123;
+  --color-primary-b: 0;
+}
+
+[data-game="r6"],
+[data-game="rainbow-six"] {
+  --color-primary: #FFFFFF;
+  --color-primary-muted: rgba(255, 255, 255, 0.15);
+  --color-primary-surface: rgba(255, 255, 255, 0.05);
+  --color-primary-border: rgba(255, 255, 255, 0.25);
+  --color-primary-dark: rgba(255, 255, 255, 0.5);
+  --color-primary-r: 255;
+  --color-primary-g: 255;
+  --color-primary-b: 255;
+}
+
+[data-game="dota2"],
+[data-game="dota-2"] {
+  --color-primary: #E74C3C;
+  --color-primary-muted: rgba(231, 76, 60, 0.15);
+  --color-primary-surface: rgba(231, 76, 60, 0.05);
+  --color-primary-border: rgba(231, 76, 60, 0.25);
+  --color-primary-dark: rgba(231, 76, 60, 0.5);
+  --color-primary-r: 231;
+  --color-primary-g: 76;
+  --color-primary-b: 60;
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   S0-C3: Custom Scrollbar
+   6px, dark theme, Firefox + WebKit compatible
+   ═══════════════════════════════════════════════════════ */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #333344 #050507;
+}
+
+/* WebKit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050507;
+}
+::-webkit-scrollbar-thumb {
+  background: #333344;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   S0-C4: Animated Live Pulse Dot
+   For status pills showing 'live' state
+   ═══════════════════════════════════════════════════════ */
+
+@keyframes toc-live-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.3);
+  }
+}
+
+.toc-live-dot {
+  animation: toc-live-pulse 2s ease-in-out infinite;
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   S0-C5: Sidebar Collapse State
+   Collapsed sidebar = 60px width, icons only
+   ═══════════════════════════════════════════════════════ */
+
+#toc-sidebar.collapsed {
+  width: 60px !important;
+}
+
+#toc-sidebar.collapsed .sidebar-label {
+  display: none;
+}
+
+#toc-sidebar.collapsed .toc-nav-btn {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+#toc-sidebar.collapsed .toc-nav-btn .flex.items-center.gap-3 {
+  gap: 0;
+}
+
+#toc-sidebar.collapsed .toc-badge {
+  display: none !important;
+}
+
+#toc-sidebar.collapsed nav > p {
+  /* Hide group labels when collapsed */
+  font-size: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#toc-sidebar.collapsed #sidebar-collapse-btn i {
+  transform: rotate(180deg);
+}

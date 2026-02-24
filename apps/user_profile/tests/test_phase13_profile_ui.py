@@ -170,7 +170,7 @@ class TestPhase13HeroSection:
         self.profile.display_name = 'Test Player'
         self.profile.level = 42
         self.profile.bio = 'Professional esports athlete with extensive tournament experience'
-        self.profile.country = 'United States'
+        self.profile.country = 'US'
         self.profile.save()
 
     def test_hero_has_banner_section(self):

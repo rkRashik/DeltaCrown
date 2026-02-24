@@ -497,6 +497,32 @@ class Team(models.Model):
                 self._game_slug_cache = ''
         return self._game_slug_cache
 
+    @game.setter
+    def game(self, value):
+        """Legacy compat setter: accept slug string or Game instance."""
+        # Clear cached values
+        self._game_slug_cache = None
+        self._game_obj_cache = None
+        if value is None:
+            self.game_id = None
+        elif isinstance(value, int):
+            self.game_id = value
+        elif isinstance(value, str):
+            # Slug string — look up the Game PK
+            try:
+                from apps.games.models import Game
+                self.game_id = Game.objects.values_list('pk', flat=True).get(slug=value)
+                self._game_slug_cache = value
+            except Exception:
+                self.game_id = None
+        elif hasattr(value, 'pk'):
+            # Game model instance
+            self.game_id = value.pk
+            self._game_slug_cache = getattr(value, 'slug', '')
+            self._game_obj_cache = value
+        else:
+            self.game_id = None
+
     @property
     def game_obj(self):
         """Convenience: full Game model instance for this team."""
@@ -518,10 +544,20 @@ class Team(models.Model):
         """Legacy compat: True when status == ACTIVE."""
         return self.status == TeamStatus.ACTIVE
 
+    @is_active.setter
+    def is_active(self, value):
+        """Legacy compat setter: map bool to status field."""
+        self.status = TeamStatus.ACTIVE if value else TeamStatus.DISBANDED
+
     @property
     def is_public(self):
         """Legacy compat: True when visibility == PUBLIC."""
         return self.visibility == 'PUBLIC'
+
+    @is_public.setter
+    def is_public(self, value):
+        """Legacy compat setter: map bool to visibility field."""
+        self.visibility = 'PUBLIC' if value else 'PRIVATE'
 
     @property
     def memberships(self):

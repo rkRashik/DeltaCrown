@@ -75,12 +75,13 @@ class SoftDeleteModel(models.Model):
     class Meta:
         abstract = True
 
-    def soft_delete(self, user=None):
+    def soft_delete(self, user=None, *, deleted_by=None):
         """
         Mark this record as soft-deleted.
 
         Args:
             user: User performing the deletion (optional)
+            deleted_by: Alias for user (legacy compat)
 
         Returns:
             None
@@ -91,6 +92,7 @@ class SoftDeleteModel(models.Model):
             - Sets deleted_by to provided user
             - Saves the instance
         """
+        user = user or deleted_by
         self.is_deleted = True
         self.deleted_at = timezone.now()
         self.deleted_by = user

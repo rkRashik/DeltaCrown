@@ -27,7 +27,7 @@ class SettingsReorganizationTests(TestCase):
     
     def test_all_seven_sections_present(self):
         """Settings page should have all 7 sections"""
-        url = reverse('user_profile:profile_settings_v2')
+        url = reverse('user_profile:profile_settings')
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
@@ -50,7 +50,7 @@ class SettingsReorganizationTests(TestCase):
     
     def test_notifications_section_exists(self):
         """Notifications section should exist with localStorage toggles"""
-        url = reverse('user_profile:profile_settings_v2')
+        url = reverse('user_profile:profile_settings')
         response = self.client.get(url)
         
         content = response.content.decode('utf-8')
@@ -59,7 +59,7 @@ class SettingsReorganizationTests(TestCase):
     
     def test_preferences_section_exists(self):
         """Preferences section should exist with theme toggle"""
-        url = reverse('user_profile:profile_settings_v2')
+        url = reverse('user_profile:profile_settings')
         response = self.client.get(url)
         
         content = response.content.decode('utf-8')
@@ -68,7 +68,7 @@ class SettingsReorganizationTests(TestCase):
     
     def test_account_section_exists(self):
         """Account section should exist in sidebar"""
-        url = reverse('user_profile:profile_settings_v2')
+        url = reverse('user_profile:profile_settings')
         response = self.client.get(url)
         
         content = response.content.decode('utf-8')
@@ -76,7 +76,7 @@ class SettingsReorganizationTests(TestCase):
     
     def test_owner_can_access_settings(self):
         """Owner should be able to access their own settings"""
-        url = reverse('user_profile:profile_settings_v2')
+        url = reverse('user_profile:profile_settings')
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
@@ -84,7 +84,7 @@ class SettingsReorganizationTests(TestCase):
     def test_non_owner_redirected_from_settings(self):
         """Non-authenticated user should be redirected from settings"""
         self.client.logout()
-        url = reverse('user_profile:profile_settings_v2')
+        url = reverse('user_profile:profile_settings')
         response = self.client.get(url)
         
         # Should redirect to login
@@ -92,7 +92,7 @@ class SettingsReorganizationTests(TestCase):
     
     def test_settings_javascript_loaded(self):
         """Settings page should load settings.js with localStorage code"""
-        url = reverse('user_profile:profile_settings_v2')
+        url = reverse('user_profile:profile_settings')
         response = self.client.get(url)
         
         content = response.content.decode('utf-8')
@@ -100,7 +100,7 @@ class SettingsReorganizationTests(TestCase):
     
     def test_no_broken_url_references(self):
         """Settings page should have no broken URL references"""
-        url = reverse('user_profile:profile_settings_v2')
+        url = reverse('user_profile:profile_settings')
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
@@ -125,14 +125,14 @@ class PublicProfileUXTests(TestCase):
     def test_owner_sees_navigation_bar(self):
         """Owner sees navigation bar with Settings/Privacy links on public profile"""
         self.client.force_login(self.owner)
-        url = reverse('user_profile:profile_public_v2', kwargs={'username': self.owner.username})
+        url = reverse('user_profile:public_profile', kwargs={'username': self.owner.username})
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
         content = response.content.decode('utf-8')
         
         # Check URL resolution for Settings and Privacy links (they link to /me/ routes)
-        settings_url = reverse('user_profile:profile_settings_v2')
+        settings_url = reverse('user_profile:profile_settings')
         privacy_url = reverse('user_profile:profile_privacy_v2')
         
         # Should see links in navigation
@@ -144,7 +144,7 @@ class PublicProfileUXTests(TestCase):
         spectator = User.objects.create_user(username='spectator', password='testpass123')
         self.client.force_login(spectator)
         
-        url = reverse('user_profile:profile_public_v2', kwargs={'username': self.owner.username})
+        url = reverse('user_profile:public_profile', kwargs={'username': self.owner.username})
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
@@ -164,7 +164,7 @@ class PublicProfileUXTests(TestCase):
     
     def test_anonymous_sees_limited_profile(self):
         """Anonymous user should see public profile without owner CTAs"""
-        url = reverse('user_profile:profile_public_v2', kwargs={'username': self.owner.username})
+        url = reverse('user_profile:public_profile', kwargs={'username': self.owner.username})
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
@@ -178,7 +178,7 @@ class PublicProfileUXTests(TestCase):
     
     def test_profile_has_hero_section(self):
         """Profile should have enhanced hero section"""
-        url = reverse('user_profile:profile_public_v2', kwargs={'username': self.owner.username})
+        url = reverse('user_profile:public_profile', kwargs={'username': self.owner.username})
         response = self.client.get(url)
         
         content = response.content.decode('utf-8')
@@ -190,7 +190,7 @@ class PublicProfileUXTests(TestCase):
     
     def test_profile_responsive_classes(self):
         """Profile should have responsive Tailwind classes"""
-        url = reverse('user_profile:profile_public_v2', kwargs={'username': self.owner.username})
+        url = reverse('user_profile:public_profile', kwargs={'username': self.owner.username})
         response = self.client.get(url)
         
         content = response.content.decode('utf-8')
@@ -202,7 +202,7 @@ class PublicProfileUXTests(TestCase):
     
     def test_no_reverse_match_errors_in_profile(self):
         """Profile page should have no URL resolution errors"""
-        url = reverse('user_profile:profile_public_v2', kwargs={'username': self.owner.username})
+        url = reverse('user_profile:public_profile', kwargs={'username': self.owner.username})
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
@@ -213,7 +213,7 @@ class PublicProfileUXTests(TestCase):
     
     def test_profile_renders_with_no_passports(self):
         """Profile should gracefully handle empty passport list"""
-        url = reverse('user_profile:profile_public_v2', kwargs={'username': self.owner.username})
+        url = reverse('user_profile:public_profile', kwargs={'username': self.owner.username})
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
@@ -221,7 +221,7 @@ class PublicProfileUXTests(TestCase):
     
     def test_profile_renders_without_banner_avatar(self):
         """Profile should render even without custom banner or avatar"""
-        url = reverse('user_profile:profile_public_v2', kwargs={'username': self.owner.username})
+        url = reverse('user_profile:public_profile', kwargs={'username': self.owner.username})
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
@@ -232,7 +232,7 @@ class PublicProfileUXTests(TestCase):
     
     def test_profile_shows_level(self):
         """Profile should display user level"""
-        url = reverse('user_profile:profile_public_v2', kwargs={'username': self.owner.username})
+        url = reverse('user_profile:public_profile', kwargs={'username': self.owner.username})
         response = self.client.get(url)
         
         content = response.content.decode('utf-8')

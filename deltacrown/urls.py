@@ -89,9 +89,11 @@ urlpatterns = [
     # Phase 3A-C: Competition - Match Reporting & Verification (gated by COMPETITION_APP_ENABLED)
     path("competition/", include("apps.competition.urls")),
     
-    # Tournament system - Admin only (frontend moved to legacy November 2, 2025)
-    # URL namespace kept active for admin panel functionality
+    # Tournament system — player-facing routes
     path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),
+    
+    # Tournament Operations Center (TOC) — organizer SPA (Sprint 0)
+    path("toc/", include("apps.tournaments.urls_toc")),
     
     # REMOVED: Legacy apps.teams URL patterns — apps/teams is now a frozen stub
     # Organizations app handles all /teams/ routes at root level above
@@ -99,6 +101,8 @@ urlpatterns = [
     path("", include(("apps.games.urls", "games"), namespace="games")),
     
     # API endpoints
+    # TOC internal API (Sprint 1+)
+    path("api/toc/", include("apps.tournaments.api.toc.urls")),
     # Module 3.1: Registration Flow & Validation API
     path("api/tournaments/", include("apps.tournaments.api.urls")),
     

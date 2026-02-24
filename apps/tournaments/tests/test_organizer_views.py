@@ -1,8 +1,10 @@
 """
 Tests for organizer console views.
 
-Tests access control, dashboard functionality, and tournament detail views
-for tournament organizers.
+ARCHIVED: Legacy organizer views (organizer_dashboard, organizer_tournament_detail)
+were replaced by the Tournament Operations Center (TOC) in Sprint 0.
+URL patterns removed during TOC Purge — all tests in this module are skipped.
+See: apps/tournaments/urls_toc.py and apps/tournaments/api/toc/ for TOC implementation.
 """
 
 import pytest
@@ -15,6 +17,8 @@ from apps.tournaments.models import Tournament, Game
 
 User = get_user_model()
 
+# Skip entire module — legacy organizer views replaced by TOC
+pytestmark = pytest.mark.skip(reason="Legacy organizer views replaced by TOC (Sprint 0 purge)")
 
 @pytest.fixture
 def game(db):
