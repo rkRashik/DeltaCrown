@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import existing custom CSS files */
+@import url('../siteui/css/tokens.css');
+@import url('../siteui/css/base.css');
+@import url('../siteui/css/components.css');
+@import url('../siteui/css/effects.css');
+@import url('../siteui/css/primary_navigation.css');
+@import url('../siteui/css/footer.css');
+@import url('../siteui/css/auth.css');

@@ -230,6 +230,12 @@ urlpatterns = [
     
     # FE-T-004: SMART Registration (Primary — replaces dynamic and wizard flows)
     path('<slug:tournament_slug>/register/', SmartRegistrationView.as_view(), name='register'),
+    path('<slug:slug>/register/', SmartRegistrationView.as_view(), name='register'),  # Legacy alias (slug kwarg)
+    path('<slug:slug>/register/', SmartRegistrationView.as_view(), name='modern_register'),  # Modern registration alias
+    path('<slug:slug>/register/', SmartRegistrationView.as_view(), name='unified_register'),  # Unified registration alias
+    path('<slug:slug>/register/', SmartRegistrationView.as_view(), name='enhanced_register'),  # Enhanced registration alias
+    path('<slug:slug>/register/', SmartRegistrationView.as_view(), name='valorant_register'),  # Game-specific alias
+    path('<slug:slug>/register/', SmartRegistrationView.as_view(), name='efootball_register'),  # Game-specific alias
     path('<slug:tournament_slug>/register/success/<int:registration_id>/', SmartRegistrationSuccessView.as_view(), name='dynamic_registration_success'),
 
 

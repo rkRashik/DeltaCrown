@@ -15,6 +15,7 @@ from apps.organizations.models import TeamRanking, OrganizationRanking
 from apps.organizations.choices import RankingTier
 from apps.organizations.tests.factories import (
     TeamFactory,
+    LegacyTeamFactory,
     TeamRankingFactory,
     OrganizationFactory,
     OrganizationRankingFactory,
@@ -27,7 +28,7 @@ class TestTeamRanking:
     
     def test_create_ranking(self):
         """Test creating a team ranking record."""
-        team = TeamFactory.create()
+        team = LegacyTeamFactory.create()
         ranking = TeamRanking.objects.create(
             team=team,
             current_cp=1000,
@@ -42,7 +43,7 @@ class TestTeamRanking:
     
     def test_one_to_one_relationship(self):
         """Test that team can only have one ranking record."""
-        team = TeamFactory.create()
+        team = LegacyTeamFactory.create()
         TeamRankingFactory.create(team=team)
         
         # Attempting to create second ranking for same team should fail
@@ -58,7 +59,7 @@ class TestTeamRanking:
     
     def test_str_representation(self):
         """Test string representation of TeamRanking."""
-        team = TeamFactory.create(name="Sentinels")
+        team = LegacyTeamFactory.create(name="Sentinels")
         ranking = TeamRankingFactory.create(
             team=team,
             current_cp=15000,

@@ -37,7 +37,7 @@ class RequestLoggingMiddleware(MiddlewareMixin):
             'path': request.path,
             'status_code': response.status_code,
             'duration_ms': round(duration * 1000, 2),
-            'user_id': request.user.id if request.user.is_authenticated else None,
+            'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
             'remote_addr': _get_client_ip(request),
         }
         

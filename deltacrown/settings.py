@@ -303,7 +303,6 @@ AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django_prometheus.middleware.PrometheusBeforeMiddleware",  # Prometheus timing (FIRST)
-    "deltacrown.middleware.logging.RequestLoggingMiddleware",  # Module 9.5: Request logging
     "deltacrown.metrics.MetricsMiddleware",  # Module 9.5: Metrics collection
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Serve static files on Render/production
@@ -312,6 +311,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "deltacrown.middleware.logging.RequestLoggingMiddleware",  # Module 9.5: Request logging (AFTER auth)
     "deltacrown.middleware.platform_prefs_middleware.UserPlatformPrefsMiddleware",  # PHASE-5A: Global platform preferences
     "apps.accounts.deletion_middleware.BlockScheduledDeletionMiddleware",  # Phase 3B: Block scheduled deletions
     "django.contrib.messages.middleware.MessageMiddleware",
