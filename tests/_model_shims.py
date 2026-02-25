@@ -493,6 +493,59 @@ def _patch_org_team_model():
 
     OrgTeam.__init__ = _compat_org_team_init
 
+    # Also patch queryset filter/exclude/create to remap owner → created_by
+    from django.db.models import Manager, QuerySet
+
+    _orig_qs_filter = QuerySet.filter.__wrapped__ if hasattr(QuerySet.filter, '__wrapped__') else None
+
+    def _remap_owner_kwargs(kwargs):
+        """Remap 'owner' lookup to 'created_by' for OrgTeam queries."""
+        remapped = {}
+        for key, value in kwargs.items():
+            if key == 'owner' or key.startswith('owner__'):
+                new_key = key.replace('owner', 'created_by', 1)
+                remapped[new_key] = value
+            else:
+                remapped[key] = value
+        return remapped
+
+    _orig_team_manager_get_queryset = OrgTeam.objects.__class__.get_queryset
+
+    class _OwnerRemapQuerySet(QuerySet):
+        """QuerySet that remaps owner → created_by for Team model."""
+
+        def filter(self, *args, **kwargs):
+            kwargs = _remap_owner_kwargs(kwargs)
+            return super().filter(*args, **kwargs)
+
+        def exclude(self, *args, **kwargs):
+            kwargs = _remap_owner_kwargs(kwargs)
+            return super().exclude(*args, **kwargs)
+
+        def get(self, *args, **kwargs):
+            kwargs = _remap_owner_kwargs(kwargs)
+            return super().get(*args, **kwargs)
+
+        def create(self, **kwargs):
+            kwargs = _remap_owner_kwargs(kwargs)
+            return super().create(**kwargs)
+
+        def get_or_create(self, defaults=None, **kwargs):
+            kwargs = _remap_owner_kwargs(kwargs)
+            if defaults:
+                defaults = _remap_owner_kwargs(defaults)
+            return super().get_or_create(defaults=defaults, **kwargs)
+
+    # Patch the manager to return our custom queryset
+    _orig_get_queryset = OrgTeam.objects.__class__.get_queryset
+
+    def _patched_get_queryset(self):
+        qs = _orig_get_queryset(self)
+        qs.__class__ = _OwnerRemapQuerySet
+        return qs
+
+    OrgTeam.objects.__class__.get_queryset = _patched_get_queryset
+
 
 # ---------------------------------------------------------------------------
 # User model compatibility shim
@@ -813,6 +866,41 @@ def _patch_staffing_user_factory():
 
 
 # ---------------------------------------------------------------------------
+# Patch 18: APIClient.force_authenticate → also force_login for Django views
+# ---------------------------------------------------------------------------
+_APICLIENT_PATCHED = False
+
+
+def _patch_apiclient_force_auth():
+    """
+    Patch DRF APIClient.force_authenticate to also call force_login().
+    This ensures plain Django views (using @login_required or our
+    @api_login_required) see an authenticated user, not AnonymousUser.
+    """
+    global _APICLIENT_PATCHED
+    if _APICLIENT_PATCHED:
+        return
+    _APICLIENT_PATCHED = True
+
+    try:
+        from rest_framework.test import APIClient
+    except ImportError:
+        return
+
+    _orig_force_auth = APIClient.force_authenticate
+
+    def _compat_force_authenticate(self, user=None, token=None):
+        _orig_force_auth(self, user=user, token=token)
+        if user is not None:
+            # Also set Django session auth so plain Django views work
+            self.force_login(user)
+        else:
+            self.logout()
+
+    APIClient.force_authenticate = _compat_force_authenticate
+
+
+# ---------------------------------------------------------------------------
 # Apply ALL patches
 # ---------------------------------------------------------------------------
 def apply_all_patches():
@@ -834,3 +922,4 @@ def apply_all_patches():
     _patch_leaderboard_team_ranking()
     _patch_payment_model()
     _patch_help_service()
+    _patch_apiclient_force_auth()

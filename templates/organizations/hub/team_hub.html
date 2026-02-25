@@ -410,12 +410,12 @@ body::before {
             </p>
             <div class="reveal reveal-delay-3 flex flex-col sm:flex-row gap-3 justify-center mb-5">
                 {% if user.is_authenticated %}
-                <a href="{% url 'organizations:team_create' %}" class="group relative px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-display font-bold rounded-xl hover:scale-[1.03] transition-all shadow-[0_0_30px_rgba(6,182,212,0.35)] hover:shadow-[0_0_50px_rgba(6,182,212,0.5)] overflow-hidden btn-arrow inline-flex items-center justify-center">
+                <a href="{% url 'organizations:team_create' %}" class="group relative px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-display font-bold rounded-xl hover:scale-[1.03] transition-all shadow-[0_0_30px_rgba(6,182,212,0.35)] hover:shadow-[0_0_50px_rgba(6,182,212,0.5)] overflow-hidden btn-arrow inline-flex items-center justify-center">
                     <div class="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     <span class="relative flex items-center justify-center gap-2 text-sm"><i data-lucide="plus-circle" class="w-5 h-5"></i>CREATE YOUR TEAM<i data-lucide="arrow-right" class="w-4 h-4"></i></span>
                 </a>
                 {% else %}
-                <a href="/accounts/signup/" class="group relative px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-display font-bold rounded-xl hover:scale-[1.03] transition-all shadow-[0_0_30px_rgba(6,182,212,0.35)] hover:shadow-[0_0_50px_rgba(6,182,212,0.5)] overflow-hidden btn-arrow inline-flex items-center justify-center">
+                <a href="/accounts/signup/" class="group relative px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-display font-bold rounded-xl hover:scale-[1.03] transition-all shadow-[0_0_30px_rgba(6,182,212,0.35)] hover:shadow-[0_0_50px_rgba(6,182,212,0.5)] overflow-hidden btn-arrow inline-flex items-center justify-center">
                     <div class="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     <span class="relative flex items-center justify-center gap-2 text-sm"><i data-lucide="plus-circle" class="w-5 h-5"></i>JOIN & CREATE YOUR TEAM<i data-lucide="arrow-right" class="w-4 h-4"></i></span>
                 </a>
@@ -577,9 +577,9 @@ body::before {
                                 {% elif featured_tournament.status == 'registration_open' %}
                                 <a href="/tournaments/{{ featured_tournament.slug }}/register/{% if featured_tournament.participation_type == 'team' %}team/{% endif %}" class="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all text-sm text-center">Register Now</a>
                                 {% elif featured_tournament.status == 'completed' %}
-                                <a href="/tournaments/{{ featured_tournament.slug }}/#standings" class="flex-1 bg-gradient-to-r from-dc-gold to-amber-400 text-dc-dark font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all text-sm text-center">View Results</a>
+                                <a href="/tournaments/{{ featured_tournament.slug }}/#standings" class="flex-1 bg-gradient-to-r from-dc-gold to-amber-400 text-gray-950 font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(250,204,21,0.4)] transition-all text-sm text-center">View Results</a>
                                 {% else %}
-                                <a href="/tournaments/{{ featured_tournament.slug }}/" class="flex-1 bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all text-sm text-center">View Tournament</a>
+                                <a href="/tournaments/{{ featured_tournament.slug }}/" class="flex-1 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-bold py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all text-sm text-center">View Tournament</a>
                                 {% endif %}
                                 <a href="/tournaments/{{ featured_tournament.slug }}/" class="px-3 py-2.5 glass rounded-lg hover:bg-white/10 transition-colors" title="Tournament Details">
                                     <i data-lucide="info" class="w-4 h-4 text-gray-400"></i>
@@ -820,7 +820,7 @@ body::before {
                             <h4 class="font-display font-bold text-white text-base mb-1">Your Arena Awaits</h4>
                             <p class="text-sm text-gray-400 mb-1">No active rosters yet.</p>
                             <p class="text-xs text-gray-500 mb-5">Create a team, invite friends, and start competing in tournaments. Your stats and trophies are permanent.</p>
-                            <a href="{% url 'organizations:team_create' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-bold text-sm rounded-xl hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all">
+                            <a href="{% url 'organizations:team_create' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-bold text-sm rounded-xl hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all">
                                 <i data-lucide="plus-circle" class="w-4 h-4"></i>Create Your First Team
                             </a>
                             <div class="flex items-center justify-center gap-4 mt-4 text-xs text-gray-500">
@@ -1046,15 +1046,15 @@ body::before {
                     {% endif %}
 
                     {% if user.is_authenticated and user_teams %}
-                    <button id="scrim-find-btn" class="w-full py-3.5 bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-display font-bold text-sm rounded-xl hover:shadow-[0_0_25px_rgba(6,182,212,0.4)] transition-all flex items-center justify-center gap-2">
+                    <button id="scrim-find-btn" class="w-full py-3.5 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-display font-bold text-sm rounded-xl hover:shadow-[0_0_25px_rgba(6,182,212,0.4)] transition-all flex items-center justify-center gap-2">
                         <i data-lucide="zap" class="w-4 h-4"></i> Find Match
                     </button>
                     {% elif user.is_authenticated %}
-                    <a href="{% url 'organizations:team_create' %}" class="block w-full py-3.5 bg-gradient-to-r from-dc-cyan/50 to-cyan-400/50 text-dc-dark font-display font-bold text-sm rounded-xl transition-all text-center flex items-center justify-center gap-2">
+                    <a href="{% url 'organizations:team_create' %}" class="block w-full py-3.5 bg-gradient-to-r from-dc-cyan/50 to-cyan-400/50 text-white font-display font-bold text-sm rounded-xl transition-all text-center flex items-center justify-center gap-2">
                         <i data-lucide="plus" class="w-4 h-4"></i> Create Team First
                     </a>
                     {% else %}
-                    <a href="/accounts/login/" class="block w-full py-3.5 bg-gradient-to-r from-dc-cyan/50 to-cyan-400/50 text-dc-dark font-display font-bold text-sm rounded-xl transition-all text-center flex items-center justify-center gap-2">
+                    <a href="/accounts/login/" class="block w-full py-3.5 bg-gradient-to-r from-dc-cyan/50 to-cyan-400/50 text-white font-display font-bold text-sm rounded-xl transition-all text-center flex items-center justify-center gap-2">
                         <i data-lucide="log-in" class="w-4 h-4"></i> Sign In to Play
                     </a>
                     {% endif %}
@@ -1112,12 +1112,12 @@ body::before {
         <p class="text-gray-400 text-sm mb-6">Independent teams can be scouted and acquired by Organizations — turning your passion into a profession.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
             {% if user.is_authenticated %}
-            <a href="{% url 'organizations:team_create' %}" class="group px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-display font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/40 transition-all hover:scale-[1.03] flex items-center gap-2 text-sm">
+            <a href="{% url 'organizations:team_create' %}" class="group px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-display font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/40 transition-all hover:scale-[1.03] flex items-center gap-2 text-sm">
                 <i data-lucide="rocket" class="w-4 h-4"></i>Start Your Legacy
                 <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
             </a>
             {% else %}
-            <a href="/accounts/signup/" class="group px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-dc-dark font-display font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/40 transition-all hover:scale-[1.03] flex items-center gap-2 text-sm">
+            <a href="/accounts/signup/" class="group px-8 py-4 bg-gradient-to-r from-dc-cyan to-cyan-400 text-gray-950 font-display font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/40 transition-all hover:scale-[1.03] flex items-center gap-2 text-sm">
                 <i data-lucide="rocket" class="w-4 h-4"></i>Start Your Legacy
                 <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
             </a>

@@ -363,10 +363,8 @@ class Team(models.Model):
         verbose_name_plural = 'Teams'
     
     def __str__(self):
-        """Return team name for admin display."""
-        if self.organization:
-            return f"{self.organization.name} - {self.name}"
-        return f"{self.name} (Independent)"
+        """Return team name for display."""
+        return self.name
     
     def save(self, *args, **kwargs):
         """Auto-generate slug from name if not provided."""
@@ -377,8 +375,8 @@ class Team(models.Model):
             
             # Ensure slug uniqueness
             while Team.objects.filter(slug=slug).exclude(pk=self.pk).exists():
-                slug = f"{base_slug}-{counter}"
                 counter += 1
+                slug = f"{base_slug}-{counter}"
             
             self.slug = slug
         
@@ -416,20 +414,20 @@ class Team(models.Model):
     
     def get_effective_logo_url(self):
         """
-        Return logo URL (team logo or inherited org logo).
+        Return effective logo (team logo or inherited org logo).
         
-        If organization enforces branding, returns organization logo.
-        Otherwise returns team logo or default placeholder.
+        If organization enforces branding, returns organization logo field.
+        Otherwise returns team logo field or default placeholder URL.
         
         Returns:
-            str: Logo URL path
+            ImageFieldFile or str: Logo field or default URL path
         """
         if self.organization and self.organization.enforce_brand:
             if self.organization.logo:
-                return self.organization.logo.url
+                return self.organization.logo
         
         if self.logo:
-            return self.logo.url
+            return self.logo
         
         return '/static/images/default_team_logo.png'
     
@@ -459,7 +457,6 @@ class Team(models.Model):
                 organization=self.organization,
                 user=user,
                 role__in=['MANAGER', 'ADMIN'],
-                status='ACTIVE'
             ).exists():
                 return True
             
@@ -477,6 +474,16 @@ class Team(models.Model):
     # These properties bridge the API gap between legacy teams.Team and
     # organizations.Team so that code migrated from apps/teams continues
     # to work without query-level changes.
+
+    @property
+    def owner(self):
+        """Legacy compat: map 'owner' → created_by."""
+        return self.created_by
+
+    @owner.setter
+    def owner(self, value):
+        """Legacy compat setter: map 'owner' → created_by."""
+        self.created_by = value
 
     @property
     def game(self):

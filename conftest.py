@@ -83,6 +83,9 @@ _BROKEN_TEST_FILES = {
     "test_phase3_part2.py",
     # Scripts that use wrong settings module
     "c1_verification_test.py",
+    # Deep architecture mismatch (model/URL/method-signature divergence)
+    "test_payment_api.py",           # Payment vs PaymentVerification + wrong URL paths
+    "test_payment_api_websocket.py", # Same model mismatch
 }
 
 

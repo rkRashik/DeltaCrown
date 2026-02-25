@@ -219,7 +219,7 @@ class CertificateService:
         tournament = registration.tournament
         
         # Verify tournament is completed
-        if tournament.status != 'COMPLETED':
+        if tournament.status not in ('COMPLETED', 'completed'):
             raise ValidationError(
                 f"Cannot generate certificate for tournament '{tournament.name}' "
                 f"(status: {tournament.status}). Tournament must be COMPLETED."
@@ -789,7 +789,7 @@ class CertificateService:
         except Tournament.DoesNotExist:
             raise ValidationError(f"Tournament {tournament_id} not found.")
         
-        if tournament.status != 'COMPLETED':
+        if tournament.status not in ('COMPLETED', 'completed'):
             raise ValidationError(
                 f"Cannot generate certificates for tournament '{tournament.name}' "
                 f"(status: {tournament.status}). Tournament must be COMPLETED."

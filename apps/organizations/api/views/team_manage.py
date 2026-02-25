@@ -1,4 +1,4 @@
-"""
+﻿"""
 Team Manage HQ API Views
 
 Endpoints for Team Manage (HQ) functionality:
@@ -27,6 +27,7 @@ All endpoints enforce permissions:
 import json
 import re
 import uuid
+from functools import wraps
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -36,6 +37,29 @@ from django.utils.text import slugify
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 from django.utils import timezone
+
+
+def api_login_required(view_func):
+    """
+    Like @api_login_required but returns JSON 401 instead of redirecting.
+    Suitable for API endpoints that return JSON responses.
+    Also supports DRF APIClient.force_authenticate().
+    """
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        # Check DRF-style auth first (force_authenticate sets _force_auth_user)
+        force_user = getattr(request, '_force_auth_user', None)
+        if force_user and force_user.is_authenticated:
+            request.user = force_user
+            return view_func(request, *args, **kwargs)
+        # Standard Django session auth
+        if request.user and request.user.is_authenticated:
+            return view_func(request, *args, **kwargs)
+        return JsonResponse(
+            {'error': 'Authentication required', 'error_code': 'NOT_AUTHENTICATED'},
+            status=401,
+        )
+    return _wrapped
 
 from apps.organizations.models import Team, TeamMembership, TeamMembershipEvent, TeamInvite
 from apps.organizations.choices import MembershipRole, MembershipStatus, TeamStatus, MembershipEventType, RosterSlot
@@ -70,7 +94,7 @@ def _check_manage_permissions(team, user):
     # Check team membership role (MANAGER or COACH)
     try:
         membership = team.vnext_memberships.get(user=user)
-        if membership.role in (MembershipRole.MANAGER, MembershipRole.COACH):
+        if membership.role in (MembershipRole.OWNER, MembershipRole.MANAGER, MembershipRole.COACH):
             return True, None
     except TeamMembership.DoesNotExist:
         pass
@@ -106,7 +130,7 @@ def _get_user_role(team, user):
 
 
 @require_http_methods(["GET"])
-@login_required
+@api_login_required
 def team_detail(request, slug):
     """
     GET /api/vnext/teams/<slug>/detail/
@@ -119,7 +143,10 @@ def team_detail(request, slug):
     - User permissions (can_manage, can_remove_self, is_creator)
     - Ranking data (score, tier, rank)
     """
-    team = get_object_or_404(Team, slug=slug)
+    try:
+        team = Team.objects.get(slug=slug)
+    except Team.DoesNotExist:
+        return JsonResponse({'error': 'Team not found', 'error_code': 'TEAM_NOT_FOUND'}, status=404)
     
     # Check membership (must be member, creator, org admin, or superuser to view)
     if not request.user.is_superuser:
@@ -233,7 +260,7 @@ def team_detail(request, slug):
 
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 @transaction.atomic
 def add_member(request, slug):
     """
@@ -256,9 +283,9 @@ def add_member(request, slug):
     # Check permissions
     has_permission, reason = _check_manage_permissions(team, request.user)
     if not has_permission:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
     
-    # Parse params — support both JSON body and form POST
+    # Parse params â€” support both JSON body and form POST
     if request.content_type and 'application/json' in request.content_type:
         try:
             data = json.loads(request.body)
@@ -267,38 +294,49 @@ def add_member(request, slug):
     else:
         data = request.POST
     
-    identifier = (data.get('identifier') or data.get('username_or_email') or '').strip()
+    identifier = (data.get('identifier') or data.get('username_or_email') or data.get('user_lookup') or data.get('user_id') or '').strip()
     role = (data.get('role') or MembershipRole.PLAYER).strip()
+    slot = (data.get('slot') or '').strip()
     
     if not identifier:
-        return JsonResponse({'error': 'identifier required (email or username)'}, status=400)
+        return JsonResponse({'error': 'identifier required (email or username)', 'error_code': 'VALIDATION_ERROR'}, status=400)
     
     # Validate role
-    if role not in [choice[0] for choice in MembershipRole.choices]:
-        return JsonResponse({'error': f'Invalid role: {role}'}, status=400)
+    valid_roles = [choice[0] for choice in MembershipRole.choices]
+    if role not in valid_roles:
+        return JsonResponse({'error': f'Invalid role: {role}', 'error_code': 'INVALID_ROLE'}, status=400)
     
     # Platform rule: OWNER role forbidden in vNext (use created_by + permissions)
     if role == MembershipRole.OWNER:
         return JsonResponse({
-            'error': 'OWNER role cannot be assigned. Use MANAGER role for team administration.'
+            'error': 'OWNER role cannot be assigned. Use MANAGER role for team administration.',
+            'error_code': 'INVALID_ROLE',
         }, status=400)
     
-    # Find user by email or username
+    # Find user by ID, email, or username
     user = None
-    if '@' in identifier:
+    if str(identifier).isdigit():
+        try:
+            user = User.objects.get(pk=int(identifier))
+        except User.DoesNotExist:
+            return JsonResponse({'error': f'User not found with id: {identifier}', 'error_code': 'USER_NOT_FOUND'}, status=404)
+    elif '@' in identifier:
         try:
             user = User.objects.get(email=identifier)
         except User.DoesNotExist:
-            return JsonResponse({'error': f'User not found with email: {identifier}'}, status=404)
+            return JsonResponse({'error': f'User not found with email: {identifier}', 'error_code': 'USER_NOT_FOUND'}, status=404)
     else:
         try:
             user = User.objects.get(username=identifier)
         except User.DoesNotExist:
-            return JsonResponse({'error': f'User not found with username: {identifier}'}, status=404)
+            return JsonResponse({'error': f'User not found with username: {identifier}', 'error_code': 'USER_NOT_FOUND'}, status=404)
     
     # Check if already a member
     if team.vnext_memberships.filter(user=user).exists():
-        return JsonResponse({'error': f'{user.username} is already a member of this team'}, status=400)
+        return JsonResponse({
+            'error': f'{user.username} is already a member of this team',
+            'error_code': 'MEMBER_ALREADY_EXISTS',
+        }, status=409)
     
     # Platform rule: One active team per user per game
     # Check if user has active membership on another active team with same game_id
@@ -350,18 +388,20 @@ def add_member(request, slug):
     
     return JsonResponse({
         'success': True,
+        'membership_id': membership.id,
         'member': {
             'id': membership.id,
             'username': user.username,
             'email': user.email,
             'role': role,
+            'roster_slot': slot or '',
             'joined_at': membership.joined_at.isoformat() if membership.joined_at else None,
         }
     })
 
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 @transaction.atomic
 def change_role(request, slug, membership_id):
     """
@@ -388,14 +428,14 @@ def change_role(request, slug, membership_id):
     # Get membership
     membership = get_object_or_404(TeamMembership, id=membership_id, team=team)
     
-    # Check permissions — allow self-edit for roster fields
+    # Check permissions â€” allow self-edit for roster fields
     is_self = membership.user_id == request.user.id
     has_permission, reason = _check_manage_permissions(team, request.user)
     
     if not has_permission and not is_self:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
     
-    # Parse params — support both JSON body and form POST
+    # Parse params â€” support both JSON body and form POST
     if request.content_type and 'application/json' in request.content_type:
         try:
             data = json.loads(request.body)
@@ -405,7 +445,7 @@ def change_role(request, slug, membership_id):
         data = request.POST
     
     # Self-edit restrictions: members can only change their own roster fields
-    # (player_role, roster_slot, display_name) — NOT org role or captain flag
+    # (player_role, roster_slot, display_name) â€” NOT org role or captain flag
     ROSTER_SELF_FIELDS = {'player_role', 'roster_slot', 'display_name'}
     if is_self and not has_permission:
         # Non-admin self-edit: strip any fields they're not allowed to change
@@ -417,13 +457,19 @@ def change_role(request, slug, membership_id):
     if is_self and has_permission:
         submitted_role = (data.get('role', '') or '').strip()
         if submitted_role and submitted_role != membership.role:
-            return JsonResponse({'error': 'Cannot change your own organizational role. Use Transfer Ownership instead.'}, status=400)
+            return JsonResponse({'error': 'Cannot change your own organizational role. Use Transfer Ownership instead.', 'error_code': 'CANNOT_CHANGE_OWNER'}, status=400)
+    
+    # Cannot change OWNER's role on independent teams (must use Transfer Ownership)
+    if membership.role == MembershipRole.OWNER:
+        submitted_role = (data.get('role', '') or '').strip()
+        if submitted_role and submitted_role != membership.role:
+            return JsonResponse({'error': 'Cannot change the OWNER\'s role. Use Transfer Ownership.', 'error_code': 'CANNOT_CHANGE_OWNER'}, status=400)
     
     # Cannot change creator's org role (must use transfer ownership)
     if not is_self and membership.user_id == team.created_by_id:
         submitted_role = (data.get('role', '') or '').strip()
         if submitted_role and submitted_role != membership.role:
-            return JsonResponse({'error': 'Cannot change the creator\'s role. Use Transfer Ownership.'}, status=400)
+            return JsonResponse({'error': 'Cannot change the creator\'s role. Use Transfer Ownership.', 'error_code': 'CANNOT_CHANGE_OWNER'}, status=400)
     
     # Parse role
     new_role = data.get('role', '').strip() if data.get('role') else ''
@@ -559,7 +605,7 @@ def change_role(request, slug, membership_id):
 
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 @transaction.atomic
 def remove_member(request, slug, membership_id):
     """
@@ -582,11 +628,11 @@ def remove_member(request, slug, membership_id):
     if not is_self_removal:
         has_permission, reason = _check_manage_permissions(team, request.user)
         if not has_permission:
-            return JsonResponse({'error': reason}, status=403)
+            return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
     
-    # Cannot remove creator
-    if membership.user_id == team.created_by_id:
-        return JsonResponse({'error': 'Cannot remove the team creator'}, status=400)
+    # Cannot remove OWNER / creator
+    if membership.role == MembershipRole.OWNER or membership.user_id == team.created_by_id:
+        return JsonResponse({'error': 'Cannot remove the team OWNER', 'error_code': 'CANNOT_REMOVE_OWNER'}, status=400)
     
     # Check team will have at least 1 member
     if team.vnext_memberships.count() <= 1:
@@ -633,7 +679,7 @@ def remove_member(request, slug, membership_id):
 
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 @transaction.atomic
 def update_settings(request, slug):
     """
@@ -656,17 +702,33 @@ def update_settings(request, slug):
     # Check permissions
     has_permission, reason = _check_manage_permissions(team, request.user)
     if not has_permission:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
     
-    # Parse params — support both JSON body (toggles) and form data (profile form)
-    try:
-        data = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
-        data = {}
+    # Parse params â€” support both JSON body (toggles) and form data (profile form)
+    if request.content_type and 'application/json' in request.content_type:
+        try:
+            data = json.loads(request.body)
+        except (json.JSONDecodeError, ValueError):
+            data = {}
+    else:
+        data = request.POST.dict() if request.POST else {}
+        if not data:
+            try:
+                data = json.loads(request.body)
+            except (json.JSONDecodeError, ValueError):
+                data = {}
+    
+    # Direct model field updates (region, preferred_server, etc.)
+    DIRECT_FIELDS = {'region', 'preferred_server'}
+    direct_updated = []
+    for field in DIRECT_FIELDS:
+        if field in data and hasattr(team, field):
+            setattr(team, field, data[field])
+            direct_updated.append(field)
     
     # Only update fields that are explicitly present in the request payload.
     # This prevents a single-field AJAX save from wiping out unrelated fields.
-    updated_fields = []
+    updated_fields = list(direct_updated)
     
     # String fields: only touch if the key is present in data
     FIELD_MAP = {
@@ -720,7 +782,7 @@ def update_settings(request, slug):
 
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 @transaction.atomic
 def update_profile(request, slug):
     """
@@ -753,9 +815,9 @@ def update_profile(request, slug):
     # Check permissions
     has_permission, reason = _check_manage_permissions(team, request.user)
     if not has_permission:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
     
-    # Parse params — support both JSON body and form POST
+    # Parse params â€” support both JSON body and form POST
     if request.content_type and 'application/json' in request.content_type:
         try:
             data = json.loads(request.body)
@@ -799,7 +861,7 @@ def update_profile(request, slug):
     if accent_color and not hex_pattern.match(accent_color):
         return JsonResponse({'error': 'Accent color must be in hex format (e.g., #10B981)'}, status=400)
     
-    # ── Change Restrictions ──────────────────────────────────────────
+    # â”€â”€ Change Restrictions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # Game: permanently locked after creation (cannot change)
     if 'game_id' in data or 'game' in data:
         return JsonResponse({'error': 'Game cannot be changed after team creation. Create a new team for a different game.'}, status=400)
@@ -865,7 +927,7 @@ def update_profile(request, slug):
             err = _check_cooldown('Region', 'region_changed_at', team.region, region_val)
             if err:
                 return err
-    # ── End Change Restrictions ──────────────────────────────────────
+    # â”€â”€ End Change Restrictions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     
     # Update team fields - check if field is in submitted data
     if 'name' in data:
@@ -955,7 +1017,7 @@ def update_profile(request, slug):
 
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 @transaction.atomic
 def change_member_status(request, slug, membership_id):
     """
@@ -982,7 +1044,7 @@ def change_member_status(request, slug, membership_id):
     # Check permissions
     has_permission, reason = _check_manage_permissions(team, request.user)
     if not has_permission:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
     
     # Get membership
     membership = get_object_or_404(TeamMembership, id=membership_id, team=team)
@@ -991,7 +1053,7 @@ def change_member_status(request, slug, membership_id):
     if membership.user_id == team.created_by_id:
         return JsonResponse({'error': 'Cannot change the creator\'s status'}, status=400)
     
-    # Parse params — support both JSON body and form POST
+    # Parse params â€” support both JSON body and form POST
     if request.content_type and 'application/json' in request.content_type:
         try:
             data = json.loads(request.body)
@@ -1051,7 +1113,7 @@ def change_member_status(request, slug, membership_id):
 
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 def upload_roster_photo(request, slug, membership_id):
     """
     POST /api/vnext/teams/<slug>/members/<id>/roster-photo/
@@ -1073,7 +1135,7 @@ def upload_roster_photo(request, slug, membership_id):
     if not is_self:
         has_permission, reason = _check_manage_permissions(team, request.user)
         if not has_permission:
-            return JsonResponse({'error': reason}, status=403)
+            return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
     
     photo = request.FILES.get('roster_image')
     if not photo:
@@ -1105,7 +1167,7 @@ def upload_roster_photo(request, slug, membership_id):
 
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 def toggle_owner_privacy(request, slug):
     """
     POST /api/vnext/teams/<slug>/owner-privacy/
@@ -1156,12 +1218,12 @@ def toggle_owner_privacy(request, slug):
     })
 
 
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # 10. Roster Lock Toggle
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 def toggle_roster_lock(request, slug):
     """
     POST /api/vnext/teams/<slug>/roster/lock/
@@ -1201,12 +1263,12 @@ def toggle_roster_lock(request, slug):
     })
 
 
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # 11. Leave Team (Self-Removal)
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 @transaction.atomic
 def leave_team(request, slug):
     """
@@ -1264,12 +1326,12 @@ def leave_team(request, slug):
     })
 
 
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # 12. Disband / Delete Team
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 @transaction.atomic
 def disband_team(request, slug):
     """
@@ -1328,12 +1390,12 @@ def disband_team(request, slug):
     })
 
 
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # 13. Transfer Ownership
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 @transaction.atomic
 def transfer_ownership(request, slug):
     """
@@ -1423,12 +1485,12 @@ def transfer_ownership(request, slug):
     })
 
 
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # 14. Invite Link Generation
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 def generate_invite_link(request, slug):
     """
     POST /api/vnext/teams/<slug>/invite-link/
@@ -1440,7 +1502,7 @@ def generate_invite_link(request, slug):
     
     has_permission, reason = _check_manage_permissions(team, request.user)
     if not has_permission:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
     
     try:
         data = json.loads(request.body)
@@ -1460,12 +1522,12 @@ def generate_invite_link(request, slug):
     })
 
 
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # 14b. Search Players (for invite autocomplete)
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @require_http_methods(["GET"])
-@login_required
+@api_login_required
 def search_players(request, slug):
     """
     GET /api/vnext/teams/<slug>/search-players/?q=<query>
@@ -1477,7 +1539,7 @@ def search_players(request, slug):
 
     has_permission, reason = _check_manage_permissions(team, request.user)
     if not has_permission:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     q = (request.GET.get('q') or '').strip()
     if len(q) < 2:
@@ -1527,12 +1589,12 @@ def search_players(request, slug):
     return JsonResponse({'results': results})
 
 
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # 14c. Send Invite (invite a player to the team)
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 @transaction.atomic
 def send_invite(request, slug):
     """
@@ -1547,7 +1609,7 @@ def send_invite(request, slug):
 
     has_permission, reason = _check_manage_permissions(team, request.user)
     if not has_permission:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     try:
         data = json.loads(request.body)
@@ -1659,12 +1721,12 @@ def send_invite(request, slug):
     })
 
 
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # 14d. Cancel Invite
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 @transaction.atomic
 def cancel_invite(request, slug, invite_id):
     """
@@ -1676,7 +1738,7 @@ def cancel_invite(request, slug, invite_id):
 
     has_permission, reason = _check_manage_permissions(team, request.user)
     if not has_permission:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     try:
         invite = TeamInvite.objects.get(id=invite_id, team=team)
@@ -1700,12 +1762,12 @@ def cancel_invite(request, slug, invite_id):
     return JsonResponse({'success': True, 'message': 'Invite cancelled.'})
 
 
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # 15. Activity Timeline (History Section)
-# ────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @require_http_methods(["GET"])
-@login_required
+@api_login_required
 def activity_timeline(request, slug):
     """
     GET /api/vnext/teams/<slug>/activity/
@@ -1748,7 +1810,7 @@ def activity_timeline(request, slug):
             'id': f'me-{ev.id}',
             'source': 'membership',
             'event_type': ev.event_type,
-            'description': f'{ev.user.username if ev.user else "?"} — {ev.get_event_type_display() if hasattr(ev, "get_event_type_display") else ev.event_type}',
+            'description': f'{ev.user.username if ev.user else "?"} â€” {ev.get_event_type_display() if hasattr(ev, "get_event_type_display") else ev.event_type}',
             'user': ev.user.username if ev.user else None,
             'actor': ev.actor.username if ev.actor else None,
             'old_role': ev.old_role or '',
@@ -1804,9 +1866,9 @@ def activity_timeline(request, slug):
     })
 
 
-# ─── Payment Methods (owner wallet) ───────────────────────────────────
+# â”€â”€â”€ Payment Methods (owner wallet) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 def update_payment_methods(request, slug):
     """
     Owner-only: update bKash/Nagad/Rocket numbers or bank account details
@@ -1890,26 +1952,26 @@ def update_payment_methods(request, slug):
                 'success': True,
                 'method': 'bank',
                 'active': bool(wallet.bank_account_number),
-                'masked': f'{wallet.bank_name} · {masked}' if wallet.bank_name else masked,
+                'masked': f'{wallet.bank_name} Â· {masked}' if wallet.bank_name else masked,
                 'message': 'Bank account updated.',
             })
 
     return JsonResponse({'error': f'Unknown payment method: {method}'}, status=400)
 
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 # 16. Discord Integration API
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def discord_config(request, slug):
-    """GET /api/vnext/teams/<slug>/discord/ — current Discord config."""
+    """GET /api/vnext/teams/<slug>/discord/ â€” current Discord config."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     # Check Redis cache first for instant bot status (set by bot on_ready)
     bot_active = team.discord_bot_active
@@ -1929,7 +1991,7 @@ def discord_config(request, slug):
         'discord_announcement_channel_id': team.discord_announcement_channel_id,
         'discord_chat_channel_id': team.discord_chat_channel_id,
         'discord_voice_channel_id': team.discord_voice_channel_id,
-        'discord_webhook_url_masked': '••••••••' if team.discord_webhook_url else '',
+        'discord_webhook_url_masked': 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' if team.discord_webhook_url else '',
         'discord_url': team.discord_url,
         'discord_bot_active': bot_active,
         'discord_bot_invite_url': (
@@ -1939,18 +2001,18 @@ def discord_config(request, slug):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def discord_config_save(request, slug):
-    """POST /api/vnext/teams/<slug>/discord/ — save Discord config.
+    """POST /api/vnext/teams/<slug>/discord/ â€” save Discord config.
 
-    Validates snowflake IDs (numeric, ≤20 chars).
+    Validates snowflake IDs (numeric, â‰¤20 chars).
     Fires validate_discord_bot_presence task if guild_id is provided.
     """
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     try:
         data = json.loads(request.body)
@@ -2018,18 +2080,18 @@ def discord_config_save(request, slug):
     return JsonResponse({
         'success': True,
         'discord_bot_active': team.discord_bot_active,
-        'message': 'Discord configuration saved. Bot presence is being verified…',
+        'message': 'Discord configuration saved. Bot presence is being verifiedâ€¦',
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def discord_chat_messages(request, slug):
-    """GET /api/vnext/teams/<slug>/discord/chat/ — recent chat messages.
+    """GET /api/vnext/teams/<slug>/discord/chat/ â€” recent chat messages.
 
     Query params:
-      ?after=<id>  — only messages with pk > <id> (for polling)
-      ?limit=50    — max messages to return (default 50, max 200)
+      ?after=<id>  â€” only messages with pk > <id> (for polling)
+      ?limit=50    â€” max messages to return (default 50, max 200)
     """
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
 
@@ -2082,7 +2144,7 @@ def discord_chat_messages(request, slug):
         if m.get('author_user__profile__avatar'):
             avatar = settings.MEDIA_URL + m['author_user__profile__avatar']
         elif m.get('author_discord_id'):
-            # No linked profile — could build Discord CDN avatar later
+            # No linked profile â€” could build Discord CDN avatar later
             pass
         return {
             'id': m['id'],
@@ -2100,10 +2162,10 @@ def discord_chat_messages(request, slug):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def discord_chat_send(request, slug):
-    """POST /api/vnext/teams/<slug>/discord/chat/send/ — send a chat message.
+    """POST /api/vnext/teams/<slug>/discord/chat/send/ â€” send a chat message.
 
     Body: { "content": "Hello team!" }
 
@@ -2142,7 +2204,7 @@ def discord_chat_send(request, slug):
         discord_channel_id=team.discord_chat_channel_id or '',
     )
 
-    # Dispatch to Discord asynchronously (webhook OR bot — task decides)
+    # Dispatch to Discord asynchronously (webhook OR bot â€” task decides)
     if team.discord_webhook_url or (team.discord_bot_active and team.discord_chat_channel_id):
         from apps.organizations.tasks.discord_sync import send_discord_chat_message
         send_discord_chat_message.delay(team.pk, msg.pk)
@@ -2188,10 +2250,10 @@ def discord_chat_send(request, slug):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def discord_voice_link(request, slug):
-    """GET /api/vnext/teams/<slug>/discord/voice/ — voice channel deep link.
+    """GET /api/vnext/teams/<slug>/discord/voice/ â€” voice channel deep link.
 
     Returns a Discord deep link that opens the voice channel directly.
     """
@@ -2212,7 +2274,7 @@ def discord_voice_link(request, slug):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def discord_test_webhook(request, slug):
     """POST /api/vnext/teams/<slug>/discord/test-webhook/
@@ -2223,7 +2285,7 @@ def discord_test_webhook(request, slug):
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     webhook_url = team.discord_webhook_url
     if not webhook_url:
@@ -2232,7 +2294,7 @@ def discord_test_webhook(request, slug):
     import requests as http_requests
     try:
         payload = {
-            'content': '✅ **DeltaCrown webhook test** — your Discord integration is working!',
+            'content': 'âœ… **DeltaCrown webhook test** â€” your Discord integration is working!',
             'username': f'{team.name} via DeltaCrown',
         }
         resp = http_requests.post(webhook_url, json=payload, timeout=5)
@@ -2247,15 +2309,15 @@ def discord_test_webhook(request, slug):
         }, status=502)
 
 
-# ═══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # COMMUNITY & MEDIA ENDPOINTS
-# ═══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def community_data(request, slug):
-    """GET /api/vnext/teams/<slug>/community/ — aggregated feed data."""
+    """GET /api/vnext/teams/<slug>/community/ â€” aggregated feed data."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     is_member = team.vnext_memberships.filter(
         user=request.user, status='ACTIVE',
@@ -2311,14 +2373,14 @@ def community_data(request, slug):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def community_create_post(request, slug):
-    """POST /api/vnext/teams/<slug>/community/posts/ — create a team post/announcement."""
+    """POST /api/vnext/teams/<slug>/community/posts/ â€” create a team post/announcement."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     try:
         data = json.loads(request.body)
@@ -2365,10 +2427,10 @@ def community_create_post(request, slug):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def profile_upload_media(request, slug):
-    """POST /api/vnext/teams/<slug>/media/ — upload team logo or banner.
+    """POST /api/vnext/teams/<slug>/media/ â€” upload team logo or banner.
 
     Called from ManageHQ Profile tab, expects:
       - type: "logo" | "banner"
@@ -2377,7 +2439,7 @@ def profile_upload_media(request, slug):
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     media_type = (request.POST.get('type') or '').strip().lower()
     if media_type not in ('logo', 'banner'):
@@ -2409,14 +2471,14 @@ def profile_upload_media(request, slug):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def community_upload_media(request, slug):
-    """POST /api/vnext/teams/<slug>/community/media/ — upload gallery media."""
+    """POST /api/vnext/teams/<slug>/community/media/ â€” upload gallery media."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     title = (request.POST.get('title') or '').strip() or 'Untitled'
     category = request.POST.get('category', 'general')
@@ -2451,14 +2513,14 @@ def community_upload_media(request, slug):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def community_add_highlight(request, slug):
-    """POST /api/vnext/teams/<slug>/community/highlights/ — add a highlight reel."""
+    """POST /api/vnext/teams/<slug>/community/highlights/ â€” add a highlight reel."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     try:
         data = json.loads(request.body)
@@ -2491,13 +2553,13 @@ def community_add_highlight(request, slug):
 
 
 # ============================================================================
-# JOIN REQUESTS — User-initiated team applications
+# JOIN REQUESTS â€” User-initiated team applications
 # ============================================================================
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def apply_to_team(request, slug):
-    """POST /api/vnext/teams/<slug>/apply/ — submit a join request.
+    """POST /api/vnext/teams/<slug>/apply/ â€” submit a join request.
 
     Body: { "message": "optional intro message" }
     """
@@ -2544,10 +2606,10 @@ def apply_to_team(request, slug):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def withdraw_application(request, slug):
-    """POST /api/vnext/teams/<slug>/apply/withdraw/ — withdraw own pending request."""
+    """POST /api/vnext/teams/<slug>/apply/withdraw/ â€” withdraw own pending request."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     from apps.organizations.models.join_request import TeamJoinRequest
 
@@ -2563,14 +2625,14 @@ def withdraw_application(request, slug):
     return JsonResponse({'success': True, 'message': 'Application withdrawn.'})
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def list_join_requests(request, slug):
-    """GET /api/vnext/teams/<slug>/join-requests/ — list pending join requests (admin only)."""
+    """GET /api/vnext/teams/<slug>/join-requests/ â€” list pending join requests (admin only)."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models.join_request import TeamJoinRequest
 
@@ -2611,17 +2673,17 @@ def list_join_requests(request, slug):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def review_join_request(request, slug, request_id):
-    """POST /api/vnext/teams/<slug>/join-requests/<id>/<action>/ — accept or decline.
+    """POST /api/vnext/teams/<slug>/join-requests/<id>/<action>/ â€” accept or decline.
 
     Body: { "action": "accept" | "decline" }
     """
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models.join_request import TeamJoinRequest
     from django.utils import timezone
@@ -2671,17 +2733,17 @@ def review_join_request(request, slug, request_id):
 
 
 # ============================================================================
-# RECRUITMENT SETTINGS — Job Post Builder (Point 1A)
+# RECRUITMENT SETTINGS â€” Job Post Builder (Point 1A)
 # ============================================================================
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def recruitment_positions(request, slug):
-    """GET /api/vnext/teams/<slug>/recruitment/positions/ — list open positions."""
+    """GET /api/vnext/teams/<slug>/recruitment/positions/ â€” list open positions."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models.recruitment import RecruitmentPosition
     positions = RecruitmentPosition.objects.filter(team=team).order_by('sort_order', '-created_at')
@@ -2714,14 +2776,14 @@ def recruitment_positions(request, slug):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def recruitment_position_save(request, slug):
-    """POST /api/vnext/teams/<slug>/recruitment/positions/save/ — create or update position."""
+    """POST /api/vnext/teams/<slug>/recruitment/positions/save/ â€” create or update position."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models.recruitment import RecruitmentPosition
 
@@ -2775,14 +2837,14 @@ def recruitment_position_save(request, slug):
     return JsonResponse({'success': True, 'id': pos.pk, 'message': 'Position added.'})
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def recruitment_position_delete(request, slug, position_id):
     """POST /api/vnext/teams/<slug>/recruitment/positions/<id>/delete/"""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models.recruitment import RecruitmentPosition
     pos = get_object_or_404(RecruitmentPosition, pk=position_id, team=team)
@@ -2790,14 +2852,14 @@ def recruitment_position_delete(request, slug, position_id):
     return JsonResponse({'success': True, 'message': 'Position removed.'})
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def recruitment_requirements(request, slug):
-    """GET /api/vnext/teams/<slug>/recruitment/requirements/ — list requirements."""
+    """GET /api/vnext/teams/<slug>/recruitment/requirements/ â€” list requirements."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models.recruitment import RecruitmentRequirement
     reqs = RecruitmentRequirement.objects.filter(team=team).order_by('sort_order', '-created_at')
@@ -2810,14 +2872,14 @@ def recruitment_requirements(request, slug):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def recruitment_requirement_save(request, slug):
     """POST /api/vnext/teams/<slug>/recruitment/requirements/save/"""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models.recruitment import RecruitmentRequirement
 
@@ -2849,14 +2911,14 @@ def recruitment_requirement_save(request, slug):
     return JsonResponse({'success': True, 'id': req.pk, 'message': 'Requirement added.'})
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def recruitment_requirement_delete(request, slug, requirement_id):
     """POST /api/vnext/teams/<slug>/recruitment/requirements/<id>/delete/"""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models.recruitment import RecruitmentRequirement
     req = get_object_or_404(RecruitmentRequirement, pk=requirement_id, team=team)
@@ -2865,17 +2927,17 @@ def recruitment_requirement_delete(request, slug, requirement_id):
 
 
 # ============================================================================
-# TRYOUT WORKFLOW — Schedule / Complete / Offer (Point 1B)
+# TRYOUT WORKFLOW â€” Schedule / Complete / Offer (Point 1B)
 # ============================================================================
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def schedule_tryout(request, slug, request_id):
     """POST /api/vnext/teams/<slug>/join-requests/<id>/tryout/schedule/"""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models.join_request import TeamJoinRequest
     from datetime import datetime
@@ -2914,20 +2976,20 @@ def schedule_tryout(request, slug, request_id):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def advance_tryout(request, slug, request_id):
     """POST /api/vnext/teams/<slug>/join-requests/<id>/tryout/advance/
 
     Advance through tryout lifecycle:
-      TRYOUT_SCHEDULED → TRYOUT_COMPLETED
-      TRYOUT_COMPLETED → OFFER_SENT
-      OFFER_SENT → ACCEPTED (creates membership)
+      TRYOUT_SCHEDULED â†’ TRYOUT_COMPLETED
+      TRYOUT_COMPLETED â†’ OFFER_SENT
+      OFFER_SENT â†’ ACCEPTED (creates membership)
     """
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models.join_request import TeamJoinRequest
 
@@ -2948,7 +3010,7 @@ def advance_tryout(request, slug, request_id):
     }
 
     if jr.status == 'OFFER_SENT':
-        # Final step — sign the player (create membership)
+        # Final step â€” sign the player (create membership)
         from apps.organizations.models import TeamMembership
         if not team.vnext_memberships.filter(user=jr.user, status='ACTIVE').exists():
             TeamMembership.objects.create(
@@ -2976,17 +3038,17 @@ def advance_tryout(request, slug, request_id):
 
 
 # ============================================================================
-# ACTIVITY PIN / UNPIN — Journey filtering (Point 2)
+# ACTIVITY PIN / UNPIN â€” Journey filtering (Point 2)
 # ============================================================================
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def toggle_activity_pin(request, slug, activity_id):
-    """POST /api/vnext/teams/<slug>/activity/<id>/pin/ — toggle pin on activity log entry."""
+    """POST /api/vnext/teams/<slug>/activity/<id>/pin/ â€” toggle pin on activity log entry."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models import TeamActivityLog
     entry = get_object_or_404(TeamActivityLog, pk=activity_id, team=team)
@@ -3002,28 +3064,28 @@ def toggle_activity_pin(request, slug, activity_id):
 
 
 # ============================================================================
-# TROPHY MANAGEMENT — Dashboard module (Point 4)
+# TROPHY MANAGEMENT â€” Dashboard module (Point 4)
 # ============================================================================
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def list_trophies(request, slug):
-    """GET /api/vnext/teams/<slug>/trophies/ — list team trophies from metadata."""
+    """GET /api/vnext/teams/<slug>/trophies/ â€” list team trophies from metadata."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
-    # Public endpoint — no perm check
+    # Public endpoint â€” no perm check
     meta = team.metadata or {}
     trophies = meta.get('trophies', [])
     return JsonResponse({'trophies': trophies})
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def save_trophy(request, slug):
-    """POST /api/vnext/teams/<slug>/trophies/save/ — add or edit trophy entry."""
+    """POST /api/vnext/teams/<slug>/trophies/save/ â€” add or edit trophy entry."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     try:
         data = json.loads(request.body)
@@ -3061,14 +3123,14 @@ def save_trophy(request, slug):
     return JsonResponse({'success': True, 'trophy': entry, 'message': 'Trophy saved.'})
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def delete_trophy(request, slug, trophy_id):
     """POST /api/vnext/teams/<slug>/trophies/<id>/delete/"""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     meta = team.metadata or {}
     trophies = meta.get('trophies', [])
@@ -3080,26 +3142,26 @@ def delete_trophy(request, slug, trophy_id):
 
 
 # ============================================================================
-# MERCH MANAGEMENT — Dashboard module (Point 4)
+# MERCH MANAGEMENT â€” Dashboard module (Point 4)
 # ============================================================================
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def list_merch(request, slug):
-    """GET /api/vnext/teams/<slug>/merch/ — list merch items from metadata."""
+    """GET /api/vnext/teams/<slug>/merch/ â€” list merch items from metadata."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     meta = team.metadata or {}
     return JsonResponse({'merch': meta.get('merch_items', [])})
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def save_merch(request, slug):
-    """POST /api/vnext/teams/<slug>/merch/save/ — add or edit merch item."""
+    """POST /api/vnext/teams/<slug>/merch/save/ â€” add or edit merch item."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     try:
         data = json.loads(request.body)
@@ -3136,14 +3198,14 @@ def save_merch(request, slug):
     return JsonResponse({'success': True, 'item': item, 'message': 'Merch item saved.'})
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def delete_merch(request, slug, merch_id):
     """POST /api/vnext/teams/<slug>/merch/<id>/delete/"""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     meta = team.metadata or {}
     merch = meta.get('merch_items', [])
@@ -3158,14 +3220,14 @@ def delete_merch(request, slug, merch_id):
 # MANUAL MILESTONES
 # ============================================================================
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def add_manual_milestone(request, slug):
-    """POST /api/vnext/teams/<slug>/milestones/add/ — add a custom milestone entry."""
+    """POST /api/vnext/teams/<slug>/milestones/add/ â€” add a custom milestone entry."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     try:
         data = json.loads(request.body)
@@ -3207,27 +3269,27 @@ def add_manual_milestone(request, slug):
 # SPONSORS / PARTNERS  (stored in team.metadata['sponsors'])
 # ============================================================================
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def list_sponsors(request, slug):
     """GET /api/vnext/teams/<slug>/sponsors/"""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     meta = team.metadata or {}
     return JsonResponse({'sponsors': meta.get('sponsors', [])})
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def save_sponsor(request, slug):
     """POST /api/vnext/teams/<slug>/sponsors/save/"""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     try:
         data = json.loads(request.body)
@@ -3265,14 +3327,14 @@ def save_sponsor(request, slug):
     return JsonResponse({'success': True, 'sponsor': entry})
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def delete_sponsor(request, slug, sponsor_id):
     """POST /api/vnext/teams/<slug>/sponsors/<id>/delete/"""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     meta = team.metadata or {}
     sponsors = meta.get('sponsors', [])
@@ -3284,17 +3346,17 @@ def delete_sponsor(request, slug, sponsor_id):
 
 
 # ============================================================================
-# JOURNEY MILESTONES — Curated Public Timeline
+# JOURNEY MILESTONES â€” Curated Public Timeline
 # ============================================================================
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def list_journey_milestones(request, slug):
-    """GET /api/vnext/teams/<slug>/journey/ — list all curated journey milestones."""
+    """GET /api/vnext/teams/<slug>/journey/ â€” list all curated journey milestones."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models.journey import TeamJourneyMilestone
     milestones = TeamJourneyMilestone.objects.filter(team=team).order_by('-milestone_date')
@@ -3314,14 +3376,14 @@ def list_journey_milestones(request, slug):
     return JsonResponse({'success': True, 'milestones': items, 'count': len(items)})
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def save_journey_milestone(request, slug):
-    """POST /api/vnext/teams/<slug>/journey/save/ — create or update a journey milestone."""
+    """POST /api/vnext/teams/<slug>/journey/save/ â€” create or update a journey milestone."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     try:
         data = json.loads(request.body)
@@ -3401,14 +3463,14 @@ def save_journey_milestone(request, slug):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def delete_journey_milestone(request, slug, milestone_id):
-    """POST /api/vnext/teams/<slug>/journey/<id>/delete/ — delete a journey milestone."""
+    """POST /api/vnext/teams/<slug>/journey/<id>/delete/ â€” delete a journey milestone."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models.journey import TeamJourneyMilestone
     try:
@@ -3419,14 +3481,14 @@ def delete_journey_milestone(request, slug, milestone_id):
         return JsonResponse({'error': 'Milestone not found'}, status=404)
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def toggle_journey_visibility(request, slug, milestone_id):
-    """POST /api/vnext/teams/<slug>/journey/<id>/toggle/ — toggle milestone visibility."""
+    """POST /api/vnext/teams/<slug>/journey/<id>/toggle/ â€” toggle milestone visibility."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.models.journey import TeamJourneyMilestone
     try:
@@ -3442,30 +3504,30 @@ def toggle_journey_visibility(request, slug, milestone_id):
         return JsonResponse({'error': 'Milestone not found'}, status=404)
 
 
-# ── Milestone Suggestions ──────────────────────────────────────────────
+# â”€â”€ Milestone Suggestions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def journey_suggestions(request, slug):
-    """GET /api/vnext/teams/<slug>/journey/suggestions/ — auto-detected milestone suggestions."""
+    """GET /api/vnext/teams/<slug>/journey/suggestions/ â€” auto-detected milestone suggestions."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     from apps.organizations.services.milestone_suggestions import get_milestone_suggestions
     suggestions = get_milestone_suggestions(team)
     return JsonResponse({'success': True, 'suggestions': suggestions})
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def dismiss_journey_suggestion(request, slug):
-    """POST /api/vnext/teams/<slug>/journey/suggestions/dismiss/ — dismiss a suggested milestone."""
+    """POST /api/vnext/teams/<slug>/journey/suggestions/dismiss/ â€” dismiss a suggested milestone."""
     team = get_object_or_404(Team, slug=slug, status=TeamStatus.ACTIVE)
     has_perm, reason = _check_manage_permissions(team, request.user)
     if not has_perm:
-        return JsonResponse({'error': reason}, status=403)
+        return JsonResponse({'error': reason, 'error_code': 'INSUFFICIENT_PERMISSIONS'}, status=403)
 
     try:
         data = json.loads(request.body)

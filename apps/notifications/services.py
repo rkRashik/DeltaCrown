@@ -425,7 +425,7 @@ class NotificationService:
         body = f"{invite.inviter.user.username if invite.inviter else 'A team captain'} invited you to join {invite.team.name} as {invite.get_role_display()}"
         
         # Link to my_invites page where user can accept/decline
-        url = reverse('teams:my_invites')
+        url = reverse('organizations:team_invites')
         
         return NotificationService._send_notification_multi_channel(
             users=[invite.invited_user.user],
@@ -454,10 +454,7 @@ class NotificationService:
         try:
             url = reverse('organizations:team_invites')
         except Exception:
-            try:
-                url = reverse('teams:my_invites')
-            except Exception:
-                url = '/dashboard/'
+            url = '/dashboard/'
 
         extra = {}
         if invite_id:
@@ -497,9 +494,9 @@ class NotificationService:
             adapter = TeamAdapter()
             url = adapter.get_team_url(invite.team.id)
         except Exception:
-            # Fallback to legacy URL if adapter fails
+            # Fallback to organizations URL if adapter fails
             from django.urls import reverse
-            url = reverse('teams:team_detail', kwargs={'slug': invite.team.slug})
+            url = reverse('organizations:team_detail', kwargs={'team_slug': invite.team.slug})
         
         # Notify team creator and managers
         recipients = []
@@ -696,8 +693,8 @@ class NotificationService:
             adapter = TeamAdapter()
             url = adapter.get_team_url(team.id)
         except Exception:
-            # Fallback to legacy URL if adapter fails
-            url = reverse('teams:team_detail', kwargs={'slug': team.slug})
+            # Fallback to organizations URL if adapter fails
+            url = reverse('organizations:team_detail', kwargs={'team_slug': team.slug})
         
         # Get all team members
         team_members = [member.user for member in team.members.all() if member.user]
@@ -723,9 +720,8 @@ class NotificationService:
         title = f"Sponsor Approved: {sponsor.sponsor_name}"
         body = f"Your sponsorship with {sponsor.sponsor_name} has been approved!"
         
-        # P3-T1: Use TeamAdapter for team URL (sponsor dashboard keeps legacy route)
-        # Note: sponsor_dashboard is team-app specific, so we construct it manually
-        url = reverse('teams:sponsor_dashboard', kwargs={'team_slug': sponsor.team.slug})
+        # Sponsor dashboard URL (constructed manually since no dedicated route)
+        url = f"/teams/{sponsor.team.slug}/"
         
         # Notify captain and co-captains
         captains = [sponsor.team.captain.user] if sponsor.team.captain else []
@@ -757,8 +753,8 @@ class NotificationService:
             adapter = TeamAdapter()
             url = adapter.get_team_url(promotion.team.id)
         except Exception:
-            # Fallback to legacy URL if adapter fails
-            url = reverse('teams:team_detail', kwargs={'slug': promotion.team.slug})
+            # Fallback to organizations URL if adapter fails
+            url = reverse('organizations:team_detail', kwargs={'team_slug': promotion.team.slug})
         
         # Notify captain
         captains = [promotion.team.captain.user] if promotion.team.captain else []
@@ -785,7 +781,7 @@ class NotificationService:
         
         title = f"ðŸ’° Payout Received: {amount} coins"
         body = f"Your team received {amount} coins! Reason: {reason}"
-        url = reverse('teams:team_detail', kwargs={'slug': team.slug})
+        url = reverse('organizations:team_detail', kwargs={'team_slug': team.slug})
         
         # Get all team members
         team_members = [member.user for member in team.members.all() if member.user]
@@ -811,7 +807,7 @@ class NotificationService:
         
         title = f"ðŸ† Achievement Unlocked: {achievement.title}"
         body = f"Your team earned: {achievement.description}"
-        url = reverse('teams:team_detail', kwargs={'slug': team.slug})
+        url = reverse('organizations:team_detail', kwargs={'team_slug': team.slug})
         
         # Get all team members
         team_members = [member.user for member in team.members.all() if member.user]

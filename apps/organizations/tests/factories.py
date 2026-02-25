@@ -154,8 +154,9 @@ class TeamFactory(DjangoModelFactory):
         
         Usage:
             team = TeamFactory.create_independent(created_by=user)
+            team = TeamFactory.create_independent(owner=user)  # Legacy alias
         """
-        created_by = kwargs.pop("created_by", None) or UserFactory.create()
+        created_by = kwargs.pop("created_by", None) or kwargs.pop("owner", None) or UserFactory.create()
         return cls.create(organization=None, created_by=created_by, **kwargs)
     
     @classmethod

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tests for Append-Only Membership Event Ledger
 
 Purpose: Verify event creation for all membership lifecycle events and query capabilities.
@@ -24,7 +24,7 @@ class TestMembershipEventLedger:
         """Verify JOINED event created when user added to team"""
         # Setup
         creator = User.objects.create_user(username='creator', password='pass')
-        team = create_independent_team(creator, 'Delta', 'delta')
+        team, _ = create_independent_team('Delta', creator)
         new_member = User.objects.create_user(username='player1', password='pass')
         
         client.login(username='creator', password='pass')
@@ -56,7 +56,7 @@ class TestMembershipEventLedger:
         """Verify ROLE_CHANGED event with old/new role recorded"""
         # Setup
         creator = User.objects.create_user(username='creator', password='pass')
-        team = create_independent_team(creator, 'Delta', 'delta')
+        team, _ = create_independent_team('Delta', creator)
         member_user = User.objects.create_user(username='player1', password='pass')
         
         membership = TeamMembership.objects.create(
@@ -101,7 +101,7 @@ class TestMembershipEventLedger:
         """Verify REMOVED event with status change and left_at timestamp"""
         # Setup
         creator = User.objects.create_user(username='creator', password='pass')
-        team = create_independent_team(creator, 'Delta', 'delta')
+        team, _ = create_independent_team('Delta', creator)
         member_user = User.objects.create_user(username='player1', password='pass')
         
         membership = TeamMembership.objects.create(
@@ -149,7 +149,7 @@ class TestMembershipEventLedger:
         """Verify LEFT event when user removes themselves"""
         # Setup
         creator = User.objects.create_user(username='creator', password='pass')
-        team = create_independent_team(creator, 'Delta', 'delta')
+        team, _ = create_independent_team('Delta', creator)
         member_user = User.objects.create_user(username='player1', password='pass')
         
         membership = TeamMembership.objects.create(
@@ -191,7 +191,7 @@ class TestMembershipEventLedger:
         """Verify STATUS_CHANGED event with metadata on moderation action"""
         # Setup
         creator = User.objects.create_user(username='creator', password='pass', is_staff=True)
-        team = create_independent_team(creator, 'Delta', 'delta')
+        team, _ = create_independent_team('Delta', creator)
         member_user = User.objects.create_user(username='player1', password='pass')
         
         membership = TeamMembership.objects.create(
@@ -229,7 +229,7 @@ class TestMembershipEventLedger:
         """Verify user team history endpoint returns complete event timeline"""
         # Setup
         creator = User.objects.create_user(username='creator', password='pass')
-        team = create_independent_team(creator, 'Delta', 'delta')
+        team, _ = create_independent_team('Delta', creator)
         player = User.objects.create_user(username='player1', password='pass')
         
         # Create membership
@@ -292,7 +292,7 @@ class TestMembershipEventLedger:
         """Verify users cannot view other users' history (unless staff)"""
         # Setup
         creator = User.objects.create_user(username='creator', password='pass')
-        team = create_independent_team(creator, 'Delta', 'delta')
+        team, _ = create_independent_team('Delta', creator)
         player = User.objects.create_user(username='player1', password='pass')
         other_user = User.objects.create_user(username='other', password='pass')
         
@@ -309,7 +309,7 @@ class TestMembershipEventLedger:
         """Verify append-only enforcement prevents event updates"""
         # Setup
         creator = User.objects.create_user(username='creator', password='pass')
-        team = create_independent_team(creator, 'Delta', 'delta')
+        team, _ = create_independent_team('Delta', creator)
         player = User.objects.create_user(username='player1', password='pass')
         
         membership = TeamMembership.objects.create(
@@ -339,7 +339,7 @@ class TestMembershipEventLedger:
     def test_team_creation_creates_joined_event_for_creator(self):
         """Verify factory creates JOINED event when team is created"""
         creator = User.objects.create_user(username='creator', password='pass')
-        team = create_independent_team(creator, 'Delta', 'delta')
+        team, _ = create_independent_team('Delta', creator)
         
         # Verify JOINED event exists for creator
         events = TeamMembershipEvent.objects.filter(user=creator, team=team, event_type=MembershipEventType.JOINED)
@@ -353,7 +353,7 @@ class TestMembershipEventLedger:
     def test_add_member_rejects_owner_role(self, client):
         """Verify OWNER role assignment is rejected in add_member"""
         creator = User.objects.create_user(username='creator', password='pass')
-        team = create_independent_team(creator, 'Delta', 'delta')
+        team, _ = create_independent_team('Delta', creator)
         new_member = User.objects.create_user(username='player1', password='pass')
         
         client.login(username='creator', password='pass')
@@ -373,7 +373,7 @@ class TestMembershipEventLedger:
     def test_change_role_rejects_owner_role(self, client):
         """Verify OWNER role assignment is rejected in change_role"""
         creator = User.objects.create_user(username='creator', password='pass')
-        team = create_independent_team(creator, 'Delta', 'delta')
+        team, _ = create_independent_team('Delta', creator)
         member_user = User.objects.create_user(username='player1', password='pass')
         
         membership = TeamMembership.objects.create(
@@ -405,7 +405,7 @@ class TestMembershipEventLedger:
         player = User.objects.create_user(username='player1', password='pass')
         teams = []
         for i in range(5):
-            team = create_independent_team(creator, f'Team{i}', f'team{i}')
+            team, _ = create_independent_team(f'Team{i}', creator)
             membership = TeamMembership.objects.create(
                 team=team,
                 user=player,
@@ -452,7 +452,7 @@ class TestMembershipEventLedger:
     def test_metadata_redaction_for_non_staff(self, client):
         """Verify sensitive metadata is redacted for non-staff users"""
         creator = User.objects.create_user(username='creator', password='pass', is_staff=True)
-        team = create_independent_team(creator, 'Delta', 'delta')
+        team, _ = create_independent_team('Delta', creator)
         member_user = User.objects.create_user(username='player1', password='pass')
         
         membership = TeamMembership.objects.create(

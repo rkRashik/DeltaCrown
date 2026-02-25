@@ -25,7 +25,7 @@
         <div class="flex-1"><span class="text-gray-100 font-semibold group-hover:text-white block">Browse Tournaments</span><span class="text-sm text-gray-400">Find active competitions</span></div>
         <i class="fa-solid fa-chevron-right text-gray-600 group-hover:text-cyan-400 transition-all group-hover:translate-x-1"></i>
       </a>
-      <a href="{% if ORG_APP_ENABLED %}/teams/vnext/{% else %}/teams/{% endif %}" class="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 group transition-all border border-transparent hover:border-cyan-400/30">
+      <a href="/teams/" class="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 group transition-all border border-transparent hover:border-cyan-400/30">
         <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-400/20 to-cyan-600/10 text-cyan-400 flex items-center justify-center border border-cyan-400/30">
           <i class="fa-solid fa-users text-lg"></i>
         </div>
@@ -80,8 +80,8 @@
       {% nav_active '/tournaments/' '/tournaments' as tournaments_active %}
       <div class="dc-nav-item{% if tournaments_active %} active{% endif %}"><a href="/tournaments/" class="dc-nav-link" {% if tournaments_active %}aria-current="page"{% endif %}>Tournaments</a></div>
 
-      {% if ORG_APP_ENABLED %}{% nav_active '/teams/vnext/' '/teams' '/orgs/' as teams_active %}
-      <div class="dc-nav-item{% if teams_active %} active{% endif %}"><a href="/teams/vnext/" class="dc-nav-link" {% if teams_active %}aria-current="page"{% endif %}>Teams</a></div>
+      {% if ORG_APP_ENABLED %}{% nav_active '/teams/' '/teams' '/orgs/' as teams_active %}
+      <div class="dc-nav-item{% if teams_active %} active{% endif %}"><a href="/teams/" class="dc-nav-link" {% if teams_active %}aria-current="page"{% endif %}>Teams</a></div>
       {% else %}{% nav_active '/teams/' '/teams' as teams_active %}
       <div class="dc-nav-item{% if teams_active %} active{% endif %}"><a href="/teams/" class="dc-nav-link" {% if teams_active %}aria-current="page"{% endif %}>Teams</a></div>
       {% endif %}
@@ -153,7 +153,7 @@
           <div class="py-2 px-1">
             <a href="{% url 'user_profile:public_profile' request.user.username %}" class="dc-dd-item"><i class="fa-regular fa-user"></i> <span>My Profile</span></a>
             <a href="/dashboard/" class="dc-dd-item"><i class="fa-solid fa-chart-pie"></i> <span>Dashboard</span></a>
-            {% if ORG_APP_ENABLED %}<a href="/teams/vnext/" class="dc-dd-item"><i class="fa-solid fa-users"></i> <span>Teams</span></a>
+            {% if ORG_APP_ENABLED %}<a href="/teams/" class="dc-dd-item"><i class="fa-solid fa-users"></i> <span>Teams</span></a>
             {% elif LEGACY_TEAMS_ENABLED %}<a href="/teams/" class="dc-dd-item"><i class="fa-solid fa-users"></i> <span>Teams</span></a>{% endif %}
             <div class="h-px bg-white/5 mx-4 my-1.5"></div>
             <a href="{% url 'user_profile:settings' %}" class="dc-dd-item"><i class="fa-solid fa-sliders"></i> <span>Settings</span></a>
@@ -182,8 +182,8 @@
   <a href="/tournaments/" class="dc-btm-item {% if tournaments_active %}active{% endif %}" {% if tournaments_active %}aria-current="page"{% endif %}>
     <i class="fa-solid fa-trophy"></i><span>Events</span>
   </a>
-  {% if ORG_APP_ENABLED %}{% nav_active '/teams/vnext/' '/teams' '/orgs/' as teams_active %}
-  <a href="/teams/vnext/" class="dc-btm-item {% if teams_active %}active{% endif %}" {% if teams_active %}aria-current="page"{% endif %}>
+  {% if ORG_APP_ENABLED %}{% nav_active '/teams/' '/teams' '/orgs/' as teams_active %}
+  <a href="/teams/" class="dc-btm-item {% if teams_active %}active{% endif %}" {% if teams_active %}aria-current="page"{% endif %}>
     <i class="fa-solid fa-users"></i><span>Teams</span>
   </a>
   {% else %}{% nav_active '/teams/' '/teams' as teams_active %}
@@ -228,7 +228,7 @@
     <div class="space-y-1">
       <a href="/dashboard/" class="dc-drawer-link"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard</a>
       <a href="{% url 'user_profile:public_profile' request.user.username %}" class="dc-drawer-link"><i class="fa-solid fa-user w-5"></i> Profile</a>
-      <a href="{% if TEAM_VNEXT_ADAPTER_ENABLED and not TEAM_VNEXT_FORCE_LEGACY and TEAM_VNEXT_ROUTING_MODE != 'legacy_only' %}{% url 'organizations:team_invites' %}{% else %}{% url 'teams:my_invites' %}{% endif %}" class="dc-drawer-link relative">
+      <a href="{% url 'organizations:team_invites' %}" class="dc-drawer-link relative">
         <i class="fa-solid fa-user-plus w-5"></i> Team Invites
         {% if pending_invites_count > 0 %}<span class="absolute top-2 right-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">{{ pending_invites_count }}</span>{% endif %}
       </a>

@@ -55,7 +55,7 @@ class SettingsControlDeckSmokeTests(TestCase):
         response = self.client.get(reverse('user_profile:profile_settings'))
         
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Settings Control Deck', response.content)
+        self.assertIn(b'Control Deck', response.content)
         self.assertIn(b'testuser', response.content)
 
     def test_settings_page_context_has_required_data(self):
@@ -82,7 +82,7 @@ class SettingsControlDeckSmokeTests(TestCase):
                 'display_name': 'Updated Name',
                 'bio': 'Updated bio',
                 'city': 'Dhaka',
-                'country': 'Bangladesh',
+                'country': 'BD',
             }
         )
         

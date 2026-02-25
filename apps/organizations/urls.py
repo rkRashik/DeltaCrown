@@ -32,18 +32,22 @@ urlpatterns = [
     # API endpoints are now registered at root level in deltacrown/urls.py
     # This comment left for reference - actual API routes moved to main urls.py
     
-    # UI views - Team Directory (public browseable listing)
-    path('teams/', team_directory, name='team_directory'),
+    # UI views - Teams Hub (main landing page at /teams/)
+    path('teams/', vnext_hub, name='vnext_hub'),
+    path('teams/filter/', vnext_hub_filter, name='vnext_hub_filter'),
     
-    # UI views - vNext Hub (landing page)
-    path('teams/vnext/', vnext_hub, name='vnext_hub'),
-    path('teams/vnext/filter/', vnext_hub_filter, name='vnext_hub_filter'),
+    # UI views - Team Directory (public browseable listing)
+    path('teams/directory/', team_directory, name='team_directory'),
     
     # UI views - Team invites dashboard
     path('teams/invites/', team_invites, name='team_invites'),
     
     # UI views - Team creation
     path('teams/create/', team_create, name='team_create'),
+    
+    # Backward-compat redirects: /teams/vnext/ → /teams/
+    path('teams/vnext/', RedirectView.as_view(pattern_name='organizations:vnext_hub', permanent=True)),
+    path('teams/vnext/filter/', RedirectView.as_view(pattern_name='organizations:vnext_hub_filter', permanent=True)),
     
     # UI views - Team detail (P4-T1 - Public display)
     path('teams/<str:team_slug>/', team_detail, name='team_detail'),
