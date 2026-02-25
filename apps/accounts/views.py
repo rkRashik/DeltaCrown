@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import urllib.error
 
 from django.conf import settings
 from django.contrib import messages
@@ -9,7 +8,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.views import LoginView, LogoutView, PasswordResetView
-from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -75,7 +74,12 @@ class DCLoginView(LoginView):
     template_name = "account/login.html"
     redirect_authenticated_user = True
     form_class = EmailOrUsernameAuthenticationForm
-    
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["google_oauth_enabled"] = bool(settings.GOOGLE_OAUTH_CLIENT_ID)
+        return ctx
+
     def get_success_url(self):
         # Get the 'next' parameter from GET or POST
         next_url = self.request.GET.get('next') or self.request.POST.get('next')
@@ -98,6 +102,11 @@ class SignUpView(FormView):
     template_name = "account/signup.html"
     form_class = SignUpForm
     success_url = reverse_lazy("account:verify_email_otp")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["google_oauth_enabled"] = bool(settings.GOOGLE_OAUTH_CLIENT_ID)
+        return ctx
 
     def form_valid(self, form):
         EmailOTP.prune_stale_unverified()
@@ -253,19 +262,32 @@ class ResendOTPView(View):
 class GoogleLoginStart(View):
     def get(self, request):
         client_id = settings.GOOGLE_OAUTH_CLIENT_ID
+        if not client_id:
+            messages.error(request, "Google sign-in is not configured yet. Please use email/password.")
+            return redirect("account:login")
         redirect_uri = _build_google_redirect_uri(request)
         state = get_random_string(24)
         request.session["google_oauth_state"] = state
+        # Preserve 'next' across the OAuth round-trip
+        next_url = request.GET.get("next", "")
+        if next_url:
+            request.session["google_oauth_next"] = next_url
         url = oauth.build_auth_url(client_id, redirect_uri, state)
         return HttpResponseRedirect(url)
 
 
 class GoogleCallback(View):
     def get(self, request):
+        # Handle user-cancelled OAuth ("access_denied")
+        if request.GET.get("error"):
+            messages.info(request, "Google sign-in was cancelled.")
+            return redirect("account:login")
+
         state = request.GET.get("state")
         code = request.GET.get("code")
         if not state or state != request.session.get("google_oauth_state"):
-            return HttpResponseBadRequest("Bad OAuth state")
+            messages.error(request, "Invalid sign-in session. Please try again.")
+            return redirect("account:login")
 
         client_id = settings.GOOGLE_OAUTH_CLIENT_ID
         client_secret = settings.GOOGLE_OAUTH_CLIENT_SECRET
@@ -278,28 +300,58 @@ class GoogleCallback(View):
                 client_secret=client_secret,
                 redirect_uri=redirect_uri,
             )
-        except urllib.error.HTTPError as e:
-            detail = e.read().decode(errors="ignore")
-            return HttpResponseBadRequest(f"Google token exchange failed ({e.code}). {detail}")
+        except Exception as e:
+            logger.error("Google OAuth token exchange failed: %s", e)
+            messages.error(request, "Google sign-in failed. Please try again or use email/password.")
+            return redirect("account:login")
 
         email = info.get("email")
-        sub = info.get("sub")
-        name = info.get("name") or (email.split("@")[0] if email else f"user-{sub[:6]}")
         if not email:
-            return HttpResponseBadRequest("Google login requires email scope")
+            messages.error(request, "Google did not provide an email address. Please use email/password sign-in.")
+            return redirect("account:login")
 
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={"username": _unique_username_from(name), "is_active": True, "is_verified": True},
-        )
-        if created and not user.email_verified_at:
+        name = info.get("name") or email.split("@")[0]
+
+        # Look up by email (case-insensitive), create if not found
+        try:
+            user = User.objects.get(email__iexact=email)
+            created = False
+        except User.DoesNotExist:
+            user = User.objects.create_user(
+                username=_unique_username_from(name),
+                email=email,
+                password=None,  # unusable password — must use Google or reset flow
+                is_active=True,
+            )
+            setattr(user, "is_verified", True)
             user.email_verified_at = timezone.now()
-            user.save(update_fields=["email_verified_at"])
+            user.save(update_fields=["is_verified", "email_verified_at"])
+            created = True
+
+        # Ensure existing users are marked verified (Google confirmed their email)
+        update_fields = []
+        if not user.is_active:
+            user.is_active = True
+            update_fields.append("is_active")
+        if not getattr(user, "is_verified", True):
+            user.is_verified = True
+            update_fields.append("is_verified")
+        if not user.email_verified_at:
+            user.email_verified_at = timezone.now()
+            update_fields.append("email_verified_at")
+        if update_fields:
+            user.save(update_fields=update_fields)
+
         if created:
-            messages.success(request, "Welcome with Google!")
-        login(request, user)
+            messages.success(request, f"Welcome to DeltaCrown, {user.username}! Your account has been created.")
+        else:
+            messages.success(request, f"Welcome back, {user.username}!")
+
+        login(request, user, backend="apps.accounts.backends.EmailOrUsernameBackend")
         request.session.pop("google_oauth_state", None)
-        return redirect("account:profile")
+
+        next_url = request.session.pop("google_oauth_next", None) or reverse("siteui:homepage")
+        return redirect(next_url)
 
 
 def _build_google_redirect_uri(request):

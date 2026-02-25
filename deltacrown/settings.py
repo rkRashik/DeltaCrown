@@ -678,8 +678,16 @@ _default_site = "https://deltacrown.xyz" if not DEBUG else "http://192.168.68.10
 SITE_URL = os.getenv("SITE_URL", _default_site)
 
 # Google OAuth Client
-GOOGLE_OAUTH_CLIENT_ID = os.getenv("DeltaCrown_OAUTH_CLIENT_ID", "")
-GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("DeltaCrown_OAUTH_CLIENT_SECRET", "")
+# Env vars: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (standard names)
+# Legacy fallbacks: DeltaCrown_OAUTH_CLIENT_ID / DeltaCrown_OAUTH_CLIENT_SECRET
+GOOGLE_OAUTH_CLIENT_ID = (
+    os.getenv("GOOGLE_CLIENT_ID")
+    or os.getenv("DeltaCrown_OAUTH_CLIENT_ID", "")
+)
+GOOGLE_OAUTH_CLIENT_SECRET = (
+    os.getenv("GOOGLE_CLIENT_SECRET")
+    or os.getenv("DeltaCrown_OAUTH_CLIENT_SECRET", "")
+)
 
 
 # --- Email ---
